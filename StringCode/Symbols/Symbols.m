@@ -101,8 +101,15 @@ ct::usage = "Antiholomorphic c-ghost"
 \[Psi]t::usage = "Antiholomorphic free matter fermion"
 
 
+ProfileX::usage = "A polynomial X-profile"
+
+
 (* ::Section:: *)
 (*Logic*)
+
+
+(* ::Subsection::Closed:: *)
+(*Define index contractions*)
 
 
 Contract[f_,dim_]:=f /.{\[Delta][\[Mu]_,\[Mu]_]:>dim,\[Delta][\[Mu]_,\[Nu]_]^2:>dim};
@@ -121,7 +128,7 @@ Begin["`Private`"];
 
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
-bosons={expX,dX,dXt,d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb};
+bosons={expX,dX,dXt,d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb,ProfileX};
 fermions={\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf};
 regfermions={\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
 exp\[Phi]fermions={exp\[Phi]f};
@@ -130,10 +137,6 @@ simplefields={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Et
 simplefieldsnotc={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
 compositefields={expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf};
 allfields=Join[bosons,fermions];
-
-
-(* ::Subsection:: *)
-(*Define index contractions*)
 
 
 (* ::Section:: *)

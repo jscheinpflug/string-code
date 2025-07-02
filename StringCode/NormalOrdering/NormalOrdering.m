@@ -103,12 +103,8 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 
 
-(* ::Subsection:: *)
-(*Define CR*)
-
-
 (* ::Subsection::Initialization:: *)
-(*(*Define CR*)*)
+(*Define CR*)
 
 
 (* ::Input::Initialization:: *)

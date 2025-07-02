@@ -8,9 +8,9 @@ InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with
 
 DeclarePackage["StringCode`Symbols`",
 {"expX", "dX", "dXt","d\[Phi]", "d\[Phi]t","exp\[Phi]b","exp\[Phi]tb", "exp\[Phi]f","exp\[Phi]tf","b","bt","c","ct","\[Xi]", "\[Xi]t","\[Eta]","\[Eta]t","\[Psi]","\[Psi]t", "bosons", "fermions", "allfields","regfermions","exp\[Phi]fermions","exp\[Phi]tfermions",
-"simplefields", "simplefieldsnotc","compositefields","Contract","ContractDelta"}];
+"simplefields", "simplefieldsnotc","compositefields","Contract","ContractDelta", "ProfileX"}];
 DeclarePackage["StringCode`NormalOrdering`", {"R", "CR","Rtest","Rlength","Rone","parity","exp\[Phi]parity","exp\[Phi]tparity","regparity","regcomm"}];
-DeclarePackage["StringCode`Wick`", {"Wick", "SWick","MWick","DWick","CWick","pairing", "dot"}];
+DeclarePackage["StringCode`Wick`", {"Wick", "SWick","MWick","DWick","CDWick","pairing", "dot"}];
 DeclarePackage["StringCode`OPE`", {"OPE"}];
 DeclarePackage["StringCode`Taylor`", {"Taylor", "TaylorAtOrder", "Polar"}];
 DeclarePackage["StringCode`Correlators`", {"Corr", "Vev"}];

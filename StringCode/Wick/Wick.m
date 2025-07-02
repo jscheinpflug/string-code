@@ -26,7 +26,7 @@ MWick::usage = "A Wick contraction between two composite fields";
 DWick::usage = "A Wick contraction for OPE";
 
 
-CWick::usage = "A Wick contraction for correlators";
+CDWick::usage = "A Wick contraction for correlators";
 
 
 pairing::usage = "Determines whether two fields can be Wick contracted";
@@ -111,7 +111,7 @@ MWick[Ra_?Rone, Rb_?Rone] := MWick[Ra[[1]],Rb[[1]]]
 
 
 (* ::Subsection:: *)
-(*Define DWick: repeated Wick contractions for normal-ordered products of multiple fields*)
+(*Define DWick: Wick contractions for normal-ordered products of fields*)
 
 
 DWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && MemberQ[simplefields,Head[Ra[[1]]]] && MemberQ[simplefields,Head[Rb[[1]]]])
@@ -133,6 +133,7 @@ DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) &
 
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra[[1]],Rb[[1]]],1] R[Rb[[1]],
 DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])
+
 
 
 (* ::Subsection::Initialization:: *)

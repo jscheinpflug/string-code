@@ -18,10 +18,13 @@ OPE::usage = "Computes the operator product expansion";
 
 
 (* ::Section:: *)
-(*Public Logic*)
+(*Logic*)
 
 
 Begin["`Private`"];
+
+
+isProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX]
 
 
 (* ::Subsection:: *)
@@ -29,6 +32,8 @@ Begin["`Private`"];
 
 
 OPE[a___,0,b___]:=0
+
+OPE[a___,b_/;isProfile[b],c___]:= OPEWithReplacedProfileX[a,b,c];
 
 OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb] /;(Rone[Ra] && Rone[Rb] && MemberQ[simplefields,Head[Ra[[1]]]] && MemberQ[simplefields,Head[Rb[[1]]]])
 
@@ -39,12 +44,11 @@ OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Ra/;
 OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])
 
 
-
-OPE[Ra_,Rb_]:=DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]])
+OPE[Ra_,Rb_]:=DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]] )
 
 OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && MemberQ[compositefields,Head[Ra[[1]]]] )
 
-OPE[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]]) 
 
 OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[compositefields,Head[Ra[[1]]]] )
 
@@ -57,6 +61,45 @@ OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
 
 
 OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
+
+
+createProfileExp[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= expX[momentum,z,zbar]
+
+
+extractProfile[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= ProfileX[polX,degree, ders,momentum]
+
+
+replaceProductWithMomentumByDerivativeRule = 
+{Times[p_Symbol[args___],ProfileX[pol_,degree_, polargs_,p_]]:>
+If[degree > Length[polargs],-I ProfileX[pol,degree,Append[polargs,args],p],0]}
+
+
+OPEWithReplacedProfileX[toOPE__]:= Module[{prefac = 1, normalOrderingListed = {}, replacedNormalOrderedList = {}, resultingToOPE = {}, uniqueK=0},
+ Scan[
+    Function[normalOrderedProduct,
+      If[isProfile[normalOrderedProduct],
+        (
+          normalOrderingListed = List @@ normalOrderedProduct;
+          Scan[Function[arg,
+          If[MatchQ[arg,_ProfileX],
+          (
+          uniqueK = Module[{k},k];
+          prefac = prefac * extractProfile[arg, uniqueK];
+          AppendTo[replacedNormalOrderedList, createProfileExp[arg, uniqueK]]
+          ),
+          AppendTo[replacedNormalOrderedList, arg];
+          ];
+          ], normalOrderingListed];
+          AppendTo[resultingToOPE, R @@ replacedNormalOrderedList];
+          replacedNormalOrderedList = {};
+          normalOrderingListed = {};
+        ),
+        AppendTo[resultingToOPE, normalOrderedProduct]
+      ];
+    ],
+    {toOPE}
+  ];
+((prefac OPE @@ resultingToOPE)//Expand)//.replaceProductWithMomentumByDerivativeRule]
 
 
 (* ::Section:: *)
