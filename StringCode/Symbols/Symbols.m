@@ -17,6 +17,12 @@ bosons::usage = "A list of bosons, including composites";
 fermions::usage = "A list of fermions, including composites";
 
 
+holomorphicFields::usage = "A list of holomorphic fields, expX counted as one";
+
+
+antiHolomorphicFields::usage = "A list of antiholomorphic fields, expX counted as one";
+
+
 allfields::usage = "A list of all bosons and fermions";
 
 
@@ -136,6 +142,8 @@ exp\[Phi]tfermions={exp\[Phi]tf};
 simplefields={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
 simplefieldsnotc={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
 compositefields={expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf};
+holomorphicFields = {dX,\[Psi],b,c,\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b, expX};
+antiHolomorphicFields = {dXt,\[Psi]t,bt,ct,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb, expX};
 allfields=Join[bosons,fermions];
 
 
