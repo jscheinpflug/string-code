@@ -75,7 +75,7 @@ length
 
 
 TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
-partitions = Select[Tuples[Range[0,ord],holoLengthR],Total[#]==ord&];
+partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{holoLengthR},Range[0,ord]],Length[#]==holoLengthR&]),1];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
@@ -91,7 +91,7 @@ result]
 
 
 TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
-partitions = Select[Tuples[Range[0,ord],antiHoloLengthR],Total[#]==ord&];
+partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{antiHoloLengthR},Range[0,ord]],Length[#]==antiHoloLengthR&]),1];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
