@@ -146,18 +146,40 @@ addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[
 addHoloDerivatives[\[Psi][\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\[Psi][\[Mu],n+ord,z0];
 
 
-addHoloDerivatives[exp\[Phi]f[a_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord](R[D[E^(a func[x]),{x,ord}]/.{E^(a func[x]):>exp\[Phi]f[a,x],Derivative[n_][func][x]:>d\[Phi][n-1,x]}]/.x->z0)
+addHoloDerivatives[exp\[Phi]f[a_, z_], ord_, z0_] :=
+  (z - z0)^ord/Factorial[ord] * 
+    R[exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)];
 
 
-addHoloDerivatives[exp\[Phi]b[a_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord](R[D[E^(a func[x]),{x,ord}]/.{E^(a func[x]):>exp\[Phi]b[a,x],Derivative[n_][func][x]:>d\[Phi][n-1,x]}]/.x->z0)
+addHoloDerivatives[exp\[Phi]b[a_, z_], ord_, z0_] :=
+  (z - z0)^ord/Factorial[ord] * 
+    R[exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)];
 
 
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
- (z - z0)^ord/
-   Factorial[ord] (R[expX[k, z0, zbar],
-    D[E^(I func[x]), {x, ord}] /. {E^(I func[x]) :> 1,
-       Derivative[n_][func][x] :>
-        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], n - 1, x]]} /. x -> z0])
+  (z - z0)^ord/Factorial[ord] *
+    R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)];
+
+
+Clear[phiPoly]
+phiPoly[a_, n_] := phiPoly[a, n] =
+  Expand[
+    D[E^(a func[x]), {x, n}] /. {
+      E^(a func[x]) :> 1,
+      Derivative[m_][func][x] :> d\[Phi][m - 1, x]
+    }
+  ];
+
+
+Clear[expXPoly]
+expXPoly[k_, n_] := expXPoly[k, n] =
+  Expand[
+    D[E^(I func[x]), {x, n}] /. {
+      E^(I func[x]) :> 1,
+      Derivative[m_][func][x] :> 
+        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]
+    }
+  ];
 
 
 addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= (z-z0bar)^ord/Factorial[ord] bt[n+ord,z0bar];
@@ -181,19 +203,40 @@ addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factoria
 addAntiHoloDerivatives[\[Psi]t[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Psi]t[\[Mu],n+ord,z0bar];
 
 
-addAntiHoloDerivatives[exp\[Phi]tf[a_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord](R[D[E^(a func[x]),{x,ord}]/.{E^(a func[x]):>exp\[Phi]tf[a,x],Derivative[n_][func][x]:>d\[Phi]t[n-1,x]}]/.x->z0bar)
+addAntiHoloDerivatives[exp\[Phi]tf[a_, z_], ord_, z0bar_] :=
+  (z - z0bar)^ord/Factorial[ord] *
+    R[exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)];
 
 
-addAntiHoloDerivatives[exp\[Phi]tb[a_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord](R[D[E^(a func[x]),{x,ord}]/.{E^(a func[x]):>exp\[Phi]tb[a,x],Derivative[n_][func][x]:>d\[Phi]t[n-1,x]}]/.x->z0bar)
+addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
+  (z - z0bar)^ord/Factorial[ord] *
+    R[exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)];
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
- (zbar - z0bar)^ord/
-   Factorial[ord] (R[expX[k, z, z0bar],
-    D[E^(I func[x]), {x, ord}] /. {E^(I func[x]) :> 1,
-       Derivative[n_][func][x] :>
-        Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], n - 1, x]]} /.
-     x -> z0bar])
+  (zbar - z0bar)^ord/Factorial[ord] *
+    R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)];
+
+
+Clear[phiPolyT]
+phiPolyT[a_, n_] := phiPolyT[a, n] = 
+  Expand[
+    D[E^(a func[x]), {x, n}] /. {
+      E^(a func[x]) :> 1,
+      Derivative[m_][func][x] :> d\[Phi]t[m - 1, x]
+    }
+  ];
+
+
+Clear[expXPolyT]
+expXPolyT[k_, n_] := expXPolyT[k, n] = 
+  Expand[
+    D[E^(I func[x]), {x, n}] /. {
+      E^(I func[x]) :> 1,
+      Derivative[m_][func][x] :> 
+        Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]
+    }
+  ];
 
 
 (* ::Subsection::Closed:: *)
