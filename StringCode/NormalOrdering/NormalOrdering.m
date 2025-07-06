@@ -16,6 +16,7 @@ Needs["StringCode`Symbols`"];
 
 R::usage = "A sorted normal-ordered product of fields";
 Rtest::usage = "Test if product is normal-ordered";
+RtestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
 Rlength::usage = "Test if is normal-ordered and has nonzero length";
 Rone::usage = "Test if is normal-ordered of length one";
 parity::usage = "Define Grassmann parity for fields including composites";
@@ -42,7 +43,13 @@ Rlength[f_]:=If[Rtest[f],Length[List @@ f],0]
 Rone[f_]:=(Rlength[f]==1)
 
 
-(* ::Subsection:: *)
+RtestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+RtestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+RtestUpToConstant[f_]:=(Head[f]==R)
+RtestUpToConstant[]:=False;
+
+
+(* ::Subsection::Closed:: *)
 (*Define Grassmann parity*)
 
 
@@ -103,8 +110,8 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 
 
-(* ::Subsection::Initialization:: *)
-(*Define CR*)
+(* ::Subsection::Initialization::Closed:: *)
+(*(*(*Define CR*)*)*)
 
 
 (* ::Input::Initialization:: *)

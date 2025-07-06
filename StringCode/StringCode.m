@@ -9,10 +9,12 @@ InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with
 DeclarePackage["StringCode`Symbols`",
 {"expX", "dX", "dXt","d\[Phi]", "d\[Phi]t","exp\[Phi]b","exp\[Phi]tb", "exp\[Phi]f","exp\[Phi]tf","b","bt","c","ct","\[Xi]", "\[Xi]t","\[Eta]","\[Eta]t","\[Psi]","\[Psi]t", "bosons", "fermions", "allfields","regfermions","exp\[Phi]fermions","exp\[Phi]tfermions",
 "simplefields", "simplefieldsnotc","compositefields","Contract","ContractDelta", "ProfileX", "holomorphicFields", "antiHolomorphicFields"}];
-DeclarePackage["StringCode`NormalOrdering`", {"R", "CR","Rtest","Rlength","Rone","parity","exp\[Phi]parity","exp\[Phi]tparity","regparity","regcomm"}];
+DeclarePackage["StringCode`NormalOrdering`", {"R", "CR","Rtest", "RtestUpToConstant", "Rlength","Rone","parity","exp\[Phi]parity","exp\[Phi]tparity","regparity","regcomm"}];
+DeclarePackage["StringCode`StringFields`", {"SF", "SFtest", "SFlength", "SFone"}];
 DeclarePackage["StringCode`Wick`", {"Wick", "SWick","MWick","DWick","CDWick","pairing", "dot"}];
 DeclarePackage["StringCode`OPE`", {"OPE"}];
 DeclarePackage["StringCode`Taylor`", {"Taylor", "TaylorAtOrder", "Polar"}];
+DeclarePackage["StringCode`Brackets`", {"Bracket"}];
 DeclarePackage["StringCode`Correlators`", {"Corr", "Vev"}];
 DeclarePackage["StringCode`Conventions`ConventionsIIBXi`", {"\[Alpha]p", "fermionToBosonWickRatio", "\[Beta]ghost","\[Gamma]ghost",
 "\[Delta]\[Beta]ghost","\[Delta]\[Gamma]ghost","\[Beta]ghostbar","\[Gamma]ghostbar","\[Delta]\[Beta]ghostbar","\[Delta]\[Gamma]ghostbar","Tmatter","Gmatter","Tghost","Gghost","Ttotal","Gtotal",
@@ -37,8 +39,10 @@ Scan[
   {
     "StringCode`Symbols`",
     "StringCode`NormalOrdering`",
+    "StringCode`StringFields`",
     "StringCode`Wick`",
     "StringCode`OPE`",
+    "StringCode`Brackets`",
     "StringCode`Correlators`",
     "StringCode`Taylor`",
     conventionsContext
