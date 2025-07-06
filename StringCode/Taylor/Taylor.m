@@ -29,7 +29,7 @@ Begin["Private`"];
 (*Define Taylor*)
 
 
-Taylor[f_,z0_,z0bar_,ord_]:= Block[{i,j,x,func,n,z,m,l}, f/.{
+Taylor[f_,z0_,z0bar_,ord_]:= Block[{i,j,x,func,n,z}, f/.{
 b[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] b[n+i,z0],{i,0,ord}],
 c[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] c[n+i,z0],{i,0,ord}],
 \[Eta][n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] \[Eta][n+i,z0],{i,0,ord}],
@@ -37,8 +37,8 @@ c[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] c[n+i,z0],{i,0,ord}],
 d\[Phi][n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] d\[Phi][n+i,z0],{i,0,ord}],
 dX[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] dX[\[Mu],n+i,z0],{i,0,ord}],
 \[Psi][\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!]\[Psi][\[Mu],n+i,z0],{i,0,ord}],
-exp\[Phi]f[a_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!](R[D[E^(a func[x]),{x,i}]/.{E^(a func[x]):>exp\[Phi]f[a,x],Derivative[n_][func][x]:>d\[Phi][n-1,x]}]/.x->z0),{i,0,ord}],
-exp\[Phi]b[a_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!](R[D[E^(a func[x]),{x,i}]/.{E^(a func[x]):>exp\[Phi]b[a,x],Derivative[n_][func][x]:>d\[Phi][n-1,x]}]/.x->z0),{i,0,ord}],
+exp\[Phi]f[a_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!](R[exp\[Phi]f[a, z0] * (phiPoly[a, i] /. x -> z0)]),{i,0,ord}],
+exp\[Phi]b[a_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!](R[exp\[Phi]b[a, z0] * (phiPoly[a, i] /. x -> z0)]),{i,0,ord}],
 bt[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] bt[n+i,z0bar],{i,0,ord}],
 ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}],
 \[Eta]t[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] \[Eta]t[n+i,z0bar],{i,0,ord}],
@@ -46,13 +46,9 @@ ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}],
 d\[Phi]t[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] d\[Phi]t[n+i,z0bar],{i,0,ord}],
 dXt[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] dXt[\[Mu],n+i,z0bar],{i,0,ord}],
 \[Psi]t[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] \[Psi]t[\[Mu],n+i,z0bar],{i,0,ord}],
-exp\[Phi]tf[a_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!](R[D[E^(a func[x]),{x,i}]/.{E^(a func[x]):>exp\[Phi]tf[a,x],Derivative[n_][func][x]:>d\[Phi]t[n-1,x]}]/.x->z0bar),{i,0,ord}],
-exp\[Phi]tb[a_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!](R[D[E^(a func[x]),{x,i}]/.{E^(a func[x]):>exp\[Phi]tb[a,x],Derivative[n_][func][x]:>d\[Phi]t[n-1,x]}]/.x->z0bar),{i,0,ord}],
-expX[k_,z_,zbar_]:>Sum[If[i==0,1,(z-z0)^i/i!]If[j==0,1,(zbar-z0bar)^j/j!] (R[expX[k,z0,z0bar],D[E^(I func[x]),{x,i}]/.
-{E^(I func[x]):>1,Power[Derivative[n_][func][x],p_]:>Product[Module[{\[Mu]},k[\[Mu]] dX[\[Mu],n-1,x]],{m,1,p}],
-Derivative[n_][func][x]:>Module[{\[Mu]},k[\[Mu]] dX[\[Mu],n-1,x]]}/.x->z0,D[E^(I func[x]),{x,j}]/.{
-E^(I func[x]):>1,Power[Derivative[n_][func][x],p_]:>Product[Module[{\[Mu]},k[\[Mu]] dXt[\[Mu],n-1,x]],{l,1,p}],
-Derivative[n_][func][x]:>Module[{\[Mu]},k[\[Mu]] dXt[\[Mu],n-1,x]]}/.x->z0bar]),{i,0,ord},{j,0,ord}]}];
+exp\[Phi]tf[a_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!](R[exp\[Phi]tf[a, z0bar] * (phiPolyT[a, i] /. x -> z0bar)]),{i,0,ord}],
+exp\[Phi]tb[a_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!](R[exp\[Phi]tb[a, z0bar] * (phiPolyT[a, i] /. x -> z0bar)]),{i,0,ord}],
+expX[k_,z_,zbar_]:>Sum[If[i==0,1,(z-z0)^i/i!]If[j==0,1,(zbar-z0bar)^j/j!] (R[expX[k,z0,z0bar]*(expXPoly[k, i] /. x -> z0)*(expXPolyT[k, j] /. x -> z0bar)]),{i,0,ord},{j,0,ord}]}];
 
 
 (* ::Subsection:: *)
@@ -164,26 +160,6 @@ addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
     R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)];
 
 
-Clear[phiPoly]
-phiPoly[a_, n_] := phiPoly[a, n] =
-  Expand[
-    D[E^(a func[x]), {x, n}] /. {
-      E^(a func[x]) :> 1,
-      Derivative[m_][func][x] :> d\[Phi][m - 1, x]
-    }
-  ];
-
-
-Clear[expXPoly]
-expXPoly[k_, n_] :=
-  expXPoly[k, n] =
-   Expand[D[E^(I func[x]), {x, n}] /. {E^(I func[x]) :> 1,
-      Power[Derivative[m_][func][x], p_] :>
-       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
-       Derivative[m_][func][x] :>
-       Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
-
-
 addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= (z-z0bar)^ord/Factorial[ord] bt[n+ord,z0bar];
 
 
@@ -218,6 +194,30 @@ addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
     R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)];
+
+
+(* ::Subsection:: *)
+(*Define Taylor expansions of exponentials*)
+
+
+Clear[phiPoly]
+phiPoly[a_, n_] := phiPoly[a, n] =
+  Expand[
+    D[E^(a func[x]), {x, n}] /. {
+      E^(a func[x]) :> 1,
+      Derivative[m_][func][x] :> d\[Phi][m - 1, x]
+    }
+  ];
+
+
+Clear[expXPoly]
+expXPoly[k_, n_] :=
+  expXPoly[k, n] =
+   Expand[D[E^(I func[x]), {x, n}] /. {E^(I func[x]) :> 1,
+      Power[Derivative[m_][func][x], p_] :>
+       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
+       Derivative[m_][func][x] :>
+       Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
 
 
 Clear[phiPolyT]
