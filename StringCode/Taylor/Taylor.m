@@ -19,7 +19,7 @@ Polar::usage = "Picks out the first-order pole from a function";
 
 
 (* ::Section:: *)
-(*Public Logic*)
+(*Logic*)
 
 
 Begin["Private`"];
@@ -73,6 +73,9 @@ length
 ];
 
 
+TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= Ra;
+
+
 TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra, z0],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
 partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{holoLengthR},Range[0,ord]],Length[#]==holoLengthR&]),1];
 resultForGivenPartition = ConstantArray[None, RLength];
@@ -87,6 +90,9 @@ Scan[Function[partition,
 	 resultForGivenPartition = ConstantArray[None, RLength];
 ], partitions];
 result]
+
+
+TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= Ra;
 
 
 TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0bar_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra, z0bar],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
