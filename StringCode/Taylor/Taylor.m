@@ -61,24 +61,24 @@ isHolomorphic[Relem_]:= MemberQ[holomorphicFields, Head[Relem]];
 isAntiHolomorphic[Relem_]:= MemberQ[antiHolomorphicFields, Head[Relem]];
 
 
-holomorphicLength[Ra_/; Rtest[Ra]]:= Module[{length = 0}, 
-Scan[Function[Relem, If[isHolomorphic[Relem], length = length + 1]],Ra];
+holomorphicLength[Ra_/; Rtest[Ra], z0_]:= Module[{length = 0}, 
+Scan[Function[Relem, If[isHolomorphic[Relem] && !isAtPointHolo[Relem,z0],length = length + 1]],Ra];
 length
 ];
 
 
-antiHolomorphicLength[Ra_/; Rtest[Ra]]:= Module[{length = 0}, 
-Scan[Function[Relem, If[isAntiHolomorphic[Relem], length = length + 1]],Ra];
+antiHolomorphicLength[Ra_/; Rtest[Ra], z0bar_]:= Module[{length = 0}, 
+Scan[Function[Relem, If[isAntiHolomorphic[Relem] && !isAtPointAntiHolo[Relem,z0bar], length = length + 1]],Ra];
 length
 ];
 
 
-TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
+TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra, z0],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
 partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{holoLengthR},Range[0,ord]],Length[#]==holoLengthR&]),1];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
-	While[i <= RLength && !isHolomorphic[Ra[[i]]], resultForGivenPartition[[i]] = Ra[[i]]; i++];
+	While[i <= RLength && (!isHolomorphic[Ra[[i]]] || isAtPointHolo[Ra[[i]], z0]), resultForGivenPartition[[i]] = Ra[[i]]; i++];
 	resultForGivenPartition[[i]] = addHoloDerivatives[Ra[[i]], partitionNumber, z0];
 	i++],
 	 partition];
@@ -89,13 +89,13 @@ Scan[Function[partition,
 result]
 
 
-TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
+TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0bar_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra, z0bar],RLength = Length[Ra], RList = List @@ R[Ra], resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
 partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{antiHoloLengthR},Range[0,ord]],Length[#]==antiHoloLengthR&]),1];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
-	While[i <= RLength && !isAntiHolomorphic[Ra[[i]]], resultForGivenPartition[[i]] = Ra[[i]]; i++];
-	resultForGivenPartition[[i]] = addAntiHoloDerivatives[Ra[[i]], partitionNumber, z0];
+	While[i <= RLength && (!isAntiHolomorphic[Ra[[i]]] || isAtPointAntiHolo[Ra[[i]], z0bar]), resultForGivenPartition[[i]] = Ra[[i]]; i++];
+	resultForGivenPartition[[i]] = addAntiHoloDerivatives[Ra[[i]], partitionNumber, z0bar];
 	i++],
 	 partition];
 	 result = result + R @@ Join[resultForGivenPartition[[;; i - 1]], RList[[i;;]]];
@@ -103,6 +103,12 @@ Scan[Function[partition,
 	 resultForGivenPartition = ConstantArray[None, RLength];
 ], partitions];
 result]
+
+
+TaylorAtOrderHolo[0, ord_, z0_]:= 0;
+
+
+TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
 
 TaylorAtOrder[Ra_/;Rtest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrderAntiHolo[TaylorAtOrderHolo[Ra, ordHolo, z0], ordAntiHolo, z0bar] 
@@ -121,6 +127,34 @@ TaylorAtOrderAntiHolo[a_ b_,c_,d_]:=a TaylorAtOrderAntiHolo[b,c,d]/;(And @@(Free
 
 
 (* ::Subsubsection:: *)
+(*Check if field needs expanding*)
+
+
+isAtPointHolo[b[n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[c[n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[\[Eta][n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[\[Xi][n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[d\[Phi][n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[\[Psi][\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[exp\[Phi]f[n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[exp\[Phi]b[n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
+isAtPointHolo[field_, z0_] := False /; MemberQ[antiHolomorphicFields, Head[field]];
+isAtPointAntiHolo[bt[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[ct[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[\[Eta]t[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[\[Xi]t[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[d\[Phi]t[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[exp\[Phi]tf[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[exp\[Phi]tb[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[field_, z0bar_] := False /; MemberQ[holomorphicFields, Head[field]];
+
+
+(* ::Subsubsection::Closed:: *)
 (*Define adding derivatives*)
 
 
@@ -196,7 +230,7 @@ addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
     R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define Taylor expansions of exponentials*)
 
 
