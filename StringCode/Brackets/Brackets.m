@@ -43,6 +43,12 @@ result = result + tayloredOPEpart;,
 ],List @@((OPE[SFAtPos[SFa, w0, w0bar], SFAtPos[SFb,z0,z0bar]])/.{w0->-z0,w0bar->-z0bar}//Expand)]; result];
 
 
+Bracket[a_+b_,c_]:=Bracket[a,c]+Bracket[b,c]
+Bracket[a_,b_+c_]:=Bracket[a,b]+Bracket[a,c]
+Bracket[a_ b_,c_]:=a Bracket[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
+Bracket[a_,b_ c_]:=b Bracket[a,c]/;(And @@(FreeQ[b,#]&/@ allfields))
+
+
 (* ::Section:: *)
 (*End*)
 
