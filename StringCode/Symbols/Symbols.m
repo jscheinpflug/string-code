@@ -110,6 +110,12 @@ ct::usage = "Antiholomorphic c-ghost"
 ProfileX::usage = "A polynomial X-profile"
 
 
+pictureHol::usage = "Gives holomorphic picture number";
+
+
+pictureAntiHol::usage = "Gives antiholomorphic picture number";
+
+
 (* ::Section:: *)
 (*Logic*)
 
@@ -128,7 +134,7 @@ ContractDelta[f_]:=f//.{g_ \[Delta][\[Mu]_,\[Mu]1_]:>(g/.{\[Mu]->\[Mu]1})/;!Free
 Begin["`Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define symbols*)
 
 
@@ -145,6 +151,40 @@ compositefields={expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf};
 holomorphicFields = {dX,\[Psi],b,c,\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b, expX};
 antiHolomorphicFields = {dXt,\[Psi]t,bt,ct,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb, expX};
 allfields=Join[bosons,fermions];
+
+
+(* ::Subsection:: *)
+(*Define picture numbers*)
+
+
+pictureHol[\[Xi][n_, z_]]:= 1;
+
+
+pictureHol[\[Eta][n_, z_]]:= -1;
+
+
+pictureHol[exp\[Phi]f[exp_, z_]]:= exp;
+
+
+pictureHol[exp\[Phi]b[exp_, z_]]:= exp;
+
+
+pictureHol[a_/;MemberQ[allfields, Head[a]]]:= 0;
+
+
+pictureAntiHol[\[Xi]t[n_, zbar_]]:= 1;
+
+
+pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
+
+
+pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;
+
+
+pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
+
+
+pictureAntiHol[a_/;MemberQ[allfields, Head[a]]]:= 0;
 
 
 (* ::Section:: *)
