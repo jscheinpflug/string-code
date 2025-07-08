@@ -84,22 +84,32 @@ b0m[0] := 0;
 (*Define action of PCOs*)
 
 
-actPCOHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, z, OPEWithPCO, power},
-OPEWithPCO = OPE[PCO[z], Ra]//Expand;
+actPCOHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound},
+PCOList = List @@ PCO[z];
+Scan[Function[PCOelem,
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra]];
+If[singularityUpperBound >= 0,
+OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == 0, result = result + Relem, 
 If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
-], List @@ OPEWithPCO];
+], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
+];], PCOList];
 (result // Expand)/.{z->0}];
 
-actPCOAntiHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, zBar, OPEWithPCObar, power},
-OPEWithPCObar = OPE[PCObar[zBar], Ra]//Expand;
+actPCOAntiHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound},
+PCOList = List @@ PCObar[zBar];
+Scan[Function[PCOelem,
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra]];
+If[singularityUpperBound >= 0,
+OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrder[Relem, 0, -power, 0, 0]]];
-], List @@ OPEWithPCObar];
+If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
+], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
+];], PCOList];
 (result // Expand)/.{zBar->0}];
 
 totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
@@ -117,6 +127,68 @@ actPCOHolo[0] := 0;
 pictureAdjust[a_+b_]:=pictureAdjust[a] + pictureAdjust[b];
 pictureAdjust[a_ b_]:=a pictureAdjust[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 pictureAdjust[0] := 0;
+
+
+(* ::Subsubsection:: *)
+(*Determine whether OPE with PCO should be computed*)
+
+
+singularity[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= 2 + m + n;
+singularity[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=2 + m + n;
+singularity[d\[Phi][n_,z_],d\[Phi][m_,w_]]:= 2 + m + n;
+singularity[d\[Phi]t[n_,z_],d\[Phi]t[m_,w_]]:= 2 + m + n;
+singularity[b[n_,z_],c[m_,w_]]:= 1 + m + n;
+singularity[c[m_,w_],b[n_,z_]]:= 1 + m + n;
+singularity[bt[n_,z_],ct[m_,w_]]:= 1 + m + n;
+singularity[ct[m_,w_],bt[n_,z_]]:= 1 + m + n;
+singularity[\[Eta][n_,z_],\[Xi][m_,w_]]:= 1 + m + n;
+singularity[\[Xi][m_,w_],\[Eta][n_,z_]]:= 1 + m + n;
+singularity[\[Eta]t[n_,z_],\[Xi]t[m_,w_]]:= 1 + m + n;
+singularity[\[Xi]t[m_,w_],\[Eta]t[n_,z_]]:=1 + m + n;
+singularity[\[Psi][\[Mu]_,n_,z_],\[Psi][\[Nu]_,m_,w_]]:=1 + m + n;
+singularity[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=1 + m + n;
+
+singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
+singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
+singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+
+singularity[exp\[Phi]b[a_,z_],exp\[Phi]b[b_,w_]]:= a b;
+singularity[exp\[Phi]b[a_,z_],exp\[Phi]f[b_,w_]]:=a b;
+singularity[exp\[Phi]f[a_,z_],exp\[Phi]b[b_,w_]]:=a b;
+singularity[exp\[Phi]f[a_,z_],exp\[Phi]f[b_,w_]]:=a b;
+singularity[exp\[Phi]tb[a_,z_],exp\[Phi]tb[b_,w_]]:=a b;
+singularity[exp\[Phi]tb[a_,z_],exp\[Phi]tf[b_,w_]]:=a b;
+singularity[exp\[Phi]tf[a_,z_],exp\[Phi]tb[b_,w_]]:=a b;
+singularity[exp\[Phi]tf[a_,z_],exp\[Phi]tf[b_,w_]]:=a b;
+
+singularity[a_,b_]:= 0 /; (MemberQ[allfields, Head[a]] && MemberQ[allfields, Head[b]]);
+
+
+singularityMatrix[Ra_/;Rtest[Ra], Rb_/; Rtest[Rb]]:= Table[singularity[Ra[[i]], Rb[[j]]], {i, 1, Length[Ra]}, {j, 1, Length[Rb]}];
+singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ allfields));
+singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
+
+
+upperBoundSingularity[matrix_?MatrixQ] := Module[
+  {n = Length[matrix], total = 0, forcedTotal = 0, freeRowMaxes = {}, row, negs},
+  Do[
+    row = matrix[[i]];
+    negs = Select[row, # < 0 &];
+
+    If[Length[negs] == 1,
+      (* Forced negative \[LongDash] add it directly *)
+      forcedTotal += First[negs],
+      (* Free row \[LongDash] take max, even if same col used elsewhere *)
+      AppendTo[freeRowMaxes, Max[row]]
+    ],
+    {i, n}
+  ];
+
+  total = forcedTotal + Total[freeRowMaxes];
+  total
+]
+
 
 
 (* ::Section:: *)
