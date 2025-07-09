@@ -28,6 +28,58 @@ Begin["Private`"];
 
 
 (* ::Subsection:: *)
+(*Define 1-bracket (action of BRST charge)*)
+
+
+actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+BRSTList = List @@ jBRSTNoTD[z];
+Scan[Function[BRSTelem,
+compositeInBRSTPosition = containsCompositeHolo[BRSTelem/.{z->0}];
+If[compositeInBRSTPosition !=  "NotFound",
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+If[singularityUpperBound >= 0,
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+Scan[Function[Relem,
+power = Exponent[Relem, z];
+If[power == -1, result = result + Relem, 
+If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
+], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
+];], BRSTList];
+(z result // Expand)/.{z->0}];
+
+actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+BRSTList = List @@ jBRSTbarNoTD[zBar];
+Scan[Function[BRSTelem,
+compositeInBRSTPosition = containsCompositeAntiHolo[BRSTelem/.{zBar->0}];
+If[compositeInBRSTPosition !=  "NotFound",
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+If[singularityUpperBound >= 0,
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+Scan[Function[Relem,
+power = Exponent[Relem, zBar];
+If[power == -1, result = result + Relem, 
+If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
+], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
+];], BRSTList];
+(zBar result // Expand)/.{zBar->0}];
+
+
+actBRST[SFa_/; SFtest[SFa]]:= actBRSTHolo[SFa] + actBRSTAntiHolo[SFa];
+
+actBRSTAntiHolo[a_+b_]:= actBRSTAntiHolo[a] + actBRSTAntiHolo[b];
+actBRSTAntiHolo[a_ b_]:= a actBRSTAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTAntiHolo[0] := 0;
+actBRSTHolo[a_+b_]:= actBRSTHolo[a] +actBRSTHolo[b];
+actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTHolo[0] := 0;
+actBRST[a_+b_]:=actBRST[a] + actBRST[b];
+actBRST[a_ b_]:=a actBRST[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRST[0] := 0;
+
+
+(* ::Subsection:: *)
 (*Define 2-bracket*)
 
 

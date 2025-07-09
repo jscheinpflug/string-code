@@ -31,6 +31,9 @@ Gghostbar::usage = "Defines the antiholomorphic ghost CFT supercurrent";
 Ttotalbar::usage = "Defines the total antiholomorphic CFT stress tensor";
 Gtotalbar::usage = "Defines the total antiholomorphic CFT supercurrent";
 jBRST::usage = "Defines the string theory BRST current";
+jBRSTNoTD::usage = "Defines the string theory BRST current without total derivative term";
+jBRSTbar::usage = "Defines the string antiholomorphic theory BRST current";
+jBRSTbarNoTD::usage = "Defines the string antiholomorphic theory BRST current without total derivative term";
 PCO::usage = "Defines the holomorphic PCO";
 PCObar::usage = "Defines the antiholomorphic PCO";
 
@@ -80,6 +83,15 @@ Gtotalbar[z_]:=Gmatterbar[z]+Gghostbar[z];
 
 jBRST[z_]:=R[c[0,z], Tmatter[z]]-1/2 R[\[Eta][0,z],exp\[Phi]f[1,z],Gmatter[z]]+R[b[0,z],c[0,z],c[1,z]]+
 R[c[0,z],-1/2 R[d\[Phi][0,z],d\[Phi][0,z]]- R[d\[Phi][1,z]]-R[\[Eta][0,z],\[Xi][1,z]]]-1/4R[b[0,z],exp\[Phi]b[2,z],\[Eta][0,z],\[Eta][1,z]]+ 3/2R[c[1,z],d\[Phi][0,z]]+  3/2R[c[0,z],d\[Phi][1,z]];
+
+jBRSTNoTD[z_]:=R[c[0,z], Tmatter[z]]-1/2 R[\[Eta][0,z],exp\[Phi]f[1,z],Gmatter[z]]+R[b[0,z],c[0,z],c[1,z]]+
+R[c[0,z],-1/2 R[d\[Phi][0,z],d\[Phi][0,z]]- R[d\[Phi][1,z]]-R[\[Eta][0,z],\[Xi][1,z]]]-1/4R[b[0,z],exp\[Phi]b[2,z],\[Eta][0,z],\[Eta][1,z]];
+
+jBRSTbar[z_]:=R[ct[0,z], Tmatterbar[z]]-1/2 R[\[Eta]t[0,z],exp\[Phi]tf[1,z],Gmatterbar[z]]+R[bt[0,z],ct[0,z],ct[1,z]]+
+R[ct[0,z],-1/2 R[d\[Phi]t[0,z],d\[Phi]t[0,z]]- R[d\[Phi]t[1,z]]-R[\[Eta]t[0,z],\[Xi]t[1,z]]]-1/4R[bt[0,z],exp\[Phi]tb[2,z],\[Eta]t[0,z],\[Eta]t[1,z]]+ 3/2R[ct[1,z],d\[Phi]t[0,z]]+  3/2R[ct[0,z],d\[Phi]t[1,z]];
+
+jBRSTbarNoTD[z_]:=R[ct[0,z], Tmatterbar[z]]-1/2 R[\[Eta]t[0,z],exp\[Phi]tf[1,z],Gmatterbar[z]]+R[bt[0,z],ct[0,z],ct[1,z]]+
+R[ct[0,z],-1/2 R[d\[Phi]t[0,z],d\[Phi]t[0,z]]- R[d\[Phi]t[1,z]]-R[\[Eta]t[0,z],\[Xi]t[1,z]]]-1/4R[bt[0,z],exp\[Phi]tb[2,z],\[Eta]t[0,z],\[Eta]t[1,z]];
 
 PCO[z_]:=-1/2R[exp\[Phi]f[1,z],Gmatter[z]]+R[c[0,z],\[Xi][1,z]]-1/2R[exp\[Phi]b[2,z],\[Eta][1,z],b[0,z]]-1/4R[exp\[Phi]b[2,z],\[Eta][0,z],b[1,z]]-1/2R[d\[Phi][0,z],exp\[Phi]b[2,z],\[Eta][0,z],b[0,z]]
 

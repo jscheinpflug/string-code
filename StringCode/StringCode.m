@@ -14,16 +14,16 @@ DeclarePackage["StringCode`StringFields`", {"SF", "SFtest", "SFlength", "SFone"}
 DeclarePackage["StringCode`Wick`", {"Wick", "SWick","MWick","DWick","CDWick","pairing", "dot"}];
 DeclarePackage["StringCode`OPE`", {"OPE"}];
 DeclarePackage["StringCode`Taylor`", {"Taylor", "TaylorAtOrder", "Polar"}];
-DeclarePackage["StringCode`Brackets`", {"Bracket"}];
+DeclarePackage["StringCode`Brackets`", {"Bracket", "actBRST"}];
 DeclarePackage["StringCode`Correlators`", {"Corr", "Vev"}];
 DeclarePackage["StringCode`Conventions`ConventionsIIBXi`", {"\[Alpha]p", "fermionToBosonWickRatio", "\[Beta]ghost","\[Gamma]ghost",
 "\[Delta]\[Beta]ghost","\[Delta]\[Gamma]ghost","\[Beta]ghostbar","\[Gamma]ghostbar","\[Delta]\[Beta]ghostbar","\[Delta]\[Gamma]ghostbar","Tmatter","Gmatter","Tghost","Gghost","Ttotal","Gtotal",
 "Tmatterbar","Gmatterbar","Tghostbar","Gghostbar","Ttotalbar","Gtotalbar",
-"jBRST","PCO","PCObar"}];
+"jBRST","jBRSTbar", "jBRSTNoTD", "jBRSTbarNoTD", "PCO","PCObar"}];
 DeclarePackage["StringCode`Conventions`ConventionsIIBAshoke`",{"\[Alpha]p", "fermionToBosonWickRatio", "\[Beta]ghost","\[Gamma]ghost",
 "\[Delta]\[Beta]ghost","\[Delta]\[Gamma]ghost","\[Beta]ghostbar","\[Gamma]ghostbar","\[Delta]\[Beta]ghostbar","\[Delta]\[Gamma]ghostbar","Tmatter","Gmatter","Tghost","Gghost","Ttotal","Gtotal",
 "Tmatterbar","Gmatterbar","Tghostbar","Gghostbar","Ttotalbar","Gtotalbar",
-"jBRST","PCO","PCObar"}];
+"jBRST","jBRSTbar", "PCO","PCObar"}];
 DeclarePackage["StringCode`Conventions`ConventionsBosonicXi`", {"\[Alpha]P", "Tbosonicstring","jBRSTbosonicstring"}];
 
 
