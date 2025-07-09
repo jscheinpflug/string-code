@@ -84,10 +84,13 @@ b0m[0] := 0;
 (*Define action of PCOs*)
 
 
-actPCOHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound},
+actPCOHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra]];
+compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
+If[compositeInPCOPosition !=  "NotFound",
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
@@ -98,10 +101,13 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 ];], PCOList];
 (result // Expand)/.{z->0}];
 
-actPCOAntiHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound},
+actPCOAntiHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra]];
+compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
+If[compositeInPCOPosition !=  "NotFound",
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
@@ -132,6 +138,9 @@ pictureAdjust[0] := 0;
 (* ::Subsubsection:: *)
 (*Determine whether OPE with PCO should be computed*)
 
+
+containsCompositeHolo[PCOelem_]:= containsCompositeHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]b | exp\[Phi]f] &)];
+containsCompositeAntiHolo[PCOelem_]:= containsCompositeAntiHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]tb | exp\[Phi]tf] &)];
 
 singularity[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= 2 + m + n;
 singularity[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=2 + m + n;
@@ -179,25 +188,17 @@ singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ all
 singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
 
 
-(* Upper-bounds singularity given singularityMatrix, assumes only one negative entry for each row (there is at most one exp\[Phi] in each string field), takes it and
-then adds the maximum from each other row. 
+(* Upper-bounds singularity given singularityMatrix, gets the position of the exp\[Phi] in PCO, on the corresponding row sums up all its entries
+since an exponential can contract multiple times (importantly sums up even the negative value) and then adds the maximum from each other row. 
 If there are no two operators in the string field contracting with the same operator in the PCO at the same (maximal) singularity order, the upper bound is saturated. *)
-upperBoundSingularity[singularityMatrix_?MatrixQ] := Module[
-  {n = Length[singularityMatrix], total = 0, forcedTotal = 0, freeRowMaxes = {}, row, negs},
+upperBoundSingularity[singularityMatrix_?MatrixQ, compositeRowNumber_] := Module[
+  {n = Length[singularityMatrix], total = 0, row, negs},
   Do[
     row = singularityMatrix[[i]];
     negs = Select[row, # < 0 &];
-
-    If[Length[negs] == 1,
-      (* Forced negative \[LongDash] add it directly *)
-      forcedTotal += First[negs],
-      (* Free row \[LongDash] take max, even if same col used elsewhere *)
-      AppendTo[freeRowMaxes, Max[row]]
-    ],
+    If[i != compositeRowNumber, total = total + Max[row], total = total + Total[row]],
     {i, n}
   ];
-
-  total = forcedTotal + Total[freeRowMaxes];
   total
 ]
 
