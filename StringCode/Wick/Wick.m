@@ -46,20 +46,21 @@ Begin["`Private`"];
 (*Define Wick*)
 
 
-Wick[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:=\[Delta][\[Mu],\[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(z-w)^2,{z,n+m}]
-Wick[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=\[Delta][\[Mu],\[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(z-w)^2,{z,n+m}]
-Wick[d\[Phi][n_,z_],d\[Phi][m_,w_]]:= (-1)^m D[-1/(z-w)^2,{z,n+m}]
-Wick[d\[Phi]t[n_,z_],d\[Phi]t[m_,w_]]:= (-1)^m D[-1/(z-w)^2,{z,n+m}]
-Wick[b[n_,z_],c[m_,w_]]:= (-1)^m D[1/(z-w),{z,n+m}]
-Wick[c[m_,w_],b[n_,z_]]:= -(-1)^m D[1/(z-w),{z,n+m}]
-Wick[bt[n_,z_],ct[m_,w_]]:= (-1)^m D[1/(z-w),{z,n+m}]
-Wick[ct[m_,w_],bt[n_,z_]]:= -(-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Eta][n_,z_],\[Xi][m_,w_]]:= (-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Xi][m_,w_],\[Eta][n_,z_]]:= -(-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Eta]t[n_,z_],\[Xi]t[m_,w_]]:= (-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Xi]t[m_,w_],\[Eta]t[n_,z_]]:=- (-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Psi][\[Mu]_,n_,z_],\[Psi][\[Nu]_,m_,w_]]:=\[Delta][\[Mu],\[Nu]] \[Alpha]p fermionToBosonWickRatio (-1)^m D[1/(z-w),{z,n+m}]
-Wick[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=\[Delta][\[Mu],\[Nu]] \[Alpha]p fermionToBosonWickRatio (-1)^m D[1/(z-w),{z,n+m}]
+Wick[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. zd -> z];
+Wick[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:= Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. zd -> z];
+Wick[d\[Phi][n_, z_], d\[Phi][m_, w_]] := Module[{zd}, (-1)^m D[-1/(zd - w)^2, {zd, n + m}] /. zd -> z]
+Wick[d\[Phi][n_, z_], d\[Phi][m_, w_]] := Module[{zd}, (-1)^m D[-1/(zd - w)^2, {zd, n + m} /. zd -> z]]
+Wick[d\[Phi]t[n_, z_], d\[Phi]t[m_, w_]] := Module[{zd}, (-1)^m D[-1/(zd - w)^2, {zd, n + m}] /. zd -> z]
+Wick[b[n_, z_], c[m_, w_]] := Module[{zd}, (-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[c[m_, w_], b[n_, z_]] := Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[bt[n_, z_], ct[m_, w_]] :=Module[{zd}, (-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[ct[m_, w_], bt[n_, z_]] := Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Eta][n_, z_], \[Xi][m_, w_]] := Module[{zd}, (-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Xi][m_, w_], \[Eta][n_, z_]] := Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Eta]t[n_, z_], \[Xi]t[m_, w_]] :=Module[{zd}, (-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Xi]t[m_, w_], \[Eta]t[n_, z_]] := Module[{zd}, - (-1)^m D[1/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Psi][\[Mu]_, n_, z_], \[Psi][\[Nu]_, m_, w_]] := Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[\[Alpha]p fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. zd -> z]
+Wick[\[Psi]t[\[Mu]_, n_, z_], \[Psi]t[\[Nu]_, m_, w_]] := Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[\[Alpha]p fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. zd -> z]
 Wick[Ra_?Rone, Rb_?Rone] := Wick[Ra[[1]],Rb[[1]]]
 
 
@@ -67,22 +68,22 @@ Wick[Ra_?Rone, Rb_?Rone] := Wick[Ra[[1]],Rb[[1]]]
 (*Define SWick*)
 
 
-SWick[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=(-\[Alpha]p/2 I k[\[Mu]]) D[1/(z-w),{z,n}]
-SWick[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:=(-\[Alpha]p/2 I k[\[Mu]]) D[1/(z-w),{z,n}]
-SWick[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=(-\[Alpha]p/2 I k[\[Mu]]) D[1/(z-wbar),{z,n}]
-SWick[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=(-\[Alpha]p/2 I k[\[Mu]]) D[1/(z-wbar),{z,n}]
+SWick[dX[\[Mu]_, n_, z_], expX[k_, w_, wbar_]] := Module[{zd}, (-\[Alpha]p/2 I k[\[Mu]]) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[expX[k_, w_, wbar_], dX[\[Mu]_, n_, z_]] := Module[{zd}, (-\[Alpha]p/2 I k[\[Mu]]) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[dXt[\[Mu]_, n_, z_], expX[k_, w_, wbar_]] := Module[{zd}, (-\[Alpha]p/2 I k[\[Mu]]) D[1/(zd - wbar), {zd, n}] /. zd -> z]
+SWick[expX[k_, w_, wbar_], dXt[\[Mu]_, n_, z_]] := Module[{zd}, (-\[Alpha]p/2 I k[\[Mu]]) D[1/(zd - wbar), {zd, n}] /. zd -> z]
 
 
-SWick[d\[Phi][n_,z_],exp\[Phi]b[a_,w_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[exp\[Phi]b[a_,w_],d\[Phi][n_,z_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[d\[Phi][n_,z_],exp\[Phi]f[a_,w_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[exp\[Phi]f[a_,w_],d\[Phi][n_,z_]]:=(-a) D[1/(z-w),{z,n}]
+SWick[d\[Phi][n_, z_], exp\[Phi]b[a_, w_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[exp\[Phi]b[a_, w_], d\[Phi][n_, z_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[d\[Phi][n_, z_], exp\[Phi]f[a_, w_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[exp\[Phi]f[a_, w_], d\[Phi][n_, z_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
 
 
-SWick[d\[Phi]t[n_,z_],exp\[Phi]tb[a_,w_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[exp\[Phi]tb[a_,w_],d\[Phi]t[n_,z_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[d\[Phi]t[n_,z_],exp\[Phi]tf[a_,w_]]:=(-a) D[1/(z-w),{z,n}]
-SWick[exp\[Phi]tf[a_,w_],d\[Phi]t[n_,z_]]:=(-a) D[1/(z-w),{z,n}]
+SWick[d\[Phi]t[n_, z_], exp\[Phi]tb[a_, w_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[exp\[Phi]tb[a_, w_], d\[Phi]t[n_, z_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[d\[Phi]t[n_, z_], exp\[Phi]tf[a_, w_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
+SWick[exp\[Phi]tf[a_, w_], d\[Phi]t[n_, z_]] := Module[{zd}, (-a) D[1/(zd - w), {zd, n}] /. zd -> z]
 
 
 SWick[Ra_?Rone, Rb_?Rone] := SWick[Ra[[1]],Rb[[1]]]
@@ -137,7 +138,7 @@ DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) &
 
 
 (* ::Subsection::Initialization:: *)
-(*(*Define CDWick*)*)
+(*(*(*Define CDWick*)*)*)
 
 
 (* ::Input::Initialization:: *)
