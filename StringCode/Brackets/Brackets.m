@@ -162,6 +162,15 @@ singularity[exp\[Phi]tb[a_,z_],exp\[Phi]tf[b_,w_]]:=a b;
 singularity[exp\[Phi]tf[a_,z_],exp\[Phi]tb[b_,w_]]:=a b;
 singularity[exp\[Phi]tf[a_,z_],exp\[Phi]tf[b_,w_]]:=a b;
 
+singularity[d\[Phi][a_, z_], exp\[Phi]f[b_, w_]] := 1 + a;
+singularity[d\[Phi][a_, z_], exp\[Phi]b[b_, w_]] := 1 + a;
+singularity[d\[Phi]t[a_, z_], exp\[Phi]tf[b_, w_]] := 1 + a;
+singularity[d\[Phi]t[a_, z_], exp\[Phi]tb[b_, w_]] := 1 + a;
+singularity[exp\[Phi]f[b_, z_], d\[Phi][a_, w_]] := 1 + a;
+singularity[exp\[Phi]b[b_, z_], d\[Phi][a_, w_]] := 1 + a;
+singularity[exp\[Phi]tf[b_, z_], d\[Phi]t[a_, w_]] := 1 + a;
+singularity[exp\[Phi]tb[b_, z_], d\[Phi]t[a_, w_]] := 1 + a;
+
 singularity[a_,b_]:= 0 /; (MemberQ[allfields, Head[a]] && MemberQ[allfields, Head[b]]);
 
 
@@ -170,10 +179,13 @@ singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ all
 singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
 
 
-upperBoundSingularity[matrix_?MatrixQ] := Module[
-  {n = Length[matrix], total = 0, forcedTotal = 0, freeRowMaxes = {}, row, negs},
+(* Upper-bounds singularity given singularityMatrix, assumes only one negative entry for each row (there is at most one exp\[Phi] in each string field), takes it and
+then adds the maximum from each other row. 
+If there are no two operators in the string field contracting with the same operator in the PCO at the same (maximal) singularity order, the upper bound is saturated. *)
+upperBoundSingularity[singularityMatrix_?MatrixQ] := Module[
+  {n = Length[singularityMatrix], total = 0, forcedTotal = 0, freeRowMaxes = {}, row, negs},
   Do[
-    row = matrix[[i]];
+    row = singularityMatrix[[i]];
     negs = Select[row, # < 0 &];
 
     If[Length[negs] == 1,
