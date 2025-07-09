@@ -163,7 +163,7 @@ isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[field_, z0bar_] := False /; MemberQ[holomorphicFields, Head[field]];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Define adding derivatives*)
 
 
@@ -190,17 +190,17 @@ addHoloDerivatives[\[Psi][\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\
 
 addHoloDerivatives[exp\[Phi]f[a_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] * 
-    R[exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)];
+    R[exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand];
 
 
 addHoloDerivatives[exp\[Phi]b[a_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] * 
-    R[exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)];
+    R[exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand];
 
 
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
-    R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)];
+    R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)//Expand];
 
 
 addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= (z-z0bar)^ord/Factorial[ord] bt[n+ord,z0bar];
@@ -226,20 +226,20 @@ addAntiHoloDerivatives[\[Psi]t[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Fact
 
 addAntiHoloDerivatives[exp\[Phi]tf[a_, z_], ord_, z0bar_] :=
   (z - z0bar)^ord/Factorial[ord] *
-    R[exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)];
+    R[exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand];
 
 
 addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
   (z - z0bar)^ord/Factorial[ord] *
-    R[exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)];
+    R[exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand];
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
-    R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)];
+    R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Taylor expansions of exponentials*)
 
 
