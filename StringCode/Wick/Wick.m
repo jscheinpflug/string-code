@@ -7,7 +7,7 @@
 BeginPackage["StringCode`Wick`"]
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
-Needs["StringCode`Conventions`ConventionsIIBXi`"];
+Needs["StringCode`Conventions`ConventionsIIBAshoke`"];
 
 
 (* ::Section:: *)
@@ -137,7 +137,7 @@ DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) &
 
 
 (* ::Subsection::Initialization:: *)
-(*Define CDWick*)
+(*(*Define CDWick*)*)
 
 
 (* ::Input::Initialization:: *)

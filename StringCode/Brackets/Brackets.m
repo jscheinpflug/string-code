@@ -10,7 +10,7 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`StringFields`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Taylor`"];
-Needs["StringCode`Conventions`ConventionsIIBXi`"];
+Needs["StringCode`Conventions`ConventionsIIBAshoke`"];
 
 
 (* ::Section:: *)
