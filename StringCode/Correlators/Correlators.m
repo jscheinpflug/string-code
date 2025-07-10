@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (* ::Section::Initialization:: *)
-(*Init*)
+(*(*Init*)*)
 
 
 BeginPackage["StringCode`Correlators`"]
@@ -12,7 +12,7 @@ Needs["StringCode`OPE`"];
 
 
 (* ::Section::Initialization:: *)
-(*Declare public methods*)
+(*(*Declare public methods*)*)
 
 
 Corr::usage = "Computes correlation functions in the worldsheet CFT";
@@ -20,14 +20,14 @@ Vev::usage = "Computes VEV in the worldsheet CFT";
 
 
 (* ::Section::Initialization:: *)
-(*Logic*)
+(*(*Logic*)*)
 
 
-Begin["`Private`"];
+Begin["Private`"];
 
 
 (* ::Subsection::Initialization:: *)
-(*Define Vev*)
+(*(*Define Vev*)*)
 
 
 (* ::Input::Initialization:: *)
@@ -35,7 +35,7 @@ Vev[f_]:=Block[{i},f/.{b[n_,z_]:>0,c[n_,z_]:>Sum[If[i==0,1,z^i/i!] c[n+i,0],{i,0
 
 
 (* ::Subsection::Initialization::Closed:: *)
-(*Define Corr*)
+(*(*Define Corr*)*)
 
 
 (* ::Input::Initialization:: *)
@@ -66,7 +66,7 @@ Corr[ b_,a_ c_]:=a Corr[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
 
 
 (* ::Section::Initialization:: *)
-(*End*)
+(*(*End*)*)
 
 
 End[];

@@ -29,12 +29,6 @@ allfields::usage = "A list of all bosons and fermions";
 regfermions::usage = "A list of fundamental fermions";
 
 
-exp\[Phi]fermions::usage="A list of fermionized holomorphic exponentials";
-
-
-exp\[Phi]tfermions::usage = "A list of fermionized antiholomorphic exponentials";
-
-
 simplefields::usage = "A list of fundamental fields";
 
 
@@ -50,33 +44,6 @@ Contract::usage = "Contract traced indices";
 ContractDelta::usage = "Contract repeated indices";
 
 
-expX::usage = "Plane wave primary in free boson CFT";
-
-
-dX::usage = "Holomorphic del X primary in free boson CFT"
-
-
-dXt::usage = "Antiholomorphic del X primary in free boson CFT"
-
-
-d\[Phi]::usage = "Holomorphic del \[Phi] primary in linear dilaton CFT"
-
-
-d\[Phi]t::usage = "Antiholomorphic del \[Phi] primary in linear dilaton CFT"
-
-
-exp\[Phi]b::usage = "Holomorphic bosonic exponential of the \[Phi] linear dilaton"
-
-
-exp\[Phi]tb::usage = "Antiholomorphic bosonic exponential of the \[Phi] linear dilaton"
-
-
-exp\[Phi]f::usage = "Holomorphic fermionic exponential of the \[Phi] linear dilaton"
-
-
-exp\[Phi]tf::usage = "Antiholomorphic fermionic exponential of the \[Phi] linear dilaton"
-
-
 b::usage = "Holomorphic b-ghost"
 
 
@@ -87,33 +54,6 @@ c::usage = "Holomorphic c-ghost"
 
 
 ct::usage = "Antiholomorphic c-ghost"
-
-
-\[Xi]::usage = "Holomorphic \[Xi]-ghost"
-
-
-\[Xi]t::usage = "Antiholomorphic \[Xi]-ghost"
-
-
-\[Eta]::usage = "Holomorphic \[Eta]-ghost"
-
-
-\[Eta]t::usage = "Antiholomorphic \[Eta]-ghost"
-
-
-\[Psi]::usage = "Holomorphic free matter fermion"
-
-
-\[Psi]t::usage = "Antiholomorphic free matter fermion"
-
-
-ProfileX::usage = "A polynomial X-profile"
-
-
-pictureHol::usage = "Gives holomorphic picture number";
-
-
-pictureAntiHol::usage = "Gives antiholomorphic picture number";
 
 
 isSimple::usage = "Checks if is simple field";
@@ -135,7 +75,7 @@ isAntiHolomorphic::usage = "Checks if is antiholomorphic";
 (*Logic*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define index contractions*)
 
 
@@ -146,63 +86,25 @@ Contract[f_]:=Contract[f,10];
 ContractDelta[f_]:=f//.{g_ \[Delta][\[Mu]_,\[Mu]1_]:>(g/.{\[Mu]->\[Mu]1})/;!FreeQ[g,\[Mu]],g_ \[Delta][\[Mu]1_,\[Mu]_]:>(g/.{\[Mu]->\[Mu]1})/;!FreeQ[g,\[Mu]]};
 
 
-Begin["`Private`"];
+Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define symbols*)
 
 
-exp\[Phi]b[0,z_]:=1;
-exp\[Phi]tb[0,z_]:=1;
-bosons={expX,dX,dXt,d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb,ProfileX};
-fermions={\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf};
-regfermions={\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
-exp\[Phi]fermions={exp\[Phi]f};
-exp\[Phi]tfermions={exp\[Phi]tf};
-simplefields={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,c,ct,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
-simplefieldsnotc={dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,b,bt,\[Xi],\[Xi]t,\[Eta],\[Eta]t};
-compositefields={expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf};
-holomorphicFields = {dX,\[Psi],b,c,\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b, expX};
-antiHolomorphicFields = {dXt,\[Psi]t,bt,ct,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb, expX};
+bosons={};
+fermions={b,bt,c,ct};
+regfermions={b,bt,c,ct};
+simplefields={b,bt,c,ct};
+simplefieldsnotc={b,bt};
+compositefields={};
+holomorphicFields = {b,c};
+antiHolomorphicFields = {bt,ct};
 allfields=Join[bosons,fermions];
 
 
 (* ::Subsection:: *)
-(*Define picture numbers*)
-
-
-pictureHol[\[Xi][n_, z_]]:= 1;
-
-
-pictureHol[\[Eta][n_, z_]]:= -1;
-
-
-pictureHol[exp\[Phi]f[exp_, z_]]:= exp;
-
-
-pictureHol[exp\[Phi]b[exp_, z_]]:= exp;
-
-
-pictureHol[a_/;MemberQ[allfields, Head[a]]]:= 0;
-
-
-pictureAntiHol[\[Xi]t[n_, zbar_]]:= 1;
-
-
-pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
-
-
-pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;
-
-
-pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
-
-
-pictureAntiHol[a_/;MemberQ[allfields, Head[a]]]:= 0;
-
-
-(* ::Subsubsection:: *)
 (*Define cached lookups*)
 
 

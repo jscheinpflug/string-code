@@ -21,7 +21,7 @@ OPE::usage = "Computes the operator product expansion";
 (*Logic*)
 
 
-Begin["`Private`"];
+Begin["Private`"];
 
 
 isProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX]
@@ -44,11 +44,11 @@ OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Ra/;
 OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
 
-OPE[Ra_,Rb_]:=DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:=DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& isSimple[Head[Ra[[1]]]] )
 
 OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && isComposite[Head[Ra[[1]]]] )
 
-OPE[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]]) 
+OPE[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && isSimple[Head[Ra[[1]]]]) 
 
 OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && isComposite[Head[Ra[[1]]]] )
 
