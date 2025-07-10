@@ -136,14 +136,6 @@ DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) &
 
 
 
-(* ::Subsubsection:: *)
-(*Define isSimple and isComposite*)
-
-
-isSimple[symbol_]:= isSimple[symbol] = MemberQ[simplefields, symbol];
-isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
-
-
 (* ::Subsection::Initialization:: *)
 (*Define CDWick*)
 

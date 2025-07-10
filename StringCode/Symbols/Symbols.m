@@ -116,6 +116,21 @@ pictureHol::usage = "Gives holomorphic picture number";
 pictureAntiHol::usage = "Gives antiholomorphic picture number";
 
 
+isSimple::usage = "Checks if is simple field";
+
+
+isComposite::usage = "Checks if is composite field";
+
+
+isField::usage = "Checks if is field";
+
+
+isHolomorphic::usage = "Checks if is holomorphic";
+
+
+isAntiHolomorphic::usage = "Checks if is antiholomorphic";
+
+
 (* ::Section:: *)
 (*Logic*)
 
@@ -185,6 +200,17 @@ pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
 
 
 pictureAntiHol[a_/;MemberQ[allfields, Head[a]]]:= 0;
+
+
+(* ::Subsubsection:: *)
+(*Define cached lookups*)
+
+
+isSimple[symbol_]:= isSimple[symbol] = MemberQ[simplefields, symbol];
+isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
+isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
+isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
+isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
 
 
 (* ::Section:: *)

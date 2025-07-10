@@ -35,22 +35,22 @@ OPE[a___,0,b___]:=0
 
 OPE[a___,b_/;isProfile[b],c___]:= OPEWithReplacedProfileX[a,b,c];
 
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb] /;(Rone[Ra] && Rone[Rb] && MemberQ[simplefields,Head[Ra[[1]]]] && MemberQ[simplefields,Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Rb /;(Rone[Ra] && Rone[Rb] && MemberQ[simplefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Rb /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Ra/;(Rone[Ra] && Rone[Rb] && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[simplefields,Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Ra/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
-OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
 
 OPE[Ra_,Rb_]:=DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]] )
 
-OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && MemberQ[compositefields,Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && isComposite[Head[Ra[[1]]]] )
 
 OPE[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]]) 
 
-OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[compositefields,Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && isComposite[Head[Ra[[1]]]] )
 
 
 OPE[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allfields))||(And @@(FreeQ[g,#]&/@ allfields)))
