@@ -29,12 +29,10 @@ Begin["Private`"];
 (*Define Taylor*)
 
 
-taylorRule[z0_, z0bar_, ord_] = {b[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] b[n+i,z0],{i,0,ord}],
-c[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] c[n+i,z0],{i,0,ord}],
-bt[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] bt[n+i,z0bar],{i,0,ord}],
-ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}]};
+(*taylorRule has to be defined for each string theory*)
 
-Taylor[f_,z0_,z0bar_,ord_]:= Block[{i,j,x,func,n,z}, f/.taylorRule;];
+
+Taylor[f_,z0_,z0bar_,ord_]:= f/.taylorRule[z0, z0bar, ord];
 
 
 (* ::Subsection:: *)
@@ -100,7 +98,7 @@ TaylorAtOrderHolo[0, ord_, z0_]:= 0;
 TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
 
-TaylorAtOrder[Ra_/;Rtest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrderAntiHolo[TaylorAtOrderHolo[Ra, ordHolo, z0], ordAntiHolo, z0bar] 
+TaylorAtOrder[Ra_/;Rtest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrderAntiHolo[TaylorAtOrderHolo[Ra, ordHolo, z0], ordAntiHolo, z0bar];
 
 
 TaylorAtOrder[a_+b_,c_,d_,e_,f_]:=TaylorAtOrder[a,c,d,e,f]+TaylorAtOrder[b,c,d,e,f]
