@@ -23,7 +23,15 @@ Needs["StringCode`Taylor`"];
 Begin["Private`"];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsection:: *)
+(*Check if field needs expanding*)
+
+
+isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
+isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
+
+
+(* ::Subsection:: *)
 (*Define adding derivatives*)
 
 

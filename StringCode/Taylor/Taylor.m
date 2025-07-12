@@ -61,8 +61,8 @@ partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[or
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
-	While[i <= RLength && (!isHolomorphic[Head[Ra[[i]]]] || isAtPointHolo[Ra[[i]], z0]), resultForGivenPartition[[i]] = Ra[[i]]; i++];
-	resultForGivenPartition[[i]] = addHoloDerivatives[Ra[[i]], partitionNumber, z0];
+	While[i <= RLength && (!isHolomorphic[Head[RList[[i]]]] || isAtPointHolo[RList[[i]], z0]), resultForGivenPartition[[i]] = RList[[i]]; i++];
+	resultForGivenPartition[[i]] = addHoloDerivatives[RList[[i]], partitionNumber, z0];
 	i++],
 	 partition];
 	 result = result + R @@ Join[resultForGivenPartition[[;; i - 1]], RList[[i;;]]];
@@ -80,8 +80,8 @@ partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[or
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
-	While[i <= RLength && (!isAntiHolomorphic[Head[Ra[[i]]]] || isAtPointAntiHolo[Ra[[i]], z0bar]), resultForGivenPartition[[i]] = Ra[[i]]; i++];
-	resultForGivenPartition[[i]] = addAntiHoloDerivatives[Ra[[i]], partitionNumber, z0bar];
+	While[i <= RLength && (!isAntiHolomorphic[Head[RList[[i]]]] || isAtPointAntiHolo[RList[[i]], z0bar]), resultForGivenPartition[[i]] = RList[[i]]; i++];
+	resultForGivenPartition[[i]] = addAntiHoloDerivatives[RList[[i]], partitionNumber, z0bar];
 	i++],
 	 partition];
 	 result = result + R @@ Join[resultForGivenPartition[[;; i - 1]], RList[[i;;]]];
@@ -121,14 +121,8 @@ TaylorAtOrderAntiHolo[a_ b_,c_,d_]:=a TaylorAtOrderAntiHolo[b,c,d]/;(And @@(Free
 
 isAtPointHolo[b[n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[c[n_, z_], z0_] := SameQ[z,z0];
-isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
-isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
-isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
 isAtPointAntiHolo[bt[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ct[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
 
 (* ::Subsubsection:: *)

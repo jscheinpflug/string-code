@@ -16,9 +16,6 @@ Needs["StringCode`Taylor`"];
 (*Declare public variables and methods*)
 
 
-Taylor::usage = "Taylor expands a normal ordered product up to a given order";
-
-
 (* ::Section:: *)
 (*Logic*)
 
@@ -30,8 +27,6 @@ Begin["Private`"];
 (*Check if field needs expanding*)
 
 
-isAtPointHolo[b[n_, z_], z0_] := SameQ[z,z0];
-isAtPointHolo[c[n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[\[Eta][n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[\[Xi][n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[d\[Phi][n_, z_], z0_] := SameQ[z,z0];
@@ -122,7 +117,6 @@ addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
 (*Define Taylor expansions of exponentials*)
 
 
-Clear[phiPoly]
 phiPoly[a_, n_] := phiPoly[a, n] =
   Expand[
     D[E^(a func[x]), {x, n}] /. {
@@ -132,7 +126,6 @@ phiPoly[a_, n_] := phiPoly[a, n] =
   ];
 
 
-Clear[phiPolyT]
 phiPolyT[a_, n_] := phiPolyT[a, n] = 
   Expand[
     D[E^(a func[x]), {x, n}] /. {
@@ -142,7 +135,6 @@ phiPolyT[a_, n_] := phiPolyT[a, n] =
   ];
 
 
-Clear[expXPoly]
 expXPoly[k_, n_] :=
   expXPoly[k, n] =
    Expand[D[E^(I func[x]), {x, n}] /. {E^(I func[x]) :> 1,
@@ -152,7 +144,6 @@ expXPoly[k_, n_] :=
        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
 
 
-Clear[expXPolyT]
 expXPolyT[k_, n_] :=
   expXPolyT[k, n] =
    Expand[D[E^(I func[x]), {x, n}] /. {E^(I func[x]) :> 1,
