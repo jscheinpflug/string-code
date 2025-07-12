@@ -68,7 +68,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (zBar result // Expand)/.{zBar->0}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define 2-bracket*)
 
 
@@ -129,10 +129,10 @@ totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 pictureAdjust[Ra_/;Rtest[Ra]] :=
   Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra], factorization = splitR[Ra], holoRaised, antiHoloRaised, resultdoubled, result},
    holoRaised =
-    Nest[actPCOHolo, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1];
+    If[pictureHol < 0, Nest[actPCOHolo, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1], R @@ factorization[[1]]];
    antiHoloRaised =
     DeleteCases[
-     Nest[actPCOAntiHolo, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], expX[_, _, _], \[Infinity]];
+     If[pictureAntiHol < 0, Nest[actPCOAntiHolo, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], R @@ factorization[[2]]], expX[_, _, _], \[Infinity]];
    result = factorizationSign[Ra] R[holoRaised, antiHoloRaised]
    ];
 
@@ -183,7 +183,7 @@ factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
 factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Determine whether OPE should be computed*)
 
 
