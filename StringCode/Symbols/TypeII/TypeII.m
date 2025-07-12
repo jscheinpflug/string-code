@@ -66,6 +66,12 @@ pictureHol::usage = "Gives holomorphic picture number";
 pictureAntiHol::usage = "Gives antiholomorphic picture number";
 
 
+exp\[Phi]fermions::usage = "A list of fermionic exponential of phi symbols";
+
+
+exp\[Phi]tfermions::usage = "A list of fermionic exponential of barphi symbols";
+
+
 (* ::Section:: *)
 (*Logic*)
 
