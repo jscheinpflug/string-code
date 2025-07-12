@@ -126,8 +126,15 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
 totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
-pictureAdjust[Ra_/;Rtest[Ra]]:= Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra]}, 
-Nest[actPCOAntiHolo, Nest[actPCOHolo, Ra, Ceiling[Abs[pictureHol]]-1], Ceiling[Abs[pictureAntiHol]]-1]];
+pictureAdjust[Ra_/;Rtest[Ra]] :=
+  Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra], factorization = splitR[Ra], holoRaised, antiHoloRaised, resultdoubled, result},
+   holoRaised =
+    Nest[actPCOHolo, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1];
+   antiHoloRaised =
+    DeleteCases[
+     Nest[actPCOAntiHolo, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], expX[_, _, _], \[Infinity]];
+   result = factorizationSign[Ra] R[holoRaised, antiHoloRaised]
+   ];
 
 actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
 actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
@@ -138,6 +145,42 @@ actPCOHolo[0] := 0;
 pictureAdjust[a_+b_]:=pictureAdjust[a] + pictureAdjust[b];
 pictureAdjust[a_ b_]:=a pictureAdjust[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 pictureAdjust[0] := 0;
+
+
+(* ::Subsubsection:: *)
+(*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
+
+
+splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ Ra},
+   RHolo = Select[RList, isHolomorphic @* Head];
+   RAntiHolo = Select[RList, isAntiHolomorphic @* Head];
+   {RHolo, RAntiHolo}
+   ];
+splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
+
+factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{list = {}},
+   Scan[Function[Relem,
+     If[isHolomorphic[Relem] && isFermion[Relem],
+      AppendTo[list, fHolo]];
+     If[isHolomorphic[Relem] && isBoson[Relem],
+      AppendTo[list, bHolo]];
+     If[isAntiHolomorphic[Relem] && isFermion[Relem],
+      AppendTo[list, fAntiHolo]];
+     If[isAntiHolomorphic[Relem] && isBoson[Relem],
+      AppendTo[list, bAntiHolo]];
+     ], Ra]; list
+   ];
+ 
+factorizationSign[Ra_ /;Rtest[Ra]] :=
+ Module[{list = factorizationAuxList[Ra], holPositions, antiHolPositions, swaps, totalSwaps, sign},
+  holPositions = Flatten[Position[list, _fHolo]];
+  antiHolPositions = Flatten[Position[list, _fAntiHolo]];
+  swaps = Outer[Boole[#2 < #1] &, holPositions, antiHolPositions];
+  totalSwaps = Total[swaps, 2];
+  sign = (-1)^totalSwaps
+  ]
+factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
+factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
 
 
 (* ::Subsection:: *)

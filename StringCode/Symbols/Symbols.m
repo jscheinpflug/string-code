@@ -56,6 +56,12 @@ c::usage = "Holomorphic c-ghost"
 ct::usage = "Antiholomorphic c-ghost"
 
 
+isBoson::usage = "Checks if is bosonic field";
+
+
+isFermion::usage = "Checks if is fermionic field";
+
+
 isSimple::usage = "Checks if is simple field";
 
 
@@ -108,6 +114,8 @@ allfields=Join[bosons,fermions];
 (*Define cached lookups*)
 
 
+isBoson[symbol_]:= isBoson[symbol] = MemberQ[bosons, symbol];
+isFermion[symbol_]:= isFermion[symbol] = MemberQ[fermions, symbol];
 isSimple[symbol_]:= isSimple[symbol] = MemberQ[simplefields, symbol];
 isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
 isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
