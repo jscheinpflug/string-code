@@ -24,9 +24,6 @@ OPE::usage = "Computes the operator product expansion";
 Begin["Private`"];
 
 
-isProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX]
-
-
 (* ::Subsection:: *)
 (*Define OPE by repeated moving of fields under a common normal ordering*)
 
@@ -61,45 +58,6 @@ OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
 
 
 OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
-
-
-createProfileExp[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= expX[momentum,z,zbar]
-
-
-extractProfile[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= ProfileX[polX,degree, ders,momentum]
-
-
-replaceProductWithMomentumByDerivativeRule = 
-{Times[p_Symbol[args___],ProfileX[pol_,degree_, polargs_,p_]]:>
-If[degree > Length[polargs],-I ProfileX[pol,degree,Append[polargs,args],p],0]}
-
-
-OPEWithReplacedProfileX[toOPE__]:= Module[{prefac = 1, normalOrderingListed = {}, replacedNormalOrderedList = {}, resultingToOPE = {}, uniqueK=0},
- Scan[
-    Function[normalOrderedProduct,
-      If[isProfile[normalOrderedProduct],
-        (
-          normalOrderingListed = List @@ normalOrderedProduct;
-          Scan[Function[arg,
-          If[MatchQ[arg,_ProfileX],
-          (
-          uniqueK = Module[{k},k];
-          prefac = prefac * extractProfile[arg, uniqueK];
-          AppendTo[replacedNormalOrderedList, createProfileExp[arg, uniqueK]]
-          ),
-          AppendTo[replacedNormalOrderedList, arg];
-          ];
-          ], normalOrderingListed];
-          AppendTo[resultingToOPE, R @@ replacedNormalOrderedList];
-          replacedNormalOrderedList = {};
-          normalOrderingListed = {};
-        ),
-        AppendTo[resultingToOPE, normalOrderedProduct]
-      ];
-    ],
-    {toOPE}
-  ];
-((prefac OPE @@ resultingToOPE)//Expand)//.replaceProductWithMomentumByDerivativeRule]
 
 
 (* ::Section:: *)

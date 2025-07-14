@@ -15,6 +15,7 @@ Switch[theoryValue,
     "StringCode`Conventions`TypeII`",
     "StringCode`Wick`TypeII`",
     "StringCode`StringFields`TypeII`",
+    "StringCode`OPE`TypeII`",
     "StringCode`Brackets`TypeII`"},
 "Bosonic", userContext = {
     "StringCode`Symbols`Bosonic`",
@@ -22,6 +23,7 @@ Switch[theoryValue,
     "StringCode`Conventions`Bosonic`",
     "StringCode`Wick`Bosonic`",
     "StringCode`StringFields`Bosonic`",
+    "StringCode`OPE`Bosonic`",
     "StringCode`Brackets`Bosonic`"},
 _, Print["There is no such theory"]];
 
