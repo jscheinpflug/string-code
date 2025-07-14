@@ -95,15 +95,14 @@ R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;MemberQ[bosons,Head[a
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 
 
-(* ::Subsection::Initialization:: *)
-(*(*Define CR*)*)
+(* ::Subsection:: *)
+(*Define CR*)
 
 
-(* ::Input::Initialization:: *)
 CR[c___,b_,a_,d___]:=regcomm[a,b] CR[c,a,b,d]/;(!OrderedQ[{b,a}])
 CR[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 CR[ c___,a_,d___]:=0/;MemberQ[simplefieldsnotc,Head[a]]
- 
+
 CR[c___,a_+b_,d___]:=CR[c,a,d]+CR[c,b,d]
 CR[c___,a_ f_,d___]:=a CR[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 CR[c___,a_ ,d___]:=a CR[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
