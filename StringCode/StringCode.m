@@ -30,6 +30,15 @@ Switch[conventionValue,
 "TypeII-Ashoke", If[theoryValue == "TypeII", AppendTo[userContext,"StringCode`Conventions`TypeII`Ashoke`"], Print["No such conventions for theory ", theoryValue]],
 "Bosonic-Xi", If[theoryValue == "Bosonic", AppendTo[userContext,"StringCode`Conventions`Bosonic`Xi`"], Print["No such conventions for theory ", theoryValue]],
 _, Print["There are no such conventions"]];
+
+Switch[bracketValue, 
+"Flat", 
+Switch[theoryValue,
+"TypeII", AppendTo[userContext, "StringCode`Brackets`TypeII`Flat`"],
+"Bosonic", AppendTo[userContext, "StringCode`Brackets`Bosonic`Flat`"],
+_, Print["No such bracket for theory ", theoryValue]
+],
+_, Print["There is no such bracket"]];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Taylor`"];

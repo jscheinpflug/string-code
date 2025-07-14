@@ -66,17 +66,19 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define 2-bracket*)
 
 
-Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= Module[{z0, z0bar,w0,w0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart}, 
+Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, 
+SFaAtPos, SFbAtPos, localCoordinateReplacement}, 
+{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
 Scan[Function[OPEpart,
 powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
-tayloredOPEpart = If[powerHol<0, 
-If[powerAntiHol< 0,TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
-If[powerAntiHol <0, TaylorAtOrder[OPEpart/.{z0->0},0, -powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
+tayloredOPEpart = If[powerHol < 0, 
+If[powerAntiHol < 0,TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
 result = result + b0m[tayloredOPEpart];,
 0];
-],List @@((OPE[SFAtPos[SFa, w0, w0bar], SFAtPos[SFb,z0,z0bar]])/.{w0->-z0,w0bar->-z0bar}//Expand)]; result];
+],List @@(((OPE[SFaAtPos, SFbAtPos])/.localCoordinateReplacement)//Expand)]; result];
 
 
 (* ::Subsection:: *)
