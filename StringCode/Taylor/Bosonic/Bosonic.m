@@ -38,12 +38,18 @@ isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[Mu],n+ord,z0];
 
 
+addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0];
+
+
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
     R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)//Expand];
 
 
 addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]dXt[\[Mu],n+ord,z0bar];
+
+
+addHoloAntiDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar];
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
@@ -86,6 +92,7 @@ dX[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] dX[\[Mu],n+i,z0],{i,0,ord}],
 bt[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] bt[n+i,z0bar],{i,0,ord}],
 ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}],
 dXt[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] dXt[\[Mu],n+i,z0bar],{i,0,ord}],
+X[\[Mu]_,z_,zbar_]:> If[ord >= 1, 1/Factorial[ord] (dX[\[Mu],ord-1,z0] + dXt[\[Mu],ord-1,z0bar]), X[\[Mu],z,zbar]],
 expX[k_,z_,zbar_]:>Sum[If[i==0,1,(z-z0)^i/i!]If[j==0,1,(zbar-z0bar)^j/j!] (R[expX[k,z0,z0bar]*(expXPoly[k, i] /. x -> z0)*(expXPolyT[k, j] /. x -> z0bar)//Expand]),{i,0,ord},{j,0,ord}]}];
 
 

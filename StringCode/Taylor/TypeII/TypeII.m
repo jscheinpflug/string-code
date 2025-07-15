@@ -34,6 +34,7 @@ isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[\[Psi][\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[exp\[Phi]f[n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[exp\[Phi]b[n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[X[\[Mu]_,  z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
 isAtPointAntiHolo[bt[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
@@ -45,6 +46,7 @@ isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[exp\[Phi]tf[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[exp\[Phi]tb[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[X[\[Mu], z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
@@ -63,6 +65,9 @@ addHoloDerivatives[d\[Phi][n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]d\[Phi]
 
 
 addHoloDerivatives[\[Psi][\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\[Psi][\[Mu],n+ord,z0];
+
+
+addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0];
 
 
 addHoloDerivatives[exp\[Phi]f[a_, z_], ord_, z0_] :=
@@ -85,6 +90,9 @@ addAntiHoloDerivatives[d\[Phi]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[
 
 
 addAntiHoloDerivatives[\[Psi]t[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Psi]t[\[Mu],n+ord,z0bar];
+
+
+addHoloAntiDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar];
 
 
 addAntiHoloDerivatives[exp\[Phi]tf[a_, z_], ord_, z0bar_] :=
@@ -164,6 +172,7 @@ c[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] c[n+i,z0],{i,0,ord}],
 \[Eta][n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] \[Eta][n+i,z0],{i,0,ord}],
 \[Xi][n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] \[Xi][n+i,z0],{i,0,ord}],
 d\[Phi][n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] d\[Phi][n+i,z0],{i,0,ord}],
+X[\[Mu]_,z_,zbar_]:> If[ord >= 1, 1/Factorial[ord] (dX[\[Mu],ord-1,z0] + dXt[\[Mu],ord-1,z0bar]), X[\[Mu],z,zbar]],
 dX[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] dX[\[Mu],n+i,z0],{i,0,ord}],
 \[Psi][\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!]\[Psi][\[Mu],n+i,z0],{i,0,ord}],
 exp\[Phi]f[a_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!](R[exp\[Phi]f[a, z0] * (phiPoly[a, i] /. x -> z0)//Expand]),{i,0,ord}],
