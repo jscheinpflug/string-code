@@ -46,6 +46,8 @@ SF[ c___,a_,b_,d___]:=SF[c,exp\[Phi]tf[a[[1]]+b[[1]]],d]/;(Head[a]==exp\[Phi]tb 
 positionOp[z0_, z0bar_][\[Eta][n_]]:= \[Eta][n, z0];
 positionOp[z0_, z0bar_][\[Xi][n_]]:= \[Xi][n, z0];
 positionOp[z0_, z0bar_][\[Psi][\[Mu]_,n_]]:= \[Psi][\[Mu], n, z0];
+positionOp[z0_, z0bar_][X[\[Mu]_]]:= X[\[Mu], z0, z0bar];
+positionOp[z0_, z0bar_][ProfileX[\[Mu]_, n_]]:= ProfileX[\[Mu],n, z0, z0bar];
 positionOp[z0_, z0bar_][dX[\[Mu]_,n_]]:= dX[\[Mu], n, z0];
 positionOp[z0_, z0bar_][exp\[Phi]b[n_]]:= exp\[Phi]b[ n, z0];
 positionOp[z0_, z0bar_][exp\[Phi]f[n_]]:= exp\[Phi]f[ n, z0];

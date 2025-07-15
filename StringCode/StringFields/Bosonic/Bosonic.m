@@ -30,6 +30,8 @@ Begin["Private`"];
 
 
 (* ::Input::Initialization:: *)
+positionOp[z0_, z0bar_][X[\[Mu]_]]:= X[\[Mu], z0, z0bar];
+positionOp[z0_, z0bar_][ProfileX[\[Mu]_, n_]]:= ProfileX[\[Mu],n, z0, z0bar];
 positionOp[z0_, z0bar_][dX[\[Mu]_,n_]]:= dX[\[Mu], n, z0];
 positionOp[z0_, z0bar_][dXt[\[Mu]_,n_]]:= dXt[\[Mu], n, z0bar];
 positionOp[z0_, z0bar_][expX[n_]]:= expX[n, z0, z0bar];
