@@ -27,7 +27,13 @@ Begin["Private`"];
 (*Check if field needs expanding*)
 
 
+isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[X[\[Mu]_,  z_, zbar_], z0_] := SameQ[z,z0];
+isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
+isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[X[\[Mu], z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
 
@@ -38,7 +44,7 @@ isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[Mu],n+ord,z0];
 
 
-addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0];
+addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= If[ord>0, (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0], X[\[Mu],z0,zbar]];
 
 
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
@@ -49,7 +55,7 @@ addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
 addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]dXt[\[Mu],n+ord,z0bar];
 
 
-addHoloAntiDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar];
+addAntiHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= If[ord > 0, (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar], X[\[Mu],z,z0bar]];
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=

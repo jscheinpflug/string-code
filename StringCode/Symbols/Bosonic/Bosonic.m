@@ -45,7 +45,7 @@ simplefields=Join[simplefields, {X, dX,dXt}];
 simplefieldsnotc=Join[simplefieldsnotc, {X,dX,dXt}];
 compositefields= Join[compositefields, {expX}];
 holomorphicFields = Join[holomorphicFields, {X,dX,expX}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {XmdXt, expX}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {X, dXt, expX}];
 allfields=Join[bosons,fermions];
 
 

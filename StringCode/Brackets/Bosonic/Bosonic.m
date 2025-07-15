@@ -34,9 +34,9 @@ Begin["Private`"];
 
 
 actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTNoTD[z];
+BRSTList = List @@ jBRSTbosonicstring[z];
 Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
 If[singularityUpperBound >= 0,
 OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
 Scan[Function[Relem,
@@ -44,13 +44,13 @@ power = Exponent[Relem, z];
 If[power == -1, result = result + Relem, 
 If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];];
+];], BRSTList];
 (z result // Expand)/.{z->0}];
 
 actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTbarNoTD[zBar];
+BRSTList = List @@ jBRSTbosonicstringbar[zBar];
 Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
 If[singularityUpperBound >= 0,
 OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
 Scan[Function[Relem,
@@ -58,7 +58,7 @@ power = Exponent[Relem, zBar];
 If[power == -1, result = result + Relem, 
 If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 ], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];];
+];], BRSTList];
 (zBar result // Expand)/.{zBar->0}];
 
 
@@ -74,7 +74,7 @@ powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
 tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0,TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
 If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
 result = result + b0m[tayloredOPEpart];,
 0];
