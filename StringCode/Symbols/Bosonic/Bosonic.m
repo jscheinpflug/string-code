@@ -12,6 +12,9 @@ Needs["StringCode`Symbols`"];
 (*Declare public variables and methods*)
 
 
+X::usage = "Noncompact boson in free boson CFT";
+
+
 expX::usage = "Plane wave primary in free boson CFT";
 
 
@@ -28,21 +31,21 @@ ProfileX::usage = "A polynomial X-profile"
 (*Logic*)
 
 
-Begin["`Private`"];
+Begin["Private`"];
 
 
 (* ::Subsection:: *)
 (*Define symbols*)
 
 
-bosons=Join[bosons, {expX,dX,dXt,ProfileX}];
+bosons=Join[bosons, {X,expX,dX,dXt,ProfileX}];
 fermions=Join[fermions, {}];
 regfermions=Join[regfermions,{}];
-simplefields=Join[simplefields, {dX,dXt}];
-simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt}];
+simplefields=Join[simplefields, {X, dX,dXt}];
+simplefieldsnotc=Join[simplefieldsnotc, {X,dX,dXt}];
 compositefields= Join[compositefields, {expX}];
-holomorphicFields = Join[holomorphicFields, {dX,expX}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {dXt, expX}];
+holomorphicFields = Join[holomorphicFields, {X,dX,expX}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {XmdXt, expX}];
 allfields=Join[bosons,fermions];
 
 

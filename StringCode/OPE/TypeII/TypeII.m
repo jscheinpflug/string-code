@@ -29,34 +29,31 @@ Begin["Private`"];
 (*Define OPE with Profiles*)
 
 
-isProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX]
+isProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX];
 
 
-createProfileExp[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= expX[momentum,z,zbar]
+extractProfileData[ProfileX[profile_, degree_, z_,zbar_]]:= {profile,degree,z,zbar};
 
 
-extractProfile[ProfileX[polX_,degree_, ders_List,z_,zbar_],momentum_]:= ProfileX[polX,degree, ders,momentum]
+createDerivativeIndicesAndXs[degree_, z_, zbar_]:= 
+Module[{derivativeIndices = {}, Xs = {}}, Table[Module[{\[Mu]}, AppendTo[derivativeIndices, \[Mu]]; AppendTo[Xs, X[\[Mu],z,zbar]]], {i,1,degree}]; {derivativeIndices, Xs}];
 
 
-replaceProductWithMomentumByDerivativeRule = 
-{Times[p_Symbol[args___],ProfileX[pol_,degree_, polargs_,p_]]:>
-If[degree > Length[polargs],-I ProfileX[pol,degree,Append[polargs,args],p],0]}
-
-
-OPEWithReplacedProfileX[toOPE__]:= Module[{prefac = 1, normalOrderingListed = {}, replacedNormalOrderedList = {}, resultingToOPE = {}, uniqueK=0},
+OPEWithReplacedProfileX[toOPE__]:= Module[{prefac = 1, profileName, derivativeIndices, Xs, degree,z,zbar,normalOrderingListed = {}, replacedNormalOrderedList = {}, resultingToOPE = {}},
  Scan[
     Function[normalOrderedProduct,
       If[isProfile[normalOrderedProduct],
         (
           normalOrderingListed = List @@ normalOrderedProduct;
-          Scan[Function[arg,
-          If[MatchQ[arg,_ProfileX],
+          Scan[Function[profile,
+          If[MatchQ[profile,_ProfileX],
           (
-          uniqueK = Module[{k},k];
-          prefac = prefac * extractProfile[arg, uniqueK];
-          AppendTo[replacedNormalOrderedList, createProfileExp[arg, uniqueK]]
+          {profileName, degree, z, zbar} = extractProfileData[profile];
+          {derivativeIndices, Xs} = createDerivativeIndicesAndXs[degree, z, zbar];
+          prefac = prefac *  1/Factorial[degree] * profileName[derivativeIndices];
+          replacedNormalOrderedList = Join[replacedNormalOrderedList, Xs];
           ),
-          AppendTo[replacedNormalOrderedList, arg];
+          AppendTo[replacedNormalOrderedList, profile];
           ];
           ], normalOrderingListed];
           AppendTo[resultingToOPE, R @@ replacedNormalOrderedList];
@@ -68,7 +65,7 @@ OPEWithReplacedProfileX[toOPE__]:= Module[{prefac = 1, normalOrderingListed = {}
     ],
     {toOPE}
   ];
-((prefac OPE @@ resultingToOPE)//Expand)//.replaceProductWithMomentumByDerivativeRule]
+((prefac OPE @@ resultingToOPE)//Expand)]
 
 
 (* ::Section:: *)
