@@ -41,7 +41,9 @@ If[compositeInBRSTPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+If[RcontainsProfile[Ra],
+OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == -1, result = result + Relem, 
@@ -58,7 +60,9 @@ If[compositeInBRSTPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+If[RcontainsProfile[Ra],
+OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == -1, result = result + Relem, 
