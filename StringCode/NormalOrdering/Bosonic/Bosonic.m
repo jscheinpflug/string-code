@@ -33,7 +33,7 @@ Begin["Private`"];
 (*Define utilities for ProfileX*)
 
 
-containsProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX];
+RcontainsProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX];
 
 createProfileExp[ProfileX[profile_,ders_List,z_,zbar_],momentum_]:= expX[momentum,z,zbar];
 
@@ -53,6 +53,7 @@ replaceProfilesWithExpAndCollectProfilesInR[Ra_/;Rtest[Ra]]:= Module[{normalOrde
           ], normalOrderingListed];
           {R @@ replacedNormalOrderedList, profiles}
 ]; 
+replaceProfilesWithExpAndCollectProfilesInR[a_ b_]:=a replaceProfilesWithExpAndCollectProfilesInR[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 
 replaceProfilesWithExpAndCollectProfilesInListOfR[RList_]:= Module[{replacedAndProfiles = {}, replacedList = {}, allProfiles = {}},
           Scan[Function[Ra, 
