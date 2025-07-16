@@ -29,10 +29,29 @@ Begin["Private`"];
 (*Define OPE with Profiles*)
 
 
-replaceProductWithMomentumByDerivativeRule = Times[dummyMomentum_[index_],Ra_R] :> 
-(Ra /. ProfileX[pol_, args_, z___, profileDummyMomentum_Symbol] /; profileDummyMomentum === dummyMomentum
- :> ProfileX[pol, Append[args, index], z, profileDummyMomentum]
-);
+replaceProductWithMomentumByDerivativeRule := expr_ :> Module[
+  {momenta, rest, result},
+
+  momenta = Cases[
+    List @@ expr,
+    s_Symbol[arg_] /; StringContainsQ[SymbolName[s], "kdummy$"]
+  ];
+ 
+  rest = Times @@ DeleteCases[List @@ expr, s_ /; MemberQ[momenta, s]];
+
+  result = Fold[
+    Function[{inRest, momentum},
+      inRest /. ProfileX[pol_, args_, z___, momSym_Symbol] /; 
+        momSym === Head[momentum] :> 
+         -I ProfileX[pol, Append[args, momentum[[1]]], z, momSym]
+    ],
+    rest,
+    momenta
+  ];
+
+  result
+] /; MatchQ[expr, Times[__Symbol[_], __]]
+
 
 cleanIntermediateExp =
   expX[s_Symbol, w_, wbar_] /;
@@ -43,10 +62,63 @@ cleanIntermediateMomenta =
     StringMatchQ[SymbolName[k], "kdummy$" ~~ __] :>
    ProfileX[profile, ders, z, zbar];   
    
-OPEWithReplacedProfileX[toOPE__, maxDerivativeOrder_]:= Module[{resultingToOPE = {}, replacedAndProfiles, allProfiles = {}},
+countKDummy[expr_] := Count[expr, s_[__] /; StringContainsQ[SymbolName[s], "kdummy$"]];
+  
+extractKDummyExponentials[expr_]:=
+  Cases[expr, 
+    Power[_, exp_] /; 
+      !FreeQ[exp, 
+        dot[lhs_, rhs_] /; 
+          (StringContainsQ[ToString[lhs], "kdummy$"] && 
+          StringContainsQ[ToString[rhs], "kdummy$"])
+      ]
+  ]
+  
+replaceExpWickByOne = 
+   { Power[_, exp_] /; 
+      !FreeQ[exp, 
+        dot[lhs_, rhs_] /; 
+          (StringContainsQ[ToString[lhs], "kdummy$"] && 
+          StringContainsQ[ToString[rhs], "kdummy$"])
+      ] -> 1 };
+    
+  
+expandExponentialAtOrder[base_^(a___ dot[k1_, k2_]), ord_] := Module[{i},(a Log[base])^ord/Factorial[ord] Product[Module[{\[Mu]}, k1[\[Mu]] k2[\[Mu]]], {i, 1, ord}]]
+  
+replaceExpWithExpansions[expr_, exponentials_, replacementList_]:= Module[{replacementRule = {}, i},
+replacementRule = Table[exponentials[[i]] -> replacementList[[i]], {i,1,Length[exponentials]}];
+expr/.replacementRule
+]  
+  
+getPartitionsAtOrder[ord_, lengthInto_]:= 
+DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{lengthInto},Range[0,ord]],Length[#]==lengthInto&]),1];  
+  
+expandExponentials[expr_, maxExpansionOrder_]:= Module[{result = 0, partitions,expLength, exponentials, i = 1},
+exponentials = extractKDummyExponentials[expr];
+expLength = Length[exponentials];
+partitions = Flatten[Table[getPartitionsAtOrder[i, expLength], {i,1,maxExpansionOrder}],1];
+Scan[Function[partition, 
+result = result + replaceExpWithExpansions[expr, exponentials, Table[expandExponentialAtOrder[exponentials[[i]], partition[[i]]], {i,1, Length[partition]}]];
+], partitions];
+result]  
+   
+OPEWithReplacedProfileX[toOPE__, maxDerivativeOrder_]:= Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, 
+performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
  {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];
-((OPE @@ resultingToOPE)//Expand)/.{R[a__]:> R @@ Join[Flatten[allProfiles], {a}]}
-//.replaceProductWithMomentumByDerivativeRule/.{cleanIntermediateExp, cleanIntermediateMomenta}]
+ performedOPE = ((OPE @@ resultingToOPE)//Expand)/.{R[a__]:> R @@ Join[Flatten[allProfiles], {a}]};
+ performedOPEList = List @@ performedOPE;
+ Scan[Function[OPEpiece,
+ derivativeOrder = countKDummy[OPEpiece];
+ If[derivativeOrder < maxDerivativeOrder, 
+ expMaxExpansionOrder = Floor[(maxDerivativeOrder - derivativeOrder)/2];
+ If[expMaxExpansionOrder > 0,
+ AppendTo[expandedOPEPieces, expandExponentials[OPEpiece, expMaxExpansionOrder]]
+ ];
+ AppendTo[expandedOPEPieces, OPEpiece/.replaceExpWickByOne],
+ If[derivativeOrder == maxDerivativeOrder, AppendTo[expandedOPEPieces, OPEpiece/.replaceExpWickByOne]]];
+ ], performedOPEList];
+(Plus @@ expandedOPEPieces)
+/.replaceProductWithMomentumByDerivativeRule/.{cleanIntermediateExp, cleanIntermediateMomenta}]
 
 
 (* ::Section:: *)
