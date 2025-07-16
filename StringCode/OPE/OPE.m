@@ -30,7 +30,7 @@ Begin["Private`"];
 
 OPE[a___,0,b___]:=0
 
-OPE[a___,b_/;containsProfile[b],c___, maxDerivativeOrder_]:= OPEWithReplacedProfileX[a,b,c,maxDerivativeOrder];
+OPE[a___,b_/;RcontainsProfile[b],c___, maxDerivativeOrder_]:= OPEWithReplacedProfileX[a,b,c,maxDerivativeOrder];
 
 OPE[Ra_,Rb_]:=R[Ra,Rb]+ pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 

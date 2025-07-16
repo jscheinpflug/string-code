@@ -25,28 +25,41 @@ Needs["StringCode`OPE`"];
 Begin["Private`"];
 
 
+(* ::Subsection:: *)
+(*OPE with ProfileX*)
+
+
 replaceProductWithMomentumByDerivativeRule := expr_ :> Module[
   {momenta, rest, result},
 
-  momenta = Cases[
-    List @@ expr,
-    s_Symbol[arg_] /; StringContainsQ[SymbolName[s], "kdummy$"]
+  momenta = Join[
+    Cases[List @@ expr, s_Symbol[arg_] /; StringContainsQ[SymbolName[s], "kdummy$"]],
+    Cases[List @@ expr, Power[s_Symbol[arg_], n_] /; StringContainsQ[SymbolName[s], "kdummy$"]]
   ];
- 
+
   rest = Times @@ DeleteCases[List @@ expr, s_ /; MemberQ[momenta, s]];
 
   result = Fold[
     Function[{inRest, momentum},
-      inRest /. ProfileX[pol_, args_, z___, momSym_Symbol] /; 
-        momSym === Head[momentum] :> 
-         -I ProfileX[pol, Append[args, momentum[[1]]], z, momSym]
+      Module[{sym, index, power = 1},
+        If[MatchQ[momentum, Power[_, _]],
+          sym = Head[momentum[[1]]];
+          index = momentum[[1, 1]];
+          power = momentum[[2]],
+          sym = Head[momentum];
+          index = momentum[[1]]
+        ];
+        inRest /. ProfileX[pol_, args_, z___, profileSym_Symbol] /;
+          profileSym === sym :>
+          (-I)^power ProfileX[pol, Join[args, ConstantArray[index, power]], z, profileSym]
+      ]
     ],
     rest,
     momenta
   ];
 
   result
-] /; MatchQ[expr, Times[__Symbol[_], __]]
+] /; MatchQ[expr, Times[__Symbol | Power[__], __]]
 
 
 cleanIntermediateExp =
