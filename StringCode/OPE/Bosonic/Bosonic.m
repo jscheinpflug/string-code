@@ -111,23 +111,23 @@ result = result + replaceExpWithExpansions[expr, exponentials, Table[expandExpon
 ], partitions];
 result]  
    
-OPEWithReplacedProfileX[toOPE__, maxDerivativeOrder_]:= Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, 
-performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
- {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];
- performedOPE = ((OPE @@ resultingToOPE)//Expand)/.{R[a__]:> R @@ Join[Flatten[allProfiles], {a}]};
- performedOPEList = List @@ performedOPE;
- Scan[Function[OPEpiece,
- derivativeOrder = countKDummy[OPEpiece];
- If[derivativeOrder < maxDerivativeOrder, 
- expMaxExpansionOrder = Floor[(maxDerivativeOrder - derivativeOrder)/2];
- If[expMaxExpansionOrder > 0,
- AppendTo[expandedOPEPieces, expandExponentials[OPEpiece, expMaxExpansionOrder]]
- ];
- AppendTo[expandedOPEPieces, OPEpiece/.replaceExpWickByOne],
- If[derivativeOrder == maxDerivativeOrder, AppendTo[expandedOPEPieces, OPEpiece/.replaceExpWickByOne]]];
- ], performedOPEList];
-(Plus @@ expandedOPEPieces)
-/.replaceProductWithMomentumByDerivativeRule/.{cleanIntermediateExp, cleanIntermediateMomenta}]
+OPEWithReplacedProfileX[toOPE__, maxDerivativeOrder_] :=
+ Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
+   {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];
+   performedOPE = ((OPE @@ resultingToOPE) // Expand) /. {R[a__] :> R @@ Join[Flatten[allProfiles], {a}]};
+   performedOPEList = If[Head[performedOPE] === Times, List[performedOPE],List @@ performedOPE];
+   Scan[Function[OPEpiece,
+     derivativeOrder = countKDummy[OPEpiece];
+     If[derivativeOrder < maxDerivativeOrder,
+      expMaxExpansionOrder = Floor[(maxDerivativeOrder - derivativeOrder)/2];
+      If[expMaxExpansionOrder > 0,
+       AppendTo[expandedOPEPieces, expandExponentials[OPEpiece, expMaxExpansionOrder]]
+       ];
+      AppendTo[expandedOPEPieces, OPEpiece /. replaceExpWickByOne],
+      If[derivativeOrder == maxDerivativeOrder, AppendTo[expandedOPEPieces, OPEpiece /. replaceExpWickByOne]]];
+     ], performedOPEList];
+  (Plus @@ expandedOPEPieces)
+    /. replaceProductWithMomentumByDerivativeRule /. {cleanIntermediateExp, cleanIntermediateMomenta}]
 
 
 (* ::Section:: *)
