@@ -96,8 +96,8 @@ exp\[Phi]tfermions={exp\[Phi]tf};
 simplefields=Join[simplefields, {X, dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 simplefieldsnotc=Join[simplefieldsnotc, {X,dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 compositefields= Join[compositefields, {expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
-holomorphicFields = Join[holomorphicFields, {X,dX,expX,d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {X,dXt, d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb,expX}];
+holomorphicFields = Join[holomorphicFields, {ProfileX, X,dX,expX,d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, X,dXt, d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb,expX}];
 allfields=Join[bosons,fermions];
 
 
