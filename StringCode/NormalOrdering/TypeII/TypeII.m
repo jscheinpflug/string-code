@@ -16,19 +16,22 @@ Needs["StringCode`NormalOrdering`"]
 (*Declare public variables and methods*)
 
 
+(* ::Section:: *)
+(*Logic*)
+
+
+Begin["Private`"];
+
+
 exp\[Phi]parity::usage = "Define Grassmann parity for holomorphic exponentials of \[Phi]";
 exp\[Phi]tparity::usage = "Define Grassmann parity for antiholomorphic exponentials of \[Phi]";
 replaceProfilesWithExpAndCollectProfilesInR::usage = "Replaces all profiles with exponentials and collects profiles in a normal ordered product";
 replaceProfilesWithExpAndCollectProfilesInListOfR::usage = "Replaces all profiles with exponentials and collects profiles in a list of normal ordered products";
 countDerivativesInR::usage = "Counts total number of spacetime derivatives in normal ordered product";
 countDerivativesInListOfR::usage = "Counts total number of spacetime derivatives in a list of normal ordered products";
-
-
-(* ::Section:: *)
-(*Logic*)
-
-
-Begin["Private`"];
+replaceProductWithMomentumByDerivativeRule::usage = "Defines a rule that replaces products of profiles with momenta by the appropriate derivatives";
+cleanIntermediateExp::usage = "Replaces exponentials with dummy momenta by one";
+cleanIntermediateMomenta::usage = "Erases dummy momenta attached to ProfileX";
 
 
 (* ::Subsection::Closed:: *)
@@ -76,9 +79,50 @@ CR[ c___,a_,b_,d___]:=CR[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[P
 CR[ c___,a_,b_,d___]:=CR[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define utilities for ProfileX*)
 
+
+replaceProductWithMomentumByDerivativeRule := expr_ :> Module[
+  {momenta, rest, result},
+
+  momenta = Join[
+    Cases[List @@ expr, s_Symbol[arg_] /; StringContainsQ[SymbolName[s], "kdummy$"]],
+    Cases[List @@ expr, Power[s_Symbol[arg_], n_] /; StringContainsQ[SymbolName[s], "kdummy$"]]
+  ];
+
+  rest = Times @@ DeleteCases[List @@ expr, s_ /; MemberQ[momenta, s]];
+
+  result = Fold[
+    Function[{inRest, momentum},
+      Module[{sym, index, power = 1},
+        If[MatchQ[momentum, Power[_, _]],
+          sym = Head[momentum[[1]]];
+          index = momentum[[1, 1]];
+          power = momentum[[2]],
+          sym = Head[momentum];
+          index = momentum[[1]]
+        ];
+        inRest /. ProfileX[pol_, args_, z___, profileSym_Symbol] /;
+          profileSym === sym :>
+          (-I)^power ProfileX[pol, Join[args, ConstantArray[index, power]], z, profileSym]
+      ]
+    ],
+    rest,
+    momenta
+  ];
+
+  result
+] /; MatchQ[expr, Times[__Symbol | Power[__], __]];
+
+cleanIntermediateExp =
+  expX[s_Symbol, w_, wbar_] /;
+    StringMatchQ[SymbolName[s], "kdummy$" ~~ __] :> 1;
+
+cleanIntermediateMomenta =
+  ProfileX[profile_, ders_List, z_, zbar_, k_Symbol] /;
+    StringMatchQ[SymbolName[k], "kdummy$" ~~ __] :>
+   ProfileX[profile, ders, z, zbar];   
 
 RcontainsProfile[expr_] := MatchQ[expr, R[__]] && MemberQ[List @@ expr, _ProfileX];
 
@@ -100,7 +144,6 @@ replaceProfilesWithExpAndCollectProfilesInR[Ra_/;Rtest[Ra]]:= Module[{normalOrde
           ], normalOrderingListed];
           {R @@ replacedNormalOrderedList, profiles}
 ]; 
-
 replaceProfilesWithExpAndCollectProfilesInR[a_ b_]:=a replaceProfilesWithExpAndCollectProfilesInR[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 
 replaceProfilesWithExpAndCollectProfilesInListOfR[RList_]:= Module[{replacedAndProfiles = {}, replacedList = {}, allProfiles = {}},
