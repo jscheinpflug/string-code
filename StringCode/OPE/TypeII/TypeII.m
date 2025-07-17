@@ -29,8 +29,6 @@ Begin["Private`"];
 (*Define OPE with ProfileX*)
 
 
-countKDummy[expr_] := Count[expr, s_[__] /; StringContainsQ[SymbolName[s], "kdummy$"]];
-  
 extractKDummyExponentials[expr_]:=
   Cases[expr, 
     Power[_, exp_] /; 
@@ -69,20 +67,20 @@ result = result + replaceExpWithExpansions[expr, exponentials, Table[expandExpon
 ], partitions];
 result]  
    
-OPEWithReplacedProfileX[toOPE__, maxDerivativeOrder_] :=
+OPEWithProfileX[toOPE__, \[Alpha]pOrder_] :=
  Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
    {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];
    performedOPE = ((OPE @@ resultingToOPE) // Expand) /. {R[a__] :> R @@ Join[Flatten[allProfiles], {a}]};
    performedOPEList = If[Head[performedOPE] === Times, List[performedOPE],List @@ performedOPE];
    Scan[Function[OPEpiece,
-     derivativeOrder = countKDummy[OPEpiece];
-     If[derivativeOrder < maxDerivativeOrder,
-      expMaxExpansionOrder = Floor[(maxDerivativeOrder - derivativeOrder)/2];
+     derivativeOrder = Exponent[OPEpiece, \[Alpha]p];
+     If[derivativeOrder < \[Alpha]pOrder,
+      expMaxExpansionOrder = Floor[(\[Alpha]pOrder - derivativeOrder)/2];
       If[expMaxExpansionOrder > 0,
        AppendTo[expandedOPEPieces, expandExponentials[OPEpiece, expMaxExpansionOrder]]
        ];
       AppendTo[expandedOPEPieces, OPEpiece /. replaceExpWickByOne],
-      If[derivativeOrder == maxDerivativeOrder, AppendTo[expandedOPEPieces, OPEpiece /. replaceExpWickByOne]]];
+      If[derivativeOrder == \[Alpha]pOrder, AppendTo[expandedOPEPieces, OPEpiece /. replaceExpWickByOne]]];
      ], performedOPEList];
   (Plus @@ expandedOPEPieces)
     /. replaceProductWithMomentumByDerivativeRule /. {cleanIntermediateExp, cleanIntermediateMomenta}]

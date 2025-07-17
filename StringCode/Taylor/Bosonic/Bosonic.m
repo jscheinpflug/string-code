@@ -49,18 +49,9 @@ addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[
 addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= If[ord>0, (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0], X[\[Mu],z0,zbar]];
 
 
-addHoloDerivatives[ProfileX[f_, ders_List, z_, zbar_], ord_, z0_] := (Module[{kdummy, auxExpX, auxProfileX, auxExpansion,
-           result},
-          auxExpX =
-           createProfileExp[ProfileX[f, ders, z, zbar], kdummy];
-          auxProfileX = ProfileX[f, ders, z0, zbar, kdummy];
-          auxExpansion =
-           addHoloDerivatives[auxExpX, ord, z0]*auxProfileX;
-          result = auxExpansion;
-          ((result // Expand) //. replaceProductWithMomentumByDerivativeRule) /. {cleanIntermediateExp, cleanIntermediateMomenta}]);
-
-
-addHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0_] := Module[{auxDerivativePolynomial},
+addHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0_] := 
+If[ord > 0, 
+Module[{auxDerivativePolynomial},
 auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
 (z-z0)^ord/Factorial[ord]R[auxDerivativePolynomial/.{Power[Derivative[m_][func][x], p_] :>
        Module[{i, interDers = {}, interdX = 1}, 
@@ -68,7 +59,7 @@ auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
        ProfileX[profile, Join[ders, interDers], x, zbar] interdX ],
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, ProfileX[profile, Append[ders, \[Mu]], x, zbar] dX[\[Mu], m - 1, x]]}/.{x->z0}]
-]
+], ProfileX[profile, ders, z0, zbar]];
 
 
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
@@ -82,7 +73,9 @@ addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factoria
 addAntiHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= If[ord > 0, (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar], X[\[Mu],z,z0bar]];
 
 
-addAntiHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0bar_] := Module[{auxDerivativePolynomial},
+addAntiHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0bar_] := 
+If[ord > 0,
+Module[{auxDerivativePolynomial},
 auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
 (zbar-z0bar)^ord/Factorial[ord]R[auxDerivativePolynomial/.{Power[Derivative[m_][func][x], p_] :>
        Module[{i, interDers = {}, interdX = 1}, 
@@ -90,7 +83,7 @@ auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
        ProfileX[profile, Join[ders, interDers], z, x] interdX ],
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, ProfileX[profile, Append[ders, \[Mu]], z, x] dXt[\[Mu], m - 1, x]]}/.{x->z0bar}]
-]
+], ProfileX[profile, ders, z, z0bar]];
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=

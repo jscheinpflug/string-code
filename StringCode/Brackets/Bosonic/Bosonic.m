@@ -29,7 +29,7 @@ Needs["StringCode`Brackets`"];
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
 
@@ -83,6 +83,31 @@ If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpar
 result = result + b0m[tayloredOPEpart];,
 0];
 ],List @@(((OPE[SFaAtPos, SFbAtPos])/.localCoordinateReplacement)//Expand)]; result];
+
+
+(* ::Subsubsection:: *)
+(*Define 2-bracket with ProfileX*)
+
+
+BracketWithProfileX[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb], \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:= 
+Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, SFaAtPos, SFbAtPos, localCoordinateReplacement}, 
+{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
+Scan[Function[OPEpart,
+powerHol = Exponent[OPEpart, z0];
+powerAntiHol = Exponent[OPEpart, z0bar];
+If[RtestUpToConstant[OPEpart],
+tayloredOPEpart = If[powerHol < 0, 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
+result = result + b0m[tayloredOPEpart];,
+0];
+],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result/.{z0->0, z0bar->0}];
+
+
+BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
+BracketWithProfileX[a_,b_+c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,b, \[Alpha]pOrder]+BracketWithProfileX[a,c, \[Alpha]pOrder]
+BracketWithProfileX[a_ b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=a BracketWithProfileX[b,c, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b BracketWithProfileX[a,c, \[Alpha]pOrder]/;(And @@(FreeQ[b,#]&/@ allfields))
 
 
 (* ::Subsection:: *)
