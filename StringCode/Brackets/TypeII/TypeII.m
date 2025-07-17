@@ -34,7 +34,7 @@ Begin["Private`"];
 
 
 actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTNoTD[z];
+BRSTList = List @@ jBRST[z];
 Scan[Function[BRSTelem,
 compositeInBRSTPosition = containsCompositeHolo[BRSTelem/.{z->0}];
 If[compositeInBRSTPosition !=  "NotFound",
@@ -42,7 +42,7 @@ singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], c
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
 If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, Ra, 1]//Expand,
 OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, z];
@@ -53,7 +53,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 (z result // Expand)/.{z->0}];
 
 actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTbarNoTD[zBar];
+BRSTList = List @@ jBRSTbar[zBar];
 Scan[Function[BRSTelem,
 compositeInBRSTPosition = containsCompositeAntiHolo[BRSTelem/.{zBar->0}];
 If[compositeInBRSTPosition !=  "NotFound",
@@ -61,7 +61,7 @@ singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], c
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
 If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, Ra, 1]//Expand,
 OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
@@ -91,11 +91,37 @@ result = result + pictureAdjust[b0m[tayloredOPEpart]];,
 ],List @@(((OPE[SFaAtPos, SFbAtPos])/.localCoordinateReplacement)//Expand)]; result];
 
 
+(* ::Subsubsection:: *)
+(*Define 2-bracket with ProfileX*)
+
+
+BracketWithProfileX[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb], \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:= 
+Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, SFaAtPos, SFbAtPos, localCoordinateReplacement, intermediateOrder}, 
+{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
+Scan[Function[OPEpart,
+intermediateOrder = Exponent[OPEpart, \[Alpha]p];
+powerHol = Exponent[OPEpart, z0];
+powerAntiHol = Exponent[OPEpart, z0bar];
+If[RtestUpToConstant[OPEpart],
+tayloredOPEpart = If[powerHol < 0, 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart,-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,0,-powerAntiHol,0,0], OPEpart]]//Expand;
+result = result + pictureAdjust[b0m[tayloredOPEpart], \[Alpha]pOrder-intermediateOrder];,
+0];
+],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result/.{z0->0, z0bar->0}];
+
+
+BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
+BracketWithProfileX[a_,b_+c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,b, \[Alpha]pOrder]+BracketWithProfileX[a,c, \[Alpha]pOrder]
+BracketWithProfileX[a_ b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=a BracketWithProfileX[b,c, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b BracketWithProfileX[a,c, \[Alpha]pOrder]/;(And @@(FreeQ[b,#]&/@ allfields))
+
+
 (* ::Subsection:: *)
 (*Define action of PCOs*)
 
 
-actPCOHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
+actPCOHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
 compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
@@ -103,7 +129,7 @@ If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithPCO = OPE[PCOelem, Ra]//Expand;
+OPEWithPCO = OPE[PCOelem, Ra, \[Alpha]pOrder]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == 0, result = result + Relem, 
@@ -112,7 +138,7 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
-actPCOAntiHolo[Ra_/;Rtest[Ra]] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
+actPCOAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
 compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
@@ -120,7 +146,7 @@ If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithPCO = OPE[PCOelem, Ra]//Expand;
+OPEWithPCO = OPE[PCOelem, Ra, \[Alpha]pOrder]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == 0, result = result + Relem, 
@@ -132,25 +158,33 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
 totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
-pictureAdjust[Ra_/;Rtest[Ra]] :=
-  Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra], factorization = splitR[Ra], holoRaised, antiHoloRaised, resultdoubled, result},
+pictureAdjust[Ra_/;Rtest[Ra], \[Alpha]pOrder___] :=
+  Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra], factorization = splitR[Ra], holoRaised, antiHoloRaised, resultdoubled, result = Ra},
    holoRaised =
-    If[pictureHol < 0, Nest[actPCOHolo, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1], R @@ factorization[[1]]];
+    If[pictureHol < 0, Nest[actPCOHolo[#, \[Alpha]pOrder] &, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1], R @@ factorization[[1]]];
    antiHoloRaised =
     DeleteCases[
-     If[pictureAntiHol < 0, Nest[actPCOAntiHolo, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], R @@ factorization[[2]]], expX[_, _, _], \[Infinity]];
-   result = factorizationSign[Ra] R[holoRaised, antiHoloRaised]
+     If[pictureAntiHol < 0, Nest[actPCOAntiHolo[#, \[Alpha]pOrder] &, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], R @@ factorization[[2]]], expX[_, _, _], \[Infinity]];
+   If[(pictureHol + pictureAntiHol) < 0,
+   If[\[Alpha]pOrder,
+   result = (factorizationSign[Ra] R[holoRaised, antiHoloRaised])/.{Power[\[Alpha]p, p_/; p > \[Alpha]pOrder] -> 0},
+   result = factorizationSign[Ra] R[holoRaised, antiHoloRaised];
+   ];
+   ];
+   result
    ];
 
-actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
-actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-actPCOAntiHolo[0] := 0;
-actPCOHolo[a_+b_]:=actPCOHolo[a] + actPCOHolo[b];
-actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-actPCOHolo[0] := 0;
-pictureAdjust[a_+b_]:=pictureAdjust[a] + pictureAdjust[b];
-pictureAdjust[a_ b_]:=a pictureAdjust[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-pictureAdjust[0] := 0;
+
+
+actPCOAntiHolo[a_+b_, \[Alpha]pOrder___]:=actPCOAntiHolo[a, \[Alpha]pOrder] + actPCOAntiHolo[b, \[Alpha]pOrder];
+actPCOAntiHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOAntiHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOAntiHolo[0, \[Alpha]pOrder___] := 0;
+actPCOHolo[a_+b_, \[Alpha]pOrder___]:=actPCOHolo[a, \[Alpha]pOrder] + actPCOHolo[b, \[Alpha]pOrder];
+actPCOHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOHolo[0, \[Alpha]pOrder___] := 0;
+pictureAdjust[a_+b_, \[Alpha]pOrder___]:=pictureAdjust[a, \[Alpha]pOrder] + pictureAdjust[b];
+pictureAdjust[a_ b_, \[Alpha]pOrder___]:=a pictureAdjust[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+pictureAdjust[0, \[Alpha]pOrder___] := 0;
 
 
 (* ::Subsubsection::Closed:: *)
@@ -211,6 +245,11 @@ singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
 singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
 singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
 singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+
+singularity[dX[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:= 1 + n;
+singularity[ProfileX[profile_,ders_, w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+singularity[dXt[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:=1 + n;
+singularity[ProfileX[profile_,ders_, w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
 
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]b[b_,w_]]:= a b;
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]f[b_,w_]]:=a b;

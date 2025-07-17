@@ -71,7 +71,7 @@ OPEWithProfileX[toOPE__, \[Alpha]pOrder_] :=
  Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
    {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];
    performedOPE = ((OPE @@ resultingToOPE) // Expand) /. {R[a__] :> R @@ Join[Flatten[allProfiles], {a}]};
-   performedOPEList = If[Head[performedOPE] === Times, List[performedOPE],List @@ performedOPE];
+   performedOPEList = If[(Head[performedOPE] === Times || Head[performedOPE] === R), List[performedOPE],List @@ performedOPE];
    Scan[Function[OPEpiece,
      derivativeOrder = Exponent[OPEpiece, \[Alpha]p];
      If[derivativeOrder < \[Alpha]pOrder,
