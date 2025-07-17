@@ -6,7 +6,7 @@ Needs["StringCode`NormalOrdering`TypeII`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
 
-\[Alpha]p::usage="Value of \[Alpha] prime";
+\[Alpha]pValue::usage="Value of \[Alpha] prime";
 fermionToBosonWickRatio::usage ="Defines the ratio of coefficients in  partial X partial X and psi psi OPEs";
 
 \[Beta]ghost::usage = "Defines the holomorphic \[Beta]-ghost";

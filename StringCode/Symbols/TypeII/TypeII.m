@@ -75,6 +75,9 @@ exp\[Phi]fermions::usage = "A list of fermionic exponential of phi symbols";
 exp\[Phi]tfermions::usage = "A list of fermionic exponential of barphi symbols";
 
 
+\[Alpha]p::usage = "Symbol for alpha prime";
+
+
 (* ::Section:: *)
 (*Logic*)
 

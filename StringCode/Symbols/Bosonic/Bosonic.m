@@ -27,6 +27,9 @@ dXt::usage = "Antiholomorphic del X primary in free boson CFT"
 ProfileX::usage = "A polynomial X-profile"
 
 
+\[Alpha]p::usage = "Symbol for alpha prime";
+
+
 (* ::Section:: *)
 (*Logic*)
 

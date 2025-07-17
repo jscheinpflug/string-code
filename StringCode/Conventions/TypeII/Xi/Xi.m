@@ -9,7 +9,7 @@ Needs["StringCode`Conventions`TypeII`"];
 
 
 Begin["Private`"]
-\[Alpha]p = 1;
+\[Alpha]pValue = 1;
 fermionToBosonWickRatio = 1;
 
 \[Beta]ghost[z_]:=R[exp\[Phi]f[-1,z],\[Xi][1,z]];
@@ -20,9 +20,9 @@ fermionToBosonWickRatio = 1;
 
 \[Delta]\[Gamma]ghost[z_]:=R[exp\[Phi]f[-1,z]];
 
-Tmatter[z_]:=Module[{\[Mu]},-R[dX[\[Mu],0,z],dX[\[Mu],0,z]]-1/2 R[\[Psi][\[Mu],0,z],\[Psi][\[Mu],1,z]]];
+Tmatter[z_]:=Module[{\[Mu]},-1/\[Alpha]p R[dX[\[Mu],0,z],dX[\[Mu],0,z]]-1/2 R[\[Psi][\[Mu],0,z],\[Psi][\[Mu],1,z]]];
 
-Gmatter[z_]:=Module[{\[Mu]},I Sqrt[2] R[\[Psi][\[Mu],0,z],dX[\[Mu],0,z]]];
+Gmatter[z_]:=Module[{\[Mu]},I Sqrt[2]/(\[Alpha]p^1/2) R[\[Psi][\[Mu],0,z],dX[\[Mu],0,z]]];
 
 Tghost[z_]:=-R[b[1,z],c[0,z]]-2R[b[0,z],c[1,z]] -1/2 R[d\[Phi][0,z],d\[Phi][0,z]]- R[d\[Phi][1,z]]-R[\[Eta][0,z],\[Xi][1,z]];
 
@@ -40,9 +40,9 @@ Gtotal[z_]:=Gmatter[z]+Gghost[z];
 
 \[Delta]\[Gamma]ghostbar[z_]:=R[exp\[Phi]tf[-1,z]];
 
-Tmatterbar[z_]:=Module[{\[Mu]},-R[dXt[\[Mu],0,z],dXt[\[Mu],0,z]]-1/2 R[\[Psi]t[\[Mu],0,z],\[Psi]t[\[Mu],1,z]]];
+Tmatterbar[z_]:=Module[{\[Mu]},-1/\[Alpha]p R[dXt[\[Mu],0,z],dXt[\[Mu],0,z]]-1/2 R[\[Psi]t[\[Mu],0,z],\[Psi]t[\[Mu],1,z]]];
 
-Gmatterbar[z_]:=Module[{\[Mu]},I Sqrt[2] R[\[Psi]t[\[Mu],0,z],dXt[\[Mu],0,z]]];
+Gmatterbar[z_]:=Module[{\[Mu]},I Sqrt[2]/(\[Alpha]p^1/2) R[\[Psi]t[\[Mu],0,z],dXt[\[Mu],0,z]]];
 
 Tghostbar[z_]:=-R[bt[1,z],ct[0,z]]-2R[bt[0,z],ct[1,z]] -1/2 R[d\[Phi]t[0,z],d\[Phi]t[0,z]]- R[d\[Phi]t[1,z]]-R[\[Eta]t[0,z],\[Xi]t[1,z]];
 
