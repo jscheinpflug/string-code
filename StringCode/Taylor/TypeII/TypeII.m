@@ -68,6 +68,7 @@ addHoloDerivatives[\[Psi][\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\
 addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= If[ord>0, (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0], X[\[Mu],z0,zbar]];
 
 
+addHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0_]:=
 If[ord > 0, 
 Module[{auxDerivativePolynomial},
 auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
