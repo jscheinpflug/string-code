@@ -106,7 +106,7 @@ If[RtestUpToConstant[OPEpart],
 tayloredOPEpart = If[powerHol < 0, 
 If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart,-powerHol, 0,0,0]], 
 If[powerAntiHol < 0, TaylorAtOrder[OPEpart,0,-powerAntiHol,0,0], OPEpart]]//Expand;
-result = result + pictureAdjust[b0m[tayloredOPEpart], \[Alpha]pOrder-intermediateOrder];,
+result = result + pictureAdjust[b0m[tayloredOPEpart], \[Alpha]pOrder - intermediateOrder];,
 0];
 ],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result/.{z0->0, z0bar->0}];
 
@@ -166,7 +166,7 @@ pictureAdjust[Ra_/;Rtest[Ra], \[Alpha]pOrder___] :=
     DeleteCases[
      If[pictureAntiHol < 0, Nest[actPCOAntiHolo[#, \[Alpha]pOrder] &, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], R @@ factorization[[2]]], expX[_, _, _], \[Infinity]];
    If[(pictureHol + pictureAntiHol) < 0,
-   If[\[Alpha]pOrder,
+   If[\[Alpha]pOrder > 0,
    result = (factorizationSign[Ra] R[holoRaised, antiHoloRaised])/.{Power[\[Alpha]p, p_/; p > \[Alpha]pOrder] -> 0},
    result = factorizationSign[Ra] R[holoRaised, antiHoloRaised];
    ];
@@ -182,7 +182,7 @@ actPCOAntiHolo[0, \[Alpha]pOrder___] := 0;
 actPCOHolo[a_+b_, \[Alpha]pOrder___]:=actPCOHolo[a, \[Alpha]pOrder] + actPCOHolo[b, \[Alpha]pOrder];
 actPCOHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOHolo[0, \[Alpha]pOrder___] := 0;
-pictureAdjust[a_+b_, \[Alpha]pOrder___]:=pictureAdjust[a, \[Alpha]pOrder] + pictureAdjust[b];
+pictureAdjust[a_+b_, \[Alpha]pOrder___]:=pictureAdjust[a, \[Alpha]pOrder] + pictureAdjust[b, \[Alpha]pOrder];
 pictureAdjust[a_ b_, \[Alpha]pOrder___]:=a pictureAdjust[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
 pictureAdjust[0, \[Alpha]pOrder___] := 0;
 
