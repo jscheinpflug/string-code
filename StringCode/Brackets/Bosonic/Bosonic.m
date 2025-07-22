@@ -117,7 +117,7 @@ BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b Brac
 
 replacePointInR[expr_, replacement_]:=Module[{replacedExpr, RHold}, 
 replacedExpr = expr/.{R -> RHold};
-Replace[expr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
+Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
 
 
 (* ::Subsection:: *)
