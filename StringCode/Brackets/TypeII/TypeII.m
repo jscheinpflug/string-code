@@ -104,11 +104,11 @@ powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
 tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart,-powerHol, 0,0,0]], 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart,0,-powerAntiHol,0,0], OPEpart]]//Expand;
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart /.{R[a__]:>R[a/.{z0bar->0}]},-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{R[a__]:>R[a/.{z0->0}]},0,-powerAntiHol,0,0], OPEpart /.{R[a__]:>R[a/.{z0->0, z0bar->0}]}]]//Expand;
 result = result + pictureAdjust[b0m[tayloredOPEpart], \[Alpha]pOrder - intermediateOrder];,
 0];
-],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result/.{z0->0, z0bar->0}];
+],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result];
 
 
 BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
@@ -150,7 +150,7 @@ OPEWithPCO = OPE[PCOelem, Ra, \[Alpha]pOrder]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
+If[power < 0, result = result + TaylorAtOrder[Relem, 0, -power, 0, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand)/.{zBar->0})];
