@@ -97,17 +97,27 @@ powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
 tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
+If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[replacePointInR[OPEpart, {z0bar->0}],-powerHol, 0,0,0]], 
+If[powerAntiHol < 0, TaylorAtOrder[replacePointInR[OPEpart, {z0->0}],0,-powerAntiHol,0,0], replacePointInR[OPEpart, {z0->0, z0bar->0}]]]//Expand;
 result = result + b0m[tayloredOPEpart];,
 0];
-],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result/.{z0->0, z0bar->0}];
+],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; 
+result];
 
 
 BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
 BracketWithProfileX[a_,b_+c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,b, \[Alpha]pOrder]+BracketWithProfileX[a,c, \[Alpha]pOrder]
 BracketWithProfileX[a_ b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=a BracketWithProfileX[b,c, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
 BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b BracketWithProfileX[a,c, \[Alpha]pOrder]/;(And @@(FreeQ[b,#]&/@ allfields))
+
+
+(* ::Subsubsection:: *)
+(*Place evaluation point of normal orderings in expression*)
+
+
+replacePointInR[expr_, replacement_]:=Module[{replacedExpr, RHold}, 
+replacedExpr = expr/.{R -> RHold};
+Replace[expr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
 
 
 (* ::Subsection:: *)
