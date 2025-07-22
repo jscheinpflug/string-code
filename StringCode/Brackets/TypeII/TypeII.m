@@ -171,7 +171,7 @@ pictureAdjust[Ra_/;Rtest[Ra], \[Alpha]pOrder___] :=
    result = factorizationSign[Ra] R[holoRaised, antiHoloRaised];
    ];
    ];
-   result
+   cleanDoubledProfilesAtZero[result]
    ];
 
 
@@ -221,6 +221,27 @@ factorizationSign[Ra_ /;Rtest[Ra]] :=
   ]
 factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
 factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
+
+
+(* ::Subsubsection:: *)
+(*Clean repeated Profiles*)
+
+
+cleanDoubledProfilesAtZero[Ra_/;Rtest[Ra]] :=
+  Module[{RList = List @@ Ra, profileList, rest, profileAssociation = Association[], profileName, currentDers, ders, z,zbar, mergedList, result},
+   profileList = Cases[RList, _ProfileX];
+   rest = Cases[RList, Except[_ProfileX]];
+   Scan[Function[profile, 
+   {profileName, ders, z, zbar} = List @@ profile;
+   currentDers = Lookup[profileAssociation,profileName, {}];
+   AssociateTo[profileAssociation, profileName -> Join[currentDers,ders]];
+   ], profileList];
+   mergedList = Join[rest, KeyValueMap[(ProfileX[#1, #2, 0, 0])&, profileAssociation]];
+   result = R @@ mergedList];
+  
+cleanDoubledProfilesAtZero[Times[a_, Ra_/;Rtest[Ra]]] := a cleanDoubledProfilesAtZero[Ra] /; (And @@ (FreeQ[a, #] & /@ allfields));
+cleanDoubledProfilesAtZero[(Ra_ + Rb_)/;(Rtest[Ra]&&Rtest[Rb])] := cleanDoubledProfilesAtZero[Ra] + cleanDoubledProfilesAtZero[Rb];
+cleanDoubledProfilesAtZero[0] := 0;
 
 
 (* ::Subsection::Closed:: *)
