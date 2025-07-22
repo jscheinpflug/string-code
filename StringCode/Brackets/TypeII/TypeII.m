@@ -171,9 +171,8 @@ pictureAdjust[Ra_/;Rtest[Ra], \[Alpha]pOrder___] :=
    result = factorizationSign[Ra] R[holoRaised, antiHoloRaised];
    ];
    ];
-   cleanDoubledProfilesAtZero[result]
+   cleanDoubledProfilesAtZero[result, createProfileAssociation[Ra]]
    ];
-
 
 
 actPCOAntiHolo[a_+b_, \[Alpha]pOrder___]:=actPCOAntiHolo[a, \[Alpha]pOrder] + actPCOAntiHolo[b, \[Alpha]pOrder];
@@ -227,21 +226,36 @@ factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
 (*Clean repeated Profiles*)
 
 
-cleanDoubledProfilesAtZero[Ra_/;Rtest[Ra]] :=
-  Module[{RList = List @@ Ra, profileList, rest, profileAssociation = Association[], profileName, currentDers, ders, z,zbar, mergedList, result},
-   profileList = Cases[RList, _ProfileX];
-   rest = Cases[RList, Except[_ProfileX]];
+createProfileAssociation[Ra_/;Rtest[Ra]]:= Module[{profileList = Cases[Ra, _ProfileX], profileName, ders, z, zbar, currentDers, result = Association[]},
+profileList = Cases[Ra, _ProfileX];
    Scan[Function[profile, 
    {profileName, ders, z, zbar} = List @@ profile;
-   currentDers = Lookup[profileAssociation,profileName, {}];
-   AssociateTo[profileAssociation, profileName -> Join[currentDers,ders]];
+   currentDers = Lookup[result,profileName, {}];
+   AssociateTo[result, profileName -> Join[currentDers,ders]];
    ], profileList];
-   mergedList = Join[rest, KeyValueMap[(ProfileX[#1, #2, 0, 0])&, profileAssociation]];
+   result];
+
+mergeAssociationsKeepOverlapsOnlyFromFirst[a1_, a2_] := Module[{key, allKeys = Union[Keys[a1], Keys[a2]]},
+  Association[
+  Table[
+      With[{list1 = Lookup[a1, key, {}], list2 = Lookup[a2, key, {}]},
+        key -> DeleteDuplicates[Join[list1, Complement[list2, list1]]]
+      ],
+      {key, allKeys}
+    ]
+  ]
+];
+
+cleanDoubledProfilesAtZero[Ra_/;Rtest[Ra], initialProfileAssociation_] :=
+  Module[{profileList, rest, profileAssociation = Association[], profileName, currentDers, ders, z,zbar, mergedList, result},
+   rest = Cases[Ra, Except[_ProfileX]];
+   profileAssociation = mergeAssociationsKeepOverlapsOnlyFromFirst[initialProfileAssociation, createProfileAssociation[Ra]];
+   mergedList = Join[rest, KeyValueMap[Function[{profile, ders}, ProfileX[profile, ders, 0, 0]], profileAssociation]];
    result = R @@ mergedList];
   
-cleanDoubledProfilesAtZero[Ra_ + Rb_] := cleanDoubledProfilesAtZero[Ra] + cleanDoubledProfilesAtZero[Rb];
-cleanDoubledProfilesAtZero[Times[a_, Ra_]] := a cleanDoubledProfilesAtZero[Ra] /; (And @@ (FreeQ[a, #] & /@ allfields));
-cleanDoubledProfilesAtZero[0] := 0;
+cleanDoubledProfilesAtZero[Ra_ + Rb_, initialProfileAssociation_] := cleanDoubledProfilesAtZero[Ra, initialProfileAssociation] + cleanDoubledProfilesAtZero[Rb, initialProfileAssociation];
+cleanDoubledProfilesAtZero[Times[a_, Ra_], initialProfileAssociation_] := a cleanDoubledProfilesAtZero[Ra, initialProfileAssociation] /; (And @@ (FreeQ[a, #] & /@ allfields));
+cleanDoubledProfilesAtZero[0, initialProfileAssociation_] := 0;
 
 
 (* ::Subsection::Closed:: *)
