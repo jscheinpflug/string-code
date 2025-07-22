@@ -239,8 +239,8 @@ cleanDoubledProfilesAtZero[Ra_/;Rtest[Ra]] :=
    mergedList = Join[rest, KeyValueMap[(ProfileX[#1, #2, 0, 0])&, profileAssociation]];
    result = R @@ mergedList];
   
-cleanDoubledProfilesAtZero[Times[a_, Ra_/;Rtest[Ra]]] := a cleanDoubledProfilesAtZero[Ra] /; (And @@ (FreeQ[a, #] & /@ allfields));
-cleanDoubledProfilesAtZero[(Ra_ + Rb_)/;(Rtest[Ra]&&Rtest[Rb])] := cleanDoubledProfilesAtZero[Ra] + cleanDoubledProfilesAtZero[Rb];
+cleanDoubledProfilesAtZero[Ra_ + Rb_] := cleanDoubledProfilesAtZero[Ra] + cleanDoubledProfilesAtZero[Rb];
+cleanDoubledProfilesAtZero[Times[a_, Ra_]] := a cleanDoubledProfilesAtZero[Ra] /; (And @@ (FreeQ[a, #] & /@ allfields));
 cleanDoubledProfilesAtZero[0] := 0;
 
 
