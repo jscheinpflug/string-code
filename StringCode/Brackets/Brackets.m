@@ -61,24 +61,30 @@ Bracket[a_,b_ c_]:=b Bracket[a,c]/;(And @@(FreeQ[b,#]&/@ allfields))
 (*Define action of b0^-*)
 
 
-b0mHolo[Ra_/;Rtest[Ra]] := Module[{result, RList = List @@ Ra, pos, numberOfPassedFermions},
-pos = FirstPosition[RList, c[1, 0], None];
-If[pos === None, Return[0]];
-numberOfPassedFermions = Count[
-    Take[RList, pos[[1]] - 1],
-    f_ /; MemberQ[fermions, Head[f]]
-  ];
-  result = (-1)^numberOfPassedFermions R @@ Delete[RList, pos[[1]]];
+b0mHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+Scan[Function[Relem,
+If[MatchQ[Relem, c[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
+If[MatchQ[Relem, c[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+position = position + 1;
+],Ra];
+
+KeyValueMap[Function[{pos, replacement}, 
+result = result + ReplaceAt[Ra, replacement, pos];
+], cAssoc];
 result];
 
-b0mAntiHolo[Ra_/;Rtest[Ra]] := Module[{result, RList = List @@ Ra, pos, numberOfPassedFermions},
-pos = FirstPosition[RList, ct[1, 0], None];
-If[pos === None, Return[0]];
-numberOfPassedFermions = Count[
-    Take[RList, pos[[1]] - 1],
-    f_ /; MemberQ[fermions, Head[f]]
-  ];
-  result = (-1)^numberOfPassedFermions R @@ Delete[RList, pos[[1]]];
+b0mAntiHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+Scan[Function[Relem,
+If[MatchQ[Relem, ct[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
+If[MatchQ[Relem, ct[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+position = position + 1;
+],Ra];
+
+KeyValueMap[Function[{pos, replacement}, 
+result = result + ReplaceAt[Ra, replacement, pos];
+], cAssoc];
 result];
 
 b0m[Ra_/;Rtest[Ra]] := b0mHolo[Ra] - b0mAntiHolo[Ra];
