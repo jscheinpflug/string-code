@@ -55,7 +55,7 @@ replacementRule = Table[exponentials[[i]] -> replacementList[[i]], {i,1,Length[e
 expr/.replacementRule
 ]  
   
-getPartitionsAtOrder[ord_, lengthInto_]:= 
+getPartitionsAtOrder[ord_, lengthInto_]:= getPartitionsAtOrder[ord, lengthInto] =
 DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{lengthInto},Range[0,ord]],Length[#]==lengthInto&]),1];  
   
 expandExponentials[expr_, maxExpansionOrder_]:= Module[{result = 0, partitions,expLength, exponentials, i = 1},

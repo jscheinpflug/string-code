@@ -15,6 +15,8 @@ Needs["StringCode`NormalOrdering`"];
 
 Taylor::usage = "Taylor expands a normal ordered product up to a given order";
 TaylorAtOrder::usage = "Taylor expands a normal ordered product at a given order";
+TaylorAtOrderHolo::usage = "Taylor expands a holomorphic normal ordered product at a given order";
+TaylorAtOrderAntiHolo::usage = "Taylor expands a holomorphic normal ordered product at a given order";
 Polar::usage = "Picks out the first-order pole from a function";
 
 
@@ -51,11 +53,15 @@ length
 ];
 
 
+computePartition[order_, length_]:= computePartition[order, length] =
+DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[order,{length},Range[0,order]],Length[#]==length&]),1];
+
+
 TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= Ra;
 
 
 TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra, z0],RLength = Length[Ra], RList = List @@ Ra, resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
-partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{holoLengthR},Range[0,ord]],Length[#]==holoLengthR&]),1];
+partitions = computePartition[ord, holoLengthR];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
@@ -74,7 +80,7 @@ TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= Ra;
 
 
 TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0bar_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra, z0bar],RLength = Length[Ra], RList = List @@ Ra, resultForGivenPartition = {}, result = 0, partitions = {}, i=1}, 
-partitions = DeleteDuplicates@Flatten[Permutations/@(Select[IntegerPartitions[ord,{antiHoloLengthR},Range[0,ord]],Length[#]==antiHoloLengthR&]),1];
+partitions = computePartition[ord, antiHoloLengthR];
 resultForGivenPartition = ConstantArray[None, RLength];
 Scan[Function[partition, 
 	Scan[Function[partitionNumber,
