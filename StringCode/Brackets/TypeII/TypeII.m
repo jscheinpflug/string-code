@@ -29,7 +29,7 @@ Needs["StringCode`Brackets`"];
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
 
@@ -76,19 +76,29 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define 2-bracket*)
 
 
-Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, 
-SFaAtPos, SFbAtPos, localCoordinateReplacement}, 
+Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= 
+Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredHoloOPEPart, tayloredAntiHoloOPEPart, holoOPEPart, antiHoloOPEPart, 
+SFaAtPos, SFbAtPos, OPEOfSF, prefac, localCoordinateReplacement, pictureAdjustedTaylor, holoSplit, antiHoloSplit}, 
 {SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
+OPEOfSF = OPE[SFaAtPos, SFbAtPos]/.localCoordinateReplacement;
 Scan[Function[OPEpart,
 powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
-tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0,TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
-result = result + pictureAdjust[b0m[tayloredOPEpart]];,
-0];
-],List @@(((OPE[SFaAtPos, SFbAtPos])/.localCoordinateReplacement)//Expand)]; result];
+{holoSplit, antiHoloSplit} = splitR[OPEpart];
+holoOPEPart = R @@ holoSplit;
+antiHoloOPEPart = R @@ antiHoloSplit;
+prefac = factorizationSign[OPEpart];
+tayloredHoloOPEPart =
+If[powerHol < 0, TaylorAtOrderHolo[holoOPEPart,-powerHol,0],  replacePointInR[holoOPEPart, {z0->0}]];
+tayloredAntiHoloOPEPart =
+If[powerAntiHol < 0, TaylorAtOrderAntiHolo[antiHoloOPEPart,-powerAntiHol,0],  replacePointInR[antiHoloOPEPart, {z0bar->0}]];
+pictureAdjustedTaylor = R[pictureAdjustHolo[tayloredHoloOPEPart], pictureAdjustAntiHolo[tayloredAntiHoloOPEPart]];
+result = result + prefac cleanDoubledProfilesAtZero[pictureAdjustedTaylor, createProfileAssociation[OPEpart]];
+];
+],List@@(b0m[OPEOfSF]//Expand)]; 
+result
+];
 
 
 (* ::Subsubsection:: *)
@@ -96,19 +106,30 @@ result = result + pictureAdjust[b0m[tayloredOPEpart]];,
 
 
 BracketWithProfileX[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb], \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:= 
-Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, SFaAtPos, SFbAtPos, localCoordinateReplacement, intermediateOrder}, 
+Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredHoloOPEPart, tayloredAntiHoloOPEPart, holoOPEPart, antiHoloOPEPart, 
+SFaAtPos, SFbAtPos, OPEOfSF, prefac, localCoordinateReplacement, pictureAdjustedTaylor, intermediateOrder, holoSplit, antiHoloSplit}, 
 {SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
+OPEOfSF = OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder]/.localCoordinateReplacement;
 Scan[Function[OPEpart,
 intermediateOrder = Exponent[OPEpart, \[Alpha]p];
 powerHol = Exponent[OPEpart, z0];
 powerAntiHol = Exponent[OPEpart, z0bar];
 If[RtestUpToConstant[OPEpart],
-tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[replacePointInR[OPEpart, {z0bar->0}],-powerHol, 0,0,0]], 
-If[powerAntiHol < 0, TaylorAtOrder[replacePointInR[OPEpart, {z0->0}],0,-powerAntiHol,0,0], replacePointInR[OPEpart, {z0->0, z0bar->0}]]]//Expand;
-result = result + pictureAdjust[b0m[tayloredOPEpart], \[Alpha]pOrder - intermediateOrder];,
-0];
-],List @@(((OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder])/.localCoordinateReplacement)//Expand)]; result];
+{holoSplit, antiHoloSplit} = splitR[OPEpart];
+holoOPEPart = R @@ holoSplit;
+antiHoloOPEPart = R @@ antiHoloSplit;
+prefac = factorizationSign[OPEpart];
+tayloredHoloOPEPart =
+If[powerHol < 0, TaylorAtOrderHolo[holoOPEPart,-powerHol,0],  replacePointInR[holoOPEPart, {z0->0}]];
+tayloredAntiHoloOPEPart =
+If[powerAntiHol < 0, TaylorAtOrderAntiHolo[antiHoloOPEPart,-powerAntiHol,0],  replacePointInR[antiHoloOPEPart, {z0bar->0}]];
+Print["just taylored ", "holo: ", holoOPEPart, "antiholo: ", antiHoloOPEPart];
+pictureAdjustedTaylor = R[pictureAdjustHolo[tayloredHoloOPEPart, \[Alpha]pOrder - intermediateOrder], pictureAdjustAntiHolo[tayloredAntiHoloOPEPart, \[Alpha]pOrder - intermediateOrder]];
+result = result + prefac cleanDoubledProfilesAtZero[pictureAdjustedTaylor, createProfileAssociation[OPEpart]];
+];
+],List@@(b0m[OPEOfSF]//Expand)]; 
+result/.{Power[\[Alpha]p, p_/; p > \[Alpha]pOrder] -> 0}
+];
 
 
 BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
@@ -117,7 +138,7 @@ BracketWithProfileX[a_ b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=a Brac
 BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b BracketWithProfileX[a,c, \[Alpha]pOrder]/;(And @@(FreeQ[b,#]&/@ allfields))
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Place evaluation point of normal orderings in expression*)
 
 
@@ -130,7 +151,8 @@ Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
 (*Define action of PCOs*)
 
 
-actPCOHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
+actPCOHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := actPCOHolo[Ra, \[Alpha]pOrder] =
+ Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
 compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
@@ -147,7 +169,8 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
-actPCOAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
+actPCOAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := actPCOAntiHolo[Ra, \[Alpha]pOrder] =
+Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
 compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
@@ -167,20 +190,16 @@ If[power < 0, result = result + TaylorAtOrder[Relem, 0, -power, 0, 0]]];
 totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
 totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
-pictureAdjust[Ra_/;Rtest[Ra], \[Alpha]pOrder___] :=
-  Module[{pictureHol = totalHolPicture[Ra], pictureAntiHol = totalAntiHolPicture[Ra], factorization = splitR[Ra], holoRaised, antiHoloRaised, resultdoubled, result = Ra},
-   holoRaised =
-    If[pictureHol < 0, Nest[actPCOHolo[#, \[Alpha]pOrder] &, R @@ factorization[[1]], Ceiling[Abs[pictureHol]] - 1], R @@ factorization[[1]]];
-   antiHoloRaised =
-    DeleteCases[
-     If[pictureAntiHol < 0, Nest[actPCOAntiHolo[#, \[Alpha]pOrder] &, R @@ factorization[[2]], Ceiling[Abs[pictureAntiHol]] - 1], R @@ factorization[[2]]], expX[_, _, _], \[Infinity]];
-   If[(pictureHol + pictureAntiHol) < 0,
-   If[\[Alpha]pOrder > 0,
-   result = (factorizationSign[Ra] R[holoRaised, antiHoloRaised])/.{Power[\[Alpha]p, p_/; p > \[Alpha]pOrder] -> 0},
-   result = factorizationSign[Ra] R[holoRaised, antiHoloRaised];
+pictureAdjustHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{pictureHol = totalHolPicture[Ra],  holoAdjusted},
+   holoAdjusted =
+   If[pictureHol < 0, Nest[actPCOHolo[#, \[Alpha]pOrder] &, Ra, Ceiling[Abs[pictureHol]] - 1], Ra];
+   holoAdjusted
    ];
-   ];
-   cleanDoubledProfilesAtZero[result, createProfileAssociation[Ra]]
+   
+pictureAdjustAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{pictureAntiHol = totalAntiHolPicture[Ra],  antiHoloAdjusted},
+   antiHoloAdjusted =
+   If[pictureAntiHol < 0, Nest[actPCOAntiHolo[#, \[Alpha]pOrder] &, Ra, Ceiling[Abs[pictureAntiHol]] - 1], Ra];
+   antiHoloAdjusted
    ];
 
 
@@ -190,9 +209,12 @@ actPCOAntiHolo[0, \[Alpha]pOrder___] := 0;
 actPCOHolo[a_+b_, \[Alpha]pOrder___]:=actPCOHolo[a, \[Alpha]pOrder] + actPCOHolo[b, \[Alpha]pOrder];
 actPCOHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOHolo[0, \[Alpha]pOrder___] := 0;
-pictureAdjust[a_+b_, \[Alpha]pOrder___]:=pictureAdjust[a, \[Alpha]pOrder] + pictureAdjust[b, \[Alpha]pOrder];
-pictureAdjust[a_ b_, \[Alpha]pOrder___]:=a pictureAdjust[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-pictureAdjust[0, \[Alpha]pOrder___] := 0;
+pictureAdjustHolo[a_+b_, \[Alpha]pOrder___]:=pictureAdjustHolo[a, \[Alpha]pOrder] + pictureAdjustHolo[b, \[Alpha]pOrder];
+pictureAdjustHolo[a_ b_, \[Alpha]pOrder___]:=a pictureAdjustHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+pictureAdjustHolo[0, \[Alpha]pOrder___] := 0;
+pictureAdjustAntiHolo[a_+b_, \[Alpha]pOrder___]:=pictureAdjustAntiHolo[a, \[Alpha]pOrder] + pictureAdjustAntiHolo[b, \[Alpha]pOrder];
+pictureAdjustAntiHolo[a_ b_, \[Alpha]pOrder___]:=a pictureAdjustAntiHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
+pictureAdjustAntiHolo[0, \[Alpha]pOrder___] := 0;
 
 
 (* ::Subsubsection::Closed:: *)
@@ -205,6 +227,8 @@ splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ 
    {RHolo, RAntiHolo}
    ];
 splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
+
+splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
 
 factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{list = {}},
    Scan[Function[Relem,
@@ -231,7 +255,7 @@ factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
 factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Clean repeated Profiles*)
 
 
@@ -243,6 +267,8 @@ profileList = Cases[Ra, _ProfileX];
    AssociateTo[result, profileName -> Join[currentDers,ders]];
    ], profileList];
    result];
+
+createProfileAssociation[Times[a_, Ra_/;Rtest[Ra]]] := createProfileAssociation[Ra];
 
 mergeAssociationsKeepOverlapsOnlyFromFirst[a1_, a2_] := Module[{key, allKeys = Union[Keys[a1], Keys[a2]]},
   Association[
