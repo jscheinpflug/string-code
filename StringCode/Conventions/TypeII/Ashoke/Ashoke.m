@@ -65,7 +65,7 @@ R[ct[0,z],-1/2 R[d\[Phi]t[0,z],d\[Phi]t[0,z]]- R[d\[Phi]t[1,z]]-R[\[Eta]t[0,z],\
 
 PCO[z_]:=R[exp\[Phi]f[1,z],Gmatter[z]]+R[c[0,z],\[Xi][1,z]]-1/2R[\[Eta][1,z],exp\[Phi]b[2,z],b[0,z]]-1/4R[\[Eta][0,z],exp\[Phi]b[2,z],b[1,z]]-1/2R[\[Eta][0,z],d\[Phi][0,z],exp\[Phi]b[2,z],b[0,z]]
 
-PCObar[z_]:=R[exp\[Phi]tf[1,z],Gmatterbar[z]]+R[ct[0,z],\[Xi]t[1,z]]-1/2R[\[Eta]t[1,z],exp\[Phi]tb[2,z],bt[0,z]]-1/4R[\[Eta]t[1,z],exp\[Phi]tb[2,z],bt[1,z]]-1/2R[\[Eta]t[1,z],d\[Phi]t[0,z],exp\[Phi]tb[2,z],bt[0,z]]
+PCObar[z_]:=R[exp\[Phi]tf[1,z],Gmatterbar[z]]+R[ct[0,z],\[Xi]t[1,z]]-1/2R[\[Eta]t[1,z],exp\[Phi]tb[2,z],bt[0,z]]-1/4R[\[Eta]t[0,z],exp\[Phi]tb[2,z],bt[1,z]]-1/2R[\[Eta]t[0,z],d\[Phi]t[0,z],exp\[Phi]tb[2,z],bt[0,z]]
 
 
 End[];
