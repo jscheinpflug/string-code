@@ -16,7 +16,7 @@ Needs["StringCode`NormalOrdering`"];
 Taylor::usage = "Taylor expands a normal ordered product up to a given order";
 TaylorAtOrder::usage = "Taylor expands a normal ordered product at a given order";
 TaylorAtOrderHolo::usage = "Taylor expands a holomorphic normal ordered product at a given order";
-TaylorAtOrderAntiHolo::usage = "Taylor expands a holomorphic normal ordered product at a given order";
+TaylorAtOrderAntiHolo::usage = "Taylor expands an antiholomorphic normal ordered product at a given order";
 Polar::usage = "Picks out the first-order pole from a function";
 
 
