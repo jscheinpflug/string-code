@@ -67,6 +67,8 @@ result = result + replaceExpWithExpansions[expr, exponentials, Table[expandExpon
 ], partitions];
 result]  
    
+OPEWithProfileX[c___,a_+b_, d___]:=OPEWithProfileX[c,a,d]+OPEWithProfileX[c,b, d];   
+   
 OPEWithProfileX[toOPE__, \[Alpha]pOrder_] :=
  Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
    {resultingToOPE, allProfiles} = replaceProfilesWithExpAndCollectProfilesInListOfR[{toOPE}];

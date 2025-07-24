@@ -66,6 +66,9 @@ Scan[Function[partition,
 result = result + replaceExpWithExpansions[expr, exponentials, Table[expandExponentialAtOrder[exponentials[[i]], partition[[i]]], {i,1, Length[partition]}]];
 ], partitions];
 result]  
+
+
+OPEWithProfileX[c___,a_+b_, d___]:=OPEWithProfileX[c,a,d]+OPEWithProfileX[c,b, d];
    
 OPEWithProfileX[toOPE__, \[Alpha]pOrder_] :=
  Module[{resultingToOPE = {}, replacedAndProfiles, performedOPE, performedOPEList, derivativeOrder, expMaxExpansionOrder, expandedOPEPieces = {}, allProfiles = {}},
