@@ -31,10 +31,53 @@ Begin["Private`"];
 
 
 (* ::Subsection:: *)
-(*Define flat 2-bracket*)
+(*Define abstract flat n-bracket data*)
 
 
-SFsWithLocalCoordinateData[SFa_/;SFtest[SFa], SFb_/;SFtest[SFb]]:= Module[{z0, z0bar, z1, z1bar, z2, z2bar}, {SFAtPos[SFa, z1, z1bar], SFAtPos[SFb,z2,z2bar], {z1->-z0, z1bar->-z0bar, z2->z0, z2bar -> z0bar}, z0, z0bar}];
+flatLocalCoordinate[i_][w_][moduli___] := w Symbol["Private`q" <> ToString[i]][moduli] + Symbol["Private`z" <> ToString[i]][moduli];
+
+
+flatLocalCoordinateBar[i_][wbar_][moduli___] := wbar Symbol["Private`qbar" <> ToString[i]][moduli] + Symbol["Private`zbar" <> ToString[i]][moduli];
+
+
+localCoordinateReplacementElem[i_][moduli___]:= {
+Symbol["Private`q" <> ToString[i]][moduli] -> Symbol["Private`q" <> ToString[i] <> "R"][moduli],
+Symbol["Private`z" <> ToString[i]][moduli] -> Symbol["Private`z" <> ToString[i] <> "R"][moduli],
+Symbol["Private`qbar" <> ToString[i]][moduli] -> Symbol["Private`qbar" <> ToString[i] <> "R"][moduli],
+Symbol["Private`zbar" <> ToString[i]][moduli] -> Symbol["Private`zbar" <> ToString[i] <> "R"][moduli]};
+
+
+(* ::Subsection:: *)
+(*Define abstract n-bracket data*)
+
+
+getLocalCoordinateData[order_]:= Module[{abstractLocalCoordinateFunctions, moduli = {}, w, wbar, 
+localCoordinateFunctionsHol = {}, localCoordinateFunctionsAntiHol = {},localCoordinateReplacement = {}},
+Do[Module[{t, tbar}, AppendTo[moduli, t]; AppendTo[moduli, tbar]], order - 2];
+Do[
+  AppendTo[localCoordinateFunctionsHol, flatLocalCoordinate[i][w] @@ moduli];
+  AppendTo[localCoordinateFunctionsAntiHol, flatLocalCoordinateBar[i][wbar] @@ moduli];
+  localCoordinateReplacement = Join[localCoordinateReplacement, localCoordinateReplacementElem[i] @@ moduli],
+  {i, 1, order}
+  ];
+{localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement}
+]
+
+
+(* ::Subsection:: *)
+(*Define flat 2-bracket data*)
+
+
+Module[{z0, z0bar},
+q1R[]:= 1;
+q2R[]:= 1;
+qbar1R[]:= 1;
+qbar2R[]:= 1;
+z1R[]:= - z0;
+z2R[]:= z0;
+zbar1R[]:= - z0bar;
+zbar2R[]:= z0bar;
+];
 
 
 (* ::Section:: *)
