@@ -79,30 +79,61 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 
 
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
-moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings},
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBGhosts},
 bracketOrder = Length[bracketList];
 
 (*conformally transform the string field insertions*)
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
 SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList, w, wbar];
+SFList = List @@ SFsAtPos;
 
-(*create the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
-curlyBs = createCurlyBs[SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
+(*create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
+curlyBs = createCurlyBs[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
+afterApplyingBGhosts = applyCurlyBs[SFsAtPos, curlyBs];
 
-
-
-Print[curlyBs];
 result]
 
 
 (* ::Subsubsection:: *)
-(*Create B ghost insertions*)
+(*Apply B-ghost insertions to a MultiOp*)
 
 
-createCurlyBs[SFsAtPos__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, moduli__, bracketOrder_, w_, wbar_]:= 
-Module[{i,j, minCGhostModdings,minCbarGhostModdings },
-minCGhostModdings = Map[getMinCGhostModding, SFsAtPos];
-minCbarGhostModdings = Map[getMinCbarGhostModding, SFsAtPos];
+applyCurlyBs[SFsAtPos_/;MultiOptest[SFsAtPos], curlyBs__]:= Module[{result = 0, intermediateResult = SFsAtPos, i, curlyBOnPosition},
+Scan[Function[curlyB,
+Do[
+ curlyBOnPosition = curlyB[[i]];
+ result = result + replaceInMultiOpAtPosition[intermediateResult, i, applyBghostModes[curlyBOnPosition]],
+ {i,1,Length[curlyB]}];
+ intermediateResult = result;],
+ curlyBs];
+result
+];
+
+
+replaceInMultiOpAtPosition[multiOp_/;MultiOptest[multiOp], position_, toApply_]:= Module[{multiOpList = List @@ multiOp},
+MultiOp @@ ReplacePart[multiOpList, position -> toApply[multiOpList[[position]]]]];
+
+
+replaceInMultiOpAtPosition[a_+b_, position_, toReplace_]:= replaceInMultiOpAtPosition[a,position,toReplace] + replaceInMultiOpAtPosition[b, position, toReplace];
+replaceInMultiOpAtPosition[a_ b_, position_, toReplace_]:= a replaceInMultiOpAtPosition[b, position, toReplace]/;(Head[b] == MultiOp)
+
+
+applyBghostModes[BghostModes__][Ra_/;RtestUpToConstant[Ra]] := Module[{result = 0},
+Scan[Function[BghostMode,
+result = result + (BghostMode/.{bmodeHolo[a_]:> bmodeHolo[a][Ra], bmodeAntiHolo[a_]:> bmodeAntiHolo[a][Ra]});
+], BghostModes];
+result]
+applyBghostModes[BghostModes__][a_] := 0;
+
+
+(* ::Subsubsection:: *)
+(*Create B-ghost insertions*)
+
+
+createCurlyBs[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, moduli__, bracketOrder_, w_, wbar_]:= 
+Module[{i,j, minCGhostModdings,minCbarGhostModdings},
+minCGhostModdings = Map[getMinCGhostModding, SFList];
+minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
 Table[
 createB[localCoordinateFunctionsHol[[j]], localCoordinateFunctionsAntiHol[[j]], w, wbar, moduli[[i]], minCGhostModdings[[j]], minCbarGhostModdings[[j]]],
 {i,1,Length[moduli]}, {j,1,bracketOrder}]

@@ -15,7 +15,10 @@ Needs["StringCode`NormalOrdering`"];
 (*Declare public variables and methods*)
 
 
-MultiOp::usage = "A nonlocal operators consisting of local operators at different points"
+MultiOp::usage = "A nonlocal operators consisting of local operators at different points";
+MultiOptest::usage = "Test if is MultiOp";
+MultiOplength::usage = "Test if is MultiOp and has nonzero length";
+MultiOpone::usage = "Test if is MultiOp of length one";
 
 
 (* ::Section:: *)
@@ -31,11 +34,17 @@ Begin["Private`"];
 
 
 (* ::Input::Initialization:: *)
-MultiOp[c___,b_,a_,d___]:=regcomm[a,b] MultiOp[c,a,b,d]/;(!OrderedQ[{b,a}])
-MultiOp[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 MultiOp[c___,a_+b_,d___]:=MultiOp[c,a,d]+MultiOp[c,b,d]
-MultiOp[c___,a_ f_,d___]:=a MultiOp[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-MultiOp[c___,a_ ,d___]:=a MultiOp[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+MultiOp[c___,0,d___]:=0
+
+
+(* ::Subsection:: *)
+(*Test MultiOp and length*)
+
+
+MultiOptest[f_]:=(Head[f]==MultiOp)
+MultiOplength[f_]:=If[MultiOptest[f],Length[List @@ f],0]
+MultiOpone[f_]:=(MultiOplength[f]==1)
 
 
 (* ::Section:: *)
