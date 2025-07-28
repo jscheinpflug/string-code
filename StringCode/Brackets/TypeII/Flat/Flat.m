@@ -41,10 +41,10 @@ flatLocalCoordinateBar[i_][wbar_][moduli___] := wbar Symbol["Private`qbar" <> To
 
 
 localCoordinateReplacementElem[i_][moduli___]:= {
-Symbol["Private`q" <> ToString[i]][moduli] -> Symbol["Private`q" <> ToString[i] <> "R"][moduli],
-Symbol["Private`z" <> ToString[i]][moduli] -> Symbol["Private`z" <> ToString[i] <> "R"][moduli],
-Symbol["Private`qbar" <> ToString[i]][moduli] -> Symbol["Private`qbar" <> ToString[i] <> "R"][moduli],
-Symbol["Private`zbar" <> ToString[i]][moduli] -> Symbol["Private`zbar" <> ToString[i] <> "R"][moduli]};
+Symbol["Private`q" <> ToString[i]] -> Symbol["Private`q" <> ToString[i] <> "R"],
+Symbol["Private`z" <> ToString[i]] -> Symbol["Private`z" <> ToString[i] <> "R"],
+Symbol["Private`qbar" <> ToString[i]] -> Symbol["Private`qbar" <> ToString[i] <> "R"],
+Symbol["Private`zbar" <> ToString[i]] -> Symbol["Private`zbar" <> ToString[i] <> "R"]};
 
 
 (* ::Subsection:: *)

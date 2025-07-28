@@ -11,6 +11,8 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`Bosonic`"];
 Needs["StringCode`StringFields`"];
 Needs["StringCode`StringFields`Bosonic`"];
+Needs["StringCode`Operators`"];
+Needs["StringCode`Operators`Bosonic`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`Bosonic`"];
 Needs["StringCode`Conventions`Bosonic`"];

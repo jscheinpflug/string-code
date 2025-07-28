@@ -8,6 +8,7 @@ BeginPackage["StringCode`Brackets`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`StringFields`"];
+Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Taylor`"];
 
@@ -61,6 +62,38 @@ Bracket[a_,b_ c_]:=b Bracket[a,c]/;(And @@(FreeQ[b,#]&/@ allfields))
 (*Define action of b0^-*)
 
 
+(*define b-ghost mode actions at the same point*)
+
+bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+Scan[Function[Relem,
+If[Head[Relem] == c, 
+der = Relem/.{c[der_,_]:> der};
+AssociateTo[cAssoc, position -> If[der -1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
+If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+position = position + 1;
+],Ra];
+
+KeyValueMap[Function[{pos, replacement}, 
+result = result + ReplaceAt[Ra, replacement, pos];
+], cAssoc];
+result];
+
+bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+Scan[Function[Relem,
+If[Head[Relem]== ct, 
+der = Relem/.{ct[der_,_]:> der};
+AssociateTo[cAssoc, position -> If[der - 1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
+If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+position = position + 1;
+],Ra];
+
+KeyValueMap[Function[{pos, replacement}, 
+result = result + ReplaceAt[Ra, replacement, pos];
+], cAssoc];
+result];
+
+(*define action of b-ghost zero mode, generally at different points*)
+
 b0mHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[MatchQ[Relem, c[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
@@ -91,6 +124,14 @@ b0m[Ra_/;Rtest[Ra]] := b0mHolo[Ra] - b0mAntiHolo[Ra];
 b0m[a_+b_]:=b0m[a] + b0m[b];
 b0m[a_ b_]:=a b0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 b0m[0] := 0;
+
+bmodeHolo[mode_][a_+b_]:=bmodeHolo[mode][a] + bmodeHolo[mode][b];
+bmodeHolo[mode_][a_ b_]:=a bmodeHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeHolo[mode_][0] := 0;
+
+bmodeAntiHolo[mode_][a_+b_]:=bmodeAntiHolo[mode][a] + bmodeAntiHolo[mode][b];
+bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeAntiHolo[mode_][0] := 0;
 
 
 (* ::Subsection:: *)

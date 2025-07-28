@@ -11,6 +11,8 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
 Needs["StringCode`StringFields`"];
 Needs["StringCode`StringFields`TypeII`"];
+Needs["StringCode`Operators`"];
+Needs["StringCode`Operators`TypeII`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`TypeII`"];
 Needs["StringCode`Conventions`TypeII`"];
@@ -79,19 +81,32 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
 moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings},
 bracketOrder = Length[bracketList];
+
+(*conformally transform the string field insertions*)
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
 SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList, w, wbar];
-minCGhostModdings = Map[getMinCGhostModding, SFsAtPos];
-minCbarGhostModdings = Map[getMinCbarGhostModding, SFsAtPos];
-curlyBs = Timing[Module[{i,j},Table[
-createB[localCoordinateFunctionsHol[[j]], localCoordinateFunctionsAntiHol[[j]], w, wbar, moduli[[i]], minCGhostModdings[[j]], minCbarGhostModdings[[j]]],
-{i,1,Length[moduli]}, {j,1,bracketOrder}]]];
+
+(*create the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
+curlyBs = createCurlyBs[SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
+
+
+
 Print[curlyBs];
 result]
 
 
 (* ::Subsubsection:: *)
-(*Create B ghost insertion*)
+(*Create B ghost insertions*)
+
+
+createCurlyBs[SFsAtPos__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, moduli__, bracketOrder_, w_, wbar_]:= 
+Module[{i,j, minCGhostModdings,minCbarGhostModdings },
+minCGhostModdings = Map[getMinCGhostModding, SFsAtPos];
+minCbarGhostModdings = Map[getMinCbarGhostModding, SFsAtPos];
+Table[
+createB[localCoordinateFunctionsHol[[j]], localCoordinateFunctionsAntiHol[[j]], w, wbar, moduli[[i]], minCGhostModdings[[j]], minCbarGhostModdings[[j]]],
+{i,1,Length[moduli]}, {j,1,bracketOrder}]
+]
 
 
 getMinCGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
@@ -128,8 +143,8 @@ maxOrderHolo = -minCGhostModding + 1;
 If[maxOrderHolo > 0,
 wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol, w,z, maxOrderHolo];
 expandedBGhostIntegrandHol = Series[(D[localCoordinateHol, modulus])/.{w->wInTermsOfZ}, {z,z0,maxOrderHolo}]//Normal;
-BGhostIntegrandListHol = (#/.{Times[rest___,(z-z0)^p_?NumericQ]:>bmode[p-1]*rest,Times[rest___,diff_/;diff===(z-z0)]:>bmode[0]*rest,Times[rest___,1]:>bmode[-1]*rest}) & /@ (List@@(expandedBGhostIntegrandHol)),
-BGhostIntegrandListHol = {D[localCoordinateHol/.{w->0}, modulus] bmode[-1]};
+BGhostIntegrandListHol = (#/.{Times[rest___,(z-z0)^p_?NumericQ]:>bmodeHolo[p-1]*rest,Times[rest___,diff_/;diff===(z-z0)]:>bmodeHolo[0]*rest,Times[rest___,1]:>bmodeHolo[-1]*rest}) & /@ (List@@(expandedBGhostIntegrandHol)),
+BGhostIntegrandListHol = {D[localCoordinateHol/.{w->0}, modulus] bmodeHolo[-1]};
 ],
 BGhostIntegrandListHol = {};
 ];
@@ -138,8 +153,8 @@ maxOrderAntiHolo = -minCbarGhostModding + 1;
 If[maxOrderAntiHolo > 0,
 wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol, wbar, zbar, maxOrderAntiHolo];
 expandedBGhostIntegrandAntiHol = Series[(D[localCoordinateAntiHol, modulus])/.{wbar->wbarInTermsOfZbar}, {zbar,z0bar,maxOrderAntiHolo}]//Normal;
-BGhostIntegrandListAntiHol =(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:>bmodeBar[p-1]*rest,Times[rest___,diff_/;diff===(zbar-z0bar)]:>bmodeBar[0]*rest,Times[rest___,1]:>bmodeBar[-1]*rest})& /@ (List@@(expandedBGhostIntegrandAntiHol)),
-BGhostIntegrandListAntiHol = {D[localCoordinateAntiHol/.{wbar->0}, modulus] bmodeBar[-1]};
+BGhostIntegrandListAntiHol =(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:>bmodeAntiHolo[p-1]*rest,Times[rest___,diff_/;diff===(zbar-z0bar)]:>bmodeAntiHolo[0]*rest,Times[rest___,1]:>bmodeBar[-1]*rest})& /@ (List@@(expandedBGhostIntegrandAntiHol)),
+BGhostIntegrandListAntiHol = {D[localCoordinateAntiHol/.{wbar->0}, modulus]bmodeAntiHolo[-1]};
 ],
 BGhostIntegrandListAntiHol = {};
 ];
@@ -153,7 +168,7 @@ result]
 
 placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__, w_, wbar_]:= 
 Module[{i, length = Length[SFs]},
-Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
+MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
 ]
 
 

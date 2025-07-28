@@ -16,6 +16,7 @@ Switch[theoryValue,
     "StringCode`Wick`TypeII`",
     "StringCode`NormalOrdering`TypeII`",
     "StringCode`StringFields`TypeII`",
+    "StringCode`Operators`TypeII`",
     "StringCode`OPE`TypeII`",
     "StringCode`Brackets`TypeII`"},
 "Bosonic", userContext = {
@@ -25,6 +26,7 @@ Switch[theoryValue,
     "StringCode`Wick`Bosonic`",
     "StringCode`NormalOrdering`Bosonic`",
     "StringCode`StringFields`Bosonic`",
+    "StringCode`Operators`Bosonic`",
     "StringCode`OPE`Bosonic`",
     "StringCode`Brackets`Bosonic`"},
 _, Print["There is no such theory"]];
@@ -48,6 +50,7 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Wick`"];
 Needs["StringCode`StringFields`"];
+Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`Correlators`"];
