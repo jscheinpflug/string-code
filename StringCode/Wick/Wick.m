@@ -70,19 +70,29 @@ MWick[Ra_?Rone, Rb_?Rone] := MWick[Ra[[1]],Rb[[1]]]
 (*Define DWick: Wick contractions for normal-ordered products of fields*)
 
 
-DWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, Wick[Ra,Rb], 0]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
-DWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] Rb/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb] Rb, 0]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
-DWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb]+Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb], 0] +Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
-DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1] Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb], 1] Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
-DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra[[1]],Rb[[1]]],0] Rb+(-1)^(parity[Ra]parity[R[Rb[[1]]]]) R[Rb[[1]],
-DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-
-DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra[[1]],Rb[[1]]] (R @@ (Drop[(List @@ Rb),1])),0]+(-1)^(parity[Ra]parity[R[Rb[[1]]]]) R[Rb[[1]],
-DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+DWick[Ra_, Rb_]:= Module[{result = 0, RbList = List @@ Rb, arePaired, RaFirst = Ra[[1]], RaHead, RbHead, sign = 1, i = 1},
+RaHead = Head[RaFirst];
+Scan[Function[Rbelem,
+RbHead = Head[Rbelem];
+arePaired = pairing[{RaHead,RbHead}]==1;
+If[arePaired,
+If[isComposite[RbHead],
+result = result + sign SWick[RaFirst, Rbelem] Rb,
+result = result + sign Wick[RaFirst, Rbelem] R@@Delete[RbList, i];
+];
+];
+sign = sign (-1)^(parity[Ra]parity[R[Rbelem]]);
+i++;
+], RbList];
+result]/; (Rone[Ra] && Rtest[Rb] && (!Rone[Rb]) && isSimple[Head[Ra[[1]]]]);
 
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra[[1]],Rb[[1]]] DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))],0]+ R[Rb[[1]],
 DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
