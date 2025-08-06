@@ -49,16 +49,11 @@ actBRST[0] := 0;
 (*Define 2-bracket*)
 
 
-Bracket[a___, maxDerivativeOrder_/;NumericQ[maxDerivativeOrder]]:= BracketWithProfileX[a, maxDerivativeOrder];
+Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
+Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 
-Bracket[a_+b_,c_]:=Bracket[a,c]+Bracket[b,c]
-Bracket[a_,b_+c_]:=Bracket[a,b]+Bracket[a,c]
-Bracket[a_ b_,c_]:=a Bracket[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
-Bracket[a_,b_ c_]:=b Bracket[a,c]/;(And @@(FreeQ[b,#]&/@ allfields))
-
-
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define action of b0^-*)
 
 
