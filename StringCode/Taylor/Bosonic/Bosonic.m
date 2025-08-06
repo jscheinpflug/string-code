@@ -28,14 +28,17 @@ Begin["Private`"];
 
 
 isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
-isAtPointHolo[X[\[Mu]_,  z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[ProfileX[profile_, ders_, z_, zbar_], z0_] := SameQ[z,z0];
+isAtPointHolo[ProfileXHolo[profile_, ders_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
+isAtPointHolo[expXHolo[k_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
+
 isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[X[\[Mu], z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ProfileX[profile_, ders_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[expXAntiHolo[k_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
 
@@ -44,9 +47,6 @@ isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
 
 addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[Mu],n+ord,z0];
-
-
-addHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0_]:= If[ord>0, (z-z0)^ord/Factorial[ord] dX[\[Mu],ord-1,z0], X[\[Mu],z0,zbar]];
 
 
 addHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0_] := 
@@ -62,15 +62,30 @@ auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
 ], ProfileX[profile, ders, z0, zbar]];
 
 
+addHoloDerivatives[ProfileXHolo[profile_, ders_List, z_], ord_, z0_] := 
+If[ord > 0, 
+Module[{auxDerivativePolynomial},
+auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
+(z-z0)^ord/Factorial[ord]R[auxDerivativePolynomial/.{Power[Derivative[m_][func][x], p_] :>
+       Module[{i, interDers = {}, interdX = 1}, 
+       Do[Module[{\[Mu]},AppendTo[interDers, \[Mu]]; interdX = interdX dX[\[Mu], m-1,x]], {i,1,p}];
+       ProfileXHolo[profile, Join[ders, interDers], x] interdX ],
+       Derivative[m_][func][x] :>
+       Module[{\[Mu]}, ProfileXHolo[profile, Append[ders, \[Mu]], x] dX[\[Mu], m - 1, x]]}/.{x->z0}]
+], ProfileXHolo[profile, ders, z0]];
+
+
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
     R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)//Expand];
 
 
+addHoloDerivatives[expXHolo[k_, z_], ord_, z0_] :=
+  (z - z0)^ord/Factorial[ord] *
+    R[expXHolo[k, z0] * (expXPoly[k, ord] /. x -> z0)//Expand];
+
+
 addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]dXt[\[Mu],n+ord,z0bar];
-
-
-addAntiHoloDerivatives[X[\[Mu]_,z_,zbar_], ord_, z0bar_]:= If[ord > 0, (zbar-z0bar)^ord/Factorial[ord] dXt[\[Mu],ord-1,z0bar], X[\[Mu],z,z0bar]];
 
 
 addAntiHoloDerivatives[ProfileX[profile_, ders_List, z_, zbar_], ord_, z0bar_] := 
@@ -86,9 +101,27 @@ auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
 ], ProfileX[profile, ders, z, z0bar]];
 
 
+addAntiHoloDerivatives[ProfileXAntiHolo[profile_, ders_List, zbar_], ord_, z0bar_] := 
+If[ord > 0,
+Module[{auxDerivativePolynomial},
+auxDerivativePolynomial = derivativeOfExponential[1, ord]/.{E^(func[x]) :> 1};
+(zbar-z0bar)^ord/Factorial[ord]R[auxDerivativePolynomial/.{Power[Derivative[m_][func][x], p_] :>
+       Module[{i, interDers = {}, interdX = 1}, 
+       Do[Module[{\[Mu]},AppendTo[interDers, \[Mu]]; interdX = interdX dXt[\[Mu], m-1,x]], {i,1,p}];
+       ProfileXAntiHolo[profile, Join[ders, interDers], x] interdX ],
+       Derivative[m_][func][x] :>
+       Module[{\[Mu]}, ProfileXAntiHolo[profile, Append[ders, \[Mu]], x] dXt[\[Mu], m - 1, x]]}/.{x->z0bar}]
+], ProfileXAntiHolo[profile, ders, z0bar]];
+
+
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
     R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand];
+
+
+addAntiHoloDerivatives[expXAntiHolo[k_, zbar_], ord_, z0bar_] :=
+  (zbar - z0bar)^ord/Factorial[ord] *
+    R[expXAntiHolo[k, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand];
 
 
 (* ::Subsection:: *)
@@ -129,7 +162,6 @@ dX[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] dX[\[Mu],n+i,z0],{i,0,ord}],
 bt[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] bt[n+i,z0bar],{i,0,ord}],
 ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}],
 dXt[\[Mu]_,n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] dXt[\[Mu],n+i,z0bar],{i,0,ord}],
-X[\[Mu]_,z_,zbar_]:> If[ord >= 1, 1/Factorial[ord] (dX[\[Mu],ord-1,z0] + dXt[\[Mu],ord-1,z0bar]), X[\[Mu],z,zbar]],
 expX[k_,z_,zbar_]:>Sum[If[i==0,1,(z-z0)^i/i!]If[j==0,1,(zbar-z0bar)^j/j!] (R[expX[k,z0,z0bar]*(expXPoly[k, i] /. x -> z0)*(expXPolyT[k, j] /. x -> z0bar)//Expand]),{i,0,ord},{j,0,ord}]}];
 
 

@@ -31,7 +31,7 @@ Needs["StringCode`Brackets`"];
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
 
@@ -74,12 +74,12 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (zBar result // Expand)/.{zBar->0}];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define string bracket*)
 
 
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
-moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBghosts, numberOfHolPCOs, numberOfAntiHolPCOs,
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBghosts, numberOfHoloPCOs, numberOfAntiHoloPCOs,
 afterHeldActionOfPCOs},
 bracketOrder = Length[bracketList];
 
@@ -89,20 +89,21 @@ SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localC
 SFList = List @@ SFsAtPos;
 
 (*create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
+If[Length[moduli] > 0,
 curlyBs = createCurlyBs[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
-afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs];
+afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs],
+afterApplyingBghosts = SFsAtPos];
 
 (*apply PCO zero-modes abstractly*)
-numberOfHolPCOs = Ceiling[Abs[Total[Map[totalHolPicture, SFList]]]-1];
-numberOfAntiHolPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture, SFList]]]-1];
-afterHeldActionOfPCOs = 
-Timing[Nest[appendPCObar0Hold, Nest[appendPCO0Hold, afterApplyingBghosts, numberOfHolPCOs], numberOfAntiHolPCOs]];
+numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture, SFList]]]-1];
+numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture, SFList]]]-1];
+afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
-result = afterHeldActionOfPCOs;
+result = {afterHeldActionOfPCOs, localCoordinateReplacement};
 result]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Apply B-ghost insertions to a MultiOp*)
 
 
@@ -211,7 +212,140 @@ MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, loc
 ]
 
 
+(* ::Subsubsection:: *)
+(*Define total picture number*)
+
+
+totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
+totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
+
+
 (* ::Subsection:: *)
+(*Define projection of the string bracket*)
+
+
+BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
+Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, OPEHolo, OPEAntiHolo,
+\[Epsilon]Holo, \[Epsilon]AntiHolo,  projectedOPEHolo, projectedOPEAntiHolo,  holoOPEWithPCOs, antiHoloOPEWithPCOs},
+
+(*Strip off PCOs*)
+bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
+
+(*Compute bracket for each term inside of nested PCOs*)
+Scan[Function[bracketNoPCOsTerm,
+
+(*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
+{bracketHolo, bracketAntiHolo, prefac} = factorizeMultiOp[bracketNoPCOsTerm];
+
+(*Rescale positions of operators in the bracket by a common \[Epsilon]Holo/\[Epsilon]AntiHolo to ease weight projection, and then perform OPE*)
+{OPEHolo, OPEAntiHolo} = {OPE @@ rescaleMultiOp[bracketHolo, \[Epsilon]Holo], OPE @@ rescaleMultiOp[bracketAntiHolo, \[Epsilon]AntiHolo]};
+
+(*Perform the level projection on each holomorphic/antiholomorphic sector separately*)
+{projectedOPEHolo, projectedOPEAntiHolo} = {projectHolo[OPEHolo, weightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo, \[Epsilon]AntiHolo]};
+
+(*Act with PCOs on each projected holomorphic/antiholomorphic sector separately*)
+{holoOPEWithPCOs, antiHoloOPEWithPCOs} = {Nest[actPCOHolo, projectedOPEHolo, numberOfHoloPCOs], Nest[actPCOAntiHolo, projectedOPEAntiHolo, numberOfAntiHoloPCOs]};
+
+AppendTo[result,{holoOPEWithPCOs, antiHoloOPEWithPCOs, prefac}];
+
+], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]];
+
+result];
+
+
+(* ::Subsubsection:: *)
+(*Factorize multi-local operators*)
+
+
+factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
+Module[{multiOpXSplit, localOpFactorized, localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
+multiOpXSplit = multiOp/.{ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]};
+Scan[Function[localOp,
+localOpFactorized = splitR[localOp];
+prefac = prefac * factorizationPrefac[localOp];
+{localOpHolo, localOpAntiHolo} = {localOpFactorized[[1]], localOpFactorized[[2]]};
+AppendTo[localOpsHolo, localOpHolo];
+AppendTo[localOpsAntiHolo, localOpAntiHolo];
+], List @@ multiOpXSplit];
+{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, prefac}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
+
+
+splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ Ra},
+   RHolo = R @@ Select[RList, isHolomorphic @* Head];
+   RAntiHolo = R @@ Select[RList, isAntiHolomorphic @* Head];
+   {RHolo, RAntiHolo}
+   ];
+splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
+
+splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
+
+factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{list = {}},
+   Scan[Function[Relem,
+     If[isHolomorphic[Relem] && isFermion[Relem],
+      AppendTo[list, fHolo]];
+     If[isHolomorphic[Relem] && isBoson[Relem],
+      AppendTo[list, bHolo]];
+     If[isAntiHolomorphic[Relem] && isFermion[Relem],
+      AppendTo[list, fAntiHolo]];
+     If[isAntiHolomorphic[Relem] && isBoson[Relem],
+      AppendTo[list, bAntiHolo]];
+     ], Ra]; list
+   ];
+ 
+factorizationPrefac[Ra_ /;Rtest[Ra]] :=
+ Module[{list = factorizationAuxList[Ra], holPositions, antiHolPositions, swaps, totalSwaps, sign},
+  holPositions = Flatten[Position[list, _fHolo]];
+  antiHolPositions = Flatten[Position[list, _fAntiHolo]];
+  swaps = Outer[Boole[#2 < #1] &, holPositions, antiHolPositions];
+  totalSwaps = Total[swaps, 2];
+  sign = (-1)^totalSwaps
+  ]
+factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
+factorizationPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationPrefac[Ra]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Rescale all chiral local operators [position is their last argument] inside a factorized MultiOp*)
+
+
+rescaleMultiOp[multiOp_/;MultiOptest[multiOp], rescalingFactor_]:= Module[{multiOpList = List @@ multiOp}, 
+MultiOp @@ Map[rescaleOp[rescalingFactor], multiOpList]]
+
+
+rescaleOp[rescalingFactor_][op_]:= Module[{opList = List @@ op}, 
+R @@ Map[rescalePositionBy[rescalingFactor], opList]]
+
+
+rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
+
+
+(* ::Subsubsection:: *)
+(*Project OPE onto a given weight*)
+
+
+projectHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, OPEterms = If[Head[OPE] === Plus, OPE/.{Plus->List}, {OPE}]},
+Scan[Function[OPEterm,
+power = (Exponent[OPEterm, weightCountingParameter])/.{\[Alpha]p :> 0};
+result = result + TaylorAtOrderHolo[OPEterm, -power, 0];
+],
+OPEterms];
+result/.{weightCountingParameter -> 1}]
+
+
+projectAntiHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power,  OPEterms = If[Head[OPE] === Plus, OPE/.{Plus->List}, {OPE}]},
+Scan[Function[OPEterm,
+power = (Exponent[OPEterm, weightCountingParameter])/.{\[Alpha]p :> 0};
+result = result + TaylorAtOrderAntiHolo[OPEterm, -power, 0];
+],
+OPEterms];
+result/.{weightCountingParameter -> 1}]
+
+
+(* ::Subsection::Closed:: *)
 (*Define 2-bracket*)
 
 
@@ -253,7 +387,7 @@ Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
 (*Define action of PCOs*)
 
 
-actPCOHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := actPCOHolo[Ra, \[Alpha]pOrder] =
+actPCOHolo[Ra_/;Rtest[Ra]] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
@@ -262,7 +396,7 @@ If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithPCO = OPE[PCOelem, Ra, \[Alpha]pOrder]//Expand;
+OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == 0, result = result + Relem, 
@@ -271,7 +405,7 @@ If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
-actPCOAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := actPCOAntiHolo[Ra, \[Alpha]pOrder] =
+actPCOAntiHolo[Ra_/;Rtest[Ra]] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
@@ -280,7 +414,7 @@ If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-OPEWithPCO = OPE[PCOelem, Ra, \[Alpha]pOrder]//Expand;
+OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == 0, result = result + Relem, 
@@ -289,72 +423,13 @@ If[power < 0, result = result + TaylorAtOrder[Relem, 0, -power, 0, 0]]];
 ];], PCOList];
 ((result // Expand)/.{zBar->0})];
 
-totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
-totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
-pictureAdjustHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{pictureHol = totalHolPicture[Ra],  holoAdjusted},
-   holoAdjusted =
-   If[pictureHol < 0, Nest[actPCOHolo[#, \[Alpha]pOrder] &, Ra, Ceiling[Abs[pictureHol]] - 1], Ra];
-   holoAdjusted
-   ];
-   
-pictureAdjustAntiHolo[Ra_/;Rtest[Ra], \[Alpha]pOrder___] := Module[{pictureAntiHol = totalAntiHolPicture[Ra],  antiHoloAdjusted},
-   antiHoloAdjusted =
-   If[pictureAntiHol < 0, Nest[actPCOAntiHolo[#, \[Alpha]pOrder] &, Ra, Ceiling[Abs[pictureAntiHol]] - 1], Ra];
-   antiHoloAdjusted
-   ];
-
-
-actPCOAntiHolo[a_+b_, \[Alpha]pOrder___]:=actPCOAntiHolo[a, \[Alpha]pOrder] + actPCOAntiHolo[b, \[Alpha]pOrder];
-actPCOAntiHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOAntiHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-actPCOAntiHolo[0, \[Alpha]pOrder___] := 0;
-actPCOHolo[a_+b_, \[Alpha]pOrder___]:=actPCOHolo[a, \[Alpha]pOrder] + actPCOHolo[b, \[Alpha]pOrder];
-actPCOHolo[a_ b_, \[Alpha]pOrder___]:=a actPCOHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-actPCOHolo[0, \[Alpha]pOrder___] := 0;
-pictureAdjustHolo[a_+b_, \[Alpha]pOrder___]:=pictureAdjustHolo[a, \[Alpha]pOrder] + pictureAdjustHolo[b, \[Alpha]pOrder];
-pictureAdjustHolo[a_ b_, \[Alpha]pOrder___]:=a pictureAdjustHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-pictureAdjustHolo[0, \[Alpha]pOrder___] := 0;
-pictureAdjustAntiHolo[a_+b_, \[Alpha]pOrder___]:=pictureAdjustAntiHolo[a, \[Alpha]pOrder] + pictureAdjustAntiHolo[b, \[Alpha]pOrder];
-pictureAdjustAntiHolo[a_ b_, \[Alpha]pOrder___]:=a pictureAdjustAntiHolo[b, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-pictureAdjustAntiHolo[0, \[Alpha]pOrder___] := 0;
-
-
-(* ::Subsubsection::Closed:: *)
-(*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
-
-
-splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ Ra},
-   RHolo = Select[RList, isHolomorphic @* Head];
-   RAntiHolo = Select[RList, isAntiHolomorphic @* Head];
-   {RHolo, RAntiHolo}
-   ];
-splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
-
-splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
-
-factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{list = {}},
-   Scan[Function[Relem,
-     If[isHolomorphic[Relem] && isFermion[Relem],
-      AppendTo[list, fHolo]];
-     If[isHolomorphic[Relem] && isBoson[Relem],
-      AppendTo[list, bHolo]];
-     If[isAntiHolomorphic[Relem] && isFermion[Relem],
-      AppendTo[list, fAntiHolo]];
-     If[isAntiHolomorphic[Relem] && isBoson[Relem],
-      AppendTo[list, bAntiHolo]];
-     ], Ra]; list
-   ];
- 
-factorizationSign[Ra_ /;Rtest[Ra]] :=
- Module[{list = factorizationAuxList[Ra], holPositions, antiHolPositions, swaps, totalSwaps, sign},
-  holPositions = Flatten[Position[list, _fHolo]];
-  antiHolPositions = Flatten[Position[list, _fAntiHolo]];
-  swaps = Outer[Boole[#2 < #1] &, holPositions, antiHolPositions];
-  totalSwaps = Total[swaps, 2];
-  sign = (-1)^totalSwaps
-  ]
-factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
-factorizationSign[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationSign[Ra]
+actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
+actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOAntiHolo[0] := 0;
+actPCOHolo[a_+b_]:=actPCOHolo[a] + actPCOHolo[b];
+actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOHolo[0] := 0;
 
 
 (* ::Subsubsection::Closed:: *)
@@ -402,26 +477,52 @@ cleanDoubledProfilesAtZero[0, initialProfileAssociation_] := 0;
 containsCompositeHolo[PCOelem_]:= containsCompositeHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]b | exp\[Phi]f] &)];
 containsCompositeAntiHolo[PCOelem_]:= containsCompositeAntiHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]tb | exp\[Phi]tf] &)];
 
+
+(* ::Subsubsection::Closed:: *)
+(*Free boson*)
+
+
 singularity[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= 2 + m + n;
 singularity[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=2 + m + n;
+
+singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
+singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
+singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+singularity[dX[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:= 1 + n;
+singularity[ProfileX[profile_,ders_, w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+singularity[dXt[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:=1 + n;
+singularity[ProfileX[profile_,ders_, w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+
+singularity[dX[\[Mu]_,n_,z_],expXHolo[k_,w_]]:= 1 + n;
+singularity[expXHolo[k_,w_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+singularity[dX[\[Mu]_,n_,z_],ProfileXHolo[profile_, ders_, w_]]:= 1 + n;
+singularity[ProfileXHolo[profile_,ders_, w_],dX[\[Mu]_,n_,z_]]:= 1 + n;
+
+singularity[dXt[\[Mu]_,n_,z_],expXAntiHolo[k_,wbar_]]:=1 + n;
+singularity[expXAntiHolo[k_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+singularity[dXt[\[Mu]_,n_,z_],ProfileXAntiHolo[k_,wbar_]]:=1 + n;
+singularity[ProfileXAntiHolo[k_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+
+
+(* ::Subsubsection::Closed:: *)
+(*Free fermion*)
+
+
+singularity[\[Psi][\[Mu]_,n_,z_],\[Psi][\[Nu]_,m_,w_]]:=1 + m + n;
+singularity[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=1 + m + n;
+
+
+(* ::Subsubsection::Closed:: *)
+(*Superghosts*)
+
+
 singularity[d\[Phi][n_,z_],d\[Phi][m_,w_]]:= 2 + m + n;
 singularity[d\[Phi]t[n_,z_],d\[Phi]t[m_,w_]]:= 2 + m + n;
 singularity[\[Eta][n_,z_],\[Xi][m_,w_]]:= 1 + m + n;
 singularity[\[Xi][m_,w_],\[Eta][n_,z_]]:= 1 + m + n;
 singularity[\[Eta]t[n_,z_],\[Xi]t[m_,w_]]:= 1 + m + n;
 singularity[\[Xi]t[m_,w_],\[Eta]t[n_,z_]]:=1 + m + n;
-singularity[\[Psi][\[Mu]_,n_,z_],\[Psi][\[Nu]_,m_,w_]]:=1 + m + n;
-singularity[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=1 + m + n;
-
-singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
-singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
-singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-
-singularity[dX[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:= 1 + n;
-singularity[ProfileX[profile_,ders_, w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dXt[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:=1 + n;
-singularity[ProfileX[profile_,ders_, w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
 
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]b[b_,w_]]:= a b;
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]f[b_,w_]]:=a b;

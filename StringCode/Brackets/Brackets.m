@@ -17,7 +17,8 @@ Needs["StringCode`Taylor`"];
 (*Declare public variables and methods*)
 
 
-Bracket::usage = "Computes the flat string bracket";
+Bracket::usage = "Computes the string bracket";
+BracketProjected::usage = "Computes a projection of the string bracket";
 actBRST::usage = "Acts with the BRST charge (computes 1-bracket)";
 
 
@@ -46,11 +47,27 @@ actBRST[0] := 0;
 
 
 (* ::Subsection:: *)
-(*Define 2-bracket*)
+(*Define bracket*)
 
 
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
 Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+
+(* ::Subsection:: *)
+(*Define projected bracket*)
+
+
+BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest]
+BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+BracketProjection[{args___, a_ + b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] :=
+ BracketProjection[{args, a, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo]
+BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] := 
+a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weightAntiHolo_]:=
+BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
 
 
 (* ::Subsection::Closed:: *)
