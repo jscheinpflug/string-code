@@ -79,7 +79,8 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 
 
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
-moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBGhosts},
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBghosts, numberOfHolPCOs, numberOfAntiHolPCOs,
+afterHeldActionOfPCOs},
 bracketOrder = Length[bracketList];
 
 (*conformally transform the string field insertions*)
@@ -89,8 +90,15 @@ SFList = List @@ SFsAtPos;
 
 (*create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 curlyBs = createCurlyBs[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
-afterApplyingBGhosts = applyCurlyBs[SFsAtPos, curlyBs];
+afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs];
 
+(*apply PCO zero-modes abstractly*)
+numberOfHolPCOs = Ceiling[Abs[Total[Map[totalHolPicture, SFList]]]-1];
+numberOfAntiHolPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture, SFList]]]-1];
+afterHeldActionOfPCOs = 
+Timing[Nest[appendPCObar0Hold, Nest[appendPCO0Hold, afterApplyingBghosts, numberOfHolPCOs], numberOfAntiHolPCOs]];
+
+result = afterHeldActionOfPCOs;
 result]
 
 
