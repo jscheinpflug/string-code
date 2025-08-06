@@ -91,8 +91,15 @@ R[a___,R[b___],c___]:=R[a,b,c]
 
 
 R[g___,a_ f_,h___]:=R[g,a,f,h]/;MemberQ[bosons,Head[a]]
-R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;MemberQ[bosons,Head[a]]
-R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
+R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
+R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
+
+
+(* ::Subsection:: *)
+(*Define cached dropping of normal-ordered product elements*)
+
+
+dropFirstFromR[Ra_]:= dropFirstFromR[Ra] = R @@ (Drop[(List @@ Ra),1])
 
 
 (* ::Subsection:: *)
@@ -109,9 +116,9 @@ CR[c___,a_ ,d___]:=a CR[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 CR[]:=1
 CR[a___,R[b___],c___]:=CR[a,b,c]
 
-CR[g___,a_ f_,h___]:=CR[g,a,f,h]/;MemberQ[bosons,Head[a]]
-CR[g___,a_^n_ f_,h___]:=CR[g,(R @@ ConstantArray[a,n]),f,h]/;MemberQ[bosons,Head[a]]
-CR[g___,a_^n_,h___]:=CR[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
+CR[g___,a_ f_,h___]:=CR[g,a,f,h]/;isBoson[Head[a]]
+CR[g___,a_^n_ f_,h___]:=CR[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
+CR[g___,a_^n_,h___]:=CR[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
 (* ::Section:: *)
