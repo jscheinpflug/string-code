@@ -400,7 +400,7 @@ OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrder[Relem, -power, 0, 0, 0]]];
+If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
@@ -418,7 +418,7 @@ OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrder[Relem, 0, -power, 0, 0]]];
+If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand)/.{zBar->0})];
@@ -470,7 +470,7 @@ cleanDoubledProfilesAtZero[Times[a_, Ra_], initialProfileAssociation_] := a clea
 cleanDoubledProfilesAtZero[0, initialProfileAssociation_] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Determine whether OPE should be computed*)
 
 
@@ -478,7 +478,7 @@ containsCompositeHolo[PCOelem_]:= containsCompositeHolo[PCOelem] = First@FirstPo
 containsCompositeAntiHolo[PCOelem_]:= containsCompositeAntiHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]tb | exp\[Phi]tf] &)];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Free boson*)
 
 
@@ -501,8 +501,8 @@ singularity[ProfileXHolo[profile_,ders_, w_],dX[\[Mu]_,n_,z_]]:= 1 + n;
 
 singularity[dXt[\[Mu]_,n_,z_],expXAntiHolo[k_,wbar_]]:=1 + n;
 singularity[expXAntiHolo[k_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-singularity[dXt[\[Mu]_,n_,z_],ProfileXAntiHolo[k_,wbar_]]:=1 + n;
-singularity[ProfileXAntiHolo[k_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
+singularity[dXt[\[Mu]_,n_,z_],ProfileXAntiHolo[profile_, ders_, wbar_]]:=1 + n;
+singularity[ProfileXAntiHolo[profile_, ders_, wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
 
 
 (* ::Subsubsection::Closed:: *)
