@@ -12,7 +12,10 @@ Needs["StringCode`Symbols`"];
 (*Declare public variables and methods*)
 
 
-X::usage = "Noncompact boson in free boson CFT";
+expXAntiHolo::usage = "Antiholomorphic part of the wave primary in free boson CFT";
+
+
+expXHolo::usage = "Holomorphic part of the wave primary in free boson CFT";
 
 
 expX::usage = "Plane wave primary in free boson CFT";
@@ -22,6 +25,12 @@ dX::usage = "Holomorphic del X primary in free boson CFT"
 
 
 dXt::usage = "Antiholomorphic del X primary in free boson CFT"
+
+
+ProfileXAntiHolo::usage = "Antiolomorphic part of an X-profile"
+
+
+ProfileXHolo::usage = "Holomorphic part of an X-profile"
 
 
 ProfileX::usage = "A polynomial X-profile"
@@ -44,11 +53,11 @@ Begin["Private`"];
 bosons=Join[bosons, {X,expX,dX,dXt,ProfileX}];
 fermions=Join[fermions, {}];
 regfermions=Join[regfermions,{}];
-simplefields=Join[simplefields, {X, dX,dXt}];
-simplefieldsnotc=Join[simplefieldsnotc, {X,dX,dXt}];
-compositefields= Join[compositefields, {expX}];
-holomorphicFields = Join[holomorphicFields, {ProfileX, X,dX,expX}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, X, dXt, expX}];
+simplefields=Join[simplefields, {dX,dXt}];
+simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt}];
+compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX}];
+holomorphicFields = Join[holomorphicFields, {ProfileXHolo, dX,expXHolo}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileXAntiHolo, dXt, expXAntiHolo}];
 allfields=Join[bosons,fermions];
 
 

@@ -34,6 +34,9 @@ pairing::usage = "Determines whether two fields can be Wick contracted";
 dot::usage = "Symbol for dot product";
 
 
+der::usage = "Symbol for a derivative";
+
+
 (* ::Section:: *)
 (*Logic*)
 

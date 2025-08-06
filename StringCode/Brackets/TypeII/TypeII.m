@@ -74,7 +74,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (zBar result // Expand)/.{zBar->0}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define string bracket*)
 
 
@@ -102,7 +102,7 @@ result = afterHeldActionOfPCOs;
 result]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Apply B-ghost insertions to a MultiOp*)
 
 
@@ -134,7 +134,7 @@ result]
 applyBghostModes[BghostModes__][a_] := 0;
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Create B-ghost insertions*)
 
 
@@ -201,7 +201,7 @@ result = Join[BGhostIntegrandListHol,BGhostIntegrandListAntiHol];
 result]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Place string fields at positions given by local coordinates*)
 
 
@@ -238,43 +238,6 @@ result = result + prefac cleanDoubledProfilesAtZero[pictureAdjustedTaylor, creat
 ],List@@(b0m[OPEOfSF]//Expand)]; 
 result
 ];
-
-
-(* ::Subsubsection:: *)
-(*Define 2-bracket with ProfileX*)
-
-
-BracketWithProfileX[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb], \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:= 
-Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredHoloOPEPart, tayloredAntiHoloOPEPart, holoOPEPart, antiHoloOPEPart, 
-SFaAtPos, SFbAtPos, OPEOfSF, prefac, localCoordinateReplacement, pictureAdjustedTaylor, intermediateOrder, holoSplit, antiHoloSplit}, 
-{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
-OPEOfSF = OPE[SFaAtPos, SFbAtPos, \[Alpha]pOrder]/.localCoordinateReplacement;
-Scan[Function[OPEpart,
-intermediateOrder = Exponent[OPEpart, \[Alpha]p];
-powerHol = Exponent[OPEpart, z0];
-powerAntiHol = Exponent[OPEpart, z0bar];
-If[RtestUpToConstant[OPEpart],
-{holoSplit, antiHoloSplit} = splitR[OPEpart];
-holoOPEPart = R @@ holoSplit;
-antiHoloOPEPart = R @@ antiHoloSplit;
-prefac = factorizationSign[OPEpart];
-tayloredHoloOPEPart =
-If[powerHol < 0, TaylorAtOrderHolo[holoOPEPart,-powerHol,0],  replacePointInR[holoOPEPart, {z0->0}]];
-tayloredAntiHoloOPEPart =
-If[powerAntiHol < 0, TaylorAtOrderAntiHolo[antiHoloOPEPart,-powerAntiHol,0],  replacePointInR[antiHoloOPEPart, {z0bar->0}]];
-Print["just taylored ", "holo: ", holoOPEPart, "antiholo: ", antiHoloOPEPart];
-pictureAdjustedTaylor = R[pictureAdjustHolo[tayloredHoloOPEPart, \[Alpha]pOrder - intermediateOrder], pictureAdjustAntiHolo[tayloredAntiHoloOPEPart, \[Alpha]pOrder - intermediateOrder]];
-result = result + prefac cleanDoubledProfilesAtZero[pictureAdjustedTaylor, createProfileAssociation[OPEpart]];
-];
-],List@@(b0m[OPEOfSF]//Expand)]; 
-result/.{Power[\[Alpha]p, p_/; p > \[Alpha]pOrder] -> 0}
-];
-
-
-BracketWithProfileX[a_+b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,c, \[Alpha]pOrder]+BracketWithProfileX[b,c, \[Alpha]pOrder]
-BracketWithProfileX[a_,b_+c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=BracketWithProfileX[a,b, \[Alpha]pOrder]+BracketWithProfileX[a,c, \[Alpha]pOrder]
-BracketWithProfileX[a_ b_,c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=a BracketWithProfileX[b,c, \[Alpha]pOrder]/;(And @@(FreeQ[a,#]&/@ allfields))
-BracketWithProfileX[a_,b_ c_, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:=b BracketWithProfileX[a,c, \[Alpha]pOrder]/;(And @@(FreeQ[b,#]&/@ allfields))
 
 
 (* ::Subsubsection::Closed:: *)

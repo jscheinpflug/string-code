@@ -30,8 +30,6 @@ Begin["Private`"];
 
 OPE[a___,0,b___]:=0
 
-OPE[a___, \[Alpha]pOrder_/;NumericQ[\[Alpha]pOrder]]:= OPEWithProfileX[a,\[Alpha]pOrder];
-
 OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
 OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
