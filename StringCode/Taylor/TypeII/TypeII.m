@@ -253,9 +253,9 @@ expXPolyT[k_, n_] :=
   expXPolyT[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
-       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
+       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
-       Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
+       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];
 
 
 (* ::Subsection:: *)
