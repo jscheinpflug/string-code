@@ -61,6 +61,23 @@ antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileXAntiHolo, dXt, expX
 allfields=Join[bosons,fermions];
 
 
+(* ::Subsection:: *)
+(*Define weight of symbols*)
+
+
+weightHolo[expX[k_, z_,zbar_]] := 0;
+weightHolo[expXHolo[k_, z_]] := 0;
+weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
+weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
+weightHolo[dX[\[Mu]_, n_, z_]] := n + 1;
+
+weightAntiHolo[expX[k_, z_,zbar_]] := 0;
+weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
+weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
+weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
+weightAntiHolo[dXt[\[Mu]_, n_, z_]] := n + 1;
+
+
 (* ::Section:: *)
 (*End*)
 

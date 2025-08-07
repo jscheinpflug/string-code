@@ -81,7 +81,7 @@ isAntiHolomorphic::usage = "Checks if is antiholomorphic";
 (*Logic*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define index contractions*)
 
 
@@ -95,7 +95,7 @@ ContractDelta[f_]:=f//.{g_ \[Delta][\[Mu]_,\[Mu]1_]:>(g/.{\[Mu]->\[Mu]1})/;!Free
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define symbols*)
 
 
@@ -110,7 +110,7 @@ antiHolomorphicFields = {bt,ct};
 allfields=Join[bosons,fermions];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define cached lookups*)
 
 
@@ -121,6 +121,19 @@ isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
 isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
 isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
 isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
+
+
+(* ::Subsection:: *)
+(*Define weight of symbols*)
+
+
+weightHolo[field_/;!isHolomorphic[Head[field]]] := 0;
+weightHolo[c[n_, z_]] := n - 1;
+weightHolo[b[n_, z_]] := n + 2;
+
+weightAntiHolo[field_/;!isAntiHolomorphic[Head[field]]] := 0;
+weightAntiHolo[ct[n_, z_]] := n - 1;
+weightAntiHolo[bt[n_, z_]] := n + 2;
 
 
 (* ::Section:: *)

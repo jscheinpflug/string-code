@@ -47,7 +47,7 @@ RtestUpToConstant[f_]:=(Head[f]==R)
 RtestUpToConstant[]:=False;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define Grassmann parity*)
 
 
@@ -75,7 +75,7 @@ regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
 regcomm[f_,g_]:=(-1)^(parity[f] parity[g]);
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define normal-ordered product*)
 
 
@@ -95,7 +95,7 @@ R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define cached dropping of normal-ordered product elements*)
 
 
@@ -103,6 +103,15 @@ dropFirstFromR[Ra_]:= dropFirstFromR[Ra] = R @@ (Drop[(List @@ Ra),1])
 
 
 (* ::Subsection:: *)
+(*Define weight of normal-ordered product*)
+
+
+totalWeightHolo[Ra_/;Rtest[Ra]] := Map[weightHolo, List @@ Ra] // Total;
+totalWeightAntiHolo[Ra_/;Rtest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
+totalWeight[Ra_/;Rtest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
+
+
+(* ::Subsection::Closed:: *)
 (*Define CR*)
 
 

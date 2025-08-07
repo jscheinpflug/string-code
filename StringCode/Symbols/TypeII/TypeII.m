@@ -94,7 +94,7 @@ exp\[Phi]tfermions::usage = "A list of fermionic exponential of barphi symbols";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define symbols*)
 
 
@@ -113,7 +113,7 @@ antiHolomorphicFields = Join[antiHolomorphicFields, {expXAntiHolo, ProfileXAntiH
 allfields=Join[bosons,fermions];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define picture numbers*)
 
 
@@ -127,6 +127,52 @@ pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
 pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;
 pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
 pictureAntiHol[a_/;isField[Head[a]]]:= 0;
+
+
+(* ::Subsection:: *)
+(*Define weight of symbols*)
+
+
+(* ::Subsubsection:: *)
+(*Free boson*)
+
+
+weightHolo[expX[k_, z_,zbar_]] := 0;
+weightHolo[expXHolo[k_, z_]] := 0;
+weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
+weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
+weightHolo[dX[\[Mu]_, n_, z_]] := n + 1;
+
+weightAntiHolo[expX[k_, z_,zbar_]] := 0;
+weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
+weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
+weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
+weightAntiHolo[dXt[\[Mu]_, n_, z_]] := n + 1;
+
+
+(* ::Subsubsection:: *)
+(*Free fermion*)
+
+
+weightHolo[\[Psi][\[Mu]_, n_, z_]] := n + 1/2;
+weightAntiHolo[\[Psi]t[\[Mu]_, n_, z_]] := n + 1/2;
+
+
+(* ::Subsubsection:: *)
+(*Superghosts*)
+
+
+weightHolo[\[Xi][n_, z_]] := n;
+weightHolo[\[Eta][n_, z_]] := n + 1;
+weightHolo[d\[Phi][n_, z_]] := n + 1;
+weightHolo[exp\[Phi]f[n_, z_]] := -1/2*(n)*(n + 2);
+weightHolo[exp\[Phi]b[n_, z_]] := -1/2*(n)*(n + 2);
+
+weightAntiHolo[\[Xi]t[n_, z_]] := n;
+weightAntiHolo[\[Eta]t[n_, z_]] := n + 1;
+weightAntiHolo[d\[Phi]t[n_, z_]] := n + 1;
+weightAntiHolo[exp\[Phi]tf[n_, z_]] := -1/2*(n)*(n + 2);
+weightAntiHolo[exp\[Phi]tb[n_, z_]] := -1/2*(n)*(n + 2);
 
 
 (* ::Section:: *)

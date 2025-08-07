@@ -74,7 +74,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (zBar result // Expand)/.{zBar->0}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define string bracket*)
 
 
@@ -432,45 +432,7 @@ actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOHolo[0] := 0;
 
 
-(* ::Subsubsection::Closed:: *)
-(*Clean repeated Profiles*)
-
-
-createProfileAssociation[Ra_/;Rtest[Ra]]:= Module[{profileList = Cases[Ra, _ProfileX], profileName, ders, z, zbar, currentDers, result = Association[]},
-profileList = Cases[Ra, _ProfileX];
-   Scan[Function[profile, 
-   {profileName, ders, z, zbar} = List @@ profile;
-   currentDers = Lookup[result,profileName, {}];
-   AssociateTo[result, profileName -> Join[currentDers,ders]];
-   ], profileList];
-   result];
-
-createProfileAssociation[Times[a_, Ra_/;Rtest[Ra]]] := createProfileAssociation[Ra];
-
-mergeAssociationsKeepOverlapsOnlyFromFirst[a1_, a2_] := Module[{key, allKeys = Union[Keys[a1], Keys[a2]]},
-  Association[
-  Table[
-      With[{list1 = Lookup[a1, key, {}], list2 = Lookup[a2, key, {}]},
-        key -> DeleteDuplicates[Join[list1, Complement[list2, list1]]]
-      ],
-      {key, allKeys}
-    ]
-  ]
-];
-
-cleanDoubledProfilesAtZero[Ra_/;Rtest[Ra], initialProfileAssociation_] :=
-  Module[{profileList, rest, profileAssociation = Association[], profileName, currentDers, ders, z,zbar, mergedList, result},
-   rest = Cases[Ra, Except[_ProfileX]];
-   profileAssociation = mergeAssociationsKeepOverlapsOnlyFromFirst[initialProfileAssociation, createProfileAssociation[Ra]];
-   mergedList = Join[rest, KeyValueMap[Function[{profile, ders}, ProfileX[profile, ders, 0, 0]], profileAssociation]];
-   result = R @@ mergedList];
-  
-cleanDoubledProfilesAtZero[Ra_ + Rb_, initialProfileAssociation_] := cleanDoubledProfilesAtZero[Ra, initialProfileAssociation] + cleanDoubledProfilesAtZero[Rb, initialProfileAssociation];
-cleanDoubledProfilesAtZero[Times[a_, Ra_], initialProfileAssociation_] := a cleanDoubledProfilesAtZero[Ra, initialProfileAssociation] /; (And @@ (FreeQ[a, #] & /@ allfields));
-cleanDoubledProfilesAtZero[0, initialProfileAssociation_] := 0;
-
-
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Determine whether OPE should be computed*)
 
 
