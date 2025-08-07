@@ -106,8 +106,13 @@ dropFirstFromR[Ra_]:= dropFirstFromR[Ra] = R @@ (Drop[(List @@ Ra),1])
 (*Define weight of normal-ordered product*)
 
 
+totalWeightHolo[Times[a_, Ra_/;Rtest[Ra]]] := totalWeightHolo[Ra];
 totalWeightHolo[Ra_/;Rtest[Ra]] := Map[weightHolo, List @@ Ra] // Total;
+
+totalWeightAntiHolo[Times[a_, Ra_/;Rtest[Ra]]] := totalWeightAntiHolo[Ra];
 totalWeightAntiHolo[Ra_/;Rtest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
+
+totalWeight[Times[a_, Ra_/;Rtest[Ra]]] := totalWeight[Ra];
 totalWeight[Ra_/;Rtest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
 
 

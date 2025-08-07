@@ -226,7 +226,7 @@ totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
 BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
 Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, OPEHolo, OPEAntiHolo,
-\[Epsilon]Holo, \[Epsilon]AntiHolo,  projectedOPEHolo, projectedOPEAntiHolo,  holoOPEWithPCOs, antiHoloOPEWithPCOs},
+\[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
 bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
@@ -241,7 +241,9 @@ Scan[Function[bracketNoPCOsTerm,
 {OPEHolo, OPEAntiHolo} = {OPE @@ rescaleMultiOp[bracketHolo, \[Epsilon]Holo], OPE @@ rescaleMultiOp[bracketAntiHolo, \[Epsilon]AntiHolo]};
 
 (*Perform the level projection on each holomorphic/antiholomorphic sector separately*)
-{projectedOPEHolo, projectedOPEAntiHolo} = {projectHolo[OPEHolo, weightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo, \[Epsilon]AntiHolo]};
+{insertionWeightHolo, insertionWeightAntiHolo} = {totalWeightHolo[R @@ bracketHolo], totalWeightAntiHolo[R @@ bracketHolo]};
+{projectedOPEHolo, projectedOPEAntiHolo} = 
+{projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
 
 (*Act with PCOs on each projected holomorphic/antiholomorphic sector separately*)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {Nest[actPCOHolo, projectedOPEHolo, numberOfHoloPCOs], Nest[actPCOAntiHolo, projectedOPEAntiHolo, numberOfAntiHoloPCOs]};
@@ -327,25 +329,31 @@ rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[a
 (*Project OPE onto a given weight*)
 
 
-projectHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, OPEterms = If[Head[OPE] === Plus, OPE/.{Plus->List}, {OPE}]},
+projectHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
+OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
 Scan[Function[OPEterm,
 power = (Exponent[OPEterm, weightCountingParameter])/.{\[Alpha]p :> 0};
-result = result + TaylorAtOrderHolo[OPEterm, -power, 0];
+expansionOrder = -power + weight;
+If[expansionOrder >= 0,
+result = result + TaylorAtOrderHolo[OPEterm, expansionOrder, 0]];
 ],
 OPEterms];
 result/.{weightCountingParameter -> 1}]
 
 
-projectAntiHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power,  OPEterms = If[Head[OPE] === Plus, OPE/.{Plus->List}, {OPE}]},
+projectAntiHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
+OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
 Scan[Function[OPEterm,
 power = (Exponent[OPEterm, weightCountingParameter])/.{\[Alpha]p :> 0};
-result = result + TaylorAtOrderAntiHolo[OPEterm, -power, 0];
+expansionOrder = -power + weight;
+If[expansionOrder >= 0,
+result = result + TaylorAtOrderAntiHolo[OPEterm, expansionOrder, 0]];
 ],
 OPEterms];
 result/.{weightCountingParameter -> 1}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define 2-bracket*)
 
 
