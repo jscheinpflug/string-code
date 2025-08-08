@@ -74,7 +74,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (zBar result // Expand)/.{zBar->0}];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define string bracket*)
 
 
@@ -135,7 +135,7 @@ result]
 applyBghostModes[BghostModes__][a_] := 0;
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Create B-ghost insertions*)
 
 
@@ -262,17 +262,18 @@ result];
 factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
 Module[{multiOpXSplit, localOpFactorized, localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
 multiOpXSplit = multiOp/.{ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]};
-Scan[Function[localOp,
+{localOpsHolo, localOpsAntiHolo} = 
+Reap[Scan[Function[localOp,
 localOpFactorized = splitR[localOp];
 prefac = prefac * factorizationPrefac[localOp];
 {localOpHolo, localOpAntiHolo} = {localOpFactorized[[1]], localOpFactorized[[2]]};
-AppendTo[localOpsHolo, localOpHolo];
-AppendTo[localOpsAntiHolo, localOpAntiHolo];
-], List @@ multiOpXSplit];
+Sow[localOpHolo, "Holo"];
+Sow[localOpAntiHolo, "AntiHolo"];
+], List @@ multiOpXSplit]][[2]];
 {MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, prefac}]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
 
 
@@ -285,17 +286,18 @@ splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
 
 splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
 
-factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{list = {}},
-   Scan[Function[Relem,
+factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{result= {}},
+   result = Reap[Scan[Function[Relem,
      If[isHolomorphic[Relem] && isFermion[Relem],
-      AppendTo[list, fHolo]];
+      Sow[fHolo]];
      If[isHolomorphic[Relem] && isBoson[Relem],
-      AppendTo[list, bHolo]];
+      Sow[bHolo]];
      If[isAntiHolomorphic[Relem] && isFermion[Relem],
-      AppendTo[list, fAntiHolo]];
+      Sow[fAntiHolo]];
      If[isAntiHolomorphic[Relem] && isBoson[Relem],
-      AppendTo[list, bAntiHolo]];
-     ], Ra]; list
+      Sow[bAntiHolo]];
+     ], Ra]][[2]]; 
+     result
    ];
  
 factorizationPrefac[Ra_ /;Rtest[Ra]] :=

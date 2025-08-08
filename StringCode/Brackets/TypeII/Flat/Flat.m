@@ -54,12 +54,13 @@ Symbol["Private`zbar" <> ToString[i]] -> Symbol["Private`zbar" <> ToString[i] <>
 getLocalCoordinateData[order_]:= Module[{abstractLocalCoordinateFunctions, moduli = {}, w, wbar, 
 localCoordinateFunctionsHol = {}, localCoordinateFunctionsAntiHol = {},localCoordinateReplacement = {}},
 Do[Module[{t, tbar}, AppendTo[moduli, t]; AppendTo[moduli, tbar]], order - 2];
-Do[
-  AppendTo[localCoordinateFunctionsHol, flatLocalCoordinate[i][w] @@ moduli];
-  AppendTo[localCoordinateFunctionsAntiHol, flatLocalCoordinateBar[i][wbar] @@ moduli];
+{localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol} = 
+Reap[Do[
+  Sow[flatLocalCoordinate[i][w] @@ moduli, "Holo"];
+  Sow[flatLocalCoordinateBar[i][wbar] @@ moduli, "AntiHolo"];
   localCoordinateReplacement = Join[localCoordinateReplacement, localCoordinateReplacementElem[i] @@ moduli],
   {i, 1, order}
-  ];
+  ]][[2]];
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement}
 ]
 
