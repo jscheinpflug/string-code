@@ -92,22 +92,22 @@ addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]dX[\[
 
 addHoloDerivatives[ProfileX[profile_, ders_, z_, zbar_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
-    R[ProfileX[profile, ders,  z0, zbar] * (ProfileXPoly[profile, ord] /. x -> z0)//Expand];
+    ProfileX[profile, ders,  z0, zbar] * (ProfileXPoly[profile, ord] /. x -> z0)//Expand;
 
 
 addHoloDerivatives[ProfileXHolo[profile_, ders_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
-    R[ProfileXHolo[profile, ders, z0] * (ProfileXPoly[profile, ord] /. x -> z0)//Expand];
+    ProfileXHolo[profile, ders, z0] * (ProfileXPoly[profile, ord] /. x -> z0)//Expand;
 
 
 addHoloDerivatives[expX[k_, z_, zbar_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
-    R[expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)//Expand];
+    expX[k, z0, zbar] * (expXPoly[k, ord] /. x -> z0)//Expand;
 
 
 addHoloDerivatives[expXHolo[k_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] *
-    R[expXHolo[k, z0] * (expXPoly[k, ord] /. x -> z0)//Expand];
+    expXHolo[k, z0] * (expXPoly[k, ord] /. x -> z0)//Expand;
 
 
 addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]dXt[\[Mu],n+ord,z0bar];
@@ -115,22 +115,22 @@ addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factoria
 
 addAntiHoloDerivatives[ProfileX[profile_, ders_, z_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
-    R[ProfileX[profile, ders, z, z0bar] * (ProfileXPolyT[profile, ord] /. x -> z0bar)//Expand];
+    ProfileX[profile, ders, z, z0bar] * (ProfileXPolyT[profile, ord] /. x -> z0bar)//Expand;
 
 
 addAntiHoloDerivatives[ProfileXAntiHolo[profile_, ders_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
-    R[ProfileXAntiHolo[profile, ders, z0bar] * (ProfileXPolyT[profile, ord] /. x -> z0bar)//Expand];
+    ProfileXAntiHolo[profile, ders, z0bar] * (ProfileXPolyT[profile, ord] /. x -> z0bar)//Expand;
 
 
 addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
-    R[expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand];
+    expX[k, z, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand;
 
 
 addAntiHoloDerivatives[expXAntiHolo[k_, zbar_], ord_, z0bar_] :=
   (zbar - z0bar)^ord/Factorial[ord] *
-    R[expXAntiHolo[k, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand];
+    expXAntiHolo[k, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand;
 
 
 (* ::Subsubsection:: *)
@@ -156,12 +156,12 @@ addHoloDerivatives[d\[Phi][n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]d\[Phi]
 
 addHoloDerivatives[exp\[Phi]f[a_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] * 
-    R[exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand];
+    exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand;
 
 
 addHoloDerivatives[exp\[Phi]b[a_, z_], ord_, z0_] :=
   (z - z0)^ord/Factorial[ord] * 
-    R[exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand];
+    exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand;
 
 
 addAntiHoloDerivatives[\[Eta]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Eta]t[n+ord,z0bar];
@@ -175,12 +175,12 @@ addAntiHoloDerivatives[d\[Phi]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[
 
 addAntiHoloDerivatives[exp\[Phi]tf[a_, z_], ord_, z0bar_] :=
   (z - z0bar)^ord/Factorial[ord] *
-    R[exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand];
+    exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand;
 
 
 addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
   (z - z0bar)^ord/Factorial[ord] *
-    R[exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand];
+    exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand;
 
 
 (* ::Subsection:: *)
