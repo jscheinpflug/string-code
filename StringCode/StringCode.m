@@ -15,6 +15,7 @@ Switch[theoryValue,
     "StringCode`Conventions`TypeII`",
     "StringCode`Wick`TypeII`",
     "StringCode`NormalOrdering`TypeII`",
+    "StringCode`BasisGeneration`TypeII`",
     "StringCode`StringFields`TypeII`",
     "StringCode`Operators`TypeII`",
     "StringCode`OPE`TypeII`",
@@ -25,6 +26,7 @@ Switch[theoryValue,
     "StringCode`Conventions`Bosonic`",
     "StringCode`Wick`Bosonic`",
     "StringCode`NormalOrdering`Bosonic`",
+    "StringCode`BasisGeneration`Bosonic`",
     "StringCode`StringFields`Bosonic`",
     "StringCode`Operators`Bosonic`",
     "StringCode`OPE`Bosonic`",
@@ -49,6 +51,7 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Wick`"];
+Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`StringFields`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
