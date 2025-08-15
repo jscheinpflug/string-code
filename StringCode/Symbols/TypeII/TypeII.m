@@ -110,6 +110,7 @@ simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,
 compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
 holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, ProfileXHolo, d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
 antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
+indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
 allfields=Join[bosons,fermions];
 
 
@@ -137,40 +138,44 @@ pictureAntiHol[a_/;isField[Head[a]]]:= 0;
 (*Free boson*)
 
 
+weightSymbolHolo[dX] := 1;
+
 weightHolo[expX[k_, z_,zbar_]] := 0;
 weightHolo[expXHolo[k_, z_]] := 0;
 weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
 weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
-weightHolo[dX[\[Mu]_, n_, z_]] := n + 1;
+
+weightSymbolAntiHolo[dXt] := 1;
 
 weightAntiHolo[expX[k_, z_,zbar_]] := 0;
 weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
 weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
 weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
-weightAntiHolo[dXt[\[Mu]_, n_, z_]] := n + 1;
 
 
 (* ::Subsubsection:: *)
 (*Free fermion*)
 
 
-weightHolo[\[Psi][\[Mu]_, n_, z_]] := n + 1/2;
-weightAntiHolo[\[Psi]t[\[Mu]_, n_, z_]] := n + 1/2;
+weightSymbolHolo[\[Psi]]:= 1/2;
+weightSymbolAntiHolo[\[Psi]t] := 1/2;
 
 
 (* ::Subsubsection:: *)
 (*Superghosts*)
 
 
-weightHolo[\[Xi][n_, z_]] := n;
-weightHolo[\[Eta][n_, z_]] := n + 1;
-weightHolo[d\[Phi][n_, z_]] := n + 1;
+weightSymbolHolo[\[Xi]] := 0;
+weightSymbolHolo[\[Eta]] := 1;
+weightSymbolHolo[d\[Phi]] := 1;
+
 weightHolo[exp\[Phi]f[n_, z_]] := -1/2*(n)*(n + 2);
 weightHolo[exp\[Phi]b[n_, z_]] := -1/2*(n)*(n + 2);
 
-weightAntiHolo[\[Xi]t[n_, z_]] := n;
-weightAntiHolo[\[Eta]t[n_, z_]] := n + 1;
-weightAntiHolo[d\[Phi]t[n_, z_]] := n + 1;
+weightSymbolAntiHolo[\[Xi]t] := 0;
+weightSymbolAntiHolo[\[Eta]t] := 1;
+weightSymbolAntiHolo[d\[Phi]t] := 1;
+
 weightAntiHolo[exp\[Phi]tf[n_, z_]] := -1/2*(n)*(n + 2);
 weightAntiHolo[exp\[Phi]tb[n_, z_]] := -1/2*(n)*(n + 2);
 

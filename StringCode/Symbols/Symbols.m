@@ -23,6 +23,9 @@ holomorphicFields::usage = "A list of holomorphic fields, expX counted as one";
 antiHolomorphicFields::usage = "A list of antiholomorphic fields, expX counted as one";
 
 
+indexedFields::usage = "A list of fields that carry indices";
+
+
 allfields::usage = "A list of all bosons and fermions";
 
 
@@ -77,6 +80,9 @@ isHolomorphic::usage = "Checks if is holomorphic";
 isAntiHolomorphic::usage = "Checks if is antiholomorphic";
 
 
+isIndexed::usage = "Checks if is indexed";
+
+
 (* ::Section:: *)
 (*Logic*)
 
@@ -95,7 +101,7 @@ ContractDelta[f_]:=f//.{g_ \[Delta][\[Mu]_,\[Mu]1_]:>(g/.{\[Mu]->\[Mu]1})/;!Free
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define symbols*)
 
 
@@ -107,10 +113,11 @@ simplefieldsnotc={b,bt};
 compositefields={};
 holomorphicFields = {b,c};
 antiHolomorphicFields = {bt,ct};
+indexedFields = {};
 allfields=Join[bosons,fermions];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define cached lookups*)
 
 
@@ -121,19 +128,28 @@ isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
 isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
 isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
 isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
+isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
 
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
 
 
+weightSymbolHolo[symbol_/;!isHolomorphic[symbol]]:= 0;
+weightSymbolHolo[c] := - 1;
+weightSymbolHolo[b] := 2;
+
 weightHolo[field_/;!isHolomorphic[Head[field]]] := 0;
-weightHolo[c[n_, z_]] := n - 1;
-weightHolo[b[n_, z_]] := n + 2;
+weightHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolHolo[Head[field]] + field[[2]];
+weightHolo[field_/; isSimple[Head[field]]] := weightSymbolHolo[Head[field]] + field[[1]];
+
+weightSymbolAntiHolo[symbol_/;!isAntiHolomorphic[symbol]]:= 0;
+weightSymbolAntiHolo[ct] := - 1;
+weightSymbolAntiHolo[bt] := 2;
 
 weightAntiHolo[field_/;!isAntiHolomorphic[Head[field]]] := 0;
-weightAntiHolo[ct[n_, z_]] := n - 1;
-weightAntiHolo[bt[n_, z_]] := n + 2;
+weightAntiHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[2]];
+weightAntiHolo[field_/; isSimple[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[1]];
 
 
 (* ::Section:: *)
