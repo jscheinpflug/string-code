@@ -32,12 +32,12 @@ Begin["Private`"];
 generateBasisHolo[maxWeight_, {minPicture_, maxPicture_}, {minGhostNumber_, maxGhostNumber_}, {minBackgroundCharge_, maxBackgroundCharge_}]:= 
 Module[{backgroundCharges = 
 Select[getBackgroundCharges[maxWeight, {minPicture, maxPicture}, {minGhostNumber, maxGhostNumber}],(minBackgroundCharge <= # <= maxBackgroundCharge)&],
-backgroundWeights, basisUpToWeight, result},
+backgroundWeights, basisUpToWeightHolo, result},
 backgroundWeights = Map[weightOfBackgroundCharge, backgroundCharges];
 
-(*generate basis of negative mode actions*)
-basisUpToWeight = generateNegativeModesHoloUpToWeight[Max[(Plus[maxWeight, -#]&) @ backgroundWeights] + 1];
-Print[basisUpToWeight];
+(*generate basis of negative mode actions - note that the modes are always (half-)integer because of superconformal algebra*)
+basisUpToWeightHolo = generateNegativeModesHoloUpToWeight[Max[(Plus[maxWeight, -#]&) @ backgroundWeights] + 1];
+Print[basisUpToWeightHolo];
 
 (*join the negative mode actions with ground states expphi, and c_1, c_0, c_1 c_0*)
 
@@ -60,6 +60,14 @@ generateBasisHolo[maxWeight, {minPicture, -1}, {1, maxGhostNumber}, {minBackgrou
 integerPartitions[partitionNumber_]:= integerPartitions[partitionNumber] = IntegerPartitions[partitionNumber];
 
 
+integerPartitionsInto[partitionNumber_, into_] := computePartition[partitionNumber, into]
+
+
+integerPartitionsIntoTwo[partitionNumber_] := integerPartitionsIntoTwo[partitionNumber] = Module[{n = Floor[partitionNumber]},
+  Table[{k, partitionNumber - k}, {k, 0, n}]
+]
+
+
 fermionicIntegerPartitions[partitionNumber_]:= fermionicIntegerPartitions[partitionNumber] = Select[integerPartitions[partitionNumber], DuplicateFreeQ];
 
 
@@ -77,26 +85,80 @@ Select[fieldWeight fermionicIntegerPartitions[1/fieldWeight partitionNumber], Al
 
 
 generateNegativeModesHoloUpToWeight[maxWeight_]:= generateNegativeModesHoloUpToWeight[maxWeight] = 
-Module[{result, simpleFieldsHolo = Select[simplefields,isHolomorphic], currentAssoc, simpleFieldWeight}, 
-result = Map[
+Module[{result, simpleFields = Select[simplefields,isHolomorphic], negativeModesSeparate, modeAssoc, assocToField, simpleFieldWeight, weightAssoc}, 
+
+(*for each simple field build a tower of negative modes with modding up to maxWeight*)
+modeAssoc = Association[];
+negativeModesSeparate = Map[
 Function[simpleField,
-currentAssoc = Association[];
+assocToField = Association[];
 simpleFieldWeight = weightSymbolHolo[simpleField];
 If[IntegerQ[simpleFieldWeight],
 Do[
-AssociateTo[currentAssoc, 
-weight -> generateNegativeModesHoloForField[simpleField, simpleFieldWeight, getIntegerPartitionsForField[simpleField, simpleFieldWeight, weight]]],
+AssociateTo[assocToField, 
+weight -> generateNegativeModesForField[simpleField, simpleFieldWeight, getIntegerPartitionsForField[simpleField, simpleFieldWeight, weight]]],
 {weight, 1, maxWeight}],
 Do[
-AssociateTo[currentAssoc, 
-simpleFieldWeight weight -> generateNegativeModesHoloForField[simpleField, simpleFieldWeight, getIntegerPartitionsForField[simpleField, simpleFieldWeight, simpleFieldWeight weight]]],
+AssociateTo[assocToField, 
+simpleFieldWeight weight -> generateNegativeModesForField[simpleField, simpleFieldWeight, getIntegerPartitionsForField[simpleField, simpleFieldWeight, simpleFieldWeight weight]]],
 {weight, 1, 1/simpleFieldWeight maxWeight}]];
-currentAssoc],
- simpleFieldsHolo];
+AssociateTo[modeAssoc, simpleField -> assocToField]],
+ simpleFields];
+ 
+weightAssoc = Association[];
+(*combine the negative modes of each simple field - assume (half-)integer modding*)
+Scan[AssociateTo[weightAssoc, # -> combineNegativeModesToWeight[#, modeAssoc, simpleFields]] &, Range[0, maxWeight, 1/2]];
+
+result = weightAssoc;
+
 result]
 
 
-generateNegativeModesHoloForField[field_/; (isSimple[field] && isIndexed[field]), fieldWeight_, partitions_]:= generateNegativeModesHoloForField[field, fieldWeight, partitions] = 
+combineNegativeModesToWeight[weight_, modesAssoc_, simpleFields_]:= combineNegativeModesToWeight[weight, modesAssoc, simpleFields] = 
+Module[{result, simpleFieldsIntegerWeight, simpleFieldsIntegerWeightLength, simpleFieldsHalfIntegerWeight, simpleFieldsHalfIntegerWeightLength, 
+simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions, modesAssocInteger, modesAssocHalfInteger, modesAssocIntegerValues,
+modesAssocHalfIntegerValues, integerValues, halfIntegerValues},
+
+(*split the required modding into integer and (half-)integer parts*)
+simpleFieldsIntegerWeight = Select[simpleFields, IntegerQ[weightSymbolHolo[#]] &];
+simpleFieldsIntegerWeightLength = Length[simpleFieldsIntegerWeight];
+simpleFieldsHalfIntegerWeight = Select[simpleFields, (IntegerQ[2 weightSymbolHolo[#]] && OddQ[2 weightSymbolHolo[#]]) &];
+simpleFieldsHalfIntegerWeightLength = Length[simpleFieldsHalfIntegerWeight];
+
+modesAssocInteger = KeySelect[modesAssoc, IntegerQ[weightSymbolHolo[#]] &];
+modesAssocIntegerValues = Values[modesAssocInteger];
+modesAssocHalfInteger = KeySelect[modesAssoc, (IntegerQ[2 weightSymbolHolo[#]] && OddQ[2 weightSymbolHolo[#]]) &];
+modesAssocHalfIntegerValues = Values[modesAssocHalfInteger];
+
+(*for each partition combine negative modes*)
+result = Flatten[Function[{partitionWeightInteger, partitionWeightHalfInteger}, 
+simpleFieldsIntegerWeightPartitions = integerPartitionsInto[partitionWeightInteger, simpleFieldsIntegerWeightLength];
+simpleFieldsHalfIntegerWeightPartitions = 1/2 integerPartitionsInto[2 partitionWeightHalfInteger, simpleFieldsHalfIntegerWeightLength];
+Select[Function[{simpleFieldsIntegerWeightPartition, simpleFieldsHalfIntegerWeightPartition},
+
+integerValues = MapThread[Lookup[#1, #2, {}] &, {modesAssocIntegerValues, simpleFieldsIntegerWeightPartition}];
+halfIntegerValues = MapThread[Lookup[#1, #2, {}] &, {modesAssocHalfIntegerValues, simpleFieldsHalfIntegerWeightPartition}];
+
+If[AnyTrue[integerValues, (# =!= {}) &] && AnyTrue[halfIntegerValues, (# =!= {}) &],
+Join[
+Flatten[integerValues, 1],
+Flatten[halfIntegerValues, 1]
+],
+If[AnyTrue[integerValues, (# =!= {}) &] && partitionWeightHalfInteger === 0,
+Flatten[integerValues, 1],
+If[AnyTrue[halfIntegerValues, (# =!= {}) &] && partitionWeightInteger === 0,
+Flatten[halfIntegerValues, 1], {}
+]
+]]
+] @@@ Tuples[{simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions}], (# =!= {})&]
+] @@@ integerPartitionsIntoTwo[weight],1];
+
+If[result =!= {},
+FlattenAt[result,1], {}]
+]
+
+
+generateNegativeModesForField[field_/; (isSimple[field] && isIndexed[field]), fieldWeight_, partitions_]:= generateNegativeModesForField[field, fieldWeight, partitions] = 
 Module[{result, modesForPartition, index, counter = 1}, 
 result = Select[Map[Function[partition,
 modesForPartition =
@@ -112,7 +174,7 @@ modesForPartition], partitions], !(# === {})&];
 result]
 
 
-generateNegativeModesHoloForField[field_/; isSimple[field], fieldWeight_, partitions_]:= generateNegativeModesHoloForField[field, fieldWeight, partitions] = 
+generateNegativeModesForField[field_/; isSimple[field], fieldWeight_, partitions_]:= generateNegativeModesForField[field, fieldWeight, partitions] = 
 Module[{result}, 
 result = Map[Function[partition,
 Map[Function[modeNumber,
