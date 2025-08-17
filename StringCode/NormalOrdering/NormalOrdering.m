@@ -15,13 +15,6 @@ Needs["StringCode`Symbols`"];
 
 
 R::usage = "A sorted normal-ordered product of fields";
-Rtest::usage = "Test if product is normal-ordered";
-RtestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
-Rlength::usage = "Test if is normal-ordered and has nonzero length";
-Rone::usage = "Test if is normal-ordered of length one";
-parity::usage = "Define Grassmann parity for fields including composites";
-regparity::usage = "Define Grassmann parity for fundamental fields";
-regcomm::usage = "Give Grassmann sign under commutation";
 CR::usage = "A normal-ordered product for correlators";
 
 
@@ -36,10 +29,17 @@ Begin["Private`"];
 (*Test normal-ordering and length*)
 
 
+Rtest::usage = "Test if product is normal-ordered";
 Rtest[f_]:=(Head[f]==R)
+
+Rlength::usage = "Test if is normal-ordered and has nonzero length";
 Rlength[f_]:=If[Rtest[f],Length[List @@ f],0]
+
+Rone::usage = "Test if is normal-ordered of length one";
 Rone[f_]:=(Rlength[f]==1)
 
+
+RtestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
 
 RtestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 RtestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
@@ -47,35 +47,29 @@ RtestUpToConstant[f_]:=(Head[f]==R)
 RtestUpToConstant[]:=False;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Grassmann parity*)
 
+
+parity::usage = "Define Grassmann parity for fields including composites";
 
 parity[f_]:=0/;(And @@(FreeQ[f,#]&/@ fermions))
 parity[f_+g_]:=parity[f]
 parity[f_ g_]:=parity[g]/;(And @@(FreeQ[f,#]&/@ fermions))
 parity[R[f__,g__]]:=Mod[parity[R[f]]+parity[R[g]],2]
 parity[R[f_]]:=1/;(!(And @@(FreeQ[f,#]&/@ fermions)))
-
 parity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ fermions)))
 
 
-exp\[Phi]tparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ exp\[Phi]tfermions))
-exp\[Phi]tparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ exp\[Phi]tfermions)))
-exp\[Phi]tparity[R[f__,g__]]:=Mod[exp\[Phi]tparity[R[f]]+exp\[Phi]tparity[R[g]],2]
-exp\[Phi]tparity[R[f_]]:=exp\[Phi]tparity[f]
-
+regparity::usage = "Define Grassmann parity for fundamental fields";
 
 regparity[f_+g_]:=regparity[f]
 regparity[f_ g_]:=regparity[g]/;(And @@(FreeQ[f,#]&/@ regfermions))
 regparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ regfermions))
-
 regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
 
-regcomm[f_,g_]:=(-1)^(parity[f] parity[g]);
 
-
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define normal-ordered product*)
 
 
@@ -95,16 +89,21 @@ R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define cached dropping of normal-ordered product elements*)
 
 
+dropFirstFromR::usage = "Drops first element from normal-ordered product";
 dropFirstFromR[Ra_]:= dropFirstFromR[Ra] = R @@ (Drop[(List @@ Ra),1])
 
 
 (* ::Subsection:: *)
 (*Define weight of normal-ordered product*)
 
+
+totalWeightHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
+totalWeightAntiHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
+totalWeight::usage = "Computes total weight of a normal-ordered product";
 
 totalWeightHolo[Times[a_, Ra_/;Rtest[Ra]]] := totalWeightHolo[Ra];
 totalWeightHolo[Ra_/;Rtest[Ra]] := Map[weightHolo, List @@ Ra] // Total;

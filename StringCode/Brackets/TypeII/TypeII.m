@@ -31,23 +31,24 @@ Needs["StringCode`Brackets`"];
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
 
 actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRST[z];
 Scan[Function[BRSTelem,
+(*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInBRSTPosition = containsCompositeHolo[BRSTelem/.{z->0}];
 If[compositeInBRSTPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 1]//Expand,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
+(*Compute OPE with terms in the BRST current that possibly contribute*)
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
+(*Extract first order pole from OPE*)
 If[power == -1, result = result + Relem, 
 If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
@@ -57,16 +58,17 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbar[zBar];
 Scan[Function[BRSTelem,
+(*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInBRSTPosition = containsCompositeAntiHolo[BRSTelem/.{zBar->0}];
 If[compositeInBRSTPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
 If[singularityUpperBound >= 0,
-If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 1]//Expand,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
+(*Compute OPE with terms in the BRST current that possibly contribute*)
+OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
+(*Extract first order pole from OPE*)
 If[power == -1, result = result + Relem, 
 If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 ], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
@@ -107,10 +109,13 @@ result]
 (*Apply B-ghost insertions to a MultiOp*)
 
 
+applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positions] to a multi-local operator"
 applyCurlyBs[SFsAtPos_/;MultiOptest[SFsAtPos], curlyBs__]:= Module[{result = 0, intermediateResult = SFsAtPos, i, curlyBOnPosition},
 Scan[Function[curlyB,
+(*Apply each curlyB operator*)
 Do[
  curlyBOnPosition = curlyB[[i]];
+(*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
  result = result + replaceInMultiOpAtPosition[intermediateResult, i, applyBghostModes[curlyBOnPosition]],
  {i,1,Length[curlyB]}];
  intermediateResult = result;],
@@ -119,36 +124,43 @@ result
 ];
 
 
-replaceInMultiOpAtPosition[multiOp_/;MultiOptest[multiOp], position_, toApply_]:= Module[{multiOpList = List @@ multiOp},
-MultiOp @@ ReplacePart[multiOpList, position -> toApply[multiOpList[[position]]]]];
-
-
-replaceInMultiOpAtPosition[a_+b_, position_, toReplace_]:= replaceInMultiOpAtPosition[a,position,toReplace] + replaceInMultiOpAtPosition[b, position, toReplace];
-replaceInMultiOpAtPosition[a_ b_, position_, toReplace_]:= a replaceInMultiOpAtPosition[b, position, toReplace]/;(Head[b] == MultiOp)
-
-
+applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
 applyBghostModes[BghostModes__][Ra_/;RtestUpToConstant[Ra]] := Module[{result = 0},
 Scan[Function[BghostMode,
+(*Act a b-ghost mode*)
 result = result + (BghostMode/.{bmodeHolo[a_]:> bmodeHolo[a][Ra], bmodeAntiHolo[a_]:> bmodeAntiHolo[a][Ra]});
 ], BghostModes];
 result]
 applyBghostModes[BghostModes__][a_] := 0;
 
 
+replaceInMultiOpAtPosition::usage = "Replace a local operator inside multi-local operator";
+replaceInMultiOpAtPosition[multiOp_/;MultiOptest[multiOp], position_, toApply_]:= Module[{multiOpList = List @@ multiOp},
+MultiOp @@ ReplacePart[multiOpList, position -> toApply[multiOpList[[position]]]]];
+
+(*Multilinearity in multi-local operators of the replacement*)
+replaceInMultiOpAtPosition[a_+b_, position_, toReplace_]:= replaceInMultiOpAtPosition[a,position,toReplace] + replaceInMultiOpAtPosition[b, position, toReplace];
+replaceInMultiOpAtPosition[a_ b_, position_, toReplace_]:= a replaceInMultiOpAtPosition[b, position, toReplace]/;(Head[b] == MultiOp)
+
+
 (* ::Subsubsection:: *)
 (*Create B-ghost insertions*)
 
 
+createCurlyBs::usage = "Create curlyB insertions given local coordinate functions, moduli and number of bracket insertions"
 createCurlyBs[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, moduli__, bracketOrder_, w_, wbar_]:= 
 Module[{i,j, minCGhostModdings,minCbarGhostModdings},
+(*Get maximum possible b-ghost mode that does not vanish upon action*)
 minCGhostModdings = Map[getMinCGhostModding, SFList];
 minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
+(*For each modulus and insertion, create the relevant b-ghost insertions*)
 Table[
-createB[localCoordinateFunctionsHol[[j]], localCoordinateFunctionsAntiHol[[j]], w, wbar, moduli[[i]], minCGhostModdings[[j]], minCbarGhostModdings[[j]]],
+createBs[localCoordinateFunctionsHol[[j]], localCoordinateFunctionsAntiHol[[j]], w, wbar, moduli[[i]], minCGhostModdings[[j]], minCbarGhostModdings[[j]]],
 {i,1,Length[moduli]}, {j,1,bracketOrder}]
 ]
 
 
+getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operator";
 getMinCGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == c,
@@ -160,6 +172,7 @@ maxOrder
 ]
 
 
+getMinCbarGhostModding::usage = "Get minimum cbar-ghost modding inside a local operator";
 getMinCbarGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == ct,
@@ -171,32 +184,48 @@ maxOrder
 ]
 
 
+getInverseSeriesAtOrder::usage = "Get series of inverse function to a given order";
 getInverseSeriesAtOrder[toInvert_, coord_, inversionCoord_, order_]:= 
 (InverseSeries[Series[toInvert,{coord,0,order}]]//Normal)/.{coord->inversionCoord};
 
 
-createB[localCoordinateHol_, localCoordinateAntiHol_, w_, wbar_, modulus_, minCGhostModding_, minCbarGhostModding_]:= 
-Module[{result, expandedBGhostIntegrandHol,expandedBGhostIntegrandAntiHol, BGhostIntegrandListHol,BGhostIntegrandListAntiHol, wInTermsOfZ, wbarInTermsOfZbar, 
+createBs::usage = "Creates b-ghost insertions for a given modulus and set of local coordinates, given an upper bound on b-ghost modding"
+createBs[localCoordinateHol_, localCoordinateAntiHol_, w_, wbar_, modulus_, minCGhostModding_, minCbarGhostModding_]:= 
+Module[{result, expandedBGhostIntegrandHol,expandedBGhostIntegrandAntiHol, BGhostIntegrandListHol = {},BGhostIntegrandListAntiHol = {}, wInTermsOfZ, wbarInTermsOfZbar, 
 z, zbar, z0 = localCoordinateHol/.{w->0}, z0bar = localCoordinateAntiHol/.{wbar->0}, maxOrderHolo, maxOrderAntiHolo},
+
 If[minCGhostModding != "None",
 maxOrderHolo = -minCGhostModding + 1;
 If[maxOrderHolo > 0,
+(*Obtain a disc coordinate w in terms of sphere coordinate z*)
 wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol, w,z, maxOrderHolo];
+
+(*Differentiate local coordinates as a function of w with respect to the modulus, substituting the sphere coordinate z in the end*)
 expandedBGhostIntegrandHol = Series[(D[localCoordinateHol, modulus])/.{w->wInTermsOfZ}, {z,z0,maxOrderHolo}]//Normal;
+
+(*Replace terms in the above series with b-ghost modes*)
 BGhostIntegrandListHol = (#/.{Times[rest___,(z-z0)^p_?NumericQ]:>bmodeHolo[p-1]*rest,Times[rest___,diff_/;diff===(z-z0)]:>bmodeHolo[0]*rest,Times[rest___,1]:>bmodeHolo[-1]*rest}) & /@ (List@@(expandedBGhostIntegrandHol)),
+
+(*If no derivatives of c-ghost appear, then return dz(w)/d(modulus)_{w=0} b_{-1}*)
 BGhostIntegrandListHol = {D[localCoordinateHol/.{w->0}, modulus] bmodeHolo[-1]};
-],
-BGhostIntegrandListHol = {};
+]
 ];
+
 If[minCbarGhostModding != "None",
 maxOrderAntiHolo = -minCbarGhostModding + 1;
 If[maxOrderAntiHolo > 0,
+(*Obtain a disc coordinate wbar in terms of local coordinate zbar*)
 wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol, wbar, zbar, maxOrderAntiHolo];
+
+(*Differentiate local coordinates as a function of wbar with respect to the modulus, substituting the sphere coordinate zbar in the end*)
 expandedBGhostIntegrandAntiHol = Series[(D[localCoordinateAntiHol, modulus])/.{wbar->wbarInTermsOfZbar}, {zbar,z0bar,maxOrderAntiHolo}]//Normal;
+
+(*Replace terms in the above series with bt-ghost modes*)
 BGhostIntegrandListAntiHol =(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:>bmodeAntiHolo[p-1]*rest,Times[rest___,diff_/;diff===(zbar-z0bar)]:>bmodeAntiHolo[0]*rest,Times[rest___,1]:>bmodeBar[-1]*rest})& /@ (List@@(expandedBGhostIntegrandAntiHol)),
+
+(*If no derivatives of c-ghost appear, then return dzbar(wbar)/d(modulus)_{wbar=0} bt_{-1}*)
 BGhostIntegrandListAntiHol = {D[localCoordinateAntiHol/.{wbar->0}, modulus]bmodeAntiHolo[-1]};
-],
-BGhostIntegrandListAntiHol = {};
+]
 ];
 result = Join[BGhostIntegrandListHol,BGhostIntegrandListAntiHol];
 result]
@@ -206,24 +235,29 @@ result]
 (*Place string fields at positions given by local coordinates*)
 
 
+placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
 placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__, w_, wbar_]:= 
 Module[{i, length = Length[SFs]},
 MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
 ]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Define total picture number*)
 
+
+totalHolPicture::usage = "Computes total holomorphic picture";
+totalAntiHolPicture::usage = "Computes total antiholomorphic picture";
 
 totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
 totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define projection of the string bracket*)
 
 
+BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
 Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, OPEHolo, OPEAntiHolo,
 \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  holoOPEWithPCOs, antiHoloOPEWithPCOs},
@@ -397,36 +431,44 @@ Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
 (*Define action of PCOs*)
 
 
+actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
 actPCOHolo[Ra_/;Rtest[Ra]] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
+(*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
 If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
+(*Compute OPE with terms in the PCO that possibly contribute*)
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
+(*Extract zeroth order pole from OPE*)
 If[power == 0, result = result + Relem, 
 If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
+actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
 actPCOAntiHolo[Ra_/;Rtest[Ra]] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
+(*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
 If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
 If[singularityUpperBound >= 0,
+(*Compute OPE with terms in the PCO that possibly contribute*)
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
+(*Extract zeroth order pole from OPE*)
 If[power == 0, result = result + Relem, 
 If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
@@ -434,19 +476,24 @@ If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 ((result // Expand)/.{zBar->0})];
 
 
-actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
-actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-actPCOAntiHolo[0] := 0;
+(*Multilinearity of PCO zero mode actions*)
 actPCOHolo[a_+b_]:=actPCOHolo[a] + actPCOHolo[b];
 actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOHolo[0] := 0;
 
+actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
+actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOAntiHolo[0] := 0;
 
-(* ::Subsection::Closed:: *)
+
+(* ::Subsection:: *)
 (*Determine whether OPE should be computed*)
 
 
+containsCompositeHolo::usage = "Checks if contains holomorphic composite";
 containsCompositeHolo[PCOelem_]:= containsCompositeHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]b | exp\[Phi]f] &)];
+
+containsCompositeAntiHolo::usage = "Checks if contains antiholomorphic composite";
 containsCompositeAntiHolo[PCOelem_]:= containsCompositeAntiHolo[PCOelem] = First@FirstPosition[PCOelem/.{R->List}, _?(MatchQ[Head[#], exp\[Phi]tb | exp\[Phi]tf] &)];
 
 

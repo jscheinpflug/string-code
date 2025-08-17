@@ -16,10 +16,6 @@ Needs["StringCode`NormalOrdering`"];
 
 
 SF::usage = "A string field";
-SFAtPos::usage = "A string field at a given position";
-SFtest::usage = "Test if is string field";
-SFlength::usage = "Test if is string field and has nonzero length";
-SFone::usage = "Test if is string field of length one";
 
 
 (* ::Section:: *)
@@ -52,10 +48,13 @@ SF[g___,a_^n_,h___]:=SF[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 
 
 (* ::Input::Initialization:: *)
+SFAtPos::usage = "A string field at a given position";
 SFAtPos[SFa_/;SFtest[SFa], z0_, z0bar_]:= Module[{SFlist = List @@ SFa},R @@ Map[positionOp[z0,z0bar],SFlist]];
 
 
 (* ::Input::Initialization:: *)
+positionOp::usage = "Place operator at a given position";
+
 positionOp[z0_, z0bar_][b[n_]]:= b[n, z0];
 positionOp[z0_, z0bar_][c[n_]]:= c[n, z0];
 positionOp[z0_, z0bar_][bt[n_]]:= bt[n, z0bar];
@@ -66,8 +65,13 @@ positionOp[z0_, z0bar_][ct[n_]]:= ct[n, z0bar];
 (*Test string field and length*)
 
 
+SFtest::usage = "Test if is string field";
 SFtest[f_]:=(Head[f]==SF)
+
+SFlength::usage = "Test if is string field and has nonzero length";
 SFlength[f_]:=If[SFtest[f],Length[List @@ f],0]
+
+SFone::usage = "Test if is string field of length one";
 SFone[f_]:=(SFlength[f]==1)
 
 

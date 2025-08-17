@@ -23,19 +23,20 @@ Needs["StringCode`NormalOrdering`"]
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Grassmann parity*)
 
 
+regcomm::usage = "Give Grassmann sign under commutation";
 regcomm[f_,g_]:=(-1)^(parity[f] parity[g])(-1)^(exp\[Phi]parity[f] exp\[Phi]parity[g])(-1)^(exp\[Phi]tparity[f] exp\[Phi]tparity[g])
 
-
+exp\[Phi]parity::usage = "Compute Grassmann parity of exp\[Phi]";
 exp\[Phi]parity[f_]:=0/;(And @@(FreeQ[f,#]&/@ exp\[Phi]fermions))
 exp\[Phi]parity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ exp\[Phi]fermions)))
 exp\[Phi]parity[R[f__,g__]]:=Mod[exp\[Phi]parity[R[f]]+exp\[Phi]parity[R[g]],2]
 exp\[Phi]parity[R[f_]]:=exp\[Phi]parity[f]
 
-
+exp\[Phi]tparity::usage = "Compute Grassmann parity of exp\[Phi]t";
 exp\[Phi]tparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ exp\[Phi]tfermions))
 exp\[Phi]tparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ exp\[Phi]tfermions)))
 exp\[Phi]tparity[R[f__,g__]]:=Mod[exp\[Phi]tparity[R[f]]+exp\[Phi]tparity[R[g]],2]

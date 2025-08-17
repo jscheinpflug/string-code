@@ -29,53 +29,61 @@ actBRST::usage = "Acts with the BRST charge (computes 1-bracket)";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
 
+(*Action of BRST charge splits into holomorphic and antiholomorphic parts*)
 actBRST[SFa_/; SFtest[SFa]]:= actBRSTHolo[SFa] + actBRSTAntiHolo[SFa];
 
-actBRSTAntiHolo[a_+b_]:= actBRSTAntiHolo[a] + actBRSTAntiHolo[b];
-actBRSTAntiHolo[a_ b_]:= a actBRSTAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-actBRSTAntiHolo[0] := 0;
-actBRSTHolo[a_+b_]:= actBRSTHolo[a] +actBRSTHolo[b];
-actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-actBRSTHolo[0] := 0;
+(*Linearity of BRST charge action*)
+
 actBRST[a_+b_]:=actBRST[a] + actBRST[b];
 actBRST[a_ b_]:=a actBRST[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actBRST[0] := 0;
 
+actBRSTAntiHolo[a_+b_]:= actBRSTAntiHolo[a] + actBRSTAntiHolo[b];
+actBRSTAntiHolo[a_ b_]:= a actBRSTAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTAntiHolo[0] := 0;
 
-(* ::Subsection:: *)
+actBRSTHolo[a_+b_]:= actBRSTHolo[a] +actBRSTHolo[b];
+actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTHolo[0] := 0;
+
+
+(* ::Subsection::Closed:: *)
 (*Define bracket*)
 
 
+(*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
 Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define projected bracket*)
 
 
+(*Projected bracket is Bracket composed with a projection*)
+BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weightAntiHolo_]:=
+BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
+
+(*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest]
 BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
 
+(*Multilinearity of Bracket projection*)
 BracketProjection[{args___, a_ + b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] :=
  BracketProjection[{args, a, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo]
 BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] := 
 a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
-
-BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weightAntiHolo_]:=
-BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
 
 
 (* ::Subsection::Closed:: *)
 (*Define action of b0^-*)
 
 
-(*define b-ghost mode actions at the same point*)
-
+(*Define holomorphic b-ghost mode actions at the same point*)
 bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
 Scan[Function[Relem,
 If[Head[Relem] == c, 
@@ -90,6 +98,7 @@ result = result + ReplaceAt[Ra, replacement, pos];
 ], cAssoc];
 result];
 
+(*Define antiholomorphic b-ghost mode actions at the same point*)
 bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
 Scan[Function[Relem,
 If[Head[Relem]== ct, 
@@ -104,8 +113,7 @@ result = result + ReplaceAt[Ra, replacement, pos];
 ], cAssoc];
 result];
 
-(*define action of b-ghost zero mode, generally at different points*)
-
+(*Define action of holomorphic b-ghost zero mode, generally at different points*)
 b0mHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[MatchQ[Relem, c[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
@@ -119,6 +127,7 @@ result = result + ReplaceAt[Ra, replacement, pos];
 ], cAssoc];
 result];
 
+(*Define action of antiholomorphic b-ghost zero mode, generally at different points*)
 b0mAntiHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[MatchQ[Relem, ct[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
@@ -132,6 +141,8 @@ result = result + ReplaceAt[Ra, replacement, pos];
 ], cAssoc];
 result];
 
+
+(*Multilinearity of b-ghost mode actions*)
 b0m[Ra_/;Rtest[Ra]] := b0mHolo[Ra] - b0mAntiHolo[Ra];
 b0m[a_+b_]:=b0m[a] + b0m[b];
 b0m[a_ b_]:=a b0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
@@ -150,12 +161,14 @@ bmodeAntiHolo[mode_][0] := 0;
 (*Determine whether OPE should be computed*)
 
 
+singularity::usage = "Compute order of singularity of Wick contraction"
 singularity[b[n_,z_],c[m_,w_]]:= 1 + m + n;
 singularity[c[m_,w_],b[n_,z_]]:= 1 + m + n;
 singularity[bt[n_,z_],ct[m_,w_]]:= 1 + m + n;
 singularity[ct[m_,w_],bt[n_,z_]]:= 1 + m + n;
 
 
+singularityMatrix::usage = "Compute a matrix of orders of singularities in the OPE of two operators"
 singularityMatrix[Ra_/;Rtest[Ra], Rb_/; Rtest[Rb]]:= Table[singularity[Ra[[i]], Rb[[j]]], {i, 1, Length[Ra]}, {j, 1, Length[Rb]}];
 singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ allfields));
 singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));

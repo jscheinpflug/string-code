@@ -96,8 +96,12 @@ addAntiHoloDerivatives[expXAntiHolo[k_, zbar_], ord_, z0bar_] :=
 (*Define Taylor expansions of exponentials and profiles*)
 
 
+derivativeOfExponential::usage = "Computes cached derivatives of an exponential function with given exponent";
 derivativeOfExponential[exponent_, n_]:= derivativeOfExponential[exponent, n] = D[E^(exponent func[x]), {x, n}];
 
+
+ProfileXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating Profiles in X";
+ProfileXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating Profiles in X";
 
 ProfileXPoly[profile_, n_] := ProfileXPoly[profile, n] =
    Expand[derivativeOfExponential[1, n] /. {E^(func[x]) :> 1,
@@ -105,8 +109,7 @@ ProfileXPoly[profile_, n_] := ProfileXPoly[profile, n] =
        Module[{i},Product[Module[{\[Mu]}, der[profile][\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, der[profile][\[Mu]] dX[\[Mu], m - 1, x]]}];
-
-
+       
 ProfileXPolyT[profile_, n_] := ProfileXPolyT[profile, n] =
    Expand[derivativeOfExponential[1, n] /. {E^(func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
@@ -115,20 +118,22 @@ ProfileXPolyT[profile_, n_] := ProfileXPolyT[profile, n] =
        Module[{\[Mu]}, der[profile][\[Mu]] dXt[\[Mu], m - 1, x]]}];
 
 
+expXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating exponentials in X";
+expXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating exponentials in X";
+
 expXPoly[k_, n_] := expXPoly[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
        Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
-
-
+       
 expXPolyT[k_, n_] := expXPolyT[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
        Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
-       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];
+       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];       
 
 
 (* ::Subsection:: *)

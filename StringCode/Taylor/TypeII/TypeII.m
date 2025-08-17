@@ -27,7 +27,7 @@ Begin["Private`"];
 (*Check if field needs expanding*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Free boson*)
 
 
@@ -46,7 +46,7 @@ isAtPointAntiHolo[expXAntiHolo[k_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Free fermion*)
 
 
@@ -54,7 +54,7 @@ isAtPointHolo[\[Psi][\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
 isAtPointAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Superghosts*)
 
 
@@ -71,7 +71,7 @@ isAtPointAntiHolo[exp\[Phi]tf[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[exp\[Phi]tb[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Generic*)
 
 
@@ -187,8 +187,12 @@ addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
 (*Define Taylor expansions of exponentials*)
 
 
+derivativeOfExponential::usage = "Computes cached derivatives of an exponential function with given exponent";
 derivativeOfExponential[exponent_, n_]:= derivativeOfExponential[exponent, n] = D[E^(exponent func[x]), {x, n}];
 
+
+phiPoly::usage = "Computes the polynomial in holomorphic derivatives of \[Phi] one needs when differentiating exp\[Phi]";
+phiPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of \[Phi] one needs when differentiating exp\[Phi]t";
 
 phiPoly[a_, n_] := phiPoly[a, n] =
   Expand[
@@ -197,7 +201,6 @@ phiPoly[a_, n_] := phiPoly[a, n] =
       Derivative[m_][func][x] :> d\[Phi][m - 1, x]
     }
   ];
-
 
 phiPolyT[a_, n_] := phiPolyT[a, n] = 
   Expand[
@@ -208,14 +211,16 @@ phiPolyT[a_, n_] := phiPolyT[a, n] =
   ];
 
 
+ProfileXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating Profiles in X";
+ProfileXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating Profiles in X";
+
 ProfileXPoly[profile_, n_] := ProfileXPoly[profile, n] =
    Expand[derivativeOfExponential[1, n] /. {E^(func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
        Module[{i},Product[Module[{\[Mu]}, der[profile][\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, der[profile][\[Mu]] dX[\[Mu], m - 1, x]]}];
-
-
+       
 ProfileXPolyT[profile_, n_] := ProfileXPolyT[profile, n] =
    Expand[derivativeOfExponential[1, n] /. {E^(func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
@@ -224,20 +229,22 @@ ProfileXPolyT[profile_, n_] := ProfileXPolyT[profile, n] =
        Module[{\[Mu]}, der[profile][\[Mu]] dXt[\[Mu], m - 1, x]]}];
 
 
+expXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating exponentials in X";
+expXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating exponentials in X";
+
 expXPoly[k_, n_] := expXPoly[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
        Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
-
-
+       
 expXPolyT[k_, n_] := expXPolyT[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
        Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]], {i, 1, p}]], 
        Derivative[m_][func][x] :>
-       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];
+       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];       
 
 
 (* ::Subsection:: *)

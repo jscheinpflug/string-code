@@ -72,18 +72,6 @@ ProfileX::usage = "An X-profile";
 \[Psi]t::usage = "Antiholomorphic free matter fermion";
 
 
-pictureHol::usage = "Gives holomorphic picture number";
-
-
-pictureAntiHol::usage = "Gives antiholomorphic picture number";
-
-
-exp\[Phi]fermions::usage = "A list of fermionic exponential of phi symbols";
-
-
-exp\[Phi]tfermions::usage = "A list of fermionic exponential of barphi symbols";
-
-
 \[Alpha]p::usage = "Symbol for alpha prime";
 
 
@@ -100,7 +88,7 @@ Begin["Private`"];
 
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
-bosons=Join[bosons, {expXHolo, expXAntiHolo, expX,X,dX,dXt,ProfileXHolo, ProfileXAntiHolo, ProfileX, d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
+bosons=Join[bosons, {expXHolo, expXAntiHolo, expX,dX,dXt,ProfileXHolo, ProfileXAntiHolo, ProfileX, d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
 fermions=Join[fermions, {\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
 regfermions=Join[regfermions,{\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 exp\[Phi]fermions={exp\[Phi]f};
@@ -114,15 +102,20 @@ indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
 allfields=Join[bosons,fermions];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define picture numbers*)
 
+
+pictureHol::usage = "Gives holomorphic picture number";
 
 pictureHol[\[Xi][n_, z_]]:= 1;
 pictureHol[\[Eta][n_, z_]]:= -1;
 pictureHol[exp\[Phi]f[exp_, z_]]:= exp;
 pictureHol[exp\[Phi]b[exp_, z_]]:= exp;
 pictureHol[a_/;isField[Head[a]]]:= 0;
+
+pictureAntiHol::usage = "Gives antiholomorphic picture number";
+
 pictureAntiHol[\[Xi]t[n_, zbar_]]:= 1;
 pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
 pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;

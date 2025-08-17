@@ -23,6 +23,14 @@ Needs["StringCode`NormalOrdering`"]
 Begin["Private`"];
 
 
+(* ::Subsection:: *)
+(*Define Grassmann parity*)
+
+
+regcomm::usage = "Give Grassmann sign under commutation";
+regcomm[f_,g_]:=(-1)^(parity[f] parity[g])
+
+
 (* ::Section:: *)
 (*End*)
 

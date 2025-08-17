@@ -22,13 +22,10 @@ SWick::usage = "A Wick contraction between a fundamental and composite field";
 MWick::usage = "A Wick contraction between two composite fields";
 
 
-DWick::usage = "A Wick contraction for OPE";
+DWick::usage = "Computes Wick contractions between normal-ordered products";
 
 
 CDWick::usage = "A Wick contraction for correlators";
-
-
-pairing::usage = "Determines whether two fields can be Wick contracted";
 
 
 dot::usage = "Symbol for dot product";
@@ -73,33 +70,45 @@ MWick[Ra_?Rone, Rb_?Rone] := MWick[Ra[[1]],Rb[[1]]]
 (*Define DWick: Wick contractions for normal-ordered products of fields*)
 
 
+(*Reduces to Wick/SWick/MWick when both normal-ordered products have length one*)
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, Wick[Ra,Rb], 0]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb] Rb, 0]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb], 0] +Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1,  MWick[Ra,Rb], 1] Rb/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
+(*Computes contractions between a simple field in first position and a normal-ordered product in the second position: non-recursive*)
 DWick[Ra_, Rb_]:= Module[{result = 0, RbList = List @@ Rb, arePaired, RaFirst = Ra[[1]], RaHead, RbHead, sign = 1, i = 1},
 RaHead = Head[RaFirst];
+(*Loop through the elements of the normal-ordered product*)
 Scan[Function[Rbelem,
 RbHead = Head[Rbelem];
 arePaired = pairing[{RaHead,RbHead}]==1;
 If[arePaired,
+(*If paired, compute Wick contractions with sign*)
 If[isComposite[RbHead],
+(*When composite, do not delete from Rb*)
 result = result + sign SWick[RaFirst, Rbelem] Rb,
+(*When simple, delete from Rb*)
 result = result + sign Wick[RaFirst, Rbelem] R@@Delete[RbList, i];
 ];
 ];
+(*Keep track of sign as you pass through fermions*)
 sign = sign (-1)^(parity[Ra]parity[R[Rbelem]]);
 i++;
 ], RbList];
 result]/; (Rone[Ra] && Rtest[Rb] && (!Rone[Rb]) && isSimple[Head[Ra[[1]]]]);
 
-DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra[[1]],Rb[[1]]] DWick[Ra,dropFirstFromR[Rb]],0]+ R[Rb[[1]],
-DWick[Ra,dropFirstFromR[Rb]]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+(*Computes contractions between a normal-ordered product in the first position and a simple field in second position recycling the above function*)
+DWick[Ra_,Rb_]:= (-1)^(parity[Ra] parity[Rb]) DWick[Rb, Ra]/; (Rone[Rb] && Rtest[Ra] && (!Rone[Ra]) && isSimple[Head[Rb[[1]]]]);
 
+(*Computes contractions between a single composite field and a normal-ordered product*)
+
+(*When first element of Rb is simple, drop the latter when contracted, and pass through it when not contracted, do not give signs as in the end, one commutes the
+  composite all the way back where it was in the beggining of contractions*)
+DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra[[1]],Rb[[1]]] DWick[Ra,dropFirstFromR[Rb]],0]+ 
+R[Rb[[1]],DWick[Ra,dropFirstFromR[Rb]]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+
+(*When first element of Rb is composite, do not drop the latter when contracted, again no signs as above*)
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra[[1]],Rb[[1]]],1] R[Rb[[1]],
 DWick[Ra,dropFirstFromR[Rb]]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
@@ -119,6 +128,9 @@ CDWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra[[1]],Rb[[1]]] (
 
 (* ::Subsection:: *)
 (*Define Pairing: determines whether two fields can be contracted*)
+
+
+pairing::usage = "Determines whether two fields can be Wick contracted";
 
 
 pairingList = {{b,c},{bt,ct}};

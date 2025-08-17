@@ -15,10 +15,7 @@ Needs["StringCode`NormalOrdering`"];
 (*Declare public variables and methods*)
 
 
-MultiOp::usage = "A nonlocal operators consisting of local operators at different points";
-MultiOptest::usage = "Test if is MultiOp";
-MultiOplength::usage = "Test if is MultiOp and has nonzero length";
-MultiOpone::usage = "Test if is MultiOp of length one";
+MultiOp::usage = "A multilocal operator consisting of local operators at different points";
 
 
 (* ::Section:: *)
@@ -42,8 +39,13 @@ MultiOp[c___,0,d___]:=0
 (*Test MultiOp and length*)
 
 
+MultiOptest::usage = "Test if is MultiOp";
 MultiOptest[f_]:=(Head[f]==MultiOp)
+
+MultiOplength::usage = "Test if is MultiOp and has nonzero length";
 MultiOplength[f_]:=If[MultiOptest[f],Length[List @@ f],0]
+
+MultiOpone::usage = "Test if is MultiOp of length one";
 MultiOpone[f_]:=(MultiOplength[f]==1)
 
 

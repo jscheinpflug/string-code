@@ -87,7 +87,7 @@ isIndexed::usage = "Checks if is indexed";
 (*Logic*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define index contractions*)
 
 
@@ -133,6 +133,12 @@ isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
+
+
+weightSymbolHolo::usage = "Computes holomorphic weight of a symbol";
+weightSymbolAntiHolo::usage = "Computes antiholomorphic weight of a symbol";
+weightHolo::usage = "Computes holomorphic weight of a local operator";
+weightAntiHolo::usage = "Computes antiholomorphic weight of a local operator";
 
 
 weightSymbolHolo[symbol_/;!isHolomorphic[symbol]]:= 0;
