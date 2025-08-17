@@ -57,6 +57,20 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 
 
+(* ::Subsection:: *)
+(*Define total picture number*)
+
+
+totalHolPicture::usage = "Computes total holomorphic picture";
+totalAntiHolPicture::usage = "Computes total antiholomorphic picture";
+
+totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
+totalHolPicture[Times[a_, Ra_/;Rtest[Ra]]] := totalHolPicture[Ra];
+
+totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
+totalAntiHolPicture[Times[a_, Ra_/;Rtest[Ra]]] := totalAntiHolPicture[Ra];
+
+
 (* ::Subsection::Closed:: *)
 (*Define CR*)
 

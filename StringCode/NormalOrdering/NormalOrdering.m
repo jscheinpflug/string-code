@@ -90,6 +90,20 @@ R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
 (* ::Subsection:: *)
+(*Define total ghost number*)
+
+
+totalHolGhostNumber::usage = "Computes total holomorphic ghost number";
+totalAntiHolGhostNumber::usage = "Computes total antiholomorphic ghost number";
+
+totalHolGhostNumber[Ra_/;Rtest[Ra]]:= Map[ghostNumberHolo, List @@ Ra]//Total;
+totalHolGhostNumber[Times[a_, Ra_/;Rtest[Ra]]] := totalHolGhostNumber[Ra];
+
+totalAntiHolGhostNumber[Ra_/;Rtest[Ra]]:= Map[ghostNumberAntiHolo, List @@ Ra]//Total;
+totalAntiHolGhostNumber[Times[a_, Ra_/;Rtest[Ra]]] := totalAntiHolGhostNumber[Ra];
+
+
+(* ::Subsection:: *)
 (*Define cached dropping of normal-ordered product elements*)
 
 

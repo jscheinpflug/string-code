@@ -132,6 +132,20 @@ isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
 
 
 (* ::Subsection:: *)
+(*Define ghost numbers*)
+
+
+ghostNumberHolo::usage = "Computes holomorphic ghost number of a local operator";
+ghostNumberAntiHolo::usage = "Computes holomorphic ghost number of a  local operator";
+
+ghostNumberHolo[c[der_, z_]]:= 1;
+ghostNumberHolo[b[der_, z_]]:= -1;
+
+ghostNumberAntiHolo[ct[der_, zbar_]]:= 1;
+ghostNumberAntiHolo[bt[der_, zbar_]]:= -1;
+
+
+(* ::Subsection:: *)
 (*Define weight of symbols*)
 
 

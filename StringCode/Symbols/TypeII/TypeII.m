@@ -124,6 +124,19 @@ pictureAntiHol[a_/;isField[Head[a]]]:= 0;
 
 
 (* ::Subsection:: *)
+(*Define ghost numbers*)
+
+
+ghostNumberHolo[\[Xi][der_, z_]]:= -1;
+ghostNumberHolo[\[Eta][der_, z_]]:= 1;
+ghostNumberHolo[a_/;isField[Head[a]]]:= 0;
+
+ghostNumberAntiHolo[\[Xi]t[der_, zbar_]]:= -1;
+ghostNumberAntiHolo[\[Eta]t[der_, zbar_]]:= 1;
+ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
+
+
+(* ::Subsection:: *)
 (*Define weight of symbols*)
 
 

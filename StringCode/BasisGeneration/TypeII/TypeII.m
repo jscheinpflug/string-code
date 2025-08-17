@@ -33,14 +33,19 @@ generateBasisHolo::usage = "Generates basis in the holomorphic sector";
 generateBasisHolo[maxWeight_, {minPicture_, maxPicture_}, {minGhostNumber_, maxGhostNumber_}, {minBackgroundCharge_, maxBackgroundCharge_}]:= 
 Module[{backgroundCharges = 
 Select[getBackgroundCharges[maxWeight, {minPicture, maxPicture}, {minGhostNumber, maxGhostNumber}],(minBackgroundCharge <= # <= maxBackgroundCharge)&],
-backgroundWeights, basisUpToWeightHolo, result},
+backgroundWeights, basisUpToWeight, gradedBasisUpToWeight, result},
 
 (*Get weights of possible \[Phi] background charge insertions*)
 backgroundWeights = Map[weightOfBackgroundCharge, backgroundCharges];
 
-(*generate basis of negative mode actions - note that the modes are always (half-)integer because of superconformal algebra*)
-basisUpToWeightHolo = generateNegativeModesHoloUpToWeight[Max[(Plus[maxWeight, -#]&) @ backgroundWeights] + 1];
-Print[basisUpToWeightHolo];
+(*Generate basis of negative modes- note that the modes are always (half-)integer because of superconformal algebra*)
+basisUpToWeight = generateNegativeModesHoloUpToWeight[Max[(Plus[maxWeight, -#]&) @ backgroundWeights] + 1];
+
+(*Grade the above basis by picture and ghost number*)
+gradedBasisUpToWeight = gradeBasisUpToWeightHolo[basisUpToWeight];
+
+Print[basisUpToWeight];
+Print[gradedBasisUpToWeight];
 
 (*join the negative mode actions with ground states expphi, and c_1, c_0, c_1 c_0*)
 
@@ -57,7 +62,7 @@ generateBasisHolo[maxWeight_, minPicture_, maxGhostNumber_, {minBackgroundCharge
 generateBasisHolo[maxWeight, {minPicture, -1}, {1, maxGhostNumber}, {minBackgroundCharge, maxBackgroundCharge}]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Generate excited modes*)
 
 
@@ -179,8 +184,7 @@ Flatten[halfIntegerValues, 1], {}
 ] @@@ integerPartitionsIntoTwo[weight],1];
 
 If[result =!= {},
-FlattenAt[result,1], {}]
-
+Replace[FlattenAt[result,1], s:{__List}:>Join@@s,{1}], {}]
 ]
 
 
@@ -228,6 +232,36 @@ result]
 
 
 (* ::Subsubsection:: *)
+(*Grade basis*)
+
+
+gradeBasisUpToWeightHolo::usage = "Grade basis of simple fields up to a given weight by picture and ghost number";
+gradeBasisUpToWeightHolo[basisUpToWeight_]:= gradeBasisUpToWeightHolo[basisUpToWeight] = Module[{result = Association[]},
+
+(*Grade the basis at each weight*)
+KeyValueMap[
+Function[{weight, basisAtWeight},
+AssociateTo[result, weight -> gradeBasisAtWeightHolo[basisAtWeight]]
+], 
+basisUpToWeight];
+
+result]
+
+
+gradeBasisAtWeightHolo::usage = "Grade basis of simple fields at a given weight by picture and ghost number";
+gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] = Module[{result = Association[], basisElementToR, picture, ghostNumber},
+Scan[Function[basisElement,
+basisElementToR = R @@ basisElement;
+picture = totalHolPicture[basisElementToR];
+ghostNumber = totalHolGhostNumber[basisElementToR];
+AssociateTo[result, {picture, ghostNumber} -> basisElementToR]
+],
+basisAtWeight
+];
+result]
+
+
+(* ::Subsubsection::Closed:: *)
 (*Get modes of simple fields*)
 
 
@@ -237,7 +271,7 @@ getMode[field_/;(isSimple[field] && isIndexed[field]), fieldWeight_, modeNumber_
 getMode[field_/;isSimple[field], fieldWeight_, modeNumber_]:= field[modeNumber-fieldWeight,0];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compute weight of exp\[Phi]*)
 
 

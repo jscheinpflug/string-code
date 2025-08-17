@@ -242,17 +242,6 @@ MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, loc
 ]
 
 
-(* ::Subsubsection::Closed:: *)
-(*Define total picture number*)
-
-
-totalHolPicture::usage = "Computes total holomorphic picture";
-totalAntiHolPicture::usage = "Computes total antiholomorphic picture";
-
-totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
-totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
-
-
 (* ::Subsection::Closed:: *)
 (*Define projection of the string bracket*)
 
