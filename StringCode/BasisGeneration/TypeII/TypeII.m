@@ -33,7 +33,7 @@ generateBasisHolo::usage = "Generates basis in the holomorphic sector";
 generateBasisHolo[maxWeight_, {minPicture_, maxPicture_}, {minGhostNumber_, maxGhostNumber_}, {minBackgroundCharge_, maxBackgroundCharge_}]:= 
 Module[{backgroundCharges = 
 Select[getBackgroundCharges[maxWeight, {minPicture, maxPicture}, {minGhostNumber, maxGhostNumber}],(minBackgroundCharge <= # <= maxBackgroundCharge)&],
-backgroundWeights, basisUpToWeight, gradedBasisUpToWeight, result},
+backgroundWeights, basisUpToWeight, groundStates, gradedBasisUpToWeight, result},
 
 (*Get weights of possible \[Phi] background charge insertions*)
 backgroundWeights = Map[weightOfBackgroundCharge, backgroundCharges];
@@ -44,12 +44,10 @@ basisUpToWeight = generateNegativeModesHoloUpToWeight[Max[(Plus[maxWeight, -#]&)
 (*Grade the above basis by picture and ghost number*)
 gradedBasisUpToWeight = gradeBasisUpToWeightHolo[basisUpToWeight];
 
-Print[basisUpToWeight];
-Print[gradedBasisUpToWeight];
+(*Join the negative mode actions with ground states expphi, and c_1, c_0, c_1 c_0, then filter by picture and ghost numbers*)
+groundStates = generateGroundStates[backgroundCharges];
 
-(*join the negative mode actions with ground states expphi, and c_1, c_0, c_1 c_0*)
-
-(*select appropriate pictures and ghost numbers from all states up to the required weight*)
+result = joinModesWithGroundStates[groundStates, gradedBasisUpToWeight, maxWeight, {minPicture, maxPicture}, {minGhostNumber, maxGhostNumber}];
 
 result];
 
@@ -162,7 +160,8 @@ simpleFieldsIntegerWeightPartitions = integerPartitionsInto[partitionWeightInteg
 simpleFieldsHalfIntegerWeightPartitions = 1/2 integerPartitionsInto[2 partitionWeightHalfInteger, simpleFieldsHalfIntegerWeightLength];
 
 (*Compute subpartitions of the above two partitions*)
-Select[Function[{simpleFieldsIntegerWeightPartition, simpleFieldsHalfIntegerWeightPartition},
+Select[
+Function[{simpleFieldsIntegerWeightPartition, simpleFieldsHalfIntegerWeightPartition},
 
 (*Get both integer and half-integer modes at weights given by the above two subpartitions*)
 integerValues = Select[MapThread[Lookup[#1, #2, {}] &, {modesAssocIntegerValues, simpleFieldsIntegerWeightPartition}], (# =!= {})&];
@@ -172,9 +171,12 @@ halfIntegerValues = Select[MapThread[Lookup[#1, #2, {}] &, {modesAssocHalfIntege
 allValues = Join[integerValues, halfIntegerValues];
 
 (*Return all combinations of each of the mode sectors*)
-combineSectors[allValues]
+If[allValues =!= {},
+combineSectors[allValues],
+Nothing]
 
-] @@@ Tuples[{simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions}], (# =!= {})&]
+] @@@ Tuples[{simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions}], 
+(# =!= {})&]
 ] @@@ integerPartitionsIntoTwo[weight];
 
 If[result =!= {{{{}}}},
@@ -230,31 +232,17 @@ getMode[field, fieldWeight, modeNumber]
 result]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Grade basis*)
 
 
 gradeBasisUpToWeightHolo::usage = "Grade basis of simple fields up to a given weight by picture and ghost number";
-gradeBasisUpToWeightHolo[basisUpToWeight_]:= gradeBasisUpToWeightHolo[basisUpToWeight] = Module[{result = Association[]},
-
-(*Grade the basis at each weight*)
-KeyValueMap[
-Function[{weight, basisAtWeight},
-AssociateTo[result, weight -> gradeBasisAtWeightHolo[basisAtWeight]]
-], 
-basisUpToWeight];
-
-result]
+gradeBasisUpToWeightHolo[basisUpToWeight_]:= gradeBasisUpToWeightHolo[basisUpToWeight] = gradeBasisAtWeightHolo /@ basisUpToWeight
 
 
 gradeBasisAtWeightHolo::usage = "Grade basis of simple fields at a given weight by picture and ghost number";
-gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] = 
-Module[{result = Association[], basisElementToR, picture, ghostNumber, possiblyExistingEntry},
-
-(*Group basis by holomorphic picture and ghost numbers*)
-result = GroupBy[basisAtWeight, Through[{totalHolPictureOfList, totalHolGhostNumberOfList}[#]] &];
-
-result]
+gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] =  
+GroupBy[basisAtWeight, Through[{totalHolPictureOfList, totalHolGhostNumberOfList}[#]] &];
 
 
 totalHolPictureOfList::usage = "Computes total holomorphic picture of a list of fields";
@@ -262,6 +250,55 @@ totalHolPictureOfList[list_]:= Map[pictureHol, list]//Total;
 
 totalHolPictureOfList::usage = "Computes total holomorphic picture of a list of fields";
 totalHolGhostNumberOfList[list_]:= Map[ghostNumberHolo, list]//Total;
+
+
+(* ::Subsubsection:: *)
+(*Generate ground states*)
+
+
+generateGroundStates::usage = "Generate ground states given a set of background charges of \[Phi]";
+generateGroundStates[backgroundCharges_]:= Module[{exp\[Phi]SymbolChoice, exp\[Phi]Background, backgroundChargeWeight},
+Association @ Catenate @ Map[Function[backgroundCharge, 
+backgroundChargeWeight = weightOfBackgroundCharge[backgroundCharge];
+If[backgroundCharge != 0,
+If[IntegerQ[backgroundChargeWeight],
+exp\[Phi]SymbolChoice = exp\[Phi]b, exp\[Phi]SymbolChoice = exp\[Phi]f];
+exp\[Phi]Background = exp\[Phi]SymbolChoice[backgroundCharge,0],
+exp\[Phi]Background = 1];
+{
+{backgroundCharge, 1, backgroundChargeWeight - 1} -> R[c[0,0], exp\[Phi]Background],
+{backgroundCharge, 1, backgroundChargeWeight} -> R[c[1,0], exp\[Phi]Background],
+{backgroundCharge, 2, backgroundChargeWeight - 1} -> R[c[0,0], c[1,0], exp\[Phi]Background]
+}], backgroundCharges]];
+
+
+(* ::Subsubsection:: *)
+(*Join modes with ground states and filter by picture/ghost number*)
+
+
+joinModesWithGroundStates::usage = "Joins modes up to a given weight with ground states, and filters by picture/ghost numbers";
+joinModesWithGroundStates[groundStates_, modesUpToWeight_, maxWeight_, {minPicture_, maxPicture_},{minGhostNumber_, maxGhostNumber_}] := 
+Module[{modePicture, modeGhostNumber, basisPicture, basisGhostNumber, basisWeight, combinedPicture, combinedGhostNumber}, 
+Reap[
+KeyValueMap[Function[{weight, modesAtWeight},
+KeyValueMap[
+Function[{modeKey, modeValues},
+{modePicture, modeGhostNumber} = modeKey;
+KeyValueMap[
+Function[{basisKey, basisValue},
+{basisPicture, basisGhostNumber, basisWeight} = basisKey;
+combinedPicture = modePicture + basisPicture;
+combinedGhostNumber = modeGhostNumber + basisGhostNumber;
+If[minPicture <= combinedPicture <= maxPicture && minGhostNumber <= combinedGhostNumber <= maxGhostNumber && 0<= basisWeight + weight <= maxWeight,
+Scan[
+Function[modeValue,
+Sow[R[R @@ modeValue, basisValue]]
+],modeValues]
+]], groundStates
+]
+], modesAtWeight]
+], modesUpToWeight]][[2,1]]
+]
 
 
 (* ::Subsubsection::Closed:: *)
@@ -282,7 +319,7 @@ weightOfBackgroundCharge::usage = "Computes weight of exp\[Phi] at a given backg
 weightOfBackgroundCharge[q_]:= -1/2 q (q+2);
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Get allowed values for background charges of the \[Phi] linear dilaton*)
 
 
@@ -312,6 +349,7 @@ result]
 
 inequalityToInterval::usage = "Converts an inequality to an interval";
 inequalityToInterval[Inequality[a_, q___, b_]] := {a,b}
+inequalityToInterval[Equal[q___,a_]]:= {a,a};
 
 
 generateIntegersInIntervals::usage = "Given a set of intervals, generate integers in them";
