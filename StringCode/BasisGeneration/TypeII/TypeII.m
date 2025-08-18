@@ -62,7 +62,7 @@ generateBasisHolo[maxWeight_, minPicture_, maxGhostNumber_, {minBackgroundCharge
 generateBasisHolo[maxWeight, {minPicture, -1}, {1, maxGhostNumber}, {minBackgroundCharge, maxBackgroundCharge}]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Generate excited modes*)
 
 
@@ -172,13 +172,19 @@ halfIntegerValues = Select[MapThread[Lookup[#1, #2, {}] &, {modesAssocHalfIntege
 allValues = Join[integerValues, halfIntegerValues];
 
 (*Return all combinations of each of the mode sectors*)
-Join @@@ Tuples[allValues]
+combineSectors[allValues]
 
 ] @@@ Tuples[{simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions}], (# =!= {})&]
 ] @@@ integerPartitionsIntoTwo[weight];
 
-Flatten[result,2]
+If[result =!= {{{{}}}},
+Flatten[result,2],
+{}]
 ]
+
+
+combineSectors::usage = "Combines all of the mode sectors";
+combineSectors[allValues_]:= combineSectors[allValues] = Join @@@ Tuples[allValues]
 
 
 generateNegativeModesForField::usage = "Generate negative modes for a given simple field";
@@ -245,17 +251,17 @@ gradeBasisAtWeightHolo::usage = "Grade basis of simple fields at a given weight 
 gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] = 
 Module[{result = Association[], basisElementToR, picture, ghostNumber, possiblyExistingEntry},
 
-Scan[Function[basisElement,
-basisElementToR = R @@ basisElement;
-picture = totalHolPicture[basisElementToR];
-ghostNumber = totalHolGhostNumber[basisElementToR];
-possiblyExistingEntry = Lookup[result, Key[{picture, ghostNumber}], {}];
-AssociateTo[result, {picture, ghostNumber} -> Append[possiblyExistingEntry, basisElementToR]]
-],
-basisAtWeight
-];
+(*Group basis by holomorphic picture and ghost numbers*)
+result = GroupBy[basisAtWeight, Through[{totalHolPictureOfList, totalHolGhostNumberOfList}[#]] &];
 
 result]
+
+
+totalHolPictureOfList::usage = "Computes total holomorphic picture of a list of fields";
+totalHolPictureOfList[list_]:= Map[pictureHol, list]//Total;
+
+totalHolPictureOfList::usage = "Computes total holomorphic picture of a list of fields";
+totalHolGhostNumberOfList[list_]:= Map[ghostNumberHolo, list]//Total;
 
 
 (* ::Subsubsection::Closed:: *)
@@ -276,7 +282,7 @@ weightOfBackgroundCharge::usage = "Computes weight of exp\[Phi] at a given backg
 weightOfBackgroundCharge[q_]:= -1/2 q (q+2);
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Get allowed values for background charges of the \[Phi] linear dilaton*)
 
 
