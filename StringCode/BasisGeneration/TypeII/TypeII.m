@@ -249,12 +249,15 @@ result]
 
 
 gradeBasisAtWeightHolo::usage = "Grade basis of simple fields at a given weight by picture and ghost number";
-gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] = Module[{result = Association[], basisElementToR, picture, ghostNumber},
+gradeBasisAtWeightHolo[basisAtWeight_]:= gradeBasisAtWeightHolo[basisAtWeight] = 
+Module[{result = Association[], basisElementToR, picture, ghostNumber, possiblyExistingEntry},
+
 Scan[Function[basisElement,
 basisElementToR = R @@ basisElement;
 picture = totalHolPicture[basisElementToR];
 ghostNumber = totalHolGhostNumber[basisElementToR];
-AssociateTo[result, {picture, ghostNumber} -> basisElementToR]
+possiblyExistingEntry = Lookup[result, Key[{picture, ghostNumber}], {}];
+AssociateTo[result, {picture, ghostNumber} -> Append[possiblyExistingEntry, basisElementToR]]
 ],
 basisAtWeight
 ];
