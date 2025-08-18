@@ -62,7 +62,7 @@ generateBasisHolo[maxWeight_, minPicture_, maxGhostNumber_, {minBackgroundCharge
 generateBasisHolo[maxWeight, {minPicture, -1}, {1, maxGhostNumber}, {minBackgroundCharge, maxBackgroundCharge}]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Generate excited modes*)
 
 
@@ -140,7 +140,7 @@ combineNegativeModesToWeight::usage = "Given a set of negative modes for each fi
 combineNegativeModesToWeight[weight_, modesAssoc_, simpleFields_]:= combineNegativeModesToWeight[weight, modesAssoc, simpleFields] = 
 Module[{result, simpleFieldsIntegerWeight, simpleFieldsIntegerWeightLength, simpleFieldsHalfIntegerWeight, simpleFieldsHalfIntegerWeightLength, 
 simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions, modesAssocInteger, modesAssocHalfInteger, modesAssocIntegerValues,
-modesAssocHalfIntegerValues, integerValues, halfIntegerValues},
+modesAssocHalfIntegerValues, integerValues, halfIntegerValues, allValues, numberOfIntegerSectors, numberOfHalfIntegerSectors},
 
 (*Split the required modding into integer and (half-)integer parts*)
 simpleFieldsIntegerWeight = Select[simpleFields, IntegerQ[weightSymbolHolo[#]] &];
@@ -154,7 +154,7 @@ modesAssocIntegerValues = Values[modesAssocInteger];
 modesAssocHalfInteger = KeySelect[modesAssoc, (IntegerQ[2 weightSymbolHolo[#]] && OddQ[2 weightSymbolHolo[#]]) &];
 modesAssocHalfIntegerValues = Values[modesAssocHalfInteger];
 
-result = Flatten[
+result = 
 (*Partition weight between integer and half-integer modes*)
 Function[{partitionWeightInteger, partitionWeightHalfInteger}, 
 
@@ -165,26 +165,19 @@ simpleFieldsHalfIntegerWeightPartitions = 1/2 integerPartitionsInto[2 partitionW
 Select[Function[{simpleFieldsIntegerWeightPartition, simpleFieldsHalfIntegerWeightPartition},
 
 (*Get both integer and half-integer modes at weights given by the above two subpartitions*)
-integerValues = MapThread[Lookup[#1, #2, {}] &, {modesAssocIntegerValues, simpleFieldsIntegerWeightPartition}];
-halfIntegerValues = MapThread[Lookup[#1, #2, {}] &, {modesAssocHalfIntegerValues, simpleFieldsHalfIntegerWeightPartition}];
+integerValues = Select[MapThread[Lookup[#1, #2, {}] &, {modesAssocIntegerValues, simpleFieldsIntegerWeightPartition}], (# =!= {})&];
+halfIntegerValues = Select[MapThread[Lookup[#1, #2, {}] &, {modesAssocHalfIntegerValues, simpleFieldsHalfIntegerWeightPartition}], (#=!={})&];
 
-(*Combine the above integer and half-integer modes*)
-If[AnyTrue[integerValues, (# =!= {}) &] && AnyTrue[halfIntegerValues, (# =!= {}) &],
-Join[
-Flatten[integerValues, 1],
-Flatten[halfIntegerValues, 1]
-],
-If[AnyTrue[integerValues, (# =!= {}) &] && partitionWeightHalfInteger === 0,
-Flatten[integerValues, 1],
-If[AnyTrue[halfIntegerValues, (# =!= {}) &] && partitionWeightInteger === 0,
-Flatten[halfIntegerValues, 1], {}
-]
-]]
+(*Combine the above integer and half-integer modes into a single set of modes*)
+allValues = Join[integerValues, halfIntegerValues];
+
+(*Return all combinations of each of the mode sectors*)
+Join @@@ Tuples[allValues]
+
 ] @@@ Tuples[{simpleFieldsIntegerWeightPartitions, simpleFieldsHalfIntegerWeightPartitions}], (# =!= {})&]
-] @@@ integerPartitionsIntoTwo[weight],1];
+] @@@ integerPartitionsIntoTwo[weight];
 
-If[result =!= {},
-Replace[FlattenAt[result,1], s:{__List}:>Join@@s,{1}], {}]
+Flatten[result,2]
 ]
 
 
@@ -261,6 +254,7 @@ AssociateTo[result, {picture, ghostNumber} -> Append[possiblyExistingEntry, basi
 ],
 basisAtWeight
 ];
+
 result]
 
 
