@@ -149,44 +149,6 @@ factorizationReplacement =
 
 
 (* ::Subsection::Closed:: *)
-(*Define 2-bracket*)
-
-
-Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= 
-Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredHoloOPEPart, tayloredAntiHoloOPEPart, holoOPEPart, antiHoloOPEPart, 
-SFaAtPos, SFbAtPos, OPEOfSF, prefac, localCoordinateReplacement, pictureAdjustedTaylor, holoSplit, antiHoloSplit}, 
-{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
-OPEOfSF = OPE[SFaAtPos, SFbAtPos]/.localCoordinateReplacement;
-Scan[Function[OPEpart,
-powerHol = Exponent[OPEpart, z0];
-powerAntiHol = Exponent[OPEpart, z0bar];
-If[RtestUpToConstant[OPEpart],
-{holoSplit, antiHoloSplit} = splitR[OPEpart];
-holoOPEPart = R @@ holoSplit;
-antiHoloOPEPart = R @@ antiHoloSplit;
-prefac = factorizationSign[OPEpart];
-tayloredHoloOPEPart =
-If[powerHol < 0, TaylorAtOrderHolo[holoOPEPart,-powerHol,0],  replacePointInR[holoOPEPart, {z0->0}]];
-tayloredAntiHoloOPEPart =
-If[powerAntiHol < 0, TaylorAtOrderAntiHolo[antiHoloOPEPart,-powerAntiHol,0],  replacePointInR[antiHoloOPEPart, {z0bar->0}]];
-pictureAdjustedTaylor = R[pictureAdjustHolo[tayloredHoloOPEPart], pictureAdjustAntiHolo[tayloredAntiHoloOPEPart]];
-result = result + prefac cleanDoubledProfilesAtZero[pictureAdjustedTaylor, createProfileAssociation[OPEpart]];
-];
-],List@@(b0m[OPEOfSF]//Expand)]; 
-result
-];
-
-
-(* ::Subsubsection::Closed:: *)
-(*Place evaluation point of normal orderings in expression*)
-
-
-replacePointInR[expr_, replacement_]:=Module[{replacedExpr, RHold}, 
-replacedExpr = expr/.{R -> RHold};
-Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
-
-
-(* ::Subsection::Closed:: *)
 (*Define action of PCOs*)
 
 

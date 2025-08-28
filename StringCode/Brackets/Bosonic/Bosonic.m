@@ -125,34 +125,6 @@ extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Expo
 
 
 (* ::Subsection::Closed:: *)
-(*Define 2-bracket*)
-
-
-Bracket[SFa_/; SFtest[SFa], SFb_/;SFtest[SFb]]:= Module[{z0, z0bar, powerHol, powerAntiHol, result = 0, tayloredOPEpart, 
-SFaAtPos, SFbAtPos, localCoordinateReplacement}, 
-{SFaAtPos, SFbAtPos, localCoordinateReplacement, z0, z0bar} = SFsWithLocalCoordinateData[SFa, SFb];
-Scan[Function[OPEpart,
-powerHol = Exponent[OPEpart, z0];
-powerAntiHol = Exponent[OPEpart, z0bar];
-If[RtestUpToConstant[OPEpart],
-tayloredOPEpart = If[powerHol < 0, 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart,-powerHol, -powerAntiHol,0,0], TaylorAtOrder[OPEpart/.{z0bar->0},-powerHol, 0,0,0]], 
-If[powerAntiHol < 0, TaylorAtOrder[OPEpart/.{z0->0},0,-powerAntiHol,0,0], OPEpart/.{z0->0,z0bar->0}]]//Expand;
-result = result + b0m[tayloredOPEpart];,
-0];
-],List @@(((OPE[SFaAtPos, SFbAtPos])/.localCoordinateReplacement)//Expand)]; result];
-
-
-(* ::Subsubsection:: *)
-(*Place evaluation point of normal orderings in expression*)
-
-
-replacePointInR[expr_, replacement_]:=Module[{replacedExpr, RHold}, 
-replacedExpr = expr/.{R -> RHold};
-Replace[replacedExpr,RHold[arg__]:>R@@({arg}/.replacement),{0,Infinity}]]
-
-
-(* ::Subsection::Closed:: *)
 (*Determine whether OPE should be computed*)
 
 
