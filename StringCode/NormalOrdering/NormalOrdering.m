@@ -25,7 +25,7 @@ CR::usage = "A normal-ordered product for correlators";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Test normal-ordering and length*)
 
 
@@ -47,7 +47,7 @@ RtestUpToConstant[f_]:=(Head[f]==R)
 RtestUpToConstant[]:=False;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define Grassmann parity*)
 
 
@@ -69,7 +69,7 @@ regparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ regfermions))
 regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define normal-ordered product*)
 
 
@@ -90,6 +90,26 @@ R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
 (* ::Subsection:: *)
+(*Convert list of symbols to normal-ordered product*)
+
+
+FieldReturn[expr_] := If[Head[expr] === Times, First[Select[List @@ expr, isField[Head[#]] &]],expr];
+TimesToList[elem_] := If[Head[elem] === Times, List @@ elem, elem];
+symbolListToR[list_] :=
+  Module[{listNoBoson, sortedList, sortedList\[CapitalPhi], slist,
+    sign, simp},
+    Print[Timing[simplifying[list]][[1]]];
+   simp = simplifying[list];
+   slist = simp[[2]];
+   listNoBoson = simp[[3]];
+   sortedList = Sort[slist];
+   sortedList\[CapitalPhi] = Join[sortedList, simp[[4]], simp[[5]]];
+   sign = Signature[listNoBoson];
+   Print[Timing[(sign*simp[[1]]) R @@ sortedList\[CapitalPhi]][[1]]];
+   (sign*simp[[1]]) R @@ sortedList\[CapitalPhi]];
+
+
+(* ::Subsection::Closed:: *)
 (*Define total ghost number*)
 
 
@@ -103,7 +123,7 @@ totalAntiHolGhostNumber[Ra_/;Rtest[Ra]]:= Map[ghostNumberAntiHolo, List @@ Ra]//
 totalAntiHolGhostNumber[Times[a_, Ra_/;Rtest[Ra]]] := totalAntiHolGhostNumber[Ra];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define cached dropping of normal-ordered product elements*)
 
 
@@ -111,7 +131,7 @@ dropFirstFromR::usage = "Drops first element from normal-ordered product";
 dropFirstFromR[Ra_]:= dropFirstFromR[Ra] = R @@ (Drop[(List @@ Ra),1])
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define weight of normal-ordered product*)
 
 

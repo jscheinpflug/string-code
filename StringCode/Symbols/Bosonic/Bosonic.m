@@ -50,7 +50,7 @@ Begin["Private`"];
 (*Define symbols*)
 
 
-bosons=Join[bosons, {expX,dX,dXt,ProfileX}];
+bosons=Join[bosons, {expX, expXHolo, expXAntiHolo, dX,dXt,ProfileX, ProfileXHolo, ProfileXAntiHolo}];
 fermions=Join[fermions, {}];
 regfermions=Join[regfermions,{}];
 simplefields=Join[simplefields, {dX,dXt}];
@@ -58,6 +58,7 @@ simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt}];
 compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX}];
 holomorphicFields = Join[holomorphicFields, {ProfileX, expX, ProfileXHolo, dX,expXHolo}];
 antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, ProfileXAntiHolo, dXt, expXAntiHolo}];
+indexedFields = Join[indexedFields, {dX, dXt}];
 allfields=Join[bosons,fermions];
 
 

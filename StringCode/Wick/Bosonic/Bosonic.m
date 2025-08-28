@@ -96,7 +96,7 @@ pairingList = Map[Sort,Join[pairingList, {
 {ProfileXHolo, expXHolo}, {ProfileXAntiHolo, expXAntiHolo},{ProfileX, expX},
 {dX,expX},{dXt,expX},{dX,ProfileX},{dXt,ProfileX},
 {dX,expXHolo},{dXt,expXAntiHolo},{dX,ProfileXHolo},{dXt,ProfileXAntiHolo},
-{dX,dX}, {dXt,dXt},}]];
+{dX,dX}, {dXt,dXt}}]];
 
 
 (* ::Section:: *)

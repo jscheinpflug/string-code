@@ -58,6 +58,61 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Ph
 
 
 (* ::Subsection:: *)
+(*Convert list of symbols to normal-ordered product*)
+
+
+simplifying[list_] :=
+  Module[{listofall, listFree\[CapitalPhi], listNoBoson, listSimpleF,
+    list\[CapitalPhi], list\[CapitalPhi]t, positions\[CapitalPhi],
+    positions\[CapitalPhi]t, positionsN\[CapitalPhi]t, positionsrest,
+    count\[CapitalPhi]t, count\[CapitalPhi], factor\[CapitalPhi]s},
+   listofall = Flatten[TimesToList[#] & /@ list, 1];
+   listFree\[CapitalPhi] =
+    Select[listofall, (Head[#] =!= exp\[Phi]f &&
+        Head[#] =!= exp\[Phi]tf) &];
+   listNoBoson = Select[listofall, isFermion[Head[#]] &];
+   listSimpleF =
+    Select[listNoBoson, (Head[#] =!= exp\[Phi]f &&
+        Head[#] =!= exp\[Phi]tf) &];
+   list\[CapitalPhi] =
+    Select[listofall, (Head[FieldReturn[#]] === exp\[Phi]f) &];
+   list\[CapitalPhi]t =
+    Select[listofall, (Head[FieldReturn[#]] === exp\[Phi]tf) &];
+   positions\[CapitalPhi] =
+    If[list\[CapitalPhi] =!= {},
+     Flatten[Position[listNoBoson,
+       elem_ /; Head[elem] === exp\[Phi]f, {1},
+       Heads -> False]], {}];
+   positions\[CapitalPhi]t =
+    If[list\[CapitalPhi]t =!= {},
+     Flatten[Position[listNoBoson,
+       elem_ /; Head[elem] === exp\[Phi]tf, {1}, Heads -> False]], {}];
+   positionsN\[CapitalPhi]t =
+    Flatten[Position[listNoBoson,
+      elem_ /; Head[elem] =!= exp\[Phi]tf, {1}, Heads -> False]];
+   positionsrest =
+    Flatten[Position[listNoBoson,
+      elem_ /; (Head[elem] =!= exp\[Phi]f &&
+         Head[elem] =!= exp\[Phi]tf), {1}, Heads -> False]];
+   count\[CapitalPhi]t =
+    If[positions\[CapitalPhi]t =!= {},
+     Total[Boole@
+       Flatten@Table[
+         a > b, {a, positionsN\[CapitalPhi]t}, {b,
+          positions\[CapitalPhi]t}]], 0];
+   count\[CapitalPhi] =
+    If[positions\[CapitalPhi] =!= {},
+     Total[Boole@
+       Flatten@Table[
+         a > b, {a, positionsrest}, {b, positions\[CapitalPhi]}]],
+     0];
+   factor\[CapitalPhi]s =
+    Power[-1, count\[CapitalPhi] + count\[CapitalPhi]t];
+   {factor\[CapitalPhi]s, listFree\[CapitalPhi], listSimpleF,
+    list\[CapitalPhi], list\[CapitalPhi]t}];
+
+
+(* ::Subsection:: *)
 (*Define total picture number*)
 
 
