@@ -51,13 +51,43 @@ actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actBRSTHolo[0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define bracket*)
 
 
 (*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
 Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
+BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, afterApplyingBghosts, afterHeldActionOfPCOs},
+bracketOrder = Length[bracketList];
+
+(*Conformally transform the string field insertions*)
+{localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
+SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList, w, wbar];
+SFList = List @@ SFsAtPos;
+
+(*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
+If[Length[moduli] > 0,
+curlyBs = createCurlyBs[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, moduli, bracketOrder, w, wbar];
+afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs],
+afterApplyingBghosts = SFsAtPos];
+
+result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
+result]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Place string fields at positions given by local coordinates*)
+
+
+placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
+placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__, w_, wbar_]:= 
+Module[{i, length = Length[SFs]},
+MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
+]
 
 
 (* ::Subsection::Closed:: *)
@@ -77,6 +107,140 @@ BracketProjection[{args___, a_ + b_, rest___, localCoordinateReplacement_}, weig
  BracketProjection[{args, a, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo]
 BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] := 
 a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+
+(* ::Subsection:: *)
+(*Collapse multi-local operator via OPE*)
+
+
+Collapse::usage = "Collapse multi-local operator via OPE";
+Collapse[multiOpHolo_/;MultiOptest[multiOpHolo], multiOpAntiHolo_/;MultiOptest[multiOpAntiHolo], \[Epsilon]Holo_, \[Epsilon]AntiHolo_]:= 
+Module[{result, prefac, OPEHolo, OPEAntiHolo},
+
+(*Rescale positions of operators in the bracket by a common \[Epsilon]Holo/\[Epsilon]AntiHolo to ease weight projection, and then perform OPE*)
+{OPEHolo, OPEAntiHolo} = {OPE @@ rescaleMultiOp[multiOpHolo, \[Epsilon]Holo], OPE @@ rescaleMultiOp[multiOpAntiHolo, \[Epsilon]AntiHolo]};
+{OPEHolo, OPEAntiHolo}
+]
+
+
+(* ::Subsection::Closed:: *)
+(*Factorize operators into holomorphic and anti-holomorphic parts*)
+
+
+(* ::Subsubsection:: *)
+(*Factorize multi-local operators*)
+
+
+factorizeMultiOp::usage = "Factorize multi-local operator into holomorphic and antiholomorphic multi-local operators";
+factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
+Module[{multiOpXSplit = multiOp/.factorizationReplacement, localOpFactorized, localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
+{localOpsHolo, localOpsAntiHolo} = 
+Reap[Scan[Function[localOp,
+localOpFactorized = splitR[localOp];
+prefac = prefac * factorizationPrefac[localOp];
+{localOpHolo, localOpAntiHolo} = {localOpFactorized[[1]], localOpFactorized[[2]]};
+Sow[localOpHolo, "Holo"];
+Sow[localOpAntiHolo, "AntiHolo"];
+], List @@ multiOpXSplit]][[2]];
+{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, prefac}]
+
+
+(* ::Subsubsection:: *)
+(*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
+
+
+splitR::usage = "Factorize normal-ordered product into holomorphic and antiholomorphic parts";
+splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ Ra},
+   RHolo = R @@ Select[RList, isHolomorphic @* Head];
+   RAntiHolo = R @@ Select[RList, isAntiHolomorphic @* Head];
+   {RHolo, RAntiHolo}
+   ];
+splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
+
+splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
+
+factorizationAuxList::usage = "Create an auxiliary list for factorization";
+factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{result= {}},
+   result = Reap[Scan[Function[Relem,
+     If[isHolomorphic[Relem] && isFermion[Relem],
+      Sow[fHolo]];
+     If[isHolomorphic[Relem] && isBoson[Relem],
+      Sow[bHolo]];
+     If[isAntiHolomorphic[Relem] && isFermion[Relem],
+      Sow[fAntiHolo]];
+     If[isAntiHolomorphic[Relem] && isBoson[Relem],
+      Sow[bAntiHolo]];
+     ], Ra]][[2]]; 
+     result
+   ];
+factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
+ 
+factorizationPrefac::usage = "Collect a possible prefactor that arises when factorizing R, including a sign for permutations";
+factorizationPrefac[Ra_ /;Rtest[Ra]] :=
+ Module[{list = factorizationAuxList[Ra], holPositions, antiHolPositions, swaps, totalSwaps, sign},
+  holPositions = Flatten[Position[list, _fHolo]];
+  antiHolPositions = Flatten[Position[list, _fAntiHolo]];
+  swaps = Outer[Boole[#2 < #1] &, holPositions, antiHolPositions];
+  totalSwaps = Total[swaps, 2];
+  sign = (-1)^totalSwaps
+  ]
+factorizationPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationPrefac[Ra]
+
+
+(* ::Subsubsection:: *)
+(*Rescale all chiral local operators [position is their last argument] inside a factorized MultiOp*)
+
+
+rescaleMultiOp::usage = "Rescale all chiral [after factorization] local operators [position is their last argument] inside a MultiOp";
+rescaleMultiOp[multiOp_/;MultiOptest[multiOp], rescalingFactor_]:= Module[{multiOpList = List @@ multiOp}, 
+MultiOp @@ Map[rescaleOp[rescalingFactor], multiOpList]]
+
+
+rescaleOp::usage = "Rescales a normal-ordered product";
+rescaleOp[rescalingFactor_][op_]:= Module[{opList = List @@ op}, 
+R @@ Map[rescalePositionBy[rescalingFactor], opList]]
+
+
+rescalePositionBy::usage = "Rescales a chiral local operator";
+rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
+
+
+(* ::Subsection:: *)
+(*Project OPE onto a given weight*)
+
+
+projectHolo::usage = "Project OPE onto a given holomorphic weight";
+projectHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
+OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
+Scan[Function[OPEterm,
+power = extractWeightCountingParameterPower[OPEterm, weightCountingParameter];
+expansionOrder = -power + weight;
+If[expansionOrder >= 0,
+result = result + TaylorAtOrderHolo[OPEterm, expansionOrder, 0]];
+],
+OPEterms];
+result/.{weightCountingParameter -> 1}]
+
+
+projectAntiHolo::usage = "Project OPE onto a given antiholomorphic weight";
+projectAntiHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
+OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
+Scan[Function[OPEterm,
+power = extractWeightCountingParameterPower[OPEterm, weightCountingParameter];
+expansionOrder = -power + weight;
+If[expansionOrder >= 0,
+result = result + TaylorAtOrderAntiHolo[OPEterm, expansionOrder, 0]];
+],
+OPEterms];
+result/.{weightCountingParameter -> 1}]
+
+
+(* ::Subsubsection:: *)
+(*Extract weight-counting parameter power*)
+
+
+extractWeightCountingParameterPower::usage = "Extract weight-counting parameter power";
+extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])
 
 
 (* ::Subsection::Closed:: *)
@@ -245,7 +409,7 @@ result = Join[BGhostIntegrandListHol,BGhostIntegrandListAntiHol];
 result]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Apply B-ghost insertions to multi-op*)
 
 
