@@ -33,6 +33,10 @@ Begin["Private`"];
 (* ::Input::Initialization:: *)
 MultiOp[c___,a_+b_,d___]:=MultiOp[c,a,d]+MultiOp[c,b,d]
 MultiOp[c___,0,d___]:=0
+MultiOp[c___, s_?nonOperatorQ f_, d___] := s MultiOp[c, f, d];
+MultiOp[c___, s_?nonOperatorQ,   d___] := s MultiOp[c, d];
+
+nonOperatorQ[expr_]:= FreeQ[expr, R];
 
 
 (* ::Subsection:: *)
