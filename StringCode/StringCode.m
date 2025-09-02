@@ -7,7 +7,8 @@ InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with
 
 
 Begin["Private`"];
-InitStringCode[options_] := Module[{userContext={}, theoryValue = options["theory"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
+InitStringCode[options_] := 
+Module[{userContext={}, theoryValue = options["theory"], CFTValue = options["CFT"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
 Switch[theoryValue, 
 "TypeII", userContext = {
     "StringCode`Symbols`TypeII`",
@@ -33,6 +34,22 @@ Switch[theoryValue,
     "StringCode`Brackets`Bosonic`"},
 _, Print["There is no such theory"]];
 
+Switch[CFTValue, 
+"FlatSpace", 
+Switch[theoryValue,
+"TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"]; 
+AppendTo[userContext, "StringCode`StringFields`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"],
+"Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
+AppendTo[userContext, "StringCode`StringFields`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"];
+AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"],
+_, Print["No such CFT for theory ", theoryValue]
+],
+"MinimalModel", If[theoryValue == "Bosonic", AppendTo[userContext, "StringCode`Symbols`Bosonic`MinimalModel`"];
+ AppendTo[userContext, "StringCode`Taylor`Bosonic`MinimalModel`"],
+ Print["No such CFT for theory ", theoryValue]],
+_, Print["There are no such CFTs"]];
+
 Switch[conventionValue, 
 "TypeII-Xi", If[theoryValue == "TypeII", AppendTo[userContext, "StringCode`Conventions`TypeII`Xi`"], Print["No such conventions for theory ", theoryValue]],
 "TypeII-Ashoke", If[theoryValue == "TypeII", AppendTo[userContext,"StringCode`Conventions`TypeII`Ashoke`"], Print["No such conventions for theory ", theoryValue]],
@@ -47,6 +64,7 @@ Switch[theoryValue,
 _, Print["No such bracket for theory ", theoryValue]
 ],
 _, Print["There is no such bracket"]];
+
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Taylor`"];
@@ -57,6 +75,7 @@ Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`Correlators`"];
+
 Scan[
   (AppendTo[$ContextPath, #] &) ,
  userContext

@@ -148,7 +148,7 @@ factorizationReplacement =
 {ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]}
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define action of PCOs*)
 
 
@@ -157,16 +157,19 @@ actPCOHolo[Ra_/;Rtest[Ra]] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
+
 (*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
 If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
+
 If[singularityUpperBound >= 0,
 (*Compute OPE with terms in the PCO that possibly contribute*)
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
+
 (*Extract zeroth order pole from OPE*)
 If[power == 0, result = result + Relem, 
 If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
@@ -179,16 +182,19 @@ actPCOAntiHolo[Ra_/;Rtest[Ra]] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
+
 (*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
 If[compositeInPCOPosition !=  "NotFound",
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
 singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
+
 If[singularityUpperBound >= 0,
 (*Compute OPE with terms in the PCO that possibly contribute*)
 OPEWithPCO = OPE[PCOelem, Ra]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
+
 (*Extract zeroth order pole from OPE*)
 If[power == 0, result = result + Relem, 
 If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
@@ -207,7 +213,7 @@ actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOAntiHolo[0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Determine whether OPE should be computed*)
 
 
@@ -219,41 +225,6 @@ containsCompositeAntiHolo[PCOelem_]:= containsCompositeAntiHolo[PCOelem] = First
 
 
 (* ::Subsubsection:: *)
-(*Free boson*)
-
-
-singularity[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= 2 + m + n;
-singularity[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=2 + m + n;
-
-singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
-singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
-singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-singularity[dX[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:= 1 + n;
-singularity[ProfileX[profile_,ders_, w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dXt[\[Mu]_,n_,z_],ProfileX[profile_,ders_, w_,wbar_]]:=1 + n;
-singularity[ProfileX[profile_,ders_, w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-
-singularity[dX[\[Mu]_,n_,z_],expXHolo[k_,w_]]:= 1 + n;
-singularity[expXHolo[k_,w_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dX[\[Mu]_,n_,z_],ProfileXHolo[profile_, ders_, w_]]:= 1 + n;
-singularity[ProfileXHolo[profile_,ders_, w_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-
-singularity[dXt[\[Mu]_,n_,z_],expXAntiHolo[k_,wbar_]]:=1 + n;
-singularity[expXAntiHolo[k_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-singularity[dXt[\[Mu]_,n_,z_],ProfileXAntiHolo[profile_, ders_, wbar_]]:=1 + n;
-singularity[ProfileXAntiHolo[profile_, ders_, wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-
-
-(* ::Subsubsection::Closed:: *)
-(*Free fermion*)
-
-
-singularity[\[Psi][\[Mu]_,n_,z_],\[Psi][\[Nu]_,m_,w_]]:=1 + m + n;
-singularity[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=1 + m + n;
-
-
-(* ::Subsubsection::Closed:: *)
 (*Superghosts*)
 
 
@@ -281,7 +252,6 @@ singularity[exp\[Phi]f[b_, z_], d\[Phi][a_, w_]] := 1 + a;
 singularity[exp\[Phi]b[b_, z_], d\[Phi][a_, w_]] := 1 + a;
 singularity[exp\[Phi]tf[b_, z_], d\[Phi]t[a_, w_]] := 1 + a;
 singularity[exp\[Phi]tb[b_, z_], d\[Phi]t[a_, w_]] := 1 + a;
-singularity[a_,b_]:= 0 /; (isField[Head[a]] && isField[Head[b]]);
 
 
 (* ::Section:: *)

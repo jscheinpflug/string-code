@@ -107,37 +107,6 @@ Sow[{projectedOPEHolo, projectedOPEAntiHolo, prefac}]
 [[2]]];
 
 
-(* ::Subsubsection:: *)
-(*Set factorization replacement*)
-
-
-(*This replacement rule is called on multi-local operator every time factorization into holomorphic/antiholomorphic parts is performed*)
-factorizationReplacement = 
-{ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]}
-
-
-(* ::Subsubsection:: *)
-(*Extract weight-counting parameter power*)
-
-
-extractWeightCountingParameterPower::usage = "Extract weight-counting parameter power (modulo multiples of \[Alpha]')";
-extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])/.{\[Alpha]p -> 0}
-
-
-(* ::Subsection::Closed:: *)
-(*Determine whether OPE should be computed*)
-
-
-singularity[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= 2 + m + n;
-singularity[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:=2 + m + n;
-
-singularity[dX[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:= 1 + n;
-singularity[expX[k_,w_,wbar_],dX[\[Mu]_,n_,z_]]:= 1 + n;
-singularity[dXt[\[Mu]_,n_,z_],expX[k_,w_,wbar_]]:=1 + n;
-singularity[expX[k_,w_,wbar_],dXt[\[Mu]_,n_,z_]]:=1 + n;
-singularity[a_,b_]:= 0 /; (isField[Head[a]] && isField[Head[b]]);
-
-
 (* ::Section:: *)
 (*End*)
 

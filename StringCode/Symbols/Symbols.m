@@ -29,6 +29,12 @@ indexedFields::usage = "A list of fields that carry indices";
 allfields::usage = "A list of all bosons and fermions";
 
 
+interactingOperators::usage = "A list of all interacting primary operators";
+
+
+allOperators::usage = "A combined list of allfields and interactingOperators";
+
+
 regfermions::usage = "A list of fundamental fermions";
 
 
@@ -74,6 +80,12 @@ isComposite::usage = "Checks if is composite field";
 isField::usage = "Checks if is field";
 
 
+isInteracting::usage = "Checks if is interacting";
+
+
+isOperator::usage = "Checks if is operator";
+
+
 isHolomorphic::usage = "Checks if is holomorphic";
 
 
@@ -115,6 +127,8 @@ holomorphicFields = {b,c};
 antiHolomorphicFields = {bt,ct};
 indexedFields = {};
 allfields=Join[bosons,fermions];
+interactingOperators = {};
+allOperators = Join[allfields, interactingOperators];
 
 
 (* ::Subsection:: *)
@@ -128,6 +142,8 @@ isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
 isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
 isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
 isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
+isInteracting[symbol_]:= isInteracting[symbol] = MemberQ[interactingOperators, symbol];
+isOperator[symbol_]:= isOperator[symbol] = MemberQ[allOperators, symbol];
 isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
 
 
@@ -143,6 +159,9 @@ ghostNumberHolo[b[der_, z_]]:= -1;
 
 ghostNumberAntiHolo[ct[der_, zbar_]]:= 1;
 ghostNumberAntiHolo[bt[der_, zbar_]]:= -1;
+
+ghostNumberHolo[a_/;isField[Head[a]]]:= 0;
+ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
 
 (* ::Subsection:: *)

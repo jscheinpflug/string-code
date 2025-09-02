@@ -209,7 +209,7 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Project OPE onto a given weight*)
 
 
@@ -325,7 +325,7 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Create B-ghost insertion*)
 
 

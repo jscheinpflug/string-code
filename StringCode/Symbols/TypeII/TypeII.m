@@ -30,30 +30,6 @@ exp\[Phi]f::usage = "Holomorphic fermionic exponential of the \[Phi] linear dila
 exp\[Phi]tf::usage = "Antiholomorphic fermionic exponential of the \[Phi] linear dilaton"
 
 
-expXAntiHolo::usage = "Antiholomorphic part of the wave primary in free boson CFT";
-
-
-expXHolo::usage = "Holomorphic part of the wave primary in free boson CFT";
-
-
-expX::usage = "Plane wave primary in free boson CFT";
-
-
-dX::usage = "Holomorphic del X primary in free boson CFT";
-
-
-dXt::usage = "Antiholomorphic del X primary in free boson CFT";
-
-
-ProfileXAntiHolo::usage = "Antiolomorphic part of an X-profile"
-
-
-ProfileXHolo::usage = "Holomorphic part of an X-profile"
-
-
-ProfileX::usage = "An X-profile";
-
-
 \[Xi]::usage = "Holomorphic \[Xi]-ghost";
 
 
@@ -64,15 +40,6 @@ ProfileX::usage = "An X-profile";
 
 
 \[Eta]t::usage = "Antiholomorphic \[Eta]-ghost";
-
-
-\[Psi]::usage = "Holomorphic free matter fermion";
-
-
-\[Psi]t::usage = "Antiholomorphic free matter fermion";
-
-
-\[Alpha]p::usage = "Symbol for alpha prime";
 
 
 (* ::Section:: *)
@@ -88,17 +55,17 @@ Begin["Private`"];
 
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
-bosons=Join[bosons, {expXHolo, expXAntiHolo, expX,dX,dXt,ProfileXHolo, ProfileXAntiHolo, ProfileX, d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
+bosons=Join[bosons, {d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
 fermions=Join[fermions, {\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
 regfermions=Join[regfermions,{\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 exp\[Phi]fermions={exp\[Phi]f};
 exp\[Phi]tfermions={exp\[Phi]tf};
-simplefields=Join[simplefields, {dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
-simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt,d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
-compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX,exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
-holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, ProfileXHolo, d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
-indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
+simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+compositefields= Join[compositefields, {exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
+holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
+indexedFields = Join[indexedFields, {\[Psi], \[Psi]t}];
 allfields=Join[bosons,fermions];
 
 
@@ -138,33 +105,6 @@ ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
-
-
-(* ::Subsubsection:: *)
-(*Free boson*)
-
-
-weightSymbolHolo[dX] := 1;
-
-weightHolo[expX[k_, z_,zbar_]] := 0;
-weightHolo[expXHolo[k_, z_]] := 0;
-weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
-
-weightSymbolAntiHolo[dXt] := 1;
-
-weightAntiHolo[expX[k_, z_,zbar_]] := 0;
-weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
-weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
-
-
-(* ::Subsubsection:: *)
-(*Free fermion*)
-
-
-weightSymbolHolo[\[Psi]]:= 1/2;
-weightSymbolAntiHolo[\[Psi]t] := 1/2;
 
 
 (* ::Subsubsection:: *)

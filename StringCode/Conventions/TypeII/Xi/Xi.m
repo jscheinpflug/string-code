@@ -5,6 +5,7 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
+Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`Conventions`TypeII`"];
 
 
