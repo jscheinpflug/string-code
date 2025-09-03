@@ -153,39 +153,9 @@ Sow[localOpAntiHolo, "AntiHolo"];
 
 
 (* ::Subsubsection:: *)
-(*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
+(*Factorize normal-ordered product utils*)
 
 
-splitOperators::usage = "Factorize list of operators into groups given by two boolean valued functions f1, f2";
-splitOperators[operatorList_, f1_, f2_] := Module[{operators1, operators2},
-   operators1 = Select[operatorList, f1 @* Head];
-   operators2 = Select[operatorList, f2 @* Head];
-   {operators1, operators2}
-   ];
-
-fermionPositions::usage = "Gives positions of fermions graded by two boolean-valued functions f1, f2 defined on symbols";
-fermionPositions[operatorList__, f1_, f2_]:= Module[{result, operatorListLength = Length[operatorList], operatorListElem}, 
-result = Flatten[Reap[Do[
-operatorListElem = Head[operatorList[[i]]];
-If[f1[operatorListElem] && isFermion[operatorListElem],
-Sow[i, "1"];];
-If[f2[operatorListElem] && isFermion[operatorListElem],
-Sow[i, "2"];]
-, {i,1,operatorListLength}], {"1", "2"}][[2]],1];
-result
-]
- 
-factorizationSign::usage = "Collect a possible sign that arises when factorizing a list of operators";
-factorizationSign[operatorList__, f1_, f2_] :=
- Module[{fermionPositionLists = fermionPositions[operatorList, f1, f2], swaps, totalSwaps, sign},
-  If[fermionPositionLists =!= {},
-  swaps = Outer[Boole[#2 < #1] &, fermionPositionLists[[1]], fermionPositionLists[[2]]];
-  totalSwaps = Total[swaps, 2];
-  sign = (-1)^totalSwaps;,
-  sign = 1;];
-  sign
-  ]
-  
 extractPrefacFromRTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by normal-ordered product";
 extractPrefacFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := a;
 extractPrefacFromRTimesConstant[Ra_/;Rtest[Ra]] := 1;
