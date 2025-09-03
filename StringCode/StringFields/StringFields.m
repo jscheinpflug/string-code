@@ -30,7 +30,6 @@ Begin["Private`"];
 (*Define string fields*)
 
 
-(* ::Input::Initialization:: *)
 SF[c___,b_,a_,d___]:=regcomm[a,b] SF[c,a,b,d]/;(!OrderedQ[{b,a}])
 SF[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 SF[c___,a_+b_,d___]:=SF[c,a,d]+SF[c,b,d]
@@ -47,12 +46,10 @@ SF[g___,a_^n_,h___]:=SF[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 (*Put string field at a position*)
 
 
-(* ::Input::Initialization:: *)
 SFAtPos::usage = "A string field at a given position";
 SFAtPos[SFa_/;SFtest[SFa], z0_, z0bar_]:= Module[{SFlist = List @@ SFa},R @@ Map[positionOp[z0,z0bar],SFlist]];
 
 
-(* ::Input::Initialization:: *)
 positionOp::usage = "Place operator at a given position";
 
 positionOp[z0_, z0bar_][b[n_]]:= b[n, z0];
