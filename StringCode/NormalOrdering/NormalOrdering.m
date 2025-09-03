@@ -25,12 +25,12 @@ CR::usage = "A normal-ordered product for correlators";
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Test normal-ordering and length*)
 
 
 Rtest::usage = "Test if product is normal-ordered";
-Rtest[f_]:=(Head[f]==R)
+Rtest[f_]:=(Head[f]===R)
 
 Rlength::usage = "Test if is normal-ordered and has nonzero length";
 Rlength[f_]:=If[Rtest[f],Length[List @@ f],0]
@@ -69,7 +69,7 @@ regparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ regfermions))
 regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define normal-ordered product*)
 
 
@@ -89,7 +89,7 @@ R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Convert list of symbols to normal-ordered product*)
 
 
