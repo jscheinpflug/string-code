@@ -83,7 +83,7 @@ result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
 result]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Place string fields at positions given by local coordinates*)
 
 
@@ -127,7 +127,7 @@ Module[{result, prefac, OPEHolo, OPEAntiHolo},
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 
@@ -137,15 +137,18 @@ Module[{result, prefac, OPEHolo, OPEAntiHolo},
 
 factorizeMultiOp::usage = "Factorize multi-local operator into holomorphic and antiholomorphic multi-local operators";
 factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
-Module[{multiOpXSplit = multiOp/.factorizationReplacement, localOpFactorized, localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
+Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, localOpPrefac, localOpList,
+localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
 {localOpsHolo, localOpsAntiHolo} = 
 Reap[Scan[Function[localOp,
-localOpFactorized = splitR[localOp];
-prefac = prefac * factorizationPrefac[localOp];
-{localOpHolo, localOpAntiHolo} = {localOpFactorized[[1]], localOpFactorized[[2]]};
+localOpPrefac = extractPrefacFromRTimesConstant[localOp];
+localOpList = extractListFromRTimesConstant[localOp];
+localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];
+prefac = prefac * localOpPrefac * factorizationSign[localOpList, isHolomorphic, isAntiHolomorphic];
+{localOpHolo, localOpAntiHolo} = {R @@ localOpFactorized[[1]], R @@ localOpFactorized[[2]]};
 Sow[localOpHolo, "Holo"];
 Sow[localOpAntiHolo, "AntiHolo"];
-], List @@ multiOpXSplit]][[2]];
+], List @@ multiOpReplaced]][[2]];
 {MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, prefac}]
 
 
@@ -153,42 +156,43 @@ Sow[localOpAntiHolo, "AntiHolo"];
 (*Factorize normal-ordered product into holomorphic and antiholomorphic parts*)
 
 
-splitR::usage = "Factorize normal-ordered product into holomorphic and antiholomorphic parts";
-splitR[Ra_ /; Rtest[Ra]] := Module[{RHolo = {}, RAntiHolo = {}, RList = List @@ Ra},
-   RHolo = R @@ Select[RList, isHolomorphic @* Head];
-   RAntiHolo = R @@ Select[RList, isAntiHolomorphic @* Head];
-   {RHolo, RAntiHolo}
+splitOperators::usage = "Factorize list of operators into groups given by two boolean valued functions f1, f2";
+splitOperators[operatorList_, f1_, f2_] := Module[{operators1, operators2},
+   operators1 = Select[operatorList, f1 @* Head];
+   operators2 = Select[operatorList, f2 @* Head];
+   {operators1, operators2}
    ];
-splitR[Times[a_, Ra_/;Rtest[Ra]]] := splitR[Ra]
 
-splitRPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a;
-
-factorizationAuxList::usage = "Create an auxiliary list for factorization";
-factorizationAuxList[Ra_/; Rtest[Ra]] := Module[{result= {}},
-   result = Reap[Scan[Function[Relem,
-     If[isHolomorphic[Relem] && isFermion[Relem],
-      Sow[fHolo]];
-     If[isHolomorphic[Relem] && isBoson[Relem],
-      Sow[bHolo]];
-     If[isAntiHolomorphic[Relem] && isFermion[Relem],
-      Sow[fAntiHolo]];
-     If[isAntiHolomorphic[Relem] && isBoson[Relem],
-      Sow[bAntiHolo]];
-     ], Ra]][[2]]; 
-     result
-   ];
-factorizationAuxList[Times[a_, Ra_/;Rtest[Ra]]] := factorizationAuxList[Ra];
+fermionPositions::usage = "Gives positions of fermions graded by two boolean-valued functions f1, f2 defined on symbols";
+fermionPositions[operatorList__, f1_, f2_]:= Module[{result, operatorListLength = Length[operatorList], operatorListElem}, 
+result = Flatten[Reap[Do[
+operatorListElem = Head[operatorList[[i]]];
+If[f1[operatorListElem] && isFermion[operatorListElem],
+Sow[i, "1"];];
+If[f2[operatorListElem] && isFermion[operatorListElem],
+Sow[i, "2"];]
+, {i,1,operatorListLength}], {"1", "2"}][[2]],1];
+result
+]
  
-factorizationPrefac::usage = "Collect a possible prefactor that arises when factorizing R, including a sign for permutations";
-factorizationPrefac[Ra_ /;Rtest[Ra]] :=
- Module[{list = factorizationAuxList[Ra], holPositions, antiHolPositions, swaps, totalSwaps, sign},
-  holPositions = Flatten[Position[list, _fHolo]];
-  antiHolPositions = Flatten[Position[list, _fAntiHolo]];
-  swaps = Outer[Boole[#2 < #1] &, holPositions, antiHolPositions];
+factorizationSign::usage = "Collect a possible sign that arises when factorizing a list of operators";
+factorizationSign[operatorList__, f1_, f2_] :=
+ Module[{fermionPositionLists = fermionPositions[operatorList, f1, f2], swaps, totalSwaps, sign},
+  If[fermionPositionLists =!= {},
+  swaps = Outer[Boole[#2 < #1] &, fermionPositionLists[[1]], fermionPositionLists[[2]]];
   totalSwaps = Total[swaps, 2];
-  sign = (-1)^totalSwaps
+  sign = (-1)^totalSwaps;,
+  sign = 1;];
+  sign
   ]
-factorizationPrefac[Times[a_, Ra_/;Rtest[Ra]]] := a*factorizationPrefac[Ra]
+  
+extractPrefacFromRTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by normal-ordered product";
+extractPrefacFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := a;
+extractPrefacFromRTimesConstant[Ra_/;Rtest[Ra]] := 1;
+
+extractListFromRTimesConstant::usage = "Extracts the list of operators inside a normal-ordered product possibly multiplied by a constant prefactor";
+extractListFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := List @@ Ra;
+extractListFromRTimesConstant[Ra_/;Rtest[Ra]] := List @@ Ra;
 
 
 (* ::Subsubsection:: *)
@@ -245,6 +249,15 @@ result/.{weightCountingParameter -> 1}]
 
 extractWeightCountingParameterPower::usage = "Extract weight-counting parameter power";
 extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])
+
+
+(* ::Subsubsection:: *)
+(*Set factorization replacement*)
+
+
+(*This replacement rule is called on multi-local operator every time factorization into holomorphic/antiholomorphic parts is performed, defaults to no rule*)
+(*It is useful for example for splitting expX into holomorphic and antiholomorphic parts in the case of free boson CFT*)
+factorizationReplacement =  {};
 
 
 (* ::Subsection::Closed:: *)

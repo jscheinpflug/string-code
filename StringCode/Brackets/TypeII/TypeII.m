@@ -131,23 +131,6 @@ Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs, prefac}];
 [[2]]];
 
 
-(* ::Subsubsection:: *)
-(*Extract weight-counting parameter power*)
-
-
-extractWeightCountingParameterPower::usage = "Extract weight-counting parameter power (modulo multiples of \[Alpha]')";
-extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])/.{\[Alpha]p -> 0}
-
-
-(* ::Subsubsection:: *)
-(*Set factorization replacement*)
-
-
-(*This replacement rule is called on multi-local operator every time factorization into holomorphic/antiholomorphic parts is performed*)
-factorizationReplacement = 
-{ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]}
-
-
 (* ::Subsection:: *)
 (*Define action of PCOs*)
 
