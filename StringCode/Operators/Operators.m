@@ -100,6 +100,24 @@ InteractingTestUpToConstant[]:=False;
 
 
 (* ::Subsection:: *)
+(*Define weight of Interacting operators*)
+
+
+totalWeightHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
+totalWeightAntiHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
+totalWeight::usage = "Computes total weight of a normal-ordered product";
+
+totalWeightHolo[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeightHolo[Ia];
+totalWeightHolo[Ia_/;InteractingTest[Ia]] := Map[weightHolo, List @@ Ia] // Total;
+
+totalWeightAntiHolo[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeightAntiHolo[Ia];
+totalWeightAntiHolo[Ia_/;InteractingTest[Ia]] := Map[weightAntiHolo, List @@ Ia] // Total;
+
+totalWeight[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeight[Ia];
+totalWeight[Ia_/;InteractingTest[Ia]] := {totalWeightHolo[Ia], totalWeightAntiHolo[Ia]};
+
+
+(* ::Subsection:: *)
 (*Test MultiOp and length*)
 
 

@@ -45,8 +45,8 @@ allOperators = Join[allfields, interactingOperators];
 (*Define weight of symbols*)
 
 
-weightSymbolHolo[V] := 1 + y/2;
-weightSymbolAntiHolo[V] := 1 + y/2;
+weightSymbolHolo[V] := 1;
+weightSymbolAntiHolo[V] := 1;
 
 
 (* ::Section:: *)

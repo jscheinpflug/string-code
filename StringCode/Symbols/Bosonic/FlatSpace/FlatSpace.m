@@ -61,6 +61,8 @@ holomorphicFields = Join[holomorphicFields, {ProfileX, expX, ProfileXHolo, dX,ex
 antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, ProfileXAntiHolo, dXt, expXAntiHolo}];
 indexedFields = Join[indexedFields, {dX, dXt}];
 allfields=Join[simplefields, compositefields];
+interactingOperators = Join[interactingOperators, {}];
+allOperators = Join[allfields, interactingOperators];
 
 
 (* ::Subsection:: *)

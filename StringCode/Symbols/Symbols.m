@@ -178,17 +178,21 @@ weightSymbolHolo[symbol_/;!isHolomorphic[symbol]]:= 0;
 weightSymbolHolo[c] := - 1;
 weightSymbolHolo[b] := 2;
 
-weightHolo[field_/;!isHolomorphic[Head[field]]] := 0;
+weightHolo[field_/;(!isHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolHolo[Head[field]] + field[[2]];
+weightHolo[field_/; isInteracting[Head[field]] && isIndexed[Head[field]]] := weightSymbolHolo[Head[field]] + field[[2]];
 weightHolo[field_/; isSimple[Head[field]]] := weightSymbolHolo[Head[field]] + field[[1]];
+weightHolo[field_/; isInteracting[Head[field]]] := weightSymbolHolo[Head[field]] + field[[1]];
 
-weightSymbolAntiHolo[symbol_/;!isAntiHolomorphic[symbol]]:= 0;
+weightSymbolAntiHolo[symbol_/;(!isAntiHolomorphic[symbol] && isField[symbol])] := 0;
 weightSymbolAntiHolo[ct] := - 1;
 weightSymbolAntiHolo[bt] := 2;
 
-weightAntiHolo[field_/;!isAntiHolomorphic[Head[field]]] := 0;
+weightAntiHolo[field_/;(!isAntiHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightAntiHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[2]];
+weightAntiHolo[field_/; isInteracting[Head[field]] && isIndexed[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[3]];
 weightAntiHolo[field_/; isSimple[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[1]];
+weightAntiHolo[field_/; isInteracting[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[2]];
 
 
 (* ::Section:: *)
