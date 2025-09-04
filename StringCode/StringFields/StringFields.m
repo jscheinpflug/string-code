@@ -9,6 +9,7 @@ BeginPackage["StringCode`StringFields`"];
 
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
+Needs["StringCode`Operators`"];
 
 
 (* ::Section:: *)

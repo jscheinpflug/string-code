@@ -72,9 +72,11 @@ SFList = List @@ SFsAtPos;
 (*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 moduliLength = Length[moduli];
 If[moduliLength > 0,
+
 (*Create the curly B-ghost insertions, one for each modulus*)
 curlyB = createCurlyB[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketOrder, moduli, w, wbar];
 curlyBs = createCurlyBs[curlyB, bracketOrder, moduliLength];
+
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
@@ -127,7 +129,7 @@ Module[{result, prefac, OPEHolo, OPEAntiHolo},
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 
@@ -183,7 +185,7 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Project OPE onto a given weight*)
 
 
@@ -308,16 +310,18 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Create B-ghost insertion*)
 
 
 createCurlyB::usage = "Create curlyB insertion given local coordinate functions, moduli and number of bracket insertions"
 createCurlyB[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__,  bracketOrder_, moduli_,  w_, wbar_]:= 
 Module[{i,j, minCGhostModdings,minCbarGhostModdings},
+
 (*Get maximum possible b-ghost mode that does not vanish upon action*)
-minCGhostModdings = Map[getMinCGhostModding, SFList];
-minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
+minCGhostModdings = Map[getMinCGhostModding[#[[1]]] &, SFList];
+minCbarGhostModdings = Map[getMinCbarGhostModding[#[[1]]] &, SFList];
+
 (*For each modulus and insertion, create the relevant b-ghost insertions*)
 Table[
 createBs[localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]], moduli, w, wbar, minCGhostModdings[[i]], minCbarGhostModdings[[i]]], 
@@ -490,14 +494,15 @@ result
 
 
 applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
-applyBghostModes[BghostModes__][Ra_/;RtestUpToConstant[Ra]] := Module[{result = Ra},
+applyBghostModes[BghostModes__][operator_] := Module[{result, normalOrderedPartOfResult = operator[[1]], interactingPartOfResult = operator[[2]]},
 Scan[Function[BghostMode,
 (*Act a b-ghost mode*)
-result = (BghostMode/.{bmodeHolo[a_]:> bmodeHolo[a][result], bmodeAntiHolo[a_]:> bmodeAntiHolo[a][result]});
+normalOrderedPartOfResult = (BghostMode/.{bmodeHolo[a_]:> bmodeHolo[a][normalOrderedPartOfResult], bmodeAntiHolo[a_]:> bmodeAntiHolo[a][normalOrderedPartOfResult]});
+result = normalOrderedPartOfResult/.{R[a_]:> Op[R[a],interactingPartOfResult]};
 ], {BghostModes}];
 result]
+
 applyBghostModes[][a_] := a;
-applyBghostModes[BghostModes__][a_] := 0;
 
 
 (* ::Subsection::Closed:: *)

@@ -50,7 +50,9 @@ Op[0, a___]:= 0;
 Op[a___, 0]:= 0;
 Op[a_ f_?(Not[Rtest[#]] & ), b_]:= f Op[a, b];
 Op[a_, b_ f_?(Not[InteractingTest[#]] &)]:= f Op[a, b];
-Op[][]:= 1;
+Op[a_/;NumericQ[a] && a!=1, b_]:= a Op[1, b];
+Op[a_, b_/;NumericQ[b] && b!=1]:= b Op[a,1];
+Op[1,1]:= 1;
 
 
 (* ::Subsubsection:: *)
