@@ -64,10 +64,10 @@ Interacting[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
 Interacting[c___,a_+b_,d___]:=Interacting[c,a,d]+Interacting[c,b,d]
+Interacting[a___,Interacting[b___],c___]:= Interacting[a,b,c]
 Interacting[c___, s_?nonInteractingQ f_, d___] := s Interacting[c, f, d];
 Interacting[c___, s_?nonInteractingQ, d___] := s Interacting[c, d];
 Interacting[]:=1
-Interacting[a___,Interacting[b___],c___]:=Interacting[a,b,c]
 
 nonInteractingQ[expr_]:= !isInteracting[Head[expr]];
 
