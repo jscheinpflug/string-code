@@ -44,14 +44,12 @@ nonOperatorQ[expr_]:= FreeQ[expr, R] && FreeQ[expr, Interacting];
 (*Define Op*)
 
 
-Op[a_ + b_][c___]:= Op[a][c] + Op[b][c];
-Op[a___][b_ + c_]:= Op[a][b] + Op[a][c];
-Op[0][a___]:= 0;
-Op[a___][0]:= 0;
-Op[a_ f_?(Not[Rtest[#]] & )][b_]:= f Op[a][b];
-Op[a_][b_ f_?(Not[InteractingTest[#]] &)]:= f Op[a][b];
-Op[a_][]:= a;
-Op[][a_]:= a;
+Op[a_ + b_, c___]:= Op[a, c] + Op[b, c];
+Op[a___, b_ + c_]:= Op[a, b] + Op[a, c];
+Op[0, a___]:= 0;
+Op[a___, 0]:= 0;
+Op[a_ f_?(Not[Rtest[#]] & ), b_]:= f Op[a, b];
+Op[a_, b_ f_?(Not[InteractingTest[#]] &)]:= f Op[a, b];
 Op[][]:= 1;
 
 
@@ -104,13 +102,34 @@ InteractingTestUpToConstant[]:=False;
 
 
 MultiOptest::usage = "Test if is MultiOp";
-MultiOptest[f_]:=(Head[f]==MultiOp)
+MultiOptest[f_]:=(Head[f]===MultiOp)
 
 MultiOplength::usage = "Test if is MultiOp and has nonzero length";
 MultiOplength[f_]:=If[MultiOptest[f],Length[List @@ f],0]
 
 MultiOpone::usage = "Test if is MultiOp of length one";
-MultiOpone[f_]:=(MultiOplength[f]==1)
+MultiOpone[f_]:=(MultiOplength[f]===1)
+
+
+(* ::Subsection:: *)
+(*Test Op and length*)
+
+
+OpTest::usage = "Test if is Op";
+OpTest[f_]:=(Head[f]===Op)
+
+OpLength::usage = "Test if is Op and has nonzero length";
+OpLength[f_]:=If[OpTest[f],Length[List @@ f],0]
+
+OpOne::usage = "Test if is Op of length one";
+OpOne[f_]:=(OpLength[f]===1)
+
+OpTestUpToConstant::usage = "Test if is operator up to a constant prefactor";
+
+OpTestUpToConstant[c___,a_ f_,d___]:=OpTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allOperators))
+OpTestUpToConstant[c___,a_ ,d___]:= OpTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allOperators))
+OpTestUpToConstant[f_]:=(Head[f]===Op)
+OpTestUpToConstant[]:=False;
 
 
 (* ::Section:: *)

@@ -51,7 +51,7 @@ SFAtPos[SFa_/;SFtest[SFa], z0_, z0bar_]:= Module[{SFlist = List @@ SFa, position
 positionedSFs = Map[positionOp[z0,z0bar],SFlist];
 SplitSFs = splitOperators[positionedSFs, isField, isInteracting];
 sign = factorizationSign[positionedSFs, isField, isInteracting];
-sign Op[R @@ SplitSFs[[1]]][Interacting @@ SplitSFs[[2]]]
+sign Op[R @@ SplitSFs[[1]], Interacting @@ SplitSFs[[2]]]
 ];
 
 
