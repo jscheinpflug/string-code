@@ -131,7 +131,9 @@ Module[{OPEHolo, OPEAntiHolo},
 CollapseInteracting::usage = "Collapse multi-local of free fields operator via OPE, keep only singular parts";
 CollapseInteracting[interactingOPE_, \[Epsilon]Holo_, \[Epsilon]AntiHolo_, weightHolo_, weightAntiHolo_]:= 
 Module[{result, weight = weightHolo + weightAntiHolo, weightRange},
+(*Assume that operators of weights from 0 to weight can appear, consider weights by steps of 2 to preserve level-matching condition*)
 weightRange = Range[0, weight, 2];
+(*Write down the singular part of OPE, with operators in a given weight range*)
 Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingProjection[interactingOPE, #] &, weightRange]
 ]
 
@@ -202,8 +204,8 @@ rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[a
 
 projectOPE::usage = "Project OPE of local operators onto a given holomorphic, antiholomorphic weight";
 projectOPE[OPEHolo_, OPEAntiHolo_, weightHolo_, weightCountingParameterHolo_, weightAntiHolo_, weightCountingParameterAntiHolo_, interactingWeight_, OPEInteracting_, OPEInteractingSingular_]:= 
-Module[{result = 0, powerHolo, expansionOrderHolo, OPEExpandedHolo = Expand[OPEHolo], OPETermsHolo, OPETermsInteractingSingular, OPETermsInteractingIntermediate, powerAntiHolo,
- expansionOrderAntiHolo, interactingOrder, OPEExpandedAntiHolo = Expand[OPEAntiHolo], OPETermsAntiHolo},
+Module[{result = 0, powerHolo,  powerAntiHolo, , expansionOrderHolo, OPEExpandedHolo = Expand[OPEHolo], OPETermsHolo, OPETermsInteractingSingular, OPETermsInteractingPossiblyNonSingular,
+expansionOrderAntiHolo, interactingOrder, OPEExpandedAntiHolo = Expand[OPEAntiHolo], OPETermsAntiHolo},
 
 OPETermsHolo = If[Head[OPEExpandedHolo] === Plus, List @@ OPEExpandedHolo, {OPEExpandedHolo}];
 OPETermsAntiHolo = If[Head[OPEExpandedHolo] === Plus, List @@ OPEExpandedAntiHolo, {OPEExpandedAntiHolo}];
@@ -212,20 +214,24 @@ OPETermsInteractingSingular = If[Head[OPEInteractingSingular] === Plus, List @@ 
 Scan[Function[OPETermHolo,
 Scan[Function[OPETermAntiHolo,
 
+(*Extract powers of singularities in the free field OPE*)
 powerHolo = extractWeightCountingParameterPower[OPETermHolo, weightCountingParameterHolo];
 powerAntiHolo = extractWeightCountingParameterPower[OPETermAntiHolo, weightCountingParameterAntiHolo];
 
+(*Check if level-matching condition is preserved*)
 If[powerHolo === powerAntiHolo,
 
 If[powerHolo >=1, 
-OPETermsInteractingIntermediate = OPETermsInteractingSingular + 
+(*If there are nontrivial singular parts in the free field OPE, keep also the appropriate non-singular parts of the interacting OPE*)
+OPETermsInteractingPossiblyNonSingular = OPETermsInteractingSingular + 
 Total[Map[(weightCountingParameterHolo weightCountingParameterAntiHolo)^# InteractingProjection[OPEInteracting, 2#] &, Range[1, -powerHolo]]],
-OPETermsInteractingIntermediate = OPETermsInteractingSingular];
+OPETermsInteractingPossiblyNonSingular = OPETermsInteractingSingular];
 
 Scan[Function[OPETermInteracting,
+(*Compute to what orders should one Taylor expand the free field OPE*)
 interactingOrder = extractWeightCountingParameterPower[OPETermInteracting, weightCountingParameterHolo];
-expansionOrderHolo = -powerHolo - interactingOrder + weightHolo;
-expansionOrderAntiHolo = -powerAntiHolo - interactingOrder + weightAntiHolo;
+expansionOrderHolo = weightHolo - powerHolo - interactingOrder;
+expansionOrderAntiHolo = weightAntiHolo - powerAntiHolo - interactingOrder;
 
 
 If[expansionOrderHolo >= 0 && expansionOrderAntiHolo >= 0,
@@ -237,7 +243,7 @@ InteractingProjection[OPEInteracting, 2interactingOrder + interactingWeight]
 ];
 ];
 
-], OPETermsInteractingIntermediate]
+], OPETermsInteractingPossiblyNonSingular]
 ];
 ], OPETermsAntiHolo]
 ], OPETermsHolo];
@@ -251,8 +257,11 @@ projectHolo::usage = "Project OPE onto a given holomorphic weight";
 projectHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
 OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
 Scan[Function[OPEterm,
+
+(*Compute to what orders should one Taylor expand the OPE*)
 power = extractWeightCountingParameterPower[OPEterm, weightCountingParameter];
 expansionOrder = -power + weight;
+
 If[expansionOrder >= 0,
 result = result + TaylorAtOrderHolo[OPEterm, expansionOrder, 0]];
 ],
@@ -264,8 +273,11 @@ projectAntiHolo::usage = "Project OPE onto a given antiholomorphic weight";
 projectAntiHolo[OPE_, weight_, weightCountingParameter_]:= Module[{result = 0, power, expansionOrder, OPEexpanded = Expand[OPE], OPEterms},
 OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
 Scan[Function[OPEterm,
+
+(*Compute to what orders should one Taylor expand the OPE*)
 power = extractWeightCountingParameterPower[OPEterm, weightCountingParameter];
 expansionOrder = -power + weight;
+
 If[expansionOrder >= 0,
 result = result + TaylorAtOrderAntiHolo[OPEterm, expansionOrder, 0]];
 ],

@@ -100,7 +100,7 @@ bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 {OPEHolo, OPEAntiHolo} = CollapseFree[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
 
 If[bracketInteracting === MultiOp[],
-(*Perform the level projection on each holomorphic/antiholomorphic sector separately*)
+(*When there is no interacting sector, perform the level projection on each holomorphic/antiholomorphic sector separately*)
 {insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree, bracketAntiHoloWeightFree};
 
 {projectedOPEHolo, projectedOPEAntiHolo} = 
@@ -108,7 +108,7 @@ If[bracketInteracting === MultiOp[],
 
 Sow[{projectedOPEHolo, projectedOPEAntiHolo, prefac}],
 
-(*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from identity*)
+(*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
 bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
 bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
 OPEInteracting = OPE @@ bracketInteracting;
