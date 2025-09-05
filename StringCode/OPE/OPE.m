@@ -25,10 +25,26 @@ Begin["Private`"];
 
 
 (* ::Subsection:: *)
-(*Define OPE by repeated moving of fields under a common normal ordering*)
+(*General properties of OPE*)
 
 
 OPE[a___,0,b___]:=0
+
+(*Multilinearity of OPE*)
+OPE[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allOperators))||(And @@(FreeQ[g,#]&/@ allOperators)))
+OPE[a_+b_,c_]:=OPE[a,c]+OPE[b,c]
+OPE[c_,a_+b_]:=OPE[c,a]+OPE[c,b]
+OPE[a_ b_,c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allOperators))
+OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allOperators))
+
+
+(*Nested OPE*)
+OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
+
+
+(* ::Subsection:: *)
+(*Define OPE of free fields by repeated moving of fields under a common normal ordering*)
+
 
 (*When both normal-ordered products have length one, OPE reduces to Wick contraction + possible normal ordering*)
 OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
@@ -50,18 +66,6 @@ R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) 
 (*When the first element of Ra is composite, commute it through, then compute DWick with Rb, commute it back [producing no net sign], 
   and continue with OPE of other terms in Ra*)
 OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && isComposite[Head[Ra[[1]]]] )
-
-
-(*Multilinearity of OPE*)
-OPE[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allfields))||(And @@(FreeQ[g,#]&/@ allfields)))
-OPE[a_+b_,c_]:=OPE[a,c]+OPE[b,c]
-OPE[c_,a_+b_]:=OPE[c,a]+OPE[c,b]
-OPE[a_ b_,c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
-OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))
-
-
-(*Nested OPE*)
-OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
 
 
 (* ::Section:: *)
