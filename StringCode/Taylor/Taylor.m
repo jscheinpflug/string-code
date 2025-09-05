@@ -113,8 +113,8 @@ TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
 
 (*Taylor to zeroth order preserves the input*)
-TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= Ra;
-TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= Ra;
+TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
+TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
 
 
 (* ::Subsubsection:: *)
