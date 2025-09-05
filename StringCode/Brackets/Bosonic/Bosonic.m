@@ -83,25 +83,45 @@ Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{afterApplyingBghost
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
-Module[{prefac, bracketHolo, bracketAntiHolo, OPEHolo, OPEAntiHolo,
-\[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo},
+Module[{prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
+bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo,
+projectedOPEHolo, projectedOPEAntiHolo, projectedOPE, OPEInteracting, OPEInteractingSingular},
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts*)
 Reap[
 Scan[Function[bracketTerm,
 
-(*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
-{bracketHolo, bracketAntiHolo, prefac} = factorizeMultiOp[bracketTerm];
-(*Collapse the multi-local operator via OPE*)
-{OPEHolo, OPEAntiHolo} = Collapse[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
+(*Split the free multi-local result of the bracket into holomorphic/antiholomorphic parts, and keep the interacting part unsplit*)
+{bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketTerm];
+bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
+bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 
+(*Collapse the free multi-local operator via OPE*)
+{OPEHolo, OPEAntiHolo} = CollapseFree[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
+
+If[bracketInteracting === MultiOp[],
 (*Perform the level projection on each holomorphic/antiholomorphic sector separately*)
-{insertionWeightHolo, insertionWeightAntiHolo} = {totalWeightHolo[R @@ bracketHolo], totalWeightAntiHolo[R @@ bracketAntiHolo]};
+{insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree, bracketAntiHoloWeightFree};
 
 {projectedOPEHolo, projectedOPEAntiHolo} = 
 {projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
 
-Sow[{projectedOPEHolo, projectedOPEAntiHolo, prefac}]
+Sow[{projectedOPEHolo, projectedOPEAntiHolo, prefac}],
+
+(*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from identity*)
+bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
+bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
+OPEInteracting = OPE @@ bracketInteracting;
+OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting];
+
+(*Perform the level projection on both holomorphic and antiholomorphic sector together*)
+{insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree + bracketHoloWeightInteracting, bracketAntiHoloWeightFree + bracketAntiHoloWeightInteracting};
+
+projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
+ bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
+
+Sow[{projectedOPE, prefac}];
+];
 
 ],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
 [[2]]];

@@ -51,7 +51,7 @@ actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actBRSTHolo[0] := 0;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define bracket*)
 
 
@@ -115,17 +115,24 @@ BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weight
 a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Collapse multi-local operator via OPE*)
 
 
-Collapse::usage = "Collapse multi-local operator via OPE";
-Collapse[multiOpHolo_/;MultiOptest[multiOpHolo], multiOpAntiHolo_/;MultiOptest[multiOpAntiHolo], \[Epsilon]Holo_, \[Epsilon]AntiHolo_]:= 
-Module[{result, prefac, OPEHolo, OPEAntiHolo},
+CollapseFree::usage = "Collapse multi-local of free fields operator via OPE";
+CollapseFree[multiOpHolo_/;MultiOptest[multiOpHolo], multiOpAntiHolo_/;MultiOptest[multiOpAntiHolo], \[Epsilon]Holo_, \[Epsilon]AntiHolo_]:= 
+Module[{OPEHolo, OPEAntiHolo},
 
 (*Rescale positions of operators in the bracket by a common \[Epsilon]Holo/\[Epsilon]AntiHolo to ease weight projection, and then perform OPE*)
 {OPEHolo, OPEAntiHolo} = {OPE @@ rescaleMultiOp[multiOpHolo, \[Epsilon]Holo], OPE @@ rescaleMultiOp[multiOpAntiHolo, \[Epsilon]AntiHolo]};
 {OPEHolo, OPEAntiHolo}
+]
+
+CollapseInteracting::usage = "Collapse multi-local of free fields operator via OPE, keep only singular parts";
+CollapseInteracting[interactingOPE_, \[Epsilon]Holo_, \[Epsilon]AntiHolo_, weightHolo_, weightAntiHolo_]:= 
+Module[{result, weight = weightHolo + weightAntiHolo, weightRange},
+weightRange = Range[0, weight, 2];
+Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingProjection[interactingOPE, #] &, weightRange]
 ]
 
 
@@ -139,19 +146,22 @@ Module[{result, prefac, OPEHolo, OPEAntiHolo},
 
 factorizeMultiOp::usage = "Factorize multi-local operator into holomorphic and antiholomorphic multi-local operators";
 factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
-Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, localOpPrefac, localOpList,
-localOpHolo, localOpAntiHolo, localOpsHolo = {}, localOpsAntiHolo = {}, prefac = 1},
-{localOpsHolo, localOpsAntiHolo} = 
+Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, localOpFree, localOpInteracting, localOpPrefac, localOpList,
+localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo, localOpsInteracting, prefac = 1},
+{localOpsHolo, localOpsAntiHolo, localOpsInteracting} = 
 Reap[Scan[Function[localOp,
-localOpPrefac = extractPrefacFromRTimesConstant[localOp];
-localOpList = extractListFromRTimesConstant[localOp];
+localOpFree = localOp[[1]];
+localOpInteracting = localOp[[2]];
+localOpPrefac = extractPrefacFromRTimesConstant[localOpFree];
+localOpList = extractListFromRTimesConstant[localOpFree];
 localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];
 prefac = prefac * localOpPrefac * factorizationSign[localOpList, isHolomorphic, isAntiHolomorphic];
 {localOpHolo, localOpAntiHolo} = {R @@ localOpFactorized[[1]], R @@ localOpFactorized[[2]]};
 Sow[localOpHolo, "Holo"];
 Sow[localOpAntiHolo, "AntiHolo"];
+Sow[localOpInteracting, "Interacting"]
 ], List @@ multiOpReplaced]][[2]];
-{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, prefac}]
+{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, MultiOp @@ localOpsInteracting, prefac}]
 
 
 (* ::Subsubsection:: *)
@@ -161,6 +171,7 @@ Sow[localOpAntiHolo, "AntiHolo"];
 extractPrefacFromRTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by normal-ordered product";
 extractPrefacFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := a;
 extractPrefacFromRTimesConstant[Ra_/;Rtest[Ra]] := 1;
+extractPrefacFromRTimesConstant[1] := 1;
 
 extractListFromRTimesConstant::usage = "Extracts the list of operators inside a normal-ordered product possibly multiplied by a constant prefactor";
 extractListFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := List @@ Ra;
@@ -185,8 +196,55 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Project OPE onto a given weight*)
+
+
+projectOPE::usage = "Project OPE of local operators onto a given holomorphic, antiholomorphic weight";
+projectOPE[OPEHolo_, OPEAntiHolo_, weightHolo_, weightCountingParameterHolo_, weightAntiHolo_, weightCountingParameterAntiHolo_, interactingWeight_, OPEInteracting_, OPEInteractingSingular_]:= 
+Module[{result = 0, powerHolo, expansionOrderHolo, OPEExpandedHolo = Expand[OPEHolo], OPETermsHolo, OPETermsInteractingSingular, OPETermsInteractingIntermediate, powerAntiHolo,
+ expansionOrderAntiHolo, interactingOrder, OPEExpandedAntiHolo = Expand[OPEAntiHolo], OPETermsAntiHolo},
+
+OPETermsHolo = If[Head[OPEExpandedHolo] === Plus, List @@ OPEExpandedHolo, {OPEExpandedHolo}];
+OPETermsAntiHolo = If[Head[OPEExpandedHolo] === Plus, List @@ OPEExpandedAntiHolo, {OPEExpandedAntiHolo}];
+OPETermsInteractingSingular = If[Head[OPEInteractingSingular] === Plus, List @@ OPEInteractingSingular, {OPEInteractingSingular}];
+
+Scan[Function[OPETermHolo,
+Scan[Function[OPETermAntiHolo,
+
+powerHolo = extractWeightCountingParameterPower[OPETermHolo, weightCountingParameterHolo];
+powerAntiHolo = extractWeightCountingParameterPower[OPETermAntiHolo, weightCountingParameterAntiHolo];
+
+If[powerHolo === powerAntiHolo,
+
+If[powerHolo >=1, 
+OPETermsInteractingIntermediate = OPETermsInteractingSingular + 
+Total[Map[(weightCountingParameterHolo weightCountingParameterAntiHolo)^# InteractingProjection[OPEInteracting, 2#] &, Range[1, -powerHolo]]],
+OPETermsInteractingIntermediate = OPETermsInteractingSingular];
+
+Scan[Function[OPETermInteracting,
+interactingOrder = extractWeightCountingParameterPower[OPETermInteracting, weightCountingParameterHolo];
+expansionOrderHolo = -powerHolo - interactingOrder + weightHolo;
+expansionOrderAntiHolo = -powerAntiHolo - interactingOrder + weightAntiHolo;
+
+
+If[expansionOrderHolo >= 0 && expansionOrderAntiHolo >= 0,
+(*Taylor expand and project the interacting OPE, so that the total weight is (weightHolo, weightAntiHolo)*)
+result = result +
+Op[
+R[TaylorAtOrderHolo[OPETermHolo, expansionOrderHolo, 0], TaylorAtOrderAntiHolo[OPETermAntiHolo, expansionOrderAntiHolo, 0]], 
+InteractingProjection[OPEInteracting, 2interactingOrder + interactingWeight]
+];
+];
+
+], OPETermsInteractingIntermediate]
+];
+], OPETermsAntiHolo]
+], OPETermsHolo];
+
+
+
+result/.{weightCountingParameterHolo -> 1, weightCountingParameterAntiHolo -> 1}]
 
 
 projectHolo::usage = "Project OPE onto a given holomorphic weight";
@@ -223,7 +281,7 @@ extractWeightCountingParameterPower::usage = "Extract weight-counting parameter 
 extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Set factorization replacement*)
 
 
@@ -310,7 +368,7 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Create B-ghost insertion*)
 
 
@@ -427,7 +485,7 @@ DependentQ::usage = "Checks if expression is dependent on moduli";
 DependentQ[expr_, moduli_List] := moduli =!= {} && !FreeQ[expr, Alternatives @@ moduli];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Create B-ghost insertions*)
 
 
@@ -476,7 +534,7 @@ nonDifferentialQ::usage = "Checks if does not contain Differential";
 nonDifferentialQ[expr_] := FreeQ[expr, Differential];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Apply B-ghost insertions to multi-op*)
 
 
