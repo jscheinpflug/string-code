@@ -38,6 +38,8 @@ ProfileX::usage = "An X-profile";
 
 
 \[Psi]::usage = "Holomorphic free matter fermion";
+
+
 \[Psi]t::usage = "Antiholomorphic free matter fermion";
 
 
@@ -66,7 +68,7 @@ antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHol
 indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
 allfields=Join[bosons,fermions];
 interactingOperators = Join[interactingOperators, {}];
-allOperators = Join[allfields, allInteractingOperators];
+allOperators = Join[allfields, interactingOperators];
 
 
 (* ::Subsection:: *)

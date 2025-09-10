@@ -56,16 +56,16 @@ Begin["Private`"];
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
 bosons=Join[bosons, {d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
-fermions=Join[fermions, {\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
-regfermions=Join[regfermions,{\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+fermions=Join[fermions, {\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
+regfermions=Join[regfermions,{\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 exp\[Phi]fermions={exp\[Phi]f};
 exp\[Phi]tfermions={exp\[Phi]tf};
-simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
-simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Psi],\[Psi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 compositefields= Join[compositefields, {exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
-holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Psi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Psi]t,\[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
-indexedFields = Join[indexedFields, {\[Psi], \[Psi]t}];
+holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
+indexedFields = Join[indexedFields, {}];
 allfields=Join[bosons,fermions];
 
 
