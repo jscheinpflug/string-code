@@ -40,7 +40,7 @@ MultiOp[c___, s_?nonOperatorQ,   d___] := s MultiOp[c, d];
 nonOperatorQ[expr_]:= FreeQ[expr, R] && FreeQ[expr, Interacting];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define Op*)
 
 
@@ -97,6 +97,14 @@ InteractingTestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(
 InteractingTestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
 InteractingTestUpToConstant[f_]:=InteractingTest[f];
 InteractingTestUpToConstant[]:=False;
+
+
+(* ::Subsection:: *)
+(*Define parity of Op*)
+
+
+parityOp::usage = "Computes the parity of a local operator";
+parityOp[op_/;OpTest[op]]:= Mod[parity[op[[1]]] + parity[op[[2]]],2];
 
 
 (* ::Subsection:: *)
