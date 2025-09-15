@@ -497,7 +497,7 @@ DependentQ::usage = "Checks if expression is dependent on moduli";
 DependentQ[expr_, moduli_List] := moduli =!= {} && !FreeQ[expr, Alternatives @@ moduli];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Create B-ghost insertions*)
 
 
@@ -507,7 +507,8 @@ Do[
 (*For each, possibly composite, curlyB action in result, add another curlyB action*)
 result = Flatten[Map[addCurlyB[curlyB, numberOfPositions, #] &, result],2],
 numberOfCurlyBs];
-result/.{WedgeProductNoSign->WedgeProduct}]
+(*Sort b-ghosts as if they were commuting (the wedge was treated as commuting)*)
+Map[sortBGhosts, result/.{WedgeProductNoSign->WedgeProduct}]]
 
 
 addCurlyB::usage = "Adds a curlyB to an interemediate object that tracks already added curlyBs)";
@@ -555,6 +556,19 @@ WedgeProductNoSign[c___,b_,a_,d___]:=WedgeProductNoSign[c,a,b,d]/;(!OrderedQ[{b,
 
 nonDifferentialQ::usage = "Checks if does not contain Differential";
 nonDifferentialQ[expr_] := FreeQ[expr, Differential];
+
+
+(* ::Subsubsection:: *)
+(*Sort B-ghosts*)
+
+
+sortBGhosts[BGhostPrefacPair_]:= Module[{prefac = BGhostPrefacPair[[1]], BGhosts = BGhostPrefacPair[[2]], result},
+result = {prefac, Flatten[Reap[Scan[Function[BGhostsAtPosition,
+Sow[Sort[BGhostsAtPosition]];
+],
+BGhosts]][[2]],1]};
+result
+]
 
 
 (* ::Subsection:: *)
