@@ -42,6 +42,10 @@ OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allOperators))
 OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
 
 
+(*OPE of a single normal-ordered product is no OPE*)
+OPE[R[a___]]:=R[a]
+
+
 (* ::Subsection:: *)
 (*Define OPE of free fields by repeated moving of fields under a common normal ordering*)
 
