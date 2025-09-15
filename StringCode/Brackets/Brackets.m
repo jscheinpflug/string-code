@@ -51,7 +51,7 @@ actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actBRSTHolo[0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define bracket*)
 
 
@@ -78,14 +78,14 @@ curlyB = createCurlyB[SFList, localCoordinateFunctionsHol, localCoordinateFuncti
 curlyBs = createCurlyBs[curlyB, bracketOrder, moduliLength];
 
 (*Apply the curly B-ghost insertions*)
-afterApplyingBghosts = applyCurlyBs[SFsAtPos, curlyBs, moduliLength],
+afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
 
 result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
 result]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Place string fields at positions given by local coordinates*)
 
 
@@ -115,7 +115,7 @@ BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weight
 a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Collapse multi-local operator via OPE*)
 
 
@@ -198,7 +198,7 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Project OPE onto a given weight*)
 
 
@@ -507,7 +507,7 @@ Do[
 (*For each, possibly composite, curlyB action in result, add another curlyB action*)
 result = Flatten[Map[addCurlyB[curlyB, numberOfPositions, #] &, result],2],
 numberOfCurlyBs];
-result]
+result/.{WedgeProductNoSign->WedgeProduct}]
 
 
 addCurlyB::usage = "Adds a curlyB to an interemediate object that tracks already added curlyBs)";
@@ -521,8 +521,10 @@ initialBGhostModesAtPosition = initialBModes[[i]];
 Scan[Function[BGhostOnPosition,
 {prefac, bGhostMode} = BGhostOnPosition;
 If[!MemberQ[initialBGhostModesAtPosition, bGhostMode],
+
 (*Sow updated prefactor and updated b-ghost modes*)
-Sow[{WedgeProduct[initialPrefac, prefac], ReplacePart[initialBModes, i -> Append[initialBGhostModesAtPosition, bGhostMode]]}];
+(*Treat coordinate function prefactors as anticommuting*)
+Sow[{WedgeProductNoSign[initialPrefac, prefac], ReplacePart[initialBModes, i -> Append[initialBGhostModesAtPosition, bGhostMode]]}];
 ];
 ], curlyBOnPosition],
 {i, 1, numberOfPositions}]][[2]];
@@ -542,24 +544,41 @@ WedgeProduct[]:=1;
 WedgeProduct[a___,WedgeProduct[b___],c___]:=WedgeProduct[a,b,c]
 WedgeProduct[c___,b_,a_,d___]:=-WedgeProduct[c,a,b,d]/;(!OrderedQ[{b,a}])
 
+WedgeProductNoSign::usage = "A wedge product between Differentials, with no sign for swaps (treat coordinates as anticommuting)";
+WedgeProductNoSign[ c___,a_,a_,d___]:=0
+WedgeProductNoSign[c___,a_+b_,d___]:=WedgeProductNoSign[c,a,d]+WedgeProductNoSign[c,b,d]
+WedgeProductNoSign[c___, s_?nonDifferentialQ f_, d___] := s WedgeProductNoSign[c, f, d];
+WedgeProductNoSign[c___, s_?nonDifferentialQ,   d___] := s WedgeProductNoSign[c, d];
+WedgeProductNoSign[]:=1;
+WedgeProductNoSign[a___,WedgeProductNoSign[b___],c___]:=WedgeProductNoSign[a,b,c]
+WedgeProductNoSign[c___,b_,a_,d___]:=WedgeProductNoSign[c,a,b,d]/;(!OrderedQ[{b,a}])
+
 nonDifferentialQ::usage = "Checks if does not contain Differential";
 nonDifferentialQ[expr_] := FreeQ[expr, Differential];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Apply B-ghost insertions to multi-op*)
 
 
 applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positions] to a multi-local operator"
-applyCurlyBs[SFsAtPos_/;MultiOptest[SFsAtPos], curlyBs__, moduliLength_]:= 
-Module[{result = 0, SFList = List @@ SFsAtPos, prefac, bGhostModes, curlyBOnPosition},
+applyCurlyBs[SFList_, curlyBs__, moduliLength_]:= 
+Module[{result = 0, prefac, bGhostModes, curlyBOnPosition, SFParities = Map[parityOp, SFList], SFParitiesAccumulated, SFListWithAccumulatedSigns},
+
+(*Create auxiliary list that makes sure that b-ghosts get a minus sign when they pass through a fermionic string field*)
+(*The signs assume that the b-ghosts will first be applied to the "furthermost" string field*)
+SFParitiesAccumulated = Mod[Accumulate[SFParities] - SFParities[[1]],2];
+SFListWithAccumulatedSigns = MapThread[(Times[(-1)^#1, #2]) &, {SFParitiesAccumulated, SFList}];
+
 Scan[Function[curlyB,
 {prefac, bGhostModes} = curlyB;
+ 
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
- result = result + 1/Factorial[moduliLength] prefac MultiOp @@ MapThread[#1 @ #2 &, {applyBghostModes @@@ bGhostModes, SFList}];
+ result = result + prefac MultiOp @@ MapThread[#1 @ #2 &, {applyBghostModes @@@ bGhostModes, SFListWithAccumulatedSigns}];
 ],
  curlyBs];
-result
+(*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
+(-1)^(moduliLength-1) /Factorial[moduliLength] result
 ];
 
 
@@ -568,8 +587,8 @@ applyBghostModes[BghostModes__][operator_] := Module[{result, normalOrderedPartO
 Scan[Function[BghostMode,
 (*Act a b-ghost mode*)
 normalOrderedPartOfResult = (BghostMode/.{bmodeHolo[a_]:> bmodeHolo[a][normalOrderedPartOfResult], bmodeAntiHolo[a_]:> bmodeAntiHolo[a][normalOrderedPartOfResult]});
-result = normalOrderedPartOfResult/.{R[a_]:> Op[R[a],interactingPartOfResult]};
 ], {BghostModes}];
+result = normalOrderedPartOfResult/.{R[a_]:> Op[R[a],interactingPartOfResult]};
 result]
 
 applyBghostModes[][a_] := a;
