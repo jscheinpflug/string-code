@@ -557,7 +557,7 @@ Scan[Function[curlyB,
 ],
  curlyBList];
 (*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
-(-1)^(moduliLength-1)/Factorial[moduliLength] result
+(-1)^(moduliLength/2)/Factorial[moduliLength] result
 ];
 
 
