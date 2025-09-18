@@ -77,7 +77,7 @@ R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(!OrderedQ[{b,a}])
 R[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
-R[c___,a_+b_,d___]:=R[c,a,d]+R[c,b,d]
+R[c___, a_, d___] := (R[c, #, d] & /@ a) /; Head[a] == Plus
 R[c___,a_ f_,d___]:=a R[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 R[c___,a_ ,d___]:=a R[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 R[]:=1
