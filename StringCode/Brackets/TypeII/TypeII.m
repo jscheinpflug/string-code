@@ -100,8 +100,9 @@ result]
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
-Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, OPEHolo, OPEAntiHolo,
-\[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  holoOPEWithPCOs, antiHoloOPEWithPCOs},
+Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
+bracketAntiHoloWeightFree, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular, OPEHolo, OPEAntiHolo,
+\[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
 bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
@@ -111,12 +112,15 @@ Reap[
 Scan[Function[bracketNoPCOsTerm,
 
 (*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
-{bracketHolo, bracketAntiHolo, prefac} = factorizeMultiOp[bracketNoPCOsTerm];
+{bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketNoPCOsTerm];
+bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
+bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 
 (*Collapse the multi-local operator via OPE*)
-{OPEHolo, OPEAntiHolo} = Collapse[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
+{OPEHolo, OPEAntiHolo} = CollapseFree[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
 
-(*Perform the level projection on each holomorphic/antiholomorphic sector separately*)
+If[bracketInteracting === MultiOp[],
+(*When there is no interacting sector, perform the level projection on each holomorphic/antiholomorphic sector separately*)
 {insertionWeightHolo, insertionWeightAntiHolo} = {totalWeightHolo[R @@ bracketHolo], totalWeightAntiHolo[R @@ bracketAntiHolo]};
 
 {projectedOPEHolo, projectedOPEAntiHolo} = 
@@ -125,8 +129,21 @@ Scan[Function[bracketNoPCOsTerm,
 (*Act with PCOs on each projected holomorphic/antiholomorphic sector separately*)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {Nest[actPCOHolo, projectedOPEHolo, numberOfHoloPCOs], Nest[actPCOAntiHolo, projectedOPEAntiHolo, numberOfAntiHoloPCOs]};
 
-Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs, prefac}];
+Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs, prefac}],
+(*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
+bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
+bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
+OPEInteracting = OPE @@ bracketInteracting;
+OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting];
 
+(*Perform the level projection on both holomorphic and antiholomorphic sector together*)
+{insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree + bracketHoloWeightInteracting, bracketAntiHoloWeightFree + bracketAntiHoloWeightInteracting};
+
+projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
+ bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
+
+Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs], prefac}];
+]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
 [[2]]];
 
@@ -194,6 +211,8 @@ actPCOHolo[0] := 0;
 actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
 actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 actPCOAntiHolo[0] := 0;
+
+actPCO[a___]:= actPCOHolo[actPCOAntiHolo[a]];
 
 
 (* ::Subsection:: *)
