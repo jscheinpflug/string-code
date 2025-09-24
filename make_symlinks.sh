@@ -105,8 +105,7 @@ if [[ $link ]]; then
 		echo "StringCode directory already present; not symlinking"
 	exit 1
 	fi
-	ln -s $StringCodeDir $ApplicationsDir
-	echo "linked succesfully"
+	ln -s $StringCodeDir $ApplicationsDir && echo "linked succesfully"
 else
-	rm $ApplicationsDir/StringCode
+	rm $ApplicationsDir/StringCode && echo "unlinked successfully"
 fi
