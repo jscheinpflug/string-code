@@ -86,9 +86,10 @@ case $ask_result in
 		ApplicationsDir=~/Library/Wolfram/Applications
 		;;
 	Linux)
-		ApplicationsDir=~/.Wolfram
+		ApplicationsDir=~/.Wolfram/Applications
 		;;
 	abort)
+		echo aborted
 		exit 0
 		;;
 esac
@@ -105,6 +106,7 @@ if [[ $link ]]; then
 	exit 1
 	fi
 	ln -s $StringCodeDir $ApplicationsDir
+	echo "linked succesfully"
 else
 	rm $ApplicationsDir/StringCode
 fi
