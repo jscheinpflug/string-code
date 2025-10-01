@@ -301,7 +301,7 @@ extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Expo
 factorizationReplacement =  {};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define action of b0^-*)
 
 
@@ -379,7 +379,7 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Create B-ghost insertion*)
 
 
@@ -521,6 +521,10 @@ result]
 
 
 (* ::Subsubsection:: *)
+(*Sort b-ghosts according to on which position they act*)
+
+
+(* ::Subsubsection:: *)
 (*Define wedge product*)
 
 
@@ -543,17 +547,12 @@ nonDifferentialQ[expr_] := FreeQ[expr, Differential];
 
 applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positions] to a multi-local operator"
 applyCurlyBs[SFList_, curlyBs_, moduliLength_]:= 
-Module[{result = 0, prefac, bGhostModes, curlyBOnPosition, SFParities = Map[parityOp, SFList], SFParitiesAccumulated, SFListWithAccumulatedSigns,
+Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
-
-(*Create auxiliary list that makes sure that b-ghosts get a minus sign when they pass through a fermionic string field*)
-(*The signs assume that the b-ghosts will first be applied to the "furthermost" string field*)
-SFParitiesAccumulated = Mod[Accumulate[SFParities] - SFParities[[1]],2];
-SFListWithAccumulatedSigns = MapThread[(Times[(-1)^#1, #2]) &, {SFParitiesAccumulated, SFList}];
 
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
- result = result + applyBghostModes[curlyB, SFListWithAccumulatedSigns];
+ result = result + applyBghostModes[curlyB, SFList];
 ],
  curlyBList];
 (*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
@@ -563,15 +562,16 @@ Scan[Function[curlyB,
 
 applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
 applyBghostModes[a_ b_, SFList_]:= a applyBghostModes[b, SFList]/;Head[b]==combinedCurlyBs;
-applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFListSplit = Map[{#[[1]], #[[2]]}&, SFList], currentSFListSplit},
+applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], SFListSplit = Map[{#[[1]], #[[2]]}&, SFList], currentSFListSplit},
 currentSFListSplit = SFListSplit;
-(*Scan over reverse list of BghostModes (the reverse is done because the rightmost b-mode is to be applied first)*)
+
 Scan[Function[BghostMode,
 (*Act the b-ghost mode*)
 bGhostPosition = getBGhostPosition[BghostMode];
 currentResultAtPosition =  currentSFListSplit[[bGhostPosition]];
-currentSFListSplit[[bGhostPosition]] = {actBGhostMode[BghostMode, currentResultAtPosition[[1]]], currentResultAtPosition[[2]]};
-], Reverse @@ BghostModes];
+currentSFListSplit[[bGhostPosition]] = {(-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition[[1]]], currentResultAtPosition[[2]]};
+SFParities[[bGhostPosition]] = Mod[SFParities[[bGhostPosition]] + 1,2];
+], FlattenAt[BghostModes,1]];
 result = MultiOp @@ Map[Op[#[[1]],#[[2]]]&, currentSFListSplit];
 result]
 
