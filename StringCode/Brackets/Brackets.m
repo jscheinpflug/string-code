@@ -137,7 +137,7 @@ Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingPr
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 
@@ -148,21 +148,22 @@ Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingPr
 factorizeMultiOp::usage = "Factorize multi-local operator into holomorphic and antiholomorphic multi-local operators";
 factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
 Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, localOpFree, localOpInteracting, localOpPrefac, localOpList,
-localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo, localOpsInteracting, prefac = 1},
-{localOpsHolo, localOpsAntiHolo, localOpsInteracting} = 
+localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo,localOpsHoloAntiHolo, localOpsInteracting, prefac = 1},
+{localOpsHolo, localOpsAntiHolo, localOpsInteracting, localOpsHoloAntiHolo} = 
 Reap[Scan[Function[localOp,
 localOpFree = localOp[[1]];
 localOpInteracting = localOp[[2]];
-localOpPrefac = extractPrefacFromRTimesConstant[localOpFree];
+localOpPrefac = extractPrefacFromRTimesConstant[localOpFree]/.{WedgeProduct[a___]->1};
 localOpList = extractListFromRTimesConstant[localOpFree];
 localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];
-prefac = prefac * localOpPrefac * factorizationSign[localOpList, isHolomorphic, isAntiHolomorphic];
+prefac = prefac * localOpPrefac;
 {localOpHolo, localOpAntiHolo} = {R @@ localOpFactorized[[1]], R @@ localOpFactorized[[2]]};
 Sow[localOpHolo, "Holo"];
 Sow[localOpAntiHolo, "AntiHolo"];
-Sow[localOpInteracting, "Interacting"]
+Sow[localOpInteracting, "Interacting"];
+Sow[localOpList, "Holo and AntiHolo"];
 ], List @@ multiOpReplaced]][[2]];
-{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, MultiOp @@ localOpsInteracting, prefac}]
+{MultiOp @@ localOpsHolo, MultiOp @@ localOpsAntiHolo, MultiOp @@ localOpsInteracting, factorizationSign[Flatten[localOpsHoloAntiHolo], isHolomorphic, isAntiHolomorphic]}]
 
 
 (* ::Subsubsection:: *)
@@ -301,7 +302,7 @@ extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Expo
 factorizationReplacement =  {};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define action of b0^-*)
 
 
@@ -564,14 +565,13 @@ applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
 applyBghostModes[a_ b_, SFList_]:= a applyBghostModes[b, SFList]/;Head[b]==combinedCurlyBs;
 applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], SFListSplit = Map[{#[[1]], #[[2]]}&, SFList], currentSFListSplit},
 currentSFListSplit = SFListSplit;
-
 Scan[Function[BghostMode,
 (*Act the b-ghost mode*)
 bGhostPosition = getBGhostPosition[BghostMode];
 currentResultAtPosition =  currentSFListSplit[[bGhostPosition]];
 currentSFListSplit[[bGhostPosition]] = {(-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition[[1]]], currentResultAtPosition[[2]]};
 SFParities[[bGhostPosition]] = Mod[SFParities[[bGhostPosition]] + 1,2];
-], FlattenAt[BghostModes,1]];
+], Reverse @@ BghostModes];
 result = MultiOp @@ Map[Op[#[[1]],#[[2]]]&, currentSFListSplit];
 result]
 

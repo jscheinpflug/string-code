@@ -106,7 +106,7 @@ If[bracketInteracting === MultiOp[],
 {projectedOPEHolo, projectedOPEAntiHolo} = 
 {projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
 
-Sow[{projectedOPEHolo, projectedOPEAntiHolo, prefac}],
+Sow[{prefac projectedOPEHolo, projectedOPEAntiHolo}],
 
 (*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
 bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
@@ -120,7 +120,7 @@ OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[E
 projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
  bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
 
-Sow[{projectedOPE, prefac}];
+Sow[{prefac projectedOPE}];
 ];
 
 ],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
