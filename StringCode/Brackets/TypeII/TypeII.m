@@ -124,17 +124,17 @@ If[bracketInteracting === MultiOp[],
 {insertionWeightHolo, insertionWeightAntiHolo} = {totalWeightHolo[R @@ bracketHolo], totalWeightAntiHolo[R @@ bracketAntiHolo]};
 
 {projectedOPEHolo, projectedOPEAntiHolo} = 
-{projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
+{projectHolo[prefac OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
 
 (*Act with PCOs on each projected holomorphic/antiholomorphic sector separately*)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {Nest[actPCOHolo, projectedOPEHolo, numberOfHoloPCOs], Nest[actPCOAntiHolo, projectedOPEAntiHolo, numberOfAntiHoloPCOs]};
 
-Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs, prefac}],
+Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs}],
 (*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
 bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
 bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
 OPEInteracting = OPE @@ bracketInteracting;
-OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting];
+OPEInteractingSingular = CollapseInteracting[prefac OPEInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting];
 
 (*Perform the level projection on both holomorphic and antiholomorphic sector together*)
 {insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree + bracketHoloWeightInteracting, bracketAntiHoloWeightFree + bracketAntiHoloWeightInteracting};
@@ -142,7 +142,7 @@ OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[E
 projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
  bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
 
-Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs], prefac}];
+Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}];
 ]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
 [[2]]];
