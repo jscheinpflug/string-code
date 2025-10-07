@@ -84,14 +84,14 @@ result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
 result]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Place string fields at positions given by local coordinates*)
 
 
 placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
 placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__, w_, wbar_]:= 
 Module[{i, length = Length[SFs]},
-MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
+MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]],{i,1,length}]
 ]
 
 
@@ -137,7 +137,7 @@ Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingPr
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 
@@ -380,7 +380,7 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Create B-ghost insertion*)
 
 

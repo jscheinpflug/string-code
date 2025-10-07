@@ -33,7 +33,7 @@ Begin["Private`"];
 
 
 (* ::Input::Initialization:: *)
-positionOp[z0_, z0bar_][V[n1_, n2_]]:= V[n1,n2,  z0, z0bar];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][V[n1_, n2_]]:= V[n1,n2,  localCoordinateHol[0], localCoordinateAntiHol[0]];
 
 
 (* ::Section:: *)

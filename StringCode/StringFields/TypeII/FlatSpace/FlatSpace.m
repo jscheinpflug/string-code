@@ -45,13 +45,23 @@ SF[ c___,a_,b_,d___]:=SF[c,exp\[Phi]tf[a[[1]]+b[[1]]],d]/;(Head[a]==exp\[Phi]tb 
 (*Put string field at a position*)
 
 
+(* ::Subsubsection:: *)
+(*Free boson*)
+
+
 (* ::Input::Initialization:: *)
-positionOp[z0_, z0bar_][\[Psi][\[Mu]_,n_]]:= \[Psi][\[Mu], n, z0];
-positionOp[z0_, z0bar_][ProfileX[profile_, ders_List]]:= ProfileX[profile,ders, z0, z0bar];
-positionOp[z0_, z0bar_][dX[\[Mu]_,n_]]:= dX[\[Mu], n, z0];
-positionOp[z0_, z0bar_][\[Psi]t[\[Mu]_,n_]]:= \[Psi]t[\[Mu], n, z0bar];
-positionOp[z0_, z0bar_][dXt[\[Mu]_,n_]]:= dXt[\[Mu], n, z0bar];
-positionOp[z0_, z0bar_][expX[n_]]:= expX[n, z0, z0bar];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][ProfileX[profile_, ders_List]]:= ProfileX[profile,ders, localCoordinateHol[0], localCoordinateAntiHol[0]];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][dX[\[Mu]_,n_]]:= dX[\[Mu], n, localCoordinateHol[0]];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][dXt[\[Mu]_,n_]]:= dXt[\[Mu], n, localCoordinateAntiHol[0]];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][expX[n_]]:= expX[n, localCoordinateHol[0], localCoordinateAntiHol[0]];
+
+
+(* ::Subsubsection:: *)
+(*Free fermion*)
+
+
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][\[Psi][\[Mu]_,n_]]:= \[Psi][\[Mu], n, localCoordinateHol[0]];
+positionOp[localCoordinateHol_, localCoordinateAntiHol_][\[Psi]t[\[Mu]_,n_]]:= \[Psi]t[\[Mu], n, localCoordinateAntiHol[0]];
 
 
 (* ::Section:: *)
