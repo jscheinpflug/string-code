@@ -84,11 +84,11 @@ localCoordinateReplacement = Join[localCoordinateReplacement, localCoordinateRep
 (*Define flat 2-bracket data*)
 
 
-Module[{z0, z0bar},
-qR[2,1][]:= 1;
-qR[2,2][]:= 1;
-qbarR[2,1][]:= 1;
-qbarR[2,2][]:= 1;
+Module[{z0, z0bar, r0},
+qR[2,1][]:= r0;
+qR[2,2][]:= r0;
+qbarR[2,1][]:= r0;
+qbarR[2,2][]:= r0;
 zR[2,1][]:= - z0;
 zR[2,2][]:= z0;
 zbarR[2,1][]:= - z0bar;
