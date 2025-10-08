@@ -48,13 +48,9 @@ SF[g___,a_^n_,h___]:=SF[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 
 
 SFAtPos::usage = "A string field at a given position";
-SFAtPos[SFa_/;SFtest[SFa], localCoordinateHol_, localCoordinateAntiHol_]:= Module[{SFlist = List @@ SFa, positionedSFs, splitSFs, sign}, 
-Print[localCoordinateHol];
-positionedSFs = Map[mapOp[localCoordinateHol,localCoordinateAntiHol],SFlist];
-Print[positionedSFs];
-splitSFs = splitOperators[positionedSFs, isField, isInteracting];
-sign = factorizationSign[positionedSFs, isField, isInteracting];
-sign Op[R @@ splitSFs[[1]], Interacting @@ splitSFs[[2]]]
+SFAtPos[SFa_/;SFtest[SFa], localCoordinateHol_, localCoordinateAntiHol_]:= Module[{SFlist = List @@ SFa, positionedSFs}, 
+positionedSFs = mapOp[localCoordinateHol,localCoordinateAntiHol] @@ SFlist;
+positionedSFs
 ];
 
 
@@ -64,7 +60,7 @@ mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOptest[MultiOpa]]:=
 MultiOp[mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa];
 
 mapOp[coordinateHol_, coordinateAntiHol_][Opa_/;OpTest[Opa]]:=
-Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]]][mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
+Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]], mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
 
 mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= R[mapOp[coordinateHol, coordinateAntiHol] /@ Ra];
 
