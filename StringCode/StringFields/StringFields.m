@@ -50,19 +50,30 @@ SF[g___,a_^n_,h___]:=SF[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 SFAtPos::usage = "A string field at a given position";
 SFAtPos[SFa_/;SFtest[SFa], localCoordinateHol_, localCoordinateAntiHol_]:= Module[{SFlist = List @@ SFa, positionedSFs, splitSFs, sign}, 
 Print[localCoordinateHol];
-positionedSFs = Map[positionOp[localCoordinateHol,localCoordinateAntiHol],SFlist];
+positionedSFs = Map[mapOp[localCoordinateHol,localCoordinateAntiHol],SFlist];
+Print[positionedSFs];
 splitSFs = splitOperators[positionedSFs, isField, isInteracting];
 sign = factorizationSign[positionedSFs, isField, isInteracting];
 sign Op[R @@ splitSFs[[1]], Interacting @@ splitSFs[[2]]]
 ];
 
 
-positionOp::usage = "Place operator at a given position";
+mapOp::usage = "Map operator at a position";
 
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][b[n_]]:= b[n, localCoordinateHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][c[n_]]:= c[n, localCoordinateHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][bt[n_]]:= bt[n, localCoordinateAntiHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][ct[n_]]:= ct[n, localCoordinateAntiHol[0]];
+mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOptest[MultiOpa]]:= 
+MultiOp[mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa];
+
+mapOp[coordinateHol_, coordinateAntiHol_][Opa_/;OpTest[Opa]]:=
+Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]]][mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
+
+mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= R[mapOp[coordinateHol, coordinateAntiHol] /@ Ra];
+
+mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= Interacting[mapOp[coordinateHol, coordinateAntiHol][Ia]];
+
+mapOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][bt[n_, zbar_]]:= bt[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][ct[n_, zbar_]]:= ct[n, coordinateAntiHol[zbar]];
 
 
 (* ::Subsection:: *)

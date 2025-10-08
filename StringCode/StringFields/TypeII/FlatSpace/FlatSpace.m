@@ -50,18 +50,18 @@ SF[ c___,a_,b_,d___]:=SF[c,exp\[Phi]tf[a[[1]]+b[[1]]],d]/;(Head[a]==exp\[Phi]tb 
 
 
 (* ::Input::Initialization:: *)
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][ProfileX[profile_, ders_List]]:= ProfileX[profile,ders, localCoordinateHol[0], localCoordinateAntiHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][dX[\[Mu]_,n_]]:= dX[\[Mu], n, localCoordinateHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][dXt[\[Mu]_,n_]]:= dXt[\[Mu], n, localCoordinateAntiHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][expX[n_]]:= expX[n, localCoordinateHol[0], localCoordinateAntiHol[0]];
+mapOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile,ders, coordinateHol[z], coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_,n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_,n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
 
 
 (* ::Subsubsection:: *)
 (*Free fermion*)
 
 
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][\[Psi][\[Mu]_,n_]]:= \[Psi][\[Mu], n, localCoordinateHol[0]];
-positionOp[localCoordinateHol_, localCoordinateAntiHol_][\[Psi]t[\[Mu]_,n_]]:= \[Psi]t[\[Mu], n, localCoordinateAntiHol[0]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Psi][\[Mu]_,n_, z_]]:= \[Psi][\[Mu], n, coordinateHol[z]];
+mapOp[cordinateHol_, coordinateAntiHol_][\[Psi]t[\[Mu]_,n_, zbar_]]:= \[Psi]t[\[Mu], n, coordinateAntiHol[zbar]];
 
 
 (* ::Section:: *)
