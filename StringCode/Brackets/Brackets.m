@@ -137,7 +137,7 @@ Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingPr
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 
@@ -151,8 +151,15 @@ Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, 
 localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo,localOpsHoloAntiHolo, localOpsInteracting, prefac = 1},
 {localOpsHolo, localOpsAntiHolo, localOpsInteracting, localOpsHoloAntiHolo} = 
 Reap[Scan[Function[localOp,
+If[OpTest[localOp],
 localOpFree = localOp[[1]];
-localOpInteracting = localOp[[2]];
+localOpInteracting = localOp[[2]],
+If[Rtest[localOp],
+localOpFree = localOp;
+localOpInteracting = 1,
+localOpFree = 1;
+localOpInteracting = localOp;]
+];
 localOpPrefac = extractPrefacFromRTimesConstant[localOpFree]/.{WedgeProduct[a___]->1};
 localOpList = extractListFromRTimesConstant[localOpFree];
 localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];

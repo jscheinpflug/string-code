@@ -27,6 +27,10 @@ Needs["StringCode`Brackets`TypeII`"];
 (*Logic*)
 
 
+(* ::Section:: *)
+(*Logic*)
+
+
 Begin["Private`"];
 
 
@@ -35,10 +39,10 @@ Begin["Private`"];
 
 
 flatLocalCoordinate::usage = "Creates i-th holomorphic flat local coordinate";
-flatLocalCoordinate[order_, i_][w_][moduli___] := w Symbol["Private`q"][order, i][moduli] + Symbol["Private`z"][order, i][moduli];
+flatLocalCoordinate[order_, i_][moduli___][w_] := w Symbol["Private`q"][order, i][moduli] + Symbol["Private`z"][order, i][moduli];
 
 flatLocalCoordinateBar::usage = "Creates i-th antiholomorphic flat local coordinate";
-flatLocalCoordinateBar[order_, i_][wbar_][moduli___] := wbar Symbol["Private`qbar"][order, i][moduli] + Symbol["Private`zbar"][order, i][moduli];
+flatLocalCoordinateBar[order_, i_][moduli___][wbar_] := wbar Symbol["Private`qbar"][order, i][moduli] + Symbol["Private`zbar"][order, i][moduli];
 
 
 localCoordinateReplacementElem::usage = "Replaces abstract local coordinates with their actual moduli dependence";
@@ -64,8 +68,8 @@ Do[Module[{t, tbar}, AppendTo[moduli, t]; AppendTo[moduli, tbar]], order - 2];
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol} = 
 Reap[
 Do[
-Sow[flatLocalCoordinate[order, i][w] @@ moduli, "Holo"];
-Sow[flatLocalCoordinateBar[order, i][wbar] @@ moduli, "AntiHolo"];
+Sow[flatLocalCoordinate[order, i][moduli], "Holo"];
+Sow[flatLocalCoordinateBar[order, i][moduli], "AntiHolo"];
 
 (*Create local coordinate replacement rule*)
 localCoordinateReplacement = Join[localCoordinateReplacement, localCoordinateReplacementElem[order, i] @@ moduli],

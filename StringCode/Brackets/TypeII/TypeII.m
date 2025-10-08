@@ -113,6 +113,7 @@ Scan[Function[bracketNoPCOsTerm,
 
 (*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
 {bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketNoPCOsTerm];
+
 bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
 bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 

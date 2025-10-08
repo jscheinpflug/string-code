@@ -44,14 +44,14 @@ SF[ c___,a_,b_,d___]:=SF[c,exp\[Phi]tf[a[[1]]+b[[1]]],d]/;(Head[a]==exp\[Phi]tb 
 
 
 (* ::Input::Initialization:: *)
-positionOp[z0_, z0bar_][\[Eta][n_]]:= \[Eta][n, z0];
-positionOp[z0_, z0bar_][\[Xi][n_]]:= \[Xi][n, z0];
-positionOp[z0_, z0bar_][exp\[Phi]b[n_]]:= exp\[Phi]b[ n, z0];
-positionOp[z0_, z0bar_][exp\[Phi]f[n_]]:= exp\[Phi]f[ n, z0];
-positionOp[z0_, z0bar_][\[Eta]t[n_]]:= \[Eta]t[n, z0bar];
-positionOp[z0_, z0bar_][\[Xi]t[n_]]:= \[Xi]t[n, z0bar];
-positionOp[z0_, z0bar_][exp\[Phi]tb[n_]]:= exp\[Phi]tb[ n, z0bar];
-positionOp[z0_, z0bar_][exp\[Phi]tf[n_]]:= exp\[Phi]tf[ n, z0bar];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Eta][n_, z_]]:= \[Eta][n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Xi][n_, z_]]:= \[Xi][n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]b[n_, z_]]:= exp\[Phi]b[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]f[n_, z_]]:= exp\[Phi]f[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Eta]t[n_, zbar_]]:= \[Eta]t[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Xi]t[n_, zbar_]]:= \[Xi]t[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tb[n_, zbar_]]:= exp\[Phi]tb[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tf[n_, zbar_]]:= exp\[Phi]tf[n, coordinateAntiHol[zbar]];
 
 
 (* ::Section:: *)
