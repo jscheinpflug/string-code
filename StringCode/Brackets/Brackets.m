@@ -448,12 +448,12 @@ If[maxOrderHolo > 0,
 wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol, w,z, maxOrderHolo];
 
 (*Differentiate local coordinates as a function of w with respect to the modulus, substituting the sphere coordinate z in the end*)
-expandedBGhostIntegrandHol = Series[-(Differential[localCoordinateHol, moduli])/.{w->wInTermsOfZ}, {z,z0,maxOrderHolo}]//Normal;
+expandedBGhostIntegrandHol = Series[-(Differential[localCoordinateHol[wInTermsOfZ], moduli]), {z,z0,maxOrderHolo}]//Normal;
 
 (*Replace terms in the above series with b-ghost modes*)
 BGhostIntegrandHolo = (#/.{Times[rest___,(z-z0)^p_?NumericQ]:> rest bmodeHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(z-z0)]:> rest bmodeHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeHolo[-1][insertionLabel]}) & /@ (List@@(expandedBGhostIntegrandHol)),
 (*If no derivatives of c-ghost appear, then return dz(w)/d(modulus)_{w=0} b_{-1}*)
-BGhostIntegrandHolo = -Differential[localCoordinateHol/.{w->0}, moduli] bmodeHolo[-1][insertionLabel];
+BGhostIntegrandHolo = -Differential[localCoordinateHol[0], moduli] bmodeHolo[-1][insertionLabel];
 ]
 ];
 
@@ -464,13 +464,13 @@ If[maxOrderAntiHolo > 0,
 wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol, wbar, zbar, maxOrderAntiHolo];
 
 (*Differentiate local coordinates as a function of wbar with respect to the modulus, substituting the sphere coordinate zbar in the end*)
-expandedBGhostIntegrandAntiHol = Series[-Differential[localCoordinateAntiHol, moduli]/.{wbar->wbarInTermsOfZbar}, {zbar,z0bar,maxOrderAntiHolo}]//Normal;
+expandedBGhostIntegrandAntiHol = Series[-Differential[localCoordinateAntiHol[wbarInTermsOfZbar], moduli], {zbar,z0bar,maxOrderAntiHolo}]//Normal;
 
 (*Replace terms in the above series with bt-ghost modes*)
 BGhostIntegrandAntiHolo =(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:> rest bmodeAntiHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(zbar-z0bar)]:> rest bmodeAntiHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeAntiHolo[-1][insertionLabel]})& /@ (List@@(expandedBGhostIntegrandAntiHol)),
 
 (*If no derivatives of c-ghost appear, then return dzbar(wbar)/d(modulus)_{wbar=0} bt_{-1}*)
-BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol/.{wbar->0}, moduli] bmodeAntiHolo[-1][insertionLabel];
+BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol[0], moduli] bmodeAntiHolo[-1][insertionLabel];
 ]
 ];
 result = BGhostIntegrandHolo + BGhostIntegrandAntiHolo;
