@@ -43,7 +43,7 @@ OPE[c__,a_,b_]:=OPE[c,OPE[a,b]]
 
 
 (*OPE of a single normal-ordered product is no OPE*)
-OPE[R[a___]]:=R[a]
+OPE[a___/;Rtest[a]]:=R[a]
 
 
 (* ::Subsection:: *)
