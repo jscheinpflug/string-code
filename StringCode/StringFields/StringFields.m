@@ -57,14 +57,14 @@ positionedSFs
 mapOp::usage = "Map operator at a position";
 
 mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOptest[MultiOpa]]:= 
-MultiOp[mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa];
+mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa;
 
 mapOp[coordinateHol_, coordinateAntiHol_][Opa_/;OpTest[Opa]]:=
 Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]], mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
 
-mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= R[mapOp[coordinateHol, coordinateAntiHol] /@ Ra];
+mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ra;
 
-mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= Interacting[mapOp[coordinateHol, coordinateAntiHol][Ia]];
+mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ia;
 
 mapOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
 mapOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];
