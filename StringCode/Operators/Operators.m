@@ -28,7 +28,7 @@ Interacting::usage = "Wrapper for interacting operators";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define MultiOp*)
 
 
@@ -42,7 +42,7 @@ MultiOp[x___, MultiOp[y___], z___] := MultiOp[x, y, z]
 nonOperatorQ[expr_]:= FreeQ[expr, R] && FreeQ[expr, Interacting];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Op*)
 
 
@@ -107,6 +107,8 @@ InteractingTestUpToConstant[]:=False;
 
 parityOp::usage = "Computes the parity of a local operator";
 parityOp[op_/;OpTest[op]]:= Mod[parity[op[[1]]] + parity[op[[2]]],2];
+parityOp[Ra_/;Rtest[Ra]]:= Mod[parity[Ra],2];
+parityOp[Ia_/;InteractingTest[Ia]]:= Mod[parity[Ia],2];
 
 
 (* ::Subsection:: *)

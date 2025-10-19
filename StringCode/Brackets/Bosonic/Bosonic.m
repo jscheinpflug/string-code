@@ -72,9 +72,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{afterApplyingBghosts, localCoordinateReplacement, SFList},
-{afterApplyingBghosts, localCoordinateReplacement, SFList} = BracketBosonic[toBracket];
-{afterApplyingBghosts, localCoordinateReplacement}];
+Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= BracketBosonic[toBracket];
 
 
 (* ::Subsection:: *)

@@ -83,11 +83,11 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, afterApplyingBghosts, localCoordinateReplacement, SFList, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
 
 (*Get bosonic part of the bracket*)
-{afterApplyingBghosts, localCoordinateReplacement, SFList} = BracketBosonic[toBracket];
+afterApplyingBghosts = BracketBosonic[toBracket];
 
 (*Apply PCO zero-modes abstractly*)
-numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture, SFList]]]-1];
-numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture, SFList]]]-1];
+numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture @@ # &, {toBracket}]]]-1];
+numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture @@ # &, {toBracket}]]]-1];
 afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
 result = {afterHeldActionOfPCOs, localCoordinateReplacement};

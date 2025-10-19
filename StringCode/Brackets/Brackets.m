@@ -57,7 +57,11 @@ actBRSTHolo[0] := 0;
 
 (*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
-Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+Bracket[args___, WedgeProduct[a__]b___, rest___]:= WedgeProduct[a, Bracket[args, b, rest]]; 
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
 BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
@@ -71,6 +75,7 @@ SFList = List @@ SFsAtPos;
 
 (*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 moduliLength = Length[moduli];
+
 If[moduliLength > 0,
 
 (*Create the curly B-ghost insertions, one for each modulus*)
@@ -80,7 +85,7 @@ curlyBs = createCurlyBs[curlyB, moduliLength];
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
-result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
+result = afterApplyingBghosts;
 result]
 
 
@@ -396,8 +401,8 @@ createCurlyB[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAn
 Module[{i,j, minCGhostModdings,minCbarGhostModdings, result = 0},
 
 (*Get maximum possible b-ghost mode that does not vanish upon action*)
-minCGhostModdings = Map[getMinCGhostModding[#[[1]]] &, SFList];
-minCbarGhostModdings = Map[getMinCbarGhostModding[#[[1]]] &, SFList];
+minCGhostModdings = Map[getMinCGhostModding, SFList];
+minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
 
 (*For each modulus and insertion, create the relevant b-ghost insertions*)
 Do[
@@ -408,6 +413,9 @@ result
 
 
 getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operator";
+
+getMinCGhostModding[Opa_/; Optest[Opa]]:=  getMinCGhostModding[Opa[[1]]];
+
 getMinCGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == c,
@@ -420,6 +428,9 @@ maxOrder
 
 
 getMinCbarGhostModding::usage = "Get minimum cbar-ghost modding inside a local operator";
+
+getMinCbarGhostModding[Opa_/; OpTest[Opa]]:=  getMinCbarGhostModding[Opa[[1]]];
+
 getMinCbarGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == ct,
@@ -445,7 +456,7 @@ If[minCGhostModding != "None",
 maxOrderHolo = -minCGhostModding + 1;
 If[maxOrderHolo > 0,
 (*Obtain a disc coordinate w in terms of sphere coordinate z*)
-wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol, w,z, maxOrderHolo];
+wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol[w], w,z, maxOrderHolo];
 
 (*Differentiate local coordinates as a function of w with respect to the modulus, substituting the sphere coordinate z in the end*)
 expandedBGhostIntegrandHol = Series[-(Differential[localCoordinateHol[wInTermsOfZ], moduli]), {z,z0,maxOrderHolo}]//Normal;
@@ -461,7 +472,7 @@ If[minCbarGhostModding != "None",
 maxOrderAntiHolo = -minCbarGhostModding + 1;
 If[maxOrderAntiHolo > 0,
 (*Obtain a disc coordinate wbar in terms of local coordinate zbar*)
-wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol, wbar, zbar, maxOrderAntiHolo];
+wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol[wbar], wbar, zbar, maxOrderAntiHolo];
 
 (*Differentiate local coordinates as a function of wbar with respect to the modulus, substituting the sphere coordinate zbar in the end*)
 expandedBGhostIntegrandAntiHol = Series[-Differential[localCoordinateAntiHol[wbarInTermsOfZbar], moduli], {zbar,z0bar,maxOrderAntiHolo}]//Normal;
@@ -558,11 +569,14 @@ applyCurlyBs[SFList_, curlyBs_, moduliLength_]:=
 Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
 
+If[Head[curlyBList] === List,
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
  result = result + applyBghostModes[curlyB, SFList];
-],
- curlyBList];
+], curlyBList],
+ result = result + applyBghostModes[curlyBs, SFList];
+ ];
+
 (*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
 (-1)^(moduliLength/2)/Factorial[moduliLength] result
 ];
@@ -570,16 +584,16 @@ Scan[Function[curlyB,
 
 applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
 applyBghostModes[a_ b_, SFList_]:= a applyBghostModes[b, SFList]/;Head[b]==combinedCurlyBs;
-applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], SFListSplit = Map[{#[[1]], #[[2]]}&, SFList], currentSFListSplit},
-currentSFListSplit = SFListSplit;
+applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], currentSFList},
+currentSFList = SFList;
 Scan[Function[BghostMode,
 (*Act the b-ghost mode*)
 bGhostPosition = getBGhostPosition[BghostMode];
-currentResultAtPosition =  currentSFListSplit[[bGhostPosition]];
-currentSFListSplit[[bGhostPosition]] = {(-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition[[1]]], currentResultAtPosition[[2]]};
+currentResultAtPosition =  currentSFList[[bGhostPosition]];
+currentSFList[[bGhostPosition]] = (-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition];
 SFParities[[bGhostPosition]] = Mod[SFParities[[bGhostPosition]] + 1,2];
 ], Reverse @@ BghostModes];
-result = MultiOp @@ Map[Op[#[[1]],#[[2]]]&, currentSFListSplit];
+result = MultiOp @@ currentSFList;
 result]
 
 applyBghostModes[][a_] := a;
@@ -592,8 +606,12 @@ getBGhostPosition[bmodeAntiHolo[a_][b_]]:= b;
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
-actBGhostMode[bmodeHolo[a_][b_], field_]:= bmodeHolo[a][field];
-actBGhostMode[bmodeAntiHolo[a_][b_], field_]:= bmodeAntiHolo[a][field];
+
+actBGhostMode[bmodeHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
+
+actBGhostMode[bmodeHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
+actBGhostMode[bmodeAntiHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
 
 
 (* ::Subsection::Closed:: *)
