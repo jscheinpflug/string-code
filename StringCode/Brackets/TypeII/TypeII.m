@@ -99,7 +99,7 @@ result]
 
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
+BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
 Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
 bracketAntiHoloWeightFree, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular, OPEHolo, OPEAntiHolo,
 \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
@@ -146,7 +146,7 @@ projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo
 Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}];
 ]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
-[[2]]];
+[[2]]][[1,1,1]];
 
 
 (* ::Subsection:: *)

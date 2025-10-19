@@ -109,14 +109,21 @@ BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weight
 BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
 
 (*Multilinearity of projected Bracket*)
-BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest]
-BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
+BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+BracketProjected[args___, WedgeProduct[a__] b___, rest___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjected[args, b, rest, weightHolo, weightAntiHolo]]
 
 (*Multilinearity of Bracket projection*)
-BracketProjection[{args___, a_ + b_, rest___}, weightHolo_, weightAntiHolo_] :=
- BracketProjection[{args, a, rest}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest}, weightHolo, weightAntiHolo]
-BracketProjection[{args___, a_ b_, rest___}, weightHolo_, weightAntiHolo_] := 
-a BracketProjection[{args, b, rest}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
+ BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
+ 
+BracketProjection[a_ b_, weightHolo_, weightAntiHolo_] := 
+a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+BracketProjection[WedgeProduct[a__] b___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjection[b, weightHolo, weightAntiHolo]]
 
 
 (* ::Subsection::Closed:: *)
@@ -210,7 +217,7 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Project OPE onto a given weight*)
 
 
@@ -254,13 +261,10 @@ R[TaylorAtOrderHolo[OPETermHolo, expansionOrderHolo, 0], TaylorAtOrderAntiHolo[O
 InteractingProjection[OPEInteracting, 2interactingOrder + interactingWeight]
 ];
 ];
-
 ], OPETermsInteractingPossiblyNonSingular]
 ];
 ], OPETermsAntiHolo]
 ], OPETermsHolo];
-
-
 
 result/.{weightCountingParameterHolo -> 1, weightCountingParameterAntiHolo -> 1}]
 
