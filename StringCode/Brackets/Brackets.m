@@ -113,10 +113,10 @@ BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := Br
 BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 (*Multilinearity of Bracket projection*)
-BracketProjection[{args___, a_ + b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] :=
- BracketProjection[{args, a, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo]
-BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] := 
-a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+BracketProjection[{args___, a_ + b_, rest___}, weightHolo_, weightAntiHolo_] :=
+ BracketProjection[{args, a, rest}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest}, weightHolo, weightAntiHolo]
+BracketProjection[{args___, a_ b_, rest___}, weightHolo_, weightAntiHolo_] := 
+a BracketProjection[{args, b, rest}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
 
 
 (* ::Subsection::Closed:: *)
@@ -414,7 +414,7 @@ result
 
 getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operator";
 
-getMinCGhostModding[Opa_/; Optest[Opa]]:=  getMinCGhostModding[Opa[[1]]];
+getMinCGhostModding[Opa_/; OpTest[Opa]]:=  getMinCGhostModding[Opa[[1]]];
 
 getMinCGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
