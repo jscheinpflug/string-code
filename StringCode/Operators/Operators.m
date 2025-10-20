@@ -28,7 +28,7 @@ Interacting::usage = "Wrapper for interacting operators";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define MultiOp*)
 
 
@@ -37,10 +37,12 @@ MultiOp[c___,0,d___]:=0
 MultiOp[c___, s_?nonOperatorQ f_, d___] := s MultiOp[c, f, d];
 MultiOp[c___, s_?nonOperatorQ,   d___] := s MultiOp[c, d];
 
+MultiOp[x___, MultiOp[y___], z___] := MultiOp[x, y, z]
+
 nonOperatorQ[expr_]:= FreeQ[expr, R] && FreeQ[expr, Interacting];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Op*)
 
 
@@ -50,8 +52,8 @@ Op[0, a___]:= 0;
 Op[a___, 0]:= 0;
 Op[a_ f__?(Not[Rtest[#]] & ), b_]:= f Op[a, b];
 Op[a_, b_ f__?(Not[InteractingTest[#]] &)]:= f Op[a, b];
-Op[a_/;NumericQ[a] && a!=1, b_]:= a Op[1, b];
-Op[a_, b_/;NumericQ[b] && b!=1]:= b Op[a,1];
+Op[a_/;Not[Rtest[a]], b_]:= a b;
+Op[a_, b_/;Not[InteractingTest[b]]]:= a b;
 Op[1,1]:= 1;
 
 
@@ -105,6 +107,8 @@ InteractingTestUpToConstant[]:=False;
 
 parityOp::usage = "Computes the parity of a local operator";
 parityOp[op_/;OpTest[op]]:= Mod[parity[op[[1]]] + parity[op[[2]]],2];
+parityOp[Ra_/;Rtest[Ra]]:= Mod[parity[Ra],2];
+parityOp[Ia_/;InteractingTest[Ia]]:= Mod[parity[Ia],2];
 
 
 (* ::Subsection:: *)

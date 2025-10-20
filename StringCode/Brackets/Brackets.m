@@ -57,7 +57,11 @@ actBRSTHolo[0] := 0;
 
 (*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
-Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ allfields)
+
+Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+Bracket[args___, WedgeProduct[a__]b___, rest___]:= WedgeProduct[a, Bracket[args, b, rest]]; 
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
 BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
@@ -66,11 +70,12 @@ bracketOrder = Length[bracketList];
 
 (*Conformally transform the string field insertions*)
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
-SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList, w, wbar];
+SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList];
 SFList = List @@ SFsAtPos;
 
 (*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 moduliLength = Length[moduli];
+
 If[moduliLength > 0,
 
 (*Create the curly B-ghost insertions, one for each modulus*)
@@ -80,18 +85,18 @@ curlyBs = createCurlyBs[curlyB, moduliLength];
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
-result = {afterApplyingBghosts, localCoordinateReplacement, SFList};
+result = afterApplyingBghosts;
 result]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Place string fields at positions given by local coordinates*)
 
 
 placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
-placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__, w_, wbar_]:= 
+placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__]:= 
 Module[{i, length = Length[SFs]},
-MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]]/.{w->0}, localCoordinateFunctionsAntiHol[[i]]/.{wbar->0}],{i,1,length}]
+MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]],{i,1,length}]
 ]
 
 
@@ -104,14 +109,21 @@ BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weight
 BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
 
 (*Multilinearity of projected Bracket*)
-BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest]
-BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
+BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+BracketProjected[args___, WedgeProduct[a__] b___, rest___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjected[args, b, rest, weightHolo, weightAntiHolo]]
 
 (*Multilinearity of Bracket projection*)
-BracketProjection[{args___, a_ + b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] :=
- BracketProjection[{args, a, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] + BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo]
-BracketProjection[{args___, a_ b_, rest___, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_] := 
-a BracketProjection[{args, b, rest, localCoordinateReplacement}, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ allfields)
+BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
+ BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
+ 
+BracketProjection[a_ b_, weightHolo_, weightAntiHolo_] := 
+a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+
+(*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
+BracketProjection[WedgeProduct[a__] b___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjection[b, weightHolo, weightAntiHolo]]
 
 
 (* ::Subsection::Closed:: *)
@@ -151,8 +163,15 @@ Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, 
 localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo,localOpsHoloAntiHolo, localOpsInteracting, prefac = 1},
 {localOpsHolo, localOpsAntiHolo, localOpsInteracting, localOpsHoloAntiHolo} = 
 Reap[Scan[Function[localOp,
+If[OpTest[localOp],
 localOpFree = localOp[[1]];
-localOpInteracting = localOp[[2]];
+localOpInteracting = localOp[[2]],
+If[Rtest[localOp],
+localOpFree = localOp;
+localOpInteracting = 1,
+localOpFree = 1;
+localOpInteracting = localOp;]
+];
 localOpPrefac = extractPrefacFromRTimesConstant[localOpFree]/.{WedgeProduct[a___]->1};
 localOpList = extractListFromRTimesConstant[localOpFree];
 localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];
@@ -198,7 +217,7 @@ rescalePositionBy::usage = "Rescales a chiral local operator";
 rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Project OPE onto a given weight*)
 
 
@@ -242,13 +261,10 @@ R[TaylorAtOrderHolo[OPETermHolo, expansionOrderHolo, 0], TaylorAtOrderAntiHolo[O
 InteractingProjection[OPEInteracting, 2interactingOrder + interactingWeight]
 ];
 ];
-
 ], OPETermsInteractingPossiblyNonSingular]
 ];
 ], OPETermsAntiHolo]
 ], OPETermsHolo];
-
-
 
 result/.{weightCountingParameterHolo -> 1, weightCountingParameterAntiHolo -> 1}]
 
@@ -380,7 +396,7 @@ bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ all
 bmodeAntiHolo[mode_][0] := 0;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Create B-ghost insertion*)
 
 
@@ -389,8 +405,8 @@ createCurlyB[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAn
 Module[{i,j, minCGhostModdings,minCbarGhostModdings, result = 0},
 
 (*Get maximum possible b-ghost mode that does not vanish upon action*)
-minCGhostModdings = Map[getMinCGhostModding[#[[1]]] &, SFList];
-minCbarGhostModdings = Map[getMinCbarGhostModding[#[[1]]] &, SFList];
+minCGhostModdings = Map[getMinCGhostModding, SFList];
+minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
 
 (*For each modulus and insertion, create the relevant b-ghost insertions*)
 Do[
@@ -401,6 +417,9 @@ result
 
 
 getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operator";
+
+getMinCGhostModding[Opa_/; OpTest[Opa]]:=  getMinCGhostModding[Opa[[1]]];
+
 getMinCGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == c,
@@ -413,6 +432,9 @@ maxOrder
 
 
 getMinCbarGhostModding::usage = "Get minimum cbar-ghost modding inside a local operator";
+
+getMinCbarGhostModding[Opa_/; OpTest[Opa]]:=  getMinCbarGhostModding[Opa[[1]]];
+
 getMinCbarGhostModding[Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == ct,
@@ -438,15 +460,15 @@ If[minCGhostModding != "None",
 maxOrderHolo = -minCGhostModding + 1;
 If[maxOrderHolo > 0,
 (*Obtain a disc coordinate w in terms of sphere coordinate z*)
-wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol, w,z, maxOrderHolo];
+wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol[w], w,z, maxOrderHolo];
 
 (*Differentiate local coordinates as a function of w with respect to the modulus, substituting the sphere coordinate z in the end*)
-expandedBGhostIntegrandHol = Series[-(Differential[localCoordinateHol, moduli])/.{w->wInTermsOfZ}, {z,z0,maxOrderHolo}]//Normal;
+expandedBGhostIntegrandHol = Series[-(Differential[localCoordinateHol[wInTermsOfZ], moduli]), {z,z0,maxOrderHolo}]//Normal;
 
 (*Replace terms in the above series with b-ghost modes*)
 BGhostIntegrandHolo = (#/.{Times[rest___,(z-z0)^p_?NumericQ]:> rest bmodeHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(z-z0)]:> rest bmodeHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeHolo[-1][insertionLabel]}) & /@ (List@@(expandedBGhostIntegrandHol)),
 (*If no derivatives of c-ghost appear, then return dz(w)/d(modulus)_{w=0} b_{-1}*)
-BGhostIntegrandHolo = -Differential[localCoordinateHol/.{w->0}, moduli] bmodeHolo[-1][insertionLabel];
+BGhostIntegrandHolo = -Differential[localCoordinateHol[0], moduli] bmodeHolo[-1][insertionLabel];
 ]
 ];
 
@@ -454,16 +476,16 @@ If[minCbarGhostModding != "None",
 maxOrderAntiHolo = -minCbarGhostModding + 1;
 If[maxOrderAntiHolo > 0,
 (*Obtain a disc coordinate wbar in terms of local coordinate zbar*)
-wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol, wbar, zbar, maxOrderAntiHolo];
+wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol[wbar], wbar, zbar, maxOrderAntiHolo];
 
 (*Differentiate local coordinates as a function of wbar with respect to the modulus, substituting the sphere coordinate zbar in the end*)
-expandedBGhostIntegrandAntiHol = Series[-Differential[localCoordinateAntiHol, moduli]/.{wbar->wbarInTermsOfZbar}, {zbar,z0bar,maxOrderAntiHolo}]//Normal;
+expandedBGhostIntegrandAntiHol = Series[-Differential[localCoordinateAntiHol[wbarInTermsOfZbar], moduli], {zbar,z0bar,maxOrderAntiHolo}]//Normal;
 
 (*Replace terms in the above series with bt-ghost modes*)
 BGhostIntegrandAntiHolo =(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:> rest bmodeAntiHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(zbar-z0bar)]:> rest bmodeAntiHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeAntiHolo[-1][insertionLabel]})& /@ (List@@(expandedBGhostIntegrandAntiHol)),
 
 (*If no derivatives of c-ghost appear, then return dzbar(wbar)/d(modulus)_{wbar=0} bt_{-1}*)
-BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol/.{wbar->0}, moduli] bmodeAntiHolo[-1][insertionLabel];
+BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol[0], moduli] bmodeAntiHolo[-1][insertionLabel];
 ]
 ];
 result = BGhostIntegrandHolo + BGhostIntegrandAntiHolo;
@@ -551,11 +573,14 @@ applyCurlyBs[SFList_, curlyBs_, moduliLength_]:=
 Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
 
+If[Head[curlyBList] === List,
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
  result = result + applyBghostModes[curlyB, SFList];
-],
- curlyBList];
+], curlyBList],
+ result = result + applyBghostModes[curlyBs, SFList];
+ ];
+
 (*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
 (-1)^(moduliLength/2)/Factorial[moduliLength] result
 ];
@@ -563,16 +588,16 @@ Scan[Function[curlyB,
 
 applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
 applyBghostModes[a_ b_, SFList_]:= a applyBghostModes[b, SFList]/;Head[b]==combinedCurlyBs;
-applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], SFListSplit = Map[{#[[1]], #[[2]]}&, SFList], currentSFListSplit},
-currentSFListSplit = SFListSplit;
+applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], currentSFList},
+currentSFList = SFList;
 Scan[Function[BghostMode,
 (*Act the b-ghost mode*)
 bGhostPosition = getBGhostPosition[BghostMode];
-currentResultAtPosition =  currentSFListSplit[[bGhostPosition]];
-currentSFListSplit[[bGhostPosition]] = {(-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition[[1]]], currentResultAtPosition[[2]]};
+currentResultAtPosition =  currentSFList[[bGhostPosition]];
+currentSFList[[bGhostPosition]] = (-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition];
 SFParities[[bGhostPosition]] = Mod[SFParities[[bGhostPosition]] + 1,2];
 ], Reverse @@ BghostModes];
-result = MultiOp @@ Map[Op[#[[1]],#[[2]]]&, currentSFListSplit];
+result = MultiOp @@ currentSFList;
 result]
 
 applyBghostModes[][a_] := a;
@@ -585,8 +610,12 @@ getBGhostPosition[bmodeAntiHolo[a_][b_]]:= b;
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
-actBGhostMode[bmodeHolo[a_][b_], field_]:= bmodeHolo[a][field];
-actBGhostMode[bmodeAntiHolo[a_][b_], field_]:= bmodeAntiHolo[a][field];
+
+actBGhostMode[bmodeHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
+
+actBGhostMode[bmodeHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
+actBGhostMode[bmodeAntiHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
 
 
 (* ::Subsection::Closed:: *)

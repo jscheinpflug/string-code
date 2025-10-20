@@ -83,14 +83,14 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, afterApplyingBghosts, localCoordinateReplacement, SFList, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
 
 (*Get bosonic part of the bracket*)
-{afterApplyingBghosts, localCoordinateReplacement, SFList} = BracketBosonic[toBracket];
+afterApplyingBghosts = BracketBosonic[toBracket];
 
 (*Apply PCO zero-modes abstractly*)
-numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture, SFList]]]-1];
-numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture, SFList]]]-1];
+numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture @@ # &, {toBracket}]]]-1];
+numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture @@ # &, {toBracket}]]]-1];
 afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
-result = {afterHeldActionOfPCOs, localCoordinateReplacement};
+result = {b0m[afterHeldActionOfPCOs], localCoordinateReplacement};
 result]
 
 
@@ -99,20 +99,21 @@ result]
 
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
-Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
+BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
+Module[{bracketNoB0m = bracket/.{b0mHold->1}, result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
 bracketAntiHoloWeightFree, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular, OPEHolo, OPEAntiHolo,
 \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
-bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
+bracketNoPCOs = bracketNoB0m//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts [inside PCO actions]*)
-Reap[
+result = Reap[
 Scan[Function[bracketNoPCOsTerm,
 
 (*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
 {bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketNoPCOsTerm];
+
 bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
 bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 
@@ -145,7 +146,9 @@ projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo
 Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}];
 ]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
-[[2]]];
+[[2]][[1,1,1]];
+b0mHold[result];
+];
 
 
 (* ::Subsection:: *)

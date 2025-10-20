@@ -72,9 +72,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{afterApplyingBghosts, localCoordinateReplacement, SFList},
-{afterApplyingBghosts, localCoordinateReplacement, SFList} = BracketBosonic[toBracket];
-{afterApplyingBghosts, localCoordinateReplacement}];
+Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= b0mHold[BracketBosonic[toBracket]];
 
 
 (* ::Subsection:: *)
@@ -82,17 +80,18 @@ Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{afterApplyingBghost
 
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[{bracket_, localCoordinateReplacement_}, weightHolo_, weightAntiHolo_]:= 
-Module[{prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
+BracketProjection[bracket__, weightHolo_, weightAntiHolo_]:= 
+Module[{bracketNoB0m = bracket/.{b0mHold->1}, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
 bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo,
-projectedOPEHolo, projectedOPEAntiHolo, projectedOPE, OPEInteracting, OPEInteractingSingular},
+projectedOPEHolo, projectedOPEAntiHolo, projectedOPE, OPEInteracting, OPEInteractingSingular, result},
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts*)
-Reap[
+result = Reap[
 Scan[Function[bracketTerm,
 
 (*Split the free multi-local result of the bracket into holomorphic/antiholomorphic parts, and keep the interacting part unsplit*)
 {bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketTerm];
+
 bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
 bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
 
@@ -119,12 +118,13 @@ OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[E
 
 projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
  bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
-
 Sow[{prefac projectedOPE}];
 ];
 
-],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
-[[2]]];
+],  If[Head[bracketNoB0m] === Plus, bracketNoB0m/.{Plus->List}, {bracketNoB0m}]]]
+[[2]][1,1,1];
+b0mHold[result]
+];
 
 
 (* ::Section:: *)
