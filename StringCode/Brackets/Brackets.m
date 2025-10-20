@@ -318,16 +318,14 @@ extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Expo
 factorizationReplacement =  {};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define action of b0^-*)
 
 
-(*Define holomorphic b-ghost mode actions at the same point*)
-bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+(*Define holomorphic b-ghost mode actions, generally at different points*)
+bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
-If[Head[Relem] == c, 
-der = Relem/.{c[der_,_]:> der};
-AssociateTo[cAssoc, position -> If[der -1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
+If[Head[Relem ]=== c, If[mode >= Relem[[1]]-1, AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}]]];
 If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
@@ -338,39 +336,9 @@ result = result + ReplaceAt[Ra, replacement, pos];
 result];
 
 (*Define antiholomorphic b-ghost mode actions at the same point*)
-bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
-If[Head[Relem]== ct, 
-der = Relem/.{ct[der_,_]:> der};
-AssociateTo[cAssoc, position -> If[der - 1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
-position = position + 1;
-],Ra];
-
-KeyValueMap[Function[{pos, replacement}, 
-result = result + ReplaceAt[Ra, replacement, pos];
-], cAssoc];
-result];
-
-(*Define action of holomorphic b-ghost zero mode, generally at different points*)
-b0mHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
-Scan[Function[Relem,
-If[MatchQ[Relem, c[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
-If[MatchQ[Relem, c[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
-position = position + 1;
-],Ra];
-
-KeyValueMap[Function[{pos, replacement}, 
-result = result + ReplaceAt[Ra, replacement, pos];
-], cAssoc];
-result];
-
-(*Define action of antiholomorphic b-ghost zero mode, generally at different points*)
-b0mAntiHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
-Scan[Function[Relem,
-If[MatchQ[Relem, ct[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
-If[MatchQ[Relem, ct[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+If[Head[Relem ]=== ct, If[mode >= Relem[[1]]-1, AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}]]]; 
 If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
@@ -382,11 +350,6 @@ result];
 
 
 (*Multilinearity of b-ghost mode actions*)
-b0m[Ra_/;Rtest[Ra]] := b0mHolo[Ra] - b0mAntiHolo[Ra];
-b0m[a_+b_]:=b0m[a] + b0m[b];
-b0m[a_ b_]:=a b0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-b0m[0] := 0;
-
 bmodeHolo[mode_][a_+b_]:=bmodeHolo[mode][a] + bmodeHolo[mode][b];
 bmodeHolo[mode_][a_ b_]:=a bmodeHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
 bmodeHolo[mode_][0] := 0;
@@ -572,7 +535,6 @@ applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positi
 applyCurlyBs[SFList_, curlyBs_, moduliLength_]:= 
 Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
-
 If[Head[curlyBList] === List,
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
@@ -610,12 +572,43 @@ getBGhostPosition[bmodeAntiHolo[a_][b_]]:= b;
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
+actBGhostMode[a_, b_ c_/;(NumericQ[b]|| Head[b] ===WedgeProduct)]:= b actBGhostMode[a,c];
+
+actBGhostMode[bmodeHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+parities = Map[parityOp, OpList];
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[a], #] &, OpList, i],
+{i, 1, Length[OpList]}];
+result
+];
+
+actBGhostMode[bmodeAntiHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+parities = Map[parityOp, OpList];
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[a], #] &, OpList, i],
+{i, 1, Length[OpList]}];
+result
+];
 
 actBGhostMode[bmodeHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
 actBGhostMode[bmodeAntiHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
 
 actBGhostMode[bmodeHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
 actBGhostMode[bmodeAntiHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
+actBGhostMode[bmodeHolo[a_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
+actBGhostMode[bmodeAntiHolo[a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
+
+actBGhostMode[b_, Ia_/;InteractingTest[Ia]]:= 0;
+
+
+(* ::Subsection:: *)
+(*Collapse b0m*)
+
+
+CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
+CollapseB0m[b_ b0mHold[a_]/; NumericQ[b]]:= b CollapseB0m[b0mHold[a]]
+CollapseB0m[b0mHold[a_ b_/;MultiOptest[b]]]:= a CollapseB0m[b0mHold[b]]
+CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0], a] - actBGhostMode[bmodeAntiHolo[0],a]
 
 
 (* ::Subsection::Closed:: *)
