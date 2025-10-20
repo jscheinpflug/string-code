@@ -90,7 +90,7 @@ numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture @@ # &, {toBracket}]]]-
 numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture @@ # &, {toBracket}]]]-1];
 afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
-result = {afterHeldActionOfPCOs, localCoordinateReplacement};
+result = {b0m[afterHeldActionOfPCOs], localCoordinateReplacement};
 result]
 
 
@@ -100,15 +100,15 @@ result]
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
-Module[{result = {}, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
+Module[{bracketNoB0m = bracket/.{b0mHold->1}, result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, bracketHoloWeightFree, 
 bracketAntiHoloWeightFree, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular, OPEHolo, OPEAntiHolo,
 \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo, projectedOPEHolo, projectedOPEAntiHolo,  projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
-bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
+bracketNoPCOs = bracketNoB0m//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts [inside PCO actions]*)
-Reap[
+result = Reap[
 Scan[Function[bracketNoPCOsTerm,
 
 (*Split the multi-local result of the bracket into holomorphic/antiholomorphic parts*)
@@ -146,7 +146,9 @@ projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo
 Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}];
 ]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
-[[2]]][[1,1,1]];
+[[2]][[1,1,1]];
+b0mHold[result];
+];
 
 
 (* ::Subsection:: *)

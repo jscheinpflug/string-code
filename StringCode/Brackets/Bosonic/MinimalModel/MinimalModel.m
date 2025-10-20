@@ -7,6 +7,7 @@
 BeginPackage["StringCode`Brackets`Bosonic`MinimalModel`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`Bosonic`"];
+Needs["StringCode`Symbols`Bosonic`MinimalModel`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`Bosonic`"];
 Needs["StringCode`StringFields`"];
