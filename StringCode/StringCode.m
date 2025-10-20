@@ -46,7 +46,8 @@ AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"],
 _, Print["No such CFT for theory ", theoryValue]
 ],
 "MinimalModel", If[theoryValue == "Bosonic", AppendTo[userContext, "StringCode`Symbols`Bosonic`MinimalModel`"];
- AppendTo[userContext, "StringCode`Taylor`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`StringFields`Bosonic`MinimalModel`"],
+ AppendTo[userContext, "StringCode`Taylor`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`StringFields`Bosonic`MinimalModel`"];
+ AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"],
  Print["No such CFT for theory ", theoryValue]],
 _, Print["There are no such CFTs"]];
 
