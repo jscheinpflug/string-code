@@ -37,8 +37,8 @@ Begin["Private`"];
 (*Interacting projection*)
 
 
-InteractingProjection[a_, 0]:= Corr[a];
-InteractingProjection[a_, 2]:= Corr[a, Interacting[V[0,0,Infinity,Infinity]]] Interacting[V[0,0,0,0]];
+InteractingProjection[a_, 0]:= CorrOne;
+InteractingProjection[a_, 2]:= CorrV Interacting[V[0,0,0,0]];
 InteractingProjection[a_, b_/; b>2]:= 0;
 
 
