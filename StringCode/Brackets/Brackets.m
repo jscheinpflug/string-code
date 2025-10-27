@@ -632,15 +632,15 @@ ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
 ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
 
 ApplyPropagator[q_][Ra_/;Rtest[Ra]]:= Module[{rescaledR},
-rescaledR = mapOp[rescaling[q], rescaling[q]][Ra];
+rescaledR = mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
 actBGhostMode[bmodeHolo[0], rescaledR] + actBGhostMode[bmodeAntiHolo[0],rescaledR]]
 
 ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
-rescaledOp = mapOp[rescaling[q], rescaling[q]][Opa];
+rescaledOp = mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
 actBGhostMode[bmodeHolo[0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0],rescaledOp]]
 
 ApplyPropagator[q_][MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{rescaledMultiOp},
-rescaledMultiOp = mapOp[rescaling[q], rescaling[q]][MultiOpa];
+rescaledMultiOp = mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
 actBGhostMode[bmodeHolo[0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0],rescaledMultiOp]]
 
 rescaling[factor_][z_]:= factor z;
