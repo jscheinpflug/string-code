@@ -42,6 +42,8 @@ InteractingProjection[a_, 2]:= Corr @@ Join[Flatten[a/.{OPE->List}], {Interactin
 InteractingProjection[a_, b_/; b>2]:= 0;
 
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]], Interacting[V[0,0,Infinity,Infinity]] ]:= CVVV 1/(z1-z2)/(z1Bar-z2Bar)
+Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]], Interacting[V[0,0,z3_,z3Bar_]],Interacting[V[0,0,Infinity,Infinity]] ]:= 
+FourPointWithInfinity[z1, z2, z3, z1Bar z2Bar, z3Bar];
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]]]:= CVV1 1/(z1-z2)^2/(z1Bar-z2Bar)^2
 
 
