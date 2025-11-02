@@ -46,6 +46,7 @@ Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]], Interacting
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]], Interacting[V[0,0,z3_,z3Bar_]] ]:= CVVV 1/((z1-z2)(z1-z3)(z2-z3))/((z1Bar-z2Bar)(z1Bar-z3Bar)(z2Bar-z3Bar))
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]], Interacting[V[0,0,z3_,z3Bar_]],Interacting[V[0,0,Infinity,Infinity]] ]:= 
 FourPointWithInfinity[z1, z2, z3, z1Bar, z2Bar, z3Bar];
+Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,Infinity,Infinity]]]:= CVV1;
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]]]:= CVV1 1/(z1-z2)^2/(z1Bar-z2Bar)^2
 
 
