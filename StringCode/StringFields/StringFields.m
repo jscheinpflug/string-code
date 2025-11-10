@@ -66,10 +66,18 @@ mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= mapOp[coordinateHol,
 
 mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ia;
 
-mapOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
-mapOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];
-mapOp[coordinateHol_, coordinateAntiHol_][bt[n_, zbar_]]:= bt[n, coordinateAntiHol[zbar]];
-mapOp[coordinateHol_, coordinateAntiHol_][ct[n_, zbar_]]:= ct[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][a_/;isHolomorphic[Head[a]]]:= 
+Module[{z = Last[a],w},(D[coordinateHol[w],w]/.{w->z})^weightHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
+mapOp[coordinateHol_, coordinateAntiHol_][a_/;isAntiHolomorphic[Head[a]]]:=
+Module[{zbar = Last[a], wbar},(D[coordinateAntiHol[wbar],wbar]/.{wbar->zbar})^weightAntiHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
+mapOp[coordinateHol_, coordinateAntiHol_][a_/;isOperator[Head[a]]]:=
+Module[{z,zbar, w, wbar}, {z,zbar} = Take[List @@ a, -2];
+(D[coordinateHol[w],w]/.{w->z})^weightHolo[a] (D[coordinateAntiHol[wbar],wbar]/.{wbar->zbar})^weightAntiHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
+
+placeOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][bt[n_, zbar_]]:= bt[n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][ct[n_, zbar_]]:= ct[n, coordinateAntiHol[zbar]];
 
 
 (* ::Subsection:: *)

@@ -28,7 +28,7 @@ Interacting::usage = "Wrapper for interacting operators";
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define MultiOp*)
 
 
@@ -65,13 +65,11 @@ Interacting[c___,b_,a_,d___]:=regcomm[a,b] Interacting[c,a,b,d]/;(!OrderedQ[{b,a
 Interacting[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
-Interacting[c___,a_+b_,d___]:=Interacting[c,a,d]+Interacting[c,b,d]
-Interacting[a___,Interacting[b___],c___]:= Interacting[a,b,c]
-Interacting[c___, s_?nonInteractingQ f_, d___] := s Interacting[c, f, d];
-Interacting[c___, s_?nonInteractingQ, d___] := s Interacting[c, d];
+Interacting[c___, a_, d___] := (Interacting[c, #, d] & /@ a) /; Head[a] == Plus
+Interacting[c___,a_ f_,d___]:=a Interacting[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators) && interactingOperators=!={})
+Interacting[c___,a_ ,d___]:=a Interacting[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators && interactingOperators=!={}))
 Interacting[]:=1
-
-nonInteractingQ[expr_]:= !isInteracting[Head[expr]];
+Interacting[a___,Interacting[b___],c___]:= Interacting[a,b,c]
 
 
 Interacting[g___,a_ f_,h___]:=Interacting[g,a,f,h]/;MemberQ[bosons,Head[a]]
@@ -95,8 +93,8 @@ Interactingone[f_]:=(InteractingLength[f]==1)
 
 InteractingTestUpToConstant::usage = "Test if product is interacting up to a constant prefactor";
 
-InteractingTestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
-InteractingTestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
+InteractingTestUpToConstant[c___,a_ f_,d___]:=InteractingTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
+InteractingTestUpToConstant[c___,a_ ,d___]:= InteractingTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
 InteractingTestUpToConstant[f_]:=InteractingTest[f];
 InteractingTestUpToConstant[]:=False;
 
