@@ -85,7 +85,7 @@ curlyBs = createCurlyBs[curlyB, moduliLength];
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
-result = afterApplyingBghosts;
+result = 1/(-2Pi I)^(1/2 moduliLength) afterApplyingBghosts;
 result]
 
 
@@ -632,19 +632,19 @@ ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
 ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
 
 ApplyPropagator[q_][MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{rescaledMultiOp},
-rescaledMultiOp =  1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
+rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
 actBGhostMode[bmodeHolo[0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0],rescaledMultiOp]]
 
 ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
-rescaledOp = 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
+rescaledOp = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
 actBGhostMode[bmodeHolo[0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0],rescaledOp]]
 
 ApplyPropagator[q_][Ra_/;Rtest[Ra]]:= Module[{rescaledR},
-rescaledR = 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
+rescaledR = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
 actBGhostMode[bmodeHolo[0], rescaledR] + actBGhostMode[bmodeAntiHolo[0],rescaledR]]
 
 ApplyPropagator[q_][Ia_/;InteractingTest[Ia]]:= Module[{rescaledI},
-rescaledI = 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
+rescaledI = 1/(-4 Pi I)1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
 actBGhostMode[bmodeHolo[0], rescaledI] + actBGhostMode[bmodeAntiHolo[0],rescaledI]]
 
 rescaling[factor_][z_]:= factor z //Expand;
