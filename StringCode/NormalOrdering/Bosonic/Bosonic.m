@@ -31,6 +31,15 @@ regcomm::usage = "Give Grassmann sign under commutation";
 regcomm[f_,g_]:=(-1)^(parity[f] parity[g])
 
 
+(* ::Subsection:: *)
+(*Optimized normal-ordering code*)
+
+
+oddBosChirFieldQ[x_]:= False;
+oddBosAntiChFieldQ[x_]:= False;
+bosExpRules = {};
+
+
 (* ::Section:: *)
 (*End*)
 

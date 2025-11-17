@@ -43,18 +43,57 @@ exp\[Phi]tparity[R[f__,g__]]:=Mod[exp\[Phi]tparity[R[f]]+exp\[Phi]tparity[R[g]],
 exp\[Phi]tparity[R[f_]]:=exp\[Phi]tparity[f]
 
 
-(* ::Subsection::Closed:: *)
-(*Define normal-ordered product*)
+(* ::Subsection:: *)
+(*Optimized normal-ordering code*)
 
 
-R[ c___,a_,a_,d___]:=R[c,exp\[Phi]b[2a[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]f)
+oddBosChirFieldQ[x_]:= FieldMemberQ[exp\[Phi]fermions][x];
+oddBosAntiChFieldQ[x_]:= FieldMemberQ[exp\[Phi]tfermions][x];
+
+
+(* ::Subsection:: *)
+(*Define normal-ordered product (superseded below)*)
+
+
+(*R[ c___,a_,a_,d___]:=R[c,exp\[Phi]b[2a[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]f)
 R[ c___,a_,a_,d___]:=R[c,exp\[Phi]tb[2a[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tf)
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]b[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]b && Head[b]==exp\[Phi]b && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tb[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tb && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]b[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]f && Head[b]==exp\[Phi]f && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tb[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tf && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]b && Head[b]==exp\[Phi]f && a[[2]]==b[[2]])
-R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
+R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])*)
+
+
+(* ::Subsection:: *)
+(*Combining bosonized operators (optimized)*)
+
+
+bosExpRules = {
+  tmpR[cc___, aa_, aa_, dd___] /; Head[aa] == exp\[Phi]f :> 
+    tmpR[cc, exp\[Phi]b[2 aa[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, aa_, dd___] /; Head[aa] == exp\[Phi]tf :> 
+    tmpR[cc, exp\[Phi]tb[2 aa[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]b && Head[bb] == exp\[Phi]b && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]b[aa[[1]] + bb[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tb && Head[bb] == exp\[Phi]tb && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]tb[aa[[1]] + bb[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]f && Head[bb] == exp\[Phi]f && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]b[aa[[1]] + bb[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tf && Head[bb] == exp\[Phi]tf && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]tb[aa[[1]] + bb[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]b && Head[bb] == exp\[Phi]f && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]f[aa[[1]] + bb[[1]], aa[[2]]], dd],
+
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tb && Head[bb] == exp\[Phi]tf && aa[[2]] == bb[[2]] :> 
+    tmpR[cc, exp\[Phi]tf[aa[[1]] + bb[[1]], aa[[2]]], dd]
+};
 
 
 (* ::Subsection::Closed:: *)
@@ -112,7 +151,7 @@ simplifying[list_] :=
     list\[CapitalPhi], list\[CapitalPhi]t}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define total picture number*)
 
 

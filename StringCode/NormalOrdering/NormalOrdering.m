@@ -14,7 +14,9 @@ Needs["StringCode`Symbols`"];
 (*Declare public variables and methods*)
 
 
-R::usage = "A sorted normal-ordered product of fields";
+R::usage = "A normal-ordered product of fields";
+Canonicalize::usage = "orderers a product R[]"
+RCanonical::usage = "calls R then Canonicalize"
 CR::usage = "A normal-ordered product for correlators";
 
 
@@ -25,7 +27,7 @@ CR::usage = "A normal-ordered product for correlators";
 Begin["Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Test normal-ordering and length*)
 
 
@@ -47,7 +49,7 @@ RtestUpToConstant[f_]:=(Head[f]==R)
 RtestUpToConstant[]:=False;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define Grassmann parity*)
 
 
@@ -69,12 +71,13 @@ regparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ regfermions))
 regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Define normal-ordered product*)
 
 
-R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(!OrderedQ[{b,a}])
-R[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
+(* old normal-ordering code *)
+(* R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(!OrderedQ[{b,a}]) *)
+(* R[ c___,a_,a_,d___]:=0/;(regparity[a]==1) *)
 
 
 R[c___, a_, d___] := (R[c, #, d] & /@ a) /; Head[a] == Plus
@@ -87,6 +90,51 @@ R[a___,R[b___],c___]:=R[a,b,c]
 R[g___,a_ f_,h___]:=R[g,a,f,h]/;MemberQ[bosons,Head[a]]
 R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
+
+
+(* ::Subsection:: *)
+(*Optimized normal-ordering code (will supersede 2 section(s) above)*)
+
+
+FieldMemberQ[list_][expr_]:=AnyTrue[list,Not[FreeQ[expr,#]]&]
+FieldQ[x_]:= FieldMemberQ[allfields][x];
+ScalarQ[x_]:= !FieldQ[x];
+evenFieldQ[x_]:= FieldMemberQ[bosons][x];
+oddFieldQ[x_]:= FieldMemberQ[regfermions][x];
+deleteAll[heads_List][expr_]:=DeleteCases[expr,_?(MemberQ[heads,Head[#]]&),\[Infinity]];
+SepGradedFields[list_]:= Module[{nChir=0, nAntiChir=0, moves=0, oddfields={}},
+	Do[
+		Which[
+			oddFieldQ[tmp], moves += nChir + nAntiChir; AppendTo[oddfields,tmp],
+			oddBosChirFieldQ[tmp], moves+= nAntiChir; nChir++,
+			True, nAntiChir++
+		],
+	{tmp,list}];
+	<|
+	"moves"->moves, (* number of parity-odd moves to group graded fields by parity *)
+	"nChir"->nChir,
+	"nAntiChir"->nAntiChir,
+	"oddfields"->oddfields
+	|>
+	];
+Canonicalize[RR_]:=
+	Module[
+		{fieldList = List@@RR,gradedFieldList, gradedFieldAssoc, sgn},
+		gradedFieldList = deleteAll[bosons][fieldList];
+		gradedFieldAssoc = SepGradedFields[gradedFieldList];
+		If[OddQ[gradedFieldAssoc[["nChir"]]],
+		AppendTo[gradedFieldAssoc[["oddfields"]], exp\[Phi]f[]]];
+		If[OddQ[gradedFieldAssoc[["nAntiChir"]]],
+		AppendTo[gradedFieldAssoc[["oddfields"]], exp\[Phi]tf[]]];
+		sgn = (-1)^(gradedFieldAssoc[["moves"]])Signature[gradedFieldAssoc[["oddfields"]]];
+		If[sgn ==0, Return[0]];
+		
+		If[gradedFieldAssoc[["nChir"]]==0 && gradedFieldAssoc[["nAntiChir"]]==0,
+		Return[sgn R @@ Sort[fieldList]]];
+		
+		Return[sgn R @@ Sort[( (tmpR@@Sort[fieldList]) /.bosExpRules )]];
+	]/; Head[RR]==R;
+RCanonical[x___]:=Canonicalize[R[x]];
 
 
 (* ::Subsection::Closed:: *)
@@ -149,7 +197,7 @@ totalWeight[Times[a_, Ra_/;Rtest[Ra]]] := totalWeight[Ra];
 totalWeight[Ra_/;Rtest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define CR*)
 
 
