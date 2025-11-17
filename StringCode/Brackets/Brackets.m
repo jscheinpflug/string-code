@@ -85,7 +85,7 @@ curlyBs = createCurlyBs[curlyB, moduliLength];
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
 afterApplyingBghosts = SFsAtPos];
-result = afterApplyingBghosts;
+result = 1/(-2Pi I)^(1/2 moduliLength) afterApplyingBghosts;
 result]
 
 
@@ -106,7 +106,7 @@ MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordi
 
 (*Projected bracket is Bracket composed with a projection*)
 BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weightAntiHolo_]:=
-BracketProjection[Bracket[toBracket], weightHolo, weightAntiHolo];
+b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, weightAntiHolo]];
 
 (*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
@@ -126,7 +126,7 @@ a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ J
 BracketProjection[WedgeProduct[a__] b___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjection[b, weightHolo, weightAntiHolo]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Collapse multi-local operator via OPE*)
 
 
@@ -318,16 +318,19 @@ extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Expo
 factorizationReplacement =  {};
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define action of b0^-*)
 
 
-(*Define holomorphic b-ghost mode actions at the same point*)
-bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+(*Define holomorphic b-ghost mode actions, generally at different points*)
+bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
-If[Head[Relem] == c, 
-der = Relem/.{c[der_,_]:> der};
-AssociateTo[cAssoc, position -> If[der -1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
+If[Head[Relem ]=== c, If[mode >= Relem[[1]]-1, 
+If[Relem[[2]]=!=0,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}],
+If[mode === Relem[[1]]-1,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+]];
 If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
@@ -338,39 +341,14 @@ result = result + ReplaceAt[Ra, replacement, pos];
 result];
 
 (*Define antiholomorphic b-ghost mode actions at the same point*)
-bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1, der},
+bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
-If[Head[Relem]== ct, 
-der = Relem/.{ct[der_,_]:> der};
-AssociateTo[cAssoc, position -> If[der - 1 == mode, {Relem -> (-1)^fermionNumber Factorial[der]}, {Relem ->0}]]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
-position = position + 1;
-],Ra];
-
-KeyValueMap[Function[{pos, replacement}, 
-result = result + ReplaceAt[Ra, replacement, pos];
-], cAssoc];
-result];
-
-(*Define action of holomorphic b-ghost zero mode, generally at different points*)
-b0mHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
-Scan[Function[Relem,
-If[MatchQ[Relem, c[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
-If[MatchQ[Relem, c[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
-position = position + 1;
-],Ra];
-
-KeyValueMap[Function[{pos, replacement}, 
-result = result + ReplaceAt[Ra, replacement, pos];
-], cAssoc];
-result];
-
-(*Define action of antiholomorphic b-ghost zero mode, generally at different points*)
-b0mAntiHolo[Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
-Scan[Function[Relem,
-If[MatchQ[Relem, ct[0, _]], AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber Relem[[2]]}], 
-If[MatchQ[Relem, ct[1, _]],  AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+If[Head[Relem ]=== ct, If[mode >= Relem[[1]]-1, 
+If[Relem[[2]]=!=0,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}],
+If[mode === Relem[[1]]-1,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
+]];
 If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
@@ -382,11 +360,6 @@ result];
 
 
 (*Multilinearity of b-ghost mode actions*)
-b0m[Ra_/;Rtest[Ra]] := b0mHolo[Ra] - b0mAntiHolo[Ra];
-b0m[a_+b_]:=b0m[a] + b0m[b];
-b0m[a_ b_]:=a b0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-b0m[0] := 0;
-
 bmodeHolo[mode_][a_+b_]:=bmodeHolo[mode][a] + bmodeHolo[mode][b];
 bmodeHolo[mode_][a_ b_]:=a bmodeHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
 bmodeHolo[mode_][0] := 0;
@@ -572,7 +545,6 @@ applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positi
 applyCurlyBs[SFList_, curlyBs_, moduliLength_]:= 
 Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
-
 If[Head[curlyBList] === List,
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
@@ -610,12 +582,72 @@ getBGhostPosition[bmodeAntiHolo[a_][b_]]:= b;
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
+actBGhostMode[a_, b_ c_]:= b actBGhostMode[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
+
+actBGhostMode[bmodeHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+parities = Map[parityOp, OpList];
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[a], #] &, OpList, i],
+{i, 1, Length[OpList]}];
+result
+];
+
+actBGhostMode[bmodeAntiHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+parities = Map[parityOp, OpList];
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[a], #] &, OpList, i],
+{i, 1, Length[OpList]}];
+result
+];
 
 actBGhostMode[bmodeHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
 actBGhostMode[bmodeAntiHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
 
 actBGhostMode[bmodeHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
 actBGhostMode[bmodeAntiHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
+actBGhostMode[bmodeHolo[a_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
+actBGhostMode[bmodeAntiHolo[a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
+
+actBGhostMode[b_, Ia_/;InteractingTest[Ia]]:= 0;
+
+
+(* ::Subsection:: *)
+(*Collapse b0m*)
+
+
+CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
+
+CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
+CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0], a] - actBGhostMode[bmodeAntiHolo[0],a]
+
+
+(* ::Subsection:: *)
+(*Apply propagator*)
+
+
+ApplyPropagator::usage = "Applies the propagator b0+/L0+ on a level-projected bracket";
+
+ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
+ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
+
+ApplyPropagator[q_][MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{rescaledMultiOp},
+rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
+actBGhostMode[bmodeHolo[0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0],rescaledMultiOp]]
+
+ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
+rescaledOp = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
+actBGhostMode[bmodeHolo[0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0],rescaledOp]]
+
+ApplyPropagator[q_][Ra_/;Rtest[Ra]]:= Module[{rescaledR},
+rescaledR = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
+actBGhostMode[bmodeHolo[0], rescaledR] + actBGhostMode[bmodeAntiHolo[0],rescaledR]]
+
+ApplyPropagator[q_][Ia_/;InteractingTest[Ia]]:= Module[{rescaledI},
+rescaledI = 1/(-4 Pi I)1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
+actBGhostMode[bmodeHolo[0], rescaledI] + actBGhostMode[bmodeAntiHolo[0],rescaledI]]
+
+rescaling[factor_][z_]:= factor z //Expand;
 
 
 (* ::Subsection::Closed:: *)

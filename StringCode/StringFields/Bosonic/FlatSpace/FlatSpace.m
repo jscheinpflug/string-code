@@ -33,10 +33,10 @@ Begin["Private`"];
 
 
 (* ::Input::Initialization:: *)
-mapOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile,ders, coordinateHol[z], coordinateAntiHol[zbar]];
-mapOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_,n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
-mapOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_,n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
-mapOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile,ders, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_,n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_,n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
 
 
 (* ::Section:: *)

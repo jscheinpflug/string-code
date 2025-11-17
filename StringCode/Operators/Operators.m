@@ -28,7 +28,7 @@ Interacting::usage = "Wrapper for interacting operators";
 Begin["Private`"];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Define MultiOp*)
 
 
@@ -65,13 +65,11 @@ Interacting[c___,b_,a_,d___]:=regcomm[a,b] Interacting[c,a,b,d]/;(!OrderedQ[{b,a
 Interacting[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
-Interacting[c___,a_+b_,d___]:=Interacting[c,a,d]+Interacting[c,b,d]
-Interacting[a___,Interacting[b___],c___]:= Interacting[a,b,c]
-Interacting[c___, s_?nonInteractingQ f_, d___] := s Interacting[c, f, d];
-Interacting[c___, s_?nonInteractingQ, d___] := s Interacting[c, d];
+Interacting[c___, a_, d___] := (Interacting[c, #, d] & /@ a) /; Head[a] == Plus
+Interacting[c___,a_ f_,d___]:=a Interacting[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators) && interactingOperators=!={})
+Interacting[c___,a_ ,d___]:=a Interacting[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators && interactingOperators=!={}))
 Interacting[]:=1
-
-nonInteractingQ[expr_]:= !isInteracting[Head[expr]];
+Interacting[a___,Interacting[b___],c___]:= Interacting[a,b,c]
 
 
 Interacting[g___,a_ f_,h___]:=Interacting[g,a,f,h]/;MemberQ[bosons,Head[a]]
@@ -95,8 +93,8 @@ Interactingone[f_]:=(InteractingLength[f]==1)
 
 InteractingTestUpToConstant::usage = "Test if product is interacting up to a constant prefactor";
 
-InteractingTestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
-InteractingTestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
+InteractingTestUpToConstant[c___,a_ f_,d___]:=InteractingTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
+InteractingTestUpToConstant[c___,a_ ,d___]:= InteractingTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ interactingOperators))
 InteractingTestUpToConstant[f_]:=InteractingTest[f];
 InteractingTestUpToConstant[]:=False;
 
@@ -112,18 +110,36 @@ parityOp[Ia_/;InteractingTest[Ia]]:= Mod[parity[Ia],2];
 
 
 (* ::Subsection:: *)
-(*Define weight of Interacting operators*)
+(*Define weight of operators*)
 
 
 totalWeightHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
 totalWeightAntiHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
 totalWeight::usage = "Computes total weight of a normal-ordered product";
 
+totalWeightHolo[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeightHolo[MultiOpa];
+totalWeightHolo[MultiOpa_/;MultiOptest[MultiOpa]] := Total[Map[totalWeightHolo, List @@ MultiOpa]];
+
+totalWeightAntiHolo[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeightAntiHolo[MultiOpa];
+totalWeightAntiHolo[MultiOpa_/;MultiOptest[MultiOpa]] := Total[Map[totalWeightAntiHolo, List @@ MultiOpa]];
+
+totalWeightHolo[Times[a_, Opa_/;OpTest[Opa]]] := totalWeightHolo[Opa];
+totalWeightHolo[Opa_/;OpTest[Opa]] := totalWeightHolo[Opa[[1]]] + totalWeightHolo[Opa[[2]]];
+
+totalWeightAntiHolo[Times[a_, Opa_/;OpTest[Opa]]] := totalWeightAntiHolo[Opa];
+totalWeightAntiHolo[Opa_/;OpTest[Opa]] := totalWeightAntiHolo[Opa[[1]]] + totalWeightAntiHolo[Opa[[2]]];
+
 totalWeightHolo[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeightHolo[Ia];
 totalWeightHolo[Ia_/;InteractingTest[Ia]] := Map[weightHolo, List @@ Ia] // Total;
 
 totalWeightAntiHolo[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeightAntiHolo[Ia];
 totalWeightAntiHolo[Ia_/;InteractingTest[Ia]] := Map[weightAntiHolo, List @@ Ia] // Total;
+
+totalWeight[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeight[MultiOpa];
+totalWeight[MultiOpa_/;MultiOptest[MultiOpa]] := {totalWeightHolo[MultiOpa], totalWeightAntiHolo[MultiOpa]};
+
+totalWeight[Times[a_, Opa_/;OpTest[Opa]]] := totalWeight[Opa];
+totalWeight[Opa_/;OpTest[Opa]] := {totalWeightHolo[Opa], totalWeightAntiHolo[Opa]};
 
 totalWeight[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeight[Ia];
 totalWeight[Ia_/;InteractingTest[Ia]] := {totalWeightHolo[Ia], totalWeightAntiHolo[Ia]};

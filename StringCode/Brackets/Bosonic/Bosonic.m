@@ -81,7 +81,7 @@ Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= b0mHold[BracketBosonic[toBr
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[bracket__, weightHolo_, weightAntiHolo_]:= 
-Module[{bracketNoB0m = bracket/.{b0mHold->1}, prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
+Module[{prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
 bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo,
 projectedOPEHolo, projectedOPEAntiHolo, projectedOPE, OPEInteracting, OPEInteractingSingular, result},
 
@@ -121,9 +121,9 @@ projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo
 Sow[{prefac projectedOPE}];
 ];
 
-],  If[Head[bracketNoB0m] === Plus, bracketNoB0m/.{Plus->List}, {bracketNoB0m}]]]
-[[2]][1,1,1];
-b0mHold[result]
+],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
+[[2]][[1,1,1]];
+result
 ];
 
 
