@@ -65,13 +65,12 @@ Bracket[args___, WedgeProduct[a__]b___, rest___]:= WedgeProduct[a, Bracket[args,
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
 BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
-moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyB, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, moduliLength, afterApplyingBghosts, afterHeldActionOfPCOs},
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyB, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, moduliLength, afterApplyingBghosts, afterHeldActionOfPCOs, prefac},
 bracketOrder = Length[bracketList];
 
 (*Conformally transform the string field insertions*)
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
-SFsAtPos = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList];
-SFList = List @@ SFsAtPos;
+{prefac, SFList} = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList];
 
 (*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 moduliLength = Length[moduli];
@@ -84,9 +83,9 @@ curlyBs = createCurlyBs[curlyB, moduliLength];
 
 (*Apply the curly B-ghost insertions*)
 afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
-afterApplyingBghosts = SFsAtPos];
+afterApplyingBghosts = MultiOp @@ SFList];
 result = 1/(-2Pi I)^(1/2 moduliLength) afterApplyingBghosts;
-result]
+prefac result]
 
 
 (* ::Subsubsection:: *)
@@ -95,9 +94,24 @@ result]
 
 placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
 placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__]:= 
-Module[{i, length = Length[SFs]},
-MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]],{i,1,length}]
+Module[{i, length = Length[SFs], Ma},
+Ma = MultiOp @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]],{i,1,length}];
+{extractPrefacFromMultiOpTimesConstant[Ma], extractListFromMultiOpTimesConstant[Ma]}
 ]
+
+
+(* ::Subsubsection:: *)
+(*Factorize MultiOp times constant*)
+
+
+extractPrefacFromMultiOpTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by multi-local operator";
+extractPrefacFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOptest[Ma]]] := a;
+extractPrefacFromMultiOpTimesConstant[Ma_/;MultiOptest[Ma]] := 1;
+extractPrefacFromMultiOpTimesConstant[1] := 1;
+
+extractListFromMultiOpTimesConstant::usage = "Extracts the list of operators inside a multi-local operator product possibly multiplied by a constant prefactor";
+extractListFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOptest[Ma]]] := List @@ Ma;
+extractListFromMultiOpTimesConstant[Ma_/;MultiOptest[Ma]] := List @@ Ma;
 
 
 (* ::Subsection:: *)
