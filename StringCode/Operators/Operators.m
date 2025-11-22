@@ -100,11 +100,15 @@ InteractingTestUpToConstant[]:=False;
 
 
 (* ::Subsection:: *)
-(*Define parity of Op*)
+(*Define parity of MultiOp and Op*)
 
 
 parityOp::usage = "Computes the parity of a local operator";
-parityOp[op_/;OpTest[op]]:= Mod[parity[op[[1]]] + parity[op[[2]]],2];
+scalarQ[x_] := FreeQ[x, _MultiOp | _Op | _R | _Interacting]
+parityOp[expr_Times] := parityOp[SelectFirst[List @@ expr, !scalarQ[#] &]]
+
+parityOp[Ma_/;MultiOptest[Ma]]:= Mod[Total @ (parityOp /@ List @@ Ma),2];
+parityOp[Oa_/;OpTest[Oa]]:= Mod[parity[Oa[[1]]] + parity[Oa[[2]]],2];
 parityOp[Ra_/;Rtest[Ra]]:= Mod[parity[Ra],2];
 parityOp[Ia_/;InteractingTest[Ia]]:= Mod[parity[Ia],2];
 
