@@ -334,11 +334,11 @@ factorizationReplacement =  {};
 
 
 (*Define holomorphic b-ghost mode actions, generally at different points*)
-bmodeHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+bmodeHolo[contourCenter_][mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[Head[Relem ]=== c, If[mode >= Relem[[1]]-1, 
-If[Relem[[2]]=!=0,
-AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}],
+If[Relem[[2]] - contourCenter =!=0,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]]-contourCenter)^(mode-(Relem[[1]]-1))}],
 If[mode === Relem[[1]]-1,
 AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
 ]];
@@ -352,11 +352,11 @@ result = result + ReplaceAt[Ra, replacement, pos];
 result];
 
 (*Define antiholomorphic b-ghost mode actions at the same point*)
-bmodeAntiHolo[mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+bmodeAntiHolo[contourCenter_][mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[Head[Relem ]=== ct, If[mode >= Relem[[1]]-1, 
-If[Relem[[2]]=!=0,
-AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]])^(mode-(Relem[[1]]-1))}],
+If[Relem[[2]]-contourCenter=!=0,
+AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(Relem[[1]]-1)] (Relem[[2]]-contourCenter)^(mode-(Relem[[1]]-1))}],
 If[mode === Relem[[1]]-1,
 AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
 ]];
@@ -371,13 +371,13 @@ result];
 
 
 (*Multilinearity of b-ghost mode actions*)
-bmodeHolo[mode_][a_+b_]:=bmodeHolo[mode][a] + bmodeHolo[mode][b];
-bmodeHolo[mode_][a_ b_]:=a bmodeHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
-bmodeHolo[mode_][0] := 0;
+bmodeHolo[contourCenter_][mode_][a_+b_]:=bmodeHolo[contourCenter][mode][a] + bmodeHolo[contourCenter][mode][b];
+bmodeHolo[contourCenter_][mode_][a_ b_]:=a bmodeHolo[contourCenter][mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeHolo[contourCenter_][mode_][0] := 0;
 
-bmodeAntiHolo[mode_][a_+b_]:=bmodeAntiHolo[mode][a] + bmodeAntiHolo[mode][b];
-bmodeAntiHolo[mode_][a_ b_]:=a bmodeAntiHolo[mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
-bmodeAntiHolo[mode_][0] := 0;
+bmodeAntiHolo[contourCenter_][mode_][a_+b_]:=bmodeAntiHolo[contourCenter][mode][a] + bmodeAntiHolo[contourCenter][mode][b];
+bmodeAntiHolo[contourCenter_][mode_][a_ b_]:=a bmodeAntiHolo[contourCenter][mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeAntiHolo[contourCenter_][mode_][0] := 0;
 
 
 (* ::Subsection:: *)
@@ -474,9 +474,9 @@ wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol[w], w,z, maxOrderHolo];
 expandedBGhostIntegrandHol = (Series[-(Differential[localCoordinateHol[w], moduli]/.{w->wInTermsOfZ}), {z,z0,maxOrderHolo}]//Normal);
 
 (*Replace terms in the above series with b-ghost modes*)
-BGhostIntegrandHolo = Total[(#/.{Times[rest___,(z-z0)^p_?NumericQ]:> rest bmodeHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(z-z0)]:> rest bmodeHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeHolo[-1][insertionLabel]}) & /@ (List@@(expandedBGhostIntegrandHol))],
+BGhostIntegrandHolo = Total[(#/.{Times[rest___,(z-z0)^p_?NumericQ]:> rest bmodeHolo[z0][p-1][insertionLabel],Times[rest___,diff_/;diff===(z-z0)]:> rest bmodeHolo[z0][0][insertionLabel],Times[rest___,1]:> rest bmodeHolo[z0][-1][insertionLabel]}) & /@ (List@@(expandedBGhostIntegrandHol))],
 (*If no derivatives of c-ghost appear, then return dz(w)/d(modulus)_{w=0} b_{-1}*)
-BGhostIntegrandHolo = -Differential[localCoordinateHol[0], moduli] bmodeHolo[-1][insertionLabel];
+BGhostIntegrandHolo = -Differential[localCoordinateHol[0], moduli] bmodeHolo[z0][-1][insertionLabel];
 ], 
 BGhostIntegrandHolo = 0;
 ];
@@ -493,10 +493,10 @@ wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol[wbar], wbar, 
 expandedBGhostIntegrandAntiHol = (Series[-(Differential[localCoordinateAntiHol[wbar], moduli]/.{wbar->wbarInTermsOfZbar}), {zbar,z0bar,maxOrderAntiHolo}]//Normal);
 
 (*Replace terms in the above series with bt-ghost modes*)
-BGhostIntegrandAntiHolo = Total[(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:> rest bmodeAntiHolo[p-1][insertionLabel],Times[rest___,diff_/;diff===(zbar-z0bar)]:> rest bmodeAntiHolo[0][insertionLabel],Times[rest___,1]:> rest bmodeAntiHolo[-1][insertionLabel]})& /@ (List@@(expandedBGhostIntegrandAntiHol))],
+BGhostIntegrandAntiHolo = Total[(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:> rest bmodeAntiHolo[z0bar][p-1][insertionLabel],Times[rest___,diff_/;diff===(zbar-z0bar)]:> rest bmodeAntiHolo[z0bar][0][insertionLabel],Times[rest___,1]:> rest bmodeAntiHolo[z0bar][-1][insertionLabel]})& /@ (List@@(expandedBGhostIntegrandAntiHol))],
 
 (*If no derivatives of c-ghost appear, then return dzbar(wbar)/d(modulus)_{wbar=0} bt_{-1}*)
-BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol[0], moduli] bmodeAntiHolo[-1][insertionLabel];
+BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol[0], moduli] bmodeAntiHolo[z0bar][-1][insertionLabel];
 ],
 BGhostIntegrandAntiHolo = 0;
 ];
@@ -616,51 +616,51 @@ applyBghostModes[][a_] := a;
 
 
 getBGhostPosition::usage = "Obtain the position at which a b-ghost mode acts";
-getBGhostPosition[bmodeHolo[a_][b_]]:= b;
-getBGhostPosition[bmodeAntiHolo[a_][b_]]:= b;
+getBGhostPosition[bmodeHolo[contourCenter_][a_][b_]]:= b;
+getBGhostPosition[bmodeAntiHolo[contourCenter_][a_][b_]]:= b;
 
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
 actBGhostMode[a_, b_ c_]:= b actBGhostMode[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
 
-actBGhostMode[bmodeHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeHolo[contourCenter_][a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
-Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[a], #] &, OpList, i],
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeHolo[a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
-Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[a], #] &, OpList, i],
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeAntiHolo[a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
-Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[a], #] &, OpList, i],
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeAntiHolo[a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
-Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[a], #] &, OpList, i],
+Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
-actBGhostMode[bmodeAntiHolo[a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
-actBGhostMode[bmodeHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[a][Opa[[1]]], Opa[[2]]];
-actBGhostMode[bmodeAntiHolo[a_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeHolo[contourCenter_][a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeHolo[contourCenter_][a_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
 
-actBGhostMode[bmodeHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
-actBGhostMode[bmodeAntiHolo[a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
-actBGhostMode[bmodeHolo[a_], Ra_/;Rtest[Ra]]:= bmodeHolo[a][Ra];
-actBGhostMode[bmodeAntiHolo[a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[a][Ra];
+actBGhostMode[bmodeHolo[contourCenter_][a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
 
 actBGhostMode[b_, Ia_/;InteractingTest[Ia]]:= 0;
 
@@ -673,7 +673,7 @@ CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
 
 CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
 CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
-CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0], a] - actBGhostMode[bmodeAntiHolo[0],a]
+CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0][0], a] - actBGhostMode[bmodeAntiHolo[0][0],a]
 
 
 (* ::Subsection:: *)
@@ -687,19 +687,19 @@ ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allf
 
 ApplyPropagator[q_][MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{rescaledMultiOp},
 rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
-actBGhostMode[bmodeHolo[0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0],rescaledMultiOp]]
+actBGhostMode[bmodeHolo[0][0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0][0],rescaledMultiOp]]
 
 ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
 rescaledOp = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
-actBGhostMode[bmodeHolo[0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0],rescaledOp]]
+actBGhostMode[bmodeHolo[0][0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0][0],rescaledOp]]
 
 ApplyPropagator[q_][Ra_/;Rtest[Ra]]:= Module[{rescaledR},
 rescaledR = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
-actBGhostMode[bmodeHolo[0], rescaledR] + actBGhostMode[bmodeAntiHolo[0],rescaledR]]
+actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],rescaledR]]
 
 ApplyPropagator[q_][Ia_/;InteractingTest[Ia]]:= Module[{rescaledI},
 rescaledI = 1/(-4 Pi I)1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
-actBGhostMode[bmodeHolo[0], rescaledI] + actBGhostMode[bmodeAntiHolo[0],rescaledI]]
+actBGhostMode[bmodeHolo[0][0], rescaledI] + actBGhostMode[bmodeAntiHolo[0][0],rescaledI]]
 
 rescaling[factor_][z_]:= factor z //Expand;
 
