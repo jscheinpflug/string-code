@@ -386,11 +386,7 @@ bmodeAntiHolo[contourCenter_][mode_][0] := 0;
 
 createCurlyB::usage = "Create curlyB insertion given local coordinate functions, moduli and number of bracket insertions"
 createCurlyB[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__,  bracketOrder_, moduli_,  w_, wbar_]:= 
-Module[{i,j, minCGhostModdings,minCbarGhostModdings, result = 0},
-
-(*Get maximum possible b-ghost mode that does not vanish upon action*)
-minCGhostModdings = Map[getMinCGhostModding, SFList];
-minCbarGhostModdings = Map[getMinCbarGhostModding, SFList];
+Module[{i,result = 0},
 
 (*For each modulus and insertion, create the relevant b-ghost insertions*)
 Do[
@@ -584,7 +580,6 @@ applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positi
 applyCurlyBs[SFList_, curlyBs_, moduliLength_]:= 
 Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
 curlyBList = curlyBs/.{Plus->List}},
-
 If[Head[curlyBList] === List,
 Scan[Function[curlyB,
 (*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
@@ -663,6 +658,7 @@ actBGhostMode[bmodeHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeHolo[contour
 actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
 
 actBGhostMode[b_, Ia_/;InteractingTest[Ia]]:= 0;
+actBGhostMode[b_, a_/;NumericQ[a]]:= 0;
 
 
 (* ::Subsection:: *)
