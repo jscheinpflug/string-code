@@ -139,6 +139,9 @@ totalWeightHolo[Ia_/;InteractingTest[Ia]] := Map[weightHolo, List @@ Ia] // Tota
 totalWeightAntiHolo[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeightAntiHolo[Ia];
 totalWeightAntiHolo[Ia_/;InteractingTest[Ia]] := Map[weightAntiHolo, List @@ Ia] // Total;
 
+totalWeightHolo[a_/;NumericQ[a]]:=0;
+totalWeightAntiHolo[a_/;NumericQ[a]]:=0;
+
 totalWeight[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeight[MultiOpa];
 totalWeight[MultiOpa_/;MultiOptest[MultiOpa]] := {totalWeightHolo[MultiOpa], totalWeightAntiHolo[MultiOpa]};
 
@@ -147,6 +150,8 @@ totalWeight[Opa_/;OpTest[Opa]] := {totalWeightHolo[Opa], totalWeightAntiHolo[Opa
 
 totalWeight[Times[a_, Ia_/;InteractingTest[Ia]]] := totalWeight[Ia];
 totalWeight[Ia_/;InteractingTest[Ia]] := {totalWeightHolo[Ia], totalWeightAntiHolo[Ia]};
+
+totalWeight[a_/;NumericQ[a]]:=0;
 
 
 (* ::Subsection:: *)

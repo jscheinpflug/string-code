@@ -6,6 +6,7 @@
 
 BeginPackage["StringCode`Taylor`"];
 Needs["StringCode`Symbols`"];
+Needs["StringCode`OPE`"];
 Needs["StringCode`NormalOrdering`"];
 
 
@@ -115,6 +116,11 @@ TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 (*Taylor to zeroth order preserves the input*)
 TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
 TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
+
+TaylorAtOrderHolo[a_/;Head[a]==OPE,0,z0_]:= 1;
+TaylorAtOrderHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
+TaylorAtOrderAntiHolo[a_/;Head[a]==OPE,0,z0_]:= 1;
+TaylorAtOrderAntiHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
 
 
 (* ::Subsubsection:: *)

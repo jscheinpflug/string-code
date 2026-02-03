@@ -25,6 +25,12 @@ Needs["StringCode`Taylor`Bosonic`"];
 Begin["Private`"];
 
 
+TaylorAtOrderHolo[OPE[a___],0,z0_]:=1;
+TaylorAtOrderHolo[OPE[a___],b_/;b>0,z0_]:=0;
+TaylorAtOrderAntiHolo[OPE[a___],0,z0_]:=1;
+TaylorAtOrderAntiHolo[OPE[a___],b_/;b>0,z0_]:=0;
+
+
 (* ::Subsection:: *)
 (*Check if field needs expanding*)
 
