@@ -105,7 +105,7 @@ If[bracketInteracting === MultiOp[],
 {projectedOPEHolo, projectedOPEAntiHolo} = 
 {projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
 
-Sow[{prefac projectedOPEHolo, projectedOPEAntiHolo}],
+Sow[{prefac R[projectedOPEHolo, projectedOPEAntiHolo]}],
 
 (*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
 bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];

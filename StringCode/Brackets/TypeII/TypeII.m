@@ -130,7 +130,7 @@ If[bracketInteracting === MultiOp[],
 (*Act with PCOs on each projected holomorphic/antiholomorphic sector separately*)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {Nest[actPCOHolo, projectedOPEHolo, numberOfHoloPCOs], Nest[actPCOAntiHolo, projectedOPEAntiHolo, numberOfAntiHoloPCOs]};
 
-Sow[{holoOPEWithPCOs, antiHoloOPEWithPCOs}],
+Sow[{R[holoOPEWithPCOs, antiHoloOPEWithPCOs]}],
 (*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
 bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
 bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
