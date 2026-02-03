@@ -181,8 +181,8 @@ Non-chiral fields (depend on both z and z̄):
 - `expX[k, z, zbar]` — e^{ik·X}, plane wave vertex operator
 - `ProfileX[f, z, zbar]` — f(X), general profile operator
 
-**MinimalModel**: Interacting CFT with Virasoro primaries
-- `V[...]` — primary operators of the minimal model
+**MinimalModel**: Unitary minimal model with c ~ 1
+- `V[...]` — (1,3) primary of weight near (1,1) in the c ~ 1 theory
 
 For interacting CFTs, operators are wrapped in `Interacting[...]` to indicate their OPEs are not computed via Wick contractions but are instead specified externally (e.g., from the fusion rules of the minimal model).
 
@@ -223,7 +223,7 @@ Test notebooks are located in `Tests/`:
 
 ### Unit tests
 
-- `Tests/Unit/Bosonic/OPE-Baisc-Test.wlnb` - Checks of basic OPEs
+- `Tests/Unit/Bosonic/OPE-Basic-Test.wlnb` - Checks of basic OPEs
 
 ### Integration tests
 
