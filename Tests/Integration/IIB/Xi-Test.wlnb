@@ -1,0 +1,224 @@
+{
+  "cells": [
+    {
+      "kind": 1,
+      "value": "# Init",
+      "languageId": "markdown"
+    },
+    {
+      "kind": 2,
+      "value": "addToPathRecursive[root_]:=Module[{fullRoot,allDirs},fullRoot=ExpandFileName[root];\nallDirs=Select[FileNames[\"*\",fullRoot,Infinity],DirectoryQ[#]&&!StringMatchQ[FileNameTake[#],\".*\"]&];\nallDirs=DeleteDuplicates[Prepend[allDirs,fullRoot]];\nDo[If[!MemberQ[$Path,dir],AppendTo[$Path,dir]],{dir,allDirs}];];\n\ngoUpDirectories[path_String,n_Integer:1]:=Module[{parts},parts=FileNameSplit[ExpandFileName[path]];\nFileNameJoin[Take[parts,Length[parts]-n]]];\nreplaceUniqueSymbols[expr_]:=expr/. s_Symbol:>ToExpression[StringReplace[SymbolName[s],\"$\"~~NumberString->\"\"]];\naddToPathRecursive[goUpDirectories[NotebookDirectory[],2]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Needs[\"StringCode`\"]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "StringCode`InitStringCode[<|\"conventions\"-> \"IIB-Xi\"|>]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Bracket[SF[c[0], ct[0],dX[\\[Mu],0], dXt[\\[Mu],0]], SF[c[0],ct[0],dX[\\[Nu],0], dXt[\\[Nu],0]]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Timing[Bracket[SF[c[0], ct[0], exp\\[Phi]f[-1], exp\\[Phi]tf[-1],\\[Psi][\\[Mu],0], \\[Psi]t[\\[Mu],0]], SF[c[0], ct[0], exp\\[Phi]f[-1], exp\\[Phi]tf[-1],\\[Psi][\\[Nu],0], \\[Psi]t[\\[Nu],0]]]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "OPE[R[b[0,z],d\\[Phi][0,z],exp\\[Phi]b[2,z],\\[Eta][0,z]], R[c[0,0],c[1,0],ct[0,0],exp\\[Phi]b[-2,0],exp\\[Phi]tb[-2,0],\\[Psi][\\[Mu],0,0],\\[Psi][\\[Nu],0,0],\\[Psi]t[\\[Mu],0,0],\\[Psi]t[\\[Nu],0,0]]]//Expand",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "{{1,2,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0,0},{0,0,0,-4,0,0,0,0,0},{0,0,0,0,0,0,0,0,0}}//MatrixForm",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "PCO[z]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "PCO[z]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Taylor[R[expX[k,z,zbar],expX[q,-w,-wbar]],0,0,1]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TaylorAtOrder[R[expX[k,z,zbar],expX[q,-z,zbar]],1,1,z,0]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "OPE[R[c[w,0]],R[ProfileX[h[m,n],1,{},z,zbar], dX[n,0,z]],R[ProfileX[g[m,n],1,{},w,wbar],dX[m,0,w]],R[c[z,0]]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "List @@ (-(1)/(z)+R[d\\[Phi][0,0]]-z R[\\[Eta][0,0],\\[Xi][1,0]]-z^2 R[\\[Eta][0,0],\\[Xi][2,0]]+z^2 R[d\\[Phi][0,0],\\[Eta][0,0],\\[Xi][1,0]]+z^3 R[d\\[Phi][0,0],\\[Eta][0,0],\\[Xi][2,0]])",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "ExtractZPowers[exprs_List]:=Cases[exprs,Power[z,n_]:>n,(*Matches z^n*){0,Infinity}              (*Search at all levels*)]~Join~Cases[exprs,z:>1,(*Matches linear z*){0,Infinity}]~Join~Cases[exprs,Rational[-1,z]:>-1,(*Matches-1/z*){0,Infinity}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "ExtractZPowers[List @@ (-(1)/(z)+R[d\\[Phi][0,0]]-z R[\\[Eta][0,0],\\[Xi][1,0]]-z^2 R[\\[Eta][0,0],\\[Xi][2,0]]+z^2 R[d\\[Phi][0,0],\\[Eta][0,0],\\[Xi][1,0]]+z^3 R[d\\[Phi][0,0],\\[Eta][0,0],\\[Xi][2,0]])]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Series[((-w+z) (-wbar+zbar))^(1)/(2) StringCode`OPE`Private`k$5211[m] StringCode`OPE`Private`k$5212[m],{StringCode`OPE`Private`k$5211[m] ,0,2}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "colors={Red,Green,Blue};\npairs=Subsets[colors,{2}];\n\ncapacities=<|Red->1,Green->2,Blue->3|>;\n\n(*For each pair,allow:not used (None),or assigned to one of its two colors*)\npairChoices={None,#[[1]],#[[2]]}&/@pairs;\n\n(*All combinations:3 options (None or 2 slots) per pair*)\nallAssignments=Tuples[pairChoices];\n\n(*Filter valid assignments:no slot exceeds its capacity*)\nvalidAssignments=Select[allAssignments,Function[assignment,Module[{usedSlots,counts},usedSlots=DeleteCases[assignment,None];\ncounts=Counts[usedSlots];\nAllTrue[colors,Function[c,Lookup[counts,c,0]<=capacities[c]]]]]];\n\nvalidAssignments",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 1,
+      "value": "# Testing",
+      "languageId": "markdown"
+    },
+    {
+      "kind": 2,
+      "value": "Gmatter[z]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** testing \\[Beta] \\[Gamma] OPE ***)\nTaylor[(OPE[\\[Beta]ghost[z],\\[Gamma]ghost[w]]//Expand)/.w->0,0,0,1]//Expand\nTaylor[(OPE[\\[Gamma]ghost[z],\\[Beta]ghost[w]]//Expand)/.w->0,0,0,1]//Expand",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** checking BRST transformation of b and \\[Beta] ghosts ***)\nPolar[Taylor[OPE[jBRST[z],R[b[0,w]]]/.w->0//Expand,0,0,2],z,0]-1/z Ttotal[0]//Expand//replaceUniqueSymbols\nPolar[Taylor[OPE[jBRST[z],R[\\[Beta]ghost[w]]]/.w->0//Expand,0,0,2],z,0]- 1/z (-1/2  Gtotal[0])//Expand//replaceUniqueSymbols",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** checking PCO ***)\nPolar[Taylor[(OPE[jBRST[z],R[\\[Xi][0,w]]]//Expand)/.w->0,0,0,2],z,0]-1/z PCO[0]//Expand//replaceUniqueSymbols",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** checking BRST current is weight 1 primary ***)\npol1=Polar[Taylor[(OPE[Ttotal[z],jBRST[w]]//Expand//Contract)/.w->0,0,0,2],z,0];\npol2=Polar[Taylor[jBRST[z]/z^2,0,0,2],z,0];\n(pol1- pol2//replaceUniqueSymbols)/.{\\[Delta][\\[Mu],\\[Mu]]->1}//Expand",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** checking nilpotency of BRST charge ***)\npoltest=Polar[Taylor[(OPE[jBRST[z],jBRST[w]]//Expand//Contract)/.w->0,0,0,3],z,0]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "poltotalderiv=Polar[Taylor[-(1)/(8 z^2)2 \\[ImaginaryI] Sqrt[2] R[c[0,z],dX[\\[Mu],0,z],exp\\[Phi]f[1,z],\\[Eta][0,z],\\[Psi][\\[Mu],0,z]]-(R[b[0,z],c[0,z],exp\\[Phi]b[2,z],\\[Eta][0,z],\\[Eta][1,z]])/(4 z^2)+(-R[exp\\[Phi]b[2,z],\\[Eta][0,z],\\[Eta][2,z]])/(8 z^2)+(-3 R[d\\[Phi][0,z],exp\\[Phi]b[2,z],\\[Eta][0,z],\\[Eta][1,z]])/(8 z^2),0,0,2],z,0];\n((poltest-  poltotalderiv//replaceUniqueSymbols)/.{\\[Delta][\\[Mu],\\[Mu]]->1})+O[z]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** checking T T OPE ***)\n(Polar[Taylor[((OPE[Ttotal[z],Ttotal[w]]//Simplify//Contract)/.w->0)-(1/z^2 Ttotal[0]+1/z^2 Ttotal[z]),0,0,2],z,0]//replaceUniqueSymbols)/.{\\[Delta][\\[Mu],\\[Mu]]->1}//Expand",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "tripgrav=OPE[Graviton[\\[Mu]1,\\[Nu]1,k1,z1,z1bar],Graviton[\\[Mu]2,\\[Nu]2,k2,z2,z2bar],RaisedGraviton[\\[Mu]3,\\[Nu]3,k3,z3,z3bar]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Graviton[\\[Mu]_,\\[Nu]_,k_,z_,zbar_]:=R[c[0,z],ct[0,zbar],exp\\[Phi]f[-1,z],\\[Psi][\\[Mu],0,z],exp\\[Phi]tf[-1,zbar],\\[Psi]t[\\[Nu],0,zbar],expX[k,z,zbar]]\n\nPictureRaiseL[vert_,z1_,z1bar_]:=Block[{w,x},SeriesCoefficient[(Taylor[OPE[PCO[w],vert]//ContractDelta,z1,z1bar,0]/.w->z1+x)+O[x],0]]\nPictureRaiseR[vert_,z1_,z1bar_]:=Block[{w,x},SeriesCoefficient[(Taylor[OPE[PCObar[w],vert]//ContractDelta,z1,z1bar,0]/.w->z1bar+x)+O[x],0]]\nPictureRaiseLR[vert_,z1_,z1bar_]:=PictureRaiseR[PictureRaiseL[vert,z1,z1bar],z1,z1bar]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "RaisedGraviton[\\[Mu]1_,\\[Nu]1_,k1_,z1_,z1bar_]:=PictureRaiseLR[Graviton[\\[Mu]1,\\[Nu]1,k1,z1,z1bar],z1,z1bar]//Expand\n\ntripgrav=OPE[Graviton[\\[Mu]1,\\[Nu]1,k1,z1,z1bar],Graviton[\\[Mu]2,\\[Nu]2,k2,z2,z2bar],RaisedGraviton[\\[Mu]3,\\[Nu]3,k3,z3,z3bar]];\n\n(*** graviton 3-point amplitude ***)tripgravamp=Vev[tripgrav/.{z1->x,z1bar->x,z2->1,z2bar->1,z3->0,z3bar->0}/.{dot[k1,k2]->0,dot[k1,k3]->0,dot[k2,k3]->0}]//Simplify//Expand//ContractDelta//Simplify\n\n(e1[\\[Mu]1] e1[\\[Nu]1] e2[\\[Mu]2] e2[\\[Nu]2] e3[\\[Mu]3] e3[\\[Nu]3] tripgravamp//Expand//ContractDelta)//.{(f1_[\\[Mu]_] f2_[\\[Mu]_]):>dot[f1,f2]}/.{dot[e3,k2]->-dot[e3,k1]}//Simplify",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "SimpleRaisedGraviton[\\[Mu]_,\\[Nu]_,k_,z_,zbar_]:=(RaisedGraviton[\\[Mu],\\[Nu],k,z,zbar]/.{\\[Eta][a__]:>0,\\[Eta]t[a__]:>0})\nIntegratedSimpleRaisedGraviton[\\[Mu]_,\\[Nu]_,k_,z_,zbar_]:=Block[{w},(w-z) (w-zbar) OPE[R[bt[0,w],b[0,w]],SimpleRaisedGraviton[\\[Mu],\\[Nu],k,z,zbar]]/.{b[a__]:>0,bt[a__]:>0}//Simplify//Expand]\nFourGravCorr=Corr[OPE[Graviton[\\[Mu]1,\\[Nu]1,k1,z1,z1bar],Graviton[\\[Mu]2,\\[Nu]2,k2,z2,z2bar]],\nOPE[SimpleRaisedGraviton[\\[Mu]3,\\[Nu]3,k3,z3,z3bar],IntegratedSimpleRaisedGraviton[\\[Mu]4,\\[Nu]4,k4,z4,z4bar]]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "FourGravCorr",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "VevFourGravCorr=Vev[FourGravCorr/.{z3->1/x,z3bar->1/x,z1->1,z1bar->1,z2->0,z2bar->0}/.{dot[k1,k4]->dot[k2,k3],dot[k2,k4]->dot[k1,k3],dot[k3,k4]->dot[k1,k2]}]//Simplify",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Prefactor=(-(1)/(x))^dot[k2,k3] ((-1+x)/(x))^dot[k1,k3] (1-z4)^-1+(1)/(2) dot[k2,k3] ((1)/(x)-z4)^(1)/(2) dot[k1,k2] (-z4)^-1+(1)/(2) dot[k1,k3] (1-z4bar)^-1+(1)/(2) dot[k2,k3] ((1)/(x)-z4bar)^(1)/(2) dot[k1,k2] (-z4bar)^-1+(1)/(2) dot[k1,k3]/(256 x^2 (-1+x z4)^2 (-1+x z4bar)^2) CR[c[0,0],c[1,0],c[2,0],ct[0,0],ct[1,0],ct[2,0],expX[k1,0,0],expX[k2,0,0],expX[k3,0,0],expX[k4,0,0],exp\\[Phi]b[-2,0],exp\\[Phi]tb[-2,0]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TwoFactors=List @@(VevFourGravCorr/Prefactor);",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "PrefactorSimplified=Assuming[x>0,(((1)/(x))^dot[k2,k3] ((1)/(x))^dot[k1,k3] (1-z4)^-1+(1)/(2) dot[k2,k3] ((1)/(x))^(1)/(2) dot[k1,k2] (z4)^-1+(1)/(2) dot[k1,k3] (1-z4bar)^-1+(1)/(2) dot[k2,k3] ((1)/(x))^(1)/(2) dot[k1,k2] (z4bar)^-1+(1)/(2) dot[k1,k3] CR[c[0,0],c[1,0],c[2,0],ct[0,0],ct[1,0],ct[2,0],expX[k1,0,0],expX[k2,0,0],expX[k3,0,0],expX[k4,0,0],exp\\[Phi]b[-2,0],exp\\[Phi]tb[-2,0]])/(256 x^2 ) /.{dot[k2,k3]->-dot[k1,k2]-dot[k1,k3]}//Simplify];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TwoFactorsSimplified=(((TwoFactors//Expand//ContractDelta)//.{k1[m_] k2[m_]:>dot[k1,k2],k1[m_] k3[m_]:>dot[k1,k3],k1[m_] k4[m_]:>dot[k1,k4],k2[m_] k3[m_]:>dot[k2,k3],k2[m_] k4[m_]:>dot[k2,k4],k3[m_] k4[m_]:>dot[k3,k4]}/.{dot[k1,k4]->dot[k2,k3],dot[k2,k4]->dot[k1,k3],dot[k3,k4]->dot[k1,k2]}/.{dot[k2,k3]->-dot[k1,k2]-dot[k1,k3]})+O[x]^2)/.{k4[m_]:>-k1[m]-k2[m]-k3[m]}/.{k1[\\[Mu]1]->0,k2[\\[Mu]2]->0,k3[\\[Mu]3]->0,k1[\\[Nu]1]->0,k2[\\[Nu]2]->0,k3[\\[Nu]3]->0}//Normal//Simplify;",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(-x^2) PrefactorSimplified/.{CR[c[0,0],c[1,0],c[2,0],ct[0,0],ct[1,0],ct[2,0],expX[k1,0,0],expX[k2,0,0],expX[k3,0,0],expX[k4,0,0],exp\\[Phi]b[-2,0],exp\\[Phi]tb[-2,0]]->-4}",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(-x^2) PrefactorSimplified/.{CR[c[0,0],c[1,0],c[2,0],ct[0,0],ct[1,0],ct[2,0],expX[k1,0,0],expX[k2,0,0],expX[k3,0,0],expX[k4,0,0],exp\\[Phi]b[-2,0],exp\\[Phi]tb[-2,0]]->-4}/.{dot[k1,k2]->-1/2 s,dot[k2,k3]->-1/2 t,dot[k1,k3]->-1/2 u}/.{z4^a_ z4bar^a_ (1-z4)^b_ (1-z4bar)^b_:>2Pi Gamma[a+1] Gamma[b+1] Gamma[-1-a-b]/(Gamma[a+b+2] Gamma[-b] Gamma[-a])}//Simplify",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TwoFactorsContracted=({e1[\\[Mu]1]  e2[\\[Mu]2] e3[\\[Mu]3] e4[\\[Mu]4]TwoFactorsSimplified[[1]]/(-x),  e1[\\[Nu]1]e2[\\[Nu]2]e3[\\[Nu]3] e4[\\[Nu]4]TwoFactorsSimplified[[2]]/x}//Expand//ContractDelta)//.{(f1_[\\[Mu]_] f2_[\\[Mu]_]):>dot[f1,f2]}/.{dot[e4,k3]->-dot[e4,k1]-dot[e4,k2]}//Expand;",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TwoFactorsContracted[[1]]-f1-f2-f3//Expand",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "f1=Coefficient[TwoFactorsContracted[[1]],dot[e1,e2] dot[e3,e4]] dot[e1,e2] dot[e3,e4]\nf2=Coefficient[TwoFactorsContracted[[1]],dot[e1,e3] dot[e2,e4]]dot[e1,e3] dot[e2,e4]\nf3=Coefficient[TwoFactorsContracted[[1]],dot[e1,e4] dot[e2,e3]]dot[e1,e4] dot[e2,e3]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "TripGravGenPCO=Corr[OPE[PCObar[wbar],PCO[w]],OPE[Graviton[\\[Mu]1,\\[Nu]1,k1,z1,z1bar],Graviton[\\[Mu]2,\\[Nu]2,k2,z2,z2bar],Graviton[\\[Mu]3,\\[Nu]3,k3,z3,z3bar]]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** graviton 3-point amplitude with PCOs at generic positions ***)\nTripGravAmpPCOCorr=Vev[TripGravGenPCO/.{z1->x,z1bar->x,z2->1,z2bar->1,z3->0,z3bar->0}/.{dot[k1,k2]->0,dot[k1,k3]->0,dot[k2,k3]->0}]//Simplify//Expand//ContractDelta//Simplify\n\n((e1[\\[Mu]1] e1[\\[Nu]1] e2[\\[Mu]2] e2[\\[Nu]2] e3[\\[Mu]3] e3[\\[Nu]3] TripGravAmpPCOCorr//Expand//ContractDelta)//.{(f1_[\\[Mu]_] f2_[\\[Mu]_]):>dot[f1,f2]}/.{dot[e3,k2]->-dot[e3,k1],dot[e1,k2]->-dot[e1,k3],dot[e2,k1]->-dot[e2,k3],dot[e3,k3]->0,dot[e1,k1]->0,dot[e2,k2]->0})//Simplify",
+      "languageId": "wolfram"
+    }
+  ]
+}
