@@ -15,12 +15,7 @@ StringCode implements the core algebraic structures needed for worldsheet confor
 
 ## Installation
 
-Clone the repository and add the package to your Mathematica path:
-
-```mathematica
-AppendTo[$Path, "/path/to/string-code"];
-Needs["StringCode`"];
-```
+Clone the repository and create the necessary symlinks with the scripts make_symlinks.sh (Mac/Linux) or windows_symlink.ps1 (Windows).
 
 ## Quick Start
 
