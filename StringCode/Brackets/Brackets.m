@@ -211,7 +211,7 @@ extractListFromRTimesConstant[Ra_/;Rtest[Ra]] := List @@ Ra;
 
 
 (* ::Subsubsection:: *)
-(*Rescale all chiral local operators [position is their last argument] inside a factorized MultiOp*)
+(*Rescale all local operators inside a factorized MultiOp*)
 
 
 rescaleMultiOp::usage = "Rescale all chiral [after factorization] local operators [position is their last argument] inside a MultiOp";
@@ -222,10 +222,6 @@ MultiOp @@ Map[rescaleOp[rescalingFactor], multiOpList]]
 rescaleOp::usage = "Rescales a normal-ordered product";
 rescaleOp[rescalingFactor_][op_]:= Module[{opList = List @@ op}, 
 R @@ Map[rescalePositionBy[rescalingFactor], opList]]
-
-
-rescalePositionBy::usage = "Rescales a chiral local operator";
-rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
 
 
 (* ::Subsection:: *)

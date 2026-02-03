@@ -94,6 +94,19 @@ singularity[\[Psi]t[\[Mu]_,n_,z_],\[Psi]t[\[Nu]_,m_,w_]]:=1 + m + n;
 singularity[a_,b_]:= 0 /; (isField[Head[a]] && isField[Head[b]]);
 
 
+(* ::Subsubsection:: *)
+(*Rescale local operators*)
+
+
+rescalePositionBy::usage = "Rescales a local operator";
+
+rescalePositionBy[rescalingFactor_][op_/;Head[op]===ProfileX]:= op/.{symbol_[args__, pos1_, pos2_]:> symbol[args, rescalingFactor pos1, rescalingFactor pos2]};
+rescalePositionBy[rescalingFactor_][op_/;Head[op]===expX]:= op/.{symbol_[args__, pos1_, pos2_]:> symbol[args, rescalingFactor pos1, rescalingFactor pos2]};
+
+(*The default chiral case*)
+rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
+
+
 (* ::Section:: *)
 (*End*)
 

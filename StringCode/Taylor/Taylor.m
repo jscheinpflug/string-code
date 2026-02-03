@@ -7,6 +7,7 @@
 BeginPackage["StringCode`Taylor`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`OPE`"];
+Needs["StringCode`Wick`"];
 Needs["StringCode`NormalOrdering`"];
 
 

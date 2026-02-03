@@ -10,6 +10,9 @@ Needs["StringCode`Symbols`Bosonic`"];
 Needs["StringCode`Symbols`Bosonic`FlatSpace`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`Bosonic`"];
+Needs["StringCode`Wick`"];
+Needs["StringCode`Wick`Bosonic`"];
+Needs["StringCode`Wick`Bosonic`FlatSpace`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`Bosonic`"];
 

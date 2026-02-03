@@ -50,6 +50,18 @@ Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,Infinity,Infinity]]]:= CV
 Corr[Interacting[V[0,0,z1_,z1Bar_]], Interacting[V[0,0,z2_,z2Bar_]]]:= CVV1 1/(z1-z2)^2/(z1Bar-z2Bar)^2
 
 
+(* ::Subsubsection:: *)
+(*Rescale local operators*)
+
+
+rescalePositionBy::usage = "Rescales a local operator";
+
+rescalePositionBy[rescalingFactor_][op_/;Head[op]===V]:= op/.{symbol_[args__, pos1_, pos2_]:> symbol[args, rescalingFactor pos1, rescalingFactor pos2]};
+
+(*The default chiral case*)
+rescalePositionBy[rescalingFactor_][op_]:= op/.{symbol_[args__, pos_]:> symbol[args, rescalingFactor pos]};
+
+
 (* ::Section:: *)
 (*End*)
 
