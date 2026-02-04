@@ -1,0 +1,799 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic FlatSpace TeXConversion Unit Tests\n\nUnit tests for TeXConversion of Bosonic FlatSpace fields:\n- Free boson (dX, dXt)\n- Plane wave (expX, expXHolo, expXAntiHolo)\n- Profile (ProfileX)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\"-> \"Bosonic-Xi\", \"bracket\"->\"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236040040,
+     "endTime": 1770236040194
+    },
+    "executionOrder": 8,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Free Boson dX Tests\n\nNote: dX[mu, n, z] has n+1 derivatives (offset by 1 since dX already has one derivative)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 1: dX with zero additional derivatives\n\ndX[\\[Mu], 0, 0] -> \"\\partial X^{\\mu}\" (one derivative total)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = ToTeX[dX[\\[Mu], 0, 0]];\nexpected1 = \"\\\\partial X^{\\\\mu}\";\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (dX[mu,0,0]): \", If[test1Result, \"PASSED\", \"FAILED - got \" <> test1]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (dX[mu,0,0]): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (dX[mu,0,0]): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e7ed7eb2-d99c-43a9-a38a-cd766a55ee7b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f848795a-6e52-485b-a406-27895e57b53d",
+     "metadata": {
+      "cellLabel": "Out[289]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236633100,
+     "endTime": 1770236633502
+    },
+    "executionOrder": 285,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 2: dX with one additional derivative\n\ndX[\\[Rho], 1, z] -> \"\\partial^2 X^{\\rho}(z)\" (two derivatives total)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = ToTeX[dX[\\[Rho], 1, z]];\nexpected2 = \"\\\\partial^2 X^{\\\\rho}(z)\";\ntest2Result = test2 === expected2;\nPrint[\"Test 2 (dX[rho,1,z]): \", If[test2Result, \"PASSED\", \"FAILED - got \" <> test2]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\\partial^2 X^{\\rho}(z)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\\\partial^2 X^{\\\\rho}(z)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2a37e0bc-5111-46c7-b9c3-ee88bc970d79",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>\\partial^2 X^{\rho}(z)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\\\partial^2 X^{\\rho}(z)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ae9a4da1-b344-4ca2-b18f-36c22727ffab",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (dX[rho,1,z]): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (dX[rho,1,z]): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a19dc77b-c6bd-419e-ba7d-f498eca8fe8a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c53e23c7-a383-4380-86bb-167c9ddc7aa6",
+     "metadata": {
+      "cellLabel": "Out[148]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236213588,
+     "endTime": 1770236214235
+    },
+    "executionOrder": 142,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 3: dXt (antiholomorphic) with zero additional derivatives\n\ndXt[\\[Sigma], 0, 0] -> \"\\bar{\\partial} X^{\\sigma}\" (no bar on X, only on partial)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = ToTeX[dXt[\\[Sigma], 0, 0]];\nexpected3 = \"\\\\bar{\\\\partial} X^{\\\\sigma}\";\ntest3Result = test3 === expected3;\nPrint[\"Test 3 (dXt[sigma,0,0]): \", If[test3Result, \"PASSED\", \"FAILED - got \" <> test3]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (dXt[sigma,0,0]): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (dXt[sigma,0,0]): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "27f3cd1a-5a57-4090-a0a9-be961f226106",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e54bd732-13b3-4391-bf92-38fe593bcc50",
+     "metadata": {
+      "cellLabel": "Out[24]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236041084,
+     "endTime": 1770236041476
+    },
+    "executionOrder": 20,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 4: dXt with two additional derivatives\n\ndXt[\\[Nu], 2, wbar] -> \"\\bar{\\partial}^3 X^{\\nu}(wbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = ToTeX[dXt[\\[Nu], 2, wbar]];\nexpected4 = \"\\\\bar{\\\\partial}^3 X^{\\\\nu}(wbar)\";\ntest4Result = test4 === expected4;\nPrint[\"Test 4 (dXt[nu,2,wbar]): \", If[test4Result, \"PASSED\", \"FAILED - got \" <> test4]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (dXt[nu,2,wbar]): FAILED - got \\bar{\\partial}^3 X^{\\nu}(\\text{wbar})\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (dXt[nu,2,wbar]): FAILED - got \\\\bar{\\\\partial}^3 X^{\\\\nu}(\\\\text{wbar})\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a108e57c-8853-413d-990b-b25a7e3474fe",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1c07694e-362e-4f5f-b262-4e9e51900f1f",
+     "metadata": {
+      "cellLabel": "Out[159]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236246505,
+     "endTime": 1770236246920
+    },
+    "executionOrder": 155,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Plane Wave expX Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 5: expX at generic position\n\nexpX[k, z, zbar] -> \"e^{i k \\cdot X}(z, zbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = ToTeX[expX[k, z, zbar]];\nexpected5 = \"e^{i k \\\\cdot X}(z, zbar)\";\ntest5Result = test5 === expected5;\nPrint[\"Test 5 (expX[k,z,zbar]): \", If[test5Result, \"PASSED\", \"FAILED - got \" <> test5]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (expX[k,z,zbar]): FAILED - got e^{i k \\cdot X}(z, \\text{zbar})\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (expX[k,z,zbar]): FAILED - got e^{i k \\\\cdot X}(z, \\\\text{zbar})\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6970549c-c0dc-4108-8219-93b676ead5a0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dd99160e-7a83-441f-a5c7-ef0c0f556e47",
+     "metadata": {
+      "cellLabel": "Out[34]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236041893,
+     "endTime": 1770236042342
+    },
+    "executionOrder": 30,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 6: expX with subscripted momentum\n\nexpX[k1, w, wbar] -> \"e^{i k1 \\cdot X}(w, wbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = ToTeX[expX[k1, w, wbar]];\nexpected6 = \"e^{i k1 \\\\cdot X}(w, wbar)\";\ntest6Result = test6 === expected6;\nPrint[\"Test 6 (expX[k1,w,wbar]): \", If[test6Result, \"PASSED\", \"FAILED - got \" <> test6]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (expX[k1,w,wbar]): FAILED - got e^{i \\text{k1} \\cdot X}(w, \\text{wbar})\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (expX[k1,w,wbar]): FAILED - got e^{i \\\\text{k1} \\\\cdot X}(w, \\\\text{wbar})\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7303c5f4-ba79-4496-9b28-b2ec6a03059e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f1462b08-27f8-473a-ab4a-6f04790f3c8f",
+     "metadata": {
+      "cellLabel": "Out[39]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236042343,
+     "endTime": 1770236042773
+    },
+    "executionOrder": 35,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## ProfileX Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 7: ProfileX with no derivatives\n\nProfileX[h[\\[Mu],\\[Nu]], {}, 0, 0] -> \"h[\\[Mu], \\[Nu]](0, 0)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = ToTeX[ProfileX[h[\\[Mu], \\[Nu]], {}, 0, 0]];\n(* Profile with empty derivs should just show the profile and position *)\ntest7Result = \"h_{\\\\mu \\\\nu}\"\nPrint[\"Test 7 (ProfileX no derivs): \", If[test7Result, \"PASSED\", \"FAILED - got \" <> test7]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>False\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"False\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "eaa6b7fc-5cf7-4d60-a12b-a8d8e8c6c0d9",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 7 (ProfileX no derivs): FAILED - got h(\\mu ,\\nu )(0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 7 (ProfileX no derivs): FAILED - got h(\\\\mu ,\\\\nu )(0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d128b3c8-6f05-4273-b13f-918d1486a8d6",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "316dc085-f6fc-4412-b73d-004bd7d71df8",
+     "metadata": {
+      "cellLabel": "Out[298]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236724278,
+     "endTime": 1770236724710
+    },
+    "executionOrder": 294,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 8: ProfileX with derivatives\n\nProfileX[h[\\[Mu],\\[Nu]], {\\[Lambda]}, 0, 0] should include \\partial_{\\lambda}",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = ToTeX[ProfileX[h[\\[Mu], \\[Nu]], {\\[Lambda]}, 0, 0]];\ntest8Result = StringContainsQ[test8, \"\\\\partial\"] && StringContainsQ[test8, \"\\\\lambda\"];\nPrint[\"Test 8 (ProfileX with derivs): \", If[test8Result, \"PASSED\", \"FAILED - got \" <> test8]];\ntest8Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 8 (ProfileX with derivs): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 8 (ProfileX with derivs): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7d55fa26-b6e9-4ed4-85f1-60edb1129c66",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "b9c4e760-43d9-498c-af41-efeb4f8443f1",
+     "metadata": {
+      "cellLabel": "Out[47]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236043149,
+     "endTime": 1770236043526
+    },
+    "executionOrder": 44,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Combined Expression Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 9: Normal ordered product with dX and ghosts\n\nR[c[0,0], ct[0,0], dX[\\[Rho],0,0], dXt[\\[Sigma],0,0]] from the plan example",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = ToTeX[R[c[0, 0], ct[0, 0], dX[\\[Rho], 0, 0], dXt[\\[Sigma], 0, 0]]];\n(* Should contain colons, c, bar{c}, partial X^rho, bar{partial} X^sigma *)\ntest9HasColons = StringContainsQ[test9, \":\"];\ntest9HasC = StringContainsQ[test9, \"c\"];\ntest9HasBarC = StringContainsQ[test9, \"\\\\bar{c}\"];\ntest9HasPartialX = StringContainsQ[test9, \"\\\\partial X\"];\ntest9HasBarPartialX = StringContainsQ[test9, \"\\\\bar{\\\\partial} X\"];\ntest9Result = test9HasColons && test9HasC && test9HasBarC && test9HasPartialX && test9HasBarPartialX;\nPrint[\"Test 9 (R[c,ct,dX,dXt]): \", If[test9Result, \"PASSED\", \"FAILED - got \" <> test9]];\ntest9Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 9 (R[c,ct,dX,dXt]): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 9 (R[c,ct,dX,dXt]): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "aad6d976-b584-4092-9641-d0ca991fd355",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9a620313-866a-46c2-98a5-fc3e0ead7edb",
+     "metadata": {
+      "cellLabel": "Out[56]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236043527,
+     "endTime": 1770236044189
+    },
+    "executionOrder": 48,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 10: Full example from plan\n\nR[ProfileX[h[\\[Mu],\\[Nu]],{\\[Lambda]},0,0],c[0,0],ct[0,0],dX[\\[Rho],0,0],dXt[\\[Sigma],0,0]]",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = ToTeX[R[ProfileX[h[\\[Mu], \\[Nu]], {\\[Lambda]}, 0, 0], c[0, 0], ct[0, 0], dX[\\[Rho], 0, 0], dXt[\\[Sigma], 0, 0]]];\n(* Should be a colon-delimited expression with all the fields *)\ntest10Result = StringContainsQ[test10, \":\"] && StringLength[test10] > 20;\nPrint[\"Test 10 (Full plan example): \", If[test10Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Result: \", test10];\ntest10Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 10 (Full plan example): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 10 (Full plan example): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "073e73f9-87a2-4b6c-b5f9-730e201751e2",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>  Result: :c\\bar{c}\\partial X^{\\rho}\\bar{\\partial}\\\n \n&gt;    X^{\\sigma}\\partial_{\\lambda} h(\\mu ,\\nu )(0):\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"  Result: :c\\\\bar{c}\\\\partial X^{\\\\rho}\\\\bar{\\\\partial}\\\\\\n \\n>    X^{\\\\sigma}\\\\partial_{\\\\lambda} h(\\\\mu ,\\\\nu )(0):\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "22e7e8f0-c923-4090-a46c-fe1595c9ecb9",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "bdd83734-4332-4a1f-94d3-b67b99f26136",
+     "metadata": {
+      "cellLabel": "Out[61]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236044190,
+     "endTime": 1770236044668
+    },
+    "executionOrder": 57,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result,\n            test6Result, test7Result, test8Result, test9Result, test10Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2d117c6d-0e9a-44a1-b359-5a04f0d24eec",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 5/10\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 5/10\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d30bd1d8-dc65-472d-b318-774ebb55466b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Some tests FAILED.\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Some tests FAILED.\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "98b58003-a015-4996-87b6-9dba28cc653c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d280f54f-6ec5-465d-92fa-7ae4473f1a34",
+     "metadata": {
+      "cellLabel": "Out[68]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236044670,
+     "endTime": 1770236045292
+    },
+    "executionOrder": 62,
+    "success": true
+   }
+  }
+ ]
+}

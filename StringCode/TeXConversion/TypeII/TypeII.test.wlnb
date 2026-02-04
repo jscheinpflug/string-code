@@ -1,0 +1,1068 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII TeXConversion Unit Tests\n\nUnit tests for TeXConversion of TypeII theory fields:\n- Linear dilaton (dPhi, dPhit)\n- Superghosts (xi, xit, eta, etat)\n- Exponential phi (expPhif, expPhib, expPhitf, expPhitb)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\"-> \"TypeII-Xi\", \"bracket\"->\"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Î±pValue::shdw: \n   Symbol Î±pValue appears in multiple contexts \n    {StringCode`Conventions`TypeII`, StringCode`Conventions`Bosonic`}\n    ; definitions in context StringCode`Conventions`TypeII`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Î±pValue::shdw: \\n   Symbol Î±pValue appears in multiple contexts \\n    {StringCode`Conventions`TypeII`, StringCode`Conventions`Bosonic`}\\n    ; definitions in context StringCode`Conventions`TypeII`\\n     may shadow or be shadowed by other definitions.\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1349d437-8ad3-484e-9a82-a80d87e5d2b8",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">expXAntiHolo::shdw</span>: \n   Symbol expXAntiHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "expXAntiHolo::shdw: \n   Symbol expXAntiHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7c10f96a-9781-4697-8efe-ecd46cf41f79",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">expXHolo::shdw</span>: \n   Symbol expXHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "expXHolo::shdw: \n   Symbol expXHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4e1f5d3c-b79c-40c1-86c9-03ef5458cc84",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">expX::shdw</span>: Symbol expX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "expX::shdw: Symbol expX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d1175212-b3de-48ea-ba64-b616d293e1e0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">dX::shdw</span>: Symbol dX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "dX::shdw: Symbol dX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "005d383d-1d67-400c-b0e1-935e26e0dd1d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">dXt::shdw</span>: Symbol dXt appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "dXt::shdw: Symbol dXt appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3e307bcf-bcb5-422e-8589-430950b0ff0f",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">ProfileXAntiHolo::shdw</span>: \n   Symbol ProfileXAntiHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "ProfileXAntiHolo::shdw: \n   Symbol ProfileXAntiHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1c86a130-6ddb-4ef2-a3db-2848e94a7231",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">ProfileXHolo::shdw</span>: \n   Symbol ProfileXHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "ProfileXHolo::shdw: \n   Symbol ProfileXHolo appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f5dbb197-441c-4614-bc11-d4da6cc41486",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">ProfileX::shdw</span>: \n   Symbol ProfileX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "ProfileX::shdw: \n   Symbol ProfileX appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4b8c3c3a-5aa8-45bd-a50a-7ef05bd68196",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Î±p::shdw: Symbol Î±p appears in multiple contexts \n    {StringCode`Symbols`TypeII`FlatSpace`, \n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \n    StringCode`Symbols`TypeII`FlatSpace`\n     may shadow or be shadowed by other definitions.</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Î±p::shdw: Symbol Î±p appears in multiple contexts \\n    {StringCode`Symbols`TypeII`FlatSpace`, \\n     StringCode`Symbols`Bosonic`FlatSpace`}; definitions in context \\n    StringCode`Symbols`TypeII`FlatSpace`\\n     may shadow or be shadowed by other definitions.\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9efb3281-4aef-4be6-bc9d-bc8e825e7131",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236922860,
+     "endTime": 1770236925603
+    },
+    "executionOrder": 308,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Linear Dilaton Tests\n\nNote: dPhi[n, z] has n+1 derivatives (offset by 1 since dPhi already has one derivative)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 1: dPhi with zero additional derivatives\n\ndPhi[0, 0] -> \"\\partial \\phi\" (one derivative total)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = ToTeX[d\\[Phi][0, 0]];\nexpected1 = \"\\\\partial \\\\phi\";\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (dPhi[0,0]): \", If[test1Result, \"PASSED\", \"FAILED - got \" <> test1]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (dPhi[0,0]): FAILED - got \\text{d\\phi }(0,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (dPhi[0,0]): FAILED - got \\\\text{d\\\\phi }(0,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "17275f40-98ea-463c-a5ae-252a9fe24b29",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "5c47a218-57a1-4990-a604-641a101c84bb",
+     "metadata": {
+      "cellLabel": "Out[314]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236925604,
+     "endTime": 1770236926008
+    },
+    "executionOrder": 310,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 2: dPhi with one additional derivative\n\ndPhi[1, z] -> \"\\partial^2 \\phi(z)\" (two derivatives total)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = ToTeX[d\\[Phi][1, z]];\nexpected2 = \"\\\\partial^2 \\\\phi(z)\";\ntest2Result = test2 === expected2;\nPrint[\"Test 2 (dPhi[1,z]): \", If[test2Result, \"PASSED\", \"FAILED - got \" <> test2]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (dPhi[1,z]): FAILED - got \\text{d\\phi }(1,z)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (dPhi[1,z]): FAILED - got \\\\text{d\\\\phi }(1,z)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "cfaa5c0f-047b-4af5-a299-9ca50c43216a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7b70d6c4-9468-4946-accf-87a55c904266",
+     "metadata": {
+      "cellLabel": "Out[319]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236926008,
+     "endTime": 1770236926416
+    },
+    "executionOrder": 315,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 3: dPhit (antiholomorphic) - no bar on phi, only on partial\n\ndPhit[0, 0] -> \"\\bar{\\partial} \\phi\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = ToTeX[d\\[Phi]t[0, 0]];\nexpected3 = \"\\\\bar{\\\\partial} \\\\phi\";\ntest3Result = test3 === expected3;\nPrint[\"Test 3 (dPhit[0,0]): \", If[test3Result, \"PASSED\", \"FAILED - got \" <> test3]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (dPhit[0,0]): FAILED - got \\text{d\\phi t}(0,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (dPhit[0,0]): FAILED - got \\\\text{d\\\\phi t}(0,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ef8f9bcd-c707-4384-bc96-5602a16f7ec8",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "eebc918e-0071-4d0f-b602-dbf0f71fb6e6",
+     "metadata": {
+      "cellLabel": "Out[324]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236926417,
+     "endTime": 1770236926823
+    },
+    "executionOrder": 320,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Superghost Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 4: xi with no derivatives\n\nxi[0, 0] -> \"\\xi\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = ToTeX[\\[Xi][0, 0]];\nexpected4 = \"\\\\xi\";\ntest4Result = test4 === expected4;\nPrint[\"Test 4 (xi[0,0]): \", If[test4Result, \"PASSED\", \"FAILED - got \" <> test4]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (xi[0,0]): FAILED - got \\xi (0,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (xi[0,0]): FAILED - got \\\\xi (0,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8bd9db9c-8c95-4889-bcf5-df903cc1e23c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "b24abdb5-170e-487c-b360-9a016e2aac4d",
+     "metadata": {
+      "cellLabel": "Out[329]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236926824,
+     "endTime": 1770236927234
+    },
+    "executionOrder": 325,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 5: xi with derivatives\n\nxi[1, z] -> \"\\partial \\xi(z)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = ToTeX[\\[Xi][1, z]];\nexpected5 = \"\\\\partial \\\\xi(z)\";\ntest5Result = test5 === expected5;\nPrint[\"Test 5 (xi[1,z]): \", If[test5Result, \"PASSED\", \"FAILED - got \" <> test5]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (xi[1,z]): FAILED - got \\xi (1,z)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (xi[1,z]): FAILED - got \\\\xi (1,z)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4cf6737a-11c8-4d2e-8ebd-aabeb2027b87",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e6a4df3d-9af7-4ebf-a776-860cef730258",
+     "metadata": {
+      "cellLabel": "Out[334]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236927235,
+     "endTime": 1770236927647
+    },
+    "executionOrder": 330,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 6: xit (antiholomorphic) - gets barred\n\nxit[0, 0] -> \"\\bar{\\xi}\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = ToTeX[\\[Xi]t[0, 0]];\nexpected6 = \"\\\\bar{\\\\xi}\";\ntest6Result = test6 === expected6;\nPrint[\"Test 6 (xit[0,0]): \", If[test6Result, \"PASSED\", \"FAILED - got \" <> test6]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (xit[0,0]): FAILED - got \\text{\\xi t}(0,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (xit[0,0]): FAILED - got \\\\text{\\\\xi t}(0,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "98d210b2-7376-4420-9062-4a4dd002f8f4",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "15d2f312-d89e-4ef6-96fb-6551701cf8e8",
+     "metadata": {
+      "cellLabel": "Out[339]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236927648,
+     "endTime": 1770236928057
+    },
+    "executionOrder": 335,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 7: xit with derivatives\n\nxit[2, w] -> \"\\bar{\\partial}^2 \\bar{\\xi}(w)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = ToTeX[\\[Xi]t[2, w]];\nexpected7 = \"\\\\bar{\\\\partial}^2 \\\\bar{\\\\xi}(w)\";\ntest7Result = test7 === expected7;\nPrint[\"Test 7 (xit[2,w]): \", If[test7Result, \"PASSED\", \"FAILED - got \" <> test7]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 7 (xit[2,w]): FAILED - got \\text{\\xi t}(2,w)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 7 (xit[2,w]): FAILED - got \\\\text{\\\\xi t}(2,w)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9ab915a5-555a-4ac3-abe4-992565710610",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1a0f5056-daff-41bf-8f7e-44b15f6f7069",
+     "metadata": {
+      "cellLabel": "Out[344]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236928057,
+     "endTime": 1770236928463
+    },
+    "executionOrder": 340,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 8: eta with no derivatives\n\neta[0, 0] -> \"\\eta\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = ToTeX[\\[Eta][0, 0]];\nexpected8 = \"\\\\eta\";\ntest8Result = test8 === expected8;\nPrint[\"Test 8 (eta[0,0]): \", If[test8Result, \"PASSED\", \"FAILED - got \" <> test8]];\ntest8Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 8 (eta[0,0]): FAILED - got \\eta (0,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 8 (eta[0,0]): FAILED - got \\\\eta (0,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "02b93cce-a92d-4a97-9eb9-00e5f605daa5",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8f6be08b-7f50-47ea-9abf-072cb21b91a0",
+     "metadata": {
+      "cellLabel": "Out[349]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236928463,
+     "endTime": 1770236928869
+    },
+    "executionOrder": 345,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 9: etat (antiholomorphic) - gets barred\n\netat[1, zbar] -> \"\\bar{\\partial} \\bar{\\eta}(zbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = ToTeX[\\[Eta]t[1, zbar]];\nexpected9 = \"\\\\bar{\\\\partial} \\\\bar{\\\\eta}(zbar)\";\ntest9Result = test9 === expected9;\nPrint[\"Test 9 (etat[1,zbar]): \", If[test9Result, \"PASSED\", \"FAILED - got \" <> test9]];\ntest9Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 9 (etat[1,zbar]): FAILED - got \\text{\\eta t}(1,\\text{zbar})\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 9 (etat[1,zbar]): FAILED - got \\\\text{\\\\eta t}(1,\\\\text{zbar})\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c8ea46d2-4782-4996-a2dc-f8d182e7126f",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "fd68940b-f041-4130-a2da-912395b57ad4",
+     "metadata": {
+      "cellLabel": "Out[354]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236928870,
+     "endTime": 1770236929273
+    },
+    "executionOrder": 350,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Exponential Phi Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 10: expPhif (fermionic)\n\nexpPhif[-1, z] -> \"e^{-1 \\phi}(z)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = ToTeX[exp\\[Phi]f[-1, z]];\nexpected10 = \"e^{-\\\\phi}(z)\";\ntest10Result = test10 === expected10;\nPrint[\"Test 10 (expPhif[-1,z]): \", If[test10Result, \"PASSED\", \"FAILED - got \" <> test10]];\ntest10Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 10 (expPhif[-1,z]): FAILED - got \\text{exp\\phi f}(-1,z)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 10 (expPhif[-1,z]): FAILED - got \\\\text{exp\\\\phi f}(-1,z)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1287de4b-8b59-42fb-b66d-26a3d8cbf521",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "728dd57f-9fa0-45b9-84aa-84e97b76aff4",
+     "metadata": {
+      "cellLabel": "Out[359]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236929274,
+     "endTime": 1770236929672
+    },
+    "executionOrder": 355,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 11: expPhib (bosonic) - same TeX as fermionic\n\nexpPhib[2, w] -> \"e^{2 \\phi}(w)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = ToTeX[exp\\[Phi]b[2, w]];\nexpected11 = \"e^{2 \\\\phi}(w)\";\ntest11Result = test11 === expected11;\nPrint[\"Test 11 (expPhib[2,w]): \", If[test11Result, \"PASSED\", \"FAILED - got \" <> test11]];\ntest11Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 11 (expPhib[2,w]): FAILED - got \\text{exp\\phi b}(2,w)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 11 (expPhib[2,w]): FAILED - got \\\\text{exp\\\\phi b}(2,w)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3c30320d-d251-4806-b5da-49b688c3ffb0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7edaf7bb-097f-4908-9df8-701762cfcebb",
+     "metadata": {
+      "cellLabel": "Out[364]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236929673,
+     "endTime": 1770236930015
+    },
+    "executionOrder": 360,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 12: expPhitf (antiholomorphic fermionic)\n\nexpPhitf[-1, zbar] -> \"e^{-1 \\phi}(zbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = ToTeX[exp\\[Phi]tf[-1, zbar]];\nexpected12 = \"e^{-1 \\\\phi}(zbar)\";\ntest12Result = test12 === expected12;\nPrint[\"Test 12 (expPhitf[-1,zbar]): \", If[test12Result, \"PASSED\", \"FAILED - got \" <> test12]];\ntest12Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 12 (expPhitf[-1,zbar]): FAILED - got \\text{exp\\phi tf}(-1,\\text{zbar})\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 12 (expPhitf[-1,zbar]): FAILED - got \\\\text{exp\\\\phi tf}(-1,\\\\text{zbar})\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ecfab0d8-88a4-43e7-83be-fba8d4e23860",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1bff8d17-0e24-48ef-9356-93ae223d59a0",
+     "metadata": {
+      "cellLabel": "Out[369]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236930015,
+     "endTime": 1770236930421
+    },
+    "executionOrder": 365,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "### Test 13: expPhitb at origin\n\nexpPhitb[-2, 0] -> \"e^{-2 \\phi}\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = ToTeX[exp\\[Phi]tb[-2, 0]];\nexpected13 = \"e^{-2 \\\\phi}\";\ntest13Result = test13 === expected13;\nPrint[\"Test 13 (expPhitb[-2,0]): \", If[test13Result, \"PASSED\", \"FAILED - got \" <> test13]];\ntest13Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 13 (expPhitb[-2,0]): FAILED - got \\text{exp\\phi tb}(-2,0)\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 13 (expPhitb[-2,0]): FAILED - got \\\\text{exp\\\\phi tb}(-2,0)\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "5ae2919e-065e-46f8-bf33-17662a3bcb8b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "32ad6750-6921-4809-b568-2569252dba6a",
+     "metadata": {
+      "cellLabel": "Out[374]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236930421,
+     "endTime": 1770236930827
+    },
+    "executionOrder": 370,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result,\n            test6Result, test7Result, test8Result, test9Result, test10Result,\n            test11Result, test12Result, test13Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "be7e5ed7-e0a3-4715-8a75-a395888c8269",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 0/13\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 0/13\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6e35cbda-5224-4135-be1a-fc0b313dac38",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Some tests FAILED.\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Some tests FAILED.\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3181f0af-c434-4dc7-b4c0-625575375ffa",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>False</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "False",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "aa44b0e3-f206-4d32-994c-db5a1204ab9c",
+     "metadata": {
+      "cellLabel": "Out[381]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770236930827,
+     "endTime": 1770236931420
+    },
+    "executionOrder": 375,
+    "success": true
+   }
+  }
+ ]
+}

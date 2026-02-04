@@ -9,7 +9,7 @@ InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with
 Begin["Private`"];
 InitStringCode[options_] := 
 Module[{userContext={}, theoryValue = options["theory"], CFTValue = options["CFT"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
-Switch[theoryValue, 
+Switch[theoryValue,
 "TypeII", userContext = {
     "StringCode`Symbols`TypeII`",
     "StringCode`Taylor`TypeII`",
@@ -20,7 +20,8 @@ Switch[theoryValue,
     "StringCode`StringFields`TypeII`",
     "StringCode`Operators`TypeII`",
     "StringCode`OPE`TypeII`",
-    "StringCode`Brackets`TypeII`"},
+    "StringCode`Brackets`TypeII`",
+    "StringCode`TeXConversion`TypeII`"},
 "Bosonic", userContext = {
     "StringCode`Symbols`Bosonic`",
     "StringCode`Taylor`Bosonic`",
@@ -31,23 +32,24 @@ Switch[theoryValue,
     "StringCode`StringFields`Bosonic`",
     "StringCode`Operators`Bosonic`",
     "StringCode`OPE`Bosonic`",
-    "StringCode`Brackets`Bosonic`"},
+    "StringCode`Brackets`Bosonic`",
+    "StringCode`TeXConversion`Bosonic`"},
 _, Print["There is no such theory"]];
 
-Switch[CFTValue, 
-"FlatSpace", 
+Switch[CFTValue,
+"FlatSpace",
 Switch[theoryValue,
-"TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"]; 
+"TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`StringFields`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
-AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"],
+AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`StringFields`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"];
-AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"],
+AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"],
 _, Print["No such CFT for theory ", theoryValue]
 ],
 "MinimalModel", If[theoryValue == "Bosonic", AppendTo[userContext, "StringCode`Symbols`Bosonic`MinimalModel`"];
  AppendTo[userContext, "StringCode`Taylor`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`StringFields`Bosonic`MinimalModel`"];
- AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"],
+ AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`TeXConversion`Bosonic`MinimalModel`"],
  Print["No such CFT for theory ", theoryValue]],
 _, Print["There are no such CFTs"]];
 
@@ -76,6 +78,7 @@ Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`Correlators`"];
+Needs["StringCode`TeXConversion`"];
 
 Scan[
   (AppendTo[$ContextPath, #] &) ,

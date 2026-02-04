@@ -15,7 +15,7 @@ Needs["StringCode`StringFields`"];
 (*Declare public variables and methods*)
 
 
-ToTeXString::usage = "ToTeXString[expr] converts a StringCode expression to TeX string";
+ToTeX::usage = "ToTeX[expr] converts a StringCode expression to TeX string";
 
 
 (* ::Section:: *)
@@ -28,22 +28,14 @@ Begin["Private`"];
 (*Helper functions*)
 
 
-(* Format Greek letter indices *)
-greekToTeX[\[Mu]] := "\\mu";
-greekToTeX[\[Nu]] := "\\nu";
-greekToTeX[\[Rho]] := "\\rho";
-greekToTeX[\[Sigma]] := "\\sigma";
-greekToTeX[\[Lambda]] := "\\lambda";
-greekToTeX[\[Alpha]] := "\\alpha";
-greekToTeX[\[Beta]] := "\\beta";
-greekToTeX[\[Gamma]] := "\\gamma";
-greekToTeX[\[Delta]] := "\\delta";
-greekToTeX[\[Epsilon]] := "\\epsilon";
-greekToTeX[\[Kappa]] := "\\kappa";
-greekToTeX[\[Tau]] := "\\tau";
-greekToTeX[x_] := ToString[x];
+(* Use Mathematica's TeXForm for general expressions, strip $ escapes *)
+mathToTeX[expr_] := StringReplace[
+  ToString[TeXForm[expr]],
+  {"$" -> "", "\text{" ~~ x:Shortest[__] ~~ "}" :> x}
+];
 
-formatIndex[idx_] := greekToTeX[idx];
+(* Index formatting - use TeXForm for Greek letters *)
+formatIndex[idx_] := mathToTeX[idx];
 
 derivativePrefix[0, holo_:True] := "";
 derivativePrefix[1, True] := "\\partial ";
@@ -53,28 +45,28 @@ derivativePrefix[n_, False] := "\\bar{\\partial}^" <> ToString[n] <> " ";
 
 formatPosition[0] := "";
 formatPosition[0, 0] := "(0)";
-formatPosition[z_] := "(" <> ToString[z] <> ")";
-formatPosition[z_, zbar_] := "(" <> ToString[z] <> ", " <> ToString[zbar] <> ")";
+formatPosition[z_] := "(" <> mathToTeX[z] <> ")";
+formatPosition[z_, zbar_] := "(" <> mathToTeX[z] <> ", " <> mathToTeX[zbar] <> ")";
 
 (* Wrapper conversions *)
-ToTeXString[Ra_/;RTest[Ra]] := ":" <> StringJoin[ToTeXString /@ {List @@ Ra}] <> ":";
-ToTeXString[SF[content_]] := ToTeXString[content];
-ToTeXString[Op[contents__]] := StringJoin[ToTeXString /@ {contents}];
-ToTeXString[Interacting[content_]] := ToTeXString[content];
+ToTeX[Ra_/;RTest[Ra]] := ":" <> StringJoin[ToTeX /@ List @@ Ra] <> ":";
+ToTeX[SFa_/;SFTest[SFa]] := ToTeX @@ SFa;
+ToTeX[Opa_/;OpTest[Opa]] := StringJoin[ToTeX /@ List @@ Opa];
+ToTeX[Ia_/;InteractingTest[Ia]] := ToTeX @@ Ia;
 
 (* Ghost fields *)
-ToTeXString[c[n_, z_]] := derivativePrefix[n, True] <> "c" <> formatPosition[z];
-ToTeXString[b[n_, z_]] := derivativePrefix[n, True] <> "b" <> formatPosition[z];
-ToTeXString[ct[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{c}" <> formatPosition[zbar];
-ToTeXString[bt[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{b}" <> formatPosition[zbar];
+ToTeX[c[n_, z_]] := derivativePrefix[n, True] <> "c" <> formatPosition[z];
+ToTeX[b[n_, z_]] := derivativePrefix[n, True] <> "b" <> formatPosition[z];
+ToTeX[ct[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{c}" <> formatPosition[zbar];
+ToTeX[bt[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{b}" <> formatPosition[zbar];
 
 (* Kronecker delta *)
-ToTeXString[\[Delta][idx1_, idx2_]] := "\\delta_{" <> formatIndex[idx1] <> formatIndex[idx2] <> "}";
+ToTeX[\[Delta][idx1_, idx2_]] := "\\delta_{" <> formatIndex[idx1] <> formatIndex[idx2] <> "}";
 
 (* Arithmetic conversions *)
-ToTeXString[Plus[terms__]] := Module[{termList = {terms}, result = "", i, termTeX},
+ToTeX[Plus[terms__]] := Module[{termList = {terms}, result = "", i, termTeX},
   For[i = 1, i <= Length[termList], i++,
-    termTeX = ToTeXString[termList[[i]]];
+    termTeX = ToTeX[termList[[i]]];
     If[i == 1,
       result = termTeX,
       If[StringTake[termTeX, 1] === "-",
@@ -86,7 +78,7 @@ ToTeXString[Plus[terms__]] := Module[{termList = {terms}, result = "", i, termTe
   result
 ];
 
-ToTeXString[Times[factors__]] := Module[{factorList = {factors}, numericPart = 1, fieldParts = {}, f, result},
+ToTeX[Times[factors__]] := Module[{factorList = {factors}, numericPart = 1, fieldParts = {}, f, result},
   Do[
     If[NumericQ[f] || MatchQ[f, _Rational] || f === I,
       numericPart = numericPart * f,
@@ -98,37 +90,32 @@ ToTeXString[Times[factors__]] := Module[{factorList = {factors}, numericPart = 1
     If[numericPart === -1, "-",
       If[numericPart === I, "i",
         If[numericPart === -I, "-i",
-          ToTeXString[numericPart]
+          ToTeX[numericPart]
         ]
       ]
     ]
   ];
-  result <> StringJoin[ToTeXString /@ fieldParts]
+  result <> StringJoin[ToTeX /@ fieldParts]
 ];
 
-ToTeXString[Power[base_, exp_]] := Module[{},
+ToTeX[Power[base_, exp_]] := Module[{},
   If[exp === 1/2,
-    "\\sqrt{" <> ToTeXString[base] <> "}",
+    "\\sqrt{" <> ToTeX[base] <> "}",
     If[exp === -1,
-      "\\frac{1}{" <> ToTeXString[base] <> "}",
-      ToTeXString[base] <> "^{" <> ToTeXString[exp] <> "}"
+      "\\frac{1}{" <> ToTeX[base] <> "}",
+      ToTeX[base] <> "^{" <> ToTeX[exp] <> "}"
     ]
   ]
 ];
 
-ToTeXString[Rational[p_, q_]] := "\\frac{" <> ToString[p] <> "}{" <> ToString[q] <> "}";
+ToTeX[Rational[p_, q_]] := "\\frac{" <> ToString[p] <> "}{" <> ToString[q] <> "}";
 
-ToTeXString[Complex[0, 1]] := "i";
-ToTeXString[Complex[0, -1]] := "-i";
-ToTeXString[Complex[a_, b_]] := ToTeXString[a] <> " + " <> ToTeXString[b] <> "i";
+ToTeX[Complex[0, 1]] := "i";
+ToTeX[Complex[0, -1]] := "-i";
+ToTeX[Complex[a_, b_]] := ToTeX[a] <> " + " <> ToTeX[b] <> "i";
 
-ToTeXString[n_Integer] := ToString[n];
-ToTeXString[n_Real] := ToString[n];
-
-(* Fallbacks *)
-ToTeXString[expr_] := ToString[expr, InputForm] /; !AtomQ[expr];
-ToTeXString[s_Symbol] := ToString[s];
-ToTeXString[s_String] := s;
+ToTeX[n_Integer] := ToString[n];
+ToTeX[n_Real] := ToString[n];
 
 
 (* ::Section:: *)

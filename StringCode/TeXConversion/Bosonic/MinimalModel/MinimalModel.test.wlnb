@@ -1,0 +1,124 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic MinimalModel TeXConversion Unit Tests\n\nUnit tests for TeXConversion of Bosonic MinimalModel fields:\n- Minimal model primary V",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"MinimalModel\", \"conventions\"-> \"Bosonic-Xi\", \"bracket\"->\"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## V Operator Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 1: V with no derivatives at origin\n\nV[0, 0, 0, 0] -> \"V(0, 0)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = ToTeX[V[0, 0, 0, 0]];\nexpected1 = \"V(0, 0)\";\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (V[0,0,0,0]): \", If[test1Result, \"PASSED\", \"FAILED - got \" <> test1]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 2: V with holomorphic derivative\n\nV[1, 0, z, zbar] -> \"\\partial V(z, zbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = ToTeX[V[1, 0, z, zbar]];\nexpected2 = \"\\\\partial V(z, zbar)\";\ntest2Result = test2 === expected2;\nPrint[\"Test 2 (V[1,0,z,zbar]): \", If[test2Result, \"PASSED\", \"FAILED - got \" <> test2]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 3: V with antiholomorphic derivative\n\nV[0, 1, z, zbar] -> \"\\bar{\\partial} V(z, zbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = ToTeX[V[0, 1, z, zbar]];\nexpected3 = \"\\\\bar{\\\\partial} V(z, zbar)\";\ntest3Result = test3 === expected3;\nPrint[\"Test 3 (V[0,1,z,zbar]): \", If[test3Result, \"PASSED\", \"FAILED - got \" <> test3]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 4: V with both holomorphic and antiholomorphic derivatives\n\nV[2, 1, w, wbar] -> \"\\partial^2 \\bar{\\partial} V(w, wbar)\"",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = ToTeX[V[2, 1, w, wbar]];\nexpected4 = \"\\\\partial^2 \\\\bar{\\\\partial} V(w, wbar)\";\ntest4Result = test4 === expected4;\nPrint[\"Test 4 (V[2,1,w,wbar]): \", If[test4Result, \"PASSED\", \"FAILED - got \" <> test4]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 5: V in Interacting wrapper\n\nInteracting[V[0,0,0,0]] from the plan example: Op[R[c[0,0], ct[0,0]], Interacting[V[0,0,0,0]]]",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = ToTeX[Op[R[c[0, 0], ct[0, 0]], Interacting[V[0, 0, 0, 0]]]];\n(* Should contain c, bar{c}, V, and (0, 0) *)\ntest5HasC = StringContainsQ[test5, \"c\"];\ntest5HasBarC = StringContainsQ[test5, \"\\\\bar{c}\"];\ntest5HasV = StringContainsQ[test5, \"V\"];\ntest5Result = test5HasC && test5HasBarC && test5HasV;\nPrint[\"Test 5 (Op[R[c,ct], Interacting[V]]): \", If[test5Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Result: \", test5];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ]
+}
