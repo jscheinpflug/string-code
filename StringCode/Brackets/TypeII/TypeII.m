@@ -35,7 +35,7 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRST[z];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
@@ -55,7 +55,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ];], BRSTList];
 (z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTAntiHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbar[zBar];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
@@ -80,7 +80,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, afterApplyingBghosts, localCoordinateReplacement, SFList, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
+Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, afterApplyingBghosts, localCoordinateReplacement, SFList, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
 
 (*Get bosonic part of the bracket*)
 afterApplyingBghosts = BracketBosonic[toBracket];
@@ -156,7 +156,7 @@ result;
 
 
 actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
-actPCOHolo[Ra_/;Rtest[Ra]] := actPCOHolo[Ra] =
+actPCOHolo[Ra_/;RTest[Ra]] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
@@ -181,7 +181,7 @@ If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 ((result // Expand) /.{z->0})];
 
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
-actPCOAntiHolo[Ra_/;Rtest[Ra]] := actPCOAntiHolo[Ra] =
+actPCOAntiHolo[Ra_/;RTest[Ra]] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,

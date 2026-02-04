@@ -29,22 +29,22 @@ Begin["Private`"];
 (*Test normal-ordering and length*)
 
 
-Rtest::usage = "Test if product is normal-ordered";
-Rtest[f_]:=(Head[f]===R)
+RTest::usage = "Test if product is normal-ordered";
+RTest[f_]:=(Head[f]===R)
 
 Rlength::usage = "Test if is normal-ordered and has nonzero length";
-Rlength[f_]:=If[Rtest[f],Length[List @@ f],0]
+Rlength[f_]:=If[RTest[f],Length[List @@ f],0]
 
 Rone::usage = "Test if is normal-ordered of length one";
 Rone[f_]:=(Rlength[f]==1)
 
 
-RtestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
+RTestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
 
-RtestUpToConstant[c___,a_ f_,d___]:=RtestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-RtestUpToConstant[c___,a_ ,d___]:= RtestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-RtestUpToConstant[f_]:=(Head[f]==R)
-RtestUpToConstant[]:=False;
+RTestUpToConstant[c___,a_ f_,d___]:=RTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+RTestUpToConstant[f_]:=(Head[f]==R)
+RTestUpToConstant[]:=False;
 
 
 (* ::Subsection::Closed:: *)
@@ -116,11 +116,11 @@ symbolListToR[list_] :=
 totalHolGhostNumber::usage = "Computes total holomorphic ghost number";
 totalAntiHolGhostNumber::usage = "Computes total antiholomorphic ghost number";
 
-totalHolGhostNumber[Ra_/;Rtest[Ra]]:= Map[ghostNumberHolo, List @@ Ra]//Total;
-totalHolGhostNumber[Times[a_, Ra_/;Rtest[Ra]]] := totalHolGhostNumber[Ra];
+totalHolGhostNumber[Ra_/;RTest[Ra]]:= Map[ghostNumberHolo, List @@ Ra]//Total;
+totalHolGhostNumber[Times[a_, Ra_/;RTest[Ra]]] := totalHolGhostNumber[Ra];
 
-totalAntiHolGhostNumber[Ra_/;Rtest[Ra]]:= Map[ghostNumberAntiHolo, List @@ Ra]//Total;
-totalAntiHolGhostNumber[Times[a_, Ra_/;Rtest[Ra]]] := totalAntiHolGhostNumber[Ra];
+totalAntiHolGhostNumber[Ra_/;RTest[Ra]]:= Map[ghostNumberAntiHolo, List @@ Ra]//Total;
+totalAntiHolGhostNumber[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolGhostNumber[Ra];
 
 
 (* ::Subsection::Closed:: *)
@@ -139,14 +139,14 @@ totalWeightHolo::usage = "Computes total holomorphic weight of a normal-ordered 
 totalWeightAntiHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
 totalWeight::usage = "Computes total weight of a normal-ordered product";
 
-totalWeightHolo[Times[a_, Ra_/;Rtest[Ra]]] := totalWeightHolo[Ra];
-totalWeightHolo[Ra_/;Rtest[Ra]] := Map[weightHolo, List @@ Ra] // Total;
+totalWeightHolo[Times[a_, Ra_/;RTest[Ra]]] := totalWeightHolo[Ra];
+totalWeightHolo[Ra_/;RTest[Ra]] := Map[weightHolo, List @@ Ra] // Total;
 
-totalWeightAntiHolo[Times[a_, Ra_/;Rtest[Ra]]] := totalWeightAntiHolo[Ra];
-totalWeightAntiHolo[Ra_/;Rtest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
+totalWeightAntiHolo[Times[a_, Ra_/;RTest[Ra]]] := totalWeightAntiHolo[Ra];
+totalWeightAntiHolo[Ra_/;RTest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
 
-totalWeight[Times[a_, Ra_/;Rtest[Ra]]] := totalWeight[Ra];
-totalWeight[Ra_/;Rtest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
+totalWeight[Times[a_, Ra_/;RTest[Ra]]] := totalWeight[Ra];
+totalWeight[Ra_/;RTest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
 
 
 (* ::Subsection::Closed:: *)

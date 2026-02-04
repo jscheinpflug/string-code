@@ -35,7 +35,7 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbosonicstring[z];
 Scan[Function[BRSTelem,
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
@@ -51,7 +51,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ];], BRSTList];
 (z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[SFa_/; SFtest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTAntiHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbosonicstringbar[zBar];
 Scan[Function[BRSTelem,
 singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
@@ -72,7 +72,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFtest]]:= b0mHold[BracketBosonic[toBracket]];
+Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= b0mHold[BracketBosonic[toBracket]];
 
 
 (* ::Subsection:: *)

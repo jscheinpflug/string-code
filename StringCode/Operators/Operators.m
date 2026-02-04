@@ -50,9 +50,9 @@ Op[a_ + b_, c___]:= Op[a, c] + Op[b, c];
 Op[a___, b_ + c_]:= Op[a, b] + Op[a, c];
 Op[0, a___]:= 0;
 Op[a___, 0]:= 0;
-Op[a_ f__?(Not[Rtest[#]] & ), b_]:= f Op[a, b];
+Op[a_ f__?(Not[RTest[#]] & ), b_]:= f Op[a, b];
 Op[a_, b_ f__?(Not[InteractingTest[#]] &)]:= f Op[a, b];
-Op[a_/;Not[Rtest[a]], b_]:= a b;
+Op[a_/;Not[RTest[a]], b_]:= a b;
 Op[a_, b_/;Not[InteractingTest[b]]]:= a b;
 Op[1,1]:= 1;
 
@@ -85,7 +85,7 @@ InteractingTest::usage = "Test if is interacting";
 InteractingTest[f_]:=(Head[f]===Interacting)
 
 InteractingLength::usage = "Test if is interacting and has nonzero length";
-InteractingLength[f_]:=If[Interactingtest[f],Length[List @@ f],0]
+InteractingLength[f_]:=If[InteractingTest[f],Length[List @@ f],0]
 
 InteractingOne::usage = "Test if is interacting of length one";
 Interactingone[f_]:=(InteractingLength[f]==1)
@@ -107,9 +107,9 @@ parityOp::usage = "Computes the parity of a local operator";
 scalarQ[x_] := FreeQ[x, _MultiOp | _Op | _R | _Interacting]
 parityOp[expr_Times] := parityOp[SelectFirst[List @@ expr, !scalarQ[#] &]]
 
-parityOp[Ma_/;MultiOptest[Ma]]:= Mod[Total @ (parityOp /@ List @@ Ma),2];
+parityOp[Ma_/;MultiOpTest[Ma]]:= Mod[Total @ (parityOp /@ List @@ Ma),2];
 parityOp[Oa_/;OpTest[Oa]]:= Mod[parity[Oa[[1]]] + parity[Oa[[2]]],2];
-parityOp[Ra_/;Rtest[Ra]]:= Mod[parity[Ra],2];
+parityOp[Ra_/;RTest[Ra]]:= Mod[parity[Ra],2];
 parityOp[Ia_/;InteractingTest[Ia]]:= Mod[parity[Ia],2];
 
 
@@ -121,11 +121,11 @@ totalWeightHolo::usage = "Computes total holomorphic weight of a normal-ordered 
 totalWeightAntiHolo::usage = "Computes total holomorphic weight of a normal-ordered product";
 totalWeight::usage = "Computes total weight of a normal-ordered product";
 
-totalWeightHolo[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeightHolo[MultiOpa];
-totalWeightHolo[MultiOpa_/;MultiOptest[MultiOpa]] := Total[Map[totalWeightHolo, List @@ MultiOpa]];
+totalWeightHolo[Times[a_, MultiOpa_/;MultiOpTest[MultiOpa]]] := totalWeightHolo[MultiOpa];
+totalWeightHolo[MultiOpa_/;MultiOpTest[MultiOpa]] := Total[Map[totalWeightHolo, List @@ MultiOpa]];
 
-totalWeightAntiHolo[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeightAntiHolo[MultiOpa];
-totalWeightAntiHolo[MultiOpa_/;MultiOptest[MultiOpa]] := Total[Map[totalWeightAntiHolo, List @@ MultiOpa]];
+totalWeightAntiHolo[Times[a_, MultiOpa_/;MultiOpTest[MultiOpa]]] := totalWeightAntiHolo[MultiOpa];
+totalWeightAntiHolo[MultiOpa_/;MultiOpTest[MultiOpa]] := Total[Map[totalWeightAntiHolo, List @@ MultiOpa]];
 
 totalWeightHolo[Times[a_, Opa_/;OpTest[Opa]]] := totalWeightHolo[Opa];
 totalWeightHolo[Opa_/;OpTest[Opa]] := totalWeightHolo[Opa[[1]]] + totalWeightHolo[Opa[[2]]];
@@ -142,8 +142,8 @@ totalWeightAntiHolo[Ia_/;InteractingTest[Ia]] := Map[weightAntiHolo, List @@ Ia]
 totalWeightHolo[a_/;NumericQ[a]]:=0;
 totalWeightAntiHolo[a_/;NumericQ[a]]:=0;
 
-totalWeight[Times[a_, MultiOpa_/;MultiOptest[MultiOpa]]] := totalWeight[MultiOpa];
-totalWeight[MultiOpa_/;MultiOptest[MultiOpa]] := {totalWeightHolo[MultiOpa], totalWeightAntiHolo[MultiOpa]};
+totalWeight[Times[a_, MultiOpa_/;MultiOpTest[MultiOpa]]] := totalWeight[MultiOpa];
+totalWeight[MultiOpa_/;MultiOpTest[MultiOpa]] := {totalWeightHolo[MultiOpa], totalWeightAntiHolo[MultiOpa]};
 
 totalWeight[Times[a_, Opa_/;OpTest[Opa]]] := totalWeight[Opa];
 totalWeight[Opa_/;OpTest[Opa]] := {totalWeightHolo[Opa], totalWeightAntiHolo[Opa]};
@@ -158,11 +158,11 @@ totalWeight[a_/;NumericQ[a]]:=0;
 (*Test MultiOp and length*)
 
 
-MultiOptest::usage = "Test if is MultiOp";
-MultiOptest[f_]:=(Head[f]===MultiOp)
+MultiOpTest::usage = "Test if is MultiOp";
+MultiOpTest[f_]:=(Head[f]===MultiOp)
 
 MultiOplength::usage = "Test if is MultiOp and has nonzero length";
-MultiOplength[f_]:=If[MultiOptest[f],Length[List @@ f],0]
+MultiOplength[f_]:=If[MultiOpTest[f],Length[List @@ f],0]
 
 MultiOpone::usage = "Test if is MultiOp of length one";
 MultiOpone[f_]:=(MultiOplength[f]===1)

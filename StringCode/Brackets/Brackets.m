@@ -34,7 +34,7 @@ Begin["Private`"];
 
 
 (*Action of BRST charge splits into holomorphic and antiholomorphic parts*)
-actBRST[SFa_/; SFtest[SFa]]:= actBRSTHolo[SFa] + actBRSTAntiHolo[SFa];
+actBRST[SFa_/; SFTest[SFa]]:= actBRSTHolo[SFa] + actBRSTAntiHolo[SFa];
 
 (*Linearity of BRST charge action*)
 
@@ -64,7 +64,7 @@ Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a,
 Bracket[args___, WedgeProduct[a__]b___, rest___]:= WedgeProduct[a, Bracket[args, b, rest]]; 
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
-BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFtest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
+BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
 moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyB, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, moduliLength, afterApplyingBghosts, afterHeldActionOfPCOs, prefac},
 bracketOrder = Length[bracketList];
 
@@ -102,13 +102,13 @@ Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctio
 
 
 extractPrefacFromMultiOpTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by multi-local operator";
-extractPrefacFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOptest[Ma]]] := a;
-extractPrefacFromMultiOpTimesConstant[Ma_/;MultiOptest[Ma]] := 1;
+extractPrefacFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOpTest[Ma]]] := a;
+extractPrefacFromMultiOpTimesConstant[Ma_/;MultiOpTest[Ma]] := 1;
 extractPrefacFromMultiOpTimesConstant[1] := 1;
 
 extractListFromMultiOpTimesConstant::usage = "Extracts the list of operators inside a multi-local operator product possibly multiplied by a constant prefactor";
-extractListFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOptest[Ma]]] := List @@ Ma;
-extractListFromMultiOpTimesConstant[Ma_/;MultiOptest[Ma]] := List @@ Ma;
+extractListFromMultiOpTimesConstant[Times[a_, Ma_/;MultiOpTest[Ma]]] := List @@ Ma;
+extractListFromMultiOpTimesConstant[Ma_/;MultiOpTest[Ma]] := List @@ Ma;
 
 
 (* ::Subsection:: *)
@@ -116,7 +116,7 @@ extractListFromMultiOpTimesConstant[Ma_/;MultiOptest[Ma]] := List @@ Ma;
 
 
 (*Projected bracket is Bracket composed with a projection*)
-BracketProjected[toBracket__/; AllTrue[{toBracket}, SFtest], weightHolo_, weightAntiHolo_]:=
+BracketProjected[toBracket__/; AllTrue[{toBracket}, SFTest], weightHolo_, weightAntiHolo_]:=
 b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, weightAntiHolo]];
 
 (*Multilinearity of projected Bracket*)
@@ -142,7 +142,7 @@ BracketProjection[WedgeProduct[a__] b___, weightHolo_, weightAntiHolo_] := Wedge
 
 
 CollapseFree::usage = "Collapse multi-local of free fields operator via OPE";
-CollapseFree[multiOpHolo_/;MultiOptest[multiOpHolo], multiOpAntiHolo_/;MultiOptest[multiOpAntiHolo], \[Epsilon]Holo_, \[Epsilon]AntiHolo_]:= 
+CollapseFree[multiOpHolo_/;MultiOpTest[multiOpHolo], multiOpAntiHolo_/;MultiOpTest[multiOpAntiHolo], \[Epsilon]Holo_, \[Epsilon]AntiHolo_]:= 
 Module[{OPEHolo, OPEAntiHolo},
 
 (*Rescale positions of operators in the bracket by a common \[Epsilon]Holo/\[Epsilon]AntiHolo to ease weight projection, and then perform OPE*)
@@ -169,7 +169,7 @@ Total @ Map[1/(\[Epsilon]Holo \[Epsilon]AntiHolo)^((weight - #)/2) InteractingPr
 
 
 factorizeMultiOp::usage = "Factorize multi-local operator into holomorphic and antiholomorphic multi-local operators";
-factorizeMultiOp[multiOp_/;MultiOptest[multiOp]]:=
+factorizeMultiOp[multiOp_/;MultiOpTest[multiOp]]:=
 Module[{multiOpReplaced = multiOp/.factorizationReplacement, localOpFactorized, localOpFree, localOpInteracting, localOpPrefac, localOpList,
 localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo,localOpsHoloAntiHolo, localOpsInteracting, prefac = 1},
 {localOpsHolo, localOpsAntiHolo, localOpsInteracting, localOpsHoloAntiHolo} = 
@@ -177,7 +177,7 @@ Reap[Scan[Function[localOp,
 If[OpTest[localOp],
 localOpFree = localOp[[1]];
 localOpInteracting = localOp[[2]],
-If[Rtest[localOp],
+If[RTest[localOp],
 localOpFree = localOp;
 localOpInteracting = 1,
 localOpFree = 1;
@@ -201,13 +201,13 @@ Sow[localOpList, "Holo and AntiHolo"];
 
 
 extractPrefacFromRTimesConstant::usage = "Extracts constant prefactor from possible constant multiplied by normal-ordered product";
-extractPrefacFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := a;
-extractPrefacFromRTimesConstant[Ra_/;Rtest[Ra]] := 1;
+extractPrefacFromRTimesConstant[Times[a_, Ra_/;RTest[Ra]]] := a;
+extractPrefacFromRTimesConstant[Ra_/;RTest[Ra]] := 1;
 extractPrefacFromRTimesConstant[1] := 1;
 
 extractListFromRTimesConstant::usage = "Extracts the list of operators inside a normal-ordered product possibly multiplied by a constant prefactor";
-extractListFromRTimesConstant[Times[a_, Ra_/;Rtest[Ra]]] := List @@ Ra;
-extractListFromRTimesConstant[Ra_/;Rtest[Ra]] := List @@ Ra;
+extractListFromRTimesConstant[Times[a_, Ra_/;RTest[Ra]]] := List @@ Ra;
+extractListFromRTimesConstant[Ra_/;RTest[Ra]] := List @@ Ra;
 
 
 (* ::Subsubsection:: *)
@@ -215,7 +215,7 @@ extractListFromRTimesConstant[Ra_/;Rtest[Ra]] := List @@ Ra;
 
 
 rescaleMultiOp::usage = "Rescale all chiral [after factorization] local operators [position is their last argument] inside a MultiOp";
-rescaleMultiOp[multiOp_/;MultiOptest[multiOp], rescalingFactor_]:= Module[{multiOpList = List @@ multiOp}, 
+rescaleMultiOp[multiOp_/;MultiOpTest[multiOp], rescalingFactor_]:= Module[{multiOpList = List @@ multiOp}, 
 MultiOp @@ Map[rescaleOp[rescalingFactor], multiOpList]]
 
 
@@ -330,7 +330,7 @@ factorizationReplacement =  {};
 
 
 (*Define holomorphic b-ghost mode actions, generally at different points*)
-bmodeHolo[contourCenter_][mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+bmodeHolo[contourCenter_][mode_][Ra_/;RTest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[Head[Relem ]=== c, If[mode >= Relem[[1]]-1, 
 If[Relem[[2]] - contourCenter =!=0,
@@ -348,7 +348,7 @@ result = result + ReplaceAt[Ra, replacement, pos];
 result];
 
 (*Define antiholomorphic b-ghost mode actions at the same point*)
-bmodeAntiHolo[contourCenter_][mode_][Ra_/;Rtest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
+bmodeAntiHolo[contourCenter_][mode_][Ra_/;RTest[Ra]] := Module[{pos, result = 0, cAssoc = Association[], fermionNumber = 0, position = 1},
 Scan[Function[Relem,
 If[Head[Relem ]=== ct, If[mode >= Relem[[1]]-1, 
 If[Relem[[2]]-contourCenter=!=0,
@@ -399,13 +399,13 @@ getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operato
 
 getMinCGhostModding[z0_][expr_Times] := getMinCGhostModding[z0][SelectFirst[List @@ expr, !scalarQ[#] &]]
 
-getMinCGhostModding[z0_][Ma_/; MultiOptest[Ma]]:=  Module[{moddingList = Select[getMinCGhostModding[z0] /@ List @@ Ma, # != "None" &]},
+getMinCGhostModding[z0_][Ma_/; MultiOpTest[Ma]]:=  Module[{moddingList = Select[getMinCGhostModding[z0] /@ List @@ Ma, # != "None" &]},
 If[moddingList =!= {}, Min[moddingList], "None"]
 ];
 
 getMinCGhostModding[z0_][Opa_/; OpTest[Opa]]:=  getMinCGhostModding[z0][Opa[[1]]];
 
-getMinCGhostModding[z0_][Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
+getMinCGhostModding[z0_][Ra_/; RTest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == c,
 (*If the c-ghost is not at zero, use the minimal b-ghost modding for the flat vertex i.e. 0*)
@@ -423,13 +423,13 @@ getMinCbarGhostModding::usage = "Get minimum cbar-ghost modding inside a local o
 
 getMinCbarGhostModding[z0bar_][expr_Times] := getMinCGhostModding[z0bar][SelectFirst[List @@ expr, !scalarQ[#] &]]
 
-getMinCbarGhostModding[z0bar_][Ma_/; MultiOptest[Ma]]:=  Module[{moddingList = Select[getMinCbarGhostModding[z0bar] /@ List @@ Ma,# != "None" &]},
+getMinCbarGhostModding[z0bar_][Ma_/; MultiOpTest[Ma]]:=  Module[{moddingList = Select[getMinCbarGhostModding[z0bar] /@ List @@ Ma,# != "None" &]},
 If[moddingList =!= {}, Min[moddingList], "None"]
 ];
 
 getMinCbarGhostModding[z0bar_][Opa_/; OpTest[Opa]]:=  getMinCbarGhostModding[z0bar][Opa[[1]]];
 
-getMinCbarGhostModding[z0bar_][Ra_/; Rtest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
+getMinCbarGhostModding[z0bar_][Ra_/; RTest[Ra]]:= Module[{RList = List @@ Ra, maxOrder = "None", currentOrder},
 Scan[Function[Relem,
 If[Head[Relem] == ct,
 (*If the c-ghost is not at zero, use the minimal b-ghost modding for the flat vertex i.e. 0*)
@@ -615,28 +615,28 @@ actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
 actBGhostMode[a_, b_ c_]:= b actBGhostMode[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
 
-actBGhostMode[bmodeHolo[contourCenter_][a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeHolo[contourCenter_][a_], MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
 Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
 Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeAntiHolo[contourCenter_][a_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_], MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
 Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
 result
 ];
 
-actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
 Do[result = result + (-1)^(Total[Take[parities, i-1]]) MultiOp @@ MapAt[actBGhostMode[bmodeAntiHolo[contourCenter][a], #] &, OpList, i],
 {i, 1, Length[OpList]}];
@@ -648,10 +648,10 @@ actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], Opa_/;OpTest[Opa]]:= Op[bmo
 actBGhostMode[bmodeHolo[contourCenter_][a_], Opa_/;OpTest[Opa]]:= Op[bmodeHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
 actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Opa_/;OpTest[Opa]]:= Op[bmodeAntiHolo[contourCenter][a][Opa[[1]]], Opa[[2]]];
 
-actBGhostMode[bmodeHolo[contourCenter_][a_][b_], Ra_/;Rtest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
-actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
-actBGhostMode[bmodeHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
-actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Ra_/;Rtest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeHolo[contourCenter_][a_][b_], Ra_/;RTest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_][b_], Ra_/;RTest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeHolo[contourCenter_][a_], Ra_/;RTest[Ra]]:= bmodeHolo[contourCenter][a][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][a_], Ra_/;RTest[Ra]]:= bmodeAntiHolo[contourCenter][a][Ra];
 
 actBGhostMode[b_, Ia_/;InteractingTest[Ia]]:= 0;
 actBGhostMode[b_, a_/;NumericQ[a]]:= 0;
@@ -677,7 +677,7 @@ ApplyPropagator::usage = "Applies the propagator b0+/L0+ on a level-projected br
 ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
 ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
 
-ApplyPropagator[q_][MultiOpa_/;MultiOptest[MultiOpa]]:= Module[{rescaledMultiOp},
+ApplyPropagator[q_][MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{rescaledMultiOp},
 rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
 actBGhostMode[bmodeHolo[0][0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0][0],rescaledMultiOp]]
 
@@ -685,7 +685,7 @@ ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
 rescaledOp = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Opa];
 actBGhostMode[bmodeHolo[0][0], rescaledOp] + actBGhostMode[bmodeAntiHolo[0][0],rescaledOp]]
 
-ApplyPropagator[q_][Ra_/;Rtest[Ra]]:= Module[{rescaledR},
+ApplyPropagator[q_][Ra_/;RTest[Ra]]:= Module[{rescaledR},
 rescaledR = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
 actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],rescaledR]]
 
@@ -708,7 +708,7 @@ singularity[ct[m_,w_],bt[n_,z_]]:= 1 + m + n;
 
 
 singularityMatrix::usage = "Compute a matrix of orders of singularities in the OPE of two operators"
-singularityMatrix[Ra_/;Rtest[Ra], Rb_/; Rtest[Rb]]:= Table[singularity[Ra[[i]], Rb[[j]]], {i, 1, Length[Ra]}, {j, 1, Length[Rb]}];
+singularityMatrix[Ra_/;RTest[Ra], Rb_/; RTest[Rb]]:= Table[singularity[Ra[[i]], Rb[[j]]], {i, 1, Length[Ra]}, {j, 1, Length[Rb]}];
 singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ allfields));
 singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
 

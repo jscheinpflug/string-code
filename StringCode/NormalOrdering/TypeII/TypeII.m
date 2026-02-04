@@ -119,11 +119,11 @@ simplifying[list_] :=
 totalHolPicture::usage = "Computes total holomorphic picture";
 totalAntiHolPicture::usage = "Computes total antiholomorphic picture";
 
-totalHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
-totalHolPicture[Times[a_, Ra_/;Rtest[Ra]]] := totalHolPicture[Ra];
+totalHolPicture[Ra_/;RTest[Ra]]:= Map[pictureHol, List @@ Ra]//Total;
+totalHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalHolPicture[Ra];
 
-totalAntiHolPicture[Ra_/;Rtest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
-totalAntiHolPicture[Times[a_, Ra_/;Rtest[Ra]]] := totalAntiHolPicture[Ra];
+totalAntiHolPicture[Ra_/;RTest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
+totalAntiHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolPicture[Ra];
 
 
 (* ::Subsection::Closed:: *)

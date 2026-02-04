@@ -48,7 +48,7 @@ SF[g___,a_^n_,h___]:=SF[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[bosons,Head[a]]
 
 
 SFAtPos::usage = "A string field at a given position";
-SFAtPos[SFa_/;SFtest[SFa], localCoordinateHol_, localCoordinateAntiHol_]:= Module[{SFlist = List @@ SFa, positionedSFs}, 
+SFAtPos[SFa_/;SFTest[SFa], localCoordinateHol_, localCoordinateAntiHol_]:= Module[{SFlist = List @@ SFa, positionedSFs}, 
 positionedSFs = mapOp[localCoordinateHol,localCoordinateAntiHol] @@ SFlist;
 positionedSFs
 ];
@@ -56,13 +56,13 @@ positionedSFs
 
 mapOp::usage = "Map operator at a position";
 
-mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOptest[MultiOpa]]:= 
+mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOpTest[MultiOpa]]:= 
 mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa;
 
 mapOp[coordinateHol_, coordinateAntiHol_][Opa_/;OpTest[Opa]]:=
 Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]], mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
 
-mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;Rtest[Ra]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ra;
+mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;RTest[Ra]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ra;
 
 mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ia;
 
@@ -119,11 +119,11 @@ factorizationSign[operatorList__, f1_, f2_] :=
 (*Test string field and length*)
 
 
-SFtest::usage = "Test if is string field";
-SFtest[f_]:=(Head[f]==SF)
+SFTest::usage = "Test if is string field";
+SFTest[f_]:=(Head[f]==SF)
 
 SFlength::usage = "Test if is string field and has nonzero length";
-SFlength[f_]:=If[SFtest[f],Length[List @@ f],0]
+SFlength[f_]:=If[SFTest[f],Length[List @@ f],0]
 
 SFone::usage = "Test if is string field of length one";
 SFone[f_]:=(SFlength[f]==1)

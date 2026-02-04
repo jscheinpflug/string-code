@@ -50,13 +50,13 @@ Corr[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  C
 
 
 (* ::Input::Initialization:: *)
-Corr[Ra_,Rb_]:=CDWick[Ra,Rb] +(CR @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && Rtest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]])
+Corr[Ra_,Rb_]:=CDWick[Ra,Rb] +(CR @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && RTest[Rb]&& MemberQ[simplefields,Head[Ra[[1]]]])
 
-Corr[Ra_,Rb_]:= CR[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && MemberQ[compositefields,Head[Ra[[1]]]] )
+Corr[Ra_,Rb_]:= CR[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && RTest[Rb]  && MemberQ[compositefields,Head[Ra[[1]]]] )
 
-Corr[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) Corr[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +CR[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]] )
+Corr[Ra_,Rb_]:=(-1)^(parity[(R @@ (Drop[(List @@ Ra),1]))]parity[R[Ra[[1]]]]) Corr[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]] +CR[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),Rb]]/;(RTest[Ra] && RTest[Rb] &&(!Rone[Ra]) && MemberQ[simplefields,Head[Ra[[1]]]] )
 
-Corr[Ra_,Rb_]:=CR[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[compositefields,Head[Ra[[1]]]] )
+Corr[Ra_,Rb_]:=CR[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!Rone[Ra]) && MemberQ[compositefields,Head[Ra[[1]]]] )
 
 Corr[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allfields))||(And @@(FreeQ[g,#]&/@ allfields)))
 Corr[a_+b_,c_]:=Corr[a,c]+Corr[b,c]

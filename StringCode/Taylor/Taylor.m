@@ -33,7 +33,7 @@ Begin["Private`"];
 (*Define TaylorAtOrder*)
 
 
-TaylorAtOrderHolo[Ra_/;Rtest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra, z0],RLength = Length[Ra], RList = List @@ Ra, 
+TaylorAtOrderHolo[Ra_/;RTest[Ra], ord_, z0_]:= Module[{holoLengthR = holomorphicLength[Ra, z0],RLength = Length[Ra], RList = List @@ Ra, 
 resultForGivenPartition, result = 0, partitions, i=1}, 
 resultForGivenPartition = ConstantArray[None, RLength];
 
@@ -63,7 +63,7 @@ resultForGivenPartition = ConstantArray[None, RLength];
 result]
 
 
-TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], ord_, z0bar_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra, z0bar],RLength = Length[Ra], RList = List @@ Ra, 
+TaylorAtOrderAntiHolo[Ra_/;RTest[Ra], ord_, z0bar_]:= Module[{antiHoloLengthR = antiHolomorphicLength[Ra, z0bar],RLength = Length[Ra], RList = List @@ Ra, 
 resultForGivenPartition, result = 0, partitions, i=1}, 
 resultForGivenPartition = ConstantArray[None, RLength];
 
@@ -95,7 +95,7 @@ result]
 
 
 (*Taylor at a given order is a composition of Tayloring the holomorphic and antiholomorphic parts*)
-TaylorAtOrder[Ra_/;Rtest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrderAntiHolo[TaylorAtOrderHolo[Ra, ordHolo, z0], ordAntiHolo, z0bar];
+TaylorAtOrder[Ra_/;RTest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrderAntiHolo[TaylorAtOrderHolo[Ra, ordHolo, z0], ordAntiHolo, z0bar];
 
 
 (*Implement multilinearity of Taylor*)
@@ -115,8 +115,8 @@ TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
 
 (*Taylor to zeroth order preserves the input*)
-TaylorAtOrderHolo[Ra_/;Rtest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
-TaylorAtOrderAntiHolo[Ra_/;Rtest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
+TaylorAtOrderHolo[Ra_/;RTest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
+TaylorAtOrderAntiHolo[Ra_/;RTest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
 
 TaylorAtOrderHolo[a_/;Head[a]==OPE,0,z0_]:= 1;
 TaylorAtOrderHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
@@ -129,14 +129,14 @@ TaylorAtOrderAntiHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
 
 
 holomorphicLength::usage = "Computes how many holomorphic fields are in a normal-ordered product";
-holomorphicLength[Ra_/; Rtest[Ra], z0_]:= Module[{length = 0}, 
+holomorphicLength[Ra_/; RTest[Ra], z0_]:= Module[{length = 0}, 
 Scan[Function[Relem, If[isHolomorphic[Head[Relem]] && !isAtPointHolo[Relem,z0],length = length + 1]],Ra];
 length
 ];
 
 
 antiHolomorphicLength::usage = "Computes how many antiholomorphic fields are in a normal-ordered product";
-antiHolomorphicLength[Ra_/; Rtest[Ra], z0bar_]:= Module[{length = 0}, 
+antiHolomorphicLength[Ra_/; RTest[Ra], z0bar_]:= Module[{length = 0}, 
 Scan[Function[Relem, If[isAntiHolomorphic[Head[Relem]] && !isAtPointAntiHolo[Relem,z0bar], length = length + 1]],Ra];
 length
 ];
