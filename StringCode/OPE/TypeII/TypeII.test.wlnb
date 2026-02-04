@@ -1,0 +1,644 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Type II OPE Unit Tests\n\nUnit tests for OPE computations of fundamental Type IIB worldsheet operators using Ashoke conventions:\n- Matter free fermion (psi, psit)\n- xi-eta ghost system\n- Linear dilaton (dphi, dphit)\n- Exponentials of phi (expPhib, expPhif)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\"-> \"TypeII-Ashoke\", \"bracket\"->\"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Matter Free Fermion Tests (psi, psit)\n\nThe matter free fermion has the OPE (in Ashoke conventions with fermionToBosonWickRatio = -1/2):\n$$\\psi^\\mu(z) \\psi^\\nu(w) \\sim -\\frac{1}{2}\\frac{\\delta^{\\mu\\nu}}{z-w}$$",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 1: Basic psi-psi contraction\n\nWick[psi[mu,0,z], psi[nu,0,w]] should give -1/2 * delta[mu,nu]/(z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = Wick[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]];\nexpected1 = -1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (psi-psi Wick): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 2: Derivative psi with psi\n\nWick[psi[mu,1,z], psi[nu,0,w]] = d_z(-1/2 * delta/(z-w)) = 1/2 * delta/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = Wick[\\[Psi][\\[Mu], 1, z], \\[Psi][\\[Nu], 0, w]];\nexpected2 = 1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w)^2;\ntest2Result = Simplify[test2 - expected2] === 0;\nPrint[\"Test 2 (dpsi-psi Wick): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 3: psi with derivative psi\n\nWick[psi[mu,0,z], psi[nu,1,w]] = (-1)^1 d_z(-1/2 * delta/(z-w)) = -1/2 * delta/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = Wick[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 1, w]];\nexpected3 = -1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w)^2;\ntest3Result = Simplify[test3 - expected3] === 0;\nPrint[\"Test 3 (psi-dpsi Wick): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 4: Anti-holomorphic psit-psit contraction",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = Wick[\\[Psi]t[\\[Mu], 0, zbar], \\[Psi]t[\\[Nu], 0, wbar]];\nexpected4 = -1/2 \\[Delta][\\[Mu], \\[Nu]]/(zbar - wbar);\ntest4Result = Simplify[test4 - expected4] === 0;\nPrint[\"Test 4 (psit-psit Wick): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 5: psi anticommutation R[psi,psi] = -R[psi,psi] (fermionic)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5a = R[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]];\ntest5b = R[\\[Psi][\\[Nu], 0, w], \\[Psi][\\[Mu], 0, z]];\ntest5Result = Simplify[test5a + test5b] === 0;\nPrint[\"Test 5 (psi anticommutation): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 6: Full OPE of R[psi] with R[psi]",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\nexpected6 = R[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]] - 1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest6Result = Simplify[test6 - expected6] === 0;\nPrint[\"Test 6 (OPE psi-psi): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## xi-eta Ghost System Tests\n\nThe xi-eta ghost system has the OPEs:\n$$\\eta(z) \\xi(w) \\sim \\frac{1}{z-w}$$\n$$\\xi(z) \\eta(w) \\sim -\\frac{1}{z-w}$$\n\nNote: The sign differs depending on ordering (fermionic system).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 7: Basic eta-xi contraction\n\nWick[eta[0,z], xi[0,w]] should give 1/(z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = Wick[\\[Eta][0, z], \\[Xi][0, w]];\nexpected7 = 1/(z - w);\ntest7Result = Simplify[test7 - expected7] === 0;\nPrint[\"Test 7 (eta-xi Wick): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 8: xi-eta contraction\n\nWick[xi[0,z], eta[0,w]] should give -1/(w-z) = 1/(z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = Wick[\\[Xi][0, z], \\[Eta][0, w]];\nexpected8 = -1/(w - z);\ntest8Result = Simplify[test8 - expected8] === 0;\nPrint[\"Test 8 (xi-eta Wick): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 9: Derivative eta with xi\n\nWick[eta[1,z], xi[0,w]] = d_z(1/(z-w)) = -1/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = Wick[\\[Eta][1, z], \\[Xi][0, w]];\nexpected9 = -1/(z - w)^2;\ntest9Result = Simplify[test9 - expected9] === 0;\nPrint[\"Test 9 (deta-xi Wick): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 10: eta with derivative xi\n\nWick[eta[0,z], xi[1,w]] = (-1)^1 d_z(1/(z-w)) = 1/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = Wick[\\[Eta][0, z], \\[Xi][1, w]];\nexpected10 = 1/(z - w)^2;\ntest10Result = Simplify[test10 - expected10] === 0;\nPrint[\"Test 10 (eta-dxi Wick): \", If[test10Result, \"PASSED\", \"FAILED\"]];\ntest10Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 11: Anti-holomorphic etat-xit contraction",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = Wick[\\[Eta]t[0, zbar], \\[Xi]t[0, wbar]];\nexpected11 = 1/(zbar - wbar);\ntest11Result = Simplify[test11 - expected11] === 0;\nPrint[\"Test 11 (etat-xit Wick): \", If[test11Result, \"PASSED\", \"FAILED\"]];\ntest11Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 12: xit-etat contraction",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = Wick[\\[Xi]t[0, zbar], \\[Eta]t[0, wbar]];\nexpected12 = -1/(wbar - zbar);\ntest12Result = Simplify[test12 - expected12] === 0;\nPrint[\"Test 12 (xit-etat Wick): \", If[test12Result, \"PASSED\", \"FAILED\"]];\ntest12Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 13: Full OPE of R[eta] with R[xi]",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = OPE[R[\\[Eta][0, z]], R[\\[Xi][0, w]]];\nexpected13 = R[\\[Eta][0, z], \\[Xi][0, w]] + 1/(z - w);\ntest13Result = Simplify[test13 - expected13] === 0;\nPrint[\"Test 13 (OPE eta-xi): \", If[test13Result, \"PASSED\", \"FAILED\"]];\ntest13Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 14: Fermionic property - xi(z) xi(z) = 0",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test14 = R[\\[Xi][0, z], \\[Xi][0, z]];\ntest14Result = test14 === 0;\nPrint[\"Test 14 (xi*xi = 0): \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 15: Fermionic property - eta(z) eta(z) = 0",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test15 = R[\\[Eta][0, z], \\[Eta][0, z]];\ntest15Result = test15 === 0;\nPrint[\"Test 15 (eta*eta = 0): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Linear Dilaton Tests (dphi)\n\nThe linear dilaton field has the OPE:\n$$\\partial\\phi(z) \\partial\\phi(w) \\sim -\\frac{1}{(z-w)^2}$$",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 16: Basic dphi-dphi contraction\n\nWick[dphi[0,z], dphi[0,w]] should give -1/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test16 = Wick[d\\[Phi][0, z], d\\[Phi][0, w]];\nexpected16 = -1/(z - w)^2;\ntest16Result = Simplify[test16 - expected16] === 0;\nPrint[\"Test 16 (dphi-dphi Wick): \", If[test16Result, \"PASSED\", \"FAILED\"]];\ntest16Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 17: Derivative dphi with dphi\n\nWick[dphi[1,z], dphi[0,w]] = d_z(-1/(z-w)^2) = 2/(z-w)^3",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test17 = Wick[d\\[Phi][1, z], d\\[Phi][0, w]];\nexpected17 = 2/(z - w)^3;\ntest17Result = Simplify[test17 - expected17] === 0;\nPrint[\"Test 17 (d(dphi)-dphi Wick): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 18: Anti-holomorphic dphit-dphit contraction",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test18 = Wick[d\\[Phi]t[0, zbar], d\\[Phi]t[0, wbar]];\nexpected18 = -1/(zbar - wbar)^2;\ntest18Result = Simplify[test18 - expected18] === 0;\nPrint[\"Test 18 (dphit-dphit Wick): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 19: dphi commutes (bosonic)\n\nR[dphi[0,z], dphi[0,w]] = R[dphi[0,w], dphi[0,z]] since dphi is bosonic",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test19a = R[d\\[Phi][0, z], d\\[Phi][0, w]];\ntest19b = R[d\\[Phi][0, w], d\\[Phi][0, z]];\ntest19Result = Simplify[test19a - test19b] === 0;\nPrint[\"Test 19 (dphi bosonic commutation): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 20: Full OPE of R[dphi] with R[dphi]",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test20 = OPE[R[d\\[Phi][0, z]], R[d\\[Phi][0, w]]];\nexpected20 = R[d\\[Phi][0, z], d\\[Phi][0, w]] - 1/(z - w)^2;\ntest20Result = Simplify[test20 - expected20] === 0;\nPrint[\"Test 20 (OPE dphi-dphi): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Exponential of phi Tests (expPhib, expPhif)\n\nThe exponentials of phi have the following contractions:\n\n**SWick** (single contraction with dphi):\n$$\\text{SWick}[\\partial\\phi(z), e^{a\\phi}(w)] = \\frac{-a}{z-w}$$\n\n**MWick** (mutual contraction between exponentials):\n$$\\text{MWick}[e^{a\\phi}(z), e^{b\\phi}(w)] = (z-w)^{-ab}$$",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 21: SWick of dphi with expPhib\n\nSWick[dphi[0,z], expPhib[a,w]] should give -a/(z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test21 = SWick[d\\[Phi][0, z], exp\\[Phi]b[a, w]];\nexpected21 = -a/(z - w);\ntest21Result = Simplify[test21 - expected21] === 0;\nPrint[\"Test 21 (SWick dphi-expPhib): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 22: SWick of dphi with expPhif (fermionic exponential)\n\nSame pole structure as bosonic exponential.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test22 = SWick[d\\[Phi][0, z], exp\\[Phi]f[a, w]];\nexpected22 = -a/(z - w);\ntest22Result = Simplify[test22 - expected22] === 0;\nPrint[\"Test 22 (SWick dphi-expPhif): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 23: SWick with derivative dphi[1,z]\n\nSWick[dphi[1,z], expPhib[a,w]] = d_z(-a/(z-w)) = a/(z-w)^2",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test23 = SWick[d\\[Phi][1, z], exp\\[Phi]b[a, w]];\nexpected23 = a/(z - w)^2;\ntest23Result = Simplify[test23 - expected23] === 0;\nPrint[\"Test 23 (SWick d(dphi)-expPhib): \", If[test23Result, \"PASSED\", \"FAILED\"]];\ntest23Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 24: SWick antiholomorphic dphit with expPhitb",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test24 = SWick[d\\[Phi]t[0, zbar], exp\\[Phi]tb[a, wbar]];\nexpected24 = -a/(zbar - wbar);\ntest24Result = Simplify[test24 - expected24] === 0;\nPrint[\"Test 24 (SWick dphit-expPhitb): \", If[test24Result, \"PASSED\", \"FAILED\"]];\ntest24Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 25: MWick of expPhib with expPhib\n\nMWick[expPhib[a,z], expPhib[b,w]] = (z-w)^(-ab)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test25 = MWick[exp\\[Phi]b[a, z], exp\\[Phi]b[b, w]];\nexpected25 = (z - w)^(-a b);\ntest25Result = Simplify[test25 - expected25] === 0;\nPrint[\"Test 25 (MWick expPhib-expPhib): \", If[test25Result, \"PASSED\", \"FAILED\"]];\ntest25Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 26: MWick of expPhif with expPhif (fermionic exponentials)\n\nSame structure as bosonic exponentials.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test26 = MWick[exp\\[Phi]f[a, z], exp\\[Phi]f[b, w]];\nexpected26 = (z - w)^(-a b);\ntest26Result = Simplify[test26 - expected26] === 0;\nPrint[\"Test 26 (MWick expPhif-expPhif): \", If[test26Result, \"PASSED\", \"FAILED\"]];\ntest26Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 27: MWick mixed expPhib with expPhif",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test27 = MWick[exp\\[Phi]b[a, z], exp\\[Phi]f[b, w]];\nexpected27 = (z - w)^(-a b);\ntest27Result = Simplify[test27 - expected27] === 0;\nPrint[\"Test 27 (MWick expPhib-expPhif): \", If[test27Result, \"PASSED\", \"FAILED\"]];\ntest27Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 28: MWick antiholomorphic expPhitb with expPhitb",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test28 = MWick[exp\\[Phi]tb[a, zbar], exp\\[Phi]tb[b, wbar]];\nexpected28 = (zbar - wbar)^(-a b);\ntest28Result = Simplify[test28 - expected28] === 0;\nPrint[\"Test 28 (MWick expPhitb-expPhitb): \", If[test28Result, \"PASSED\", \"FAILED\"]];\ntest28Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 29: Specific MWick - picture changing operators\n\nFor e^{-phi}(z) e^{phi}(w) we get (z-w)^1 = (z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test29 = MWick[exp\\[Phi]f[-1, z], exp\\[Phi]f[1, w]];\nexpected29 = (z - w);\ntest29Result = Simplify[test29 - expected29] === 0;\nPrint[\"Test 29 (MWick e^{-phi} e^{phi}): \", If[test29Result, \"PASSED\", \"FAILED\"]];\ntest29Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 30: Specific MWick - double pole\n\nFor e^{-phi}(z) e^{-phi}(w) we get (z-w)^(-1) = 1/(z-w)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test30 = MWick[exp\\[Phi]f[-1, z], exp\\[Phi]f[-1, w]];\nexpected30 = (z - w)^(-1);\ntest30Result = Simplify[test30 - expected30] === 0;\nPrint[\"Test 30 (MWick e^{-phi} e^{-phi}): \", If[test30Result, \"PASSED\", \"FAILED\"]];\ntest30Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Full OPE Tests with Composite Operators",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 31: OPE of R[dphi] with R[expPhib]\n\nThe OPE combines SWick with expPhib and the regular normal-ordered term.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test31 = OPE[R[d\\[Phi][0, z]], R[exp\\[Phi]b[a, w]]];\nPrint[\"Test 31 (OPE dphi-expPhib): \", test31 // InputForm];\n(* Check that result contains expPhib and has a pole *)\ntest31Result = Not[FreeQ[test31, exp\\[Phi]b]] && (Not[FreeQ[test31, 1/(z - w)]] || Not[FreeQ[test31, 1/(w - z)]]);\nPrint[\"Test 31 (has expPhib and pole): \", If[test31Result, \"PASSED\", \"FAILED\"]];\ntest31Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 32: OPE of R[eta, xi] with R[xi] (composite with single field)\n\nTests that eta in the composite contracts with the external xi.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test32 = OPE[R[\\[Eta][0, z], \\[Xi][0, z]], R[\\[Xi][0, w]]];\nPrint[\"Test 32 (OPE R[eta,xi]-xi): \", test32 // InputForm];\n(* Should have a singular term from eta-xi contraction *)\ntest32HasSingular = Not[FreeQ[test32, 1/(w - z)]] || Not[FreeQ[test32, 1/(z - w)]];\nPrint[\"Test 32 has singular term: \", If[test32HasSingular, \"PASSED\", \"FAILED\"]];\ntest32HasSingular",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Mixed Sector Tests (no contraction between different systems)",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 33: psi does not contract with eta",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test33 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Eta][0, w]]];\nexpected33 = R[\\[Psi][\\[Mu], 0, z], \\[Eta][0, w]];\ntest33Result = Simplify[test33 - expected33] === 0;\nPrint[\"Test 33 (psi-eta no contraction): \", If[test33Result, \"PASSED\", \"FAILED\"]];\ntest33Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 34: psi does not contract with dphi",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test34 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[d\\[Phi][0, w]]];\nexpected34 = R[\\[Psi][\\[Mu], 0, z], d\\[Phi][0, w]];\ntest34Result = Simplify[test34 - expected34] === 0;\nPrint[\"Test 34 (psi-dphi no contraction): \", If[test34Result, \"PASSED\", \"FAILED\"]];\ntest34Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 35: eta does not contract with dphi",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test35 = OPE[R[\\[Eta][0, z]], R[d\\[Phi][0, w]]];\nexpected35 = R[\\[Eta][0, z], d\\[Phi][0, w]];\ntest35Result = Simplify[test35 - expected35] === 0;\nPrint[\"Test 35 (eta-dphi no contraction): \", If[test35Result, \"PASSED\", \"FAILED\"]];\ntest35Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result,\n            test7Result, test8Result, test9Result, test10Result, test11Result, test12Result,\n            test13Result, test14Result, test15Result, test16Result, test17Result, test18Result,\n            test19Result, test20Result, test21Result, test22Result, test23Result, test24Result,\n            test25Result, test26Result, test27Result, test28Result, test29Result, test30Result,\n            test31Result, test32HasSingular, test33Result, test34Result, test35Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ]
+}
