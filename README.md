@@ -223,7 +223,7 @@ Test notebooks are located in `Tests/`:
 
 ### Unit tests
 
-- `Tests/Unit/Bosonic/OPE-Basic-Test.wlnb` - Checks of basic OPEs
+- Included with .m files (extensions .test.wlnb)
 
 ### Integration tests
 
