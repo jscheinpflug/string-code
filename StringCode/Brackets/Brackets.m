@@ -60,10 +60,10 @@ actBRSTHolo[0] := 0;
 (*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
 
-Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{WedgeProduct}])
+Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{Wedge}])
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
-Bracket[args___, WedgeProduct[a__]b___, rest___]:= WedgeProduct[a, Bracket[args, b, rest]]; 
+Bracket[args___, Wedge[a__]b___, rest___]:= Wedge[a, Bracket[args, b, rest]]; 
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
 BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
@@ -123,20 +123,20 @@ b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, w
 
 (*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
-BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{Wedge}])
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
-BracketProjected[args___, WedgeProduct[a__] b___, rest___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjected[args, b, rest, weightHolo, weightAntiHolo]]
+BracketProjected[args___, Wedge[a__] b___, rest___, weightHolo_, weightAntiHolo_] := Wedge[a, BracketProjected[args, b, rest, weightHolo, weightAntiHolo]]
 
 (*Multilinearity of Bracket projection*)
 BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
  BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
  
 BracketProjection[a_ b_, weightHolo_, weightAntiHolo_] := 
-a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{WedgeProduct}])
+a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{Wedge}])
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
-BracketProjection[WedgeProduct[a__] b___, weightHolo_, weightAntiHolo_] := WedgeProduct[a, BracketProjection[b, weightHolo, weightAntiHolo]]
+BracketProjection[Wedge[a__] b___, weightHolo_, weightAntiHolo_] := Wedge[a, BracketProjection[b, weightHolo, weightAntiHolo]]
 
 
 (* ::Subsection:: *)
@@ -185,7 +185,7 @@ localOpInteracting = 1,
 localOpFree = 1;
 localOpInteracting = localOp;]
 ];
-localOpPrefac = extractPrefacFromRTimesConstant[localOpFree]/.{WedgeProduct[a___]->1};
+localOpPrefac = extractPrefacFromRTimesConstant[localOpFree]/.{Wedge[a___]->1};
 localOpList = extractListFromRTimesConstant[localOpFree];
 localOpFactorized = splitOperators[localOpList, isHolomorphic, isAntiHolomorphic];
 prefac = prefac * localOpPrefac;
@@ -533,9 +533,9 @@ DependentQ[expr_, moduli_List] := moduli =!= {} && !FreeQ[expr, Alternatives @@ 
 combineCurlyBs::usage = "Takes two curly B's and combines them";
 combineCurlyBs[a_+b_, c___]:= combineCurlyBs[a, c] + combineCurlyBs[b, c];
 combineCurlyBs[a___, b_+c_]:= combineCurlyBs[a, b] + combineCurlyBs[a, c];
-combineCurlyBs[a_ f_,d___]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, WedgeProduct, bmodeHolo, bmodeAntiHolo}))
-combineCurlyBs[f___, a_ d_]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, WedgeProduct, bmodeHolo, bmodeAntiHolo}))
-combineCurlyBs[a_ b___, c_ d___]:= WedgeProduct[a, c] combineCurlyBs[b,d]/; (MemberQ[{Differential, WedgeProduct}, Head[a]] && MemberQ[{Differential, WedgeProduct}, Head[c]]);
+combineCurlyBs[a_ f_,d___]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, Wedge, bmodeHolo, bmodeAntiHolo}))
+combineCurlyBs[f___, a_ d_]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, Wedge, bmodeHolo, bmodeAntiHolo}))
+combineCurlyBs[a_ b___, c_ d___]:= Wedge[a, c] combineCurlyBs[b,d]/; (MemberQ[{Differential, Wedge}, Head[a]] && MemberQ[{Differential, Wedge}, Head[c]]);
 combineCurlyBs[combineCurlyBs[a___],b___]:= combineCurlyBs[a,b];
 combineCurlyBs[a___, combineCurlyBs[b___]]:= combineCurlyBs[a,b];
 
@@ -557,14 +557,14 @@ result]
 (*Define wedge product*)
 
 
-WedgeProduct::usage = "A wedge product between Differentials";
-WedgeProduct[ c___,a_,a_,d___]:=0
-WedgeProduct[c___,a_+b_,d___]:=WedgeProduct[c,a,d]+WedgeProduct[c,b,d]
-WedgeProduct[c___, s_?nonDifferentialQ f_, d___] := s WedgeProduct[c, f, d];
-WedgeProduct[c___, s_?nonDifferentialQ,   d___] := s WedgeProduct[c, d];
-WedgeProduct[]:=1;
-WedgeProduct[a___,WedgeProduct[b___],c___]:=WedgeProduct[a,b,c]
-WedgeProduct[c___,b_,a_,d___]:=-WedgeProduct[c,a,b,d]/;(!OrderedQ[{b,a}])
+Wedge::usage = "A wedge product between Differentials";
+Wedge[ c___,a_,a_,d___]:=0
+Wedge[c___,a_+b_,d___]:=Wedge[c,a,d]+Wedge[c,b,d]
+Wedge[c___, s_?nonDifferentialQ f_, d___] := s Wedge[c, f, d];
+Wedge[c___, s_?nonDifferentialQ,   d___] := s Wedge[c, d];
+Wedge[]:=1;
+Wedge[a___,Wedge[b___],c___]:=Wedge[a,b,c]
+Wedge[c___,b_,a_,d___]:=-Wedge[c,a,b,d]/;(!OrderedQ[{b,a}])
 
 nonDifferentialQ::usage = "Checks if does not contain Differential";
 nonDifferentialQ[expr_] := FreeQ[expr, Differential];

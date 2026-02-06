@@ -623,7 +623,7 @@ def combineCurlyBs(B1, B2):
             diff1, bmode1 = extract_differential_and_bmode(term1)
             diff2, bmode2 = extract_differential_and_bmode(term2)
 
-            wedge = WedgeProduct[diff1, diff2]  # antisymmetric
+            wedge = Wedge[diff1, diff2]  # antisymmetric
             combined_bmode = combinedCurlyBs[{bmode1, bmode2}]
 
             result += coeff1 * coeff2 * wedge * combined_bmode
