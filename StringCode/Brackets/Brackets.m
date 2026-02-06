@@ -767,18 +767,19 @@ getPartitions[n_] := DeleteCases[IntegerPartitions[n], {1 ..}]
 
 
 (* Generate all ways to assign n items to groups of given sizes *)
-assignToGroups::usage = "Generate all ways to assign items to groups of given sizes";
-assignToGroups[items_List, sizes_List] := Module[{n = Length[items], result = {},
+(* Works with positional indices to handle duplicate elements correctly *)
+assignToGroups::usage = "Generate all index-based assignments of n positions to groups of given sizes";
+assignToGroups[n_Integer, sizes_List] := Module[{indices = Range[n], result = {},
   sortedSizes = Sort[sizes, Greater], helper},
 
-  (* Recursive helper to build assignments *)
+  (* Recursive helper to build assignments using indices *)
   helper[remaining_, {}, acc_] := AppendTo[result, acc];
   helper[remaining_, {size_, rest___}, acc_] := Module[{subsets},
     subsets = Subsets[remaining, {size}];
     Scan[helper[Complement[remaining, #], {rest}, Append[acc, #]] &, subsets]
   ];
 
-  helper[items, sortedSizes, {}];
+  helper[indices, sortedSizes, {}];
 
   (* Remove duplicates from repeated partition sizes *)
   DeleteDuplicatesBy[result, Sort]
@@ -803,10 +804,11 @@ buildChain[{outer_, rest__}, {q_, qrest___}] :=
   BracketHold[Sequence @@ outer, PropagatorHold[q][ProjectorBarHold[buildChain[{rest}, {qrest}]]]];
 
 
-(* Build a single Hold term from an ordered list of groups *)
-buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered groups";
-buildHoldTerm[orderedGroups_List] := Module[
-  {qs = Table[Unique["q"], {Length[orderedGroups] - 1}]},
+(* Build a single Hold term from an ordered list of index groups *)
+buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered index groups";
+buildHoldTerm[orderedIndexGroups_List, fieldList_List] := Module[
+  {orderedGroups = Map[fieldList[[#]] &, orderedIndexGroups, {1}],
+   qs = Table[Unique["q"], {Length[orderedIndexGroups] - 1}]},
   ProjectorHold[buildChain[orderedGroups, qs]]
 ]
 
@@ -820,13 +822,13 @@ EffectiveBracket[fields__] := Module[
 
   (* Sum over all partitions *)
   Scan[Function[partition,
-    (* Sum over all assignments of fields to groups *)
-    Scan[Function[assignment,
+    (* Sum over all index-based assignments *)
+    Scan[Function[indexAssignment,
       (* Sum over all valid orderings *)
       Scan[Function[ordering,
-        allTerms = allTerms + buildHoldTerm[ordering]
-      ], generateNestings[assignment]]
-    ], assignToGroups[fieldList, partition]]
+        allTerms = allTerms + buildHoldTerm[ordering, fieldList]
+      ], generateNestings[indexAssignment]]
+    ], assignToGroups[n, partition]]
   ], partitions];
 
   allTerms
@@ -843,7 +845,11 @@ EffectiveBracket[args___, c_ d_, rest___] :=
 (*Draw tree diagrams*)
 
 
-(* --- Parsing: extract graph structure from a single ProjectorHold term --- *)
+(* --- Tree representation --- *)
+(* tNode["root" | "junction", {children}] for internal nodes *)
+(* tLeaf[field] for external legs *)
+
+(* --- Parsing --- *)
 
 (* Collect all field leaves in left-to-right order *)
 collectFields[BracketHold[args__]] := Flatten[collectFields /@ {args}]
@@ -851,129 +857,73 @@ collectFields[expr_ /; MatchQ[Head[expr], _PropagatorHold]] := collectFields[exp
 collectFields[ProjectorBarHold[inner_]] := collectFields[inner]
 collectFields[field_] := {field}
 
-(* Recursive parser: returns {edges, vertexTypes} where vertexTypes is an Association *)
-(* Uses symbol-based counters: ctr["i"] and ctr["f"] for mutable state across recursion *)
-parseNode[parent_, ProjectorBarHold[inner_], ctr_Symbol] := parseNode[parent, inner, ctr]
-
-parseNode[parent_, BracketHold[args__], ctr_Symbol] := Module[
-  {junction, edges = {}, vtypes = <||>, childResult, i = ctr["i"]},
-  junction = "j" <> ToString[i];
-  ctr["i"] = i + 1;
-  vtypes[junction] = "junction";
-  edges = {DirectedEdge[parent, junction]};
-  Scan[Function[arg,
-    If[MatchQ[Head[arg], _PropagatorHold],
-      (* Internal leg: recurse into ProjectorBarHold *)
-      childResult = parseNode[junction, arg[[1]], ctr];
-      edges = Join[edges, childResult[[1]]];
-      vtypes = Join[vtypes, childResult[[2]]],
-      If[MatchQ[arg, _ProjectorBarHold],
-        childResult = parseNode[junction, arg[[1]], ctr];
-        edges = Join[edges, childResult[[1]]];
-        vtypes = Join[vtypes, childResult[[2]]],
-        (* Field leaf *)
-        Module[{leafId, fi = ctr["f"]},
-          leafId = "f" <> ToString[fi];
-          ctr["f"] = fi + 1;
-          vtypes[leafId] = arg;
-          edges = Join[edges, {DirectedEdge[junction, leafId]}];
-        ]
-      ]
-    ]
-  ], {args}];
-  {edges, vtypes}
-]
-
-parseTree[ProjectorHold[inner_]] := Module[
-  {root = "root", ctr, result, edges, vtypes},
-  ctr["i"] = 1;
-  ctr["f"] = 1;
-  result = parseNode[root, inner, ctr];
-  edges = result[[1]];
-  vtypes = Join[<|root -> "root"|>, result[[2]]];
-  {edges, vtypes, root}
-]
+(* Parse EffectiveBracket output into lightweight tree *)
+parseToTree[ProjectorHold[inner_]] := tNode["root", {parseBracket[inner]}]
+parseBracket[BracketHold[args__]] := tNode["junction", parseArg /@ {args}]
+parseArg[arg_ /; MatchQ[Head[arg], _PropagatorHold]] := parseBracket[arg[[1, 1]]]
+parseArg[field_] := tLeaf[field]
 
 
-(* --- Build styled Graph from parsed data --- *)
+(* --- Layout and rendering via Graphics primitives --- *)
 
 leafColor[n_] := ColorData[97][n]
 
-buildTreeGraph[{edges_, vtypes_, root_}, fieldMap_] := Module[
-  {vsize, vstyle, vlabels, allVerts},
+(* drawNode returns {graphicsPrimitives, xCenter, nextAvailableX} *)
+(* Leaves are placed at integer x-positions; internal nodes centered over children *)
+drawNode[tLeaf[field_], x0_, depth_, fieldMap_] := Module[
+  {idx = fieldMap[field], col},
+  col = leafColor[idx];
+  {
+    {col, EdgeForm[Darker[col, 0.3]], Disk[{x0, -depth}, 0.22],
+     White, Text[Style[ToString[idx], Bold, 9], {x0, -depth}]},
+    x0,
+    x0 + 1
+  }
+]
 
-  allVerts = DeleteDuplicates[Flatten[List @@@ edges]];
+drawNode[tNode[type_, children_List], x0_, depth_, fieldMap_] := Module[
+  {nextX = x0, childResults = {}, myX, edgePrims, nodePrim, allPrims},
 
-  (* Vertex sizes *)
-  vsize = Association @ Map[Function[v,
-    Switch[vtypes[v],
-      "root", v -> 0.2,
-      "junction", v -> 0.15,
-      _, v -> 0.35  (* leaf *)
+  Scan[Function[child,
+    Module[{r = drawNode[child, nextX, depth + 1, fieldMap]},
+      AppendTo[childResults, r];
+      nextX = r[[3]];
     ]
-  ], allVerts];
+  ], children];
 
-  (* Vertex styles *)
-  vstyle = Association @ Map[Function[v,
-    Switch[vtypes[v],
-      "root", v -> Directive[GrayLevel[0.3], EdgeForm[GrayLevel[0.3]]],
-      "junction", v -> Directive[GrayLevel[0.3], EdgeForm[GrayLevel[0.3]]],
-      _, Module[{idx},
-        idx = fieldMap[vtypes[v]];
-        v -> Directive[leafColor[idx], EdgeForm[Darker[leafColor[idx], 0.3]]]
-      ]
-    ]
-  ], allVerts];
+  myX = Mean[#[[2]] & /@ childResults];
 
-  (* Vertex labels - only leaves get circled numbers, root gets "P" *)
-  vlabels = Association @ Map[Function[v,
-    Switch[vtypes[v],
-      "root", v -> Placed[Style["P", Bold, White, 8], Center],
-      "junction", v -> None,
-      _, Module[{idx},
-        idx = fieldMap[vtypes[v]];
-        v -> Placed[Style[ToString[idx], Bold, White, 10], Center]
-      ]
-    ]
-  ], allVerts];
+  (* Edges: drawn behind everything *)
+  edgePrims = {GrayLevel[0.3], AbsoluteThickness[1.5],
+    Sequence @@ (Line[{{myX, -depth}, {#[[2]], -(depth + 1)}}] & /@ childResults)};
 
-  Graph[allVerts, edges,
-    VertexSize -> Normal[vsize],
-    VertexStyle -> Normal[vstyle],
-    VertexLabels -> Normal[vlabels],
-    EdgeStyle -> Directive[GrayLevel[0.3], AbsoluteThickness[1.5]],
-    EdgeShapeFunction -> "Line",
-    GraphLayout -> {"LayeredDigraphEmbedding", "RootVertex" -> root, "Orientation" -> Top},
-    ImageSize -> {Automatic, 150},
-    ImagePadding -> 10
-  ]
+  (* Node marker *)
+  nodePrim = Switch[type,
+    "root", {GrayLevel[0.3], EdgeForm[GrayLevel[0.3]], Disk[{myX, -depth}, 0.16],
+             White, Text[Style["P", Bold, 7], {myX, -depth}]},
+    "junction", {GrayLevel[0.3], EdgeForm[GrayLevel[0.3]], Disk[{myX, -depth}, 0.08]}
+  ];
+
+  (* Assemble: edges, then children, then this node on top *)
+  allPrims = Join[{edgePrims}, #[[1]] & /@ childResults, {nodePrim}];
+  {allPrims, myX, nextX}
 ]
 
 
-(* --- Split a sum into individual terms --- *)
+(* --- Helpers --- *)
 
 splitTerms[expr_Plus] := List @@ expr
 splitTerms[expr_] := {expr}
 
-
-(* --- Extract the ProjectorHold part and any coefficient --- *)
-
 extractProjectorHold[c_ expr_ProjectorHold] := {c, expr}
 extractProjectorHold[expr_ProjectorHold] := {1, expr}
 
-
-(* --- Number fields: map each unique field to an integer --- *)
-
 numberFields[terms_List] := Module[
-  {allFields, uniqueFields, fieldMap},
+  {allFields, uniqueFields},
   allFields = Flatten[collectFields[#[[2, 1]]] & /@ terms];
   uniqueFields = DeleteDuplicates[allFields];
-  fieldMap = Association @ MapIndexed[#1 -> #2[[1]] &, uniqueFields];
-  fieldMap
+  Association @ MapIndexed[#1 -> #2[[1]] &, uniqueFields]
 ]
-
-
-(* --- Build legend mapping numbers to field expressions --- *)
 
 makeLegend[fieldMap_Association] := Module[{entries},
   entries = KeyValueMap[
@@ -991,12 +941,13 @@ makeLegend[fieldMap_Association] := Module[{entries},
 ]
 
 
-(* --- Draw a single tree --- *)
+(* --- Draw a single tree as a lightweight Graphics object --- *)
 
-drawSingleTree[term_, fieldMap_] := Module[{coeff, proj, parsed},
+drawSingleTree[term_, fieldMap_] := Module[{coeff, proj, tree, result},
   {coeff, proj} = extractProjectorHold[term];
-  parsed = parseTree[proj];
-  buildTreeGraph[parsed, fieldMap]
+  tree = parseToTree[proj];
+  result = drawNode[tree, 0, 0, fieldMap];
+  Graphics[result[[1]], ImageSize -> {Automatic, 120}, ImagePadding -> 15]
 ]
 
 
@@ -1012,7 +963,7 @@ DrawTree[expr_Plus, opts : OptionsPattern[]] := Module[
   fieldMap = numberFields[terms];
   trees = MapIndexed[
     Labeled[drawSingleTree[#1, fieldMap], Style["Term " <> ToString[#2[[1]]], GrayLevel[0.5], 8], Bottom] &,
-    (# [[1]] #[[2]] & /@ terms)
+    (#[[1]] #[[2]] & /@ terms)
   ];
   grid = Grid[Partition[trees, UpTo[nCols]], Spacings -> {2, 2}, Alignment -> Center];
   If[OptionValue["Legend"],

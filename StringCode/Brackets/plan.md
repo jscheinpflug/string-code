@@ -104,3 +104,6 @@ ProjectorHold[BracketHold[SF1, SF2,
   PropagatorHold[q1][... - ProjectorHold[BracketHold[SF3, SF4,
     PropagatorHold[q2][... - ProjectorHold[BracketHold[SF5, SF6]]]]]]]]
 ```
+
+### Resolved issues:
+- **Fixed**: `assignToGroups` now works with positional indices (`Range[n]`) instead of field values. This prevents `Subsets`/`Complement`/`Permutations` from collapsing duplicate elements. Indices are mapped to actual fields only when building the final expression in `buildHoldTerm`.
