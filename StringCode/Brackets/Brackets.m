@@ -21,7 +21,8 @@ Bracket::usage = "Computes the string bracket";
 BracketProjected::usage = "Computes a projection of the string bracket";
 actBRST::usage = "Acts with the BRST charge (computes 1-bracket)";
 EffectiveBracket::usage = "Computes the effective bracket summing over tree diagrams";
-DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracket output";
+EffectiveBracketHold::usage = "Computes the combinatorics of the effective bracket summing over tree diagrams";
+DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracketHold output";
 Differential::usage = "Differential of a function of moduli";
 
 (* ::Section:: *)
@@ -733,9 +734,9 @@ upperBoundSingularity[singularityMatrix_?MatrixQ, compositeRowNumber_] := Module
 
 
 (* Hold symbols for deferred evaluation *)
-BracketHold::usage = "Placeholder for Bracket during EffectiveBracket computation";
-PropagatorHold::usage = "Placeholder for ApplyPropagator during EffectiveBracket computation";
-ProjectorHold::usage = "Placeholder for BracketProjected during EffectiveBracket computation";
+BracketHold::usage = "Placeholder for Bracket during EffectiveBracketHold computation";
+PropagatorHold::usage = "Placeholder for ApplyPropagator during EffectiveBracketHold computation";
+ProjectorHold::usage = "Placeholder for BracketProjected during EffectiveBracketHold computation";
 
 (* Multilinearity for BracketHold *)
 BracketHold[args___, a_ + b_, rest___] := BracketHold[args, a, rest] + BracketHold[args, b, rest]
@@ -748,15 +749,15 @@ PropagatorHold[q_][c_ a_] := c PropagatorHold[q][a] /; And @@ (FreeQ[c, #] & /@ 
 PropagatorHold[q_][0] := 0;
 
 (* Multilinearity for ProjectorHold *)
-ProjectorHold[a_ + b_] := ProjectorHold[a] + ProjectorHold[b]
-ProjectorHold[c_ a_] := c ProjectorHold[a] /; And @@ (FreeQ[c, #] & /@ allfields)
-ProjectorHold[0] := 0;
+ProjectorHold[wH_, wA_][a_ + b_] := ProjectorHold[wH,wA][a] + ProjectorHold[wH,wA][b]
+ProjectorHold[wH_,wA_][c_ a_] := c ProjectorHold[wH,wA][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorHold[wH_,wA_][0] := 0;
 
 (* ProjectorBarHold - placeholder for (1-P) structure applied to inner brackets *)
-ProjectorBarHold::usage = "Placeholder for ProjectorBar (1-P) during EffectiveBracket computation";
-ProjectorBarHold[a_ + b_] := ProjectorBarHold[a] + ProjectorBarHold[b]
-ProjectorBarHold[c_ a_] := c ProjectorBarHold[a] /; And @@ (FreeQ[c, #] & /@ allfields)
-ProjectorBarHold[0] := 0;
+ProjectorBarHold::usage = "Placeholder for ProjectorBar (1-P) during EffectiveBracketHold computation";
+ProjectorBarHold[wH_, wA_][a_ + b_] := ProjectorBarHold[wH,wA][a] + ProjectorBarHold[wH,wA][b]
+ProjectorBarHold[wH_, wA_][c_ a_] := c ProjectorBarHold[wH,wA][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorBarHold[wH_, wA_][0] := 0;
 
 
 (* Get partitions excluding all-1s *)
@@ -797,23 +798,23 @@ generateNestings[groups_List] := Module[{perms},
 
 (* Build the chain recursively from innermost outward *)
 buildChain::usage = "Build nested bracket chain from ordered groups";
-buildChain[{innermost_}, {}] := BracketHold[Sequence @@ innermost];
-buildChain[{outer_, rest__}, {q_, qrest___}] :=
-  BracketHold[Sequence @@ outer, PropagatorHold[q][ProjectorBarHold[buildChain[{rest}, {qrest}]]]];
+buildChain[{innermost_}, {}, wH_, wA_] := BracketHold[Sequence @@ innermost];
+buildChain[{outer_, rest__}, {q_, qrest___}, wH_, wA_] :=
+  BracketHold[Sequence @@ outer, PropagatorHold[q][ProjectorBarHold[wH,wA][buildChain[{rest}, {qrest}, wH, wA]]]];
 
 
 (* Build a single Hold term from an ordered list of index groups *)
 buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered index groups";
-buildHoldTerm[orderedIndexGroups_List, fieldList_List] := Module[
+buildHoldTerm[orderedIndexGroups_List, fieldList_List, wH_, wA_] := Module[
   {orderedGroups = Map[fieldList[[#]] &, orderedIndexGroups, {1}],
    qs = Table[ToExpression["q" <> ToString[i]], {i, Length[orderedIndexGroups] - 1}]},
-  ProjectorHold[buildChain[orderedGroups, qs]]
+  ProjectorHold[wH,wA][buildChain[orderedGroups, qs, wH, wA]]
 ]
 
 
-(* Main EffectiveBracket function *)
+(* Main EffectiveBracketHold function *)
 (* Returns symbolic expression using BracketHold, PropagatorHold, ProjectorHold, ProjectorBarHold *)
-EffectiveBracket[fields__] := Module[
+EffectiveBracketHold[fields__, wH_, wA_] := Module[
   {n = Length[{fields}], partitions, allTerms = 0, fieldList = {fields}},
 
   partitions = getPartitions[n];
@@ -824,7 +825,7 @@ EffectiveBracket[fields__] := Module[
     Scan[Function[indexAssignment,
       (* Sum over all valid orderings *)
       Scan[Function[ordering,
-        allTerms = allTerms + buildHoldTerm[ordering, fieldList]
+        allTerms = allTerms + buildHoldTerm[ordering, fieldList, wH, wA]
       ], generateNestings[indexAssignment]]
     ], assignToGroups[n, partition]]
   ], partitions];
@@ -832,12 +833,24 @@ EffectiveBracket[fields__] := Module[
   allTerms
 ]
 
-(* Multilinearity of EffectiveBracket *)
-EffectiveBracket[args___, a_ + b_, rest___] :=
-  EffectiveBracket[args, a, rest] + EffectiveBracket[args, b, rest]
-EffectiveBracket[args___, c_ d_, rest___] :=
-  c EffectiveBracket[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
+(* Multilinearity of EffectiveBracketHold *)
+EffectiveBracketHold[args___, a_ + b_, rest___] :=
+  EffectiveBracketHold[args, a, rest] + EffectiveBracketHold[args, b, rest]
+EffectiveBracketHold[args___, c_ d_, rest___] :=
+  c EffectiveBracketHold[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
 
+(* Multilinearity of EffectiveBracket*)
+EffectiveBracket[args___, a_ + b_, rest___, wH_, wA_] :=
+  EffectiveBracket[args, a, rest, wH, wA] + EffectiveBracket[args, b, rest, wH, wA]
+EffectiveBracket[args___, c_ d_, rest___, wH_, wA_] :=
+  c EffectiveBracket[args, d, rest, wH, wA] /; And @@ (FreeQ[c, #] & /@ allfields)
+
+(*Define EffectiveBracket as a substitution of EffectiveBracketHold*)
+projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] -> a - ProjectorHold[wH,wA][a]};
+projectorOfBracketSub = {ProjectorHold[wH_,wA_][BracketHold[a__]]-> CollapseB0m[BracketProjected[a,wH,wA]]}
+propagatorSub = {PropagatorHold[q_]:>ApplyPropagator[q]}
+bracketSub = {BracketHold[a__]->CollapseB0m[Bracket[a]]}
+EffectiveBracket[fields__, wH_, wA_]:= (((EffectiveBracketHold[fields, wH, wA]/.projectorBarSub)/.projectorOfBracketSub)/.propagatorSub)/.bracketSub;
 
 (* ::Subsection:: *)
 (*Draw tree diagrams*)
@@ -852,11 +865,11 @@ EffectiveBracket[args___, c_ d_, rest___] :=
 (* Collect all field leaves in left-to-right order *)
 collectFields[BracketHold[args__]] := Flatten[collectFields /@ {args}]
 collectFields[expr_ /; MatchQ[Head[expr], _PropagatorHold]] := collectFields[expr[[1]]]
-collectFields[ProjectorBarHold[inner_]] := collectFields[inner]
+collectFields[ProjectorBarHold[wH_,wA_][inner_]] := collectFields[inner]
 collectFields[field_] := {field}
 
-(* Parse EffectiveBracket output into lightweight tree *)
-parseToTree[ProjectorHold[inner_]] := tNode["root", {parseBracket[inner]}]
+(* Parse EffectiveBracketHold output into lightweight tree *)
+parseToTree[ProjectorHold[wH_,wA_][inner_]] := tNode["root", {parseBracket[inner]}]
 parseBracket[BracketHold[args__]] := tNode["junction", parseArg /@ {args}]
 parseArg[arg_ /; MatchQ[Head[arg], _PropagatorHold]] := parseBracket[arg[[1, 1]]]
 parseArg[field_] := tLeaf[field]
@@ -913,8 +926,8 @@ drawNode[tNode[type_, children_List], x0_, depth_, fieldMap_] := Module[
 splitTerms[expr_Plus] := List @@ expr
 splitTerms[expr_] := {expr}
 
-extractProjectorHold[c_ expr_ProjectorHold] := {c, expr}
-extractProjectorHold[expr_ProjectorHold] := {1, expr}
+extractProjectorHold[c_ ProjectorHold[wH_, wA_][expr_]] := {c, ProjectorHold[wH, wA][expr]}
+extractProjectorHold[ProjectorHold[wH_, wA_][expr_]] := {1, ProjectorHold[wH, wA][expr]}
 
 numberFields[terms_List] := Module[
   {allFields, uniqueFields},

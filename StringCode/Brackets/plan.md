@@ -1,7 +1,7 @@
 # Effective bracket
 
 ## Task Description
-- Task: Define `EffectiveBracket[SF1, ..., SFn]` defined (as a public method, with possibly private helpers) via the following combinatorial procedure:
+- Task: Define `EffectiveBracketHold[SF1, ..., SFn]` defined (as a public method, with possibly private helpers) via the following combinatorial procedure:
 
 - Compute `IntegerPartitions[n]` (excluding the partition into all 1s) and for each partition `{n1,...,nk}` assign `SFn1, ..., SFnk`.
 - Now, compute all nestings of the various partitions into each other
@@ -20,13 +20,13 @@
 
 ### Public API
 ```mathematica
-EffectiveBracket[SF1, ..., SFn]
+EffectiveBracketHold[SF1, ..., SFn]
 ```
 Computes the sum over all tree-level diagrams built from brackets connected by propagators.
 
 ### Algorithm
 ```
-EffectiveBracket[SF1, ..., SFn] =
+EffectiveBracketHold[SF1, ..., SFn] =
   Σ (over partitions P of n, excluding {1,...,1})
     Σ (over assignments of SFs to partition groups)
       Σ (over tree nestings)
@@ -41,7 +41,7 @@ EffectiveBracket[SF1, ..., SFn] =
 5. **`buildHoldTerm[outer, inner, singletons]`** - Constructs `ProjectorHold[BracketHold[...]]` term
 
 ### Output Format
-`EffectiveBracket` returns symbolic expressions using only:
+`EffectiveBracketHold` returns symbolic expressions using only:
 - `BracketHold[...]`
 - `PropagatorHold[q][...]`
 - `ProjectorHold[...]`
@@ -53,7 +53,7 @@ EffectiveBracket[SF1, ..., SFn] =
 - **Unique q per propagator**: Each internal propagator gets a unique symbol via `Unique["q"]`
 - **Singletons create chain levels**: Partition {2,1,1} means 2-bracket inside 2-bracket inside 2-bracket (not singletons attaching to outer)
 - **Tree nesting**: Groups form a linear chain; valid orderings have innermost group with ≥2 elements
-- **Multilinearity**: All Hold symbols and `EffectiveBracket` itself distribute over sums and factor out field-free constants
+- **Multilinearity**: All Hold symbols and `EffectiveBracketHold` itself distribute over sums and factor out field-free constants
 
 ### Term Counts
 

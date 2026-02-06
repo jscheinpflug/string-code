@@ -1,7 +1,7 @@
-# DrawTree: Visualize EffectiveBracket tree diagrams
+# DrawTree: Visualize EffectiveBracketHold tree diagrams
 
 ## Task
-- Create a public function `DrawTree` in `Brackets.m` that takes the output of `EffectiveBracket` (or a single term from it) and draws tree diagrams using native Mathematica functions.
+- Create a public function `DrawTree` in `Brackets.m` that takes the output of `EffectiveBracketHold` (or a single term from it) and draws tree diagrams using native Mathematica functions.
 - Each `PropagatorHold[q][ProjectorBarHold[...]]` = internal leg
 - Each field argument = external leg, labeled by number
 - Optionally print a legend mapping numbers to input fields
@@ -11,7 +11,7 @@
 
 ### Change 1: Public declaration (after line 23)
 ```mathematica
-DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracket output";
+DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracketHold output";
 ```
 
 ### Change 2: New subsection before `End[]` (before line 841)
@@ -96,9 +96,9 @@ buildTreeGraph[{vertices_, edges_, vertexTypes_, leafNumbers_, root_}]
 - Coefficient prefactors: strip and ignore for drawing
 
 ## Verification
-1. `DrawTree[EffectiveBracket[SF1, SF2]]` → 1 tree
-2. `DrawTree[EffectiveBracket[SF1, SF2, SF3]]` → 4 trees in grid
-3. Pick a single term from `EffectiveBracket[SF1, SF2, SF3]` and pass to `DrawTree` → 1 tree
-4. `DrawTree[EffectiveBracket[SF1, SF2, SF3, SF4]]` → 23 trees in grid
+1. `DrawTree[EffectiveBracketHold[SF1, SF2]]` → 1 tree
+2. `DrawTree[EffectiveBracketHold[SF1, SF2, SF3]]` → 4 trees in grid
+3. Pick a single term from `EffectiveBracketHold[SF1, SF2, SF3]` and pass to `DrawTree` → 1 tree
+4. `DrawTree[EffectiveBracketHold[SF1, SF2, SF3, SF4]]` → 23 trees in grid
 5. Check that external legs show circled numbers and legend maps them correctly
 6. `DrawTree[0]` → graceful "No diagrams" output
