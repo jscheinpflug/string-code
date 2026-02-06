@@ -808,7 +808,7 @@ buildChain[{outer_, rest__}, {q_, qrest___}] :=
 buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered index groups";
 buildHoldTerm[orderedIndexGroups_List, fieldList_List] := Module[
   {orderedGroups = Map[fieldList[[#]] &, orderedIndexGroups, {1}],
-   qs = Table[Unique["q"], {Length[orderedIndexGroups] - 1}]},
+   qs = Table[ToExpression["q" <> ToString[i]], {i, Length[orderedIndexGroups] - 1}]},
   ProjectorHold[buildChain[orderedGroups, qs]]
 ]
 
