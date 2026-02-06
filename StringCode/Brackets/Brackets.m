@@ -22,7 +22,7 @@ BracketProjected::usage = "Computes a projection of the string bracket";
 actBRST::usage = "Acts with the BRST charge (computes 1-bracket)";
 EffectiveBracket::usage = "Computes the effective bracket summing over tree diagrams";
 DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracket output";
-
+Differential::usage = "Differential of a function of moduli";
 
 (* ::Section:: *)
 (*Logic*)
@@ -501,8 +501,6 @@ result]
 (* ::Subsubsection:: *)
 (*Define differential of a local coordinate map*)
 
-
-Differential::usage = "Differential of a function of moduli";
 Differential[expr_, moduli_] /; !DependentQ[expr, moduli] := 0;
 
 (* 0 if the whole thing is independent of the moduli *)
