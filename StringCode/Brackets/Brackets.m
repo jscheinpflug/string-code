@@ -20,6 +20,8 @@ Needs["StringCode`Taylor`"];
 Bracket::usage = "Computes the string bracket";
 BracketProjected::usage = "Computes a projection of the string bracket";
 actBRST::usage = "Acts with the BRST charge (computes 1-bracket)";
+EffectiveBracket::usage = "Computes the effective bracket summing over tree diagrams";
+DrawTree::usage = "DrawTree[expr] draws tree diagrams for EffectiveBracket output";
 
 
 (* ::Section:: *)
@@ -726,6 +728,323 @@ upperBoundSingularity[singularityMatrix_?MatrixQ, compositeRowNumber_] := Module
   ];
   total
 ];
+
+
+(* ::Subsection:: *)
+(*Effective bracket*)
+
+
+(* Hold symbols for deferred evaluation *)
+BracketHold::usage = "Placeholder for Bracket during EffectiveBracket computation";
+PropagatorHold::usage = "Placeholder for ApplyPropagator during EffectiveBracket computation";
+ProjectorHold::usage = "Placeholder for BracketProjected during EffectiveBracket computation";
+
+(* Multilinearity for BracketHold *)
+BracketHold[args___, a_ + b_, rest___] := BracketHold[args, a, rest] + BracketHold[args, b, rest]
+BracketHold[args___, c_ d_, rest___] := c BracketHold[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
+BracketHold[] := 1;
+
+(* Multilinearity for PropagatorHold *)
+PropagatorHold[q_][a_ + b_] := PropagatorHold[q][a] + PropagatorHold[q][b]
+PropagatorHold[q_][c_ a_] := c PropagatorHold[q][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+PropagatorHold[q_][0] := 0;
+
+(* Multilinearity for ProjectorHold *)
+ProjectorHold[a_ + b_] := ProjectorHold[a] + ProjectorHold[b]
+ProjectorHold[c_ a_] := c ProjectorHold[a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorHold[0] := 0;
+
+(* ProjectorBarHold - placeholder for (1-P) structure applied to inner brackets *)
+ProjectorBarHold::usage = "Placeholder for ProjectorBar (1-P) during EffectiveBracket computation";
+ProjectorBarHold[a_ + b_] := ProjectorBarHold[a] + ProjectorBarHold[b]
+ProjectorBarHold[c_ a_] := c ProjectorBarHold[a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorBarHold[0] := 0;
+
+
+(* Get partitions excluding all-1s *)
+getPartitions::usage = "Get integer partitions excluding the all-1s partition";
+getPartitions[n_] := DeleteCases[IntegerPartitions[n], {1 ..}]
+
+
+(* Generate all ways to assign n items to groups of given sizes *)
+assignToGroups::usage = "Generate all ways to assign items to groups of given sizes";
+assignToGroups[items_List, sizes_List] := Module[{n = Length[items], result = {},
+  sortedSizes = Sort[sizes, Greater], helper},
+
+  (* Recursive helper to build assignments *)
+  helper[remaining_, {}, acc_] := AppendTo[result, acc];
+  helper[remaining_, {size_, rest___}, acc_] := Module[{subsets},
+    subsets = Subsets[remaining, {size}];
+    Scan[helper[Complement[remaining, #], {rest}, Append[acc, #]] &, subsets]
+  ];
+
+  helper[items, sortedSizes, {}];
+
+  (* Remove duplicates from repeated partition sizes *)
+  DeleteDuplicatesBy[result, Sort]
+]
+
+
+(* Generate all valid orderings of groups for the linear chain *)
+(* Returns list of ordered groups from outer to inner *)
+(* Constraint: innermost (last) group must have size >= 2 *)
+generateNestings::usage = "Generate all valid orderings of groups (innermost must have >=2 elements)";
+generateNestings[groups_List] := Module[{perms},
+  perms = Permutations[groups];
+  (* Filter: innermost (last) group must have size >= 2 *)
+  Select[perms, Length[Last[#]] >= 2 &]
+]
+
+
+(* Build the chain recursively from innermost outward *)
+buildChain::usage = "Build nested bracket chain from ordered groups";
+buildChain[{innermost_}, {}] := BracketHold[Sequence @@ innermost];
+buildChain[{outer_, rest__}, {q_, qrest___}] :=
+  BracketHold[Sequence @@ outer, PropagatorHold[q][ProjectorBarHold[buildChain[{rest}, {qrest}]]]];
+
+
+(* Build a single Hold term from an ordered list of groups *)
+buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered groups";
+buildHoldTerm[orderedGroups_List] := Module[
+  {qs = Table[Unique["q"], {Length[orderedGroups] - 1}]},
+  ProjectorHold[buildChain[orderedGroups, qs]]
+]
+
+
+(* Main EffectiveBracket function *)
+(* Returns symbolic expression using BracketHold, PropagatorHold, ProjectorHold, ProjectorBarHold *)
+EffectiveBracket[fields__] := Module[
+  {n = Length[{fields}], partitions, allTerms = 0, fieldList = {fields}},
+
+  partitions = getPartitions[n];
+
+  (* Sum over all partitions *)
+  Scan[Function[partition,
+    (* Sum over all assignments of fields to groups *)
+    Scan[Function[assignment,
+      (* Sum over all valid orderings *)
+      Scan[Function[ordering,
+        allTerms = allTerms + buildHoldTerm[ordering]
+      ], generateNestings[assignment]]
+    ], assignToGroups[fieldList, partition]]
+  ], partitions];
+
+  allTerms
+]
+
+(* Multilinearity of EffectiveBracket *)
+EffectiveBracket[args___, a_ + b_, rest___] :=
+  EffectiveBracket[args, a, rest] + EffectiveBracket[args, b, rest]
+EffectiveBracket[args___, c_ d_, rest___] :=
+  c EffectiveBracket[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
+
+
+(* ::Subsection:: *)
+(*Draw tree diagrams*)
+
+
+(* --- Parsing: extract graph structure from a single ProjectorHold term --- *)
+
+(* Collect all field leaves in left-to-right order *)
+collectFields[BracketHold[args__]] := Flatten[collectFields /@ {args}]
+collectFields[expr_ /; MatchQ[Head[expr], _PropagatorHold]] := collectFields[expr[[1]]]
+collectFields[ProjectorBarHold[inner_]] := collectFields[inner]
+collectFields[field_] := {field}
+
+(* Recursive parser: returns {edges, vertexTypes} where vertexTypes is an Association *)
+(* Uses symbol-based counters: ctr["i"] and ctr["f"] for mutable state across recursion *)
+parseNode[parent_, ProjectorBarHold[inner_], ctr_Symbol] := parseNode[parent, inner, ctr]
+
+parseNode[parent_, BracketHold[args__], ctr_Symbol] := Module[
+  {junction, edges = {}, vtypes = <||>, childResult, i = ctr["i"]},
+  junction = "j" <> ToString[i];
+  ctr["i"] = i + 1;
+  vtypes[junction] = "junction";
+  edges = {DirectedEdge[parent, junction]};
+  Scan[Function[arg,
+    If[MatchQ[Head[arg], _PropagatorHold],
+      (* Internal leg: recurse into ProjectorBarHold *)
+      childResult = parseNode[junction, arg[[1]], ctr];
+      edges = Join[edges, childResult[[1]]];
+      vtypes = Join[vtypes, childResult[[2]]],
+      If[MatchQ[arg, _ProjectorBarHold],
+        childResult = parseNode[junction, arg[[1]], ctr];
+        edges = Join[edges, childResult[[1]]];
+        vtypes = Join[vtypes, childResult[[2]]],
+        (* Field leaf *)
+        Module[{leafId, fi = ctr["f"]},
+          leafId = "f" <> ToString[fi];
+          ctr["f"] = fi + 1;
+          vtypes[leafId] = arg;
+          edges = Join[edges, {DirectedEdge[junction, leafId]}];
+        ]
+      ]
+    ]
+  ], {args}];
+  {edges, vtypes}
+]
+
+parseTree[ProjectorHold[inner_]] := Module[
+  {root = "root", ctr, result, edges, vtypes},
+  ctr["i"] = 1;
+  ctr["f"] = 1;
+  result = parseNode[root, inner, ctr];
+  edges = result[[1]];
+  vtypes = Join[<|root -> "root"|>, result[[2]]];
+  {edges, vtypes, root}
+]
+
+
+(* --- Build styled Graph from parsed data --- *)
+
+leafColor[n_] := ColorData[97][n]
+
+buildTreeGraph[{edges_, vtypes_, root_}, fieldMap_] := Module[
+  {vsize, vstyle, vlabels, allVerts},
+
+  allVerts = DeleteDuplicates[Flatten[List @@@ edges]];
+
+  (* Vertex sizes *)
+  vsize = Association @ Map[Function[v,
+    Switch[vtypes[v],
+      "root", v -> 0.2,
+      "junction", v -> 0.15,
+      _, v -> 0.35  (* leaf *)
+    ]
+  ], allVerts];
+
+  (* Vertex styles *)
+  vstyle = Association @ Map[Function[v,
+    Switch[vtypes[v],
+      "root", v -> Directive[GrayLevel[0.3], EdgeForm[GrayLevel[0.3]]],
+      "junction", v -> Directive[GrayLevel[0.3], EdgeForm[GrayLevel[0.3]]],
+      _, Module[{idx},
+        idx = fieldMap[vtypes[v]];
+        v -> Directive[leafColor[idx], EdgeForm[Darker[leafColor[idx], 0.3]]]
+      ]
+    ]
+  ], allVerts];
+
+  (* Vertex labels - only leaves get circled numbers, root gets "P" *)
+  vlabels = Association @ Map[Function[v,
+    Switch[vtypes[v],
+      "root", v -> Placed[Style["P", Bold, White, 8], Center],
+      "junction", v -> None,
+      _, Module[{idx},
+        idx = fieldMap[vtypes[v]];
+        v -> Placed[Style[ToString[idx], Bold, White, 10], Center]
+      ]
+    ]
+  ], allVerts];
+
+  Graph[allVerts, edges,
+    VertexSize -> Normal[vsize],
+    VertexStyle -> Normal[vstyle],
+    VertexLabels -> Normal[vlabels],
+    EdgeStyle -> Directive[GrayLevel[0.3], AbsoluteThickness[1.5]],
+    EdgeShapeFunction -> "Line",
+    GraphLayout -> {"LayeredDigraphEmbedding", "RootVertex" -> root, "Orientation" -> Top},
+    ImageSize -> {Automatic, 150},
+    ImagePadding -> 10
+  ]
+]
+
+
+(* --- Split a sum into individual terms --- *)
+
+splitTerms[expr_Plus] := List @@ expr
+splitTerms[expr_] := {expr}
+
+
+(* --- Extract the ProjectorHold part and any coefficient --- *)
+
+extractProjectorHold[c_ expr_ProjectorHold] := {c, expr}
+extractProjectorHold[expr_ProjectorHold] := {1, expr}
+
+
+(* --- Number fields: map each unique field to an integer --- *)
+
+numberFields[terms_List] := Module[
+  {allFields, uniqueFields, fieldMap},
+  allFields = Flatten[collectFields[#[[2, 1]]] & /@ terms];
+  uniqueFields = DeleteDuplicates[allFields];
+  fieldMap = Association @ MapIndexed[#1 -> #2[[1]] &, uniqueFields];
+  fieldMap
+]
+
+
+(* --- Build legend mapping numbers to field expressions --- *)
+
+makeLegend[fieldMap_Association] := Module[{entries},
+  entries = KeyValueMap[
+    Function[{field, idx},
+      Row[{
+        Graphics[{leafColor[idx], EdgeForm[Darker[leafColor[idx], 0.3]], Disk[{0, 0}, 1],
+          White, Text[Style[ToString[idx], Bold, 10], {0, 0}]},
+          ImageSize -> 18],
+        " = ",
+        field
+      }]
+    ], fieldMap];
+  Column[entries, Spacings -> 0.3, Frame -> True, FrameStyle -> GrayLevel[0.8],
+    Background -> GrayLevel[0.98], RoundingRadius -> 5]
+]
+
+
+(* --- Draw a single tree --- *)
+
+drawSingleTree[term_, fieldMap_] := Module[{coeff, proj, parsed},
+  {coeff, proj} = extractProjectorHold[term];
+  parsed = parseTree[proj];
+  buildTreeGraph[parsed, fieldMap]
+]
+
+
+(* --- Main DrawTree entry points --- *)
+
+Options[DrawTree] = {"Legend" -> True};
+
+DrawTree[0, OptionsPattern[]] := Style["No diagrams", Italic, GrayLevel[0.5]]
+
+DrawTree[expr_Plus, opts : OptionsPattern[]] := Module[
+  {terms, fieldMap, trees, nCols = 4, grid, legend},
+  terms = extractProjectorHold /@ splitTerms[expr];
+  fieldMap = numberFields[terms];
+  trees = MapIndexed[
+    Labeled[drawSingleTree[#1, fieldMap], Style["Term " <> ToString[#2[[1]]], GrayLevel[0.5], 8], Bottom] &,
+    (# [[1]] #[[2]] & /@ terms)
+  ];
+  grid = Grid[Partition[trees, UpTo[nCols]], Spacings -> {2, 2}, Alignment -> Center];
+  If[OptionValue["Legend"],
+    legend = makeLegend[fieldMap];
+    Column[{grid, legend}, Spacings -> 1.5, Alignment -> Center],
+    grid
+  ]
+]
+
+DrawTree[expr_ProjectorHold, opts : OptionsPattern[]] := Module[
+  {terms, fieldMap, tree, legend},
+  terms = {extractProjectorHold[expr]};
+  fieldMap = numberFields[terms];
+  tree = drawSingleTree[expr, fieldMap];
+  If[OptionValue["Legend"],
+    legend = makeLegend[fieldMap];
+    Column[{tree, legend}, Spacings -> 1.5, Alignment -> Center],
+    tree
+  ]
+]
+
+DrawTree[c_ expr_ProjectorHold, opts : OptionsPattern[]] := Module[
+  {terms, fieldMap, tree, legend},
+  terms = {extractProjectorHold[c expr]};
+  fieldMap = numberFields[terms];
+  tree = drawSingleTree[c expr, fieldMap];
+  If[OptionValue["Legend"],
+    legend = makeLegend[fieldMap];
+    Column[{tree, legend}, Spacings -> 1.5, Alignment -> Center],
+    tree
+  ]
+]
 
 
 (* ::Section:: *)
