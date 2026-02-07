@@ -88,7 +88,7 @@ InteractingLength::usage = "Test if is interacting and has nonzero length";
 InteractingLength[f_]:=If[InteractingTest[f],Length[List @@ f],0]
 
 InteractingOne::usage = "Test if is interacting of length one";
-Interactingone[f_]:=(InteractingLength[f]==1)
+InteractingOne[f_]:=(InteractingLength[f]==1)
 
 
 InteractingTestUpToConstant::usage = "Test if product is interacting up to a constant prefactor";
