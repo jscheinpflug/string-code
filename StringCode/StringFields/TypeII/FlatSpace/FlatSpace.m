@@ -50,19 +50,29 @@ SF[ c___,a_,b_,d___]:=SF[c,exp\[Phi]tf[a[[1]]+b[[1]]],d]/;(Head[a]==exp\[Phi]tb 
 
 
 (* ::Input::Initialization:: *)
-mapOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile,ders, coordinateHol[z], coordinateAntiHol[zbar]];
-mapOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_,n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
-mapOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_,n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
-mapOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile,ders, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileXHolo[profile_, ders_List, z_]]:= ProfileXHolo[profile,ders, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileXAntiHolo[profile_, ders_List, zbar_]]:= ProfileXAntiHolo[profile,ders, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_,n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_,n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][expXHolo[n_, z_]]:= expXHolo[n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][expXAntiHolo[n_, zbar_]]:= expXAntiHolo[n, coordinateAntiHol[zbar]];
 
 
 (* ::Subsubsection:: *)
 (*Free fermion*)
 
 
-mapOp[coordinateHol_, coordinateAntiHol_][\[Psi][\[Mu]_,n_, z_]]:= \[Psi][\[Mu], n, coordinateHol[z]];
-mapOp[cordinateHol_, coordinateAntiHol_][\[Psi]t[\[Mu]_,n_, zbar_]]:= \[Psi]t[\[Mu], n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Psi][\[Mu]_,n_, z_]]:= \[Psi][\[Mu], n, coordinateHol[z]];
+placeOp[cordinateHol_, coordinateAntiHol_][\[Psi]t[\[Mu]_,n_, zbar_]]:= \[Psi]t[\[Mu], n, coordinateAntiHol[zbar]];
 
+(* ::Subsubsection:: *)
+(*Exponentials of phi*)
+placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]f[q_,z_]]:= exp\[Phi]f[q,coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]b[q_,z_]]:= exp\[Phi]b[q,coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tf[q_,zbar_]]:= exp\[Phi]tf[q,coordinateAntiHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tb[q_,zbar_]]:= exp\[Phi]tb[q,coordinateAntiHol[z]];
 
 (* ::Section:: *)
 (*End*)

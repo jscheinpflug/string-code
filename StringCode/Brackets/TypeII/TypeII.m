@@ -80,7 +80,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, afterApplyingBghosts, localCoordinateReplacement, SFList, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
+Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, afterApplyingBghosts, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
 
 (*Get bosonic part of the bracket*)
 afterApplyingBghosts = BracketBosonic[toBracket];
@@ -90,7 +90,7 @@ numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture @@ # &, {toBracket}]]]-
 numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture @@ # &, {toBracket}]]]-1];
 afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
-result = {b0m[afterHeldActionOfPCOs], localCoordinateReplacement};
+result = b0mHold[afterHeldActionOfPCOs];
 result]
 
 
@@ -147,7 +147,7 @@ Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}];
 ]
 ], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
 [[2]][[1,1,1]];
-result;
+result
 ];
 
 
