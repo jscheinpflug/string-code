@@ -39,8 +39,6 @@ MultiOp[c___, s_?nonOperatorQ,   d___] := s MultiOp[c, d];
 
 MultiOp[x___, MultiOp[y___], z___] := MultiOp[x, y, z]
 
-MultiOp[]:= 0;
-
 nonOperatorQ[expr_]:= FreeQ[expr, R] && FreeQ[expr, Interacting];
 
 

@@ -682,7 +682,7 @@ ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
 ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
 
 ApplyPropagator[q_][MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{rescaledMultiOp},
-rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa];
+rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) MultiOp[(mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa])];
 actBGhostMode[bmodeHolo[0][0], rescaledMultiOp] + actBGhostMode[bmodeAntiHolo[0][0],rescaledMultiOp]]
 
 ApplyPropagator[q_][Opa_/;OpTest[Opa]]:= Module[{rescaledOp},
@@ -696,6 +696,8 @@ actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],re
 ApplyPropagator[q_][Ia_/;InteractingTest[Ia]]:= Module[{rescaledI},
 rescaledI = 1/(-4 Pi I)1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
 actBGhostMode[bmodeHolo[0][0], rescaledI] + actBGhostMode[bmodeAntiHolo[0][0],rescaledI]]
+
+ApplyPropagator[q_][SFa_/;SFTest[SFa]]:= SF[ApplyPropagator[q] @@ SFa]
 
 ApplyPropagator[q_][0]:=0;
 
@@ -853,9 +855,9 @@ EffectiveBracket[args___, c_ d_, rest___, wH_, wA_] :=
 (*Define EffectiveBracket as a substitution of EffectiveBracketHold*)
 projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] -> a - ProjectorHold[wH,wA][a]};
 projectorOfBracketSub = {ProjectorHold[wH_,wA_][BracketHold[a__]]-> CollapseB0m[BracketProjected[a,wH,wA]]}
-propagatorSub = {PropagatorHold[q_]:>ApplyPropagator[q]}
-bracketSub = {BracketHold[a__]->CollapseB0m[Bracket[a]]}
-EffectiveBracket[fields__, wH_, wA_]:= (((EffectiveBracketHold[fields, wH, wA]/.projectorBarSub)/.projectorOfBracketSub)/.propagatorSub)/.bracketSub;
+propagatorSub = {PropagatorHold[q_][a___]:>-ApplyPropagator[q][SF[a]]}
+bracketSub = {BracketHold[a__]->SF[CollapseB0m[Bracket[a]]]}
+EffectiveBracket[fields__, wH_, wA_]:= (((EffectiveBracketHold[fields, wH, wA]/.projectorBarSub)//.projectorOfBracketSub)/.bracketSub)/.propagatorSub;
 
 (* ::Subsection:: *)
 (*Draw tree diagrams*)
