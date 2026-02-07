@@ -125,9 +125,11 @@ b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, w
 (*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
 BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allOperators,{Wedge}])
+BracketProjected[args___, 0, rest___, weightHolo_, weightAntiHolo_]:=0;
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
 BracketProjected[args___, Wedge[a__] b___, rest___, weightHolo_, weightAntiHolo_] := Wedge[a, BracketProjected[args, b, rest, weightHolo, weightAntiHolo]]
+
 
 (*Multilinearity of Bracket projection*)
 BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
@@ -667,6 +669,7 @@ CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
 CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
 CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
 CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0][0], a] - actBGhostMode[bmodeAntiHolo[0][0],a]
+CollapseB0m[0]:=0
 
 
 (* ::Subsection:: *)
@@ -693,6 +696,8 @@ actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],re
 ApplyPropagator[q_][Ia_/;InteractingTest[Ia]]:= Module[{rescaledI},
 rescaledI = 1/(-4 Pi I)1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ia];
 actBGhostMode[bmodeHolo[0][0], rescaledI] + actBGhostMode[bmodeAntiHolo[0][0],rescaledI]]
+
+ApplyPropagator[q_][0]:=0;
 
 rescaling[factor_][z_]:= factor z //Expand;
 
