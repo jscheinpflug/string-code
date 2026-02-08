@@ -77,7 +77,6 @@ Needs["StringCode`StringFields`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Brackets`"];
-Needs["StringCode`Correlators`"];
 Needs["StringCode`TeXConversion`"];
 
 Scan[
