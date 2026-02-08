@@ -1,0 +1,161 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII Taylor Unit Tests\n\nTypeII-specific Taylor tests (FlatSpace):\n- Superghost Taylor expansion\n- TypeII private helper behavior",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Remove[\"Global`*\"]\nNeeds[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Superghost Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expr1 = R[\\[Eta][0,z]];\nexpected1 = (z-z0) R[\\[Eta][1,z0]];\ntest1 = Simplify[TaylorAtOrderHolo[expr1,1,z0] - expected1] === 0;\nPrint[\"Test 1 (eta holo order 1): \", If[test1, \"PASSED\", \"FAILED\"]];\ntest1",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expr2 = R[\\[Xi][0,z]];\nexpected2 = (z-z0) R[\\[Xi][1,z0]];\ntest2 = Simplify[TaylorAtOrderHolo[expr2,1,z0] - expected2] === 0;\nPrint[\"Test 2 (xi holo order 1): \", If[test2, \"PASSED\", \"FAILED\"]];\ntest2",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expr3 = R[\\[Eta]t[0,zb]];\nexpected3 = (zb-zb0) R[\\[Eta]t[1,zb0]];\ntest3 = Simplify[TaylorAtOrderAntiHolo[expr3,1,zb0] - expected3] === 0;\nPrint[\"Test 3 (etat anti-holo order 1): \", If[test3, \"PASSED\", \"FAILED\"]];\ntest3",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expr4 = R[\\[Eta][0,z],\\[Eta]t[0,zb]];\nexpected4 = (z-z0) (zb-zb0) R[\\[Eta][1,z0],\\[Eta]t[1,zb0]];\ntest4 = Simplify[TaylorAtOrder[expr4,1,1,z0,zb0] - expected4] === 0;\nPrint[\"Test 4 (combined eta/etat order 1,1): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## TypeII Helper Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = Private`phiPoly[a,0] === 1 && Private`phiPoly[a,1] === a d\\[Phi][0,Private`x] && Private`phiPolyT[a,1] === a d\\[Phi]t[0,Private`x];\nPrint[\"Test 5 (phiPoly basics): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = Private`isAtPointHolo[\\[Eta][0,z0],z0] && !Private`isAtPointHolo[\\[Eta][0,z],z0] && Private`isAtPointAntiHolo[\\[Eta]t[0,zb0],zb0] && !Private`isAtPointAntiHolo[\\[Eta]t[0,zb],zb0];\nPrint[\"Test 6 (isAtPoint for superghosts): \", If[test6, \"PASSED\", \"FAILED\"]];\ntest6",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = Simplify[TaylorAtOrderHolo[expr1 + expr2,1,z0] - (TaylorAtOrderHolo[expr1,1,z0] + TaylorAtOrderHolo[expr2,1,z0])] === 0;\nPrint[\"Test 7 (linearity over Plus): \", If[test7, \"PASSED\", \"FAILED\"]];\ntest7",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = Simplify[TaylorAtOrderHolo[3 expr1,1,z0] - 3 TaylorAtOrderHolo[expr1,1,z0]] === 0;\nPrint[\"Test 8 (scalar extraction): \", If[test8, \"PASSED\", \"FAILED\"]];\ntest8",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = Private`addHoloDerivatives[d\\[Phi][0,z],2,z0] === ((z-z0)^2/2) d\\[Phi][2,z0] && Private`addAntiHoloDerivatives[d\\[Phi]t[0,zb],2,zb0] === ((zb-zb0)^2/2) d\\[Phi]t[2,zb0];\nPrint[\"Test 9 (dphi derivative helpers): \", If[test9, \"PASSED\", \"FAILED\"]];\ntest9",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = Private`isAtPointHolo[\\[Xi][0,0],0] && !Private`isAtPointHolo[\\[Xi][0,1],0] && Private`isAtPointAntiHolo[\\[Xi]t[0,0],0] && !Private`isAtPointAntiHolo[\\[Xi]t[0,1],0];\nPrint[\"Test 10 (xi/xit point checks): \", If[test10, \"PASSED\", \"FAILED\"]];\ntest10",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = Simplify[(Private`phiPoly[a,2] /. Private`x -> z0) - (a^2 d\\[Phi][0,z0]^2 + a d\\[Phi][1,z0])] === 0 && Simplify[(Private`phiPolyT[a,2] /. Private`x -> zb0) - (a^2 d\\[Phi]t[0,zb0]^2 + a d\\[Phi]t[1,zb0])] === 0;\nPrint[\"Test 11 (phiPoly/phiPolyT order 2): \", If[test11, \"PASSED\", \"FAILED\"]];\ntest11",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = Sort[Private`computePartition[2,3]] === Sort[{{2,0,0},{1,1,0},{1,0,1},{0,2,0},{0,1,1},{0,0,2}}];\nPrint[\"Test 12 (computePartition order 2 len 3): \", If[test12, \"PASSED\", \"FAILED\"]];\ntest12",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expected13 = ((z-z0)^2/2) R[\\[Eta][2,z0]];\ntest13 = Simplify[TaylorAtOrderHolo[expr1,2,z0] - expected13] === 0;\nPrint[\"Test 13 (eta holo order 2): \", If[test13, \"PASSED\", \"FAILED\"]];\ntest13",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "wolfram"
+  }
+ }
+}

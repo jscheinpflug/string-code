@@ -43,14 +43,14 @@ isAtPointHolo[ProfileX[profile_, ders_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[ProfileXHolo[profile_, ders_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[expXHolo[k_, z_], z0_] := SameQ[z,z0];
-isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
+isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]] && !isHolomorphic[Head[field]];
 
 isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ProfileX[profile_, ders_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expXAntiHolo[k_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
+isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]] && !isAntiHolomorphic[Head[field]];
 
 
 (* ::Subsection:: *)

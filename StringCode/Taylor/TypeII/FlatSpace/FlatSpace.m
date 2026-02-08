@@ -10,6 +10,9 @@ Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
+Needs["StringCode`Wick`"];
+Needs["StringCode`Wick`TypeII`"];
+Needs["StringCode`Wick`TypeII`FlatSpace`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`TypeII`"];
 
@@ -58,8 +61,8 @@ isAtPointAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 (*Generic*)
 
 
-isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
-isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
+isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]] && !isHolomorphic[Head[field]];
+isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]] && !isAntiHolomorphic[Head[field]];
 
 
 (* ::Subsection:: *)

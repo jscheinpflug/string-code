@@ -30,10 +30,10 @@ Begin["Private`"];
 
 
 isAtPointHolo[V[n1_, n2_, z_, zbar_], z0_] := SameQ[z,z0];
-isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]];
+isAtPointHolo[field_, z0_] := False /; isAntiHolomorphic[Head[field]] && !isHolomorphic[Head[field]];
 
 isAtPointAntiHolo[V[n1_, n2_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]];
+isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]] && !isAntiHolomorphic[Head[field]];
 
 
 (* ::Subsection:: *)
