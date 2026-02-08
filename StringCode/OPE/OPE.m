@@ -51,25 +51,25 @@ OPE[a___/;RTest[a]]:=R[a]
 
 
 (*When both normal-ordered products have length one, OPE reduces to Wick contraction + possible normal ordering*)
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
 
 (*When first normal-ordered product has one simple element, compute DWick and add a non-contracted term*)
-OPE[Ra_,Rb_]:= DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(Rone[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:= DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(ROne[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
 
 (*When first normal-ordered product has one composite element, compute DWick*)
-OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(ROne[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
 
 (*When the first element of Ra is simple, commute it through, then compute DWick with Rb, add a non-contracted term, continue with OPE of other terms in Ra*)
 OPE[Ra_,Rb_]:=(-1)^(parity[dropFirstFromR[Ra]]parity[R[Ra[[1]]]]) OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]] +
-R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!Rone[Ra]) && isSimple[Head[Ra[[1]]]]) 
+R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isSimple[Head[Ra[[1]]]]) 
 
 (*When the first element of Ra is composite, commute it through, then compute DWick with Rb, commute it back [producing no net sign], 
   and continue with OPE of other terms in Ra*)
-OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!Rone[Ra]) && isComposite[Head[Ra[[1]]]] )
+OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isComposite[Head[Ra[[1]]]] )
 
 
 (* ::Section:: *)

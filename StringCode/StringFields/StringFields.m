@@ -122,11 +122,11 @@ factorizationSign[operatorList__, f1_, f2_] :=
 SFTest::usage = "Test if is string field";
 SFTest[f_]:=(Head[f]==SF)
 
-SFlength::usage = "Test if is string field and has nonzero length";
-SFlength[f_]:=If[SFTest[f],Length[List @@ f],0]
+SFLength::usage = "Test if is string field and has nonzero length";
+SFLength[f_]:=If[SFTest[f],Length[List @@ f],0]
 
-SFone::usage = "Test if is string field of length one";
-SFone[f_]:=(SFlength[f]==1)
+SFOne::usage = "Test if is string field of length one";
+SFOne[f_]:=(SFLength[f]==1)
 
 
 (* ::Section:: *)

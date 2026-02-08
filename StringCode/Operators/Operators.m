@@ -161,11 +161,11 @@ totalWeight[a_/;NumericQ[a]]:=0;
 MultiOpTest::usage = "Test if is MultiOp";
 MultiOpTest[f_]:=(Head[f]===MultiOp)
 
-MultiOplength::usage = "Test if is MultiOp and has nonzero length";
-MultiOplength[f_]:=If[MultiOpTest[f],Length[List @@ f],0]
+MultiOpLength::usage = "Test if is MultiOp and has nonzero length";
+MultiOpLength[f_]:=If[MultiOpTest[f],Length[List @@ f],0]
 
-MultiOpone::usage = "Test if is MultiOp of length one";
-MultiOpone[f_]:=(MultiOplength[f]===1)
+MultiOpOne::usage = "Test if is MultiOp of length one";
+MultiOpOne[f_]:=(MultiOpLength[f]===1)
 
 
 (* ::Subsection:: *)

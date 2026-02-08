@@ -31,11 +31,11 @@ Begin["Private`"];
 RTest::usage = "Test if product is normal-ordered";
 RTest[f_]:=(Head[f]===R)
 
-Rlength::usage = "Test if is normal-ordered and has nonzero length";
-Rlength[f_]:=If[RTest[f],Length[List @@ f],0]
+RLength::usage = "Test if is normal-ordered and has nonzero length";
+RLength[f_]:=If[RTest[f],Length[List @@ f],0]
 
-Rone::usage = "Test if is normal-ordered of length one";
-Rone[f_]:=(Rlength[f]==1)
+ROne::usage = "Test if is normal-ordered of length one";
+ROne[f_]:=(RLength[f]==1)
 
 
 RTestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
