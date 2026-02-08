@@ -1,0 +1,105 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic NormalOrdering Unit Tests\n\nBosonic-specific tests for R with bosonic matter symbols (dX, expX).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Bosonic Matter Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = Simplify[R[dX[mu, 0, z], dX[nu, 0, w]] - R[dX[nu, 0, w], dX[mu, 0, z]]] === 0;\nPrint[\"Test 1 (dX bosonic commutation): \", If[test1, \"PASSED\", \"FAILED\"]];\ntest1",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = Simplify[R[dX[mu, 0, z], b[0, w]] - R[b[0, w], dX[mu, 0, z]]] === 0;\nPrint[\"Test 2 (dX with b no sign): \", If[test2, \"PASSED\", \"FAILED\"]];\ntest2",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = (R[dX[mu, 0, z]^2, c[0, w]] === R[dX[mu, 0, z], dX[mu, 0, z], c[0, w]]);\nPrint[\"Test 3 (bosonic power expansion): \", If[test3, \"PASSED\", \"FAILED\"]];\ntest3",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = (R[3 expX[k, z, zbar], c[0, w]] === 3 R[expX[k, z, zbar], c[0, w]]);\nPrint[\"Test 4 (scalar extraction with expX): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = Simplify[R[dXt[mu, 0, zbar], dXt[nu, 0, wbar]] - R[dXt[nu, 0, wbar], dXt[mu, 0, zbar]]] === 0;\nPrint[\"Test 5 (dXt bosonic commutation): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = (R[expX[k, z, zbar]^2, c[0, w]] === R[expX[k, z, zbar], expX[k, z, zbar], c[0, w]]);\nPrint[\"Test 6 (expX power expansion): \", If[test6, \"PASSED\", \"FAILED\"]];\ntest6",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = Expand[R[dX[mu, 0, z], expX[k, w, wbar] + expXHolo[k, w]]] === Expand[R[dX[mu, 0, z], expX[k, w, wbar]] + R[dX[mu, 0, z], expXHolo[k, w]]];\nPrint[\"Test 7 (linearity with bosonic composites): \", If[test7, \"PASSED\", \"FAILED\"]];\ntest7",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "wolfram"
+  }
+ }
+}

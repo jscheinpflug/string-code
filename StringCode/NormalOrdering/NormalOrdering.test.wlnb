@@ -1,0 +1,169 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# NormalOrdering Base Unit Tests\n\nShared tests for StringCode NormalOrdering, including common b/c ghost behavior and private helper utilities.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`Symbols`\"]\nNeeds[\"StringCode`NormalOrdering`\"]\nNeeds[\"StringCode`NormalOrdering`Bosonic`\"]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Shared Ghost Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = Simplify[R[c[0, 0], b[0, 0]] + R[b[0, 0], c[0, 0]]] === 0;\nPrint[\"Test 1 (fermionic sign under swap): \", If[test1, \"PASSED\", \"FAILED\"]];\ntest1",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = (R[c[0, 0], b[0, 0]] === -R[b[0, 0], c[0, 0]]);\nPrint[\"Test 2 (explicit minus relation): \", If[test2, \"PASSED\", \"FAILED\"]];\ntest2",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = (R[b[0, 0], b[0, 0]] === 0) && (R[c[0, 0], c[0, 0]] === 0);\nPrint[\"Test 3 (identical fermions vanish): \", If[test3, \"PASSED\", \"FAILED\"]];\ntest3",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = Expand[R[b[0, 0], c[0, 0] + bt[0, 0]]] === Expand[R[b[0, 0], c[0, 0]] + R[b[0, 0], bt[0, 0]]];\nPrint[\"Test 4 (linearity over Plus): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = (R[2 b[0, 0], c[0, 0]] === 2 R[b[0, 0], c[0, 0]]);\nPrint[\"Test 5 (scalar extraction): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Shared Private Helper Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = (R[] === 1);\nPrint[\"Test 6 (R[] identity): \", If[test6, \"PASSED\", \"FAILED\"]];\ntest6",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = (R[R[b[0, 0]]] === R[b[0, 0]]);\nPrint[\"Test 7 (flatten nested R): \", If[test7, \"PASSED\", \"FAILED\"]];\ntest7",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = Private`RTest[R[b[0, 0]]] && !Private`RTest[b[0, 0]];\nPrint[\"Test 8 (Private`RTest): \", If[test8, \"PASSED\", \"FAILED\"]];\ntest8",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = (Private`Rlength[R[b[0, 0]]] === 1) && Private`Rone[R[b[0, 0]]] && !Private`Rone[b[0, 0]];\nPrint[\"Test 9 (Private`Rlength/Private`Rone): \", If[test9, \"PASSED\", \"FAILED\"]];\ntest9",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = Private`RTestUpToConstant[3 R[b[0, 0]]] && !Private`RTestUpToConstant[3 b[0, 0]];\nPrint[\"Test 10 (Private`RTestUpToConstant): \", If[test10, \"PASSED\", \"FAILED\"]];\ntest10",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = (Private`Rlength[b[0, 0]] === 0) && !Private`Rone[R[b[0, 0], c[0, 0]]];\nPrint[\"Test 11 (Private`Rlength non-R and Private`Rone length>1): \", If[test11, \"PASSED\", \"FAILED\"]];\ntest11",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = (Private`RTestUpToConstant[] === False);\nPrint[\"Test 12 (Private`RTestUpToConstant[] false): \", If[test12, \"PASSED\", \"FAILED\"]];\ntest12",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = Private`RTestUpToConstant[6 R[b[0, 0], c[0, 0]]];\nPrint[\"Test 13 (Private`RTestUpToConstant with longer R): \", If[test13, \"PASSED\", \"FAILED\"]];\ntest13",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test14 = (R[c[0, 0], 5 b[0, 0]] === -5 R[b[0, 0], c[0, 0]]);\nPrint[\"Test 14 (scalar with fermion reorder sign): \", If[test14, \"PASSED\", \"FAILED\"]];\ntest14",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "wolfram"
+  }
+ }
+}

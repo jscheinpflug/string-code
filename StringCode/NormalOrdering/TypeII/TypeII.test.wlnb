@@ -1,0 +1,129 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII NormalOrdering Unit Tests\n\nTypeII-specific tests for R with matter/superghost fermions and expPhi rules.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Fermionic Sign Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = Simplify[R[\\[Psi][mu, 0, z], \\[Psi][nu, 0, w]] + R[\\[Psi][nu, 0, w], \\[Psi][mu, 0, z]]] === 0;\nPrint[\"Test 1 (psi anticommutation): \", If[test1, \"PASSED\", \"FAILED\"]];\ntest1",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = Simplify[R[\\[Eta][0, z], \\[Xi][0, w]] + R[\\[Xi][0, w], \\[Eta][0, z]]] === 0;\nPrint[\"Test 2 (eta-xi anticommutation): \", If[test2, \"PASSED\", \"FAILED\"]];\ntest2",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = Simplify[R[d\\[Phi][0, z], \\[Eta][0, w]] - R[\\[Eta][0, w], d\\[Phi][0, z]]] === 0;\nPrint[\"Test 3 (dphi with eta no sign): \", If[test3, \"PASSED\", \"FAILED\"]];\ntest3",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## TypeII expPhi Rules",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = (R[exp\\[Phi]f[-1/2, z], exp\\[Phi]f[-1/2, z]] === R[exp\\[Phi]b[-1, z]]);\nPrint[\"Test 4 (expPhif bosonization rule): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]b[1/2, z]] === R[exp\\[Phi]b[-1/2, z]]);\nPrint[\"Test 5 (expPhib exponent addition): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = (R[\\[Eta][0, z], \\[Eta][0, z]] === 0);\nPrint[\"Test 6 (eta self-product vanishes): \", If[test6, \"PASSED\", \"FAILED\"]];\ntest6",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = (R[\\[Psi][mu, 0, z], \\[Psi][mu, 0, z]] === 0);\nPrint[\"Test 7 (psi self-product vanishes): \", If[test7, \"PASSED\", \"FAILED\"]];\ntest7",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]f[1/2, z]] === R[exp\\[Phi]f[-1/2, z]]);\nPrint[\"Test 8 (expPhib-expPhif fusion): \", If[test8, \"PASSED\", \"FAILED\"]];\ntest8",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = (R[exp\\[Phi]tf[-1/2, zbar], exp\\[Phi]tf[-1/2, zbar]] === R[exp\\[Phi]tb[-1, zbar]]);\nPrint[\"Test 9 (anti-holo expPhitf bosonization): \", If[test9, \"PASSED\", \"FAILED\"]];\ntest9",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "wolfram"
+  }
+ }
+}
