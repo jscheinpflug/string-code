@@ -25,9 +25,6 @@ MWick::usage = "A Wick contraction between two composite fields";
 DWick::usage = "Computes Wick contractions between normal-ordered products";
 
 
-CDWick::usage = "A Wick contraction for correlators";
-
-
 dot::usage = "Symbol for dot product";
 
 
@@ -111,19 +108,6 @@ R[Rb[[1]],DWick[Ra,dropFirstFromR[Rb]]]/;(Rone[Ra] && RTest[Rb] &&(!Rone[Rb]) &&
 (*When first element of Rb is composite, do not drop the latter when contracted, again no signs as above*)
 DWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra[[1]],Rb[[1]]],1] R[Rb[[1]],
 DWick[Ra,dropFirstFromR[Rb]]]/;(Rone[Ra] && RTest[Rb] &&(!Rone[Rb]) && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-
-
-(* ::Subsection:: *)
-(*Define CDWick*)
-
-
-CDWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-
-CDWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra,Rb] (CR @@ Rb)/;(Rone[Ra] && Rone[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-
-CDWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] SWick[Ra[[1]],Rb[[1]]] (CR @@ Rb)+(-1)^(parity[Ra]parity[R[Rb[[1]]]]) CR[Rb[[1]],DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && RTest[Rb] &&(!Rone[Rb]) && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-
-CDWick[Ra_,Rb_]:= pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] Wick[Ra[[1]],Rb[[1]]] (CR @@ (Drop[(List @@ Rb),1]))+(-1)^(parity[Ra]parity[R[Rb[[1]]]]) CR[Rb[[1]],DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && RTest[Rb] &&(!Rone[Rb]) && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
 
 
 (* ::Subsection:: *)

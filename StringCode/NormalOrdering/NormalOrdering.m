@@ -15,7 +15,6 @@ Needs["StringCode`Symbols`"];
 
 
 R::usage = "A sorted normal-ordered product of fields";
-CR::usage = "A normal-ordered product for correlators";
 
 
 (* ::Section:: *)
@@ -127,26 +126,6 @@ totalWeightAntiHolo[Ra_/;RTest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
 
 totalWeight[Times[a_, Ra_/;RTest[Ra]]] := totalWeight[Ra];
 totalWeight[Ra_/;RTest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
-
-
-(* ::Subsection::Closed:: *)
-(*Define CR*)
-
-
-CR[c___,b_,a_,d___]:=regcomm[a,b] CR[c,a,b,d]/;(!OrderedQ[{b,a}])
-CR[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
-CR[ c___,a_,d___]:=0/;MemberQ[simplefieldsnotc,Head[a]]
-
-CR[c___,a_+b_,d___]:=CR[c,a,d]+CR[c,b,d]
-CR[c___,a_ f_,d___]:=a CR[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-CR[c___,a_ ,d___]:=a CR[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-CR[]:=1
-CR[a___,R[b___],c___]:=CR[a,b,c]
-
-CR[g___,a_ f_,h___]:=CR[g,a,f,h]/;isBoson[Head[a]]
-CR[g___,a_^n_ f_,h___]:=CR[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
-CR[g___,a_^n_,h___]:=CR[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
-
 
 (* ::Section:: *)
 (*End*)
