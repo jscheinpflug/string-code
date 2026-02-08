@@ -90,26 +90,6 @@ R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
 (* ::Subsection::Closed:: *)
-(*Convert list of symbols to normal-ordered product*)
-
-
-FieldReturn[expr_] := If[Head[expr] === Times, First[Select[List @@ expr, isField[Head[#]] &]],expr];
-TimesToList[elem_] := If[Head[elem] === Times, List @@ elem, elem];
-symbolListToR[list_] :=
-  Module[{listNoBoson, sortedList, sortedList\[CapitalPhi], slist,
-    sign, simp},
-    Print[Timing[simplifying[list]][[1]]];
-   simp = simplifying[list];
-   slist = simp[[2]];
-   listNoBoson = simp[[3]];
-   sortedList = Sort[slist];
-   sortedList\[CapitalPhi] = Join[sortedList, simp[[4]], simp[[5]]];
-   sign = Signature[listNoBoson];
-   Print[Timing[(sign*simp[[1]]) R @@ sortedList\[CapitalPhi]][[1]]];
-   (sign*simp[[1]]) R @@ sortedList\[CapitalPhi]];
-
-
-(* ::Subsection::Closed:: *)
 (*Define total ghost number*)
 
 
