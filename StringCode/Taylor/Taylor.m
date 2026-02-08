@@ -18,8 +18,6 @@ Needs["StringCode`NormalOrdering`"];
 TaylorAtOrder::usage = "Taylor expands a normal ordered product at a given order";
 TaylorAtOrderHolo::usage = "Taylor expands a holomorphic normal ordered product at a given order";
 TaylorAtOrderAntiHolo::usage = "Taylor expands an antiholomorphic normal ordered product at a given order";
-Taylor::usage = "Taylor expands a normal ordered product up to a given order";
-Polar::usage = "Picks out the first-order pole from a function";
 
 
 (* ::Section:: *)
@@ -179,23 +177,6 @@ addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= (z-z0bar)^ord/Factorial[ord] bt
 
 
 addAntiHoloDerivatives[ct[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]ct[n+ord,z0bar];
-
-
-(* ::Subsection:: *)
-(*Define Taylor*)
-
-
-(*taylorRule has to be defined for each string theory*)
-
-
-Taylor[f_,z0_,z0bar_,ord_]:= f/.taylorRule[z0, z0bar, ord];
-
-
-(* ::Subsection::Closed:: *)
-(*Define Polar*)
-
-
-Polar[f_,z_,z0_]:=Block[{x},(Series[(f/.{z->z0+x}),{x,0,-1}]//Normal)/.{x->z-z0}]
 
 
 (* ::Section:: *)

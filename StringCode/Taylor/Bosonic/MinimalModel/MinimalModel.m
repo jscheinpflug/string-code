@@ -46,17 +46,6 @@ addHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord
 addAntiHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]V[n1, n2+ord,z0, zbar];
 
 
-(* ::Subsection:: *)
-(*Define Taylor*)
-
-
-taylorRule[z0_, z0bar_, ord_] := Block[{i,j,x,func,n,z},
-{b[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] b[n+i,z0],{i,0,ord}],
-c[n_,z_]:>Sum[If[i==0,1,(z-z0)^i/i!] c[n+i,z0],{i,0,ord}],
-bt[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!] bt[n+i,z0bar],{i,0,ord}],
-ct[n_,z_]:>Sum[If[i==0,1,(z-z0bar)^i/i!]ct[n+i,z0bar],{i,0,ord}]}];
-
-
 (* ::Section:: *)
 (*End*)
 
