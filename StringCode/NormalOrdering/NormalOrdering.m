@@ -42,7 +42,7 @@ RTestUpToConstant::usage = "Test if product is normal-ordered up to a constant p
 
 RTestUpToConstant[c___,a_ f_,d___]:=RTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-RTestUpToConstant[f_]:=(Head[f]==R)
+RTestUpToConstant[f_]:=(Head[f]===R)
 RTestUpToConstant[]:=False;
 
 
