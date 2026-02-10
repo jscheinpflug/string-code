@@ -49,9 +49,17 @@ combineChiral[a_, b_] := Which[
 ];
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
-  {\[Epsilon]Holo, \[Epsilon]AntiHolo, localLists, splitLists, sign, holoOps, antiOps, projectedHolo, projectedAntiHolo},
+  {
+    \[Epsilon]Holo, \[Epsilon]AntiHolo, localLists, splitLists, sign, holoOps, antiOps,
+    insertionWeightHolo, insertionWeightAntiHolo, targetWeightHolo, targetWeightAntiHolo,
+    projectedHolo, projectedAntiHolo
+  },
   localLists = List @@ # & /@ {Ra};
   splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ localLists;
+  insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
+  insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
+  targetWeightHolo = wH - insertionWeightHolo;
+  targetWeightAntiHolo = wA - insertionWeightAntiHolo;
 
   sign = If[Flatten[localLists] === {}, 1, factorizationSign[Flatten[localLists], isHolomorphic, isAntiHolomorphic]];
 
@@ -60,11 +68,11 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasColl
 
   projectedHolo = projectHolo[
     OPEWickList[rescaleR[\[Epsilon]Holo] /@ holoOps],
-    wH, \[Epsilon]Holo
+    targetWeightHolo, \[Epsilon]Holo
   ];
   projectedAntiHolo = projectAntiHolo[
     OPEWickList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps],
-    wA, \[Epsilon]AntiHolo
+    targetWeightAntiHolo, \[Epsilon]AntiHolo
   ];
 
   sign combineChiral[projectedHolo, projectedAntiHolo]

@@ -101,44 +101,35 @@ result]
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
-Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, dualChiralOps, factorizationPrefac, bracketHolo, bracketAntiHolo,
-holoLocalOps, antiLocalOps, insertionWeightHolo, insertionWeightAntiHolo, projectedOPE, projectedHolo, projectedAntiHolo, holoOPEWithPCOs, antiHoloOPEWithPCOs},
+Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
 bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts [inside PCO actions]*)
-result = Reap[
+result = Total @ Last @ Reap[
 Scan[Function[bracketNoPCOsTerm,
 
 prefac = extractPrefacFromMultiOpTimesConstant[bracketNoPCOsTerm];
 localOps = extractListFromMultiOpTimesConstant[bracketNoPCOsTerm];
-(* Detect dual-chiral factorizable fields to enable separate chiral projection + PCO action. *)
-dualChiralOps = Flatten[(extractListFromRTimesConstant /@ Select[localOps, RTestUpToConstant]), 1];
-dualChiralOps = Select[dualChiralOps, isHolomorphic[Head[#]] && isAntiHolomorphic[Head[#]] &];
-If[dualChiralOps =!= {} && AllTrue[dualChiralOps, isFactorizable[Head[#]] &],
-(* Fast path: factorize, project each chirality, then apply holomorphic/antiholomorphic PCOs separately. *)
-{bracketHolo, bracketAntiHolo, factorizationPrefac} = factorizeMultiOp[MultiOp @@ localOps];
-holoLocalOps = Select[List @@ bracketHolo, RTest];
-antiLocalOps = Select[List @@ bracketAntiHolo, RTest];
-insertionWeightHolo = Total[totalWeightHolo /@ holoLocalOps];
-insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ antiLocalOps];
-projectedHolo = If[holoLocalOps === {}, If[weightHolo - insertionWeightHolo === 0, 1, 0], OPEProjectedHolo[weightHolo - insertionWeightHolo] @@ holoLocalOps];
-projectedAntiHolo = If[antiLocalOps === {}, If[weightAntiHolo - insertionWeightAntiHolo === 0, 1, 0], OPEProjectedAntiHolo[weightAntiHolo - insertionWeightAntiHolo] @@ antiLocalOps];
-projectedHolo = prefac factorizationPrefac projectedHolo;
+(* Shared projection logic; TypeII-specific work is only the subsequent PCO action. *)
+projectionData = projectBracketLocalOps[localOps, weightHolo, weightAntiHolo];
+If[projectionData[[1]] === "Factorized",
+(* Fast path: project each chirality separately, then apply holomorphic/antiholomorphic PCOs. *)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {
-  Nest[actPCOHolo, projectedHolo, numberOfHoloPCOs],
-  Nest[actPCOAntiHolo, projectedAntiHolo, numberOfAntiHoloPCOs]
+  Nest[actPCOHolo, prefac projectionData[[2]] projectionData[[3]], numberOfHoloPCOs],
+  Nest[actPCOAntiHolo, projectionData[[4]], numberOfAntiHoloPCOs]
 };
-Sow[{R[holoOPEWithPCOs, antiHoloOPEWithPCOs]}],
+Sow[R[holoOPEWithPCOs, antiHoloOPEWithPCOs]],
 (* Generic path: project the unsplit local operators, then apply combined PCO action. *)
-insertionWeightHolo = Total[totalWeightHolo /@ localOps];
-insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ localOps];
-projectedOPE = prefac OPEProjected[weightHolo - insertionWeightHolo, weightAntiHolo - insertionWeightAntiHolo] @@ localOps;
-Sow[{Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]}]
+projectedOPE = prefac projectionData[[2]];
+Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]
 ];
-], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]]
-[[2]][[1,1,1]];
+], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]
+,
+_,
+Total[#2] &
+];
 result
 ];
 

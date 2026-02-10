@@ -143,6 +143,44 @@ BracketProjection[Wedge[a__] b___, weightHolo_, weightAntiHolo_] := Wedge[a, Bra
 
 
 (* ::Subsection:: *)
+(*Shared projected bracket helpers*)
+
+
+combineProjectedBracketChiral[projectedHolo_, projectedAntiHolo_] := Which[
+  projectedHolo === 0 || projectedAntiHolo === 0, 0,
+  projectedHolo === 1, projectedAntiHolo,
+  projectedAntiHolo === 1, projectedHolo,
+  True, R[projectedHolo, projectedAntiHolo]
+];
+
+projectBracketLocalOps[localOps_List, weightHolo_, weightAntiHolo_] := Module[
+  {
+    dualChiralOps, factorizationPrefac, bracketHolo, bracketAntiHolo,
+    holoLocalOps, antiLocalOps, projectedHolo, projectedAntiHolo, projectedOPE
+  },
+
+  dualChiralOps = Flatten[(extractListFromRTimesConstant /@ Select[localOps, RTestUpToConstant]), 1];
+  dualChiralOps = Select[dualChiralOps, isHolomorphic[Head[#]] && isAntiHolomorphic[Head[#]] &];
+
+  (* Prefer factorized projection; only skip it when mixed-chirality fields exist but some are not factorizable. *)
+  If[dualChiralOps === {} || AllTrue[dualChiralOps, isFactorizable[Head[#]] &],
+    {bracketHolo, bracketAntiHolo, factorizationPrefac} = factorizeMultiOp[MultiOp @@ localOps];
+    holoLocalOps = Select[List @@ bracketHolo, RTest];
+    antiLocalOps = Select[List @@ bracketAntiHolo, RTest];
+
+    (* OPEProjected* projects onto the target weights*)
+    projectedHolo = If[holoLocalOps === {}, If[weightHolo === 0, 1, 0], OPEProjectedHolo[weightHolo] @@ holoLocalOps];
+    projectedAntiHolo = If[antiLocalOps === {}, If[weightAntiHolo === 0, 1, 0], OPEProjectedAntiHolo[weightAntiHolo] @@ antiLocalOps];
+    {"Factorized", factorizationPrefac, projectedHolo, projectedAntiHolo},
+
+    (* Fallback path for non-factorizable mixed-chirality operators. *)
+    projectedOPE = OPEProjected[weightHolo, weightAntiHolo] @@ localOps;
+    {"Generic", projectedOPE}
+  ]
+];
+
+
+(* ::Subsection:: *)
 (*Factorize operators into holomorphic and anti-holomorphic parts*)
 
 

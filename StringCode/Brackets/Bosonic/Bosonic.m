@@ -82,42 +82,29 @@ Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= b0mHold[BracketBosonic[toBr
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[bracket__, weightHolo_, weightAntiHolo_]:= 
-Module[{prefac, localOps, dualChiralOps, factorizationPrefac, bracketHolo, bracketAntiHolo, holoLocalOps, antiLocalOps,
-insertionWeightHolo, insertionWeightAntiHolo, projectedHolo, projectedAntiHolo, projectedOPE, result},
+Module[{prefac, localOps, projectionData, projectedOPE, result},
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts*)
-result = Reap[
+result = Total @ Last @ Reap[
 Scan[Function[bracketTerm,
 
 prefac = extractPrefacFromMultiOpTimesConstant[bracketTerm];
 localOps = extractListFromMultiOpTimesConstant[bracketTerm];
-(* Detect fields that are simultaneously holo/anti-holo and can be split into chiral factors. *)
-dualChiralOps = Flatten[(extractListFromRTimesConstant /@ Select[localOps, RTestUpToConstant]), 1];
-dualChiralOps = Select[dualChiralOps, isHolomorphic[Head[#]] && isAntiHolomorphic[Head[#]] &];
-If[dualChiralOps =!= {} && AllTrue[dualChiralOps, isFactorizable[Head[#]] &],
-(* Fast path: factorize first and project each chiral sector separately. *)
-{bracketHolo, bracketAntiHolo, factorizationPrefac} = factorizeMultiOp[MultiOp @@ localOps];
-holoLocalOps = Select[List @@ bracketHolo, RTest];
-antiLocalOps = Select[List @@ bracketAntiHolo, RTest];
-insertionWeightHolo = Total[totalWeightHolo /@ holoLocalOps];
-insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ antiLocalOps];
-projectedHolo = If[holoLocalOps === {}, If[weightHolo - insertionWeightHolo === 0, 1, 0], OPEProjectedHolo[weightHolo - insertionWeightHolo] @@ holoLocalOps];
-projectedAntiHolo = If[antiLocalOps === {}, If[weightAntiHolo - insertionWeightAntiHolo === 0, 1, 0], OPEProjectedAntiHolo[weightAntiHolo - insertionWeightAntiHolo] @@ antiLocalOps];
-projectedOPE = factorizationPrefac Which[
-  projectedHolo === 0 || projectedAntiHolo === 0, 0,
-  projectedHolo === 1, projectedAntiHolo,
-  projectedAntiHolo === 1, projectedHolo,
-  True, R[projectedHolo, projectedAntiHolo]
-],
-(* Generic path: project without explicit chiral pre-factorization. *)
-insertionWeightHolo = Total[totalWeightHolo /@ localOps];
-insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ localOps];
-projectedOPE = OPEProjected[weightHolo - insertionWeightHolo, weightAntiHolo - insertionWeightAntiHolo] @@ localOps
+(* Shared helper decides whether to use factorized chiral projection or generic projection. *)
+projectionData = projectBracketLocalOps[localOps, weightHolo, weightAntiHolo];
+projectedOPE = If[
+  projectionData[[1]] === "Factorized",
+  (* factorization prefactor times recombined projected holomorphic/antiholomorphic pieces *)
+  projectionData[[2]] combineProjectedBracketChiral[projectionData[[3]], projectionData[[4]]],
+  projectionData[[2]]
 ];
-Sow[{prefac projectedOPE}];
+Sow[prefac projectedOPE];
 
-],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
-[[2]][[1,1,1]];
+],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]
+,
+_,
+Total[#2] &
+];
 result
 ];
 
