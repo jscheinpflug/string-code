@@ -17,7 +17,7 @@ Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`TypeII`"];
 Needs["StringCode`Conventions`TypeII`"];
 Needs["StringCode`OPE`"];
-Needs["StringCode`OPE`TypeII"];
+Needs["StringCode`OPE`TypeII`"];
 Needs["StringCode`Brackets`"];
 
 
