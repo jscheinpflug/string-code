@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# Bosonic OPE Theory-Level Tests\n\nCFT-independent tests (ghost sector + generic OPEProjection properties).",
+   "value": "# Bosonic MinimalModel OPE Tests\n\nChecks non-collapsable V-sector behavior for OPE and OPEProjection.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -10,14 +10,14 @@
   },
   {
    "kind": 2,
-   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"MinimalModel\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673634433,
-     "endTime": 1770673634711
+     "startTime": 1770673612983,
+     "endTime": 1770673613145
     },
     "executionOrder": 1,
     "success": true
@@ -25,21 +25,21 @@
   },
   {
    "kind": 2,
-   "value": "test1 = Wick[b[0, z], c[0, w]];\nexpected1 = 1/(z - w);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (b-c Wick): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "expr1 = OPE[R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]]];\ntest1Result = Head[expr1] === OPE;\nPrint[\"Test 1 (OPE V-V stays symbolic): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 1 (b-c Wick): PASSED\n</pre>",
+       "data": "<pre>Test 1 (OPE V-V stays symbolic): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 1 (b-c Wick): PASSED\\n\"",
+       "data": "\"Test 1 (OPE V-V stays symbolic): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "c89180db-6755-4b6a-9b9c-682b38277a4d",
+     "id": "1d031e50-62e1-49df-9ba2-d816049cae98",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -56,9 +56,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "b7369007-6bf6-4291-ac00-3044a6e2fcbe",
+     "id": "11b330da-15a4-40dc-b67e-54a9b5c6b28c",
      "metadata": {
-      "cellLabel": "Out[7]= ",
+      "cellLabel": "Out[6]= ",
       "isBoxData": false
      }
     }
@@ -66,8 +66,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673634711,
-     "endTime": 1770673635116
+     "startTime": 1770673613145,
+     "endTime": 1770673613497
     },
     "executionOrder": 3,
     "success": true
@@ -75,21 +75,21 @@
   },
   {
    "kind": 2,
-   "value": "test2 = OPE[R[b[0, z]], R[c[0, w]]];\nexpected2 = R[b[0, z], c[0, w]] + 1/(z - w);\ntest2Result = Simplify[test2 - expected2] === 0;\nPrint[\"Test 2 (OPE b-c): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "value": "expr2 = OPEProjected[0, 0][R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]]];\ntest2Result = MatchQ[Together[expr2], _Symbol/((z1 - z2)^2 (z1Bar - z2Bar)^2)];\nPrint[\"Test 2 (projection[0,0] two-point structure): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 2 (OPE b-c): PASSED\n</pre>",
+       "data": "<pre>Test 2 (projection[0,0] two-point structure): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 2 (OPE b-c): PASSED\\n\"",
+       "data": "\"Test 2 (projection[0,0] two-point structure): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "f1517e31-5e90-4cc5-ab4f-c966774fe1bd",
+     "id": "52de37fb-1db5-4346-923d-e2dc47fc741e",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -106,9 +106,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "74795e19-8288-4882-bff8-07f1cd9487f3",
+     "id": "39cacfcc-1c52-4589-b769-886681fc12c9",
      "metadata": {
-      "cellLabel": "Out[12]= ",
+      "cellLabel": "Out[10]= ",
       "isBoxData": false
      }
     }
@@ -116,30 +116,30 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635117,
-     "endTime": 1770673635525
+     "startTime": 1770673613498,
+     "endTime": 1770673613856
     },
-    "executionOrder": 8,
+    "executionOrder": 7,
     "success": true
    }
   },
   {
    "kind": 2,
-   "value": "test3a = R[b[0, z], c[0, w]];\ntest3b = R[c[0, w], b[0, z]];\ntest3Result = Simplify[test3a + test3b] === 0;\nPrint[\"Test 3 (R[b,c] = -R[c,b]): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "value": "expr3 = OPEProjected[1, 1][R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]]];\ntest3Result = MatchQ[Together[expr3], (_Symbol V[0, 0, 0, 0])/((z1 - z2) (z1Bar - z2Bar))];\nPrint[\"Test 3 (projection[1,1] structure): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 3 (R[b,c] = -R[c,b]): PASSED\n</pre>",
+       "data": "<pre>Test 3 (projection[1,1] structure): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 3 (R[b,c] = -R[c,b]): PASSED\\n\"",
+       "data": "\"Test 3 (projection[1,1] structure): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "3452199f-22a3-44aa-b4df-4edc21a7f0e7",
+     "id": "8dc85691-8c5f-4c2e-9f2d-d7e6dda13d1a",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -156,9 +156,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "18261b4e-991c-45b6-944e-1a464e21fe53",
+     "id": "7879a068-fd7e-4553-8fdf-f55d83399a78",
      "metadata": {
-      "cellLabel": "Out[17]= ",
+      "cellLabel": "Out[14]= ",
       "isBoxData": false
      }
     }
@@ -166,30 +166,30 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635525,
-     "endTime": 1770673635926
+     "startTime": 1770673613857,
+     "endTime": 1770673614211
     },
-    "executionOrder": 13,
+    "executionOrder": 11,
     "success": true
    }
   },
   {
    "kind": 2,
-   "value": "test4 = OPE[R[c[0, z]], R[c[0, w], b[0, w]]];\ntest4Result = Not[FreeQ[test4, 1/(w - z)]] || Not[FreeQ[test4, 1/(z - w)]];\nPrint[\"Test 4 (composite OPE singularity): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "value": "expr4 = OPEProjected[2, 1][R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]]];\ntest4Result = MatchQ[expr4, OPEProjected[2, 1][_, _]];\nPrint[\"Test 4 (unsupported projection stays symbolic): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 4 (composite OPE singularity): PASSED\n</pre>",
+       "data": "<pre>Test 4 (unsupported projection stays symbolic): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 4 (composite OPE singularity): PASSED\\n\"",
+       "data": "\"Test 4 (unsupported projection stays symbolic): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "2279e511-f8cc-474b-9ff6-680ca92e7f9e",
+     "id": "3d9f7040-8904-4ffc-8482-0258a21b2ab2",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -206,9 +206,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "6d2d7c6e-1c9c-424f-b418-dbe5052948da",
+     "id": "a003d6c3-26df-4fec-8fa3-3a2c891726e5",
      "metadata": {
-      "cellLabel": "Out[21]= ",
+      "cellLabel": "Out[18]= ",
       "isBoxData": false
      }
     }
@@ -216,38 +216,30 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635926,
-     "endTime": 1770673636270
+     "startTime": 1770673614211,
+     "endTime": 1770673614578
     },
-    "executionOrder": 18,
+    "executionOrder": 15,
     "success": true
    }
   },
   {
-   "kind": 1,
-   "value": "## OPEProjection API",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
    "kind": 2,
-   "value": "lhs5 = OPEProjected[0, 0][R[b[0, z]] + R[c[0, z]], R[c[0, w]]];\nrhs5 = OPEProjected[0, 0][R[b[0, z]], R[c[0, w]]] + OPEProjected[0, 0][R[c[0, z]], R[c[0, w]]];\ntest5Result = Simplify[lhs5 - rhs5] === 0;\nPrint[\"Test 5 (projection linearity): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "value": "expr5 = OPEProjected[0, 0][R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]], R[V[0, 0, z3, z3Bar]]];\ntest5Result = MatchQ[Together[expr5], _Symbol/((z1 - z2) (z1 - z3) (z2 - z3) (z1Bar - z2Bar) (z1Bar - z3Bar) (z2Bar - z3Bar))];\nPrint[\"Test 5 (projection[0,0] three-point structure): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 5 (projection linearity): PASSED\n</pre>",
+       "data": "<pre>Test 5 (projection[0,0] three-point structure): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 5 (projection linearity): PASSED\\n\"",
+       "data": "\"Test 5 (projection[0,0] three-point structure): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "f723877f-9cc0-405f-a8a7-74660f6e002a",
+     "id": "8c16f494-708d-4655-9f3e-33c276ac24ec",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -264,7 +256,57 @@
        "mime": "text/plain"
       }
      ],
-     "id": "d4704919-d26c-448b-95bf-a5c4354eeb9d",
+     "id": "219df3fa-bd2b-462f-a0ee-418af94bd3f3",
+     "metadata": {
+      "cellLabel": "Out[22]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673614578,
+     "endTime": 1770673614970
+    },
+    "executionOrder": 19,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expr6 = OPEProjected[2, 0][R[V[0, 0, z1, z1Bar]], R[V[0, 0, z2, z2Bar]]];\ntest6Result = MatchQ[expr6, OPEProjected[2, 0][_, _]];\nPrint[\"Test 6 (unsupported non-collapsable projection stays symbolic): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (unsupported non-collapsable projection stays symbolic): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (unsupported non-collapsable projection stays symbolic): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "df0a5a18-0f90-4b6c-b12e-bbcc9ffbfaab",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "abb6eaa8-b09f-488a-b7e2-1f62c373e154",
      "metadata": {
       "cellLabel": "Out[26]= ",
       "isBoxData": false
@@ -274,60 +316,10 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673636270,
-     "endTime": 1770673636673
+     "startTime": 1770673614970,
+     "endTime": 1770673615347
     },
-    "executionOrder": 22,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "lhs6 = OPEProjected[0, 0][3 R[b[0, z]], R[c[0, w]]];\nrhs6 = 3 OPEProjected[0, 0][R[b[0, z]], R[c[0, w]]];\ntest6Result = Simplify[lhs6 - rhs6] === 0;\nPrint[\"Test 6 (projection scalar extraction): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 6 (projection scalar extraction): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 6 (projection scalar extraction): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "4ce00b4f-7ac7-454b-b988-6daef7d3a645",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "42adc301-c8bc-4db2-825c-8db3c3842eaf",
-     "metadata": {
-      "cellLabel": "Out[31]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770673636673,
-     "endTime": 1770673637076
-    },
-    "executionOrder": 27,
+    "executionOrder": 23,
     "success": true
    }
   },
@@ -347,7 +339,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "a3cda4a5-e0ba-4eb8-9b86-09f5ca8a5906",
+     "id": "028e0e30-ae04-4fb1-948a-f6762936a94f",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -364,7 +356,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "dc225ca7-e0dd-48de-afdf-86a47a05d485",
+     "id": "e17b6c5b-d6ec-49b0-bf28-225e2f0aeab4",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -381,7 +373,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "8e61f5a7-acb4-4687-bd9e-943a7a86acf5",
+     "id": "9a0de931-8c21-4805-b937-162984df9d33",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -398,9 +390,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "ec7dfc48-016e-4272-a5c5-b9d9d98fa312",
+     "id": "184d155a-b4eb-45a7-ba9d-c60004d9c769",
      "metadata": {
-      "cellLabel": "Out[38]= ",
+      "cellLabel": "Out[33]= ",
       "isBoxData": false
      }
     }
@@ -408,10 +400,10 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673637077,
-     "endTime": 1770673637667
+     "startTime": 1770673615347,
+     "endTime": 1770673615964
     },
-    "executionOrder": 32,
+    "executionOrder": 27,
     "success": true
    }
   }

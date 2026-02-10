@@ -1,0 +1,369 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic FlatSpace OPE Tests\n\nCFT-specific tests (matter sector).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673570161,
+     "endTime": 1770673570361
+    },
+    "executionOrder": 18,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test1 = OPE[R[dX[\\[Mu], 0, z]], R[dX[\\[Nu], 0, w]]];\nexpected1 = R[dX[\\[Mu], 0, z], dX[\\[Nu], 0, w]] - \\[Alpha]p \\[Delta][\\[Mu], \\[Nu]]/(2 (z - w)^2);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (OPE dX-dX): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (OPE dX-dX): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (OPE dX-dX): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6ab6a1a8-f952-40cc-9c38-4d572cca379e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1ae352ae-89a1-4ea4-ba53-8e2ef309f57b",
+     "metadata": {
+      "cellLabel": "Out[24]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673570362,
+     "endTime": 1770673570794
+    },
+    "executionOrder": 20,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test2 = OPE[R[b[0, z]], R[dX[\\[Mu], 0, w]]];\ntest2Result = test2 === R[b[0, z], dX[\\[Mu], 0, w]];\nPrint[\"Test 2 (b-dX no contraction): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (b-dX no contraction): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (b-dX no contraction): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "823c537a-f288-4b2d-a5c5-cfb386c86626",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dc91b077-bc9d-462f-9009-0f8356366d82",
+     "metadata": {
+      "cellLabel": "Out[28]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673570795,
+     "endTime": 1770673571139
+    },
+    "executionOrder": 25,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test3 = OPE[R[c[0, z]], R[dX[\\[Mu], 0, w]]];\ntest3Result = test3 === R[c[0, z], dX[\\[Mu], 0, w]];\nPrint[\"Test 3 (c-dX no contraction): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (c-dX no contraction): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (c-dX no contraction): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0f9f2bec-0f0a-450e-b823-62b72b7276ec",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "55b20ab4-e2ab-4d13-8215-42aba76315f9",
+     "metadata": {
+      "cellLabel": "Out[32]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673571139,
+     "endTime": 1770673571484
+    },
+    "executionOrder": 29,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## OPEProjection in FlatSpace",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "lhs4 = OPEProjected[0, 0][R[dX[\\[Mu], 0, z]] + R[dX[\\[Rho], 0, z]], R[dX[\\[Nu], 0, w]]];\nrhs4 = OPEProjected[0, 0][R[dX[\\[Mu], 0, z]], R[dX[\\[Nu], 0, w]]] + OPEProjected[0, 0][R[dX[\\[Rho], 0, z]], R[dX[\\[Nu], 0, w]]];\ntest4Result = Simplify[lhs4 - rhs4] === 0;\nPrint[\"Test 4 (projection linearity): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (projection linearity): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (projection linearity): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "052ddc3c-0b38-43fb-9b01-f3612e829c20",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d7fedfae-d2d9-491c-b46a-d9253bf611b6",
+     "metadata": {
+      "cellLabel": "Out[37]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673571484,
+     "endTime": 1770673571920
+    },
+    "executionOrder": 33,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expr5 = OPEProjected[0, 0][R[dX[\\[Mu], 0, z]], R[dX[\\[Nu], 0, w]]];\ntest5Result = Not[FreeQ[expr5, \\[Alpha]p]] && Not[FreeQ[expr5, \\[Delta][\\[Mu], \\[Nu]]]];\nPrint[\"Test 5 (projection keeps dX singular data): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (projection keeps dX singular data): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (projection keeps dX singular data): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ec18da5f-e75b-4664-bf77-3621b6c2221b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1bf7416a-51d0-42c7-81a2-4eb20aa75f0d",
+     "metadata": {
+      "cellLabel": "Out[41]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673571921,
+     "endTime": 1770673572265
+    },
+    "executionOrder": 38,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "bdc28b8e-4bcb-4373-8841-89324034910a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 5/5\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 5/5\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8773b9fb-ba58-4984-90bd-9497dbc4623b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>All tests PASSED!\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"All tests PASSED!\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "15a3e892-c8d8-4faa-9e88-140d28b3e5e5",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ee20da62-18e1-4d75-b2db-91daadf1a110",
+     "metadata": {
+      "cellLabel": "Out[48]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770673572265,
+     "endTime": 1770673572875
+    },
+    "executionOrder": 42,
+    "success": true
+   }
+  }
+ ]
+}

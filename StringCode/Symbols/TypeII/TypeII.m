@@ -67,8 +67,7 @@ holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Xi],\[Eta],exp\[Phi]f,exp
 antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
 indexedFields = Join[indexedFields, {}];
 allfields=Join[bosons,fermions];
-interactingOperators = Join[interactingOperators, {}];
-allOperators = Join[allfields, interactingOperators];
+collapsable = Join[collapsable, {\[Xi], \[Xi]t, \[Eta], \[Eta]t}];
 
 
 (* ::Subsection:: *)
@@ -81,7 +80,7 @@ pictureHol[\[Xi][n_, z_]]:= 1;
 pictureHol[\[Eta][n_, z_]]:= -1;
 pictureHol[exp\[Phi]f[exp_, z_]]:= exp;
 pictureHol[exp\[Phi]b[exp_, z_]]:= exp;
-pictureHol[a_/;isOperator[Head[a]]]:= 0;
+pictureHol[a_/;isField[Head[a]]]:= 0;
 
 pictureAntiHol::usage = "Gives antiholomorphic picture number";
 
@@ -89,7 +88,7 @@ pictureAntiHol[\[Xi]t[n_, zbar_]]:= 1;
 pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
 pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;
 pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
-pictureAntiHol[a_/;isOperator[Head[a]]]:= 0;
+pictureAntiHol[a_/;isField[Head[a]]]:= 0;
 
 
 (* ::Subsection:: *)

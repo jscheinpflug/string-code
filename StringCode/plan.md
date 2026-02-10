@@ -161,3 +161,37 @@
 - **Tests**
   - Update wrapper-specific tests to wrapper-free equivalents.
   - Run existing `.test.wlnb` notebooks for impacted modules (`OPE`, `Brackets`, `TeXConversion`, theory-specific variants).
+
+## Summary
+- Preserved `MultiOp` while removing/avoiding the older `Interacting`-style OPE handling path.
+- Updated core OPE behavior in `StringCode/OPE/OPE.m`:
+  - one-sided collapsable inputs now use `OPEWick` directly,
+  - split/recombine path is restricted to both-sides-collapsable,
+  - this prevents sign/order regressions introduced by mixed-sector recombination.
+- Kept non-collapsable OPE unevaluated by default (pattern-matching based control; no separate fallback head intended for projection).
+- Kept nested OPE behavior intact.
+- Added TypeII FlatSpace specialization in `StringCode/OPE/TypeII/FlatSpace/FlatSpace.m`:
+  - pure `psi/expphi` sector uses `OPEWick`,
+  - `d[Phi]`/`d[Phi]t` included in that Wick-forced sector,
+  - module uses `Begin["Private`"]`.
+- Added MinimalModel projection implementation in `StringCode/OPE/Bosonic/MinimalModel/MinimalModel.m` for V-sector projection behavior.
+- Reorganized OPE tests into CFT-independent vs CFT-specific locations:
+  - `StringCode/OPE/Bosonic/Bosonic.test.wlnb`
+  - `StringCode/OPE/TypeII/TypeII.test.wlnb`
+  - `StringCode/OPE/Bosonic/FlatSpace/FlatSpace.test.wlnb`
+  - `StringCode/OPE/TypeII/FlatSpace/FlatSpace.test.wlnb`
+  - `StringCode/OPE/Bosonic/MinimalModel/MinimalModel.test.wlnb`
+- Revisited Bosonic OPE test 14 and updated its expectation to the full `dX-dX` OPE structure.
+- Last reported headless Mathematica results for reorganized OPE notebooks:
+  - Bosonic: `6/6`
+  - Bosonic FlatSpace: `5/5`
+  - Bosonic MinimalModel: `6/6`
+  - TypeII: `6/6`
+  - TypeII FlatSpace: `6/6`
+- Relevant working-tree state:
+  - Modified: `StringCode/OPE/OPE.m`, `StringCode/OPE/Bosonic/Bosonic.test.wlnb`, `StringCode/OPE/TypeII/TypeII.test.wlnb`
+  - Untracked: `StringCode/OPE/Bosonic/FlatSpace/FlatSpace.test.wlnb`, `StringCode/OPE/Bosonic/MinimalModel/MinimalModel.m`, `StringCode/OPE/Bosonic/MinimalModel/MinimalModel.test.wlnb`, `StringCode/OPE/TypeII/FlatSpace/FlatSpace.m`, `StringCode/OPE/TypeII/FlatSpace/FlatSpace.test.wlnb`
+- Follow-up checks:
+  - confirm load wiring for new OPE submodule files,
+  - re-run impacted non-OPE suites (`Brackets`, `NormalOrdering`),
+  - stage/commit new OPE submodule and test files together.

@@ -17,6 +17,7 @@ Needs["StringCode`Taylor`"];
 Needs["StringCode`Taylor`Bosonic`"];
 Needs["StringCode`Conventions`Bosonic`"];
 Needs["StringCode`OPE`"];
+Needs["StringCode`OPE`Bosonic`"];
 Needs["StringCode`Brackets`"];
 
 
@@ -81,45 +82,39 @@ Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= b0mHold[BracketBosonic[toBr
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
 BracketProjection[bracket__, weightHolo_, weightAntiHolo_]:= 
-Module[{prefac, bracketHolo, bracketAntiHolo, bracketInteracting, OPEHolo, OPEAntiHolo, bracketHoloWeightFree, bracketAntiHoloWeightFree,
-bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, insertionWeightHolo, insertionWeightAntiHolo,
-projectedOPEHolo, projectedOPEAntiHolo, projectedOPE, OPEInteracting, OPEInteractingSingular, result},
+Module[{prefac, localOps, dualChiralOps, factorizationPrefac, bracketHolo, bracketAntiHolo, holoLocalOps, antiLocalOps,
+insertionWeightHolo, insertionWeightAntiHolo, projectedHolo, projectedAntiHolo, projectedOPE, result},
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts*)
 result = Reap[
 Scan[Function[bracketTerm,
 
-(*Split the free multi-local result of the bracket into holomorphic/antiholomorphic parts, and keep the interacting part unsplit*)
-{bracketHolo, bracketAntiHolo, bracketInteracting, prefac} = factorizeMultiOp[bracketTerm];
-
-bracketHoloWeightFree = totalWeightHolo[R @@ bracketHolo];
-bracketAntiHoloWeightFree = totalWeightAntiHolo[R @@ bracketAntiHolo];
-
-(*Collapse the free multi-local operator via OPE*)
-{OPEHolo, OPEAntiHolo} = CollapseFree[bracketHolo, bracketAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo];
-
-If[bracketInteracting === MultiOp[],
-(*When there is no interacting sector, perform the level projection on each holomorphic/antiholomorphic sector separately*)
-{insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree, bracketAntiHoloWeightFree};
-
-{projectedOPEHolo, projectedOPEAntiHolo} = 
-{projectHolo[OPEHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo], projectAntiHolo[OPEAntiHolo, weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo]};
-
-Sow[{prefac R[projectedOPEHolo, projectedOPEAntiHolo]}],
-
-(*Collapse the interacting multi-local operator, assuming generic OPE, but boudedness of weight by 0 from below i.e. most singular term comes from the identity*)
-bracketHoloWeightInteracting = totalWeightHolo[Interacting @@ bracketInteracting];
-bracketAntiHoloWeightInteracting = totalWeightAntiHolo[Interacting @@ bracketInteracting];
-OPEInteracting = OPE @@ bracketInteracting;
-OPEInteractingSingular = CollapseInteracting[OPEInteracting, \[Epsilon]Holo, \[Epsilon]AntiHolo, bracketHoloWeightInteracting, bracketAntiHoloWeightInteracting];
-
-(*Perform the level projection on both holomorphic and antiholomorphic sector together*)
-{insertionWeightHolo, insertionWeightAntiHolo} = {bracketHoloWeightFree + bracketHoloWeightInteracting, bracketAntiHoloWeightFree + bracketAntiHoloWeightInteracting};
-
-projectedOPE = projectOPE[OPEHolo, OPEAntiHolo, weightHolo - insertionWeightHolo, \[Epsilon]Holo,  weightAntiHolo - insertionWeightAntiHolo, \[Epsilon]AntiHolo,
- bracketHoloWeightInteracting + bracketAntiHoloWeightInteracting, OPEInteracting, OPEInteractingSingular];
-Sow[{prefac projectedOPE}];
+prefac = extractPrefacFromMultiOpTimesConstant[bracketTerm];
+localOps = extractListFromMultiOpTimesConstant[bracketTerm];
+(* Detect fields that are simultaneously holo/anti-holo and can be split into chiral factors. *)
+dualChiralOps = Flatten[(extractListFromRTimesConstant /@ Select[localOps, RTestUpToConstant]), 1];
+dualChiralOps = Select[dualChiralOps, isHolomorphic[Head[#]] && isAntiHolomorphic[Head[#]] &];
+If[dualChiralOps =!= {} && AllTrue[dualChiralOps, isFactorizable[Head[#]] &],
+(* Fast path: factorize first and project each chiral sector separately. *)
+{bracketHolo, bracketAntiHolo, factorizationPrefac} = factorizeMultiOp[MultiOp @@ localOps];
+holoLocalOps = Select[List @@ bracketHolo, RTest];
+antiLocalOps = Select[List @@ bracketAntiHolo, RTest];
+insertionWeightHolo = Total[totalWeightHolo /@ holoLocalOps];
+insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ antiLocalOps];
+projectedHolo = If[holoLocalOps === {}, If[weightHolo - insertionWeightHolo === 0, 1, 0], OPEProjectedHolo[weightHolo - insertionWeightHolo] @@ holoLocalOps];
+projectedAntiHolo = If[antiLocalOps === {}, If[weightAntiHolo - insertionWeightAntiHolo === 0, 1, 0], OPEProjectedAntiHolo[weightAntiHolo - insertionWeightAntiHolo] @@ antiLocalOps];
+projectedOPE = factorizationPrefac Which[
+  projectedHolo === 0 || projectedAntiHolo === 0, 0,
+  projectedHolo === 1, projectedAntiHolo,
+  projectedAntiHolo === 1, projectedHolo,
+  True, R[projectedHolo, projectedAntiHolo]
+],
+(* Generic path: project without explicit chiral pre-factorization. *)
+insertionWeightHolo = Total[totalWeightHolo /@ localOps];
+insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ localOps];
+projectedOPE = OPEProjected[weightHolo - insertionWeightHolo, weightAntiHolo - insertionWeightAntiHolo] @@ localOps
 ];
+Sow[{prefac projectedOPE}];
 
 ],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]]
 [[2]][[1,1,1]];

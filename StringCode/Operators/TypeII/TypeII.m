@@ -11,6 +11,7 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
+Needs["StringCode`Operators`"];
 
 
 (* ::Section:: *)
@@ -26,17 +27,17 @@ Begin["Private`"];
 
 
 (* ::Subsection:: *)
-(*Compute total picture of holomorphic operator;*)
+(*Compute total picture of multilocal operator*)
 
 
 totalHolPicture::usage = "Computes total holomorphic picture";
 totalAntiHolPicture::usage = "Computes total antiholomorphic picture";
 
-totalHolPicture[Oa_/;OpTest[Oa]]:= Join[Map[pictureHol, List @@ Oa[[1]]], pictureHol @@ Oa[[2]]]//Total;
-totalHolPicture[Times[a_, Oa_/;OpTest[Oa]]] := totalHolPicture[Oa];
+totalHolPicture[Ma_/;MultiOpTest[Ma]]:= Total[Map[totalHolPicture, List @@ Ma]];
+totalHolPicture[Times[a_, Ma_/;MultiOpTest[Ma]]] := totalHolPicture[Ma];
 
-totalAntiHolPicture[Oa_/;OpTest[Oa]]:= Join[Map[pictureAntiHol, List @@ Oa[[1]]], pictureAntiHol @@ Oa[[2]]]//Total;
-totalAntiHolPicture[Times[a_, Oa_/;OpTest[Oa]]] := totalAntiHolPicture[Oa];
+totalAntiHolPicture[Ma_/;MultiOpTest[Ma]]:= Total[Map[totalAntiHolPicture, List @@ Ma]];
+totalAntiHolPicture[Times[a_, Ma_/;MultiOpTest[Ma]]] := totalAntiHolPicture[Ma];
 
 
 (* ::Section:: *)

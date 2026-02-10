@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# Bosonic OPE Theory-Level Tests\n\nCFT-independent tests (ghost sector + generic OPEProjection properties).",
+   "value": "# TypeII FlatSpace OPE Tests\n\nCFT-specific tests (matter fermion sector).",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -10,14 +10,14 @@
   },
   {
    "kind": 2,
-   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673634433,
-     "endTime": 1770673634711
+     "startTime": 1770673655668,
+     "endTime": 1770673655919
     },
     "executionOrder": 1,
     "success": true
@@ -25,21 +25,21 @@
   },
   {
    "kind": 2,
-   "value": "test1 = Wick[b[0, z], c[0, w]];\nexpected1 = 1/(z - w);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (b-c Wick): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "test1 = Wick[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]];\nexpected1 = -1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (psi-psi Wick): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 1 (b-c Wick): PASSED\n</pre>",
+       "data": "<pre>Test 1 (psi-psi Wick): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 1 (b-c Wick): PASSED\\n\"",
+       "data": "\"Test 1 (psi-psi Wick): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "c89180db-6755-4b6a-9b9c-682b38277a4d",
+     "id": "94bd9abc-3dcc-41b1-ada1-5f3bb4afee40",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -56,7 +56,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "b7369007-6bf6-4291-ac00-3044a6e2fcbe",
+     "id": "2e3f7895-6b21-4b9d-95aa-fdef5d4371ec",
      "metadata": {
       "cellLabel": "Out[7]= ",
       "isBoxData": false
@@ -66,8 +66,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673634711,
-     "endTime": 1770673635116
+     "startTime": 1770673655919,
+     "endTime": 1770673656352
     },
     "executionOrder": 3,
     "success": true
@@ -75,21 +75,21 @@
   },
   {
    "kind": 2,
-   "value": "test2 = OPE[R[b[0, z]], R[c[0, w]]];\nexpected2 = R[b[0, z], c[0, w]] + 1/(z - w);\ntest2Result = Simplify[test2 - expected2] === 0;\nPrint[\"Test 2 (OPE b-c): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "value": "test2 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\nexpected2 = R[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]] - 1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest2Result = Simplify[test2 - expected2] === 0;\nPrint[\"Test 2 (OPE psi-psi): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 2 (OPE b-c): PASSED\n</pre>",
+       "data": "<pre>Test 2 (OPE psi-psi): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 2 (OPE b-c): PASSED\\n\"",
+       "data": "\"Test 2 (OPE psi-psi): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "f1517e31-5e90-4cc5-ab4f-c966774fe1bd",
+     "id": "56a02c71-5c02-46ac-a6ab-d5837041a285",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -106,7 +106,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "74795e19-8288-4882-bff8-07f1cd9487f3",
+     "id": "d25e312a-f9eb-4355-82a6-aca019b1ae88",
      "metadata": {
       "cellLabel": "Out[12]= ",
       "isBoxData": false
@@ -116,8 +116,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635117,
-     "endTime": 1770673635525
+     "startTime": 1770673656352,
+     "endTime": 1770673656753
     },
     "executionOrder": 8,
     "success": true
@@ -125,21 +125,21 @@
   },
   {
    "kind": 2,
-   "value": "test3a = R[b[0, z], c[0, w]];\ntest3b = R[c[0, w], b[0, z]];\ntest3Result = Simplify[test3a + test3b] === 0;\nPrint[\"Test 3 (R[b,c] = -R[c,b]): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "value": "test3 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Eta][0, w]]];\nexpected3 = R[\\[Psi][\\[Mu], 0, z], \\[Eta][0, w]];\ntest3Result = Simplify[test3 - expected3] === 0;\nPrint[\"Test 3 (psi-eta no contraction): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 3 (R[b,c] = -R[c,b]): PASSED\n</pre>",
+       "data": "<pre>Test 3 (psi-eta no contraction): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 3 (R[b,c] = -R[c,b]): PASSED\\n\"",
+       "data": "\"Test 3 (psi-eta no contraction): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "3452199f-22a3-44aa-b4df-4edc21a7f0e7",
+     "id": "26ce65bf-79f4-40ce-a279-17a8b96c58d4",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -156,7 +156,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "18261b4e-991c-45b6-944e-1a464e21fe53",
+     "id": "62e40100-c644-43bd-b5e7-c559799b7e6c",
      "metadata": {
       "cellLabel": "Out[17]= ",
       "isBoxData": false
@@ -166,8 +166,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635525,
-     "endTime": 1770673635926
+     "startTime": 1770673656753,
+     "endTime": 1770673657154
     },
     "executionOrder": 13,
     "success": true
@@ -175,21 +175,21 @@
   },
   {
    "kind": 2,
-   "value": "test4 = OPE[R[c[0, z]], R[c[0, w], b[0, w]]];\ntest4Result = Not[FreeQ[test4, 1/(w - z)]] || Not[FreeQ[test4, 1/(z - w)]];\nPrint[\"Test 4 (composite OPE singularity): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "value": "test4 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[d\\[Phi][0, w]]];\nexpected4 = R[\\[Psi][\\[Mu], 0, z], d\\[Phi][0, w]];\ntest4Result = Simplify[test4 - expected4] === 0;\nPrint[\"Test 4 (psi-dphi no contraction): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 4 (composite OPE singularity): PASSED\n</pre>",
+       "data": "<pre>Test 4 (psi-dphi no contraction): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 4 (composite OPE singularity): PASSED\\n\"",
+       "data": "\"Test 4 (psi-dphi no contraction): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "2279e511-f8cc-474b-9ff6-680ca92e7f9e",
+     "id": "c6366890-cc93-4ae3-90f9-450fa41349c6",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -206,9 +206,9 @@
        "mime": "text/plain"
       }
      ],
-     "id": "6d2d7c6e-1c9c-424f-b418-dbe5052948da",
+     "id": "2de45d77-e75f-4020-9582-f89d6baffaff",
      "metadata": {
-      "cellLabel": "Out[21]= ",
+      "cellLabel": "Out[22]= ",
       "isBoxData": false
      }
     }
@@ -216,8 +216,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673635926,
-     "endTime": 1770673636270
+     "startTime": 1770673657154,
+     "endTime": 1770673657555
     },
     "executionOrder": 18,
     "success": true
@@ -225,7 +225,7 @@
   },
   {
    "kind": 1,
-   "value": "## OPEProjection API",
+   "value": "## OPEProjection in FlatSpace",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -233,21 +233,21 @@
   },
   {
    "kind": 2,
-   "value": "lhs5 = OPEProjected[0, 0][R[b[0, z]] + R[c[0, z]], R[c[0, w]]];\nrhs5 = OPEProjected[0, 0][R[b[0, z]], R[c[0, w]]] + OPEProjected[0, 0][R[c[0, z]], R[c[0, w]]];\ntest5Result = Simplify[lhs5 - rhs5] === 0;\nPrint[\"Test 5 (projection linearity): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "value": "expr5 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\ntest5Result = Not[FreeQ[expr5, \\[Delta][\\[Mu], \\[Nu]]]];\nPrint[\"Test 5 (projection psi-psi contains delta): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 5 (projection linearity): PASSED\n</pre>",
+       "data": "<pre>Test 5 (projection psi-psi contains delta): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 5 (projection linearity): PASSED\\n\"",
+       "data": "\"Test 5 (projection psi-psi contains delta): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "f723877f-9cc0-405f-a8a7-74660f6e002a",
+     "id": "2d57e549-93e9-4200-8b2a-814a24466ad9",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -264,7 +264,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "d4704919-d26c-448b-95bf-a5c4354eeb9d",
+     "id": "5c99c815-8c6a-4f53-a7b6-ab0d651f1261",
      "metadata": {
       "cellLabel": "Out[26]= ",
       "isBoxData": false
@@ -274,30 +274,30 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673636270,
-     "endTime": 1770673636673
+     "startTime": 1770673657555,
+     "endTime": 1770673657899
     },
-    "executionOrder": 22,
+    "executionOrder": 23,
     "success": true
    }
   },
   {
    "kind": 2,
-   "value": "lhs6 = OPEProjected[0, 0][3 R[b[0, z]], R[c[0, w]]];\nrhs6 = 3 OPEProjected[0, 0][R[b[0, z]], R[c[0, w]]];\ntest6Result = Simplify[lhs6 - rhs6] === 0;\nPrint[\"Test 6 (projection scalar extraction): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "value": "lhs6 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]] + R[\\[Psi][\\[Rho], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\nrhs6 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]] + OPEProjected[0, 0][R[\\[Psi][\\[Rho], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\ntest6Result = Simplify[lhs6 - rhs6] === 0;\nPrint[\"Test 6 (projection linearity): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>Test 6 (projection scalar extraction): PASSED\n</pre>",
+       "data": "<pre>Test 6 (projection linearity): PASSED\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Test 6 (projection scalar extraction): PASSED\\n\"",
+       "data": "\"Test 6 (projection linearity): PASSED\\n\"",
        "mime": "text/plain"
       }
      ],
-     "id": "4ce00b4f-7ac7-454b-b988-6daef7d3a645",
+     "id": "aa3c5751-f024-405c-b952-469fd4e2d01a",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -314,7 +314,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "42adc301-c8bc-4db2-825c-8db3c3842eaf",
+     "id": "96188a24-7a9e-4aee-ab1d-a182268fafc9",
      "metadata": {
       "cellLabel": "Out[31]= ",
       "isBoxData": false
@@ -324,8 +324,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673636673,
-     "endTime": 1770673637076
+     "startTime": 1770673657899,
+     "endTime": 1770673658304
     },
     "executionOrder": 27,
     "success": true
@@ -347,7 +347,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "a3cda4a5-e0ba-4eb8-9b86-09f5ca8a5906",
+     "id": "fa965901-3a64-4146-90e5-d6cd6ee27cbf",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -364,7 +364,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "dc225ca7-e0dd-48de-afdf-86a47a05d485",
+     "id": "8adde5ee-9746-433e-972d-6bc5413b46ce",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -381,7 +381,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "8e61f5a7-acb4-4687-bd9e-943a7a86acf5",
+     "id": "2f3e1d2c-d6c6-4b37-bbdc-285c31a969f4",
      "metadata": {
       "cellLabel": "",
       "isBoxData": false
@@ -398,7 +398,7 @@
        "mime": "text/plain"
       }
      ],
-     "id": "ec7dfc48-016e-4272-a5c5-b9d9d98fa312",
+     "id": "73a9b439-4460-4efa-865c-8bd2a582631e",
      "metadata": {
       "cellLabel": "Out[38]= ",
       "isBoxData": false
@@ -408,8 +408,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1770673637077,
-     "endTime": 1770673637667
+     "startTime": 1770673658305,
+     "endTime": 1770673658897
     },
     "executionOrder": 32,
     "success": true

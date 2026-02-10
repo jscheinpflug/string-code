@@ -6,7 +6,6 @@
 
 BeginPackage["StringCode`Taylor`"];
 Needs["StringCode`Symbols`"];
-Needs["StringCode`OPE`"];
 Needs["StringCode`Wick`"];
 Needs["StringCode`NormalOrdering`"];
 
@@ -111,15 +110,18 @@ TaylorAtOrder[0, ord1_, ord2_, z0_, z0bar_]:= 0;
 TaylorAtOrderHolo[0, ord_, z0_]:= 0;
 TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
+(* Scalars (no local fields) are constant under Taylor expansion. *)
+TaylorAtOrderHolo[a_, 0, z0_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrderHolo[a_, ord_ /; ord > 0, z0_] := 0 /; (And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrderAntiHolo[a_, 0, z0bar_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrderAntiHolo[a_, ord_ /; ord > 0, z0bar_] := 0 /; (And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrder[a_, 0, 0, z0_, z0bar_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrder[a_, ordHolo_, ordAntiHolo_, z0_, z0bar_] := 0 /; ((ordHolo > 0 || ordAntiHolo > 0) && And @@ (FreeQ[a, #] & /@ allfields));
+
 
 (*Taylor to zeroth order preserves the input*)
 TaylorAtOrderHolo[Ra_/;RTest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
 TaylorAtOrderAntiHolo[Ra_/;RTest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
-
-TaylorAtOrderHolo[a_/;Head[a]==OPE,0,z0_]:= 1;
-TaylorAtOrderHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
-TaylorAtOrderAntiHolo[a_/;Head[a]==OPE,0,z0_]:= 1;
-TaylorAtOrderAntiHolo[a_/;Head[a]==OPE,b_/;b>0,z0_]:= 0;
 
 
 (* ::Subsubsection:: *)

@@ -67,8 +67,12 @@ holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, Profil
 antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, \[Psi]t}];
 indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
 allfields=Join[bosons,fermions];
-interactingOperators = Join[interactingOperators, {}];
-allOperators = Join[allfields, interactingOperators];
+collapsable = Join[collapsable, {dX, dXt, expX, expXHolo, expXAntiHolo, ProfileX, ProfileXHolo, ProfileXAntiHolo}];
+factorizable = Join[factorizable, {expX, ProfileX}];
+factorizationReplacement = Join[factorizationReplacement, {
+  ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]},
+  expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}
+}];
 
 
 (* ::Subsection:: *)

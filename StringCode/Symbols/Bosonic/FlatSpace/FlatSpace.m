@@ -60,9 +60,13 @@ compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX
 holomorphicFields = Join[holomorphicFields, {ProfileX, expX, ProfileXHolo, dX,expXHolo}];
 antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, ProfileXAntiHolo, dXt, expXAntiHolo}];
 indexedFields = Join[indexedFields, {dX, dXt}];
-allfields=Join[simplefields, compositefields];
-interactingOperators = Join[interactingOperators, {}];
-allOperators = Join[allfields, interactingOperators];
+allfields=Join[bosons,fermions];
+collapsable = Join[collapsable, {dX, dXt, expX, expXHolo, expXAntiHolo, ProfileX, ProfileXHolo, ProfileXAntiHolo}];
+factorizable = Join[factorizable, {expX, ProfileX}];
+factorizationReplacement = Join[factorizationReplacement, {
+  ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]},
+  expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}
+}];
 
 
 (* ::Subsection:: *)

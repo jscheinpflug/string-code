@@ -41,15 +41,16 @@ Switch[CFTValue,
 Switch[theoryValue,
 "TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`StringFields`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
-AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"],
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
-AppendTo[userContext, "StringCode`StringFields`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"];
-AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"],
+AppendTo[userContext, "StringCode`StringFields`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"]; 
+AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; 
+AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"],
 _, Print["No such CFT for theory ", theoryValue]
 ],
 "MinimalModel", If[theoryValue == "Bosonic", AppendTo[userContext, "StringCode`Symbols`Bosonic`MinimalModel`"];
  AppendTo[userContext, "StringCode`Taylor`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`StringFields`Bosonic`MinimalModel`"];
- AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`TeXConversion`Bosonic`MinimalModel`"],
+ AppendTo[userContext, "StringCode`OPE`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`TeXConversion`Bosonic`MinimalModel`"],
  Print["No such CFT for theory ", theoryValue]],
 _, Print["There are no such CFTs"]];
 

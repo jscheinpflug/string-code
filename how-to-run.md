@@ -28,3 +28,13 @@
   - `node -e "JSON.parse(require('fs').readFileSync('path/to/file.test.wlnb','utf8'))"`
 - Fast targeted repro:
   - `math -noprompt -run 'Needs["StringCode`"]; StringCode`InitStringCode[...]; Print[testExpr]; Exit[]'`
+
+## Observed issues while running this repo
+- Non-exported/internal symbols can silently bind to `Global\`` in headless checks and then stay unevaluated.
+  - Build expressions only after `Needs[...]`/`InitStringCode[...]`.
+  - Sanity-check symbol binding with `Context[sym]` and `Length[DownValues[sym]]`.
+  - Prefer public exported APIs for tests; use internal symbols only for targeted diagnostics.
+- The package uses a shared `Private\`` context across modules (by design here), so `StringCode\`...\`Private\`foo` may not resolve as expected in isolation. Use `Private\`foo` once the relevant package is loaded.
+- In sandboxed/headless environments you may see:
+  - `OMP: Warning #179: Function Can't set size of SHM failed:`
+  - This did not affect symbolic test results in practice; treat it as environment noise unless computations fail.

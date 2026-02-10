@@ -28,13 +28,6 @@ indexedFields::usage = "A list of fields that carry indices";
 
 allfields::usage = "A list of all bosons and fermions";
 
-
-interactingOperators::usage = "A list of all interacting primary operators";
-
-
-allOperators::usage = "A combined list of allfields and interactingOperators";
-
-
 regfermions::usage = "A list of fundamental fermions";
 
 
@@ -45,6 +38,18 @@ simplefieldsnotc::usage = "A list of fundamental fields not c-ghost";
 
 
 compositefields::usage = "A list of composite fields";
+
+collapsable::usage = "A list of fields whose OPE is computed via Wick contractions";
+
+isCollapsable::usage = "Checks if is collapsable field";
+
+factorizable::usage = "A list of fields that can be factorized into holomorphic/antiholomorphic components";
+
+isFactorizable::usage = "Checks if a field is factorizable";
+
+factorizationReplacement::usage = "Replacement rules used to factorize operators into holomorphic/antiholomorphic tuples";
+
+factorizeOperator::usage = "Factorizes an operator into a tuple {holoPart, antiHoloPart} if it is both holomorphic and antiholomorphic and marked as factorizable";
 
 
 Contract::usage = "Contract traced indices";
@@ -78,13 +83,6 @@ isComposite::usage = "Checks if is composite field";
 
 
 isField::usage = "Checks if is field";
-
-
-isInteracting::usage = "Checks if is interacting";
-
-
-isOperator::usage = "Checks if is operator";
-
 
 isHolomorphic::usage = "Checks if is holomorphic";
 
@@ -127,8 +125,9 @@ holomorphicFields = {b,c};
 antiHolomorphicFields = {bt,ct};
 indexedFields = {};
 allfields=Join[bosons,fermions];
-interactingOperators = {};
-allOperators = Join[allfields, interactingOperators];
+collapsable = {b,bt,c,ct};
+factorizable = {};
+factorizationReplacement = {};
 
 
 (* ::Subsection:: *)
@@ -142,9 +141,16 @@ isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
 isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
 isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
 isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
-isInteracting[symbol_]:= isInteracting[symbol] = MemberQ[interactingOperators, symbol];
-isOperator[symbol_]:= isOperator[symbol] = MemberQ[allOperators, symbol];
 isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
+isCollapsable[symbol_]:= isCollapsable[symbol] = MemberQ[collapsable, symbol];
+isFactorizable[symbol_]:= isFactorizable[symbol] = MemberQ[factorizable, symbol];
+
+factorizeOperator[op_] := Module[{symbol = Head[op]},
+  If[isHolomorphic[symbol] && isAntiHolomorphic[symbol] && isFactorizable[symbol],
+    op /. factorizationReplacement,
+    op
+  ]
+];
 
 
 (* ::Subsection:: *)
@@ -180,9 +186,7 @@ weightSymbolHolo[b] := 2;
 
 weightHolo[field_/;(!isHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolHolo[Head[field]] + field[[2]];
-weightHolo[field_/; isInteracting[Head[field]] && isIndexed[Head[field]]] := weightSymbolHolo[Head[field]] + field[[2]];
 weightHolo[field_/; isSimple[Head[field]]] := weightSymbolHolo[Head[field]] + field[[1]];
-weightHolo[field_/; isInteracting[Head[field]]] := weightSymbolHolo[Head[field]] + field[[1]];
 
 weightSymbolAntiHolo[symbol_/;(!isAntiHolomorphic[symbol] && isField[symbol])] := 0;
 weightSymbolAntiHolo[ct] := - 1;
@@ -190,9 +194,7 @@ weightSymbolAntiHolo[bt] := 2;
 
 weightAntiHolo[field_/;(!isAntiHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightAntiHolo[field_/; isSimple[Head[field]] && isIndexed[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[2]];
-weightAntiHolo[field_/; isInteracting[Head[field]] && isIndexed[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[3]];
 weightAntiHolo[field_/; isSimple[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[1]];
-weightAntiHolo[field_/; isInteracting[Head[field]]] := weightSymbolAntiHolo[Head[field]] + field[[2]];
 
 
 (* ::Section:: *)

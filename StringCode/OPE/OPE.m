@@ -8,6 +8,8 @@ BeginPackage["StringCode`OPE`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Wick`"];
+Needs["StringCode`Taylor`"];
+Needs["StringCode`StringFields`"];
 
 
 (* ::Section:: *)
@@ -15,6 +17,9 @@ Needs["StringCode`Wick`"];
 
 
 OPE::usage = "Computes the operator product expansion";
+OPEProjected::usage = "Projects an OPE of local operators onto a given holomorphic/antiholomorphic weight";
+OPEProjectedHolo::usage = "Projects an OPE of local operators onto a given holomorphic weight";
+OPEProjectedAntiHolo::usage = "Projects an OPE of local operators onto a given antiholomorphic weight";
 
 
 (* ::Section:: *)
@@ -22,6 +27,18 @@ OPE::usage = "Computes the operator product expansion";
 
 
 Begin["Private`"];
+
+containsFieldQ[expr_] := !FreeQ[expr, _?(MemberQ[allfields, Head[#]] &)];
+
+projectionExponentReplacement = {};
+
+normalizeScalingParameter[expr_, parameter_] := FixedPoint[
+  ReplaceAll[#, {
+    s_Plus /; AllTrue[List @@ s, MatchQ[#, parameter*__] &] :>
+      parameter Total[(# / parameter) & /@ (List @@ s)]
+  }] &,
+  expr
+];
 
 
 (* ::Subsection:: *)
@@ -31,11 +48,11 @@ Begin["Private`"];
 OPE[a___,0,b___]:=0
 
 (*Multilinearity of OPE*)
-OPE[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allOperators))||(And @@(FreeQ[g,#]&/@ allOperators)))
+OPE[f_,g_]:=f g/;(!containsFieldQ[f] || !containsFieldQ[g])
 OPE[a_+b_,c_]:=OPE[a,c]+OPE[b,c]
 OPE[c_,a_+b_]:=OPE[c,a]+OPE[c,b]
-OPE[a_ b_,c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allOperators))
-OPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allOperators))
+OPE[a_ b_,c_]:=a OPE[b,c]/;(!containsFieldQ[a])
+OPE[ b_,a_ c_]:=a OPE[b,c]/;(!containsFieldQ[a])
 
 
 (*Nested OPE*)
@@ -47,29 +64,224 @@ OPE[a___/;RTest[a]]:=R[a]
 
 
 (* ::Subsection:: *)
+(*Split fields into collapsable/non-collapsable pieces*)
+
+
+splitCollapsable[Ra_/;RTest[Ra]] := Module[
+  {ops = List @@ Ra, collPositions, restPositions, sign = 1},
+  collPositions = Flatten @ Position[ops, op_ /; isCollapsable[Head[op]]];
+  restPositions = Complement[Range[Length[ops]], collPositions];
+
+  Do[
+    If[restPos < collPos, sign = sign regcomm[ops[[collPos]], ops[[restPos]]]],
+    {collPos, collPositions},
+    {restPos, restPositions}
+  ];
+
+  {
+    If[collPositions === {}, 1, R @@ ops[[collPositions]]],
+    If[restPositions === {}, 1, R @@ ops[[restPositions]]],
+    sign
+  }
+];
+
+hasCollapsable[Ra_/;RTest[Ra]] := AnyTrue[List @@ Ra, isCollapsable[Head[#]] &];
+
+multiplyFactors[a_, b_] := Which[
+  a === 0 || b === 0, 0,
+  a === 1, b,
+  b === 1, a,
+  True, R[a, b]
+];
+
+
+(* ::Subsection:: *)
 (*Define OPE of free fields by repeated moving of fields under a common normal ordering*)
 
 
+(*When collapsable fields appear only on one side, use Wick recursion directly to preserve operator order/signs*)
+OPE[Ra_, Rb_] := OPEWick[Ra, Rb] /; (RTest[Ra] && RTest[Rb] && Xor[hasCollapsable[Ra], hasCollapsable[Rb]]);
+
+
+(*When collapsable fields are present, compute that sector via Wick and keep the rest symbolic*)
+OPE[Ra_, Rb_] := Module[{collA, restA, signA, collB, restB, signB, opeColl, opeRest},
+  {collA, restA, signA} = splitCollapsable[Ra];
+  {collB, restB, signB} = splitCollapsable[Rb];
+
+  opeColl = Which[
+    collA === 1 && collB === 1, 1,
+    collA === 1, collB,
+    collB === 1, collA,
+    True, OPEWick[collA, collB]
+  ];
+
+  opeRest = Which[
+    restA === 1 && restB === 1, 1,
+    restA === 1, restB,
+    restB === 1, restA,
+    True, OPE[restA, restB]
+  ];
+
+  signA signB multiplyFactors[opeColl, opeRest]
+] /; (RTest[Ra] && RTest[Rb] && hasCollapsable[Ra] && hasCollapsable[Rb]);
+
+
 (*When both normal-ordered products have length one, OPE reduces to Wick contraction + possible normal ordering*)
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+OPEWick[a___,0,b___]:=0;
+OPEWick[a_+b_,c_]:=OPEWick[a,c]+OPEWick[b,c];
+OPEWick[c_,a_+b_]:=OPEWick[c,a]+OPEWick[c,b];
+OPEWick[a_ b_,c_]:=a OPEWick[b,c]/;(!containsFieldQ[a]);
+OPEWick[b_,a_ c_]:=a OPEWick[b,c]/;(!containsFieldQ[a]);
+
+OPEWick[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+OPEWick[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
+OPEWick[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
+OPEWick[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
 
 (*When first normal-ordered product has one simple element, compute DWick and add a non-contracted term*)
-OPE[Ra_,Rb_]:= DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(ROne[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
+OPEWick[Ra_,Rb_]:= DWick[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(ROne[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
 
 (*When first normal-ordered product has one composite element, compute DWick*)
-OPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(ROne[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
+OPEWick[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(ROne[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
 
 (*When the first element of Ra is simple, commute it through, then compute DWick with Rb, add a non-contracted term, continue with OPE of other terms in Ra*)
-OPE[Ra_,Rb_]:=(-1)^(parity[dropFirstFromR[Ra]]parity[R[Ra[[1]]]]) OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]] +
-R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isSimple[Head[Ra[[1]]]]) 
+OPEWick[Ra_,Rb_]:=(-1)^(parity[dropFirstFromR[Ra]]parity[R[Ra[[1]]]]) OPEWick[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]] +
+R[R[Ra[[1]]],OPEWick[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isSimple[Head[Ra[[1]]]])
 
 (*When the first element of Ra is composite, commute it through, then compute DWick with Rb, commute it back [producing no net sign], 
   and continue with OPE of other terms in Ra*)
-OPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isComposite[Head[Ra[[1]]]] )
+OPEWick[Ra_,Rb_]:=R[R[Ra[[1]]],OPEWick[dropFirstFromR[Ra],DWick[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isComposite[Head[Ra[[1]]]] )
+
+
+(* ::Subsection:: *)
+(*Projection helpers*)
+
+
+rescalePositionBy[rescalingFactor_][op_/;isField[Head[op]] && isHolomorphic[Head[op]] && isAntiHolomorphic[Head[op]]] :=
+Module[{args = List @@ op, h = Head[op]}, h @@ Join[Drop[args, -2], rescalingFactor Take[args, -2]]];
+
+rescalePositionBy[rescalingFactor_][op_/;isField[Head[op]]] :=
+Module[{args = List @@ op, h = Head[op]}, h @@ Join[Drop[args, -1], {rescalingFactor Last[args]}]];
+
+rescaleR[rescalingFactor_][Ra_/;RTest[Ra]] := R @@ (rescalePositionBy[rescalingFactor] /@ (List @@ Ra));
+
+opeOfRList[rList_] := Which[
+  rList === {}, 1,
+  Length[rList] === 1, First[rList],
+  True, OPE @@ rList
+];
+
+projectHolo[OPEexpr_, weight_, weightCountingParameter_] := Module[
+  {result = 0, power, expansionOrder, OPEexpanded = Expand[OPEexpr], OPEterms, scaledTerm},
+  If[OPEexpr === 1, Return[If[weight === 0, 1, 0]]];
+  OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
+  Scan[Function[OPEterm,
+    scaledTerm = normalizeScalingParameter[OPEterm, weightCountingParameter];
+    power = Exponent[scaledTerm, weightCountingParameter] /. projectionExponentReplacement;
+    expansionOrder = -power + weight;
+    If[IntegerQ[expansionOrder] && expansionOrder >= 0, result = result + TaylorAtOrderHolo[scaledTerm, expansionOrder, 0]];
+  ], OPEterms];
+  result /. {weightCountingParameter -> 1}
+];
+
+projectAntiHolo[OPEexpr_, weight_, weightCountingParameter_] := Module[
+  {result = 0, power, expansionOrder, OPEexpanded = Expand[OPEexpr], OPEterms, scaledTerm},
+  If[OPEexpr === 1, Return[If[weight === 0, 1, 0]]];
+  OPEterms = If[Head[OPEexpanded] === Plus, List @@ OPEexpanded, {OPEexpanded}];
+  Scan[Function[OPEterm,
+    scaledTerm = normalizeScalingParameter[OPEterm, weightCountingParameter];
+    power = Exponent[scaledTerm, weightCountingParameter] /. projectionExponentReplacement;
+    expansionOrder = -power + weight;
+    If[IntegerQ[expansionOrder] && expansionOrder >= 0, result = result + TaylorAtOrderAntiHolo[scaledTerm, expansionOrder, 0]];
+  ], OPEterms];
+  result /. {weightCountingParameter -> 1}
+];
+
+factorizeForChiralSplit[operatorList_List] := Module[{factorized},
+  factorized = factorizeOperator /@ operatorList;
+  Flatten[
+    (factorized /. {
+      {holoPart_, antiHoloPart_} :> {holoPart, antiHoloPart},
+      Ra_ /; RTest[Ra] :> List @@ Ra
+    }),
+    1
+  ]
+];
+
+combineChiral[a_, b_] := Which[
+  a === 0 || b === 0, 0,
+  a === 1, b,
+  b === 1, a,
+  True, R[a, b]
+];
+
+
+(* ::Subsection:: *)
+(*Projected OPE API*)
+
+
+OPEProjected[wH_, wA_][a___, 0, b___] := 0;
+OPEProjected[wH_, wA_][a___, x_ + y_, b___] := OPEProjected[wH, wA][a, x, b] + OPEProjected[wH, wA][a, y, b];
+OPEProjected[wH_, wA_][a___, c_ x_, b___] := c OPEProjected[wH, wA][a, x, b] /; (!containsFieldQ[c]);
+
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+  {
+    collPieces, collR, restR, collLists, splitLists, sign, holoOps, antiOps,
+    \[Epsilon]Holo, \[Epsilon]AntiHolo, projectedHolo, projectedAntiHolo, freeProjected, restProjected
+  },
+
+  collPieces = splitCollapsable /@ {Ra};
+  collR = Select[collPieces[[All, 1]], # =!= 1 &];
+  restR = Select[collPieces[[All, 2]], # =!= 1 &];
+
+  collLists = factorizeForChiralSplit /@ (List @@ # & /@ collR);
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ collLists;
+
+  sign = If[Flatten[collLists] === {}, 1,
+    factorizationSign[Flatten[collLists], isHolomorphic, isAntiHolomorphic]
+  ];
+
+  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
+  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+
+  projectedHolo = projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps], wH, \[Epsilon]Holo];
+  projectedAntiHolo = projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps], wA, \[Epsilon]AntiHolo];
+
+  freeProjected = sign combineChiral[projectedHolo, projectedAntiHolo];
+  restProjected = If[restR === {}, 1, opeOfRList[restR]];
+  multiplyFactors[freeProjected, restProjected]
+];
+
+OPEProjectedHolo[wH_][a___, 0, b___] := 0;
+OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OPEProjectedHolo[wH][a, y, b];
+OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
+
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+  {collPieces, collR, restR, \[Epsilon]Holo, projectedHolo, restProjected},
+  collPieces = splitCollapsable /@ {Ra};
+  collR = Select[collPieces[[All, 1]], # =!= 1 &];
+  restR = Select[collPieces[[All, 2]], # =!= 1 &];
+  projectedHolo = projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR], wH, \[Epsilon]Holo];
+  restProjected = If[restR === {}, 1, opeOfRList[restR]];
+  multiplyFactors[projectedHolo, restProjected]
+];
+
+
+OPEProjectedAntiHolo[wA_][a___, 0, b___] := 0;
+OPEProjectedAntiHolo[wA_][a___, x_ + y_, b___] := OPEProjectedAntiHolo[wA][a, x, b] + OPEProjectedAntiHolo[wA][a, y, b];
+OPEProjectedAntiHolo[wA_][a___, c_ x_, b___] := c OPEProjectedAntiHolo[wA][a, x, b] /; (!containsFieldQ[c]);
+
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+  {collPieces, collR, restR, \[Epsilon]AntiHolo, projectedAntiHolo, restProjected},
+  collPieces = splitCollapsable /@ {Ra};
+  collR = Select[collPieces[[All, 1]], # =!= 1 &];
+  restR = Select[collPieces[[All, 2]], # =!= 1 &];
+  projectedAntiHolo = projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR], wA, \[Epsilon]AntiHolo];
+  restProjected = If[restR === {}, 1, opeOfRList[restR]];
+  multiplyFactors[projectedAntiHolo, restProjected]
+];
+
 
 
 (* ::Section:: *)

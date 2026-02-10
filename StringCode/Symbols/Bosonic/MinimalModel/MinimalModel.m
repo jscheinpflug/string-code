@@ -36,9 +36,7 @@ compositefields= Join[compositefields, {}];
 holomorphicFields = Join[holomorphicFields, {}];
 antiHolomorphicFields = Join[antiHolomorphicFields, {}];
 indexedFields = Join[indexedFields, {}];
-interactingOperators = Join[interactingOperators, {V}];
-allfields=Join[simplefields, compositefields];
-allOperators = Join[allfields, interactingOperators];
+allfields=Join[bosons,fermions];
 
 
 (* ::Subsection:: *)
@@ -47,6 +45,8 @@ allOperators = Join[allfields, interactingOperators];
 
 weightSymbolHolo[V] := 1;
 weightSymbolAntiHolo[V] := 1;
+weightHolo[V[nHolo_, nAntiHolo_, z_, zbar_]] := weightSymbolHolo[V] + nHolo;
+weightAntiHolo[V[nHolo_, nAntiHolo_, z_, zbar_]] := weightSymbolAntiHolo[V] + nAntiHolo;
 
 
 (* ::Section:: *)

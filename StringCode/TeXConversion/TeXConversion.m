@@ -51,8 +51,6 @@ formatPosition[z_, zbar_] := "(" <> mathToTeX[z] <> ", " <> mathToTeX[zbar] <> "
 (* Wrapper conversions *)
 ToTeX[Ra_/;RTest[Ra]] := ":" <> StringJoin[ToTeX /@ List @@ Ra] <> ":";
 ToTeX[SFa_/;SFTest[SFa]] := ToTeX @@ SFa;
-ToTeX[Opa_/;OpTest[Opa]] := StringJoin[ToTeX /@ List @@ Opa];
-ToTeX[Ia_/;InteractingTest[Ia]] := ToTeX @@ Ia;
 
 (* Ghost fields *)
 ToTeX[c[n_, z_]] := derivativePrefix[n, True] <> "c" <> formatPosition[z];

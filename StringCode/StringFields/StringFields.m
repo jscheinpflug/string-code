@@ -34,8 +34,8 @@ Begin["Private`"];
 SF[c___,b_,a_,d___]:=regcomm[a,b] SF[c,a,b,d]/;(!OrderedQ[{b,a}])
 SF[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 SF[c___,a_+b_,d___]:=SF[c,a,d]+SF[c,b,d]
-SF[c___,a_ f_,d___]:=a SF[c,f,d]/;(And @@(FreeQ[a,#]&/@ allOperators))
-SF[c___,a_ ,d___]:=a SF[c,d]/;(And @@(FreeQ[a,#]&/@ allOperators))
+SF[c___,a_ f_,d___]:=a SF[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+SF[c___,a_ ,d___]:=a SF[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
 SF[]:=1
 SF[a___,SF[b___],c___]:=SF[a,b,c]
 SF[g___,a_ f_,h___]:=SF[g,a,f,h]/;MemberQ[bosons,Head[a]]
@@ -59,20 +59,16 @@ mapOp::usage = "Map operator at a position";
 mapOp[coordinateHol_, coordinateAntiHol_][MultiOpa_/;MultiOpTest[MultiOpa]]:= 
 mapOp[coordinateHol, coordinateAntiHol] /@ MultiOpa;
 
-mapOp[coordinateHol_, coordinateAntiHol_][Opa_/;OpTest[Opa]]:=
-Op[mapOp[coordinateHol, coordinateAntiHol][Opa[[1]]], mapOp[coordinateHol, coordinateAntiHol][Opa[[2]]]];
-
 mapOp[coordinateHol_, coordinateAntiHol_][Ra_/;RTest[Ra]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ra;
 
-mapOp[coordinateHol_, coordinateAntiHol_][Ia_/;InteractingTest[Ia]]:= mapOp[coordinateHol, coordinateAntiHol] /@ Ia;
+mapOp[coordinateHol_, coordinateAntiHol_][a_/;isField[Head[a]] && isHolomorphic[Head[a]] && isAntiHolomorphic[Head[a]]]:=
+Module[{z,zbar, w, wbar}, {z,zbar} = Take[List @@ a, -2];
+(D[coordinateHol[w],w]/.{w->z})^weightHolo[a] (D[coordinateAntiHol[wbar],wbar]/.{wbar->zbar})^weightAntiHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
 
 mapOp[coordinateHol_, coordinateAntiHol_][a_/;isHolomorphic[Head[a]]]:= 
 Module[{z = Last[a],w},(D[coordinateHol[w],w]/.{w->z})^weightHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
 mapOp[coordinateHol_, coordinateAntiHol_][a_/;isAntiHolomorphic[Head[a]]]:=
 Module[{zbar = Last[a], wbar},(D[coordinateAntiHol[wbar],wbar]/.{wbar->zbar})^weightAntiHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
-mapOp[coordinateHol_, coordinateAntiHol_][a_/;isOperator[Head[a]]]:=
-Module[{z,zbar, w, wbar}, {z,zbar} = Take[List @@ a, -2];
-(D[coordinateHol[w],w]/.{w->z})^weightHolo[a] (D[coordinateAntiHol[wbar],wbar]/.{wbar->zbar})^weightAntiHolo[a] placeOp[coordinateHol, coordinateAntiHol][a]];
 
 placeOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
 placeOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];

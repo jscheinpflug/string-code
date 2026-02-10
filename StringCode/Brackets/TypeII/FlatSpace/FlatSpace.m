@@ -19,6 +19,8 @@ Needs["StringCode`Taylor`TypeII`"];
 Needs["StringCode`Taylor`TypeII`FlatSpace`"];
 Needs["StringCode`Conventions`TypeII`"];
 Needs["StringCode`OPE`"];
+Needs["StringCode`OPE`TypeII`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`Brackets`TypeII`"];
 
@@ -32,23 +34,6 @@ Needs["StringCode`Brackets`TypeII`"];
 
 
 Begin["Private`"];
-
-
-(* ::Subsubsection::Closed:: *)
-(*Extract weight-counting parameter power*)
-
-
-extractWeightCountingParameterPower::usage = "Extract weight-counting parameter power (modulo multiples of \[Alpha]')";
-extractWeightCountingParameterPower[OPEterm_, weightCountingParameter_] := (Exponent[Together[OPEterm], weightCountingParameter])/.{\[Alpha]p -> 0}
-
-
-(* ::Subsubsection::Closed:: *)
-(*Set factorization replacement*)
-
-
-(*This replacement rule is called on multi-local operator every time factorization into holomorphic/antiholomorphic parts is performed*)
-factorizationReplacement = 
-{ProfileX[profile_, ders_, z_, zbar_]:> R[ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]], expX[k_, z_, zbar_]:> R[expXHolo[k, z], expXAntiHolo[k,zbar]]}
 
 
 (* ::Subsection:: *)
