@@ -1,0 +1,327 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic FlatSpace Symbols Unit Tests\n\nCoverage:\n- Free-boson field registration\n- dX/dXt weights and chirality\n- Profile/expX zero-mode weights",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758431154,
+     "endTime": 1770758431339
+    },
+    "executionOrder": 22,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test1 = isField[dX] && isField[dXt] && isBoson[dX] && isBoson[dXt] && isSimple[dX] && isSimple[dXt] && isIndexed[dX] && isIndexed[dXt] && isHolomorphic[dX] && !isAntiHolomorphic[dX] && isAntiHolomorphic[dXt] && !isHolomorphic[dXt];\nPrint[\"Test 1 (dX/dXt registration and chirality): \", If[test1, \"PASSED\", \"FAILED\"]];\ntest1",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (dX/dXt registration and chirality): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (dX/dXt registration and chirality): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dc342fd2-70fc-4045-a7a6-cc5d8f8d257c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "fe07293c-4571-4c13-9390-5bae57e25c4f",
+     "metadata": {
+      "cellLabel": "Out[27]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758431339,
+     "endTime": 1770758431621
+    },
+    "executionOrder": 25,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test2 = Private`weightHolo[dX[\\[Mu],0,z]] === 1 && Private`weightHolo[dX[\\[Mu],3,z]] === 4 && Private`weightAntiHolo[dXt[\\[Nu],1,zb]] === 2;\nPrint[\"Test 2 (dX/dXt intrinsic weights): \", If[test2, \"PASSED\", \"FAILED\"]];\ntest2",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (dX/dXt intrinsic weights): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (dX/dXt intrinsic weights): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dd5c66e1-e1f3-46c7-a079-209de1baa0e1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f1fa9975-0df4-42f0-861e-8a442e2ee147",
+     "metadata": {
+      "cellLabel": "Out[30]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758431621,
+     "endTime": 1770758431901
+    },
+    "executionOrder": 28,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test3 = Private`weightAntiHolo[dX[\\[Mu],2,z]] === 0 && Private`weightHolo[dXt[\\[Nu],2,zb]] === 0;\nPrint[\"Test 3 (dX/dXt cross-chiral weights vanish): \", If[test3, \"PASSED\", \"FAILED\"]];\ntest3",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (dX/dXt cross-chiral weights vanish): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (dX/dXt cross-chiral weights vanish): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0dec1f88-5c86-418e-87d3-c71bd32d2575",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "04fc44c8-7af5-49e1-bc29-2ba47affff22",
+     "metadata": {
+      "cellLabel": "Out[33]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758431901,
+     "endTime": 1770758432186
+    },
+    "executionOrder": 31,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test4 = Private`weightHolo[expX[k,z,zb]] === 0 && Private`weightAntiHolo[expX[k,z,zb]] === 0 && Private`weightHolo[ProfileX[p,{},z,zb]] === 0 && Private`weightAntiHolo[ProfileX[p,{},z,zb]] === 0;\nPrint[\"Test 4 (expX/ProfileX weights): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (expX/ProfileX weights): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (expX/ProfileX weights): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2d00e6b3-d308-4d79-8854-fcf8561c3f7e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2ee4ffff-cf41-4c2c-9df4-165d5c1ac411",
+     "metadata": {
+      "cellLabel": "Out[36]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758432186,
+     "endTime": 1770758432467
+    },
+    "executionOrder": 34,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test5 = (Private`weightHolo[dX[\\[Mu],4,z]] - Private`weightHolo[dX[\\[Mu],1,z]]) === 3 && (Private`weightAntiHolo[dXt[\\[Nu],5,zb]] - Private`weightAntiHolo[dXt[\\[Nu],2,zb]]) === 3;\nPrint[\"Test 5 (mode increment shifts dX/dXt weight by +1): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (mode increment shifts dX/dXt weight by +1): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (mode increment shifts dX/dXt weight by +1): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9c5fb280-1799-4a8a-a855-d533e8524ce3",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ae481336-6cd1-4fdd-93b4-ab3dafd5376f",
+     "metadata": {
+      "cellLabel": "Out[39]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758432468,
+     "endTime": 1770758432762
+    },
+    "executionOrder": 37,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5];\nPrint[\"Bosonic FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Bosonic FlatSpace symbol test block: ALL PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Bosonic FlatSpace symbol test block: ALL PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "44ed4c21-9dfc-4b9c-be0e-b3c189086bef",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "120ca3ec-1126-4bab-9ac3-cf06ad130c9e",
+     "metadata": {
+      "cellLabel": "Out[42]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770758432763,
+     "endTime": 1770758433047
+    },
+    "executionOrder": 40,
+    "success": true
+   }
+  }
+ ]
+}

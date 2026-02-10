@@ -39,6 +39,9 @@ formatPosition[0, 0] := "(0)";
 formatPosition[z_] := "(" <> mathToTeX[z] <> ")";
 formatPosition[z_, zbar_] := "(" <> mathToTeX[z] <> ", " <> mathToTeX[zbar] <> ")";
 
+formatSpinModePair[{mode_, idx_}] := "(" <> mathToTeX[mode] <> ", " <> formatIndex[idx] <> ")";
+formatSpinModes[modes_List] := "[" <> StringJoin[Riffle[formatSpinModePair /@ modes, ", "]] <> "]";
+
 (* ::Subsection:: *)
 (*Free boson conversions*)
 
@@ -98,6 +101,13 @@ ToTeX[\[Psi][idx_, n_, z_]] := derivativePrefix[n, True] <> "\\psi^{" <> formatI
 
 (* psit[mu, n, zbar] -> \\bar{\\partial}^n \\bar{\psi}^\\mu(zbar) - barred in antiholomorphic *)
 ToTeX[\[Psi]t[idx_, n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{\\psi}^{" <> formatIndex[idx] <> "}" <> formatPosition[zbar];
+
+(* Spin fields with explicit charge and full mode tuples *)
+ToTeX[S[alpha_, q_, modes_List, der_, z_]] := derivativePrefix[der, True] <>
+  "S^{" <> formatIndex[alpha] <> "}_{" <> mathToTeX[q] <> "}" <> formatSpinModes[modes] <> formatPosition[z];
+
+ToTeX[St[alpha_, q_, modes_List, der_, zbar_]] := derivativePrefix[der, False] <>
+  "\\bar{S}^{" <> formatIndex[alpha] <> "}_{" <> mathToTeX[q] <> "}" <> formatSpinModes[modes] <> formatPosition[zbar];
 
 
 (* Fallbacks - use TeXForm for unknown expressions *)

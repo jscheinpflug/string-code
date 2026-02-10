@@ -115,6 +115,9 @@ ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 weightSymbolHolo[\[Xi]] := 0;
 weightSymbolHolo[\[Eta]] := 1;
 weightSymbolHolo[d\[Phi]] := 1;
+weightHolo[\[Xi][der_, z_]] := weightSymbolHolo[\[Xi]] + der;
+weightHolo[\[Eta][der_, z_]] := weightSymbolHolo[\[Eta]] + der;
+weightHolo[d\[Phi][der_, z_]] := weightSymbolHolo[d\[Phi]] + der;
 
 weightHolo[exp\[Phi]f[n_, z_]] := -1/2*(n)*(n + 2);
 weightHolo[exp\[Phi]b[n_, z_]] := -1/2*(n)*(n + 2);
@@ -122,6 +125,9 @@ weightHolo[exp\[Phi]b[n_, z_]] := -1/2*(n)*(n + 2);
 weightSymbolAntiHolo[\[Xi]t] := 0;
 weightSymbolAntiHolo[\[Eta]t] := 1;
 weightSymbolAntiHolo[d\[Phi]t] := 1;
+weightAntiHolo[\[Xi]t[der_, zbar_]] := weightSymbolAntiHolo[\[Xi]t] + der;
+weightAntiHolo[\[Eta]t[der_, zbar_]] := weightSymbolAntiHolo[\[Eta]t] + der;
+weightAntiHolo[d\[Phi]t[der_, zbar_]] := weightSymbolAntiHolo[d\[Phi]t] + der;
 
 weightAntiHolo[exp\[Phi]tf[n_, z_]] := -1/2*(n)*(n + 2);
 weightAntiHolo[exp\[Phi]tb[n_, z_]] := -1/2*(n)*(n + 2);

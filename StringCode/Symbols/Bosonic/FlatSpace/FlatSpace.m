@@ -39,6 +39,10 @@ ProfileX::usage = "A polynomial X-profile"
 
 \[Alpha]p::usage = "Symbol for alpha prime";
 
+dot::usage = "Symbol for dot product";
+
+der::usage = "Symbol for a derivative";
+
 
 (* ::Section:: *)
 (*Logic*)
@@ -74,6 +78,7 @@ factorizationReplacement = Join[factorizationReplacement, {
 
 
 weightSymbolHolo[dX] := 1;
+weightHolo[dX[\[Mu]_, n_, z_]] := weightSymbolHolo[dX] + n;
 
 weightHolo[expX[k_, z_,zbar_]] := 0;
 weightHolo[expXHolo[k_, z_]] := 0;
@@ -81,6 +86,7 @@ weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
 weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
 
 weightSymbolAntiHolo[dXt] := 1;
+weightAntiHolo[dXt[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[dXt] + n;
 
 weightAntiHolo[expX[k_, z_,zbar_]] := 0;
 weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;

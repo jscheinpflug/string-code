@@ -752,6 +752,38 @@
     "executionOrder": 67,
     "success": true
    }
+  },
+  {
+   "kind": 1,
+   "value": "## Spin Field TeX Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = ToTeX[S[\\[Alpha],-1/2,{{-1/2,\\[Mu]},{1/2,\\[Nu]}},0,z]];\nchargeTex = StringReplace[ToString[TeXForm[-1/2]], \"\\$\" -> \"\"];\nmode1Tex = \"(\" <> chargeTex <> \", \" <> StringReplace[ToString[TeXForm[\\[Mu]]], \"\\$\" -> \"\"] <> \")\";\nmode2Tex = \"(\" <> StringReplace[ToString[TeXForm[1/2]], \"\\$\" -> \"\"] <> \", \" <> StringReplace[ToString[TeXForm[\\[Nu]]], \"\\$\" -> \"\"] <> \")\";\ntest11Result = StringContainsQ[test11, \"S^{\"] && StringContainsQ[test11, chargeTex] && StringContainsQ[test11, mode1Tex] && StringContainsQ[test11, mode2Tex];\nPrint[\"Test 11 (S TeX charge + full mode pairs): \", If[test11Result, \"PASSED\", \"FAILED - got \" <> test11]];\ntest11Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = ToTeX[St[\\[Beta],-1/2,{{1/2,\\[Rho]}},1,zbar]];\nchargeTex2 = StringReplace[ToString[TeXForm[-1/2]], \"\\$\" -> \"\"];\nmodeTex2 = \"(\" <> StringReplace[ToString[TeXForm[1/2]], \"\\$\" -> \"\"] <> \", \" <> StringReplace[ToString[TeXForm[\\[Rho]]], \"\\$\" -> \"\"] <> \")\";\ntest12Result = StringContainsQ[test12, \"\\\\bar{\\\\partial}\"] && StringContainsQ[test12, \"\\\\bar{S}^{\"] && StringContainsQ[test12, chargeTex2] && StringContainsQ[test12, modeTex2];\nPrint[\"Test 12 (St TeX barred + anti-holo derivative): \", If[test12Result, \"PASSED\", \"FAILED - got \" <> test12]];\ntest12Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "spinTeXTestsOK = And[test11Result, test12Result];\nPrint[\"Spin-field TeX block: \", If[spinTeXTestsOK, \"ALL PASSED\", \"SOME FAILED\"]];\nspinTeXTestsOK",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
   }
  ]
 }

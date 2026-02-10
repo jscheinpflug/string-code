@@ -42,8 +42,16 @@ ProfileX::usage = "An X-profile";
 
 \[Psi]t::usage = "Antiholomorphic free matter fermion";
 
+S::usage = "Holomorphic spin field";
+
+St::usage = "Antiholomorphic spin field";
+
 
 \[Alpha]p::usage = "Symbol for alpha prime";
+
+dot::usage = "Symbol for dot product";
+
+der::usage = "Symbol for a derivative";
 
 
 (* ::Section:: *)
@@ -58,14 +66,14 @@ Begin["Private`"];
 
 
 bosons=Join[bosons, {expXHolo, expXAntiHolo, expX,dX,dXt,ProfileXHolo, ProfileXAntiHolo, ProfileX}];
-fermions=Join[fermions, {\[Psi],\[Psi]t}];
-regfermions=Join[regfermions,{\[Psi],\[Psi]t}];
-simplefields=Join[simplefields, {dX,dXt,\[Psi],\[Psi]t}];
-simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt,\[Psi],\[Psi]t}];
+fermions=Join[fermions, {\[Psi],\[Psi]t,S,St}];
+regfermions=Join[regfermions,{\[Psi],\[Psi]t,S,St}];
+simplefields=Join[simplefields, {dX,dXt,\[Psi],\[Psi]t,S,St}];
+simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt,\[Psi],\[Psi]t,S,St}];
 compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX}];
-holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, ProfileXHolo, \[Psi]}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, \[Psi]t}];
-indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t}];
+holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, ProfileXHolo, \[Psi], S}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, \[Psi]t, St}];
+indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t, S, St}];
 allfields=Join[bosons,fermions];
 collapsable = Join[collapsable, {dX, dXt, expX, expXHolo, expXAntiHolo, ProfileX, ProfileXHolo, ProfileXAntiHolo}];
 factorizable = Join[factorizable, {expX, ProfileX}];
@@ -73,6 +81,29 @@ factorizationReplacement = Join[factorizationReplacement, {
   ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]},
   expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}
 }];
+
+canonicalizeSpinModes[modes_List] := Module[{ordering, sortedModes},
+  ordering = Ordering[modes];
+  sortedModes = modes[[ordering]];
+  If[DuplicateFreeQ[sortedModes],
+    {Signature[ordering], sortedModes},
+    {0, sortedModes}
+  ]
+];
+
+S[alpha_, q_, modes_List, der_, z_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
+  If[canonicalized[[1]] == 0,
+    0,
+    canonicalized[[1]] S[alpha, q, canonicalized[[2]], der, z]
+  ]
+] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
+
+St[alpha_, q_, modes_List, der_, zbar_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
+  If[canonicalized[[1]] == 0,
+    0,
+    canonicalized[[1]] St[alpha, q, canonicalized[[2]], der, zbar]
+  ]
+] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
 
 
 (* ::Subsection:: *)
@@ -84,6 +115,7 @@ factorizationReplacement = Join[factorizationReplacement, {
 
 
 weightSymbolHolo[dX] := 1;
+weightHolo[dX[\[Mu]_, n_, z_]] := weightSymbolHolo[dX] + n;
 
 weightHolo[expX[k_, z_,zbar_]] := 0;
 weightHolo[expXHolo[k_, z_]] := 0;
@@ -91,6 +123,7 @@ weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
 weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
 
 weightSymbolAntiHolo[dXt] := 1;
+weightAntiHolo[dXt[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[dXt] + n;
 
 weightAntiHolo[expX[k_, z_,zbar_]] := 0;
 weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
@@ -103,7 +136,14 @@ weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
 
 
 weightSymbolHolo[\[Psi]]:= 1/2;
+weightHolo[\[Psi][\[Mu]_, n_, z_]] := weightSymbolHolo[\[Psi]] + n;
 weightSymbolAntiHolo[\[Psi]t] := 1/2;
+weightAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[\[Psi]t] + n;
+
+weightHolo[S[alpha_, q_, modes_List, der_, z_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
+weightHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 0;
+weightAntiHolo[S[alpha_, q_, modes_List, der_, z_]] := 0;
+weightAntiHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
 
 
 (* ::Section:: *)

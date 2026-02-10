@@ -25,12 +25,6 @@ MWick::usage = "A Wick contraction between two composite fields";
 DWick::usage = "Computes Wick contractions between normal-ordered products";
 
 
-dot::usage = "Symbol for dot product";
-
-
-der::usage = "Symbol for a derivative";
-
-
 (* ::Section:: *)
 (*Logic*)
 

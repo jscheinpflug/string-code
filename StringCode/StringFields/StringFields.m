@@ -74,8 +74,6 @@ placeOp[coordinateHol_, coordinateAntiHol_][b[n_, z_]]:= b[n, coordinateHol[z]];
 placeOp[coordinateHol_, coordinateAntiHol_][c[n_, z_]]:= c[n, coordinateHol[z]];
 placeOp[coordinateHol_, coordinateAntiHol_][bt[n_, zbar_]]:= bt[n, coordinateAntiHol[zbar]];
 placeOp[coordinateHol_, coordinateAntiHol_][ct[n_, zbar_]]:= ct[n, coordinateAntiHol[zbar]];
-
-
 (* ::Subsection:: *)
 (*Factorize a list of operators according to two boolean valued functions*)
 
