@@ -1,0 +1,90 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic BasisGeneration Core Tests\n\nTests focused on logic implemented in `StringCode`BasisGeneration`Bosonic`` (no FlatSpace matter assertions).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]\n\nprivateContext = \"Private`\";\nminGhostWeight = Symbol[privateContext <> \"minGhostWeightForGhostNumberBosonic\"];\ngenerateGhostConfigs = Symbol[privateContext <> \"generateGhostConfigsHolo\"];\nghostModesToFields = Symbol[privateContext <> \"ghostModesToOperatorFields\"];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1Result = Context[generateBasisHolo] === \"StringCode`BasisGeneration`Bosonic`\" && Context[generateBasisAntiHolo] === \"StringCode`BasisGeneration`Bosonic`\" && Context[generateBasis] === \"StringCode`BasisGeneration`Bosonic`\";\nPrint[\"Test 1 (public context export): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "publicNames = Sort[Names[\"StringCode`BasisGeneration`Bosonic`*\"]];\nexpectedPublic = Sort[{\"generateBasis\", \"generateBasisAntiHolo\", \"generateBasisHolo\"}];\ntest2Result = publicNames === expectedPublic;\nPrint[\"Test 2 (only basis API exported): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expectedMinGhostWeights = {5, 2, 0, -1, -1, 0, 2};\ncomputedMinGhostWeights = Table[minGhostWeight[ghostNumber], {ghostNumber, -2, 4}];\ntest3Result = computedMinGhostWeights === expectedMinGhostWeights;\nPrint[\"Test 3 (closed-form ghost-weight lower bound): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4Result = generateGhostConfigs[-2, 2] === {} && generateGhostConfigs[1, -3] === {};\nPrint[\"Test 4 (infeasible ghost-sector cutoffs): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "canonicalGhostConfig[{modes_List, ghostWeight_Integer}] := Module[{modeNumbers, modeSpecies},\n  modeNumbers = If[modes === {}, {}, modes[[All, 2]]];\n  modeSpecies = If[modes === {}, {}, SymbolName /@ modes[[All, 1]]];\n  {ghostWeight, Sort[modeNumbers], Sort[modeSpecies]}\n];\n\nexpectedCanonical00 = {{0, {}, {}}};\nexpectedCanonical01 = {{-1, {1}, {\"c\"}}, {0, {0}, {\"c\"}}};\nexpectedCanonical2m1 = {{2, {-2}, {\"b\"}}};\n\ntest5Result = Sort[canonicalGhostConfig /@ generateGhostConfigs[0, 0]] === Sort[expectedCanonical00] &&\n  Sort[canonicalGhostConfig /@ generateGhostConfigs[0, 1]] === Sort[expectedCanonical01] &&\n  Sort[canonicalGhostConfig /@ generateGhostConfigs[2, -1]] === Sort[expectedCanonical2m1];\nPrint[\"Test 5 (exact low-weight ghost configurations): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "configs01 = generateGhostConfigs[0, 1];\nmodeCMinus1 = First[Select[configs01, #[[2]] == -1 &][[1, 1]]];\nmodeCZero = First[Select[configs01, #[[2]] == 0 &][[1, 1]]];\nmodeB = First[generateGhostConfigs[2, -1][[1, 1]]];\n\ntranslatedGhostFields = ghostModesToFields[{modeB, modeCMinus1, modeCZero}, 0];\nfieldSignature[field_] := {SymbolName[Head[field]], field[[1]], field[[2]]};\nexpectedFieldSignatures = {{\"b\", 0, 0}, {\"c\", 0, 0}, {\"c\", 1, 0}};\n\ntest6Result = fieldSignature /@ translatedGhostFields === expectedFieldSignatures;\nPrint[\"Test 6 (mode -> ghost-operator translation): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "ghostConfigs30 = generateGhostConfigs[3, 0];\nmodeEntryQ[entry_] := MatchQ[entry, _[_, _Integer]] && MemberQ[{\"b\", \"c\"}, SymbolName[entry[[1]]]];\nghostNumberFromModes[modes_List] := Module[{species},\n  species = If[modes === {}, {}, SymbolName /@ modes[[All, 1]]];\n  Count[species, \"c\"] - Count[species, \"b\"]\n];\n\ntest7Result = ghostConfigs30 =!= {} &&\n  MemberQ[ghostConfigs30, {{}, 0}] &&\n  AllTrue[ghostConfigs30, MatchQ[#, {_List, _Integer}] &] &&\n  AllTrue[ghostConfigs30, #[[2]] <= 3 &] &&\n  AllTrue[ghostConfigs30, AllTrue[#[[1]], modeEntryQ] &] &&\n  AllTrue[ghostConfigs30, ghostNumberFromModes[#[[1]]] == 0 &];\nPrint[\"Test 7 (ghost config structure invariants): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "Wolfram Language"
+  },
+  "version": 1
+ }
+}

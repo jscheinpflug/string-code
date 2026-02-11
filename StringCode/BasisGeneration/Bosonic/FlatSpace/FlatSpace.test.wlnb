@@ -1,0 +1,1061 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic FlatSpace BasisGeneration Tests\n\nPublic API behavior tests for FlatSpace basis generation.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835294934,
+     "endTime": 1770835295183
+    },
+    "executionOrder": 1,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "h2 = generateBasisHolo[2, 0];\ntest1Result = Length[h2] == 5 && Count[h2, R[dX[_Symbol, 1, 0]]] == 1 && Count[h2, R[dX[_Symbol, 0, 0], dX[_Symbol, 0, 0]]] == 1;\nPrint[\"Test 1 (matter completion through public API): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (matter completion through public API): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (matter completion through public API): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2db96dfe-abcf-4fb6-aaa0-a524cebdd636",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "210a3054-6241-4676-9ed4-ef6134e47fd7",
+     "metadata": {
+      "cellLabel": "Out[6]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835295183,
+     "endTime": 1770835295524
+    },
+    "executionOrder": 3,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "res2 = generateBasisHolo[0, 1];\ntest2Result = Length[res2] == 2 && Count[res2, R[c[1, 0]]] == 1 && Count[res2, R[c[0, 0], dX[_Symbol, 0, 0]]] == 1;\nPrint[\"Test 2 (holo basis w=0,gh=1): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (holo basis w=0,gh=1): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (holo basis w=0,gh=1): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "60f0239a-d634-4ae1-be59-0f91a974e6a7",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0983ead0-6a73-4c93-9300-0ebd20c27177",
+     "metadata": {
+      "cellLabel": "Out[10]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835295525,
+     "endTime": 1770835295871
+    },
+    "executionOrder": 7,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test3Result = generateBasisAntiHolo[2, -1] === {R[bt[0, 0]]};\nPrint[\"Test 3 (anti-holo replacement sector): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (anti-holo replacement sector): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (anti-holo replacement sector): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2677edd7-7585-44ba-8abe-4bdcad8a5c68",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "58b4e3d3-106a-4ab7-a623-66e3f0a42013",
+     "metadata": {
+      "cellLabel": "Out[13]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835295871,
+     "endTime": 1770835296159
+    },
+    "executionOrder": 11,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test4Result = (generateBasisHolo[0, 0] === {}) && (generateBasis[0, 0] === {});\nPrint[\"Test 4 (identity excluded at (0,0)): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (identity excluded at (0,0)): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (identity excluded at (0,0)): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "761efafd-f1f5-406a-99ff-87846eae7fe2",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ebab7113-7c5e-45f7-8ee4-fff30a6522a6",
+     "metadata": {
+      "cellLabel": "Out[16]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835296159,
+     "endTime": 1770835296444
+    },
+    "executionOrder": 14,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "basis5 = generateBasis[1, 0];\ntest5Result = Length[basis5] == 6 && MemberQ[basis5, R[dX[_Symbol, 0, 0]]] && MemberQ[basis5, R[dXt[_Symbol, 0, 0]]] && MemberQ[basis5, R[b[0, 0], c[0, 0]]] && MemberQ[basis5, R[bt[0, 0], ct[0, 0]]] && MemberQ[basis5, R[b[0, 0], ct[0, 0]]] && MemberQ[basis5, -R[bt[0, 0], c[0, 0]]];\nPrint[\"Test 5 (full basis w=1,gh=0 content): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (full basis w=1,gh=0 content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (full basis w=1,gh=0 content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e9dc7618-4380-4b36-aaa9-06238aef3472",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "29761191-a6dd-4b4b-a5ed-b134d5ad6be1",
+     "metadata": {
+      "cellLabel": "Out[20]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835296445,
+     "endTime": 1770835296791
+    },
+    "executionOrder": 17,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test6Result = Length[generateBasisHolo[2, 0]] == 5 && Length[generateBasis[2, 0]] == 22;\nPrint[\"Test 6 (expected basis sizes at w=2): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (expected basis sizes at w=2): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (expected basis sizes at w=2): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "10826ccd-14f3-45b2-938c-c275baf134fd",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6a89902d-eb3e-412b-b487-f8a51231c389",
+     "metadata": {
+      "cellLabel": "Out[23]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835296792,
+     "endTime": 1770835297108
+    },
+    "executionOrder": 21,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test7Result = MemberQ[generateBasisHolo[2, -1, z], R[b[0, z]]] && MemberQ[generateBasisAntiHolo[2, -1, zbar], R[bt[0, zbar]]];\nPrint[\"Test 7 (position arguments): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 7 (position arguments): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 7 (position arguments): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "1956c84e-308c-4124-a3c6-3a6234831a4f",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a9c42d03-86d2-4ed6-a801-35ab82a2da5a",
+     "metadata": {
+      "cellLabel": "Out[26]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835297109,
+     "endTime": 1770835297391
+    },
+    "executionOrder": 24,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expectedHolo3m1 = {R[b[0, 0], dX[mu1, 0, 0]], R[b[1, 0]]};\ntest8Result = Sort[generateBasisHolo[3, -1]] === Sort[expectedHolo3m1];\nPrint[\"Test 8 (w=3, gh=-1 exact holo basis): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 8 (w=3, gh=-1 exact holo basis): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 8 (w=3, gh=-1 exact holo basis): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "76ef1c9e-c3a6-4899-b1d4-65ac392a1a92",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a467450a-1c79-4fa3-aa6b-1af4a34745e6",
+     "metadata": {
+      "cellLabel": "Out[30]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835297391,
+     "endTime": 1770835297741
+    },
+    "executionOrder": 27,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "holo30 = generateBasisHolo[3, 0];\ntest9Result = Length[holo30] == 10 && MemberQ[holo30, R[dX[mu1, 2, 0]]] && MemberQ[holo30, R[b[2, 0], c[0, 0]]];\nPrint[\"Test 9 (w=3, gh=0 holo size/content): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 9 (w=3, gh=0 holo size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 9 (w=3, gh=0 holo size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "34f94853-cfcc-404f-b7cb-caa40cf465e9",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dc29f562-8136-47a6-8ab6-5f104f0e3c8b",
+     "metadata": {
+      "cellLabel": "Out[34]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835297741,
+     "endTime": 1770835298087
+    },
+    "executionOrder": 31,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "holo31 = generateBasisHolo[3, 1];\ntest10Result = Length[holo31] == 20 && MemberQ[holo31, R[c[0, 0], dX[mu1, 3, 0]]] && MemberQ[holo31, R[c[4, 0]]];\nPrint[\"Test 10 (w=3, gh=1 holo size/content): \", If[test10Result, \"PASSED\", \"FAILED\"]];\ntest10Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 10 (w=3, gh=1 holo size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 10 (w=3, gh=1 holo size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "793e019a-d3b1-4d9a-a879-51b13652e5d5",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "38b178ab-18ee-4eca-aaa0-434e2a3137fa",
+     "metadata": {
+      "cellLabel": "Out[38]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835298088,
+     "endTime": 1770835298428
+    },
+    "executionOrder": 35,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "holo32 = generateBasisHolo[3, 2];\ntest11Result = Length[holo32] == 20 && MemberQ[holo32, R[c[0, 0], c[5, 0]]] && MemberQ[holo32, R[c[1, 0], c[4, 0]]];\nPrint[\"Test 11 (w=3, gh=2 holo size/content): \", If[test11Result, \"PASSED\", \"FAILED\"]];\ntest11Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 11 (w=3, gh=2 holo size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 11 (w=3, gh=2 holo size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6790e802-7dd8-4c53-9762-bccaf2a0d36e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4f0e062a-8f92-4e74-95d6-d17c17cdd82a",
+     "metadata": {
+      "cellLabel": "Out[42]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835298428,
+     "endTime": 1770835298772
+    },
+    "executionOrder": 39,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expectedHolo4m1 = {R[b[0, 0], dX[mu1, 1, 0]], R[b[0, 0], dX[mu1, 0, 0], dX[mu2, 0, 0]], R[b[1, 0], dX[mu1, 0, 0]], R[b[2, 0]], R[b[0, 0], b[1, 0], c[0, 0]]};\ntest12Result = Sort[generateBasisHolo[4, -1]] === Sort[expectedHolo4m1];\nPrint[\"Test 12 (w=4, gh=-1 exact holo basis): \", If[test12Result, \"PASSED\", \"FAILED\"]];\ntest12Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 12 (w=4, gh=-1 exact holo basis): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 12 (w=4, gh=-1 exact holo basis): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "784546a0-3fc5-40b7-a2c6-2b5c17b26b0d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6a04d14f-319f-40e9-88c6-cb5dd9ca7321",
+     "metadata": {
+      "cellLabel": "Out[46]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835298772,
+     "endTime": 1770835299121
+    },
+    "executionOrder": 43,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "holo40 = generateBasisHolo[4, 0];\ntest13Result = Length[holo40] == 20 && MemberQ[holo40, R[dX[mu1, 3, 0]]] && MemberQ[holo40, R[b[0, 0], b[1, 0], c[0, 0], c[1, 0]]];\nPrint[\"Test 13 (w=4, gh=0 holo size/content): \", If[test13Result, \"PASSED\", \"FAILED\"]];\ntest13Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 13 (w=4, gh=0 holo size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 13 (w=4, gh=0 holo size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "de5ac2bf-9079-467a-8eb3-d775f3ca7dda",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e33b9646-345b-4fca-ba2b-2fec59e49a1a",
+     "metadata": {
+      "cellLabel": "Out[50]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835299122,
+     "endTime": 1770835299470
+    },
+    "executionOrder": 47,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "holo5m1 = generateBasisHolo[5, -1];\ntest14Result = Length[holo5m1] == 10 && MemberQ[holo5m1, R[b[3, 0]]] && MemberQ[holo5m1, R[b[0, 0], b[2, 0], c[0, 0]]];\nPrint[\"Test 14 (w=5, gh=-1 holo size/content): \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 14 (w=5, gh=-1 holo size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 14 (w=5, gh=-1 holo size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c8b83765-92bf-42f6-ba20-4c0c5b7001b3",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a2fefef1-be71-4c4f-b890-1bad371da6b0",
+     "metadata": {
+      "cellLabel": "Out[54]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835299470,
+     "endTime": 1770835299818
+    },
+    "executionOrder": 51,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expectedFull3m1 = {R[b[0, 0], dXt[mu1, 0, 0]], R[b[0, 0], bt[0, 0], ct[0, 0]], R[b[0, 0], dX[mu1, 0, 0]], R[b[1, 0]], R[bt[0, 0], dXt[mu1, 0, 0]], R[bt[1, 0]], R[bt[0, 0], dX[mu1, 0, 0]], -R[b[0, 0], bt[0, 0], c[0, 0]]};\ntest15Result = Sort[generateBasis[3, -1]] === Sort[expectedFull3m1];\nPrint[\"Test 15 (w=3, gh=-1 exact full basis): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 15 (w=3, gh=-1 exact full basis): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 15 (w=3, gh=-1 exact full basis): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c9f28303-a8a4-430e-9a41-4716860d24e4",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7b6f8b17-b485-4b45-b8ea-67d58f4b8d5b",
+     "metadata": {
+      "cellLabel": "Out[58]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835299819,
+     "endTime": 1770835300166
+    },
+    "executionOrder": 55,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "full30 = generateBasis[3, 0];\ntest16Result = Length[full30] == 68 && MemberQ[full30, R[dXt[mu1, 2, 0]]] && MemberQ[full30, R[b[0, 0], bt[0, 0], ct[0, 0], ct[1, 0]]];\nPrint[\"Test 16 (w=3, gh=0 full size/content): \", If[test16Result, \"PASSED\", \"FAILED\"]];\ntest16Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 16 (w=3, gh=0 full size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 16 (w=3, gh=0 full size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "987d6a10-c3b1-43d7-b56d-1c693df6e243",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c94ae067-2470-4c7d-8ca7-0de0324681a9",
+     "metadata": {
+      "cellLabel": "Out[62]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835300167,
+     "endTime": 1770835300546
+    },
+    "executionOrder": 59,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "full40 = generateBasis[4, 0];\ntest17Result = Length[full40] == 187 && MemberQ[full40, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full40, R[b[0, 0], ct[0, 0], dXt[mu1, 2, 0]]];\nPrint[\"Test 17 (w=4, gh=0 full size/content): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 17 (w=4, gh=0 full size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 17 (w=4, gh=0 full size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "e5357418-21d5-4034-a48d-1d81cac41e1b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f13fefff-9bfa-4c02-967e-712f282a026d",
+     "metadata": {
+      "cellLabel": "Out[66]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835300547,
+     "endTime": 1770835300983
+    },
+    "executionOrder": 63,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "full50 = generateBasis[5, 0];\ntest18Result = Length[full50] == 470 && MemberQ[full50, R[b[0, 0], b[2, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full50, R[b[0, 0], ct[0, 0], dXt[mu1, 3, 0]]];\nPrint[\"Test 18 (w=5, gh=0 full size/content): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 18 (w=5, gh=0 full size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 18 (w=5, gh=0 full size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "945fadd2-2097-4b04-a060-a76fc6cbb9f0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c24413cb-1d5e-43a8-aa1b-0b3557e95df9",
+     "metadata": {
+      "cellLabel": "Out[70]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835300983,
+     "endTime": 1770835301568
+    },
+    "executionOrder": 67,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "full51 = generateBasis[5, 1];\ntest19Result = Length[full51] == 1360 && MemberQ[full51, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0], ct[2, 0]]] && MemberQ[full51, R[bt[0, 0], c[0, 0], c[5, 0]]];\nPrint[\"Test 19 (w=5, gh=1 full size/content): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 19 (w=5, gh=1 full size/content): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 19 (w=5, gh=1 full size/content): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "447f15de-9e64-4fef-9309-8d18aad0927c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "da72a97e-f1a2-4c38-ad4b-d104ed6b8ad8",
+     "metadata": {
+      "cellLabel": "Out[74]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835301568,
+     "endTime": 1770835302891
+    },
+    "executionOrder": 71,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result, test15Result, test16Result, test17Result, test18Result, test19Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8d7e71c1-ef3e-439b-a4b0-f1d494eed208",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 19/19\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 19/19\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "cd676604-0181-4e5f-9780-6e72db7aa0a1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>All tests PASSED!\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"All tests PASSED!\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "644a9c80-8dee-4f08-b2ae-7d6ce9d24843",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7106ce32-61b2-4ef9-a38b-2b98e3b1f5c9",
+     "metadata": {
+      "cellLabel": "Out[81]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770835302891,
+     "endTime": 1770835303489
+    },
+    "executionOrder": 75,
+    "success": true
+   }
+  }
+ ]
+}

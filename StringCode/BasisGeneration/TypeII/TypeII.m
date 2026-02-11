@@ -11,6 +11,7 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
+Needs["StringCode`BasisGeneration`"];
 
 
 (* ::Section:: *)

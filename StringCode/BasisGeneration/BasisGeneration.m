@@ -15,9 +15,6 @@ Needs["StringCode`NormalOrdering`"];
 (*Declare public variables and methods*)
 
 
-generateBasis::usage = "Generates a basis of states at a given weight";
-
-
 (* ::Section:: *)
 (*Logic*)
 

@@ -12,6 +12,8 @@ Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
+Needs["StringCode`BasisGeneration`"];
+Needs["StringCode`BasisGeneration`TypeII`"];
 
 (* ::Section:: *)
 (*Declare public variables and methods*)
