@@ -25,6 +25,9 @@ generateBasisAntiHolo::usage =
 generateBasis::usage =
   "generateBasis[weight, ghostNumber, z:0, zbar:0] generates full bosonic local operators from holomorphic and antiholomorphic sectors.";
 
+generateBasisLevelMatched::usage =
+  "generateBasisLevelMatched[weight, ghostNumber, z:0, zbar:0] generates full bosonic local operators with equal holomorphic and antiholomorphic weights.";
+
 
 (* ::Section:: *)
 (*Logic*)

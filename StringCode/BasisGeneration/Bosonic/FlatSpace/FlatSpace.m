@@ -203,6 +203,45 @@ generateBasis[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
 
 generateBasis[_, _, ___] := {};
 
+(* Level-matched full basis generation:
+   1) Enforce equal holomorphic/antiholomorphic weights (weight/2 each).
+   2) Split ghost number across sectors subject to each sector's minimal ghost bound.
+   3) Build Cartesian products at fixed equal sector weights only. *)
+generateBasisLevelMatched[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
+  {sectorWeight, holoGhostNumberSplits, collectedOperators, basisOperators},
+  If[OddQ[weight],
+    Return[{}]
+  ];
+  sectorWeight = Quotient[weight, 2];
+  holoGhostNumberSplits = Select[
+    ghostSplitRange[ghostNumber, weight],
+    minGhostWeightForGhostNumberBosonic[#] <= sectorWeight &&
+      minGhostWeightForGhostNumberBosonic[ghostNumber - #] <= sectorWeight &
+  ];
+  If[holoGhostNumberSplits === {},
+    Return[{}]
+  ];
+  collectedOperators = Reap[
+    Scan[
+      Function[holoGhostNumber,
+        Module[{antiGhostNumber, holoBasis, antiBasis},
+          antiGhostNumber = ghostNumber - holoGhostNumber;
+          holoBasis = sectorBasisWithVacuum[generateBasisHolo, sectorWeight, holoGhostNumber, z];
+          If[holoBasis === {}, Continue[]];
+          antiBasis = sectorBasisWithVacuum[generateBasisAntiHolo, sectorWeight, antiGhostNumber, zbar];
+          If[antiBasis === {}, Continue[]];
+          Scan[Sow, combineSectorBases[holoBasis, antiBasis]]
+        ]
+      ],
+      holoGhostNumberSplits
+    ]
+  ][[2]];
+  basisOperators = If[collectedOperators === {}, {}, collectedOperators[[1]]];
+  DeleteDuplicates[basisOperators]
+];
+
+generateBasisLevelMatched[_, _, ___] := {};
+
 
 (* ::Section:: *)
 (*End*)
