@@ -146,6 +146,39 @@ weightAntiHolo[S[alpha_, q_, modes_List, der_, z_]] := 0;
 weightAntiHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
 
 
+(* ::Subsection:: *)
+(*Define GSO parity*)
+
+
+GSOParityHolo[a_/;isField[Head[a]]]=.;
+GSOParityAntiHolo[a_/;isField[Head[a]]]=.;
+
+GSOParityHolo[dX[\[Mu]_, n_, z_]] := 1;
+GSOParityAntiHolo[dXt[\[Mu]_, n_, zbar_]] := 1;
+
+GSOParityHolo[expX[k_, z_, zbar_]] := 1;
+GSOParityAntiHolo[expX[k_, z_, zbar_]] := 1;
+GSOParityHolo[expXHolo[k_, z_]] := 1;
+GSOParityAntiHolo[expXAntiHolo[k_, zbar_]] := 1;
+
+GSOParityHolo[ProfileX[profile_, ders_, z_, zbar_]] := 1;
+GSOParityAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 1;
+GSOParityHolo[ProfileXHolo[profile_, ders_, z_]] := 1;
+GSOParityAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 1;
+
+GSOParityHolo[\[Psi][\[Mu]_, n_, z_]] := -1;
+GSOParityAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := -1;
+
+GSOParityHolo[S[alpha_, q_, modes_List, der_, z_]] := (-1)^(q + 1/2 + Length[modes]);
+GSOParityAntiHolo[St[alpha_, q_, modes_List, der_, zbar_]] := (-1)^(q + 1/2 + Length[modes]);
+
+GSOParityAntiHolo[S[alpha_, q_, modes_List, der_, z_]] := 1;
+GSOParityHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 1;
+
+GSOParityHolo[a_/;isField[Head[a]]]:= 1;
+GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
+
+
 (* ::Section:: *)
 (*End*)
 

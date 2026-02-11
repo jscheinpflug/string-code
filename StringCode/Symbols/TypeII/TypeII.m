@@ -119,6 +119,30 @@ ghostNumberAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
 ghostNumberAntiHolo[\[Gamma]t[der_, zbar_]]:= 1;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
+GSOParityHolo[a_/;isField[Head[a]]]=.;
+GSOParityAntiHolo[a_/;isField[Head[a]]]=.;
+
+GSOParityHolo[\[Xi][der_, z_]]:= 1;
+GSOParityHolo[\[Eta][der_, z_]]:= 1;
+GSOParityAntiHolo[\[Xi]t[der_, zbar_]]:= 1;
+GSOParityAntiHolo[\[Eta]t[der_, zbar_]]:= 1;
+
+GSOParityHolo[\[Beta][der_, z_]]:= -1;
+GSOParityHolo[\[Gamma][der_, z_]]:= -1;
+GSOParityAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
+GSOParityAntiHolo[\[Gamma]t[der_, zbar_]]:= -1;
+
+GSOParityHolo[d\[Phi][der_, z_]]:= 1;
+GSOParityAntiHolo[d\[Phi]t[der_, zbar_]]:= 1;
+
+GSOParityHolo[exp\[Phi]b[n_, z_]]:= (-1)^n;
+GSOParityHolo[exp\[Phi]f[n_, z_]]:= (-1)^n;
+GSOParityAntiHolo[exp\[Phi]tb[n_, zbar_]]:= (-1)^n;
+GSOParityAntiHolo[exp\[Phi]tf[n_, zbar_]]:= (-1)^n;
+
+GSOParityHolo[a_/;isField[Head[a]]]:= 1;
+GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
+
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
