@@ -101,9 +101,6 @@ totalHolGhostNumber[Times[a_, Ra_/;RTest[Ra]]] := totalHolGhostNumber[Ra];
 totalAntiHolGhostNumber[Ra_/;RTest[Ra]]:= Map[ghostNumberAntiHolo, List @@ Ra]//Total;
 totalAntiHolGhostNumber[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolGhostNumber[Ra];
 
-GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
-GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
-
 
 (* ::Subsection::Closed:: *)
 (*Define cached dropping of normal-ordered product elements*)

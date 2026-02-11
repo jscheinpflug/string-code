@@ -69,6 +69,9 @@ totalHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalHolPicture[Ra];
 totalAntiHolPicture[Ra_/;RTest[Ra]]:= Map[pictureAntiHol, List @@ Ra]//Total;
 totalAntiHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolPicture[Ra];
 
+GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
+GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
+
 
 (* ::Section:: *)
 (*End*)

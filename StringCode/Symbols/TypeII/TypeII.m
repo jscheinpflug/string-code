@@ -53,6 +53,8 @@ exp\[Phi]tf::usage = "Antiholomorphic fermionic exponential of the \[Phi] linear
 
 \[Gamma]t::usage = "Antiholomorphic \[Gamma]-ghost";
 
+GSOParity::usage = "Computes total GSO parity for TypeII fields";
+
 
 (* ::Section:: *)
 (*Logic*)
@@ -119,8 +121,10 @@ ghostNumberAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
 ghostNumberAntiHolo[\[Gamma]t[der_, zbar_]]:= 1;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
-GSOParityHolo[a_/;isField[Head[a]]]=.;
-GSOParityAntiHolo[a_/;isField[Head[a]]]=.;
+GSOParityHolo[c[der_, z_]]:= 1;
+GSOParityHolo[b[der_, z_]]:= 1;
+GSOParityAntiHolo[ct[der_, zbar_]]:= 1;
+GSOParityAntiHolo[bt[der_, zbar_]]:= 1;
 
 GSOParityHolo[\[Xi][der_, z_]]:= 1;
 GSOParityHolo[\[Eta][der_, z_]]:= 1;
@@ -142,6 +146,7 @@ GSOParityAntiHolo[exp\[Phi]tf[n_, zbar_]]:= (-1)^n;
 
 GSOParityHolo[a_/;isField[Head[a]]]:= 1;
 GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
+GSOParity[a_/;isField[Head[a]]]:= GSOParityHolo[a] GSOParityAntiHolo[a];
 
 
 (* ::Subsection:: *)

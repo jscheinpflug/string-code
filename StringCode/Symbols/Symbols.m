@@ -91,9 +91,6 @@ isAntiHolomorphic::usage = "Checks if is antiholomorphic";
 
 
 isIndexed::usage = "Checks if is indexed";
-GSOParityHolo::usage = "Computes holomorphic GSO parity (+1/-1) of a local operator";
-GSOParityAntiHolo::usage = "Computes antiholomorphic GSO parity (+1/-1) of a local operator";
-GSOParity::usage = "Computes total GSO parity (+1/-1) of a local operator";
 
 
 (* ::Section:: *)
@@ -171,16 +168,6 @@ ghostNumberAntiHolo[bt[der_, zbar_]]:= -1;
 
 ghostNumberHolo[a_/;isField[Head[a]]]:= 0;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
-
-GSOParityHolo[c[der_, z_]]:= 1;
-GSOParityHolo[b[der_, z_]]:= 1;
-GSOParityAntiHolo[ct[der_, zbar_]]:= 1;
-GSOParityAntiHolo[bt[der_, zbar_]]:= 1;
-
-GSOParityHolo[a_/;isField[Head[a]]]:= 1;
-GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
-GSOParity[a_/;isField[Head[a]]]:= GSOParityHolo[a] GSOParityAntiHolo[a];
-
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
