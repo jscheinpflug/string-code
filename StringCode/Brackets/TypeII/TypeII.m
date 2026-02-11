@@ -222,6 +222,10 @@ singularity[\[Eta][n_,z_],\[Xi][m_,w_]]:= 1 + m + n;
 singularity[\[Xi][m_,w_],\[Eta][n_,z_]]:= 1 + m + n;
 singularity[\[Eta]t[n_,z_],\[Xi]t[m_,w_]]:= 1 + m + n;
 singularity[\[Xi]t[m_,w_],\[Eta]t[n_,z_]]:=1 + m + n;
+singularity[\[Beta][n_,z_],\[Gamma][m_,w_]]:= 1 + m + n;
+singularity[\[Gamma][m_,w_],\[Beta][n_,z_]]:= 1 + m + n;
+singularity[\[Beta]t[n_,z_],\[Gamma]t[m_,w_]]:= 1 + m + n;
+singularity[\[Gamma]t[m_,w_],\[Beta]t[n_,z_]]:= 1 + m + n;
 
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]b[b_,w_]]:= a b;
 singularity[exp\[Phi]b[a_,z_],exp\[Phi]f[b_,w_]]:=a b;

@@ -64,6 +64,19 @@ ToTeX[\[Eta][n_, z_]] := derivativePrefix[n, True] <> "\\eta" <> formatPosition[
 ToTeX[\[Eta]t[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{\\eta}" <> formatPosition[zbar];
 
 
+(* beta[n, z] -> \\partial^n \\beta(z) *)
+ToTeX[\[Beta][n_, z_]] := derivativePrefix[n, True] <> "\\beta" <> formatPosition[z];
+
+(* betat[n, zbar] -> \\bar{\\partial}^n \\bar{\\beta}(zbar) *)
+ToTeX[\[Beta]t[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{\\beta}" <> formatPosition[zbar];
+
+(* gamma[n, z] -> \\partial^n \\gamma(z) *)
+ToTeX[\[Gamma][n_, z_]] := derivativePrefix[n, True] <> "\\gamma" <> formatPosition[z];
+
+(* gammat[n, zbar] -> \\bar{\\partial}^n \\bar{\\gamma}(zbar) *)
+ToTeX[\[Gamma]t[n_, zbar_]] := derivativePrefix[n, False] <> "\\bar{\\gamma}" <> formatPosition[zbar];
+
+
 (* ::Subsection:: *)
 (*Exponential phi conversions*)
 

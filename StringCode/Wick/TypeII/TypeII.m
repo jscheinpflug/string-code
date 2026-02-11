@@ -46,6 +46,10 @@ Wick[\[Eta][n_, z_], \[Xi][m_, w_]] := Wick[\[Eta][n, z], \[Xi][m, w]] = Module[
 Wick[\[Xi][m_, w_], \[Eta][n_, z_]] := Wick[\[Xi][m, w], \[Eta][n, z]] = Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
 Wick[\[Eta]t[n_, z_], \[Xi]t[m_, w_]] := Wick[\[Eta]t[n, z], \[Xi]t[m, w]] = Module[{zd}, (-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
 Wick[\[Xi]t[m_, w_], \[Eta]t[n_, z_]] := Wick[\[Xi]t[m, w], \[Eta]t[n, z]] = Module[{zd}, - (-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Beta][n_, z_], \[Gamma][m_, w_]] := Wick[\[Beta][n, z], \[Gamma][m, w]] = Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Gamma][m_, w_], \[Beta][n_, z_]] := Wick[\[Gamma][m, w], \[Beta][n, z]] = Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Beta]t[n_, z_], \[Gamma]t[m_, w_]] := Wick[\[Beta]t[n, z], \[Gamma]t[m, w]] = Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Gamma]t[m_, w_], \[Beta]t[n_, z_]] := Wick[\[Gamma]t[m, w], \[Beta]t[n, z]] = Module[{zd}, -(-1)^m D[1/(zd - w), {zd, n + m}] /. {zd -> z}]
 
 
 (* ::Subsection:: *)
@@ -94,7 +98,7 @@ MWick[exp\[Phi]tf[a_,z_],exp\[Phi]tf[b_,w_]]:= MWick[exp\[Phi]tf[a,z],exp\[Phi]t
 
 pairingList = Map[Sort,Join[pairingList, {
 {d\[Phi],d\[Phi]},{d\[Phi]t,d\[Phi]t},{exp\[Phi]b,exp\[Phi]b},{d\[Phi],exp\[Phi]b},{exp\[Phi]tb,exp\[Phi]tb}, {d\[Phi]t,exp\[Phi]tb},{d\[Phi],exp\[Phi]f},{exp\[Phi]f,exp\[Phi]f},{exp\[Phi]b,exp\[Phi]f},{d\[Phi]t,exp\[Phi]tf},
-{exp\[Phi]tf,exp\[Phi]tf},{exp\[Phi]tb,exp\[Phi]tf}, {\[Eta],\[Xi]},{\[Eta]t,\[Xi]t}}]];
+{exp\[Phi]tf,exp\[Phi]tf},{exp\[Phi]tb,exp\[Phi]tf}, {\[Eta],\[Xi]},{\[Eta]t,\[Xi]t},{\[Beta],\[Gamma]},{\[Beta]t,\[Gamma]t}}]];
 
 
 (* ::Section:: *)

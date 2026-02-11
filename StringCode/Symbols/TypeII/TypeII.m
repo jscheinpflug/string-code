@@ -42,6 +42,18 @@ exp\[Phi]tf::usage = "Antiholomorphic fermionic exponential of the \[Phi] linear
 \[Eta]t::usage = "Antiholomorphic \[Eta]-ghost";
 
 
+\[Beta]::usage = "Holomorphic \[Beta]-ghost";
+
+
+\[Beta]t::usage = "Antiholomorphic \[Beta]-ghost";
+
+
+\[Gamma]::usage = "Holomorphic \[Gamma]-ghost";
+
+
+\[Gamma]t::usage = "Antiholomorphic \[Gamma]-ghost";
+
+
 (* ::Section:: *)
 (*Logic*)
 
@@ -55,19 +67,19 @@ Begin["Private`"];
 
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
-bosons=Join[bosons, {d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb}];
+bosons=Join[bosons, {d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
 fermions=Join[fermions, {\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
 regfermions=Join[regfermions,{\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
 exp\[Phi]fermions={exp\[Phi]f};
 exp\[Phi]tfermions={exp\[Phi]tf};
-simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
-simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
+simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
+simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
 compositefields= Join[compositefields, {exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
-holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Xi],\[Eta],exp\[Phi]f,exp\[Phi]b}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Xi]t,\[Eta]t,exp\[Phi]tf,exp\[Phi]tb}];
+holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Xi],\[Eta],\[Beta],\[Gamma],exp\[Phi]f,exp\[Phi]b}];
+antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Xi]t,\[Eta]t,\[Beta]t,\[Gamma]t,exp\[Phi]tf,exp\[Phi]tb}];
 indexedFields = Join[indexedFields, {}];
 allfields=Join[bosons,fermions];
-collapsable = Join[collapsable, {\[Xi], \[Xi]t, \[Eta], \[Eta]t}];
+collapsable = Join[collapsable, {\[Xi], \[Xi]t, \[Eta], \[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
 
 
 (* ::Subsection:: *)
@@ -97,10 +109,14 @@ pictureAntiHol[a_/;isField[Head[a]]]:= 0;
 
 ghostNumberHolo[\[Xi][der_, z_]]:= -1;
 ghostNumberHolo[\[Eta][der_, z_]]:= 1;
+ghostNumberHolo[\[Beta][der_, z_]]:= -1;
+ghostNumberHolo[\[Gamma][der_, z_]]:= 1;
 ghostNumberHolo[a_/;isField[Head[a]]]:= 0;
 
 ghostNumberAntiHolo[\[Xi]t[der_, zbar_]]:= -1;
 ghostNumberAntiHolo[\[Eta]t[der_, zbar_]]:= 1;
+ghostNumberAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
+ghostNumberAntiHolo[\[Gamma]t[der_, zbar_]]:= 1;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
 
@@ -114,9 +130,13 @@ ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
 weightSymbolHolo[\[Xi]] := 0;
 weightSymbolHolo[\[Eta]] := 1;
+weightSymbolHolo[\[Beta]] := 3/2;
+weightSymbolHolo[\[Gamma]] := -1/2;
 weightSymbolHolo[d\[Phi]] := 1;
 weightHolo[\[Xi][der_, z_]] := weightSymbolHolo[\[Xi]] + der;
 weightHolo[\[Eta][der_, z_]] := weightSymbolHolo[\[Eta]] + der;
+weightHolo[\[Beta][der_, z_]] := weightSymbolHolo[\[Beta]] + der;
+weightHolo[\[Gamma][der_, z_]] := weightSymbolHolo[\[Gamma]] + der;
 weightHolo[d\[Phi][der_, z_]] := weightSymbolHolo[d\[Phi]] + der;
 
 weightHolo[exp\[Phi]f[n_, z_]] := -1/2*(n)*(n + 2);
@@ -124,9 +144,13 @@ weightHolo[exp\[Phi]b[n_, z_]] := -1/2*(n)*(n + 2);
 
 weightSymbolAntiHolo[\[Xi]t] := 0;
 weightSymbolAntiHolo[\[Eta]t] := 1;
+weightSymbolAntiHolo[\[Beta]t] := 3/2;
+weightSymbolAntiHolo[\[Gamma]t] := -1/2;
 weightSymbolAntiHolo[d\[Phi]t] := 1;
 weightAntiHolo[\[Xi]t[der_, zbar_]] := weightSymbolAntiHolo[\[Xi]t] + der;
 weightAntiHolo[\[Eta]t[der_, zbar_]] := weightSymbolAntiHolo[\[Eta]t] + der;
+weightAntiHolo[\[Beta]t[der_, zbar_]] := weightSymbolAntiHolo[\[Beta]t] + der;
+weightAntiHolo[\[Gamma]t[der_, zbar_]] := weightSymbolAntiHolo[\[Gamma]t] + der;
 weightAntiHolo[d\[Phi]t[der_, zbar_]] := weightSymbolAntiHolo[d\[Phi]t] + der;
 
 weightAntiHolo[exp\[Phi]tf[n_, z_]] := -1/2*(n)*(n + 2);
