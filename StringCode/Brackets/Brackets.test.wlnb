@@ -805,17 +805,17 @@
   },
   {
    "kind": 2,
-   "value": "(* Create mock string fields for testing - use SF wrapper which SFTest recognizes *)\nSF1 = SF[R[c[0, z1], ct[0, z1bar]]];\nSF2 = SF[R[c[0, z2], ct[0, z2bar]]];\n\n(* First check if SFTest works *)\nPrint[\"SFTest[SF1]: \", SFTest[SF1]];\n\n(* Count terms by counting how many BracketProjected appear in the expanded result *)\ntest12 = EffectiveBracketHold[SF1, SF2];\nPrint[\"Result: \", test12];\n(* For n=2, there's exactly 1 partition {2} with 1 assignment, so 1 term *)\ntest12TermCount = Length[If[Head[test12] === Plus, List @@ test12, {test12}]];\ntest12Result = test12TermCount == 1;\nPrint[\"Test 12 (n=2 term count): \", test12TermCount, \" terms - \", If[test12Result, \"PASSED\", \"FAILED\"]];\ntest12Result",
+   "value": "(* Create mock string fields for testing - use SF wrapper which RTest recognizes *)\nSF1 = R[c[0, z1], ct[0, z1bar]];\nSF2 = R[c[0, z2], ct[0, z2bar]];\n\n(* First check if RTest works *)\nPrint[\"RTest[SF1]: \", RTest[SF1]];\n\n(* Count terms by counting how many BracketProjected appear in the expanded result *)\ntest12 = EffectiveBracketHold[SF1, SF2];\nPrint[\"Result: \", test12];\n(* For n=2, there's exactly 1 partition {2} with 1 assignment, so 1 term *)\ntest12TermCount = Length[If[Head[test12] === Plus, List @@ test12, {test12}]];\ntest12Result = test12TermCount == 1;\nPrint[\"Test 12 (n=2 term count): \", test12TermCount, \" terms - \", If[test12Result, \"PASSED\", \"FAILED\"]];\ntest12Result",
    "languageId": "wolfram",
    "outputs": [
     {
      "items": [
       {
-       "data": "<pre>SFTest[SF1]: SFTest[SF[R[c[0, z1], ct[0, z1bar]]]]\n</pre>",
+       "data": "<pre>RTest[SF1]: RTest[R[c[0, z1], ct[0, z1bar]]]\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"SFTest[SF1]: SFTest[SF[R[c[0, z1], ct[0, z1bar]]]]\\n\"",
+       "data": "\"RTest[SF1]: RTest[R[c[0, z1], ct[0, z1bar]]]\\n\"",
        "mime": "text/plain"
       }
      ],
@@ -828,11 +828,11 @@
     {
      "items": [
       {
-       "data": "<pre>Result: EffectiveBracketHold[SF[R[c[0, z1], ct[0, z1bar]]], \n \n&gt;    SF[R[c[0, z2], ct[0, z2bar]]]]\n</pre>",
+       "data": "<pre>Result: EffectiveBracketHold[R[c[0, z1], ct[0, z1bar]], \n \n&gt;    R[c[0, z2], ct[0, z2bar]]]\n</pre>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "\"Result: EffectiveBracketHold[SF[R[c[0, z1], ct[0, z1bar]]], \\n \\n>    SF[R[c[0, z2], ct[0, z2bar]]]]\\n\"",
+       "data": "\"Result: EffectiveBracketHold[R[c[0, z1], ct[0, z1bar]], \\n \\n>    R[c[0, z2], ct[0, z2bar]]]\\n\"",
        "mime": "text/plain"
       }
      ],
@@ -941,7 +941,7 @@
   },
   {
    "kind": 2,
-   "value": "SF3 = SF[R[c[0, z3], ct[0, z3bar]]];\n\ntest14 = EffectiveBracketHold[SF1, SF2, SF3,0,0];\ntest14Terms = If[Head[test14] === Plus, List @@ test14, {test14}];\ntest14TermCount = Length[test14Terms];\ntest14Result = test14TermCount == 4;\nPrint[\"Test 14 (n=3 term count): \", test14TermCount, \" terms - \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
+   "value": "SF3 = R[c[0, z3], ct[0, z3bar]];\n\ntest14 = EffectiveBracketHold[SF1, SF2, SF3,0,0];\ntest14Terms = If[Head[test14] === Plus, List @@ test14, {test14}];\ntest14TermCount = Length[test14Terms];\ntest14Result = test14TermCount == 4;\nPrint[\"Test 14 (n=3 term count): \", test14TermCount, \" terms - \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1094,7 +1094,7 @@
   },
   {
    "kind": 2,
-   "value": "SF4 = SF[R[c[0, z4], ct[0, z4bar]]];\n\ntest17 = EffectiveBracketHold[SF1, SF2, SF3, SF4,0,0];\ntest17Terms = If[Head[test17] === Plus, List @@ test17, {test17}];\ntest17TermCount = Length[test17Terms];\ntest17Result = test17TermCount == 23;\nPrint[\"Test 17 (n=4 term count): \", test17TermCount, \" terms - \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
+   "value": "SF4 = R[c[0, z4], ct[0, z4bar]];\n\ntest17 = EffectiveBracketHold[SF1, SF2, SF3, SF4,0,0];\ntest17Terms = If[Head[test17] === Plus, List @@ test17, {test17}];\ntest17TermCount = Length[test17Terms];\ntest17Result = test17TermCount == 23;\nPrint[\"Test 17 (n=4 term count): \", test17TermCount, \" terms - \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1204,7 +1204,7 @@
   },
   {
    "kind": 2,
-   "value": "SF5 = SF[R[c[0, z5], ct[0, z5bar]]];\nSF6 = SF[R[c[0, z6], ct[0, z6bar]]];\n\ntest19 = EffectiveBracketHold[SF1, SF2, SF3, SF4, SF5, SF6,0,0];\n(* Extract all PropagatorHold[q] patterns to check for unique q's *)\ntest19Propagators = Cases[test19, Private`PropagatorHold[q_][_] :> q, Infinity];\ntest19UniqueQs = DeleteDuplicates[test19Propagators];\n(* Should have multiple unique q symbols *)\ntest19Result = Length[test19UniqueQs] > 1;\nPrint[\"Test 19 (unique q symbols): \", Length[test19UniqueQs], \" unique q's - \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
+   "value": "SF5 = R[c[0, z5], ct[0, z5bar]];\nSF6 = R[c[0, z6], ct[0, z6bar]];\n\ntest19 = EffectiveBracketHold[SF1, SF2, SF3, SF4, SF5, SF6,0,0];\n(* Extract all PropagatorHold[q] patterns to check for unique q's *)\ntest19Propagators = Cases[test19, Private`PropagatorHold[q_][_] :> q, Infinity];\ntest19UniqueQs = DeleteDuplicates[test19Propagators];\n(* Should have multiple unique q symbols *)\ntest19Result = Length[test19UniqueQs] > 1;\nPrint[\"Test 19 (unique q symbols): \", Length[test19UniqueQs], \" unique q's - \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1528,7 +1528,7 @@
   },
   {
    "kind": 2,
-   "value": "EffectiveBracketHold[SF[R[c[0,0],b[1,0]]],A2,A3,A4,A5,0,0]/.Plus->List//Length",
+   "value": "EffectiveBracketHold[R[c[0,0],b[1,0]],A2,A3,A4,A5,0,0]/.Plus->List//Length",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1595,7 +1595,7 @@
   },
   {
    "kind": 2,
-   "value": "allComponents=(((keepUpTo[((((EffectiveBracket[SF[ghostDilaton],SF[delXdelbarXZeroMomentum],SF[gaugeParameter],0,0]//Expand )//.{MultiOp[a__]->xd SF[MultiOp @@ a]})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
+   "value": "allComponents=(((keepUpTo[((((EffectiveBracket[ghostDilaton,delXdelbarXZeroMomentum,gaugeParameter,0,0]//Expand )//.{MultiOp[a__]->xd (MultiOp @@ a)})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -1655,7 +1655,7 @@
   },
   {
    "kind": 2,
-   "value": "allComponents2=(((keepUpTo[((((EffectiveBracket[SF[delXdelbarXZeroMomentum],SF[delXdelbarXZeroMomentum],SF[gaugeParameter],0,0]//Expand )//.{MultiOp[a__]->xd SF[MultiOp @@ a]})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
+   "value": "allComponents2=(((keepUpTo[((((EffectiveBracket[delXdelbarXZeroMomentum,delXdelbarXZeroMomentum,gaugeParameter,0,0]//Expand )//.{MultiOp[a__]->xd (MultiOp @@ a)})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -1703,7 +1703,7 @@
   },
   {
    "kind": 2,
-   "value": "threeDelX = (((keepUpTo[((((EffectiveBracket[SF[delXdelbarXZeroMomentum],SF[delXdelbarXZeroMomentum],SF[delXdelbarXZeroMomentum],0,0]//Expand )//.{MultiOp[a__]->xd SF[MultiOp @@ a]})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
+   "value": "threeDelX = (((keepUpTo[((((EffectiveBracket[delXdelbarXZeroMomentum,delXdelbarXZeroMomentum,delXdelbarXZeroMomentum,0,0]//Expand )//.{MultiOp[a__]->xd (MultiOp @@ a)})//Expand)//.{\\[Delta][\\[Mu],\\[Mu]]:>1, \\[Alpha]p:>2,  Private`z[2,1][{}]:>z0,  Private`z[2,2][{}]:>-z0,  Private`zbar[2,1][{}]:>z0,  Private`zbar[2,2][{}]:>-z0,s_Symbol/;StringMatchQ[SymbolName[s],\"\\[Mu]$\"~~DigitCharacter..]:>\\[Mu],dot[der[\\[Phi]],der[V[\\[Mu]]]]->0,dot[der[V[\\[Mu]]],der[\\[Phi]]]->0})//.combineProfilesRule,1]//Expand)/.{ Differential[a_,b__]:>d[a]})/.{Private`z[3,1][a_]->z[3,1],Private`z[3,2][a_]->z[3,2],\nPrivate`z[3,3][a_]->z[3,3],\nPrivate`zbar[3,1][a_]->zbar[3,1],Private`zbar[3,2][a_]->zbar[3,2],\nPrivate`zbar[3,3][a_]->zbar[3,3]});",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

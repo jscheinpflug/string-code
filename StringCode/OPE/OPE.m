@@ -9,7 +9,7 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Wick`"];
 Needs["StringCode`Taylor`"];
-Needs["StringCode`StringFields`"];
+Needs["StringCode`Operators`"];
 
 
 (* ::Section:: *)

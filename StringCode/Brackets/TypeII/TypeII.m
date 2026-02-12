@@ -9,8 +9,6 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
-Needs["StringCode`StringFields`"];
-Needs["StringCode`StringFields`TypeII`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`Operators`TypeII`"];
 Needs["StringCode`Taylor`"];
@@ -36,17 +34,17 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[Ra_/;RTest[Ra]] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRST[z];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInBRSTPosition = containsCompositeHolo[BRSTelem/.{z->0}];
 If[compositeInBRSTPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], compositeInBRSTPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0]];
 If[singularityUpperBound >= 0,
 (*Compute OPE with terms in the BRST current that possibly contribute*)
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+OPEWithBRST = OPE[BRSTelem, RaPos]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 (*Extract first order pole from OPE*)
@@ -56,17 +54,17 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ];], BRSTList];
 (z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTAntiHolo[Ra_/;RTest[Ra]] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbar[zBar];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
 compositeInBRSTPosition = containsCompositeAntiHolo[BRSTelem/.{zBar->0}];
 If[compositeInBRSTPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], compositeInBRSTPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0]];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], compositeInBRSTPosition],
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0]];
 If[singularityUpperBound >= 0,
 (*Compute OPE with terms in the BRST current that possibly contribute*)
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand;
+OPEWithBRST = OPE[BRSTelem, RaPos]//Expand;
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 (*Extract first order pole from OPE*)
@@ -81,14 +79,14 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, afterApplyingBghosts, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
+Bracket[toBracket__/;AllTrue[{toBracket}, (RTest[#] || MultiOpTest[#]) &]]:= Module[{result = 0, afterApplyingBghosts, numberOfHoloPCOs, numberOfAntiHoloPCOs, afterHeldActionOfPCOs },
 
 (*Get bosonic part of the bracket*)
 afterApplyingBghosts = BracketBosonic[toBracket];
 
 (*Apply PCO zero-modes abstractly*)
-numberOfHoloPCOs = Ceiling[Abs[Total[Map[totalHolPicture @@ # &, {toBracket}]]]-1];
-numberOfAntiHoloPCOs = Ceiling[Abs[Total[Map[totalAntiHolPicture @@ # &, {toBracket}]]]-1];
+numberOfHoloPCOs = Max[0, Ceiling[Abs[Total[Map[totalHolPicture, {toBracket}]]] - 1]];
+numberOfAntiHoloPCOs = Max[0, Ceiling[Abs[Total[Map[totalAntiHolPicture, {toBracket}]]] - 1]];
 afterHeldActionOfPCOs = Nest[actPCObar0Hold, Nest[actPCO0Hold, afterApplyingBghosts, numberOfHoloPCOs], numberOfAntiHoloPCOs];
 
 result = b0mHold[afterHeldActionOfPCOs];

@@ -7,7 +7,6 @@
 BeginPackage["StringCode`Brackets`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
-Needs["StringCode`StringFields`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Taylor`"];
@@ -37,7 +36,8 @@ Begin["Private`"];
 
 
 (*Action of BRST charge splits into holomorphic and antiholomorphic parts*)
-actBRST[SFa_/; SFTest[SFa]]:= actBRSTHolo[SFa] + actBRSTAntiHolo[SFa];
+BracketInputTest[x_] := RTest[x] || MultiOpTest[x];
+actBRST[op_/;RTest[op]]:= actBRSTHolo[op] + actBRSTAntiHolo[op];
 
 (*Linearity of BRST charge action*)
 
@@ -67,13 +67,13 @@ Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a,
 Bracket[args___, Wedge[a__]b___, rest___]:= Wedge[a, Bracket[args, b, rest]]; 
 
 BracketBosonic::usage = "Defines bosonic part of the bracket, which is shared among string theories";
-BracketBosonic[toBracket__/;AllTrue[{toBracket}, SFTest]]:= Module[{result = 0, SFsAtPos, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement, 
-moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyB, curlyBs, minCGhostModdings, minCbarGhostModdings, SFList, moduliLength, afterApplyingBghosts, afterHeldActionOfPCOs, prefac},
+BracketBosonic[toBracket__/;AllTrue[{toBracket}, BracketInputTest]]:= Module[{result = 0, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, localCoordinateReplacement,
+moduli, bracketOrder, bracketList = {toBracket}, w, wbar, curlyB, curlyBs, minCGhostModdings, minCbarGhostModdings, opList, moduliLength, afterApplyingBghosts, afterHeldActionOfPCOs, prefac},
 bracketOrder = Length[bracketList];
 
 (*Conformally transform the string field insertions*)
 {localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, w, wbar, moduli, localCoordinateReplacement} = getLocalCoordinateData[bracketOrder];
-SFList = placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList];
+opList = placeOpAtPosGivenLocalCoordinates[localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketList];
 
 (*Create and apply the curly B-ghost insertions, one B-ghost action on the insertions for each modulus*)
 moduliLength = Length[moduli];
@@ -81,12 +81,12 @@ moduliLength = Length[moduli];
 If[moduliLength > 0,
 
 (*Create the curly B-ghost insertions, one for each modulus*)
-curlyB = createCurlyB[SFList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketOrder, moduli, w, wbar];
+curlyB = createCurlyB[opList, localCoordinateFunctionsHol, localCoordinateFunctionsAntiHol, bracketOrder, moduli, w, wbar];
 curlyBs = createCurlyBs[curlyB, moduliLength];
 
 (*Apply the curly B-ghost insertions*)
-afterApplyingBghosts = applyCurlyBs[SFList, curlyBs, moduliLength],
-afterApplyingBghosts = MultiOp @@ SFList];
+afterApplyingBghosts = applyCurlyBs[opList, curlyBs, moduliLength],
+afterApplyingBghosts = MultiOp @@ opList];
 result = 1/(-2Pi I)^(1/2 moduliLength) afterApplyingBghosts;
 result]
 
@@ -95,9 +95,8 @@ result]
 (*Place string fields at positions given by local coordinates*)
 
 
-placeSFAtPosGivenLocalCoordinates::usage = "Places string fields at positions given by local coordinates of a given bracket";
-placeSFAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, SFs__]:= 
-Table[SFAtPos[SFs[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]],{i,1,Length[SFs]}]
+placeOpAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, ops__]:= 
+Table[OpAtPos[ops[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]], {i, 1, Length[ops]}]
 
 
 (* ::Subsubsection:: *)
@@ -119,7 +118,7 @@ extractListFromMultiOpTimesConstant[Ma_/;MultiOpTest[Ma]] := List @@ Ma;
 
 
 (*Projected bracket is Bracket composed with a projection*)
-BracketProjected[toBracket__/; AllTrue[{toBracket}, SFTest], weightHolo_, weightAntiHolo_]:=
+BracketProjected[toBracket__/; AllTrue[{toBracket}, BracketInputTest], weightHolo_, weightAntiHolo_]:=
 b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, weightAntiHolo]];
 
 (*Multilinearity of projected Bracket*)
@@ -168,9 +167,17 @@ projectBracketLocalOps[localOps_List, weightHolo_, weightAntiHolo_] := Module[
     holoLocalOps = Select[List @@ bracketHolo, RTest];
     antiLocalOps = Select[List @@ bracketAntiHolo, RTest];
 
-    (* OPEProjected* projects onto the target weights*)
-    projectedHolo = If[holoLocalOps === {}, If[weightHolo === 0, 1, 0], OPEProjectedHolo[weightHolo] @@ holoLocalOps];
-    projectedAntiHolo = If[antiLocalOps === {}, If[weightAntiHolo === 0, 1, 0], OPEProjectedAntiHolo[weightAntiHolo] @@ antiLocalOps];
+    (* In factorized mode, OPEProjected* receives the requested chiral weights directly. *)
+    projectedHolo = If[
+      holoLocalOps === {},
+      If[weightHolo === 0, 1, 0],
+      OPEProjectedHolo[weightHolo] @@ holoLocalOps
+    ];
+    projectedAntiHolo = If[
+      antiLocalOps === {},
+      If[weightAntiHolo === 0, 1, 0],
+      OPEProjectedAntiHolo[weightAntiHolo] @@ antiLocalOps
+    ];
     {"Factorized", factorizationPrefac, projectedHolo, projectedAntiHolo},
 
     (* Fallback path for non-factorizable mixed-chirality operators. *)
@@ -600,8 +607,6 @@ ApplyPropagator[q_][Ra_/;RTest[Ra]]:= Module[{rescaledR},
 rescaledR = 1/(-4 Pi I) 1/(q Conjugate[q]) mapOp[rescaling[q], rescaling[Conjugate[q]]][Ra];
 actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],rescaledR]]
 
-ApplyPropagator[q_][SFa_/;SFTest[SFa]]:= SF[ApplyPropagator[q] @@ SFa]
-
 ApplyPropagator[q_][0]:=0;
 
 rescaling[factor_][z_]:= factor z //Expand;
@@ -758,8 +763,8 @@ EffectiveBracket[args___, c_ d_, rest___, wH_, wA_] :=
 (*Define EffectiveBracket as a substitution of EffectiveBracketHold*)
 projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] -> a - ProjectorHold[wH,wA][a]};
 projectorOfBracketSub = {ProjectorHold[wH_,wA_][BracketHold[a__]]-> CollapseB0m[BracketProjected[a,wH,wA]]}
-propagatorSub = {PropagatorHold[q_][a___]:>-ApplyPropagator[q][SF[a]]}
-bracketSub = {BracketHold[a__]->SF[CollapseB0m[Bracket[a]]]}
+propagatorSub = {PropagatorHold[q_][a___]:>-ApplyPropagator[q][a]}
+bracketSub = {BracketHold[a__]->CollapseB0m[Bracket[a]]}
 EffectiveBracket[fields__, wH_, wA_]:= (((EffectiveBracketHold[fields, wH, wA]/.projectorBarSub)//.projectorOfBracketSub)/.bracketSub)/.propagatorSub;
 
 (* ::Subsection:: *)

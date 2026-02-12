@@ -9,8 +9,6 @@ Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`Bosonic`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`Bosonic`"];
-Needs["StringCode`StringFields`"];
-Needs["StringCode`StringFields`Bosonic`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`Operators`Bosonic`"];
 Needs["StringCode`Taylor`"];
@@ -36,14 +34,14 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, z, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[Ra_/;RTest[Ra]] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbosonicstring[z];
 Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0];
 If[singularityUpperBound >= 0,
-If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
+If[RcontainsProfile[RaPos],
+OPEWithBRST = OPE[BRSTelem, RaPos, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, RaPos]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, z];
 If[power == -1, result = result + Relem, 
@@ -52,14 +50,14 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ];], BRSTList];
 (z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[SFa_/; SFTest[SFa]] := Module[{result = 0, zBar, Ra = SFAtPos[SFa, 0,0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTAntiHolo[Ra_/;RTest[Ra]] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbosonicstringbar[zBar];
 Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, Ra], 0];
+singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0];
 If[singularityUpperBound >= 0,
-If[RcontainsProfile[Ra],
-OPEWithBRST = OPE[BRSTelem, Ra, 2]//Expand,
-OPEWithBRST = OPE[BRSTelem, Ra]//Expand];
+If[RcontainsProfile[RaPos],
+OPEWithBRST = OPE[BRSTelem, RaPos, 2]//Expand,
+OPEWithBRST = OPE[BRSTelem, RaPos]//Expand];
 Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 If[power == -1, result = result + Relem, 
@@ -73,7 +71,7 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 (*Define string bracket*)
 
 
-Bracket[toBracket__/;AllTrue[{toBracket}, SFTest]]:= b0mHold[BracketBosonic[toBracket]];
+Bracket[toBracket__/;AllTrue[{toBracket}, (RTest[#] || MultiOpTest[#]) &]]:= b0mHold[BracketBosonic[toBracket]];
 
 
 (* ::Subsection:: *)

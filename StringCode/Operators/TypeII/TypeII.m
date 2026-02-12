@@ -40,6 +40,20 @@ totalAntiHolPicture[Ma_/;MultiOpTest[Ma]]:= Total[Map[totalAntiHolPicture, List 
 totalAntiHolPicture[Times[a_, Ma_/;MultiOpTest[Ma]]] := totalAntiHolPicture[Ma];
 
 
+(* ::Subsection:: *)
+(*TypeII mapOp specializations*)
+
+
+mapOp[coordinateHol_, coordinateAntiHol_][\[Eta][n_, z_]]:= \[Eta][n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Xi][n_, z_]]:= \[Xi][n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]b[n_, z_]]:= exp\[Phi]b[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]f[n_, z_]]:= exp\[Phi]f[n, coordinateHol[z]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Eta]t[n_, zbar_]]:= \[Eta]t[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][\[Xi]t[n_, zbar_]]:= \[Xi]t[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tb[n_, zbar_]]:= exp\[Phi]tb[n, coordinateAntiHol[zbar]];
+mapOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tf[n_, zbar_]]:= exp\[Phi]tf[n, coordinateAntiHol[zbar]];
+
+
 (* ::Section:: *)
 (*End*)
 

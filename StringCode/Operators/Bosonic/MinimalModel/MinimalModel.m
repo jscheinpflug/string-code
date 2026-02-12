@@ -4,7 +4,7 @@
 (*Init*)
 
 
-BeginPackage["StringCode`StringFields`Bosonic`MinimalModel`"];
+BeginPackage["StringCode`Operators`Bosonic`MinimalModel`"];
 
 
 Needs["StringCode`Symbols`"];
@@ -12,8 +12,8 @@ Needs["StringCode`Symbols`Bosonic`"];
 Needs["StringCode`Symbols`Bosonic`MinimalModel`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`Bosonic`"];
-Needs["StringCode`StringFields`"];
-Needs["StringCode`StringFields`Bosonic`"];
+Needs["StringCode`Operators`"];
+Needs["StringCode`Operators`Bosonic`"];
 
 
 (* ::Section:: *)
@@ -24,16 +24,14 @@ Needs["StringCode`StringFields`Bosonic`"];
 (*Logic*)
 
 
-(* ::Input::Initialization:: *)
 Begin["Private`"];
 
 
 (* ::Subsection:: *)
-(*Put string field at a position*)
+(*Place operators at a position*)
 
 
-(* ::Input::Initialization:: *)
-placeOp[coordinateHol_, coordinateAntiHol_][V[n1_, n2_, z_, zbar_]]:= V[n1,n2,  coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][V[n1_, n2_, z_, zbar_]]:= V[n1, n2, coordinateHol[z], coordinateAntiHol[zbar]];
 
 
 (* ::Section:: *)

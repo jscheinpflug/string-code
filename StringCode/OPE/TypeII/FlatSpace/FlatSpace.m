@@ -10,7 +10,7 @@ Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
-Needs["StringCode`StringFields`"];
+Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 
 

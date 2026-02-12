@@ -1,0 +1,51 @@
+(* ::Package:: *)
+
+(* ::Section:: *)
+(*Init*)
+
+
+BeginPackage["StringCode`Operators`Bosonic`FlatSpace`"];
+
+
+Needs["StringCode`Symbols`"];
+Needs["StringCode`Symbols`Bosonic`"];
+Needs["StringCode`Symbols`Bosonic`FlatSpace`"];
+Needs["StringCode`NormalOrdering`"];
+Needs["StringCode`NormalOrdering`Bosonic`"];
+Needs["StringCode`Operators`"];
+Needs["StringCode`Operators`Bosonic`"];
+
+
+(* ::Section:: *)
+(*Declare public variables and methods*)
+
+
+(* ::Section:: *)
+(*Logic*)
+
+
+Begin["Private`"];
+
+
+(* ::Subsection:: *)
+(*Place operators at a position*)
+
+
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileX[profile_, ders_List, z_, zbar_]]:= ProfileX[profile, ders, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileXHolo[profile_, ders_List, z_]]:= ProfileXHolo[profile, ders, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][ProfileXAntiHolo[profile_, ders_List, zbar_]]:= ProfileXAntiHolo[profile, ders, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][dX[\[Mu]_, n_, z_]]:= dX[\[Mu], n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][dXt[\[Mu]_, n_, zbar_]]:= dXt[\[Mu], n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][expX[n_, z_, zbar_]]:= expX[n, coordinateHol[z], coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][expXHolo[n_, z_]]:= expXHolo[n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][expXAntiHolo[n_, zbar_]]:= expXAntiHolo[n, coordinateAntiHol[zbar]];
+
+
+(* ::Section:: *)
+(*End*)
+
+
+End[];
+
+
+EndPackage[];

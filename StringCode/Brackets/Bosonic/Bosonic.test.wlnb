@@ -33,7 +33,7 @@
   },
   {
    "kind": 2,
-   "value": "br1 = MultiOp[R[b[0, z1]], R[c[0, z2]]];\nres1 = Private`BracketProjection[br1, 1, 0];\nexp1 = OPEProjected[0, 0][R[b[0, z1]], R[c[0, z2]]];\ntest1Result = Simplify[res1 - exp1] === 0;\nPrint[\"Test 1 (single-term projection consistency): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "br1 = MultiOp[R[b[0, z1]], R[c[0, z2]]];\nres1 = Private`BracketProjection[br1, 1, 0];\nexp1 = OPEProjected[1, 0][R[b[0, z1]], R[c[0, z2]]];\ntest1Result = Simplify[res1 - exp1] === 0;\nPrint[\"Test 1 (single-term projection consistency): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -333,7 +333,7 @@
   },
   {
    "kind": 2,
-   "value": "res7 = Private`BracketProjection[MultiOp[R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]], 2, 0];\nexp7 = OPEProjected[0, 0][R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]];\nPrint[res7]\ntest7Result = Simplify[res7 - exp7] === 0 && Not[FreeQ[res7, \\[Alpha]p]] && Not[FreeQ[res7, (z1 - z2)^(-2)]];\nPrint[\"Test 7 (dX-dX projected singular structure): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "value": "res7 = Private`BracketProjection[MultiOp[R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]], 2, 0];\nexp7 = OPEProjected[2, 0][R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]];\nPrint[res7]\ntest7Result = Simplify[res7 - exp7] === 0 && MatchQ[res7, _R];\nPrint[\"Test 7 (dX-dX projected regular structure): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -400,7 +400,7 @@
   },
   {
    "kind": 2,
-   "value": "res8 = Private`BracketProjection[MultiOp[R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]], 0, 0];\ntest8Result = res8 === 0;\nPrint[\"Test 8 (weight mismatch projects to zero): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "value": "res8 = Private`BracketProjection[MultiOp[R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]], 0, 0];\nexp8 = OPEProjected[0, 0][R[dX[mu, 0, z1]], R[dX[nu, 0, z2]]];\ntest8Result = Simplify[res8 - exp8] === 0 && Not[FreeQ[res8, \\[Alpha]p]] && Not[FreeQ[res8, (z1 - z2)^(-2)]];\nPrint[\"Test 8 (dX-dX projected singular structure): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
    "languageId": "wolfram",
    "outputs": [
     {

@@ -82,22 +82,22 @@ OPE[R[c[0, z]], R[b[0, w]]]
 OPE[R[a], R[b], R[c]]  (* Computes OPE[R[a], OPE[R[b], R[c]]] *)
 ```
 
-### String Fields and Brackets
+### Local Operators and Brackets
 
-String fields are represented using `SF[...]` and placed at positions via local coordinate maps:
+Local operators are represented directly as `R[...]` (or `MultiOp[...]`) and placed at positions via local coordinate maps:
 
 ```mathematica
-(* Define string fields *)
-SF1 = SF[R[c[1, z], c[0, z], ct[1, zbar], ct[0, zbar]]];
+(* Define local operators *)
+Op1 = R[c[1, z], c[0, z], ct[1, zbar], ct[0, zbar]];
 
 (* Compute string bracket *)
-Bracket[SF1, SF2]
+Bracket[Op1, Op2]
 
 (* Project bracket to specific conformal weights *)
-BracketProjected[SF1, SF2, weightHolo, weightAntiHolo]
+BracketProjected[Op1, Op2, weightHolo, weightAntiHolo]
 
 (* BRST action (1-bracket) *)
-actBRST[SF1]
+actBRST[Op1]
 ```
 
 ## Package Structure
@@ -117,10 +117,8 @@ StringCode/
 │   └── TypeII/            # Type II propagators
 ├── OPE/                   # Operator product expansions
 │   └── OPE.m              # OPE via Wick + normal ordering
-├── StringFields/          # String field representations
-│   └── StringFields.m     # SF[...] and positioning
-├── Operators/             # Multi-local operators
-│   └── Operators.m        # MultiOp[...], Op[...]
+├── Operators/             # Multi-local operators and conformal positioning
+│   └── Operators.m        # MultiOp[...], mapOp[...], placeOp[...]
 ├── Brackets/              # String field theory brackets
 │   └── Brackets.m         # Bracket[...], actBRST[...]
 ├── Taylor/                # Taylor expansions
@@ -143,11 +141,11 @@ StringCode/
 | `Wick[Ra, Rb]` | Wick contraction between simple fields |
 | `DWick[Ra, Rb]` | Wick contraction of simple with composite |
 | `OPE[Ra, Rb]` | Full operator product expansion |
-| `SF[...]` | String field representation |
-| `SFAtPos[SF, z, zbar]` | Place string field at position |
-| `Bracket[SF1, SF2, ...]` | Compute n-point string bracket |
+| `RAtPos[R, z, zbar]` | Place a normal-ordered product at position |
+| `OpAtPos[op, z, zbar]` | Place `R[...]` or `MultiOp[...]` at position |
+| `Bracket[Op1, Op2, ...]` | Compute n-point string bracket |
 | `BracketProjected[..., h, hbar]` | Bracket projected to weight (h, h̄) |
-| `actBRST[SF]` | BRST charge action (Q·Ψ) |
+| `actBRST[Op]` | BRST charge action (Q·Ψ) |
 | `MultiOp[Op1, Op2, ...]` | Multi-local operator product |
 | `TaylorAtOrder[expr, n, z0]` | Taylor expand to order n around z0 |
 
@@ -198,9 +196,9 @@ InitStringCode[<|
   "bracket" -> "Flat"
 |>];
 
-(* Define two closed string fields (tachyon vertex operators) *)
-V1 = SF[R[c[1, z], ct[1, zbar], expX[k1, z, zbar]]];
-V2 = SF[R[c[1, z], ct[1, zbar], expX[k2, z, zbar]]];
+(* Define two closed string local operators (tachyon vertices) *)
+V1 = R[c[1, z], ct[1, zbar], expX[k1, z, zbar]];
+V2 = R[c[1, z], ct[1, zbar], expX[k2, z, zbar]];
 
 (* Compute the 2-bracket *)
 result = Bracket[V1, V2];

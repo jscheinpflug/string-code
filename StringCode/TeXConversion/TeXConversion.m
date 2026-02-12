@@ -8,7 +8,6 @@ BeginPackage["StringCode`TeXConversion`"]
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Operators`"];
-Needs["StringCode`StringFields`"];
 
 
 (* ::Section:: *)
@@ -50,7 +49,8 @@ formatPosition[z_, zbar_] := "(" <> mathToTeX[z] <> ", " <> mathToTeX[zbar] <> "
 
 (* Wrapper conversions *)
 ToTeX[Ra_/;RTest[Ra]] := ":" <> StringJoin[ToTeX /@ List @@ Ra] <> ":";
-ToTeX[SFa_/;SFTest[SFa]] := ToTeX @@ SFa;
+ToTeX[Global`Op[expr_]] := ToTeX[expr];
+ToTeX[Global`Op[expr_, rest__]] := ":" <> StringJoin[ToTeX /@ {expr, rest}] <> ":";
 
 (* Ghost fields *)
 ToTeX[c[n_, z_]] := derivativePrefix[n, True] <> "c" <> formatPosition[z];
