@@ -55,8 +55,8 @@ isAtPointAntiHolo[expXAntiHolo[k_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 
 isAtPointHolo[\[Psi][\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
 isAtPointAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
-isAtPointHolo[S[alpha_, q_, modes_List, der_, z_], z0_] := SameQ[z,z0];
-isAtPointAntiHolo[St[alpha_, q_, modes_List, der_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_], z0_] := SameQ[z,z0];
+isAtPointAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 
 
 (* ::Subsubsection::Closed:: *)
@@ -127,8 +127,8 @@ addAntiHoloDerivatives[expXAntiHolo[k_, zbar_], ord_, z0bar_] :=
 
 addHoloDerivatives[\[Psi][\[Mu]_,n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\[Psi][\[Mu],n+ord,z0];
 addAntiHoloDerivatives[\[Psi]t[\[Mu]_,n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Psi]t[\[Mu],n+ord,z0bar];
-addHoloDerivatives[S[alpha_, q_, modes_List, der_, z_], ord_, z0_] := (z-z0)^ord/Factorial[ord] S[alpha, q, modes, der + ord, z0];
-addAntiHoloDerivatives[St[alpha_, q_, modes_List, der_, zbar_], ord_, z0bar_] := (zbar-z0bar)^ord/Factorial[ord] St[alpha, q, modes, der + ord, z0bar];
+addHoloDerivatives[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_], ord_, z0_] := (z-z0)^ord/Factorial[ord] S[{alpha, chirality}, q, modes, der + ord, z0];
+addAntiHoloDerivatives[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_], ord_, z0bar_] := (zbar-z0bar)^ord/Factorial[ord] St[{alpha, chirality}, q, modes, der + ord, z0bar];
 
 
 (* ::Subsection:: *)

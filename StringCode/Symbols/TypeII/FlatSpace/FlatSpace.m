@@ -91,17 +91,26 @@ canonicalizeSpinModes[modes_List] := Module[{ordering, sortedModes},
   ]
 ];
 
-S[alpha_, q_, modes_List, der_, z_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
+spinAlphaChiralitySign["chiral"] := 1;
+spinAlphaChiralitySign["antichiral"] := -1;
+
+S::alpha = "Spin index must be given as {alpha, \"chiral\"|\"antichiral\"}.";
+St::alpha = "Spin index must be given as {alpha, \"chiral\"|\"antichiral\"}.";
+
+S[alpha_, q_, modes_List, der_, z_] := (Message[S::alpha]; $Failed) /; !MatchQ[alpha, {_, ("chiral" | "antichiral")}];
+St[alpha_, q_, modes_List, der_, zbar_] := (Message[St::alpha]; $Failed) /; !MatchQ[alpha, {_, ("chiral" | "antichiral")}];
+
+S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
   If[canonicalized[[1]] == 0,
     0,
-    canonicalized[[1]] S[alpha, q, canonicalized[[2]], der, z]
+    canonicalized[[1]] S[{alpha, chirality}, q, canonicalized[[2]], der, z]
   ]
 ] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
 
-St[alpha_, q_, modes_List, der_, zbar_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
+St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
   If[canonicalized[[1]] == 0,
     0,
-    canonicalized[[1]] St[alpha, q, canonicalized[[2]], der, zbar]
+    canonicalized[[1]] St[{alpha, chirality}, q, canonicalized[[2]], der, zbar]
   ]
 ] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
 
@@ -140,10 +149,10 @@ weightHolo[\[Psi][\[Mu]_, n_, z_]] := weightSymbolHolo[\[Psi]] + n;
 weightSymbolAntiHolo[\[Psi]t] := 1/2;
 weightAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[\[Psi]t] + n;
 
-weightHolo[S[alpha_, q_, modes_List, der_, z_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
-weightHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 0;
-weightAntiHolo[S[alpha_, q_, modes_List, der_, z_]] := 0;
-weightAntiHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
+weightHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
+weightHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 0;
+weightAntiHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 0;
+weightAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
 
 
 (* ::Subsection:: *)
@@ -169,11 +178,11 @@ GSOParityAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 1;
 GSOParityHolo[\[Psi][\[Mu]_, n_, z_]] := -1;
 GSOParityAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := -1;
 
-GSOParityHolo[S[alpha_, q_, modes_List, der_, z_]] := (-1)^(q + 1/2 + Length[modes]);
-GSOParityAntiHolo[St[alpha_, q_, modes_List, der_, zbar_]] := (-1)^(q + 1/2 + Length[modes]);
+GSOParityHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := spinAlphaChiralitySign[chirality] (-1)^(q + 1/2 + Length[modes]);
+GSOParityAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := spinAlphaChiralitySign[chirality] (-1)^(q + 1/2 + Length[modes]);
 
-GSOParityAntiHolo[S[alpha_, q_, modes_List, der_, z_]] := 1;
-GSOParityHolo[St[alpha_, q_, modes_List, der_, zbar_]] := 1;
+GSOParityAntiHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 1;
+GSOParityHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 1;
 
 GSOParityHolo[a_/;isField[Head[a]]]:= 1;
 GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;

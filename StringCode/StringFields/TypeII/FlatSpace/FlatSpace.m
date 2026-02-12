@@ -66,14 +66,14 @@ placeOp[coordinateHol_, coordinateAntiHol_][expXAntiHolo[n_, zbar_]]:= expXAntiH
 
 placeOp[coordinateHol_, coordinateAntiHol_][\[Psi][\[Mu]_,n_, z_]]:= \[Psi][\[Mu], n, coordinateHol[z]];
 placeOp[coordinateHol_, coordinateAntiHol_][\[Psi]t[\[Mu]_,n_, zbar_]]:= \[Psi]t[\[Mu], n, coordinateAntiHol[zbar]];
-placeOp[coordinateHol_, coordinateAntiHol_][S[alpha_, q_, modes_List, der_, z_]] := S[alpha, q, modes, der, coordinateHol[z]];
-placeOp[coordinateHol_, coordinateAntiHol_][St[alpha_, q_, modes_List, der_, zbar_]] := St[alpha, q, modes, der, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := S[{alpha, chirality}, q, modes, der, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := St[{alpha, chirality}, q, modes, der, coordinateAntiHol[zbar]];
 
-mapOp[coordinateHol_, coordinateAntiHol_][op:S[alpha_, q_, modes_List, der_, z_]] := Module[{w},
+mapOp[coordinateHol_, coordinateAntiHol_][op:S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := Module[{w},
   (D[coordinateHol[w], w] /. {w -> z})^weightHolo[op] placeOp[coordinateHol, coordinateAntiHol][op]
 ];
 
-mapOp[coordinateHol_, coordinateAntiHol_][op:St[alpha_, q_, modes_List, der_, zbar_]] := Module[{wbar},
+mapOp[coordinateHol_, coordinateAntiHol_][op:St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := Module[{wbar},
   (D[coordinateAntiHol[wbar], wbar] /. {wbar -> zbar})^weightAntiHolo[op] placeOp[coordinateHol, coordinateAntiHol][op]
 ];
 
