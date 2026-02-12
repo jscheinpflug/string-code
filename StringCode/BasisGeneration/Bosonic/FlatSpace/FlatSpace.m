@@ -158,12 +158,12 @@ combineSectorBases[holoBasis_List, antiBasis_List] := Module[
   DeleteCases[combinedProducts, 1]
 ];
 
-(* Full basis generation:
+(* Full basis generation without level-matching:
    1) Split total ghost number into holomorphic + anti-holomorphic sectors.
    2) Split total weight between sectors within minimal-weight bounds.
    3) Take Cartesian product of sector bases and combine with R[hol, anti].
    4) Remove duplicates from different split paths. *)
-generateBasis[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
+generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
   {holoGhostNumberSplits, collectedOperators, basisOperators},
   holoGhostNumberSplits = ghostSplitRange[ghostNumber, weight];
   If[holoGhostNumberSplits === {},
@@ -201,6 +201,26 @@ generateBasis[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
   DeleteDuplicates[basisOperators]
 ];
 
+(* Public full basis API:
+   - "LevelMatched" -> True (default): equivalent to generateBasisLevelMatched
+   - "LevelMatched" -> False: include all holomorphic/antiholomorphic weight splits *)
+generateBasis[weight_Integer, ghostNumber_Integer, opts___] :=
+  generateBasis[weight, ghostNumber, 0, 0, opts];
+generateBasis[weight_Integer, ghostNumber_Integer, z_, zbar_, opts___] := Module[
+  {optionList, levelMatchedQ},
+  optionList = Flatten[{opts}];
+  If[!OptionQ[optionList],
+    Return[{}]
+  ];
+  levelMatchedQ = readBooleanOption[optionList, "LevelMatched", True];
+  If[levelMatchedQ === $Failed,
+    Return[{}]
+  ];
+  If[TrueQ[levelMatchedQ],
+    generateBasisLevelMatched[weight, ghostNumber, z, zbar],
+    generateBasisAllSplits[weight, ghostNumber, z, zbar]
+  ]
+];
 generateBasis[_, _, ___] := {};
 
 (* Level-matched full basis generation:

@@ -1,0 +1,567 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII BasisGeneration Core Tests\n\nTests focused on core TypeII basis-generation helpers and API surface.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]\n\nprivateContext = \"Private`\";\nhalfIntegerPred = Symbol[privateContext <> \"halfIntegerQ\"];\ngroundStateWeightFn = Symbol[privateContext <> \"groundStateWeight\"];\ngroundStateGSOFn = Symbol[privateContext <> \"gsoParityOfGroundState\"];\ngenerateSuperghostConfigsFn = Symbol[privateContext <> \"generateSuperghostConfigs\"];\ngeneratePsiModeConfigsFn = Symbol[privateContext <> \"generatePsiModeConfigs\"];\nmodeGhostNumberFn = Symbol[privateContext <> \"modeListGhostNumber\"];\nmodeWeightFn = Symbol[privateContext <> \"modeListWeight\"];\ngsoParityConfigFn = Symbol[privateContext <> \"gsoParityOfConfig\"];\n\nsymbolNameOfHead[expr_] := SymbolName[If[AtomQ[expr], expr, Head[expr]]];\nmodeEntries[expr_] := Cases[\n  expr,\n  modeExpr_[head_, modeNumber_] /; symbolNameOfHead[modeExpr] === \"mode\" :> {head, modeNumber},\n  Infinity\n];\nmodeNumbersByHeadName[expr_, targetName_String] := Cases[\n  modeEntries[expr],\n  {head_, modeNumber_} /; symbolNameOfHead[head] === targetName :> modeNumber\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854596761,
+     "endTime": 1770854597730
+    },
+    "executionOrder": 1,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test1Result = Context[generateBasisHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisAntiHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasis] === \"StringCode`BasisGeneration`TypeII`\";\nPrint[\"Test 1 (public context export): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (public context export): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (public context export): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2577d5dd-1a19-402d-a031-46b050e212f9",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "b3f48acd-c32e-43ec-8c72-0c9d599d3199",
+     "metadata": {
+      "cellLabel": "Out[17]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854597731,
+     "endTime": 1770854598008
+    },
+    "executionOrder": 15,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "publicNames = Sort[Names[\"StringCode`BasisGeneration`TypeII`*\"]];\nexpectedPublic = Sort[{\"generateBasis\", \"generateBasisAntiHolo\", \"generateBasisHolo\"}];\ntest2Result = publicNames === expectedPublic;\nPrint[\"Test 2 (only TypeII basis API exported): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (only TypeII basis API exported): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (only TypeII basis API exported): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6c281b0d-03d5-43e9-baf3-2ba06aa93d5a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4dcdb2f6-13aa-47d3-9fff-2e44eb9b3c0b",
+     "metadata": {
+      "cellLabel": "Out[22]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854598009,
+     "endTime": 1770854598405
+    },
+    "executionOrder": 18,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test3Result = TrueQ[halfIntegerPred[-1/2]] && TrueQ[halfIntegerPred[3/2]] && !TrueQ[halfIntegerPred[-1]] &&\n  groundStateWeightFn[-1] === 1/2 && groundStateWeightFn[0] === 0 &&\n  groundStateWeightFn[{-1/2, \"chiral\"}] === 1 && groundStateWeightFn[{1/2, \"antichiral\"}] === 0;\nPrint[\"Test 3 (picture predicate + ground-state weights): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (picture predicate + ground-state weights): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (picture predicate + ground-state weights): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "dd840bb6-85d2-4840-85c4-84198a2c30fe",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c85d5ed8-c861-48da-9281-c37857e8bb30",
+     "metadata": {
+      "cellLabel": "Out[25]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854598406,
+     "endTime": 1770854598686
+    },
+    "executionOrder": 23,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test4Result = groundStateGSOFn[-2] === 1 && groundStateGSOFn[0] === 1 && groundStateGSOFn[2] === 1 &&\n  groundStateGSOFn[-1] === -1 && groundStateGSOFn[1] === -1 &&\n  groundStateGSOFn[{-1/2, \"chiral\"}] === 1 && groundStateGSOFn[{-1/2, \"antichiral\"}] === -1 &&\n  groundStateGSOFn[{1/2, \"chiral\"}] === -1 && groundStateGSOFn[{1/2, \"antichiral\"}] === 1;\nPrint[\"Test 4 (ground-state GSO parity table): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (ground-state GSO parity table): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (ground-state GSO parity table): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c68d2b2c-b1d0-4fec-bcbf-9d1dea5eaf36",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3f0970f2-bc27-4b69-bd4d-f3a727ae7ab8",
+     "metadata": {
+      "cellLabel": "Out[28]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854598686,
+     "endTime": 1770854598967
+    },
+    "executionOrder": 26,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test5Result = generateSuperghostConfigsFn[-2, -3] === {} && generateSuperghostConfigsFn[-2, 2] === {};\nPrint[\"Test 5 (superghost infeasible cutoffs): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (superghost infeasible cutoffs): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (superghost infeasible cutoffs): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "268c6b31-16be-4ab7-8db2-2943e781ff7c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c362ebe8-1dce-4785-a2d1-1bd72ef77087",
+     "metadata": {
+      "cellLabel": "Out[31]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854598967,
+     "endTime": 1770854599244
+    },
+    "executionOrder": 29,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "superghostConfigs = generateSuperghostConfigsFn[3, 0];\nsuperghostConfigsQMinusOne = generateSuperghostConfigsFn[3, 0, -1];\nrepeatedSuperghostModeQ[modes_List] := Module[{betaNums, gammaNums},\n  betaNums = modeNumbersByHeadName[modes, \"\\[Beta]\"];\n  gammaNums = modeNumbersByHeadName[modes, \"\\[Gamma]\"];\n  Length[betaNums] > Length[DeleteDuplicates[betaNums]] || Length[gammaNums] > Length[DeleteDuplicates[gammaNums]]\n];\nmodesRespectPictureBoundsQ[modes_List, q_] := Module[{betaNums, gammaNums},\n  betaNums = modeNumbersByHeadName[modes, \"\\[Beta]\"];\n  gammaNums = modeNumbersByHeadName[modes, \"\\[Gamma]\"];\n  AllTrue[betaNums, # <= (-3/2 - q) &] && AllTrue[gammaNums, # <= (1/2 + q) &]\n];\ntest6Result = superghostConfigs =!= {} && AnyTrue[superghostConfigs[[All, 1]], repeatedSuperghostModeQ] &&\n  superghostConfigsQMinusOne =!= {} && AllTrue[superghostConfigsQMinusOne[[All, 1]], modesRespectPictureBoundsQ[#, -1] &];\nPrint[\"Test 6 (superghost occupancy + picture-dependent mode bounds): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (superghost bosonic occupancy): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (superghost bosonic occupancy): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6bf5ae4f-1e76-4b44-88e4-9357e99719ce",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4fe5feea-c0df-4378-850b-cfd24754d9ff",
+     "metadata": {
+      "cellLabel": "Out[36]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854599244,
+     "endTime": 1770854599642
+    },
+    "executionOrder": 32,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "psiInt = generatePsiModeConfigsFn[3, -1];\npsiHalf = generatePsiModeConfigsFn[3, {-1/2, \"chiral\"}];\npsiModeNumbers[cfgs_List] := modeNumbersByHeadName[cfgs, \"\\[Psi]\"];\nintModeNumbers = psiModeNumbers[psiInt[[All, 1]]];\nhalfModeNumbers = psiModeNumbers[psiHalf[[All, 1]]];\noddHalfIntegerQ[x_] := IntegerQ[2 x] && OddQ[Numerator[Together[x]]];\ntest7Result = intModeNumbers =!= {} && halfModeNumbers =!= {} &&\n  AllTrue[intModeNumbers, oddHalfIntegerQ] && AllTrue[halfModeNumbers, IntegerQ] && !MemberQ[halfModeNumbers, 0];\nPrint[\"Test 7 (psi moding regimes; no psi[0] at half-integer picture): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 7 (psi moding regimes): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 7 (psi moding regimes): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "863b3d49-0800-437f-87f7-c7acb8f26d4f",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "28d59f02-d763-4f15-a492-95bd7c9676ad",
+     "metadata": {
+      "cellLabel": "Out[45]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854599642,
+     "endTime": 1770854600279
+    },
+    "executionOrder": 37,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "basisProjected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> True];\nbasisUnprojected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> False];\nsubsetQ[a_, b_] := Complement[a, b] === {};\nvalidHoloTupleQ[entry_] := MatchQ[entry, {-1, _List}];\nprojectedParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === 1;\nweightMatchQ[entry_] := groundStateWeightFn[-1] + modeWeightFn[entry[[2]]] === 2;\nghostMatchQ[entry_] := modeGhostNumberFn[entry[[2]]] === 0;\ntest8Result = basisProjected =!= {} && basisUnprojected =!= {} &&\n  AllTrue[basisProjected, validHoloTupleQ] &&\n  AllTrue[basisProjected, ghostMatchQ] &&\n  AllTrue[basisProjected, weightMatchQ] &&\n  AllTrue[basisProjected, projectedParityQ] &&\n  subsetQ[basisProjected, basisUnprojected] &&\n  Length[basisUnprojected] >= Length[basisProjected];\nPrint[\"Test 8 (holo invariants + GSO option behavior): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 8 (holo invariants + GSO option behavior): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 8 (holo invariants + GSO option behavior): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "195ea4f1-c065-4f0c-a465-070f5f7271c2",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "fdb544fd-d4c0-4625-87ce-134b29ab4f9c",
+     "metadata": {
+      "cellLabel": "Out[55]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854600279,
+     "endTime": 1770854600973
+    },
+    "executionOrder": 46,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test9Result = generateBasisHolo[-1, 0, -1] === {} && generateBasisHolo[2, 0, 1/3] === {} && generateBasisHolo[2, 0, -1, \"GSOProjected\" -> 17] === {};\nPrint[\"Test 9 (invalid inputs/options fail closed): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 9 (invalid inputs/options fail closed): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 9 (invalid inputs/options fail closed): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "100edcb1-f504-4f66-920f-55904db6a2ea",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f8c0d8db-9b82-4706-8685-fcb70c019bbe",
+     "metadata": {
+      "cellLabel": "Out[58]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854600973,
+     "endTime": 1770854601257
+    },
+    "executionOrder": 56,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "188bc552-d9bf-433c-8407-b38eca0d2f4c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 9/9\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 9/9\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "24933b4c-7b4b-4dde-9a47-7745bde152db",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>All tests PASSED!\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"All tests PASSED!\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "fef015fd-686d-4be2-ae97-3050da7ca16d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f792836e-8c7c-4bb9-a103-739e3cf58c17",
+     "metadata": {
+      "cellLabel": "Out[65]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1770854601258,
+     "endTime": 1770854601839
+    },
+    "executionOrder": 59,
+    "success": true
+   }
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "Wolfram Language"
+  },
+  "version": 1
+ }
+}
