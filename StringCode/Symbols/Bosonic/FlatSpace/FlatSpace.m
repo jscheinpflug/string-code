@@ -65,7 +65,9 @@ DefineField[dX,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {dX, expX, ProfileX, expXHolo, ProfileXHolo}
+  "PairsWith" -> {dX, expX, ProfileX, expXHolo, ProfileXHolo},
+  "WeightHolo" -> Function[field, 1 + field[[2]]],
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[dXt,
@@ -78,7 +80,9 @@ DefineField[dXt,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {dXt, expX, ProfileX, expXAntiHolo, ProfileXAntiHolo}
+  "PairsWith" -> {dXt, expX, ProfileX, expXAntiHolo, ProfileXAntiHolo},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 1 + field[[2]]]
 ];
 
 DefineField[expX,
@@ -92,7 +96,9 @@ DefineField[expX,
   "Factorizable" -> True,
   "RegularFermion" -> False,
   "PairsWith" -> {expX, ProfileX, dX, dXt},
-  "FactorizationRule" -> (expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]})
+  "FactorizationRule" -> (expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}),
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[expXHolo,
@@ -105,7 +111,9 @@ DefineField[expXHolo,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {expXHolo, ProfileXHolo, dX}
+  "PairsWith" -> {expXHolo, ProfileXHolo, dX},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[expXAntiHolo,
@@ -118,7 +126,9 @@ DefineField[expXAntiHolo,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {expXAntiHolo, ProfileXAntiHolo, dXt}
+  "PairsWith" -> {expXAntiHolo, ProfileXAntiHolo, dXt},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[ProfileX,
@@ -132,7 +142,9 @@ DefineField[ProfileX,
   "Factorizable" -> True,
   "RegularFermion" -> False,
   "PairsWith" -> {ProfileX, expX, dX, dXt},
-  "FactorizationRule" -> (ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]})
+  "FactorizationRule" -> (ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]}),
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[ProfileXHolo,
@@ -145,7 +157,9 @@ DefineField[ProfileXHolo,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {ProfileXHolo, expXHolo, dX}
+  "PairsWith" -> {ProfileXHolo, expXHolo, dX},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 DefineField[ProfileXAntiHolo,
@@ -158,7 +172,9 @@ DefineField[ProfileXAntiHolo,
   "Collapsable" -> True,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {ProfileXAntiHolo, expXAntiHolo, dXt}
+  "PairsWith" -> {ProfileXAntiHolo, expXAntiHolo, dXt},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0
 ];
 
 
@@ -166,21 +182,7 @@ DefineField[ProfileXAntiHolo,
 (*Define weight of symbols*)
 
 
-weightSymbolHolo[dX] := 1;
-weightHolo[dX[\[Mu]_, n_, z_]] := weightSymbolHolo[dX] + n;
-
-weightHolo[expX[k_, z_,zbar_]] := 0;
-weightHolo[expXHolo[k_, z_]] := 0;
-weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
-
-weightSymbolAntiHolo[dXt] := 1;
-weightAntiHolo[dXt[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[dXt] + n;
-
-weightAntiHolo[expX[k_, z_,zbar_]] := 0;
-weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
-weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
+(*Weights are provided via DefineField metadata and evaluated generically in Symbols.m.*)
 
 
 (* ::Section:: *)

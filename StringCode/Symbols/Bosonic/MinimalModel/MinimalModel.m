@@ -37,7 +37,9 @@ DefineField[V,
   "Collapsable" -> False,
   "Factorizable" -> False,
   "RegularFermion" -> False,
-  "PairsWith" -> {}
+  "PairsWith" -> {},
+  "WeightHolo" -> Function[field, 1 + field[[1]]],
+  "WeightAntiHolo" -> Function[field, 1 + field[[2]]]
 ];
 
 
@@ -45,10 +47,7 @@ DefineField[V,
 (*Define weight of symbols*)
 
 
-weightSymbolHolo[V] := 1;
-weightSymbolAntiHolo[V] := 1;
-weightHolo[V[nHolo_, nAntiHolo_, z_, zbar_]] := weightSymbolHolo[V] + nHolo;
-weightAntiHolo[V[nHolo_, nAntiHolo_, z_, zbar_]] := weightSymbolAntiHolo[V] + nAntiHolo;
+(*Weights are provided via DefineField metadata and evaluated generically in Symbols.m.*)
 
 
 (* ::Section:: *)

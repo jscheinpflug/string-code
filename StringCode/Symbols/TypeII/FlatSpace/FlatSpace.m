@@ -76,6 +76,8 @@ DefineField[dX,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {dX, expX, ProfileX, expXHolo, ProfileXHolo},
+  "WeightHolo" -> Function[field, 1 + field[[2]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -91,6 +93,8 @@ DefineField[dXt,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {dXt, expX, ProfileX, expXAntiHolo, ProfileXAntiHolo},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 1 + field[[2]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -107,6 +111,8 @@ DefineField[expX,
   "RegularFermion" -> False,
   "PairsWith" -> {expX, ProfileX, dX, dXt},
   "FactorizationRule" -> (expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}),
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -122,6 +128,8 @@ DefineField[expXHolo,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {expXHolo, ProfileXHolo, dX},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -137,6 +145,8 @@ DefineField[expXAntiHolo,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {expXAntiHolo, ProfileXAntiHolo, dXt},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -153,6 +163,8 @@ DefineField[ProfileX,
   "RegularFermion" -> False,
   "PairsWith" -> {ProfileX, expX, dX, dXt},
   "FactorizationRule" -> (ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]}),
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -168,6 +180,8 @@ DefineField[ProfileXHolo,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {ProfileXHolo, expXHolo, dX},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -183,6 +197,8 @@ DefineField[ProfileXAntiHolo,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {ProfileXAntiHolo, expXAntiHolo, dXt},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -198,6 +214,8 @@ DefineField[\[Psi],
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Psi]},
+  "WeightHolo" -> Function[field, 1/2 + field[[2]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> -1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -213,6 +231,8 @@ DefineField[\[Psi]t,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Psi]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 1/2 + field[[2]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> -1
 ];
@@ -228,6 +248,8 @@ DefineField[S,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {},
+  "WeightHolo" -> Function[field, 5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] + Total[First /@ field[[3]]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])],
   "GSOParityAntiHolo" -> 1
 ];
@@ -243,6 +265,8 @@ DefineField[St,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] + Total[First /@ field[[3]]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])]
 ];
@@ -284,40 +308,7 @@ St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]
 (*Define weight of symbols*)
 
 
-(* ::Subsubsection:: *)
-(*Free boson*)
-
-
-weightSymbolHolo[dX] := 1;
-weightHolo[dX[\[Mu]_, n_, z_]] := weightSymbolHolo[dX] + n;
-
-weightHolo[expX[k_, z_,zbar_]] := 0;
-weightHolo[expXHolo[k_, z_]] := 0;
-weightHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightHolo[ProfileXHolo[profile_, ders_, z_]] := 0;
-
-weightSymbolAntiHolo[dXt] := 1;
-weightAntiHolo[dXt[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[dXt] + n;
-
-weightAntiHolo[expX[k_, z_,zbar_]] := 0;
-weightAntiHolo[expXAntiHolo[k_, zbar_]] := 0;
-weightAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 0;
-weightAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 0;
-
-
-(* ::Subsubsection:: *)
-(*Free fermion*)
-
-
-weightSymbolHolo[\[Psi]]:= 1/2;
-weightHolo[\[Psi][\[Mu]_, n_, z_]] := weightSymbolHolo[\[Psi]] + n;
-weightSymbolAntiHolo[\[Psi]t] := 1/2;
-weightAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := weightSymbolAntiHolo[\[Psi]t] + n;
-
-weightHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
-weightHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 0;
-weightAntiHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 0;
-weightAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
+(*Weights are provided via DefineField metadata and evaluated generically in Symbols.m.*)
 
 
 (* ::Section:: *)

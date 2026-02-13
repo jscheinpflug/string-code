@@ -275,7 +275,15 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5];\nPrint[\"Bosonic FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "dXWeightHoloMeta = Private`fieldProperty[dX, \"WeightHolo\"];\ndXtWeightAntiMeta = Private`fieldProperty[dXt, \"WeightAntiHolo\"];\ntest6 = MatchQ[dXWeightHoloMeta, _Function] && MatchQ[dXtWeightAntiMeta, _Function] && dXWeightHoloMeta[dX[\\[Mu],3,z]] === 4 && dXtWeightAntiMeta[dXt[\\[Nu],1,zb]] === 2 && Private`fieldProperty[dX, \"WeightAntiHolo\"] === 0 && Private`fieldProperty[dXt, \"WeightHolo\"] === 0 && Private`fieldProperty[expX, \"WeightHolo\"] === 0 && Private`fieldProperty[expX, \"WeightAntiHolo\"] === 0 && Private`fieldProperty[ProfileXAntiHolo, \"WeightHolo\"] === 0 && Private`fieldProperty[ProfileXAntiHolo, \"WeightAntiHolo\"] === 0;\nPrint[\"Test 6 (DefineField weight metadata is explicit): \", If[test6, \"PASSED\", \"FAILED\"]];\ntest6",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6];\nPrint[\"Bosonic FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [
     {

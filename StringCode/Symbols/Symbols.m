@@ -290,18 +290,22 @@ weightSymbolHolo[symbol_/;isHolomorphic[symbol] && isField[symbol]]:= Module[{we
   If[weight === Missing["NotAvailable"], 0, weight]
 ];
 
-weightHolo[field_/;MatchQ[Head[field], _Symbol] && (!isHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightHolo[b[der_, z_]] := weightSymbolHolo[b] + der;
 weightHolo[c[der_, z_]] := weightSymbolHolo[c] + der;
+weightHolo[field_/;MatchQ[Head[field], _Symbol] && isField[Head[field]]] := Module[{symbol = Head[field]},
+  evaluateFieldProperty[field, "WeightHolo", If[isHolomorphic[symbol], weightSymbolHolo[symbol], 0]]
+];
 
 weightSymbolAntiHolo[symbol_/;(!isAntiHolomorphic[symbol] && isField[symbol])] := 0;
 weightSymbolAntiHolo[symbol_/;isAntiHolomorphic[symbol] && isField[symbol]]:= Module[{weight = fieldProperty[symbol, "WeightAntiHolo"]},
   If[weight === Missing["NotAvailable"], 0, weight]
 ];
 
-weightAntiHolo[field_/;MatchQ[Head[field], _Symbol] && (!isAntiHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightAntiHolo[bt[der_, zbar_]] := weightSymbolAntiHolo[bt] + der;
 weightAntiHolo[ct[der_, zbar_]] := weightSymbolAntiHolo[ct] + der;
+weightAntiHolo[field_/;MatchQ[Head[field], _Symbol] && isField[Head[field]]] := Module[{symbol = Head[field]},
+  evaluateFieldProperty[field, "WeightAntiHolo", If[isAntiHolomorphic[symbol], weightSymbolAntiHolo[symbol], 0]]
+];
 
 
 (* ::Section:: *)
