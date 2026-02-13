@@ -225,7 +225,7 @@
   },
   {
    "kind": 2,
-   "value": "basis5 = generateBasis[1, 0];\ntest5Result = Length[basis5] == 6 && MemberQ[basis5, R[dX[_Symbol, 0, 0]]] && MemberQ[basis5, R[dXt[_Symbol, 0, 0]]] && MemberQ[basis5, R[b[0, 0], c[0, 0]]] && MemberQ[basis5, R[bt[0, 0], ct[0, 0]]] && MemberQ[basis5, R[b[0, 0], ct[0, 0]]] && MemberQ[basis5, -R[bt[0, 0], c[0, 0]]];\nPrint[\"Test 5 (full basis w=1,gh=0 content): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "value": "basis5 = generateBasis[1, 0, \"LevelMatched\" -> False];\ntest5Result = Length[basis5] == 6 && MemberQ[basis5, R[dX[_Symbol, 0, 0]]] && MemberQ[basis5, R[dXt[_Symbol, 0, 0]]] && MemberQ[basis5, R[b[0, 0], c[0, 0]]] && MemberQ[basis5, R[bt[0, 0], ct[0, 0]]] && MemberQ[basis5, R[b[0, 0], ct[0, 0]]] && MemberQ[basis5, -R[bt[0, 0], c[0, 0]]];\nPrint[\"Test 5 (full basis w=1,gh=0 content): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -275,7 +275,7 @@
   },
   {
    "kind": 2,
-   "value": "test6Result = Length[generateBasisHolo[2, 0]] == 5 && Length[generateBasis[2, 0]] == 22;\nPrint[\"Test 6 (expected basis sizes at w=2): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "value": "test6Result = Length[generateBasisHolo[2, 0]] == 5 && Length[generateBasis[2, 0, \"LevelMatched\" -> False]] == 22;\nPrint[\"Test 6 (expected basis sizes at w=2): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -725,7 +725,7 @@
   },
   {
    "kind": 2,
-   "value": "expectedFull3m1 = {R[b[0, 0], dXt[mu1, 0, 0]], R[b[0, 0], bt[0, 0], ct[0, 0]], R[b[0, 0], dX[mu1, 0, 0]], R[b[1, 0]], R[bt[0, 0], dXt[mu1, 0, 0]], R[bt[1, 0]], R[bt[0, 0], dX[mu1, 0, 0]], -R[b[0, 0], bt[0, 0], c[0, 0]]};\ntest15Result = Sort[generateBasis[3, -1]] === Sort[expectedFull3m1];\nPrint[\"Test 15 (w=3, gh=-1 exact full basis): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
+   "value": "expectedFull3m1 = {R[b[0, 0], dXt[mu1, 0, 0]], R[b[0, 0], bt[0, 0], ct[0, 0]], R[b[0, 0], dX[mu1, 0, 0]], R[b[1, 0]], R[bt[0, 0], dXt[mu1, 0, 0]], R[bt[1, 0]], R[bt[0, 0], dX[mu1, 0, 0]], -R[b[0, 0], bt[0, 0], c[0, 0]]};\ntest15Result = Sort[generateBasis[3, -1, \"LevelMatched\" -> False]] === Sort[expectedFull3m1];\nPrint[\"Test 15 (w=3, gh=-1 exact full basis): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -775,7 +775,7 @@
   },
   {
    "kind": 2,
-   "value": "full30 = generateBasis[3, 0];\ntest16Result = Length[full30] == 68 && MemberQ[full30, R[dXt[mu1, 2, 0]]] && MemberQ[full30, R[b[0, 0], bt[0, 0], ct[0, 0], ct[1, 0]]];\nPrint[\"Test 16 (w=3, gh=0 full size/content): \", If[test16Result, \"PASSED\", \"FAILED\"]];\ntest16Result",
+   "value": "full30 = generateBasis[3, 0, \"LevelMatched\" -> False];\ntest16Result = Length[full30] == 68 && MemberQ[full30, R[dXt[mu1, 2, 0]]] && MemberQ[full30, R[b[0, 0], bt[0, 0], ct[0, 0], ct[1, 0]]];\nPrint[\"Test 16 (w=3, gh=0 full size/content): \", If[test16Result, \"PASSED\", \"FAILED\"]];\ntest16Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -825,7 +825,7 @@
   },
   {
    "kind": 2,
-   "value": "full40 = generateBasis[4, 0];\ntest17Result = Length[full40] == 187 && MemberQ[full40, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full40, R[b[0, 0], ct[0, 0], dXt[mu1, 2, 0]]];\nPrint[\"Test 17 (w=4, gh=0 full size/content): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
+   "value": "full40 = generateBasis[4, 0, \"LevelMatched\" -> False];\ntest17Result = Length[full40] == 187 && MemberQ[full40, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full40, R[b[0, 0], ct[0, 0], dXt[mu1, 2, 0]]];\nPrint[\"Test 17 (w=4, gh=0 full size/content): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -875,7 +875,7 @@
   },
   {
    "kind": 2,
-   "value": "full50 = generateBasis[5, 0];\ntest18Result = Length[full50] == 470 && MemberQ[full50, R[b[0, 0], b[2, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full50, R[b[0, 0], ct[0, 0], dXt[mu1, 3, 0]]];\nPrint[\"Test 18 (w=5, gh=0 full size/content): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
+   "value": "full50 = generateBasis[5, 0, \"LevelMatched\" -> False];\ntest18Result = Length[full50] == 470 && MemberQ[full50, R[b[0, 0], b[2, 0], ct[0, 0], ct[1, 0]]] && MemberQ[full50, R[b[0, 0], ct[0, 0], dXt[mu1, 3, 0]]];\nPrint[\"Test 18 (w=5, gh=0 full size/content): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -925,7 +925,7 @@
   },
   {
    "kind": 2,
-   "value": "full51 = generateBasis[5, 1];\ntest19Result = Length[full51] == 1360 && MemberQ[full51, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0], ct[2, 0]]] && MemberQ[full51, R[bt[0, 0], c[0, 0], c[5, 0]]];\nPrint[\"Test 19 (w=5, gh=1 full size/content): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
+   "value": "full51 = generateBasis[5, 1, \"LevelMatched\" -> False];\ntest19Result = Length[full51] == 1360 && MemberQ[full51, R[b[0, 0], b[1, 0], ct[0, 0], ct[1, 0], ct[2, 0]]] && MemberQ[full51, R[bt[0, 0], c[0, 0], c[5, 0]]];\nPrint[\"Test 19 (w=5, gh=1 full size/content): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1025,7 +1025,7 @@
   },
   {
    "kind": 2,
-   "value": "fieldWeight[field_] := Module[{headName = SymbolName[Head[field]]},\n  Switch[headName,\n    \"b\", 2 + field[[1]],\n    \"c\", -1 + field[[1]],\n    \"dX\", 1 + field[[2]],\n    \"bt\", 2 + field[[1]],\n    \"ct\", -1 + field[[1]],\n    \"dXt\", 1 + field[[2]],\n    _, 0\n  ]\n];\nsectorWeights[expr_] := Module[{holoWeight, antiWeight},\n  holoWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"b\", \"c\", \"dX\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  antiWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"bt\", \"ct\", \"dXt\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  {holoWeight, antiWeight}\n];\nfull40 = generateBasis[4, 0];\nlevelMatched40 = generateBasisLevelMatched[4, 0];\nexpectedLevelMatched40 = Select[full40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest21Result = Sort[levelMatched40] === Sort[expectedLevelMatched40] && levelMatched40 =!= {} &&\n  AllTrue[levelMatched40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 21 (level-matched subset equals filtered full basis at w=4,gh=0): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
+   "value": "fieldWeight[field_] := Module[{headName = SymbolName[Head[field]]},\n  Switch[headName,\n    \"b\", 2 + field[[1]],\n    \"c\", -1 + field[[1]],\n    \"dX\", 1 + field[[2]],\n    \"bt\", 2 + field[[1]],\n    \"ct\", -1 + field[[1]],\n    \"dXt\", 1 + field[[2]],\n    _, 0\n  ]\n];\nsectorWeights[expr_] := Module[{holoWeight, antiWeight},\n  holoWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"b\", \"c\", \"dX\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  antiWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"bt\", \"ct\", \"dXt\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  {holoWeight, antiWeight}\n];\nfull40 = generateBasis[4, 0, \"LevelMatched\" -> False];\nlevelMatched40 = generateBasisLevelMatched[4, 0];\nexpectedLevelMatched40 = Select[full40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest21Result = Sort[levelMatched40] === Sort[expectedLevelMatched40] && levelMatched40 =!= {} &&\n  AllTrue[levelMatched40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 21 (level-matched subset equals filtered full basis at w=4,gh=0): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1075,7 +1075,7 @@
   },
   {
    "kind": 2,
-   "value": "full41 = generateBasis[4, 1];\nlevelMatched41 = generateBasisLevelMatched[4, 1];\nexpectedLevelMatched41 = Select[full41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest22Result = Sort[levelMatched41] === Sort[expectedLevelMatched41] &&\n  AllTrue[levelMatched41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 22 (level-matched subset equals filtered full basis at w=4,gh=1): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
+   "value": "full41 = generateBasis[4, 1, \"LevelMatched\" -> False];\nlevelMatched41 = generateBasisLevelMatched[4, 1];\nexpectedLevelMatched41 = Select[full41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest22Result = Sort[levelMatched41] === Sort[expectedLevelMatched41] &&\n  AllTrue[levelMatched41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 22 (level-matched subset equals filtered full basis at w=4,gh=1): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
    "languageId": "wolfram",
    "outputs": [
     {

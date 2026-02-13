@@ -279,18 +279,27 @@ ghostSplitRangeClosedString[
   β/γ are bosonic (modes can repeat), ψ is fermionic (modes distinct).
 *)
 
-(* Convert offset lists to superghost mode objects.
-   At picture q:
-   - β creation modes: n = -3/2 - q - offset (offset ≥ 0)
-   - γ creation modes: n = 1/2 + q - offset (offset ≥ 0) *)
-generateSuperghostModes[betaOffsets_List, gammaOffsets_List, picture_?validPictureSpecQ] := Module[
-  {q},
+minModeNumberForSpecies::usage = "Returns maximal creation mode number n0 for TypeII species at a given picture.";
+minModeNumberForSpecies[symbol_Symbol, picture_?validPictureSpecQ] := Module[{q},
   q = pictureValue[picture];
-  Join[
-    mode[\[Beta], -3/2 - q - #] & /@ betaOffsets,
-    mode[\[Gamma], 1/2 + q - #] & /@ gammaOffsets
+  Switch[symbol,
+    \[Beta] | \[Beta]t, -3/2 - q,
+    \[Gamma] | \[Gamma]t, 1/2 + q,
+    \[Psi] | \[Psi]t, If[IntegerQ[q], -1/2, -1],
+    _, basisMinModeNumberForSpecies[symbol]
   ]
 ];
+
+modeNumberFromOffset::usage = "Converts nonnegative offset to TypeII oscillator mode number.";
+modeNumberFromOffset[symbol_Symbol, modeOffset_Integer?NonNegative, picture_?validPictureSpecQ] :=
+  minModeNumberForSpecies[symbol, picture] - modeOffset;
+
+(* Convert offset lists to superghost mode objects. *)
+generateSuperghostModes[betaOffsets_List, gammaOffsets_List, picture_?validPictureSpecQ] :=
+  Join[
+    mode[\[Beta], modeNumberFromOffset[\[Beta], #, picture]] & /@ betaOffsets,
+    mode[\[Gamma], modeNumberFromOffset[\[Gamma], #, picture]] & /@ gammaOffsets
+  ];
 
 (* Compute remaining offset budget after fixing β/γ counts.
    Returns -1 if configuration is impossible. *)
@@ -431,21 +440,11 @@ generateDXModeConfigs[targetWeight_Integer?NonNegative] :=
     generateDXModes /@ partitions
   ];
 
-(* ψ base weight depends on sector:
-   NS (integer picture): ψ has weight 1/2, modes at -1/2, -3/2, ...
-   R (half-integer picture): ψ has weight 0, modes at -1, -2, ... *)
-psiBaseWeight[picture_?validPictureSpecQ] := If[IntegerQ[pictureValue[picture]], 1/2, 0];
-psiMinOffset[picture_?validPictureSpecQ] := If[IntegerQ[pictureValue[picture]], 0, 1];
-
 (* Convert offset list to ψ mode objects *)
-generatePsiModes[offsets_List, picture_?validPictureSpecQ] := Module[
-  {baseWeight, makePsiMode},
-  baseWeight = psiBaseWeight[picture];
-  makePsiMode[offset_Integer?NonNegative] := Module[{mu},
-    mode[\[Psi][mu], -baseWeight - offset]
-  ];
-  makePsiMode /@ offsets
-];
+generatePsiModes[offsets_List, picture_?validPictureSpecQ] :=
+  (Module[{mu},
+    mode[\[Psi][mu], modeNumberFromOffset[\[Psi], #, picture]]
+  ] & /@ offsets);
 
 (* Generate all ψ configurations up to target weight.
    ψ is fermionic: use distinctModesByExactSum (no repeats).
@@ -453,8 +452,7 @@ generatePsiModes[offsets_List, picture_?validPictureSpecQ] := Module[
 generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
   generatePsiModeConfigs[targetWeight, picture] = Module[
     {
-      baseWeight,
-      minOffset,
+      minModeNumber,
       psiCount = 0,
       minPsiWeight,
       maxOffsetSum,
@@ -466,21 +464,20 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
     If[targetWeight < 0 || !IntegerQ[2 targetWeight],
       Return[{}]
     ];
-    baseWeight = psiBaseWeight[picture];
-    minOffset = psiMinOffset[picture];
+    minModeNumber = minModeNumberForSpecies[\[Psi], picture];
     collectedConfigs = Reap[
       (* Iterate over number of ψ modes *)
       While[True,
-        minPsiWeight = baseWeight psiCount + minDistinctModeSum[psiCount, minOffset];
+        minPsiWeight = -minModeNumber psiCount + minDistinctModeSum[psiCount, 0];
         If[minPsiWeight > targetWeight,
           Break[]
         ];
-        minOffsetSum = minDistinctModeSum[psiCount, minOffset];
-        maxOffsetSum = Floor[targetWeight - baseWeight psiCount];
+        minOffsetSum = minDistinctModeSum[psiCount, 0];
+        maxOffsetSum = Floor[targetWeight + minModeNumber psiCount];
         Do[
-          offsetConfigs = distinctModesByExactSum[psiCount, offsetSum, minOffset];
+          offsetConfigs = distinctModesByExactSum[psiCount, offsetSum, 0];
           Do[
-            Sow[{generatePsiModes[offsets, picture], baseWeight psiCount + offsetSum}],
+            Sow[{generatePsiModes[offsets, picture], -minModeNumber psiCount + offsetSum}],
             {offsets, offsetConfigs}
           ],
           {offsetSum, minOffsetSum, maxOffsetSum}
@@ -554,33 +551,20 @@ canonicalizeLorentzIndicesModes[modes_List] := Module[
   modes /. renamingRules
 ];
 
-(* Extract field type from mode object.
-   mode[b, n] → b, mode[ψ[μ], n] → ψ *)
-modeSpecies[mode[head_, _]] := If[AtomQ[head], head, Head[head]];
-
 (* Conformal weight contribution: mode with number n contributes -n *)
 modeWeightContribution[mode[_, modeNumber_]] := -modeNumber;
 
-(* Ghost number contribution:
-   b, b̃, β, β̃ → -1 (lower ghost number)
-   c, c̃, γ, γ̃ → +1 (raise ghost number)
-   matter → 0 *)
+(* Ghost number contribution of one oscillator mode. *)
 modeGhostContribution[modeObj : mode[_, _]] := Switch[
-  modeSpecies[modeObj],
-  b | bt | \[Beta] | \[Beta]t, -1,
-  c | ct | \[Gamma] | \[Gamma]t, 1,
-  _, 0
+  basisModeSpecies[modeObj],
+  \[Beta] | \[Beta]t, -1,
+  \[Gamma] | \[Gamma]t, 1,
+  _, basisGhostContributionFromMode[modeObj]
 ];
 
-(* GSO parity contribution:
-   Worldsheet fermions (ψ, β, γ) contribute -1
-   Bosons (b, c, ∂X) contribute +1 *)
+(* GSO parity contribution of one oscillator mode. *)
 modeGSOParityContribution[modeObj : mode[_, _]] :=
-  If[
-    MemberQ[{\[Psi], \[Psi]t, \[Beta], \[Beta]t, \[Gamma], \[Gamma]t}, modeSpecies[modeObj]],
-    -1,
-    1
-  ];
+  basisModeGSOParityContribution[modeObj];
 
 (* Sum ghost contributions over all modes in list *)
 modeListGhostNumber[modeList_List] :=
@@ -605,14 +589,12 @@ buildHoloState[picture_?validPictureSpecQ, bcModes_List, superghostModes_List, m
     {picture, modeList}
   ];
 
-(* Convert holomorphic mode to antiholomorphic counterpart.
-   b → b̃, c → c̃, β → β̃, γ → γ̃, ∂X → ∂̄X, ψ → ψ̃ *)
-antiModeFromHolo[mode[b, modeNumber_]] := mode[bt, modeNumber];
-antiModeFromHolo[mode[c, modeNumber_]] := mode[ct, modeNumber];
+(* Convert holomorphic mode to antiholomorphic counterpart. *)
 antiModeFromHolo[mode[\[Beta], modeNumber_]] := mode[\[Beta]t, modeNumber];
 antiModeFromHolo[mode[\[Gamma], modeNumber_]] := mode[\[Gamma]t, modeNumber];
 antiModeFromHolo[mode[dX[mu_], modeNumber_]] := mode[dXt[mu], modeNumber];
 antiModeFromHolo[mode[\[Psi][mu_], modeNumber_]] := mode[\[Psi]t[mu], modeNumber];
+antiModeFromHolo[modeObj : mode[_, _]] := basisAntiModeFromHolo[modeObj];
 antiModeFromHolo[modeObj_] := modeObj;
 
 (* ============================================================ *)

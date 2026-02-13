@@ -17,6 +17,85 @@ Needs["StringCode`NormalOrdering`"];
 (* ::Input::Initialization:: *)
 Begin["Private`"];
 
+(* Shared field-mode helper tables for basis enumeration internals. *)
+$basisGhostContributionFallback = <|
+  "b" -> -1, "bt" -> -1,
+  "c" -> 1, "ct" -> 1
+|>;
+
+$basisAntiSpeciesMap = <|
+  "b" -> "bt", "bt" -> "b",
+  "c" -> "ct", "ct" -> "c"
+|>;
+
+basisModeSpecies::usage = "Extracts the species symbol from mode[fieldHead, n].";
+basisModeSpecies[mode[head_, _]] := If[AtomQ[head], head, Head[head]];
+
+basisSpeciesName::usage = "Returns symbol name for a species symbol.";
+basisSpeciesName[symbol_Symbol] := SymbolName[symbol];
+
+basisGhostContribution::usage = "Returns ghost number contribution of one oscillator species.";
+basisGhostContribution[symbol_Symbol] := basisGhostContribution[symbol] = Module[{ghostNumber},
+  ghostNumber = fieldProperty[symbol, "GhostNumber"];
+  If[NumericQ[ghostNumber],
+    ghostNumber,
+    Lookup[$basisGhostContributionFallback, basisSpeciesName[symbol], 0]
+  ]
+];
+
+basisGhostContributionFromMode::usage = "Returns ghost number contribution of one mode[field, n].";
+basisGhostContributionFromMode[modeObj : mode[_, _]] :=
+  basisGhostContribution[basisModeSpecies[modeObj]];
+
+basisModeGSOParity::usage = "Returns GSO parity contribution of one oscillator species.";
+basisModeGSOParity[symbol_Symbol] := basisModeGSOParity[symbol] = Module[
+  {holoParity, antiHoloParity},
+  holoParity = fieldProperty[symbol, "GSOParityHolo"];
+  antiHoloParity = fieldProperty[symbol, "GSOParityAntiHolo"];
+  Which[
+    MemberQ[{-1}, holoParity] || MemberQ[{-1}, antiHoloParity], -1,
+    MemberQ[{1}, holoParity] || MemberQ[{1}, antiHoloParity], 1,
+    True, 1
+  ]
+];
+
+basisModeGSOParityContribution::usage = "Returns GSO parity contribution of one mode[field, n].";
+basisModeGSOParityContribution[modeObj : mode[_, _]] :=
+  basisModeGSOParity[basisModeSpecies[modeObj]];
+
+basisAntiSpecies::usage = "Returns antiholomorphic partner symbol for an oscillator species.";
+basisAntiSpecies[symbol_Symbol] := Module[{name, antiName},
+  name = basisSpeciesName[symbol];
+  antiName = Lookup[$basisAntiSpeciesMap, name, name];
+  If[antiName === name, symbol, Symbol[Context[symbol] <> antiName]]
+];
+
+basisMinModeNumberForSpecies::usage = "Returns maximal creation mode number n0 for a species (modes are n0 - offset).";
+basisMinModeNumberForSpecies[symbol_Symbol] := Module[{name},
+  name = basisSpeciesName[symbol];
+  Switch[name,
+    "b" | "bt", -2,
+    "c" | "ct", 1,
+    _, 0
+  ]
+];
+
+basisModeNumberFromOffset::usage = "Converts nonnegative offset to oscillator mode number for a species.";
+basisModeNumberFromOffset[symbol_Symbol, modeOffset_Integer?NonNegative] :=
+  basisMinModeNumberForSpecies[symbol] - modeOffset;
+
+basisAntiModeFromHolo::usage = "Converts a holomorphic mode[...] object to its antiholomorphic counterpart.";
+basisAntiModeFromHolo[mode[head_, modeNumber_]] := Module[
+  {species, antiSpecies, antiHead},
+  species = basisModeSpecies[mode[head, modeNumber]];
+  antiSpecies = basisAntiSpecies[species];
+  If[antiSpecies === species,
+    Return[mode[head, modeNumber]]
+  ];
+  antiHead = If[AtomQ[head], antiSpecies, antiSpecies @@ (List @@ head)];
+  mode[antiHead, modeNumber]
+];
+
 (* Shared option parser for boolean options like "LevelMatched" and
    "GSOProjected". Returns $Failed on malformed/legacy-mismatched input. *)
 readBooleanOption[opts_List, optionName_String, default_] := Module[
@@ -122,15 +201,11 @@ fermionicConfigsByMaxWeight[fieldBaseWeight_Integer, fieldCount_Integer?NonNegat
     ]
   ];
 
-(* Shared helper: map nonnegative mode offset to oscillator mode number. *)
-modeNumberFromOffset[minimalModeNumber_Integer, modeOffset_Integer?NonNegative] :=
-  minimalModeNumber - modeOffset;
-
 (* Shared helper: convert b/c mode offsets to mode[...] representation. *)
 ghostModesFromOffsets[bGhostModeOffsets_List, cGhostModeOffsets_List] :=
   Join[
-    mode[b, modeNumberFromOffset[-2, #]] & /@ bGhostModeOffsets,
-    mode[c, modeNumberFromOffset[1, #]] & /@ cGhostModeOffsets
+    mode[b, basisModeNumberFromOffset[b, #]] & /@ bGhostModeOffsets,
+    mode[c, basisModeNumberFromOffset[c, #]] & /@ cGhostModeOffsets
   ];
 
 (* Shared b/c ghost-sector enumerator (holomorphic).
@@ -184,9 +259,9 @@ generateGhostConfigsHolo[_, _] := {};
 
 (* Shared helper: translate b/c ghost modes to local-operator form. *)
 ghostModeToOperatorField[mode[b, modeNumber_Integer], z_] :=
-  b[-2 - modeNumber, z];
+  b[basisMinModeNumberForSpecies[b] - modeNumber, z];
 ghostModeToOperatorField[mode[c, modeNumber_Integer], z_] :=
-  c[1 - modeNumber, z];
+  c[basisMinModeNumberForSpecies[c] - modeNumber, z];
 
 (* Shared helper: build holomorphic ghost factors from mode[...] lists. *)
 ghostModesToOperatorFields[ghostModes_List, z_] :=

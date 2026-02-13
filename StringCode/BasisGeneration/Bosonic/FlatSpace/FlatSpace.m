@@ -155,7 +155,7 @@ sectorBasisWithVacuum[generator_, sectorWeight_Integer, sectorGhostNumber_Intege
 combineSectorBases[holoBasis_List, antiBasis_List] := Module[
   {combinedProducts},
   combinedProducts = canonicalizeLorentzIndices /@ Flatten[Outer[R, holoBasis, antiBasis], 1];
-  DeleteCases[combinedProducts, 1]
+  DeleteCases[combinedProducts, 1 | R[1, 1]]
 ];
 
 (* Full basis generation without level-matching:
