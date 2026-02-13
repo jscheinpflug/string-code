@@ -28,8 +28,6 @@ OPEProjectedAntiHolo::usage = "Projects an OPE of local operators onto a given a
 
 Begin["Private`"];
 
-containsFieldQ[expr_] := !FreeQ[expr, _?(MemberQ[allfields, Head[#]] &)];
-
 projectionExponentReplacement = {};
 
 normalizeScalingParameter[expr_, parameter_] := FixedPoint[

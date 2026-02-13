@@ -92,15 +92,6 @@ MWick[exp\[Phi]tf[a_,z_],exp\[Phi]tb[b_,w_]]:= MWick[exp\[Phi]tf[a,z],exp\[Phi]t
 MWick[exp\[Phi]tf[a_,z_],exp\[Phi]tf[b_,w_]]:= MWick[exp\[Phi]tf[a,z],exp\[Phi]tf[b,w]] = (z-w)^(-a b)
 
 
-(* ::Subsection:: *)
-(*Extend pairingList: determines whether two fields can be contracted*)
-
-
-pairingList = Map[Sort,Join[pairingList, {
-{d\[Phi],d\[Phi]},{d\[Phi]t,d\[Phi]t},{exp\[Phi]b,exp\[Phi]b},{d\[Phi],exp\[Phi]b},{exp\[Phi]tb,exp\[Phi]tb}, {d\[Phi]t,exp\[Phi]tb},{d\[Phi],exp\[Phi]f},{exp\[Phi]f,exp\[Phi]f},{exp\[Phi]b,exp\[Phi]f},{d\[Phi]t,exp\[Phi]tf},
-{exp\[Phi]tf,exp\[Phi]tf},{exp\[Phi]tb,exp\[Phi]tf}, {\[Eta],\[Xi]},{\[Eta]t,\[Xi]t},{\[Beta],\[Gamma]},{\[Beta]t,\[Gamma]t}}]];
-
-
 (* ::Section:: *)
 (*End*)
 

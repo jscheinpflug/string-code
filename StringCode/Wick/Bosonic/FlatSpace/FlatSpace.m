@@ -92,19 +92,6 @@ MWick[ProfileXAntiHolo[profile1_, ders1_, zbar_],ProfileXAntiHolo[profile2_, der
 MWick[ProfileXAntiHolo[profile1, ders1,zbar],ProfileXAntiHolo[profile2, ders2, wbar]] = (zbar-wbar)^(-\[Alpha]p/2 dot[der[profile1],der[profile2]])
 
 
-(* ::Subsection:: *)
-(*Extend pairingList: determines whether two fields can be contracted*)
-
-
-pairingList = Map[Sort,Join[pairingList, {
-{ProfileXHolo, ProfileXHolo}, {ProfileXAntiHolo, ProfileXAntiHolo},{ProfileX,ProfileX},
-{expXHolo, expXHolo}, {expXAntiHolo, expXAntiHolo},{expX,expX},
-{ProfileXHolo, expXHolo}, {ProfileXAntiHolo, expXAntiHolo},{ProfileX, expX},
-{dX,expX},{dXt,expX},{dX,ProfileX},{dXt,ProfileX},
-{dX,expXHolo},{dXt,expXAntiHolo},{dX,ProfileXHolo},{dXt,ProfileXAntiHolo},
-{dX,dX}, {dXt,dXt}}]];
-
-
 (* ::Section:: *)
 (*End*)
 

@@ -55,22 +55,111 @@ Begin["Private`"];
 (*Define symbols*)
 
 
-bosons=Join[bosons, {expX, expXHolo, expXAntiHolo, dX,dXt,ProfileX, ProfileXHolo, ProfileXAntiHolo}];
-fermions=Join[fermions, {}];
-regfermions=Join[regfermions,{}];
-simplefields=Join[simplefields, {dX,dXt}];
-simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt}];
-compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX}];
-holomorphicFields = Join[holomorphicFields, {ProfileX, expX, ProfileXHolo, dX,expXHolo}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, ProfileXAntiHolo, dXt, expXAntiHolo}];
-indexedFields = Join[indexedFields, {dX, dXt}];
-allfields=Join[bosons,fermions];
-collapsable = Join[collapsable, {dX, dXt, expX, expXHolo, expXAntiHolo, ProfileX, ProfileXHolo, ProfileXAntiHolo}];
-factorizable = Join[factorizable, {expX, ProfileX}];
-factorizationReplacement = Join[factorizationReplacement, {
-  ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]},
-  expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}
-}];
+DefineField[dX,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> True,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {dX, expX, ProfileX, expXHolo, ProfileXHolo}
+];
+
+DefineField[dXt,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> True,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {dXt, expX, ProfileX, expXAntiHolo, ProfileXAntiHolo}
+];
+
+DefineField[expX,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> True,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expX, ProfileX, dX, dXt},
+  "FactorizationRule" -> (expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]})
+];
+
+DefineField[expXHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expXHolo, ProfileXHolo, dX}
+];
+
+DefineField[expXAntiHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expXAntiHolo, ProfileXAntiHolo, dXt}
+];
+
+DefineField[ProfileX,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> True,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileX, expX, dX, dXt},
+  "FactorizationRule" -> (ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]})
+];
+
+DefineField[ProfileXHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileXHolo, expXHolo, dX}
+];
+
+DefineField[ProfileXAntiHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileXAntiHolo, expXAntiHolo, dXt}
+];
 
 
 (* ::Subsection:: *)

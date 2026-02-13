@@ -11,43 +11,11 @@ BeginPackage["StringCode`Symbols`"]
 (*Declare public variables and methods*)
 
 
-bosons::usage = "A list of bosons, including composites";
-
-
-fermions::usage = "A list of fermions, including composites";
-
-
-holomorphicFields::usage = "A list of holomorphic fields, expX counted as one";
-
-
-antiHolomorphicFields::usage = "A list of antiholomorphic fields, expX counted as one";
-
-
-indexedFields::usage = "A list of fields that carry indices";
-
-
-allfields::usage = "A list of all bosons and fermions";
-
-regfermions::usage = "A list of fundamental fermions";
-
-
-simplefields::usage = "A list of fundamental fields";
-
-
-simplefieldsnotc::usage = "A list of fundamental fields not c-ghost";
-
-
-compositefields::usage = "A list of composite fields";
-
-collapsable::usage = "A list of fields whose OPE is computed via Wick contractions";
-
 isCollapsable::usage = "Checks if is collapsable field";
 
-factorizable::usage = "A list of fields that can be factorized into holomorphic/antiholomorphic components";
 
 isFactorizable::usage = "Checks if a field is factorizable";
 
-factorizationReplacement::usage = "Replacement rules used to factorize operators into holomorphic/antiholomorphic tuples";
 
 factorizeOperator::usage = "Factorizes an operator into a tuple {holoPart, antiHoloPart} if it is both holomorphic and antiholomorphic and marked as factorizable";
 
@@ -112,42 +80,188 @@ Begin["Private`"];
 
 
 (* ::Subsection:: *)
-(*Define symbols*)
+(*Field registry*)
 
 
-bosons={};
-fermions={b,bt,c,ct};
-regfermions={b,bt,c,ct};
-simplefields={b,bt,c,ct};
-simplefieldsnotc={b,bt};
-compositefields={};
-holomorphicFields = {b,c};
-antiHolomorphicFields = {bt,ct};
-indexedFields = {};
-allfields=Join[bosons,fermions];
-collapsable = {b,bt,c,ct};
-factorizable = {};
-factorizationReplacement = {};
+$FieldRegistry = <||>;
+
+$DefaultFieldMetadata = <|
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {}
+|>;
+
+$AllowedFieldPropertyKeys = Keys[$DefaultFieldMetadata] ~Join~ {
+  "GhostNumber", "WeightHolo", "WeightAntiHolo", "FactorizationRule"
+};
+
+extendAllowedFieldPropertyKeys::usage = "Extends allowed metadata keys accepted by DefineField.";
+extendAllowedFieldPropertyKeys[keys_List] := ($AllowedFieldPropertyKeys = Union[$AllowedFieldPropertyKeys, keys]);
+
+DefineField::badkey = "Unknown field property key(s): `1`.";
+DefineField::pairs = "PairsWith for `1` must be a Symbol or list of Symbols.";
+
+normalizePairsWith[sym_Symbol] := {sym};
+normalizePairsWith[list_List] /; VectorQ[list, MatchQ[#, _Symbol] &] := DeleteDuplicates[list];
+normalizePairsWith[_] := $Failed;
+
+normalizeFieldHead[expr_] := Which[
+  MatchQ[expr, _Symbol], expr,
+  MatchQ[Head[expr], _Symbol], Head[expr],
+  True, $Failed
+];
+
+DefineField::usage = "Registers field metadata in the internal field registry.";
+DefineField[symbol_Symbol, properties___Rule] := Module[
+  {assoc, unknownKeys, normalizedPairs},
+  assoc = Association[properties];
+  unknownKeys = Complement[Keys[assoc], $AllowedFieldPropertyKeys];
+  If[unknownKeys =!= {},
+    Message[DefineField::badkey, unknownKeys];
+    Return[$Failed];
+  ];
+
+  assoc = Join[$DefaultFieldMetadata, assoc];
+  normalizedPairs = normalizePairsWith[assoc["PairsWith"]];
+  If[normalizedPairs === $Failed,
+    Message[DefineField::pairs, symbol];
+    Return[$Failed];
+  ];
+  assoc["PairsWith"] = normalizedPairs;
+  $FieldRegistry[symbol] = assoc;
+  symbol
+];
+
+fieldProperty::usage = "Looks up a metadata property for a field.";
+fieldProperty[expr_, prop_String] := Module[{symbol = normalizeFieldHead[expr]},
+  If[symbol === $Failed,
+    Missing["NotAvailable"],
+    Lookup[Lookup[$FieldRegistry, symbol, <||>], prop, Missing["NotAvailable"]]
+  ]
+];
+
+evaluateFieldProperty::usage = "Resolves a metadata property, evaluating function-valued entries on the field.";
+evaluateFieldProperty[field_, prop_String, default_] := Module[{value = fieldProperty[field, prop]},
+  Which[
+    value === Missing["NotAvailable"], default,
+    MatchQ[value, _Function], value[field],
+    True, value
+  ]
+];
 
 
 (* ::Subsection:: *)
-(*Define cached lookups*)
+(*Define base fields*)
 
 
-isBoson[symbol_]:= isBoson[symbol] = MemberQ[bosons, symbol];
-isFermion[symbol_]:= isFermion[symbol] = MemberQ[fermions, symbol];
-isSimple[symbol_]:= isSimple[symbol] = MemberQ[simplefields, symbol];
-isComposite[symbol_]:= isComposite[symbol] = MemberQ[compositefields, symbol];
-isField[symbol_]:= isField[symbol] = MemberQ[allfields, symbol];
-isHolomorphic[symbol_]:= isHolomorphic[symbol] = MemberQ[holomorphicFields, symbol];
-isAntiHolomorphic[symbol_]:= isAntiHolomorphic[symbol] = MemberQ[antiHolomorphicFields, symbol];
-isIndexed[symbol_]:= isIndexed[symbol] = MemberQ[indexedFields, symbol];
-isCollapsable[symbol_]:= isCollapsable[symbol] = MemberQ[collapsable, symbol];
-isFactorizable[symbol_]:= isFactorizable[symbol] = MemberQ[factorizable, symbol];
+DefineField[c,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {b},
+  "GhostNumber" -> 1,
+  "WeightHolo" -> -1
+];
 
-factorizeOperator[op_] := Module[{symbol = Head[op]},
+DefineField[b,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {c},
+  "GhostNumber" -> -1,
+  "WeightHolo" -> 2
+];
+
+DefineField[ct,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {bt},
+  "GhostNumber" -> 1,
+  "WeightAntiHolo" -> -1
+];
+
+DefineField[bt,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {ct},
+  "GhostNumber" -> -1,
+  "WeightAntiHolo" -> 2
+];
+
+
+(* ::Subsection:: *)
+(*Predicates and helpers*)
+
+
+isField[symbol_] := Module[{head = normalizeFieldHead[symbol]},
+  head =!= $Failed && KeyExistsQ[$FieldRegistry, head]
+];
+
+isBoson[symbol_] := isField[symbol] && fieldProperty[symbol, "Statistics"] === "Boson";
+isFermion[symbol_] := isField[symbol] && fieldProperty[symbol, "Statistics"] === "Fermion";
+isSimple[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Simple"]];
+isComposite[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Composite"]];
+isHolomorphic[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Holomorphic"]];
+isAntiHolomorphic[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "AntiHolomorphic"]];
+isIndexed[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Indexed"]];
+isCollapsable[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Collapsable"]];
+isFactorizable[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "Factorizable"]];
+
+isRegFermion::usage = "Checks if is regular fermion field.";
+isRegFermion[symbol_] := isField[symbol] && TrueQ[fieldProperty[symbol, "RegularFermion"]];
+
+containsFieldQ::usage = "Checks if expression contains any registered field.";
+containsFieldQ[expr_] := !FreeQ[expr, field_ /; isField[Head[field]]];
+
+containsFermionQ::usage = "Checks if expression contains any registered fermion field.";
+containsFermionQ[expr_] := !FreeQ[expr, field_ /; isFermion[Head[field]]];
+
+containsRegularFermionQ::usage = "Checks if expression contains any registered regular fermion field.";
+containsRegularFermionQ[expr_] := !FreeQ[expr, field_ /; isRegFermion[Head[field]]];
+
+isScalarFactorQ::usage = "Checks if expression is scalar factor with respect to registered fields.";
+isScalarFactorQ[expr_] := !containsFieldQ[expr];
+
+factorizeOperator[op_] := Module[{symbol = Head[op], rule},
   If[isHolomorphic[symbol] && isAntiHolomorphic[symbol] && isFactorizable[symbol],
-    op /. factorizationReplacement,
+    rule = fieldProperty[symbol, "FactorizationRule"];
+    If[MatchQ[rule, _Rule | _RuleDelayed],
+      op /. rule,
+      op
+    ],
     op
   ]
 ];
@@ -157,39 +271,33 @@ factorizeOperator[op_] := Module[{symbol = Head[op]},
 (*Define ghost numbers*)
 
 
-ghostNumberHolo::usage = "Computes holomorphic ghost number of a local operator";
-ghostNumberAntiHolo::usage = "Computes holomorphic ghost number of a  local operator";
+ghostNumberHolo[c[der_, z_]]:= fieldProperty[c, "GhostNumber"];
+ghostNumberHolo[b[der_, z_]]:= fieldProperty[b, "GhostNumber"];
 
-ghostNumberHolo[c[der_, z_]]:= 1;
-ghostNumberHolo[b[der_, z_]]:= -1;
-
-ghostNumberAntiHolo[ct[der_, zbar_]]:= 1;
-ghostNumberAntiHolo[bt[der_, zbar_]]:= -1;
+ghostNumberAntiHolo[ct[der_, zbar_]]:= fieldProperty[ct, "GhostNumber"];
+ghostNumberAntiHolo[bt[der_, zbar_]]:= fieldProperty[bt, "GhostNumber"];
 
 ghostNumberHolo[a_/;isField[Head[a]]]:= 0;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
+
 
 (* ::Subsection:: *)
 (*Define weight of symbols*)
 
 
-weightSymbolHolo::usage = "Computes holomorphic weight of a symbol";
-weightSymbolAntiHolo::usage = "Computes antiholomorphic weight of a symbol";
-weightHolo::usage = "Computes holomorphic weight of a local operator";
-weightAntiHolo::usage = "Computes antiholomorphic weight of a local operator";
-
-
-weightSymbolHolo[symbol_/;!isHolomorphic[symbol]]:= 0;
-weightSymbolHolo[c] := - 1;
-weightSymbolHolo[b] := 2;
+weightSymbolHolo[symbol_/;!isHolomorphic[symbol] && isField[symbol]]:= 0;
+weightSymbolHolo[symbol_/;isHolomorphic[symbol] && isField[symbol]]:= Module[{weight = fieldProperty[symbol, "WeightHolo"]},
+  If[weight === Missing["NotAvailable"], 0, weight]
+];
 
 weightHolo[field_/;MatchQ[Head[field], _Symbol] && (!isHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightHolo[b[der_, z_]] := weightSymbolHolo[b] + der;
 weightHolo[c[der_, z_]] := weightSymbolHolo[c] + der;
 
 weightSymbolAntiHolo[symbol_/;(!isAntiHolomorphic[symbol] && isField[symbol])] := 0;
-weightSymbolAntiHolo[ct] := - 1;
-weightSymbolAntiHolo[bt] := 2;
+weightSymbolAntiHolo[symbol_/;isAntiHolomorphic[symbol] && isField[symbol]]:= Module[{weight = fieldProperty[symbol, "WeightAntiHolo"]},
+  If[weight === Missing["NotAvailable"], 0, weight]
+];
 
 weightAntiHolo[field_/;MatchQ[Head[field], _Symbol] && (!isAntiHolomorphic[Head[field]] && isField[Head[field]])] := 0;
 weightAntiHolo[bt[der_, zbar_]] := weightSymbolAntiHolo[bt] + der;

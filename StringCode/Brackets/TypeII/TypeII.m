@@ -189,11 +189,11 @@ If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 
 (*Multilinearity of PCO zero mode actions*)
 actPCOHolo[a_+b_]:=actPCOHolo[a] + actPCOHolo[b];
-actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(isScalarFactorQ[a])
 actPCOHolo[0] := 0;
 
 actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
-actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(isScalarFactorQ[a])
 actPCOAntiHolo[0] := 0;
 
 actPCO[a___]:= actPCOHolo[actPCOAntiHolo[a]];

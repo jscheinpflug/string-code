@@ -110,10 +110,15 @@ DWick[Ra,dropFirstFromR[Rb]]]/;(ROne[Ra] && RTest[Rb] &&(!ROne[Rb]) && isComposi
 
 pairing::usage = "Determines whether two fields can be Wick contracted";
 
-
-pairingList = {{b,c},{bt,ct}};
-
-pairing[pair_]:= pairing[pair] = If[MemberQ[pairingList,Sort[pair]],1,0]
+pairing[pair_] := pairing[pair] = Module[{a = pair[[1]], b = pair[[2]], aPairs, bPairs},
+  aPairs = fieldProperty[a, "PairsWith"];
+  bPairs = fieldProperty[b, "PairsWith"];
+  If[
+    MemberQ[Replace[aPairs, _Missing -> {}], b] || MemberQ[Replace[bPairs, _Missing -> {}], a],
+    1,
+    0
+  ]
+]
 
 
 (* ::Section:: *)

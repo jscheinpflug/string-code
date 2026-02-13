@@ -27,16 +27,18 @@ Begin["Private`"];
 (*Define symbols*)
 
 
-bosons=Join[bosons, {V}];
-fermions=Join[fermions, {}];
-regfermions=Join[regfermions,{}];
-simplefields=Join[simplefields, {}];
-simplefieldsnotc=Join[simplefieldsnotc, {}];
-compositefields= Join[compositefields, {}];
-holomorphicFields = Join[holomorphicFields, {}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {}];
-indexedFields = Join[indexedFields, {}];
-allfields=Join[bosons,fermions];
+DefineField[V,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {}
+];
 
 
 (* ::Subsection:: *)

@@ -24,6 +24,19 @@ R::usage = "A sorted normal-ordered product of fields";
 Begin["Private`"];
 
 
+containsFieldQ::usage = "Checks if expression contains any registered field.";
+containsFieldQ[expr_] := !FreeQ[expr, field_ /; isField[Head[field]]];
+
+containsFermionQ::usage = "Checks if expression contains any registered fermion field.";
+containsFermionQ[expr_] := !FreeQ[expr, field_ /; isFermion[Head[field]]];
+
+containsRegularFermionQ::usage = "Checks if expression contains any registered regular fermion field.";
+containsRegularFermionQ[expr_] := !FreeQ[expr, field_ /; isRegFermion[Head[field]]];
+
+isScalarFactorQ::usage = "Checks if expression is scalar factor with respect to registered fields.";
+isScalarFactorQ[expr_] := !containsFieldQ[expr];
+
+
 (* ::Subsection:: *)
 (*Test normal-ordering and length*)
 
@@ -40,8 +53,8 @@ ROne[f_]:=(RLength[f]==1)
 
 RTestUpToConstant::usage = "Test if product is normal-ordered up to a constant prefactor";
 
-RTestUpToConstant[c___,a_ f_,d___]:=RTestUpToConstant[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+RTestUpToConstant[c___,a_ f_,d___]:=RTestUpToConstant[c,f,d]/;isScalarFactorQ[a]
+RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;isScalarFactorQ[a]
 RTestUpToConstant[f_]:=(Head[f]===R)
 RTestUpToConstant[]:=False;
 
@@ -52,20 +65,20 @@ RTestUpToConstant[]:=False;
 
 parity::usage = "Define Grassmann parity for fields including composites";
 
-parity[f_]:=0/;(And @@(FreeQ[f,#]&/@ fermions))
+parity[f_]:=0/;!containsFermionQ[f]
 parity[f_+g_]:=parity[f]
-parity[f_ g_]:=parity[g]/;(And @@(FreeQ[f,#]&/@ fermions))
+parity[f_ g_]:=parity[g]/;!containsFermionQ[f]
 parity[R[f__,g__]]:=Mod[parity[R[f]]+parity[R[g]],2]
-parity[R[f_]]:=1/;(!(And @@(FreeQ[f,#]&/@ fermions)))
-parity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ fermions)))
+parity[R[f_]]:=1/;containsFermionQ[f]
+parity[f_]:=1/;containsFermionQ[f]
 
 
 regparity::usage = "Define Grassmann parity for fundamental fields";
 
 regparity[f_+g_]:=regparity[f]
-regparity[f_ g_]:=regparity[g]/;(And @@(FreeQ[f,#]&/@ regfermions))
-regparity[f_]:=0/;(And @@(FreeQ[f,#]&/@ regfermions))
-regparity[f_]:=1/;(!(And @@(FreeQ[f,#]&/@ regfermions)))
+regparity[f_ g_]:=regparity[g]/;!containsRegularFermionQ[f]
+regparity[f_]:=0/;!containsRegularFermionQ[f]
+regparity[f_]:=1/;containsRegularFermionQ[f]
 
 
 (* ::Subsection:: *)
@@ -77,13 +90,13 @@ R[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
 R[c___, a_, d___] := (R[c, #, d] & /@ a) /; Head[a] == Plus
-R[c___,a_ f_,d___]:=a R[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))
-R[c___,a_ ,d___]:=a R[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+R[c___,a_ f_,d___]:=a R[c,f,d]/;isScalarFactorQ[a]
+R[c___,a_ ,d___]:=a R[c,d]/;isScalarFactorQ[a]
 R[]:=1
-R[a___,R[b___],c___]:=R[a,b,c]
+R[a___, r_?RTest, c___] := R[a, Sequence @@ (List @@ r), c]
 
 
-R[g___,a_ f_,h___]:=R[g,a,f,h]/;MemberQ[bosons,Head[a]]
+R[g___,a_ f_,h___]:=R[g,a,f,h]/;isBoson[Head[a]]
 R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 

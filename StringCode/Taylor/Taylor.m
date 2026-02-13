@@ -98,25 +98,25 @@ TaylorAtOrder[Ra_/;RTest[Ra], ordHolo_,ordAntiHolo_, z0_,z0bar_]:= TaylorAtOrder
 (*Implement multilinearity of Taylor*)
 
 TaylorAtOrder[a_+b_,c_,d_,e_,f_]:=TaylorAtOrder[a,c,d,e,f]+TaylorAtOrder[b,c,d,e,f]
-TaylorAtOrder[a_ b_,c_,d_,e_,f_]:=a TaylorAtOrder[b,c,d,e,f]/;(And @@(FreeQ[a,#]&/@ allfields))
+TaylorAtOrder[a_ b_,c_,d_,e_,f_]:=a TaylorAtOrder[b,c,d,e,f]/;isScalarFactorQ[a]
 
 TaylorAtOrderHolo[a_+b_,c_,d_]:=TaylorAtOrderHolo[a,c,d]+TaylorAtOrderHolo[b,c,d]
-TaylorAtOrderHolo[a_ b_,c_,d_]:=a TaylorAtOrderHolo[b,c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+TaylorAtOrderHolo[a_ b_,c_,d_]:=a TaylorAtOrderHolo[b,c,d]/;isScalarFactorQ[a]
 
 TaylorAtOrderAntiHolo[a_+b_,c_,d_]:=TaylorAtOrderAntiHolo[a,c,d]+TaylorAtOrderAntiHolo[b,c,d]
-TaylorAtOrderAntiHolo[a_ b_,c_,d_]:=a TaylorAtOrderAntiHolo[b,c,d]/;(And @@(FreeQ[a,#]&/@ allfields))
+TaylorAtOrderAntiHolo[a_ b_,c_,d_]:=a TaylorAtOrderAntiHolo[b,c,d]/;isScalarFactorQ[a]
 
 TaylorAtOrder[0, ord1_, ord2_, z0_, z0bar_]:= 0;
 TaylorAtOrderHolo[0, ord_, z0_]:= 0;
 TaylorAtOrderAntiHolo[0, ord_, z0bar_]:= 0;
 
 (* Scalars (no local fields) are constant under Taylor expansion. *)
-TaylorAtOrderHolo[a_, 0, z0_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
-TaylorAtOrderHolo[a_, ord_ /; ord > 0, z0_] := 0 /; (And @@ (FreeQ[a, #] & /@ allfields));
-TaylorAtOrderAntiHolo[a_, 0, z0bar_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
-TaylorAtOrderAntiHolo[a_, ord_ /; ord > 0, z0bar_] := 0 /; (And @@ (FreeQ[a, #] & /@ allfields));
-TaylorAtOrder[a_, 0, 0, z0_, z0bar_] := a /; (And @@ (FreeQ[a, #] & /@ allfields));
-TaylorAtOrder[a_, ordHolo_, ordAntiHolo_, z0_, z0bar_] := 0 /; ((ordHolo > 0 || ordAntiHolo > 0) && And @@ (FreeQ[a, #] & /@ allfields));
+TaylorAtOrderHolo[a_, 0, z0_] := a /; isScalarFactorQ[a];
+TaylorAtOrderHolo[a_, ord_ /; ord > 0, z0_] := 0 /; isScalarFactorQ[a];
+TaylorAtOrderAntiHolo[a_, 0, z0bar_] := a /; isScalarFactorQ[a];
+TaylorAtOrderAntiHolo[a_, ord_ /; ord > 0, z0bar_] := 0 /; isScalarFactorQ[a];
+TaylorAtOrder[a_, 0, 0, z0_, z0bar_] := a /; isScalarFactorQ[a];
+TaylorAtOrder[a_, ordHolo_, ordAntiHolo_, z0_, z0bar_] := 0 /; ((ordHolo > 0 || ordAntiHolo > 0) && isScalarFactorQ[a]);
 
 
 (*Taylor to zeroth order preserves the input*)

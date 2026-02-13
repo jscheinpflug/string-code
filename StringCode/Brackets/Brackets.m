@@ -42,15 +42,15 @@ actBRST[op_/;RTest[op]]:= actBRSTHolo[op] + actBRSTAntiHolo[op];
 (*Linearity of BRST charge action*)
 
 actBRST[a_+b_]:=actBRST[a] + actBRST[b];
-actBRST[a_ b_]:=a actBRST[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRST[a_ b_]:=a actBRST[b]/;(isScalarFactorQ[a])
 actBRST[0] := 0;
 
 actBRSTAntiHolo[a_+b_]:= actBRSTAntiHolo[a] + actBRSTAntiHolo[b];
-actBRSTAntiHolo[a_ b_]:= a actBRSTAntiHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTAntiHolo[a_ b_]:= a actBRSTAntiHolo[b]/;(isScalarFactorQ[a])
 actBRSTAntiHolo[0] := 0;
 
 actBRSTHolo[a_+b_]:= actBRSTHolo[a] +actBRSTHolo[b];
-actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+actBRSTHolo[a_ b_]:=a actBRSTHolo[b]/;(isScalarFactorQ[a])
 actBRSTHolo[0] := 0;
 
 
@@ -61,7 +61,7 @@ actBRSTHolo[0] := 0;
 (*Multilinearity of Bracket*)
 Bracket[args___, a_ + b_, rest___] := Bracket[args, a, rest] + Bracket[args, b, rest]
 
-Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{Wedge}])
+Bracket[args___, a_ b_, rest___] := a Bracket[args, b, rest] /; (isScalarFactorQ[a] && FreeQ[a, Wedge])
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
 Bracket[args___, Wedge[a__]b___, rest___]:= Wedge[a, Bracket[args, b, rest]]; 
@@ -123,7 +123,7 @@ b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, w
 
 (*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
-BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{Wedge}])
+BracketProjected[args___, a_ b_, rest___, weightHolo_, weightAntiHolo_] := a BracketProjected[args, b, rest, weightHolo, weightAntiHolo] /; (isScalarFactorQ[a] && FreeQ[a, Wedge])
 BracketProjected[args___, 0, rest___, weightHolo_, weightAntiHolo_]:=0;
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
@@ -135,7 +135,7 @@ BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
  BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
  
 BracketProjection[a_ b_, weightHolo_, weightAntiHolo_] := 
-a BracketProjection[b, weightHolo, weightAntiHolo] /; And @@ (FreeQ[a, #] & /@ Join[allfields,{Wedge}])
+a BracketProjection[b, weightHolo, weightAntiHolo] /; (isScalarFactorQ[a] && FreeQ[a, Wedge])
 
 (*Join wedge products, give no sign: assuming that we wedge even number of differential as in closed string*)
 BracketProjection[Wedge[a__] b___, weightHolo_, weightAntiHolo_] := Wedge[a, BracketProjection[b, weightHolo, weightAntiHolo]]
@@ -200,7 +200,7 @@ factorizeMultiOp[multiOp_/;MultiOpTest[multiOp]]:=
 Module[{multiOpReplaced = multiOp, localOpFactorized, localOpPrefac, localOpList,
 localOpHolo, localOpAntiHolo, localOpsHolo, localOpsAntiHolo,localOpsHoloAntiHolo, prefac = 1,
 scalarQ, parseLocalOp},
-scalarQ[expr_] := And @@ (FreeQ[expr, #] & /@ allfields);
+scalarQ[expr_] := isScalarFactorQ[expr];
 parseLocalOp[localOp_] := Module[{factors},
 If[RTestUpToConstant[localOp],
 {
@@ -272,7 +272,7 @@ AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(R
 If[mode === Relem[[1]]-1,
 AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
 ]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+If[isFermion[Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
 
@@ -290,7 +290,7 @@ AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber 1/Factorial[mode-(R
 If[mode === Relem[[1]]-1,
 AssociateTo[cAssoc, position -> {Relem -> (-1)^fermionNumber}]]];
 ]];
-If[MemberQ[fermions, Head[Relem]], fermionNumber = fermionNumber + 1];
+If[isFermion[Head[Relem]], fermionNumber = fermionNumber + 1];
 position = position + 1;
 ],Ra];
 
@@ -302,11 +302,11 @@ result];
 
 (*Multilinearity of b-ghost mode actions*)
 bmodeHolo[contourCenter_][mode_][a_+b_]:=bmodeHolo[contourCenter][mode][a] + bmodeHolo[contourCenter][mode][b];
-bmodeHolo[contourCenter_][mode_][a_ b_]:=a bmodeHolo[contourCenter][mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeHolo[contourCenter_][mode_][a_ b_]:=a bmodeHolo[contourCenter][mode][b]/;(isScalarFactorQ[a])
 bmodeHolo[contourCenter_][mode_][0] := 0;
 
 bmodeAntiHolo[contourCenter_][mode_][a_+b_]:=bmodeAntiHolo[contourCenter][mode][a] + bmodeAntiHolo[contourCenter][mode][b];
-bmodeAntiHolo[contourCenter_][mode_][a_ b_]:=a bmodeAntiHolo[contourCenter][mode][b]/;(And @@(FreeQ[a,#]&/@ allfields))
+bmodeAntiHolo[contourCenter_][mode_][a_ b_]:=a bmodeAntiHolo[contourCenter][mode][b]/;(isScalarFactorQ[a])
 bmodeAntiHolo[contourCenter_][mode_][0] := 0;
 
 
@@ -541,7 +541,7 @@ getBGhostPosition[bmodeAntiHolo[contourCenter_][a_][b_]]:= b;
 
 actBGhostMode::usage = "Acts a b-ghost mode on a local operator";
 actBGhostMode[a_, op1_ + op2_]:= actBGhostMode[a, op1] + actBGhostMode[a, op2];
-actBGhostMode[a_, b_ c_]:= b actBGhostMode[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
+actBGhostMode[a_, b_ c_]:= b actBGhostMode[a,c]/;(isScalarFactorQ[b]);
 
 actBGhostMode[bmodeHolo[contourCenter_][a_], MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{result = 0, sign = 1, OpList = List @@ MultiOpa, parities},
 parities = Map[parityOp, OpList];
@@ -585,7 +585,7 @@ actBGhostMode[b_, a_/;NumericQ[a]]:= 0;
 CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
 
 CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
-CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(And @@(FreeQ[a,#]&/@ allfields))
+CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(isScalarFactorQ[a])
 CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0][0], a] - actBGhostMode[bmodeAntiHolo[0][0],a]
 CollapseB0m[0]:=0
 
@@ -597,7 +597,7 @@ CollapseB0m[0]:=0
 ApplyPropagator::usage = "Applies the propagator b0+/L0+ on a level-projected bracket";
 
 ApplyPropagator[q_][a_ + b_]:= ApplyPropagator[q][a] + ApplyPropagator[q][b]
-ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(And @@(FreeQ[a,#]&/@ allfields));
+ApplyPropagator[q_][a_ b_]:= a ApplyPropagator[q][b]/;(isScalarFactorQ[a]);
 
 ApplyPropagator[q_][MultiOpa_/;MultiOpTest[MultiOpa]]:= Module[{rescaledMultiOp},
 rescaledMultiOp =  1/(-4 Pi I) 1/(q Conjugate[q]) MultiOp[(mapOp[rescaling[q], rescaling[Conjugate[q]]][MultiOpa])];
@@ -625,8 +625,8 @@ singularity[ct[m_,w_],bt[n_,z_]]:= 1 + m + n;
 
 singularityMatrix::usage = "Compute a matrix of orders of singularities in the OPE of two operators"
 singularityMatrix[Ra_/;RTest[Ra], Rb_/; RTest[Rb]]:= Table[singularity[Ra[[i]], Rb[[j]]], {i, 1, Length[Ra]}, {j, 1, Length[Rb]}];
-singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(And @@(FreeQ[a,#]&/@ allfields));
-singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(And @@(FreeQ[b,#]&/@ allfields));
+singularityMatrix[a_ b_, c_]:= singularityMatrix[b,c]/;(isScalarFactorQ[a]);
+singularityMatrix[a_, b_ c_]:= singularityMatrix[a,c]/;(isScalarFactorQ[b]);
 
 
 (* Upper-bounds singularity given singularityMatrix, gets the position of the exp\[Phi] in PCO, on the corresponding row sums up all its entries
@@ -655,23 +655,23 @@ ProjectorHold::usage = "Placeholder for BracketProjected during EffectiveBracket
 
 (* Multilinearity for BracketHold *)
 BracketHold[args___, a_ + b_, rest___] := BracketHold[args, a, rest] + BracketHold[args, b, rest]
-BracketHold[args___, c_ d_, rest___] := c BracketHold[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
+BracketHold[args___, c_ d_, rest___] := c BracketHold[args, d, rest] /; isScalarFactorQ[c]
 BracketHold[] := 1;
 
 (* Multilinearity for PropagatorHold *)
 PropagatorHold[q_][a_ + b_] := PropagatorHold[q][a] + PropagatorHold[q][b]
-PropagatorHold[q_][c_ a_] := c PropagatorHold[q][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+PropagatorHold[q_][c_ a_] := c PropagatorHold[q][a] /; isScalarFactorQ[c]
 PropagatorHold[q_][0] := 0;
 
 (* Multilinearity for ProjectorHold *)
 ProjectorHold[wH_, wA_][a_ + b_] := ProjectorHold[wH,wA][a] + ProjectorHold[wH,wA][b]
-ProjectorHold[wH_,wA_][c_ a_] := c ProjectorHold[wH,wA][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorHold[wH_,wA_][c_ a_] := c ProjectorHold[wH,wA][a] /; isScalarFactorQ[c]
 ProjectorHold[wH_,wA_][0] := 0;
 
 (* ProjectorBarHold - placeholder for (1-P) structure applied to inner brackets *)
 ProjectorBarHold::usage = "Placeholder for ProjectorBar (1-P) during EffectiveBracketHold computation";
 ProjectorBarHold[wH_, wA_][a_ + b_] := ProjectorBarHold[wH,wA][a] + ProjectorBarHold[wH,wA][b]
-ProjectorBarHold[wH_, wA_][c_ a_] := c ProjectorBarHold[wH,wA][a] /; And @@ (FreeQ[c, #] & /@ allfields)
+ProjectorBarHold[wH_, wA_][c_ a_] := c ProjectorBarHold[wH,wA][a] /; isScalarFactorQ[c]
 ProjectorBarHold[wH_, wA_][0] := 0;
 
 
@@ -752,13 +752,13 @@ EffectiveBracketHold[fields__, wH_, wA_] := Module[
 EffectiveBracketHold[args___, a_ + b_, rest___] :=
   EffectiveBracketHold[args, a, rest] + EffectiveBracketHold[args, b, rest]
 EffectiveBracketHold[args___, c_ d_, rest___] :=
-  c EffectiveBracketHold[args, d, rest] /; And @@ (FreeQ[c, #] & /@ allfields)
+  c EffectiveBracketHold[args, d, rest] /; isScalarFactorQ[c]
 
 (* Multilinearity of EffectiveBracket*)
 EffectiveBracket[args___, a_ + b_, rest___, wH_, wA_] :=
   EffectiveBracket[args, a, rest, wH, wA] + EffectiveBracket[args, b, rest, wH, wA]
 EffectiveBracket[args___, c_ d_, rest___, wH_, wA_] :=
-  c EffectiveBracket[args, d, rest, wH, wA] /; And @@ (FreeQ[c, #] & /@ allfields)
+  c EffectiveBracket[args, d, rest, wH, wA] /; isScalarFactorQ[c]
 
 (*Define EffectiveBracket as a substitution of EffectiveBracketHold*)
 projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] -> a - ProjectorHold[wH,wA][a]};

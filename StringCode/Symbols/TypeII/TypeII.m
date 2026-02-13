@@ -67,21 +67,222 @@ Begin["Private`"];
 (*Define symbols*)
 
 
+extendAllowedFieldPropertyKeys[{"ExpPhiFermionFamily", "GSOParityHolo", "GSOParityAntiHolo"}];
+
 exp\[Phi]b[0,z_]:=1;
 exp\[Phi]tb[0,z_]:=1;
-bosons=Join[bosons, {d\[Phi],d\[Phi]t,exp\[Phi]b,exp\[Phi]tb,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
-fermions=Join[fermions, {\[Xi],\[Xi]t,\[Eta],\[Eta]t,exp\[Phi]f,exp\[Phi]tf}];
-regfermions=Join[regfermions,{\[Xi],\[Xi]t,\[Eta],\[Eta]t}];
-exp\[Phi]fermions={exp\[Phi]f};
-exp\[Phi]tfermions={exp\[Phi]tf};
-simplefields=Join[simplefields, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
-simplefieldsnotc=Join[simplefieldsnotc, {d\[Phi],d\[Phi]t,\[Xi],\[Xi]t,\[Eta],\[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
-compositefields= Join[compositefields, {exp\[Phi]b,exp\[Phi]tb,exp\[Phi]f,exp\[Phi]tf}];
-holomorphicFields = Join[holomorphicFields, {d\[Phi],\[Xi],\[Eta],\[Beta],\[Gamma],exp\[Phi]f,exp\[Phi]b}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {d\[Phi]t, \[Xi]t,\[Eta]t,\[Beta]t,\[Gamma]t,exp\[Phi]tf,exp\[Phi]tb}];
-indexedFields = Join[indexedFields, {}];
-allfields=Join[bosons,fermions];
-collapsable = Join[collapsable, {\[Xi], \[Xi]t, \[Eta], \[Eta]t,\[Beta],\[Beta]t,\[Gamma],\[Gamma]t}];
+
+DefineField[d\[Phi],
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {d\[Phi], exp\[Phi]b, exp\[Phi]f},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[d\[Phi]t,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {d\[Phi]t, exp\[Phi]tb, exp\[Phi]tf},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Xi],
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Eta]},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Xi]t,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Eta]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Eta],
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Xi]},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Eta]t,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Xi]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Beta],
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {\[Gamma]},
+  "GSOParityHolo" -> -1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Beta]t,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {\[Gamma]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> -1
+];
+
+DefineField[\[Gamma],
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {\[Beta]},
+  "GSOParityHolo" -> -1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Gamma]t,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {\[Beta]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> -1
+];
+
+DefineField[exp\[Phi]b,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {exp\[Phi]b, exp\[Phi]f, d\[Phi]},
+  "GSOParityHolo" -> Function[field, (-1)^(field[[1]])],
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[exp\[Phi]tb,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {exp\[Phi]tb, exp\[Phi]tf, d\[Phi]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> Function[field, (-1)^(field[[1]])]
+];
+
+DefineField[exp\[Phi]f,
+  "Statistics" -> "Fermion",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {exp\[Phi]f, exp\[Phi]b, d\[Phi]},
+  "ExpPhiFermionFamily" -> "Holo",
+  "GSOParityHolo" -> Function[field, (-1)^(field[[1]])],
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[exp\[Phi]tf,
+  "Statistics" -> "Fermion",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {exp\[Phi]tf, exp\[Phi]tb, d\[Phi]t},
+  "ExpPhiFermionFamily" -> "AntiHolo",
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> Function[field, (-1)^(field[[1]])]
+];
 
 
 (* ::Subsection:: *)
@@ -121,31 +322,11 @@ ghostNumberAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
 ghostNumberAntiHolo[\[Gamma]t[der_, zbar_]]:= 1;
 ghostNumberAntiHolo[a_/;isField[Head[a]]]:= 0;
 
-GSOParityHolo[c[der_, z_]]:= 1;
-GSOParityHolo[b[der_, z_]]:= 1;
-GSOParityAntiHolo[ct[der_, zbar_]]:= 1;
-GSOParityAntiHolo[bt[der_, zbar_]]:= 1;
+GSOParityHolo::usage = "Computes holomorphic GSO parity of a TypeII field.";
+GSOParityHolo[a_/;isField[Head[a]]]:= evaluateFieldProperty[a, "GSOParityHolo", 1];
 
-GSOParityHolo[\[Xi][der_, z_]]:= 1;
-GSOParityHolo[\[Eta][der_, z_]]:= 1;
-GSOParityAntiHolo[\[Xi]t[der_, zbar_]]:= 1;
-GSOParityAntiHolo[\[Eta]t[der_, zbar_]]:= 1;
-
-GSOParityHolo[\[Beta][der_, z_]]:= -1;
-GSOParityHolo[\[Gamma][der_, z_]]:= -1;
-GSOParityAntiHolo[\[Beta]t[der_, zbar_]]:= -1;
-GSOParityAntiHolo[\[Gamma]t[der_, zbar_]]:= -1;
-
-GSOParityHolo[d\[Phi][der_, z_]]:= 1;
-GSOParityAntiHolo[d\[Phi]t[der_, zbar_]]:= 1;
-
-GSOParityHolo[exp\[Phi]b[n_, z_]]:= (-1)^n;
-GSOParityHolo[exp\[Phi]f[n_, z_]]:= (-1)^n;
-GSOParityAntiHolo[exp\[Phi]tb[n_, zbar_]]:= (-1)^n;
-GSOParityAntiHolo[exp\[Phi]tf[n_, zbar_]]:= (-1)^n;
-
-GSOParityHolo[a_/;isField[Head[a]]]:= 1;
-GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
+GSOParityAntiHolo::usage = "Computes antiholomorphic GSO parity of a TypeII field.";
+GSOParityAntiHolo[a_/;isField[Head[a]]]:= evaluateFieldProperty[a, "GSOParityAntiHolo", 1];
 GSOParity[a_/;isField[Head[a]]]:= GSOParityHolo[a] GSOParityAntiHolo[a];
 
 

@@ -65,22 +65,187 @@ Begin["Private`"];
 (*Define symbols*)
 
 
-bosons=Join[bosons, {expXHolo, expXAntiHolo, expX,dX,dXt,ProfileXHolo, ProfileXAntiHolo, ProfileX}];
-fermions=Join[fermions, {\[Psi],\[Psi]t,S,St}];
-regfermions=Join[regfermions,{\[Psi],\[Psi]t,S,St}];
-simplefields=Join[simplefields, {dX,dXt,\[Psi],\[Psi]t,S,St}];
-simplefieldsnotc=Join[simplefieldsnotc, {dX,dXt,\[Psi],\[Psi]t,S,St}];
-compositefields= Join[compositefields, {ProfileXHolo, ProfileXAntiHolo, ProfileX, expXHolo, expXAntiHolo, expX}];
-holomorphicFields = Join[holomorphicFields, {ProfileX, expX, dX,expXHolo, ProfileXHolo, \[Psi], S}];
-antiHolomorphicFields = Join[antiHolomorphicFields, {ProfileX, expX, expXAntiHolo, ProfileXAntiHolo, dXt, \[Psi]t, St}];
-indexedFields = Join[indexedFields, {dX, dXt, \[Psi], \[Psi]t, S, St}];
-allfields=Join[bosons,fermions];
-collapsable = Join[collapsable, {dX, dXt, expX, expXHolo, expXAntiHolo, ProfileX, ProfileXHolo, ProfileXAntiHolo}];
-factorizable = Join[factorizable, {expX, ProfileX}];
-factorizationReplacement = Join[factorizationReplacement, {
-  ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]},
-  expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}
-}];
+DefineField[dX,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> True,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {dX, expX, ProfileX, expXHolo, ProfileXHolo},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[dXt,
+  "Statistics" -> "Boson",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> True,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {dXt, expX, ProfileX, expXAntiHolo, ProfileXAntiHolo},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[expX,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> True,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expX, ProfileX, dX, dXt},
+  "FactorizationRule" -> (expX[k_, z_, zbar_] :> {expXHolo[k, z], expXAntiHolo[k, zbar]}),
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[expXHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expXHolo, ProfileXHolo, dX},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[expXAntiHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {expXAntiHolo, ProfileXAntiHolo, dXt},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[ProfileX,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> True,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileX, expX, dX, dXt},
+  "FactorizationRule" -> (ProfileX[profile_, ders_, z_, zbar_] :> {ProfileXHolo[profile, ders, z], ProfileXAntiHolo[profile, ders, zbar]}),
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[ProfileXHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileXHolo, expXHolo, dX},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[ProfileXAntiHolo,
+  "Statistics" -> "Boson",
+  "Simple" -> False,
+  "Composite" -> True,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> False,
+  "Collapsable" -> True,
+  "Factorizable" -> False,
+  "RegularFermion" -> False,
+  "PairsWith" -> {ProfileXAntiHolo, expXAntiHolo, dXt},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Psi],
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> True,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Psi]},
+  "GSOParityHolo" -> -1,
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[\[Psi]t,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> True,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {\[Psi]t},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> -1
+];
+
+DefineField[S,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> True,
+  "AntiHolomorphic" -> False,
+  "Indexed" -> True,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {},
+  "GSOParityHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])],
+  "GSOParityAntiHolo" -> 1
+];
+
+DefineField[St,
+  "Statistics" -> "Fermion",
+  "Simple" -> True,
+  "Composite" -> False,
+  "Holomorphic" -> False,
+  "AntiHolomorphic" -> True,
+  "Indexed" -> True,
+  "Collapsable" -> False,
+  "Factorizable" -> False,
+  "RegularFermion" -> True,
+  "PairsWith" -> {},
+  "GSOParityHolo" -> 1,
+  "GSOParityAntiHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])]
+];
 
 canonicalizeSpinModes[modes_List] := Module[{ordering, sortedModes},
   ordering = Ordering[modes];
@@ -153,39 +318,6 @@ weightHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, de
 weightHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 0;
 weightAntiHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 0;
 weightAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 5/8 - q (q + 2)/2 + der + Total[First /@ modes];
-
-
-(* ::Subsection:: *)
-(*Define GSO parity*)
-
-
-GSOParityHolo[a_/;isField[Head[a]]]=.;
-GSOParityAntiHolo[a_/;isField[Head[a]]]=.;
-
-GSOParityHolo[dX[\[Mu]_, n_, z_]] := 1;
-GSOParityAntiHolo[dXt[\[Mu]_, n_, zbar_]] := 1;
-
-GSOParityHolo[expX[k_, z_, zbar_]] := 1;
-GSOParityAntiHolo[expX[k_, z_, zbar_]] := 1;
-GSOParityHolo[expXHolo[k_, z_]] := 1;
-GSOParityAntiHolo[expXAntiHolo[k_, zbar_]] := 1;
-
-GSOParityHolo[ProfileX[profile_, ders_, z_, zbar_]] := 1;
-GSOParityAntiHolo[ProfileX[profile_, ders_, z_, zbar_]] := 1;
-GSOParityHolo[ProfileXHolo[profile_, ders_, z_]] := 1;
-GSOParityAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_]] := 1;
-
-GSOParityHolo[\[Psi][\[Mu]_, n_, z_]] := -1;
-GSOParityAntiHolo[\[Psi]t[\[Mu]_, n_, zbar_]] := -1;
-
-GSOParityHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := spinAlphaChiralitySign[chirality] (-1)^(q + 1/2 + Length[modes]);
-GSOParityAntiHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := spinAlphaChiralitySign[chirality] (-1)^(q + 1/2 + Length[modes]);
-
-GSOParityAntiHolo[S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_]] := 1;
-GSOParityHolo[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]] := 1;
-
-GSOParityHolo[a_/;isField[Head[a]]]:= 1;
-GSOParityAntiHolo[a_/;isField[Head[a]]]:= 1;
 
 
 (* ::Section:: *)
