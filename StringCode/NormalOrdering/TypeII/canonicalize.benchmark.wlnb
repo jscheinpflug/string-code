@@ -1,0 +1,209 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII Benchmark: `R` vs `CanonicalizeToR`\n\nCompares recursive old-style `R` evaluation with `CanonicalizeToR` including bosonized-exponential cases.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1771044739705,
+     "endTime": 1771044739976
+    },
+    "executionOrder": 1,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "expPhiF = ToExpression[\"StringCode`Symbols`TypeII`exp\\\\[Phi]f\"];\nexpPhiTF = ToExpression[\"StringCode`Symbols`TypeII`exp\\\\[Phi]tf\"];\n\nnewFast[args___] := Private`CanonicalizeToR[Private`U @@ {args}];\n\ndXH = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`dX\"];\ndXtA = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`dXt\"];\npsiH = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`\\[Psi]\"];\npsiA = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`\\[Psi]t\"];\n\nmakeTypeIIInput[n_Integer?Positive] := Module[{z, zb, holoFields, antiFields},\n  z = Array[Symbol[\"z\" <> ToString[#]] &, n];\n  zb = Array[Symbol[\"zb\" <> ToString[#]] &, n];\n\n  holoFields = Join[\n    Table[b[0, z[[i]]], {i, n}],\n    Table[c[0, z[[i]]], {i, n}],\n    Table[dXH[mu, 0, z[[i]]], {i, n}],\n    Table[psiH[mu, 0, z[[i]]], {i, n}],\n    Table[expPhiF[-1/2, z[[i]]], {i, n}]\n  ];\n\n  antiFields = Join[\n    Table[bt[0, zb[[i]]], {i, n}],\n    Table[ct[0, zb[[i]]], {i, n}],\n    Table[dXtA[mu, 0, zb[[i]]], {i, n}],\n    Table[psiA[mu, 0, zb[[i]]], {i, n}],\n    Table[expPhiTF[-1/2, zb[[i]]], {i, n}]\n  ];\n\n  RandomSample@Join[holoFields, antiFields]\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1771044739976,
+     "endTime": 1771044740460
+    },
+    "executionOrder": 3,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Correctness Checks",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "correctnessCases = {\n  {expPhiF[-1/2, z], expPhiF[-1/2, z]},\n  {expPhiTF[-1/2, zb], expPhiTF[-1/2, zb]},\n  {expPhiF[-1/2, z], expPhiF[-1/2, z], b[0, w], c[1, u]},\n  {expPhiTF[-1/2, zb], expPhiTF[-1/2, zb], bt[0, wb], ct[1, ub]},\n  makeTypeIIInput[4],\n  makeTypeIIInput[6]\n};\n\nsameQResults = Map[Check[(R @@ #) === (newFast @@ #), False] &, correctnessCases];\nsimplifyResults = Map[Check[Simplify[R @@ # - newFast @@ #] === 0, False] &, correctnessCases];\n\nPrint[\"TypeII SameQ per case: \", sameQResults];\nPrint[\"TypeII Simplify-equality per case: \", simplifyResults];\nPrint[\"newFast over correctnessCases:\"];\nallCorrect = And @@ simplifyResults;\nPrint[\"TypeII all-cases correctness: \", If[allCorrect, \"PASSED\", \"FAILED\"]];\nallCorrect",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>TypeII SameQ per case: {True, True, True, True, True, True}\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"TypeII SameQ per case: {True, True, True, True, True, True}\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d9f6a8a5-5e10-4a25-b334-6bc67b0d0372",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>TypeII Simplify-equality per case: {True, True, True, True, True, True}\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"TypeII Simplify-equality per case: {True, True, True, True, True, True}\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "202d6748-cb24-4356-8ee6-99ce193eaced",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>newFast over correctnessCases:\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"newFast over correctnessCases:\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a4df9c85-7bd6-4ae9-a5fd-bf952b0fb14a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>TypeII all-cases correctness: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"TypeII all-cases correctness: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3f9a6958-424d-423a-8b0e-b01a8147edb4",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d8d8887b-6a56-4328-bc6a-8f47f52863e7",
+     "metadata": {
+      "cellLabel": "Out[19]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1771044740460,
+     "endTime": 1771044742794
+    },
+    "executionOrder": 11,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Timing Comparison",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "$RecursionLimit = 10000;\nsizes = {4, 6, 8, 10, 12, 14, 16};\nbench = Table[\n  input = makeTypeIIInput[n];\n  {oldTime, oldRes} = AbsoluteTiming[R @@ input];\n  {newTime, newRes} = AbsoluteTiming[newFast @@ input];\n  oldOK = oldRes =!= $Failed;\n  newOK = newRes =!= $Failed;\n  speedup = If[oldOK && newOK && newTime > 0, oldTime/newTime, Missing[\"Unavailable\"]];\n  {n, oldTime, newTime, speedup, oldOK, newOK},\n  {n, sizes}\n];\n\nformatNumber[x_Real] := ToString[\n  NumberForm[N[x, 20], {Infinity, 8}, ExponentFunction -> (Null &)],\n  OutputForm\n];\nformatNumber[x_] := x;\n\nbenchDisplay = bench /. x_Real :> formatNumber[x];\n\nPrint[Grid[\n  Prepend[benchDisplay, {\"n\", \"R (s)\", \"CanonicalizeToR (s)\", \"speedup\", \"R OK\", \"New OK\"}],\n  Frame -> All\n]];\nbench",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>n    R (s)        CanonicalizeToR (s)   speedup        R OK   New OK\n\n4    0.23497500   0.01611200            14.58385055    True   True\n\n6    0.57651700   0.01978500            29.13909527    True   True\n\n8    0.87429000   0.02905300            30.09293360    True   True\n\n10   2.28462100   0.02840300            80.43590466    True   True\n\n12   4.21859100   0.04065700            103.76050865   True   True\n\n14   6.00635900   0.05283400            113.68359390   True   True\n\n16   7.27804600   0.06351000            114.59685089   True   True\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"n    R (s)        CanonicalizeToR (s)   speedup        R OK   New OK\\n\\n4    0.23497500   0.01611200            14.58385055    True   True\\n\\n6    0.57651700   0.01978500            29.13909527    True   True\\n\\n8    0.87429000   0.02905300            30.09293360    True   True\\n\\n10   2.28462100   0.02840300            80.43590466    True   True\\n\\n12   4.21859100   0.04065700            103.76050865   True   True\\n\\n14   6.00635900   0.05283400            113.68359390   True   True\\n\\n16   7.27804600   0.06351000            114.59685089   True   True\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "5b115bc7-bdf0-485f-a9ed-fa6309b86d88",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>4</w><w>,</w><w>0.234975</w><w>,</w><w>0.016112</w><w>,</w><w>14.5839</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>6</w><w>,</w><w>0.576517</w><w>,</w><w>0.019785</w><w>,</w><w>29.1391</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>8</w><w>,</w><w>0.87429</w><w>,</w><w>0.029053</w><w>,</w><w>30.0929</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>10</w><w>,</w><w>2.28462</w><w>,</w><w>0.028403</w><w>,</w><w>80.4359</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>12</w><w>,</w><w>4.21859</w><w>,</w><w>0.040657</w><w>,</w><w>103.761</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>14</w><w>,</w><w>6.00636</w><w>,</w><w>0.052834</w><w>,</w><w>113.684</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><wb>{</wb><wrow><w></w><w>16</w><w>,</w><w>7.27805</w><w>,</w><w>0.06351</w><w>,</w><w>114.597</w><w>,</w><w>True</w><w>,</w><w>True</w></wrow><wb>}</wb></wrow></wrow><wb>}</wb></wrow></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "{{4, 0.234975, 0.016112, 14.58385054617676, True, True}, {6, 0.576517, 0.019785, 29.13909527419762, True, True}, {8, 0.87429, 0.029053, 30.092933604102846, True, True}, {10, 2.284621, 0.028403, 80.43590465795866, True, True}, {12, 4.218591, 0.040657, 103.76050864549771, True, True}, {14, 6.006359, 0.052834, 113.6835938978688, True, True}, {16, 7.278046, 0.06351, 114.5968508896237, True, True}}",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9f951c4a-cea3-42d3-a826-f6e5b8fca904",
+     "metadata": {
+      "cellLabel": "Out[59]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1771044827057,
+     "endTime": 1771044849384
+    },
+    "executionOrder": 52,
+    "success": true
+   }
+  }
+ ]
+}

@@ -36,6 +36,8 @@ exp\[Phi]parity[f_]:=0/;!containsExpPhiHoloFermionQ[f]
 exp\[Phi]parity[f_]:=1/;containsExpPhiHoloFermionQ[f]
 exp\[Phi]parity[R[f__,g__]]:=Mod[exp\[Phi]parity[R[f]]+exp\[Phi]parity[R[g]],2]
 exp\[Phi]parity[R[f_]]:=exp\[Phi]parity[f]
+exp\[Phi]parity[U[f__,g__]]:=Mod[exp\[Phi]parity[U[f]]+exp\[Phi]parity[U[g]],2]
+exp\[Phi]parity[U[f_]]:=exp\[Phi]parity[f]
 
 exp\[Phi]tparity::usage = "Compute Grassmann parity of exp\[Phi]t";
 containsExpPhiAntiHoloFermionQ[expr_] := !FreeQ[expr, field_ /; fieldProperty[field, "ExpPhiFermionFamily"] === "AntiHolo"];
@@ -43,6 +45,35 @@ exp\[Phi]tparity[f_]:=0/;!containsExpPhiAntiHoloFermionQ[f]
 exp\[Phi]tparity[f_]:=1/;containsExpPhiAntiHoloFermionQ[f]
 exp\[Phi]tparity[R[f__,g__]]:=Mod[exp\[Phi]tparity[R[f]]+exp\[Phi]tparity[R[g]],2]
 exp\[Phi]tparity[R[f_]]:=exp\[Phi]tparity[f]
+exp\[Phi]tparity[U[f__,g__]]:=Mod[exp\[Phi]tparity[U[f]]+exp\[Phi]tparity[U[g]],2]
+exp\[Phi]tparity[U[f_]]:=exp\[Phi]tparity[f]
+
+
+oddBosChirFieldQ::usage = "Checks if field is odd chiral bosonized exponential.";
+oddBosChirFieldQ[x_] := MatchQ[Head[x], exp\[Phi]f];
+
+oddBosAntiChFieldQ::usage = "Checks if field is odd antichiral bosonized exponential.";
+oddBosAntiChFieldQ[x_] := MatchQ[Head[x], exp\[Phi]tf];
+
+bosExpRules::usage = "Combines bosonized exponentials during U canonicalization.";
+bosExpRules = {
+  tmpR[cc___, aa_, aa_, dd___] /; Head[aa] == exp\[Phi]f :>
+    tmpR[cc, exp\[Phi]b[2 aa[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, aa_, dd___] /; Head[aa] == exp\[Phi]tf :>
+    tmpR[cc, exp\[Phi]tb[2 aa[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]b && Head[bb] == exp\[Phi]b && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]b[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tb && Head[bb] == exp\[Phi]tb && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]tb[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]f && Head[bb] == exp\[Phi]f && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]b[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tf && Head[bb] == exp\[Phi]tf && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]tb[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]b && Head[bb] == exp\[Phi]f && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]f[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tb && Head[bb] == exp\[Phi]tf && aa[[2]] == bb[[2]] :>
+    tmpR[cc, exp\[Phi]tf[aa[[1]] + bb[[1]], aa[[2]]], dd]
+};
 
 
 (* ::Subsection::Closed:: *)

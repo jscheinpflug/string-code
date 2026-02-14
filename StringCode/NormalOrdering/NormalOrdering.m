@@ -36,6 +36,35 @@ containsRegularFermionQ[expr_] := !FreeQ[expr, field_ /; isRegFermion[Head[field
 isScalarFactorQ::usage = "Checks if expression is scalar factor with respect to registered fields.";
 isScalarFactorQ[expr_] := !containsFieldQ[expr];
 
+needsOrdering::usage = "Private flag controlling whether R auto-orders. Default True.";
+needsOrdering = True;
+
+oddFieldQ::usage = "Checks if expression has regular-fermion content.";
+oddFieldQ[x_] := containsRegularFermionQ[x];
+
+oddBosChirFieldQ::usage = "Checks if field is odd-parity bosonized chiral.";
+oddBosChirFieldQ[_] := False;
+
+oddBosAntiChFieldQ::usage = "Checks if field is odd-parity bosonized antichiral.";
+oddBosAntiChFieldQ[_] := False;
+
+bosExpRules::usage = "Rules for combining bosonized exponentials. Empty for bosonic theories.";
+bosExpRules = {};
+
+SepGradedFields::usage = "Separates graded fields and counts moves for canonical sign.";
+SepGradedFields[list_] := Module[{nChir = 0, nAntiChir = 0, moves = 0, oddfields = {}},
+  Do[
+    Which[
+      oddFieldQ[tmp], moves += nChir + nAntiChir; AppendTo[oddfields, tmp],
+      oddBosChirFieldQ[tmp], moves += nAntiChir; nChir++,
+      oddBosAntiChFieldQ[tmp], nAntiChir++,
+      True, Null
+    ],
+    {tmp, list}
+  ];
+  <|"moves" -> moves, "nChir" -> nChir, "nAntiChir" -> nAntiChir, "oddfields" -> oddfields|>
+];
+
 
 (* ::Subsection:: *)
 (*Test normal-ordering and length*)
@@ -43,6 +72,9 @@ isScalarFactorQ[expr_] := !containsFieldQ[expr];
 
 RTest::usage = "Test if product is normal-ordered";
 RTest[f_]:=(Head[f]===R)
+
+UTest::usage = "Test if product is unsorted normal-ordering helper.";
+UTest[f_] := (Head[f] === U)
 
 RLength::usage = "Test if is normal-ordered and has nonzero length";
 RLength[f_]:=If[RTest[f],Length[List @@ f],0]
@@ -58,6 +90,12 @@ RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;isScalarFactorQ[a]
 RTestUpToConstant[f_]:=(Head[f]===R)
 RTestUpToConstant[]:=False;
 
+UTestUpToConstant::usage = "Test if product is unsorted normal-ordered up to a constant prefactor.";
+UTestUpToConstant[c___,a_ f_,d___] := UTestUpToConstant[c,f,d] /; isScalarFactorQ[a]
+UTestUpToConstant[c___,a_,d___] := UTestUpToConstant[c,d] /; isScalarFactorQ[a]
+UTestUpToConstant[f_] := (Head[f] === U)
+UTestUpToConstant[] := False;
+
 
 (* ::Subsection::Closed:: *)
 (*Define Grassmann parity*)
@@ -70,6 +108,8 @@ parity[f_+g_]:=parity[f]
 parity[f_ g_]:=parity[g]/;!containsFermionQ[f]
 parity[R[f__,g__]]:=Mod[parity[R[f]]+parity[R[g]],2]
 parity[R[f_]]:=1/;containsFermionQ[f]
+parity[U[f__,g__]]:=Mod[parity[U[f]]+parity[U[g]],2]
+parity[U[f_]]:=1/;containsFermionQ[f]
 parity[f_]:=1/;containsFermionQ[f]
 
 
@@ -85,7 +125,7 @@ regparity[f_]:=1/;containsRegularFermionQ[f]
 (*Define normal-ordered product*)
 
 
-R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(!OrderedQ[{b,a}])
+R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(needsOrdering && !OrderedQ[{b,a}])
 R[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
@@ -99,6 +139,65 @@ R[a___, r_?RTest, c___] := R[a, Sequence @@ (List @@ r), c]
 R[g___,a_ f_,h___]:=R[g,a,f,h]/;isBoson[Head[a]]
 R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
+
+
+U::usage = "An unsorted normal-ordered product of fields (private helper).";
+U[c___, a_, d___] := (U[c, #, d] & /@ a) /; Head[a] == Plus
+U[c___,a_ f_,d___]:=a U[c,f,d]/;isScalarFactorQ[a]
+U[c___,a_ ,d___]:=a U[c,d]/;isScalarFactorQ[a]
+U[]:=1
+U[a___, u_?UTest, c___] := U[a, Sequence @@ (List @@ u), c]
+
+U[g___,a_ f_,h___]:=U[g,a,f,h]/;isBoson[Head[a]]
+U[g___,a_^n_ f_,h___]:=U[g,(U @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
+U[g___,a_^n_,h___]:=U[g,(U @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
+
+
+Canonicalize::usage = "Canonicalizes an unsorted U product and returns sorted U.";
+Canonicalize[UU_] := Module[
+  {fieldList = List @@ UU, gradedFieldList, gradedFieldAssoc, sgn, sortedFields, combinedFields},
+  gradedFieldList = Select[fieldList, !isBoson[Head[#]] &];
+  gradedFieldAssoc = SepGradedFields[gradedFieldList];
+
+  If[OddQ[gradedFieldAssoc[["nChir"]]], AppendTo[gradedFieldAssoc[["oddfields"]], exp\[Phi]f[]]];
+  If[OddQ[gradedFieldAssoc[["nAntiChir"]]], AppendTo[gradedFieldAssoc[["oddfields"]], exp\[Phi]tf[]]];
+
+  sgn = (-1)^(gradedFieldAssoc[["moves"]]) Signature[gradedFieldAssoc[["oddfields"]]];
+  If[sgn == 0, Return[0]];
+
+  sortedFields = Sort[fieldList];
+  If[gradedFieldAssoc[["nChir"]] == 0 && gradedFieldAssoc[["nAntiChir"]] == 0,
+    Return[sgn U @@ sortedFields]
+  ];
+
+  combinedFields = Sort[((tmpR @@ sortedFields) //. bosExpRules /. tmpR -> List)];
+  sgn U @@ combinedFields
+] /; UTest[UU];
+
+Canonicalize[a_ + b_] := Canonicalize[a] + Canonicalize[b];
+Canonicalize[c_ a_] := c Canonicalize[a] /; isScalarFactorQ[c];
+Canonicalize[0] := 0;
+Canonicalize[a_] := a /; isScalarFactorQ[a];
+
+
+UtoR::usage = "Converts U expressions to R without triggering ordering recursion.";
+UtoR[UU_] := Block[{needsOrdering = False}, R @@ (List @@ UU)] /; UTest[UU];
+UtoR[a_ + b_] := UtoR[a] + UtoR[b];
+UtoR[c_ a_] := c UtoR[a] /; isScalarFactorQ[c];
+UtoR[0] := 0;
+UtoR[Ra_] := Ra /; RTest[Ra];
+UtoR[expr_] := Block[{needsOrdering = False}, expr /. U -> R];
+
+RToU::usage = "Converts R expressions to U.";
+RToU[Ra_] := U @@ (List @@ Ra) /; RTest[Ra];
+RToU[a_ + b_] := RToU[a] + RToU[b];
+RToU[c_ a_] := c RToU[a] /; isScalarFactorQ[c];
+RToU[0] := 0;
+RToU[UU_] := UU /; UTest[UU];
+RToU[expr_] := expr /. R -> U;
+
+CanonicalizeToR::usage = "Canonicalizes through U and converts back to R.";
+CanonicalizeToR[expr_] := UtoR[Canonicalize[RToU[expr]]];
 
 
 (* ::Subsection::Closed:: *)
@@ -139,6 +238,8 @@ totalWeightAntiHolo[Ra_/;RTest[Ra]] := Map[weightAntiHolo, List @@ Ra] // Total;
 
 totalWeight[Times[a_, Ra_/;RTest[Ra]]] := totalWeight[Ra];
 totalWeight[Ra_/;RTest[Ra]] := {totalWeightHolo[Ra], totalWeightAntiHolo[Ra]};
+
+
 
 (* ::Section:: *)
 (*End*)
