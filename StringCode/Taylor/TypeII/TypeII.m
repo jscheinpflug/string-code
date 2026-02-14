@@ -52,41 +52,41 @@ isAtPointAntiHolo[exp\[Phi]tb[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 (*Superghosts*)
 
 
-addHoloDerivatives[\[Eta][n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\[Eta][n+ord,z0];
+addHoloDerivatives[\[Eta][n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]\[Eta][n+ord,z0];
 
 
-addHoloDerivatives[\[Xi][n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]\[Xi][n+ord,z0];
+addHoloDerivatives[\[Xi][n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]\[Xi][n+ord,z0];
 
 
-addHoloDerivatives[d\[Phi][n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]d\[Phi][n+ord,z0];
+addHoloDerivatives[d\[Phi][n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]d\[Phi][n+ord,z0];
 
 
 addHoloDerivatives[exp\[Phi]f[a_, z_], ord_, z0_] :=
-  (z - z0)^ord/Factorial[ord] * 
+  taylorDerivativePrefactor[z - z0, ord] * 
     exp\[Phi]f[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand;
 
 
 addHoloDerivatives[exp\[Phi]b[a_, z_], ord_, z0_] :=
-  (z - z0)^ord/Factorial[ord] * 
+  taylorDerivativePrefactor[z - z0, ord] * 
     exp\[Phi]b[a, z0] * (phiPoly[a, ord] /. x -> z0)//Expand;
 
 
-addAntiHoloDerivatives[\[Eta]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Eta]t[n+ord,z0bar];
+addAntiHoloDerivatives[\[Eta]t[n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]\[Eta]t[n+ord,z0bar];
 
 
-addAntiHoloDerivatives[\[Xi]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]\[Xi]t[n+ord,z0bar];
+addAntiHoloDerivatives[\[Xi]t[n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]\[Xi]t[n+ord,z0bar];
 
 
-addAntiHoloDerivatives[d\[Phi]t[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]d\[Phi]t[n+ord,z0bar];
+addAntiHoloDerivatives[d\[Phi]t[n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]d\[Phi]t[n+ord,z0bar];
 
 
 addAntiHoloDerivatives[exp\[Phi]tf[a_, z_], ord_, z0bar_] :=
-  (z - z0bar)^ord/Factorial[ord] *
+  taylorDerivativePrefactor[z - z0bar, ord] *
     exp\[Phi]tf[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand;
 
 
 addAntiHoloDerivatives[exp\[Phi]tb[a_, z_], ord_, z0bar_] :=
-  (z - z0bar)^ord/Factorial[ord] *
+  taylorDerivativePrefactor[z - z0bar, ord] *
     exp\[Phi]tb[a, z0bar] * (phiPolyT[a, ord] /. x -> z0bar)//Expand;
 
 

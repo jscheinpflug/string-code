@@ -120,8 +120,16 @@ TaylorAtOrder[a_, ordHolo_, ordAntiHolo_, z0_, z0bar_] := 0 /; ((ordHolo > 0 || 
 
 
 (*Taylor to zeroth order preserves the input*)
-TaylorAtOrderHolo[Ra_/;RTest[Ra], 0, z0_]:= R @@ Map[addHoloDerivatives[#, 0, z0] &, Ra];
-TaylorAtOrderAntiHolo[Ra_/;RTest[Ra], 0, z0bar_]:= R @@ Map[addAntiHoloDerivatives[#, 0, z0bar] &, Ra];
+TaylorAtOrderHolo[Ra_/;RTest[Ra], 0, z0_]:=
+  R @@ Map[
+    If[isHolomorphic[Head[#]] && !isAtPointHolo[#, z0], addHoloDerivatives[#, 0, z0], #] &,
+    Ra
+  ];
+TaylorAtOrderAntiHolo[Ra_/;RTest[Ra], 0, z0bar_]:=
+  R @@ Map[
+    If[isAntiHolomorphic[Head[#]] && !isAtPointAntiHolo[#, z0bar], addAntiHoloDerivatives[#, 0, z0bar], #] &,
+    Ra
+  ];
 
 
 (* ::Subsubsection:: *)
@@ -168,17 +176,21 @@ isAtPointAntiHolo[ct[n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 addHoloDerivatives::usage = "Adds holomorphic derivatives to a holomorphic field";
 addAntiHoloDerivatives::usage = "Adds holomorphic derivatives to an antiholomorphic field";
 
-
-addHoloDerivatives[b[n_,z_], ord_,z0_]:= (z-z0)^ord/Factorial[ord] b[n+ord,z0];
-
-
-addHoloDerivatives[c[n_,z_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]c[n+ord,z0];
+taylorDerivativePrefactor::usage = "Returns the Taylor prefactor, with zeroth order set to 1 to avoid 0^0.";
+taylorDerivativePrefactor[delta_, 0] := 1;
+taylorDerivativePrefactor[delta_, ord_] := delta^ord/Factorial[ord];
 
 
-addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= (z-z0bar)^ord/Factorial[ord] bt[n+ord,z0bar];
+addHoloDerivatives[b[n_,z_], ord_,z0_]:= taylorDerivativePrefactor[z-z0, ord] b[n+ord,z0];
 
 
-addAntiHoloDerivatives[ct[n_,z_], ord_, z0bar_]:= (z-z0bar)^ord/Factorial[ord]ct[n+ord,z0bar];
+addHoloDerivatives[c[n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]c[n+ord,z0];
+
+
+addAntiHoloDerivatives[bt[n_,z_], ord_,z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord] bt[n+ord,z0bar];
+
+
+addAntiHoloDerivatives[ct[n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]ct[n+ord,z0bar];
 
 
 (* ::Section:: *)

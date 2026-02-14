@@ -40,10 +40,10 @@ isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]] && !isA
 (*Define adding derivatives*)
 
 
-addHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]V[n1+ord, n2, z0, zbar];
+addHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]V[n1+ord, n2, z0, zbar];
 
 
-addAntiHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= (z-z0)^ord/Factorial[ord]V[n1, n2+ord,z0, zbar];
+addAntiHoloDerivatives[V[n1_, n2_, z_, zbar_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]V[n1, n2+ord,z0, zbar];
 
 
 (* ::Section:: *)

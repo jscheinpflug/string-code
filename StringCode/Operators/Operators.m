@@ -53,6 +53,25 @@ MultiOpAtPos[Ma_/;MultiOpTest[Ma], coordHol_, coordAntiHol_] :=
 OpAtPos[op_/;RTest[op], coordHol_, coordAntiHol_] := RAtPos[op, coordHol, coordAntiHol];
 OpAtPos[op_/;MultiOpTest[op], coordHol_, coordAntiHol_] := MultiOpAtPos[op, coordHol, coordAntiHol];
 
+(* Numeric coordinates are direct point placement, not a conformal map.
+   Avoids Jacobian scaling from a constant map (which is singular). *)
+placeAtPointNoScale[coordHol_, coordAntiHol_][a_ /; isField[Head[a]] && isHolomorphic[Head[a]] && isAntiHolomorphic[Head[a]]] :=
+  Module[{args = List @@ a, h = Head[a]}, h @@ Join[Drop[args, -2], {coordHol, coordAntiHol}]];
+
+placeAtPointNoScale[coordHol_, coordAntiHol_][a_ /; isField[Head[a]] && isHolomorphic[Head[a]]] :=
+  Module[{args = List @@ a, h = Head[a]}, h @@ Join[Drop[args, -1], {coordHol}]];
+
+placeAtPointNoScale[coordHol_, coordAntiHol_][a_ /; isField[Head[a]] && isAntiHolomorphic[Head[a]]] :=
+  Module[{args = List @@ a, h = Head[a]}, h @@ Join[Drop[args, -1], {coordAntiHol}]];
+
+placeAtPointNoScale[coordHol_, coordAntiHol_][a_] := a;
+
+RAtPos[Ra_ /; RTest[Ra], coordHol_?NumericQ, coordAntiHol_?NumericQ] :=
+  placeAtPointNoScale[coordHol, coordAntiHol] /@ Ra;
+
+MultiOpAtPos[Ma_ /; MultiOpTest[Ma], coordHol_?NumericQ, coordAntiHol_?NumericQ] :=
+  placeAtPointNoScale[coordHol, coordAntiHol] /@ Ma;
+
 
 (* ::Subsection:: *)
 (*Map operators with conformal weight scaling*)

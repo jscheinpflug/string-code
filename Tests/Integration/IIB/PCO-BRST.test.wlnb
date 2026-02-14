@@ -1,0 +1,513 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII BRST and PCO Tests\n\nHolomorphic non-spin equations A.23-A.59 under TypeII-Ashoke conventions.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "goUpDirectories[path_String, n_Integer:1] := Module[{parts}, parts = FileNameSplit[ExpandFileName[path]]; FileNameJoin[Take[parts, Length[parts] - n]]];\nnbDir = Quiet @ Check[NotebookDirectory[], $Failed];\nrepoRoot = If[nbDir === $Failed, ExpandFileName[\".\"], goUpDirectories[nbDir, 2]];\nIf[DirectoryQ[FileNameJoin[{repoRoot, \"StringCode\"}]] && !MemberQ[$Path, FileNameJoin[{repoRoot, \"StringCode\"}]], AppendTo[$Path, FileNameJoin[{repoRoot, \"StringCode\"}]]];\nNeeds[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];\nreplaceUniqueSymbols[expr_] := expr /. s_Symbol /; StringContainsQ[SymbolName[s], \"$\"] :> Symbol[StringReplace[SymbolName[s], \"$\" -> \"dol\"]];\nextractIndexSymbols[expr_] := DeleteDuplicates @ Flatten @ Join[\n  Cases[expr, dX[i_Symbol, _, _] :> i, Infinity],\n  Cases[expr, dXt[i_Symbol, _, _] :> i, Infinity],\n  Cases[expr, \\[Psi][i_Symbol, _, _] :> i, Infinity],\n  Cases[expr, \\[Psi]t[i_Symbol, _, _] :> i, Infinity],\n  Cases[expr, ProfileX[_, ders_List, _, _] :> Cases[ders, i_Symbol :> i, Infinity], Infinity],\n  Cases[expr, ProfileXHolo[_, ders_List, _] :> Cases[ders, i_Symbol :> i, Infinity], Infinity],\n  Cases[expr, ProfileXAntiHolo[_, ders_List, _] :> Cases[ders, i_Symbol :> i, Infinity], Infinity]\n];\ncanonicalizeIndices[expr_] := Module[{inds = extractIndexSymbols[expr], idxRules},\n  idxRules = Thread[inds -> Array[Symbol[\"muCanon\" <> ToString[#]] &, Length[inds]]];\n  Expand[expr /. idxRules]\n];\nnormalizeExpPhiParity[expr_] := expr /. {\n  exp\\[Phi]f[q_Integer?EvenQ, z_] :> exp\\[Phi]b[q, z],\n  exp\\[Phi]b[q_Integer?OddQ, z_] :> exp\\[Phi]f[q, z],\n  exp\\[Phi]tf[q_Integer?EvenQ, z_] :> exp\\[Phi]tb[q, z],\n  exp\\[Phi]tb[q_Integer?OddQ, z_] :> exp\\[Phi]tf[q, z]\n};\nextractDerBaseAndIndices[der[inner_][i_]] := Module[{base, ders},\n  {base, ders} = extractDerBaseAndIndices[inner];\n  {base, Append[ders, i]}\n];\nextractDerBaseAndIndices[g_] := {g, {}};\n\n(* In tests, treat leftover der factors as ProfileX derivative-list append instructions. *)\nmatchingDerivativeAppendList[derExpr : der[_][_], profile_, ders_List] := Module[{base, allDers},\n  {base, allDers} = extractDerBaseAndIndices[derExpr];\n  If[\n    Head[base] === Symbol && Head[profile] === Symbol && SymbolName[base] === SymbolName[profile],\n    If[Length[allDers] > Length[ders] && Take[allDers, Length[ders]] === ders,\n      Drop[allDers, Length[ders]],\n      {Last[allDers]}\n    ],\n    {}\n  ]\n];\n\nappendMatchingProfileDerivative[ra_, derExpr : der[_][_]] := ra /. {\n  ProfileX[h_, ders_List, z_, zb_] /; matchingDerivativeAppendList[derExpr, h, ders] =!= {} :>\n    ProfileX[h, Join[ders, matchingDerivativeAppendList[derExpr, h, ders]], z, zb],\n  ProfileXHolo[h_, ders_List, z_] /; matchingDerivativeAppendList[derExpr, h, ders] =!= {} :>\n    ProfileXHolo[h, Join[ders, matchingDerivativeAppendList[derExpr, h, ders]], z],\n  ProfileXAntiHolo[h_, ders_List, zb_] /; matchingDerivativeAppendList[derExpr, h, ders] =!= {} :>\n    ProfileXAntiHolo[h, Join[ders, matchingDerivativeAppendList[derExpr, h, ders]], zb]\n};\n\nhasMatchingProfileDerivative[ra_, derExpr : der[_][_]] := appendMatchingProfileDerivative[ra, derExpr] =!= ra;\n\n(* Fold derivative factors into the single normal-ordered product carried by a term. *)\nabsorbOneDerivativeFactor::usage = \"Absorbs one derivative factor into a matching ProfileX derivative list when possible.\";\nabsorbOneDerivativeFactor[currentR_, derExpr : der[_][_]] :=\n  If[hasMatchingProfileDerivative[currentR, derExpr], appendMatchingProfileDerivative[currentR, derExpr], currentR];\n\n(* Fold derivative factors into the single normal-ordered product carried by a term.\n   Handles both der[...] and (der[...])^n factors without relying on algebraic power expansion. *)\nabsorbDerivativesInTimesTerm::usage = \"Absorbs derivative factors in a multiplicative term into a matching ProfileX operator.\";\nabsorbDerivativesInTimesTerm[term_Times] := Module[{factors, rPos, r, others, newR, kept},\n  factors = List @@ term;\n  rPos = FirstPosition[factors, _R, Missing[\"NotFound\"]];\n  If[rPos === Missing[\"NotFound\"], Return[term]];\n  r = factors[[First[rPos]]];\n  others = Delete[factors, First[rPos]];\n  {newR, kept} = Fold[\n    Function[{state, fct},\n      Module[{curR = state[[1]], curKept = state[[2]], d, n, nextR, remaining},\n        Which[\n          MatchQ[fct, der[_][_]],\n            If[hasMatchingProfileDerivative[curR, fct],\n              {appendMatchingProfileDerivative[curR, fct], curKept},\n              {curR, Append[curKept, fct]}\n            ],\n          MatchQ[fct, Power[der[_][_], _Integer?Positive]],\n            d = fct[[1]];\n            n = fct[[2]];\n            nextR = curR;\n            remaining = n;\n            While[remaining > 0 && hasMatchingProfileDerivative[nextR, d],\n              nextR = appendMatchingProfileDerivative[nextR, d];\n              remaining--;\n            ];\n            If[remaining == 0,\n              {nextR, curKept},\n              {nextR, Append[curKept, d^remaining]}\n            ],\n          True,\n            {curR, Append[curKept, fct]}\n        ]\n      ]\n    ],\n    {r, {}},\n    others\n  ];\n  If[newR === r, term, Times @@ Join[kept, {newR}]]\n];\nabsorbDerivativesInTimesTerm[term_] := term;\n\nnormalizeProfileDerivatives::usage = \"Normalizes derivative factors into ProfileX derivative-list form for test comparisons.\";\nnormalizeProfileDerivatives[expr_] := FixedPoint[\n  Module[{terms, rewritten},\n    terms = If[Head[#] === Plus, List @@ #, {#}];\n    rewritten = absorbDerivativesInTimesTerm /@ terms;\n    Expand[Total[rewritten]]\n  ] &,\n  Expand[expr]\n];\ncanon[expr_] := Module[{e = expr},\n  e = Expand[e /. {\\[Alpha]p -> 1}];\n  e = replaceUniqueSymbols[e];\n  e = normalizeExpPhiParity[e];\n  e = normalizeProfileDerivatives[e];\n  e = canonicalizeIndices[e];\n  e = Expand[Contract[ContractDelta[e]]];\n  canonicalizeIndices[e]\n];\nassertEq[eq_, input_, action_, expected_] := Module[{got, gotCanon, expectedCanon, diffCanon, ok},\n  got = action[input];\n  gotCanon = canon[got];\n  expectedCanon = canon[expected];\n  diffCanon = canon[Expand[got - expected]];\n  ok = gotCanon === expectedCanon ||\n    ToString[InputForm[gotCanon]] === ToString[InputForm[expectedCanon]] ||\n    Simplify[diffCanon] === 0 ||\n    FullSimplify[diffCanon] === 0;\n  Print[eq, \": \", If[ok, \"PASSED\", \"FAILED\"]];\n  If[!ok,\n    Print[\"Input: \", input];\n    Print[\"Expected: \", expectedCanon];\n    Print[\"Got: \", gotCanon];\n    Print[\"CanonDiff: \", diffCanon]\n  ];\n  ok\n];\nactPCOHoloFn = Private`actPCOHolo;",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## BRST Cases",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "brstCases = {\n  {\"A.23\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]], Private`actBRSTHolo,\n    1/4 R[ProfileX[f, {\\[Rho], \\[Rho]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]] -\n    1/4 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], \\[Eta][0, 0]]},\n  {\"A.24\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]], Private`actBRSTHolo,\n    1/4 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], c[1, 0], \\[Eta][0, 0]]},\n  {\"A.33\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]], Private`actBRSTHolo,\n    1/4 R[ProfileX[f, {\\[Rho], \\[Rho]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]] -\n    1/2 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]]},\n  {\"A.34\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]], Private`actBRSTHolo,\n    -1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], \\[Eta][0, 0]] +\n     1/2 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]]},\n  {\"A.35\", R[ProfileX[f, {}, 0, 0], c[0, 0], \\[Eta][0, 0]], Private`actBRSTHolo,\n    1/4 R[ProfileX[f, {\\[Rho], \\[Rho]}, 0, 0], c[0, 0], c[1, 0], \\[Eta][0, 0]]},\n  {\"A.36\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], \\[Eta][0, 0]], Private`actBRSTHolo, 0}\n};\nbrstResults = Map[assertEq[#[[1]], #[[2]], #[[3]], #[[4]]] &, brstCases];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>A.23: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.23: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0a313864-9277-4491-8cb7-e5b44f9f78a0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.24: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.24: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "185ac6ec-6974-4005-86fd-997e366b14b1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.33: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.33: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2c56971f-0c93-480b-b153-622e37b8f4ee",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.34: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.34: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "c6fedd79-ad6d-4a30-ab57-b940c236bdb1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.35: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.35: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d2a79852-b571-4033-ad38-146ac2cbfb89",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.36: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.36: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9134c46f-7d0b-4398-b83c-c56c04ed699a",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## PCO Cases",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "pcoCases = {\n  {\"A.37\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]], actPCOHoloFn,\n    -1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], dX[\\[Mu], 0, 0]] -\n    1/2 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], \\[Psi][\\[Nu], 0, 0], \\[Psi][\\[Mu], 0, 0]] +\n    1/4 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], d\\[Phi][0, 0]] -\n    1/4 R[ProfileX[f, {}, 0, 0], \\[Eta][0, 0], exp\\[Phi]f[1, 0], \\[Psi][\\[Mu], 0, 0]]},\n  {\"A.38\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]], actPCOHoloFn,\n    -1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], dX[\\[Mu], 0, 0]] -\n    1/2 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], c[1, 0], \\[Psi][\\[Nu], 0, 0], \\[Psi][\\[Mu], 0, 0]] +\n    1/4 R[ProfileX[f, {\\[Mu]}, 0, 0], c[0, 0], c[1, 0], d\\[Phi][0, 0]] -\n    1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], \\[Eta][1, 0], exp\\[Phi]f[1, 0], \\[Psi][\\[Mu], 0, 0]] +\n    1/4 R[ProfileX[f, {}, 0, 0], c[1, 0], \\[Eta][0, 0], exp\\[Phi]f[1, 0], \\[Psi][\\[Mu], 0, 0]] -\n    1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], \\[Eta][0, 0], d\\[Phi][0, 0], exp\\[Phi]f[1, 0], \\[Psi][\\[Mu], 0, 0]]},\n  {\"A.46\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0]], actPCOHoloFn,\n    0},\n  {\"A.47\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], dX[\\[Mu], 0, 0]], actPCOHoloFn,\n    1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Mu], 0, 0]]},\n  {\"A.48\", R[ProfileX[f, {\\[Rho]}, 0, 0], c[0, 0], exp\\[Phi]b[-3, 0], dX[\\[Rho], 0, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    -1/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.49\", R[ProfileX[f, {\\[Rho]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-3, 0], dX[\\[Rho], 0, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    -1/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.50\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 1, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    -1/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.51\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 1, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    -1/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.52\", R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][2, 0]], actPCOHoloFn, 0},\n  {\"A.53\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][2, 0]], actPCOHoloFn,\n    -R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Nu], 0, 0]]},\n  {\"A.54\", -3 R[ProfileX[f, {}, 0, 0], c[0, 0], d\\[Phi][0, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    3/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.55\", -3 R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], d\\[Phi][0, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    3/2 R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Nu], 0, 0]] +\n    3/4 R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.56\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[2, 0], exp\\[Phi]b[-3, 0], \\[Psi][\\[Nu], 0, 0], \\[Xi][1, 0]], actPCOHoloFn,\n    -1/2 R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]f[-1, 0], \\[Psi][\\[Nu], 0, 0]]},\n  {\"A.57\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[3, 0], \\[Xi][2, 0], \\[Xi][1, 0], exp\\[Phi]b[-4, 0]], actPCOHoloFn,\n    6 R[ProfileX[f, {}, 0, 0], c[0, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]},\n  {\"A.58\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], c[3, 0], \\[Xi][2, 0], \\[Xi][1, 0], exp\\[Phi]b[-4, 0]], actPCOHoloFn,\n    6 R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], exp\\[Phi]b[-2, 0], \\[Xi][1, 0]]}\n};\npcoResults = Map[assertEq[#[[1]], #[[2]], #[[3]], #[[4]]] &, pcoCases];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>A.37: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.37: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "fb291816-871d-45fe-9aaa-7205b971b92d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.38: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.38: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "76ca2e9f-1098-406d-abc2-fdc724840e55",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.46: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.46: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f77e6bbc-101b-4336-bf3c-2cebb20c91f1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.47: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.47: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "562d064b-9076-4f85-ac59-2f727c435f46",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.48: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.48: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "143088f1-1cc1-433d-8201-cd7a01a1d07d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.49: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.49: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9ca82ba5-45aa-4154-b872-0ca7472931a5",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.50: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.50: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "48015cb6-03c1-4a57-a066-8319c9375917",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.51: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.51: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ed8156ec-ab19-45d6-ab81-80f044b4cbb4",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.52: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.52: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3400a317-9d3d-46cc-be8a-c833dc1350a3",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.53: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.53: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "406c7536-8dd9-4edf-b4d8-7fa73b76c5a2",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.54: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.54: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f2c734ea-a120-4e79-845e-80b65f2d9819",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.55: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.55: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "93070400-bc74-46a6-a069-19bcd7c690e6",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.56: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.56: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8afe4681-260f-4001-b5ce-725ce0184583",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.57: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.57: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "5999ea3c-d4f7-41a4-bbd4-e18848d8d5ab",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.58: PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.58: PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "b3e9ac5e-f900-4290-961b-7629a9f217d0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## A.59 Assumption",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Print[\"A.59 uses ASSUMPTION_A59_FORM until c0^+ encoding is finalized.\"];\na59Case = {\"A.59 (ASSUMPTION_A59_FORM)\",\n  R[ProfileX[f, {\\[Nu]}, 0, 0], c[0, 0], c[1, 0], c[2, 0], \\[Xi][0, 0], \\[Xi][2, 0], dX[\\[Nu], 0, 0], exp\\[Phi]b[-4, 0]],\n  actPCOHoloFn,\n  0\n};\na59Result = assertEq[a59Case[[1]], a59Case[[2]], a59Case[[3]], a59Case[[4]]];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>A.59 uses ASSUMPTION_A59_FORM until c0^+ encoding is finalized.\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.59 uses ASSUMPTION_A59_FORM until c0^+ encoding is finalized.\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "b98797fa-31fa-4177-bca8-8869540c3a26",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>A.59 (ASSUMPTION_A59_FORM): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"A.59 (ASSUMPTION_A59_FORM): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "571ec488-cec9-4869-95f3-4419d7947218",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allResults = Join[brstResults, pcoResults, {a59Result}];\nPrint[\"Passed: \", Count[allResults, True], \"/\", Length[allResults]];\nAnd @@ allResults",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 22/22\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 22/22\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "5cc01e8e-e3ed-44c4-bc0a-aafcaa7f9081",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "10d4bb86-b885-47cf-9270-1bed08522113",
+     "metadata": {
+      "cellLabel": "Out[35]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ]
+}
