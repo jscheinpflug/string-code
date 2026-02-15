@@ -30,5 +30,6 @@
 
   ### 6) Dev loading policy
   - Default to a `$Path`-based checkout load when running code in development, instead of relying on symlink alias package names.
-  - Prepend the checkout parent directory to `$Path`, then load `Needs["StringCode`"]` (or `Get[".../StringCode/Kernel/init.m"]`).
+  - If editing `$Path`, prepend only the checkout repo root that contains `StringCode/` (not broad folders like `~/src`).
+  - Load with `Needs["StringCode`"]` after setting `$Path` for the desired checkout.
   - If multiple StringCode trees are present, isolate by using one fresh kernel per checkout.
