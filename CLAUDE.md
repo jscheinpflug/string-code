@@ -27,3 +27,8 @@
   - Avoid creating same-named symbols in `Global``.
   - In scripts/headless checks: `Needs[...]` (and init) before building expressions.
   - Use `ToExpression[...]` after init when parse/eval order matters.
+
+  ### 6) Dev loading policy
+  - Default to a `$Path`-based checkout load when running code in development, instead of relying on symlink alias package names.
+  - Prepend the checkout parent directory to `$Path`, then load `Needs["StringCode`"]` (or `Get[".../StringCode/Kernel/init.m"]`).
+  - If multiple StringCode trees are present, isolate by using one fresh kernel per checkout.
