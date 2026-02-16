@@ -26,7 +26,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 1: V with no derivatives at origin\n\nV[0, 0, 0, 0] -> \"V(0, 0)\"",
+   "value": "### Test 1: V with no derivatives at origin\n\nV[0, 0, 0, 0] -> \"V(0)\"",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -34,7 +34,7 @@
   },
   {
    "kind": 2,
-   "value": "test1 = ToTeX[V[0, 0, 0, 0]];\nexpected1 = \"V(0, 0)\";\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (V[0,0,0,0]): \", If[test1Result, \"PASSED\", \"FAILED - got \" <> test1]];\ntest1Result",
+   "value": "test1 = ToTeX[V[0, 0, 0, 0]];\nexpected1 = \"V(0)\";\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (V[0,0,0,0]): \", If[test1Result, \"PASSED\", \"FAILED - got \" <> test1]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -106,6 +106,38 @@
   },
   {
    "kind": 1,
+   "value": "### Test 6: Fully-qualified MinimalModel symbol scoping",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = ToTeX[StringCode`Symbols`Bosonic`MinimalModel`V[1, 1, z, zbar]];\nexpected6 = \"\\\\partial \\\\bar{\\\\partial} V(z, zbar)\";\ntest6Result = test6 === expected6;\nPrint[\"Test 6 (qualified V): \", If[test6Result, \"PASSED\", \"FAILED - got \" <> test6]];\ntest6Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 7: Display mode for MinimalModel operator",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = ToTeX[StringCode`Symbols`Bosonic`MinimalModel`V[0, 0, 0, 0], \"OutputMode\" -> \"Display\"];\nexpected7 = \"\\\\[V(0)\\\\]\";\ntest7Result = test7 === expected7;\nPrint[\"Test 7 (display V): \", If[test7Result, \"PASSED\", \"FAILED - got \" <> test7]];\ntest7Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -114,7 +146,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

@@ -750,7 +750,7 @@
   },
   {
    "kind": 2,
-   "value": "test10 = ToTeX[exp\\[Phi]f[-1, z]];\nexpected10 = \"e^{-\\\\phi}(z)\";\ntest10Result = test10 === expected10;\nPrint[\"Test 10 (expPhif[-1,z]): \", If[test10Result, \"PASSED\", \"FAILED - got \" <> test10]];\ntest10Result",
+   "value": "test10 = ToTeX[exp\\[Phi]f[-1, z]];\nexpected10 = \"e^{-1 \\\\phi}(z)\";\ntest10Result = test10 === expected10;\nPrint[\"Test 10 (expPhif[-1,z]): \", If[test10Result, \"PASSED\", \"FAILED - got \" <> test10]];\ntest10Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -974,6 +974,54 @@
   },
   {
    "kind": 1,
+   "value": "### Test 14: Fully-qualified TypeII gamma-bar derivative",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test14 = ToTeX[StringCode`Symbols`TypeII`\\[Gamma]t[1, zbar]];\nexpected14 = \"\\\\bar{\\\\partial} \\\\bar{\\\\gamma}(zbar)\";\ntest14Result = test14 === expected14;\nPrint[\"Test 14 (qualified gammat): \", If[test14Result, \"PASSED\", \"FAILED - got \" <> test14]];\ntest14Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 15: Fully-qualified TypeII expPhi with negative integer",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test15 = ToTeX[StringCode`Symbols`TypeII`exp\\[Phi]b[-3, u]];\nexpected15 = \"e^{-3 \\\\phi}(u)\";\ntest15Result = test15 === expected15;\nPrint[\"Test 15 (qualified expPhib[-3,u]): \", If[test15Result, \"PASSED\", \"FAILED - got \" <> test15]];\ntest15Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 16: Display output mode for TypeII symbol",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test16 = ToTeX[StringCode`Symbols`TypeII`d\\[Phi][0, 0], \"OutputMode\" -> \"Display\"];\nexpected16 = \"\\\\[\\\\partial \\\\phi\\\\]\";\ntest16Result = test16 === expected16;\nPrint[\"Test 16 (display dPhi): \", If[test16Result, \"PASSED\", \"FAILED - got \" <> test16]];\ntest16Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -982,7 +1030,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result,\n            test6Result, test7Result, test8Result, test9Result, test10Result,\n            test11Result, test12Result, test13Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result,\n            test6Result, test7Result, test8Result, test9Result, test10Result,\n            test11Result, test12Result, test13Result, test14Result, test15Result,\n            test16Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
    "languageId": "wolfram",
    "outputs": [
     {

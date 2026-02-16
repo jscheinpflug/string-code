@@ -763,7 +763,7 @@
   },
   {
    "kind": 2,
-   "value": "test11 = ToTeX[S[{\\[Alpha],\"chiral\"},-1/2,{{-1/2,\\[Mu]},{1/2,\\[Nu]}},0,z]];\nchargeTex = StringReplace[ToString[TeXForm[-1/2]], \"\\$\" -> \"\"];\nmode1Tex = \"(\" <> chargeTex <> \", \" <> StringReplace[ToString[TeXForm[\\[Mu]]], \"\\$\" -> \"\"] <> \")\";\nmode2Tex = \"(\" <> StringReplace[ToString[TeXForm[1/2]], \"\\$\" -> \"\"] <> \", \" <> StringReplace[ToString[TeXForm[\\[Nu]]], \"\\$\" -> \"\"] <> \")\";\ntest11Result = StringContainsQ[test11, \"S^{\"] && StringContainsQ[test11, chargeTex] && StringContainsQ[test11, mode1Tex] && StringContainsQ[test11, mode2Tex];\nPrint[\"Test 11 (S TeX charge + full mode pairs): \", If[test11Result, \"PASSED\", \"FAILED - got \" <> test11]];\ntest11Result",
+   "value": "test11 = ToTeX[S[{\\[Alpha],\"chiral\"},-1/2,{{-1/2,\\[Mu]},{1/2,\\[Nu]}},0,z]];\ntest11Result = StringContainsQ[test11, \"S^{\\\\alpha}_{\\\\frac{-1}{2}}\"] && StringContainsQ[test11, \"(\\\\frac{-1}{2}, \\\\mu)\"] && StringContainsQ[test11, \"(\\\\frac{1}{2}, \\\\nu)\"] && StringContainsQ[test11, \"(z)\"];\nPrint[\"Test 11 (S TeX charge + full mode pairs): \", If[test11Result, \"PASSED\", \"FAILED - got \" <> test11]];\ntest11Result",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -771,7 +771,7 @@
   },
   {
    "kind": 2,
-   "value": "test12 = ToTeX[St[{\\[Beta],\"chiral\"},-1/2,{{1/2,\\[Rho]}},1,zbar]];\nchargeTex2 = StringReplace[ToString[TeXForm[-1/2]], \"\\$\" -> \"\"];\nmodeTex2 = \"(\" <> StringReplace[ToString[TeXForm[1/2]], \"\\$\" -> \"\"] <> \", \" <> StringReplace[ToString[TeXForm[\\[Rho]]], \"\\$\" -> \"\"] <> \")\";\ntest12Result = StringContainsQ[test12, \"\\\\bar{\\\\partial}\"] && StringContainsQ[test12, \"\\\\bar{S}^{\"] && StringContainsQ[test12, chargeTex2] && StringContainsQ[test12, modeTex2];\nPrint[\"Test 12 (St TeX barred + anti-holo derivative): \", If[test12Result, \"PASSED\", \"FAILED - got \" <> test12]];\ntest12Result",
+   "value": "test12 = ToTeX[St[{\\[Beta],\"chiral\"},-1/2,{{1/2,\\[Rho]}},1,zbar]];\ntest12Result = StringContainsQ[test12, \"\\\\bar{\\\\partial}\"] && StringContainsQ[test12, \"\\\\bar{S}^{\\\\beta}_{\\\\frac{-1}{2}}\"] && StringContainsQ[test12, \"(\\\\frac{1}{2}, \\\\rho)\"] && StringContainsQ[test12, \"(zbar)\"];\nPrint[\"Test 12 (St TeX barred + anti-holo derivative): \", If[test12Result, \"PASSED\", \"FAILED - got \" <> test12]];\ntest12Result",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -780,6 +780,54 @@
   {
    "kind": 2,
    "value": "spinTeXTestsOK = And[test11Result, test12Result];\nPrint[\"Spin-field TeX block: \", If[spinTeXTestsOK, \"ALL PASSED\", \"SOME FAILED\"]];\nspinTeXTestsOK",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Additional Scoped Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = ToTeX[StringCode`Symbols`TypeII`FlatSpace`dX[StringCode`Symbols`\\[Mu], 0, 0]];\nexpected13 = \"\\\\partial X^{\\\\mu}\";\ntest13Result = test13 === expected13;\nPrint[\"Test 13 (qualified TypeII dX): \", If[test13Result, \"PASSED\", \"FAILED - got \" <> test13]];\ntest13Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test14 = ToTeX[StringCode`Symbols`TypeII`FlatSpace`\\[Psi][StringCode`Symbols`\\[Mu], 1, z]];\nexpected14 = \"\\\\partial \\\\psi^{\\\\mu}(z)\";\ntest14Result = test14 === expected14;\nPrint[\"Test 14 (qualified TypeII psi): \", If[test14Result, \"PASSED\", \"FAILED - got \" <> test14]];\ntest14Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test15 = ToTeX[Private`Differential[Private`zbar[5, 3][u], {u}], \"DifferentialNotation\" -> \"Auto\"];\nexpected15 = \"d\\\\bar{z}_{3}\";\ntest15Result = test15 === expected15;\nPrint[\"Test 15 (auto differential zbar): \", If[test15Result, \"PASSED\", \"FAILED - got \" <> test15]];\ntest15Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Extended Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsExtended = {test1Result, test2Result, test3Result, test4Result, test5Result,\n                    test6Result, test7Result, test8Result, test9Result, test10Result,\n                    test11Result, test12Result, test13Result, test14Result, test15Result};\npassedExtended = Count[allTestsExtended, True];\ntotalExtended = Length[allTestsExtended];\nPrint[\"\\n=== EXTENDED SUMMARY ===\"];\nPrint[\"Passed: \", passedExtended, \"/\", totalExtended];\nIf[passedExtended == totalExtended, Print[\"All extended tests PASSED!\"], Print[\"Some extended tests FAILED.\"]];\npassedExtended == totalExtended",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
