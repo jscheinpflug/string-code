@@ -125,7 +125,10 @@ regparity[f_]:=1/;containsRegularFermionQ[f]
 (*Define normal-ordered product*)
 
 
-R[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(needsOrdering && !OrderedQ[{b,a}])
+R[c___,b_,a_,d___] := Block[
+  {needsOrdering = False},
+  regcomm[a,b] Canonicalize[R[c,a,b,d]]
+] /; (needsOrdering && !OrderedQ[{b,a}])
 R[ c___,a_,a_,d___]:=0/;(regparity[a]==1)
 
 
@@ -153,9 +156,9 @@ U[g___,a_^n_ f_,h___]:=U[g,(U @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 U[g___,a_^n_,h___]:=U[g,(U @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
 
-Canonicalize::usage = "Canonicalizes an unsorted U product and returns sorted U.";
-Canonicalize[UU_] := Module[
-  {fieldList = List @@ UU, gradedFieldList, gradedFieldAssoc, sgn, sortedFields, combinedFields},
+Canonicalize::usage = "Canonicalizes an unsorted U or R product and returns a sorted product with the same head.";
+Canonicalize[prod_] := Module[
+  {head = Head[prod], fieldList = List @@ prod, gradedFieldList, gradedFieldAssoc, sgn, sortedFields, combinedFields},
   gradedFieldList = Select[fieldList, !isBoson[Head[#]] &];
   gradedFieldAssoc = SepGradedFields[gradedFieldList];
 
@@ -167,12 +170,22 @@ Canonicalize[UU_] := Module[
 
   sortedFields = Sort[fieldList];
   If[gradedFieldAssoc[["nChir"]] == 0 && gradedFieldAssoc[["nAntiChir"]] == 0,
-    Return[sgn U @@ sortedFields]
+    Return[
+      sgn If[
+        head === R,
+        Block[{needsOrdering = False}, R @@ sortedFields],
+        U @@ sortedFields
+      ]
+    ]
   ];
 
   combinedFields = Sort[((tmpR @@ sortedFields) //. bosExpRules /. tmpR -> List)];
-  sgn U @@ combinedFields
-] /; UTest[UU];
+  sgn If[
+    head === R,
+    Block[{needsOrdering = False}, R @@ combinedFields],
+    U @@ combinedFields
+  ]
+] /; (UTest[prod] || RTest[prod]);
 
 Canonicalize[a_ + b_] := Canonicalize[a] + Canonicalize[b];
 Canonicalize[c_ a_] := c Canonicalize[a] /; isScalarFactorQ[c];
@@ -196,8 +209,8 @@ RToU[0] := 0;
 RToU[UU_] := UU /; UTest[UU];
 RToU[expr_] := expr /. R -> U;
 
-CanonicalizeToR::usage = "Canonicalizes through U and converts back to R.";
-CanonicalizeToR[expr_] := UtoR[Canonicalize[RToU[expr]]];
+CanonicalizeToR::usage = "Canonicalizes expression after mapping U to R.";
+CanonicalizeToR[expr_] := Block[{needsOrdering = False}, Canonicalize[expr /. U -> R]];
 
 
 (* ::Subsection::Closed:: *)
