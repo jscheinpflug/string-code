@@ -34,9 +34,9 @@
   - Load with `Needs["StringCode`"]` after setting `$Path` for the desired checkout.
   - If multiple StringCode trees are present, isolate by using one fresh kernel per checkout.
 
-  ### 7) Wolfram CLI in sandbox
-  - On macOS in this Codex environment, `wolframscript` cannot run reliably inside the default sandbox.
-  - NEVER run `wolframscript` or `math` in the default sandbox on macOS, even for simple probes like `-version` or `-code '1+1'`.
-  - Before any Wolfram CLI command on macOS, immediately request escalated command execution (`sandbox_permissions: "require_escalated"`), then run the command only after approval.
-  - Do not "test first" in sandbox and retry after failure; escalation must happen first.
-  - Linux collaborators may not need escalation for the same command.
+  ### 7) Wolfram CLI — platform differences
+  - On **Linux**, `math` is typically on `$PATH` and runs directly without sandbox issues.
+  - On **macOS**, `math` may not be on `$PATH`. If `which math` fails, use: `/Applications/Wolfram.app/Contents/MacOS/MathKernel`
+  - On **macOS**, NEVER run Wolfram commands inside the default sandbox — they will fail due to licensing/sandbox restrictions.
+  - Always use `dangerouslyDisableSandbox: true` (Claude Code) or `sandbox_permissions: "require_escalated"` (Codex) for macOS Wolfram commands.
+  - Do not "test first" in sandbox and retry after failure; escalation must happen **before** the first attempt.
