@@ -1,0 +1,44 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII Polynomial OPE Benchmark\n\nCompares frozen legacy `OPEWickLegacy` against the new polynomial `OPEWick` evaluator (no memoization).\n\nDefault benchmark profile is `quick` for short runs; set `benchmarkProfile = \"full\"` in the timing cell for broader coverage.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "legacyOPEWick = ToExpression[\"Private`OPEWickLegacy\"];\nnewOPEWick = ToExpression[\"Private`OPEWick\"];\nclearCaches = ToExpression[\"Private`clearOPEWickCaches\"];\n\nexpPhiF = ToExpression[\"StringCode`Symbols`TypeII`exp\\\\[Phi]f\"];\nexpPhiTF = ToExpression[\"StringCode`Symbols`TypeII`exp\\\\[Phi]tf\"];\ndPhi = ToExpression[\"StringCode`Symbols`TypeII`d\\\\[Phi]\"];\ndPhiT = ToExpression[\"StringCode`Symbols`TypeII`d\\\\[Phi]t\"];\npsiH = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`\\\\[Psi]\"];\npsiA = ToExpression[\"StringCode`Symbols`TypeII`FlatSpace`\\\\[Psi]t\"];\n\nformatNumber[x_Real] := ToString[NumberForm[N[x, 16], {Infinity, 8}, ExponentFunction -> (Null &)], OutputForm];\nformatNumber[x_] := x;\n\nmakeTypeIISimplePair[n_Integer?Positive] := Module[{za, zb},\n  za = Array[Symbol[\"tza\" <> ToString[#]] &, n];\n  zb = Array[Symbol[\"tzb\" <> ToString[#]] &, n];\n  {R @@ Table[b[0, za[[i]]], {i, n}], R @@ Table[c[0, zb[[i]]], {i, n}]}\n];\n\nmakeTypeIIMixedPair[n_Integer?Positive] := Module[{za, zb, zba, zbb, aOps, bOps},\n  za = Array[Symbol[\"tmza\" <> ToString[#]] &, n];\n  zb = Array[Symbol[\"tmzb\" <> ToString[#]] &, n];\n  zba = Array[Symbol[\"tmzba\" <> ToString[#]] &, n];\n  zbb = Array[Symbol[\"tmzbb\" <> ToString[#]] &, n];\n  aOps = Join[\n    Table[b[0, za[[i]]], {i, n}],\n    Table[psiH[mu, 0, za[[i]]], {i, n}],\n    Table[dPhi[0, za[[i]]], {i, n}],\n    Table[expPhiF[-1/2, za[[i]]], {i, n}]\n  ];\n  bOps = Join[\n    Table[c[0, zb[[i]]], {i, n}],\n    Table[psiH[mu, 0, zb[[i]]], {i, n}],\n    Table[dPhi[0, zb[[i]]], {i, n}],\n    Table[expPhiF[-1/2, zb[[i]]], {i, n}]\n  ];\n  {R @@ aOps, R @@ bOps}\n];\n\nmakeTypeIICompositePair[n_Integer?Positive] := Module[{za, zb, zba, zbb, aOps, bOps},\n  za = Array[Symbol[\"tcza\" <> ToString[#]] &, n];\n  zb = Array[Symbol[\"tczb\" <> ToString[#]] &, n];\n  zba = Array[Symbol[\"tczba\" <> ToString[#]] &, n];\n  zbb = Array[Symbol[\"tczbb\" <> ToString[#]] &, n];\n  aOps = Join[\n    Table[expPhiF[-1/2, za[[i]]], {i, n}],\n    Table[expPhiTF[-1/2, zba[[i]]], {i, n}],\n    Table[dPhi[0, za[[i]]], {i, n}],\n    Table[dPhiT[0, zba[[i]]], {i, n}],\n    Table[psiA[mu, 0, zba[[i]]], {i, n}]\n  ];\n  bOps = Join[\n    Table[expPhiF[-1/2, zb[[i]]], {i, n}],\n    Table[expPhiTF[-1/2, zbb[[i]]], {i, n}],\n    Table[dPhi[0, zb[[i]]], {i, n}],\n    Table[dPhiT[0, zbb[[i]]], {i, n}],\n    Table[psiA[mu, 0, zbb[[i]]], {i, n}]\n  ];\n  {R @@ aOps, R @@ bOps}\n];\n\nrunCorrectnessCase[label_, lhs_, rhs_] := Module[{legacy, fresh, sameQ, simplifyQ},\n  clearCaches[];\n  legacy = legacyOPEWick[lhs, rhs];\n  clearCaches[];\n  fresh = newOPEWick[lhs, rhs];\n  sameQ = legacy === fresh;\n  simplifyQ = Check[Simplify[legacy - fresh] === 0, False];\n  {label, sameQ, simplifyQ}\n];\n\nbenchmarkCase[label_, pair_] := Module[{legacyTime, freshTime, legacyRes, freshRes, speedup, agrees},\n  clearCaches[];\n  {legacyTime, legacyRes} = AbsoluteTiming[legacyOPEWick[pair[[1]], pair[[2]]]];\n  clearCaches[];\n  {freshTime, freshRes} = AbsoluteTiming[newOPEWick[pair[[1]], pair[[2]]]];\n  agrees = Check[(legacyRes === freshRes) || (Simplify[legacyRes - freshRes] === 0), False];\n  speedup = If[freshTime > 0, legacyTime/freshTime, Missing[\"Unavailable\"]];\n  {label, legacyTime, freshTime, speedup, agrees}\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "correctnessCases = {\n  With[{p = makeTypeIISimplePair[2]}, runCorrectnessCase[\"simple-n2\", p[[1]], p[[2]]]],\n  With[{p = makeTypeIIMixedPair[1]}, runCorrectnessCase[\"mixed-n1\", p[[1]], p[[2]]]],\n  With[{p = makeTypeIICompositePair[1]}, runCorrectnessCase[\"composite-n1\", p[[1]], p[[2]]]],\n  With[{p1 = makeTypeIISimplePair[1], p2 = makeTypeIIMixedPair[1]}, runCorrectnessCase[\"sum-left\", p1[[1]] + p2[[1]], p2[[2]]]],\n  With[{p = makeTypeIIMixedPair[2]}, runCorrectnessCase[\"sum-right\", p[[1]], p[[2]] + Last@makeTypeIISimplePair[2]]]\n};\n\nPrint[Grid[Prepend[correctnessCases, {\"case\", \"SameQ\", \"Simplify==0\"}], Frame -> All]];\nAnd @@ (correctnessCases[[All, 3]])",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "benchmarkProfile = \"quick\";\n{simpleSizes, mixedSizes, compositeSizes} = If[\n  benchmarkProfile === \"full\",\n  {{2, 3, 4}, {1, 2, 3}, {1, 2}},\n  {{2, 3}, {1, 2}, {1}}\n];\n\nsimpleBench = benchmarkCase[\"simple-\" <> ToString[#], makeTypeIISimplePair[#]] & /@ simpleSizes;\nmixedBench = benchmarkCase[\"mixed-\" <> ToString[#], makeTypeIIMixedPair[#]] & /@ mixedSizes;\ncompositeBench = benchmarkCase[\"composite-\" <> ToString[#], makeTypeIICompositePair[#]] & /@ compositeSizes;\n\nallBench = Join[simpleBench, mixedBench, compositeBench];\nbenchDisplay = allBench /. x_Real :> formatNumber[x];\n\nPrint[Grid[Prepend[benchDisplay, {\"case\", \"legacy (s)\", \"new (s)\", \"speedup\", \"agree\"}], Frame -> All]];\n\nallBench",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ]
+}
