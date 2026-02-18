@@ -12,6 +12,8 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
+Needs["StringCode`BasisGeneration`TypeII`"];
+Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
 
 
 (* ::Section:: *)
@@ -25,6 +27,9 @@ Needs["StringCode`OPE`"];
 Begin["Private`"];
 
 projectionExponentReplacement = {\[Alpha]p -> 0};
+
+hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
+hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
 
 
 OPEWickList[rList_List] := Which[
@@ -48,7 +53,13 @@ combineChiral[a_, b_] := Which[
   True, R[a, b]
 ];
 
-OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ])] := Module[
+  {},
+  Print["Placeholder"];
+  HoldForm[OPEProjected[wH, wA][Ra]]
+];
+
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldQ])] := Module[
   {
     \[Epsilon]Holo, \[Epsilon]AntiHolo, localLists, splitLists, sign, holoOps, antiOps,
     insertionWeightHolo, insertionWeightAntiHolo, targetWeightHolo, targetWeightAntiHolo,
