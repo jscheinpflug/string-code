@@ -73,9 +73,6 @@ SepGradedFields[list_] := Module[{nChir = 0, nAntiChir = 0, moves = 0, oddfields
 RTest::usage = "Test if product is normal-ordered";
 RTest[f_]:=(Head[f]===R)
 
-UTest::usage = "Test if product is unsorted normal-ordering helper.";
-UTest[f_] := (Head[f] === U)
-
 RLength::usage = "Test if is normal-ordered and has nonzero length";
 RLength[f_]:=If[RTest[f],Length[List @@ f],0]
 
@@ -89,13 +86,6 @@ RTestUpToConstant[c___,a_ f_,d___]:=RTestUpToConstant[c,f,d]/;isScalarFactorQ[a]
 RTestUpToConstant[c___,a_ ,d___]:= RTestUpToConstant[c,d]/;isScalarFactorQ[a]
 RTestUpToConstant[f_]:=(Head[f]===R)
 RTestUpToConstant[]:=False;
-
-UTestUpToConstant::usage = "Test if product is unsorted normal-ordered up to a constant prefactor.";
-UTestUpToConstant[c___,a_ f_,d___] := UTestUpToConstant[c,f,d] /; isScalarFactorQ[a]
-UTestUpToConstant[c___,a_,d___] := UTestUpToConstant[c,d] /; isScalarFactorQ[a]
-UTestUpToConstant[f_] := (Head[f] === U)
-UTestUpToConstant[] := False;
-
 
 (* ::Subsection::Closed:: *)
 (*Define Grassmann parity*)
@@ -143,19 +133,6 @@ R[g___,a_ f_,h___]:=R[g,a,f,h]/;isBoson[Head[a]]
 R[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
 R[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
 
-
-U::usage = "An unsorted normal-ordered product of fields (private helper).";
-U[c___, a_, d___] := (U[c, #, d] & /@ a) /; Head[a] == Plus
-U[c___,a_ f_,d___]:=a U[c,f,d]/;isScalarFactorQ[a]
-U[c___,a_ ,d___]:=a U[c,d]/;isScalarFactorQ[a]
-U[]:=1
-U[a___, u_?UTest, c___] := U[a, Sequence @@ (List @@ u), c]
-
-U[g___,a_ f_,h___]:=U[g,a,f,h]/;isBoson[Head[a]]
-U[g___,a_^n_ f_,h___]:=U[g,(U @@ ConstantArray[a,n]),f,h]/;isBoson[Head[a]]
-U[g___,a_^n_,h___]:=U[g,(U @@ ConstantArray[a,n]),h]/;isBoson[Head[a]]
-
-
 Canonicalize::usage = "Canonicalizes an unsorted U or R product and returns a sorted product with the same head.";
 Canonicalize[prod_] := Module[
   {head = Head[prod], fieldList = List @@ prod, gradedFieldList, gradedFieldAssoc, sgn, sortedFields, combinedFields},
@@ -191,27 +168,6 @@ Canonicalize[a_ + b_] := Canonicalize[a] + Canonicalize[b];
 Canonicalize[c_ a_] := c Canonicalize[a] /; isScalarFactorQ[c];
 Canonicalize[0] := 0;
 Canonicalize[a_] := a /; isScalarFactorQ[a];
-
-
-UtoR::usage = "Converts U expressions to R without triggering ordering recursion.";
-UtoR[UU_] := Block[{needsOrdering = False}, R @@ (List @@ UU)] /; UTest[UU];
-UtoR[a_ + b_] := UtoR[a] + UtoR[b];
-UtoR[c_ a_] := c UtoR[a] /; isScalarFactorQ[c];
-UtoR[0] := 0;
-UtoR[Ra_] := Ra /; RTest[Ra];
-UtoR[expr_] := Block[{needsOrdering = False}, expr /. U -> R];
-
-RToU::usage = "Converts R expressions to U.";
-RToU[Ra_] := U @@ (List @@ Ra) /; RTest[Ra];
-RToU[a_ + b_] := RToU[a] + RToU[b];
-RToU[c_ a_] := c RToU[a] /; isScalarFactorQ[c];
-RToU[0] := 0;
-RToU[UU_] := UU /; UTest[UU];
-RToU[expr_] := expr /. R -> U;
-
-CanonicalizeToR::usage = "Canonicalizes expression after mapping U to R.";
-CanonicalizeToR[expr_] := Block[{needsOrdering = False}, Canonicalize[expr /. U -> R]];
-
 
 (* ::Subsection::Closed:: *)
 (*Define total ghost number*)
