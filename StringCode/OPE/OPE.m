@@ -130,112 +130,46 @@ OPEWick[a_+b_,c_]:=OPEWick[a,c]+OPEWick[b,c];
 OPEWick[c_,a_+b_]:=OPEWick[c,a]+OPEWick[c,b];
 OPEWick[a_ b_,c_]:=a OPEWick[b,c]/;(!containsFieldQ[a]);
 OPEWick[b_,a_ c_]:=a OPEWick[b,c]/;(!containsFieldQ[a]);
-OPEWick[Ra_,Rb_] := OPEWickPolynomial[Ra, Rb] /; (RTest[Ra] && RTest[Rb]);
 
 
-OPEWickLegacy::usage = "Frozen recursive OPEWick evaluator retained for benchmark A/B checks.";
-OPEWickLegacy[a___,0,b___]:=0;
-OPEWickLegacy[a_+b_,c_]:=OPEWickLegacy[a,c]+OPEWickLegacy[b,c];
-OPEWickLegacy[c_,a_+b_]:=OPEWickLegacy[c,a]+OPEWickLegacy[c,b];
-OPEWickLegacy[a_ b_,c_]:=a OPEWickLegacy[b,c]/;(!containsFieldQ[a]);
-OPEWickLegacy[b_,a_ c_]:=a OPEWickLegacy[b,c]/;(!containsFieldQ[a]);
-OPEWickLegacy[Ra_, Rb_] := OPEWick[Ra, Rb] /; (!RTest[Ra] || !RTest[Rb]);
-
-OPEWickLegacy[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPEWickLegacy[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPEWickLegacy[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPEWickLegacy[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPEWickLegacy[Ra_,Rb_]:= DWickLegacy[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(ROne[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
-OPEWickLegacy[Ra_,Rb_]:= R[Ra,DWickLegacy[R[Ra[[1]]],Rb]]/;(ROne[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
-OPEWickLegacy[Ra_,Rb_]:=(-1)^(parity[dropFirstFromR[Ra]]parity[R[Ra[[1]]]]) OPEWickLegacy[dropFirstFromR[Ra],DWickLegacy[R[Ra[[1]]],Rb]] +
-R[R[Ra[[1]]],OPEWickLegacy[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isSimple[Head[Ra[[1]]]])
-OPEWickLegacy[Ra_,Rb_]:=R[R[Ra[[1]]],OPEWickLegacy[dropFirstFromR[Ra],DWickLegacy[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isComposite[Head[Ra[[1]]]] )
+$OPEWickCache::usage = "State cache for OPEWick evaluation.";
+$OPEWickCache = <||>;
 
 
-DWickLegacy::usage = "Legacy DWick wrapper for benchmark A/B checks.";
-DWickLegacy[Ra_, Rb_] := DWick[Ra, Rb];
+OPEWick[Ra_,Rb_] := Module[
+  {key, raFirst, rbFirst, ha, hb, result},
+  key = HoldComplete[CanonicalizeToR[Ra], CanonicalizeToR[Rb]];
+  If[KeyExistsQ[$OPEWickCache, key], Return[$OPEWickCache[key]]];
 
+  raFirst = Ra[[1]];
+  rbFirst = Rb[[1]];
+  ha = Head[raFirst];
+  hb = Head[rbFirst];
 
-$OPEWickPolynomialCache::usage = "State cache for polynomial OPEWick evaluation.";
-$OPEWickPolynomialCache = <||>;
+  result = Which[
+    ROne[Ra] && ROne[Rb] && isSimple[ha] && isSimple[hb],
+      R[Ra,Rb] + If[pairing[{ha,hb}] == 1, Wick[Ra,Rb], 0],
+    ROne[Ra] && ROne[Rb] && isSimple[ha] && isComposite[hb],
+      R[Ra,Rb] + If[pairing[{ha,hb}] == 1, SWick[Ra,Rb] Rb, 0],
+    ROne[Ra] && ROne[Rb] && isComposite[ha] && isSimple[hb],
+      R[Ra,Rb] + If[pairing[{ha,hb}] == 1, SWick[Ra,Rb] Ra, 0],
+    ROne[Ra] && ROne[Rb] && isComposite[ha] && isComposite[hb],
+      If[pairing[{ha,hb}] == 1, MWick[Ra,Rb], 1] R[Ra,Rb],
+    ROne[Ra] && RTest[Rb] && isSimple[ha],
+      DWick[Ra,Rb] + (R @@ Join[List @@ Ra, List @@ Rb]),
+    ROne[Ra] && RTest[Rb] && isComposite[ha],
+      R[Ra,DWick[R[raFirst],Rb]],
+    !ROne[Ra] && RTest[Rb] && isSimple[ha],
+      (-1)^(parity[dropFirstFromR[Ra]] parity[R[raFirst]]) OPEWick[dropFirstFromR[Ra],DWick[R[raFirst],Rb]] +
+      R[R[raFirst],OPEWick[dropFirstFromR[Ra],Rb]],
+    !ROne[Ra] && RTest[Rb] && isComposite[ha],
+      R[R[raFirst],OPEWick[dropFirstFromR[Ra],DWick[R[raFirst],Rb]]],
+    True,
+      Return[Unevaluated[OPEWick[Ra,Rb]]]
+  ];
 
-$DWickPolynomialCache::usage = "State cache for polynomial DWick evaluation.";
-$DWickPolynomialCache = <||>;
-
-
-clearOPEWickCaches::usage = "Clears internal OPEWick/DWick polynomial caches.";
-clearOPEWickCaches[] := (
-  $OPEWickPolynomialCache = <||>;
-  $DWickPolynomialCache = <||>;
-  Null
-);
-
-
-OPEWickStateKey::usage = "Canonical cache key for OPEWick states.";
-OPEWickStateKey[Ra_, Rb_] := HoldComplete[CanonicalizeToR[Ra], CanonicalizeToR[Rb]];
-
-
-DWickStateKey::usage = "Canonical cache key for DWick states.";
-DWickStateKey[Ra_, Rb_] := HoldComplete[CanonicalizeToR[Ra], CanonicalizeToR[Rb]];
-
-
-OPEWickPolynomial::usage = "Memoized OPEWick evaluator that reuses repeated contraction subproblems.";
-OPEWickPolynomial[Ra_, Rb_] := Module[{key = OPEWickStateKey[Ra, Rb]},
-  If[
-    KeyExistsQ[$OPEWickPolynomialCache, key],
-    $OPEWickPolynomialCache[key],
-    $OPEWickPolynomialCache[key] = OPEWickPolynomialCompute[Ra, Rb]
-  ]
+  $OPEWickCache[key] = result
 ] /; (RTest[Ra] && RTest[Rb]);
-
-
-DWickPolynomial::usage = "Memoized DWick evaluator that reuses repeated contraction subproblems.";
-DWickPolynomial[Ra_, Rb_] := Module[{key = DWickStateKey[Ra, Rb]},
-  If[
-    KeyExistsQ[$DWickPolynomialCache, key],
-    $DWickPolynomialCache[key],
-    $DWickPolynomialCache[key] = DWickPolynomialCompute[Ra, Rb]
-  ]
-] /; (RTest[Ra] && RTest[Rb]);
-
-
-OPEWickPolynomialCompute::usage = "Core polynomial OPEWick recurrence preserving legacy semantics.";
-OPEWickPolynomialCompute[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, Wick[Ra,Rb],0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPEWickPolynomialCompute[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Rb,0] /;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPEWickPolynomialCompute[Ra_,Rb_]:=R[Ra,Rb]+ If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra,Rb] Ra,0]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-OPEWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-OPEWickPolynomialCompute[Ra_,Rb_]:= DWickPolynomial[Ra,Rb] +(R @@ Join[(List @@ Ra),(List @@ Rb)])/;(ROne[Ra] && RTest[Rb]&& isSimple[Head[Ra[[1]]]] )
-OPEWickPolynomialCompute[Ra_,Rb_]:= R[Ra,DWickPolynomial[R[Ra[[1]]],Rb]]/;(ROne[Ra] && RTest[Rb]  && isComposite[Head[Ra[[1]]]] )
-OPEWickPolynomialCompute[Ra_,Rb_]:=(-1)^(parity[dropFirstFromR[Ra]]parity[R[Ra[[1]]]]) OPEWick[dropFirstFromR[Ra],DWickPolynomial[R[Ra[[1]]],Rb]] +
-R[R[Ra[[1]]],OPEWick[dropFirstFromR[Ra],Rb]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isSimple[Head[Ra[[1]]]])
-OPEWickPolynomialCompute[Ra_,Rb_]:=R[R[Ra[[1]]],OPEWick[dropFirstFromR[Ra],DWickPolynomial[R[Ra[[1]]],Rb]]]/;(RTest[Ra] && RTest[Rb] &&(!ROne[Ra]) && isComposite[Head[Ra[[1]]]] )
-
-
-DWickPolynomialCompute::usage = "Core polynomial DWick recurrence preserving legacy semantics.";
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, Wick[Ra,Rb], 0]/;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb] Rb, 0]/;(ROne[Ra] && ROne[Rb] && isSimple[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}] ==1, SWick[Ra,Rb], 0] +Rb/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1,  MWick[Ra,Rb], 1] Rb/;(ROne[Ra] && ROne[Rb] && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
-DWickPolynomialCompute[Ra_, Rb_]:= Module[{result = 0, RbList = List @@ Rb, arePaired, RaFirst = Ra[[1]], RaHead, RbHead, sign = 1, i = 1},
-RaHead = Head[RaFirst];
-Scan[Function[Rbelem,
-RbHead = Head[Rbelem];
-arePaired = pairing[{RaHead,RbHead}]==1;
-If[arePaired,
-If[isComposite[RbHead],
-result = result + sign SWick[RaFirst, Rbelem] Rb,
-result = result + sign Wick[RaFirst, Rbelem] R@@Delete[RbList, i];
-];
-];
-sign = sign (-1)^(parity[Ra]parity[R[Rbelem]]);
-i++;
-], RbList];
-result]/; (ROne[Ra] && RTest[Rb] && (!ROne[Rb]) && isSimple[Head[Ra[[1]]]]);
-DWickPolynomialCompute[Ra_,Rb_]:= (-1)^(parity[Ra] parity[Rb]) DWickPolynomial[Rb, Ra]/; (ROne[Rb] && RTest[Ra] && (!ROne[Ra]) && isSimple[Head[Rb[[1]]]]);
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, SWick[Ra[[1]],Rb[[1]]] DWickPolynomial[Ra,dropFirstFromR[Rb]],0]+
-R[Rb[[1]],DWickPolynomial[Ra,dropFirstFromR[Rb]]]/;(ROne[Ra] && RTest[Rb] &&(!ROne[Rb]) && isComposite[Head[Ra[[1]]]] && isSimple[Head[Rb[[1]]]])
-DWickPolynomialCompute[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra[[1]],Rb[[1]]],1] R[Rb[[1]],
-DWickPolynomial[Ra,dropFirstFromR[Rb]]]/;(ROne[Ra] && RTest[Rb] &&(!ROne[Rb]) && isComposite[Head[Ra[[1]]]] && isComposite[Head[Rb[[1]]]])
 
 
 (* ::Subsection:: *)
