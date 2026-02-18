@@ -808,6 +808,11 @@ superghostModePieces::usage =
 superghostModePieces[mode[\[Beta], _], z_] := {\[Xi][1, z], exp\[Phi]f[-1, z], -1};
 superghostModePieces[mode[\[Gamma], _], z_] := {\[Eta][0, z], exp\[Phi]f[1, z], 1};
 
+quietKnownSuperghostProjectionWarnings::usage =
+  "Suppresses known non-fatal projection warnings emitted by internal superghost/OPE manipulations.";
+SetAttributes[quietKnownSuperghostProjectionWarnings, HoldFirst];
+quietKnownSuperghostProjectionWarnings[expr_] := Quiet[expr, Part::partd];
+
 intermediateGroundExponential::usage =
   "Builds the temporary exponential representation of the picture ground state.";
 intermediateGroundExponential[picture_, z_] := exp\[Phi]f[picture, z];
@@ -859,11 +864,14 @@ applyOneSuperghostMode[{picture_, nonExpExpr_}, superghostMode : mode[(\[Beta] |
 
 superghostExpressionAndFinalPicture::usage =
   "Converts a list of superghost modes to a non-ground expression and final picture value.";
-superghostExpressionAndFinalPicture[superghostModes_List, initialPicture_] := Fold[
-  applyOneSuperghostMode,
-  {initialPicture, 1},
-  superghostModes
-];
+superghostExpressionAndFinalPicture[superghostModes_List, initialPicture_] :=
+  quietKnownSuperghostProjectionWarnings[
+    Fold[
+      applyOneSuperghostMode,
+      {initialPicture, 1},
+      superghostModes
+    ]
+  ];
 
 dXModeToOperatorField::usage =
   "Converts one dX mode to local-operator form at z.";
@@ -1088,6 +1096,39 @@ flattenGroupedOperatorEntries::usage =
 flattenGroupedOperatorEntries[groupedResults_List] :=
   DeleteDuplicates[Flatten[groupedResults[[All, 2]] /. {} -> {}, 1]];
 
+expandedOperatorSumTerms::usage =
+  "Expands one operator expression and returns its additive terms.";
+expandedOperatorSumTerms[expr_] := Module[{expandedExpr},
+  expandedExpr = Expand[expr];
+  Which[
+    expandedExpr === 0, {},
+    Head[expandedExpr] === Plus, List @@ expandedExpr,
+    True, {expandedExpr}
+  ]
+];
+
+extractROperatorFactorsFromTerm::usage =
+  "Extracts top-level R[...] multiplicative factors from one additive term.";
+extractROperatorFactorsFromTerm[term_] :=
+  Select[
+    If[Head[term] === Times, List @@ term, {term}],
+    RTest
+  ];
+
+independentROperatorsFromExpression::usage =
+  "Extracts structurally unique R[...] terms occurring in one operator expression.";
+independentROperatorsFromExpression[expr_] :=
+  DeleteDuplicates[
+    Flatten[extractROperatorFactorsFromTerm /@ expandedOperatorSumTerms[expr], 1]
+  ];
+
+independentROperatorsFromExpressions::usage =
+  "Extracts structurally unique R[...] terms occurring across a list of operator expressions.";
+independentROperatorsFromExpressions[expressions_List] :=
+  DeleteDuplicates[
+    Flatten[independentROperatorsFromExpression /@ expressions, 1]
+  ];
+
 convertGroupedResultToOperators::usage =
   "Converts grouped mode results to deduplicated operator lists.";
 convertGroupedResultToOperators[result_, singleGroupPattern_, convertGroupFunction_, canonicalizeIndices_] := Module[
@@ -1108,9 +1149,13 @@ mapGroupedResultPreservingShape[result_, singleGroupPattern_, mapGroupFunction_]
 
 convertSectorBasisToOperators::usage =
   "Converts sector basis tuples {pictureSpec, modeList} to deduplicated operator lists.";
-convertSectorBasisToOperators[basis_List, assembleFunction_, canonicalizeIndices_] := Module[{converted},
-  converted = assembleFunction[#[[1]], #[[2]], 0, canonicalizeIndices] & /@ basis;
-  DeleteDuplicates[DeleteCases[converted, 0]]
+convertSectorBasisToOperators[basis_List, assembleFunction_, canonicalizeIndices_] := Module[
+  {convertedExpressions},
+  convertedExpressions = DeleteCases[
+    assembleFunction[#[[1]], #[[2]], 0, canonicalizeIndices] & /@ basis,
+    0
+  ];
+  independentROperatorsFromExpressions[convertedExpressions]
 ];
 
 collapseExpandedResult::usage =
@@ -1158,11 +1203,12 @@ convertClosedGroupToOperators[
   group : {pictures : {_?validPictureSpecQ, _?validPictureSpecQ}, states_List},
   canonicalizeIndices_
 ] := Module[
-  {operators},
-  operators = DeleteCases[
+  {convertedExpressions, operators},
+  convertedExpressions = DeleteCases[
     closedOperatorFromJoinedModeList[pictures, #, 0, 0, canonicalizeIndices] & /@ states,
     0
   ];
+  operators = independentROperatorsFromExpressions[convertedExpressions];
   {pictures, DeleteDuplicates[operators]}
 ];
 

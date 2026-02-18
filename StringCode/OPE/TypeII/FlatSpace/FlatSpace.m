@@ -55,7 +55,7 @@ combineChiral[a_, b_] := Which[
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ])] := Module[
   {},
-  Print["Placeholder"];
+  Print[generateBasisMatterHolo[1,-1/2]]
   HoldForm[OPEProjected[wH, wA][Ra]]
 ];
 
