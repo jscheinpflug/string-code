@@ -10,7 +10,7 @@
   },
   {
    "kind": 2,
-   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]\n\nprivateContext = \"Private`\";\ngroundStateWeightFn = Symbol[privateContext <> \"groundStateWeight\"];\nmodeWeightFn = Symbol[privateContext <> \"modeListWeight\"];\nmodeGhostNumberFn = Symbol[privateContext <> \"modeListGhostNumber\"];\ngsoParityConfigFn = Symbol[privateContext <> \"gsoParityOfConfig\"];\n\nsymbolNameOfHead[expr_] := SymbolName[If[AtomQ[expr], expr, Head[expr]]];\nmodeEntries[expr_] := Cases[\n  expr,\n  modeExpr_[head_, modeNumber_] /; symbolNameOfHead[modeExpr] === \"mode\" :> {head, modeNumber},\n  Infinity\n];\nmodeHeadNames[expr_] := symbolNameOfHead /@ (modeEntries[expr][[All, 1]] /. {} -> {});\nmodeNumbersByHeadName[expr_, targetName_String] := Cases[\n  modeEntries[expr],\n  {head_, modeNumber_} /; symbolNameOfHead[head] === targetName :> modeNumber\n];\nantiHeadNameQ[name_String] := MemberQ[{\"bt\", \"ct\", \"\\[Beta]t\", \"\\[Gamma]t\", \"dXt\", \"\\[Psi]t\"}, name];\nmodeHeadNameOfMode[modeObj_] := Module[{heads = modeHeadNames[{modeObj}]}, If[heads === {}, \"\", First[heads]]];\nholoModes[state_List] := Select[state, !antiHeadNameQ[modeHeadNameOfMode[#]] &];\nantiModes[state_List] := Select[state, antiHeadNameQ[modeHeadNameOfMode[#]] &];\nnormalizeFullBasis[result_] := If[result === {}, {}, {result[[1]], Sort[result[[2]]] }];",
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]\n\nprivateContext = \"Private`\";\ngroundStateWeightFn = Symbol[privateContext <> \"groundStateWeight\"];\nmodeWeightFn = Symbol[privateContext <> \"modeListWeight\"];\nmodeGhostNumberFn = Symbol[privateContext <> \"modeListGhostNumber\"];\ngsoParityConfigFn = Symbol[privateContext <> \"gsoParityOfConfig\"];\n\ngenerateBasisHoloModes[args___] := generateBasisHolo[args, \"OutputRepresentation\" -> \"Modes\"];\ngenerateBasisAntiHoloModes[args___] := generateBasisAntiHolo[args, \"OutputRepresentation\" -> \"Modes\"];\ngenerateBasisMatterHoloModes[args___] := generateBasisMatterHolo[args, \"OutputRepresentation\" -> \"Modes\"];\ngenerateBasisMatterAntiHoloModes[args___] := generateBasisMatterAntiHolo[args, \"OutputRepresentation\" -> \"Modes\"];\ngenerateBasisModes[args___] := generateBasis[args, \"OutputRepresentation\" -> \"Modes\"];\n\nsymbolNameOfHead[expr_] := SymbolName[If[AtomQ[expr], expr, Head[expr]]];\nmodeEntries[expr_] := Cases[\n  expr,\n  modeExpr_[head_, modeNumber_] /; symbolNameOfHead[modeExpr] === \"mode\" :> {head, modeNumber},\n  Infinity\n];\nmodeHeadNames[expr_] := symbolNameOfHead /@ (modeEntries[expr][[All, 1]] /. {} -> {});\nmodeNumbersByHeadName[expr_, targetName_String] := Cases[\n  modeEntries[expr],\n  {head_, modeNumber_} /; symbolNameOfHead[head] === targetName :> modeNumber\n];\nantiHeadNameQ[name_String] := MemberQ[{\"bt\", \"ct\", \"\\[Beta]t\", \"\\[Gamma]t\", \"dXt\", \"\\[Psi]t\"}, name];\nmodeHeadNameOfMode[modeObj_] := Module[{heads = modeHeadNames[{modeObj}]}, If[heads === {}, \"\", First[heads]]];\nholoModes[state_List] := Select[state, !antiHeadNameQ[modeHeadNameOfMode[#]] &];\nantiModes[state_List] := Select[state, antiHeadNameQ[modeHeadNameOfMode[#]] &];\nnormalizeFullBasis[result_] := If[result === {}, {}, {result[[1]], Sort[result[[2]]] }];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -25,7 +25,7 @@
   },
   {
    "kind": 2,
-   "value": "holo = generateBasisHolo[2, 0, -1];\nvalidHoloTupleQ[entry_] := MatchQ[entry, {-1, _List}];\ntest1Result = holo =!= {} && AllTrue[holo, validHoloTupleQ];\nPrint[\"Test 1 (basic holo shape/non-empty): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "holo = generateBasisHoloModes[2, 0, -1];\nvalidHoloTupleQ[entry_] := MatchQ[entry, {-1, _List}];\ntest1Result = holo =!= {} && AllTrue[holo, validHoloTupleQ];\nPrint[\"Test 1 (basic holo shape/non-empty): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -75,7 +75,7 @@
   },
   {
    "kind": 2,
-   "value": "anti = generateBasisAntiHolo[2, 0, -1];\nholoHeads = Flatten[modeHeadNames /@ holo[[All, 2]]];\nantiHeads = Flatten[modeHeadNames /@ anti[[All, 2]]];\nforbiddenAntiHeads = {\"b\", \"c\", \"\\[Beta]\", \"\\[Gamma]\", \"dX\", \"\\[Psi]\"};\ntest2Result = anti =!= {} && Intersection[antiHeads, forbiddenAntiHeads] === {} &&\n  MemberQ[antiHeads, \"bt\"] && MemberQ[antiHeads, \"ct\"] && MemberQ[antiHeads, \"dXt\"] && MemberQ[antiHeads, \"\\[Psi]t\"];\nPrint[\"Test 2 (anti-holo replacement heads): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "value": "anti = generateBasisAntiHoloModes[2, 0, -1];\nholoHeads = Flatten[modeHeadNames /@ holo[[All, 2]]];\nantiHeads = Flatten[modeHeadNames /@ anti[[All, 2]]];\nforbiddenAntiHeads = {\"b\", \"c\", \"\\[Beta]\", \"\\[Gamma]\", \"dX\", \"\\[Psi]\"};\ntest2Result = anti =!= {} && Intersection[antiHeads, forbiddenAntiHeads] === {} &&\n  MemberQ[antiHeads, \"bt\"] && MemberQ[antiHeads, \"ct\"] && MemberQ[antiHeads, \"dXt\"] && MemberQ[antiHeads, \"\\[Psi]t\"];\nPrint[\"Test 2 (anti-holo replacement heads): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -125,7 +125,7 @@
   },
   {
    "kind": 2,
-   "value": "holoVac = generateBasisHolo[0, 0, 0];\nmatterVac = generateBasisMatterHolo[0, 0];\nmatterVacAnti = generateBasisMatterAntiHolo[0, 0];\nmatterAntiSample = generateBasisMatterAntiHolo[2, -1/2, \"GSOParity\" -> \"All\"];\nextractMatterStates[result_] := Which[\n  result === {},\n  {},\n  MatchQ[result, {_?((IntegerQ[#] || MatchQ[#, {_?NumericQ, _String}]) &), _List}],\n  result[[2]],\n  ListQ[result],\n  Flatten[result[[All, 2]], 1],\n  True,\n  {}\n];\nantiMatterHeads = Flatten[modeHeadNames /@ extractMatterStates[matterAntiSample]];\ntest3Result = holoVac =!= {} && MatchQ[holoVac[[1]], {0, _List}] && holoVac[[1, 2]] === {} &&\n  matterVac === {0, {{}}} && matterVacAnti === {0, {{}}} && generateBasisMatter[0, 0] === {0, {{}}} &&\n  antiMatterHeads =!= {} && AllTrue[antiMatterHeads, antiHeadNameQ];\nPrint[\"Test 3 (vacuum + matter-only APIs): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "value": "holoVac = generateBasisHoloModes[0, 0, 0];\nmatterVac = generateBasisMatterHoloModes[0, 0];\nmatterVacAnti = generateBasisMatterAntiHoloModes[0, 0];\nmatterAntiSample = generateBasisMatterAntiHoloModes[2, -1/2, \"GSOParity\" -> \"All\"];\nextractMatterStates[result_] := Which[\n  result === {},\n  {},\n  MatchQ[result, {_?((IntegerQ[#] || MatchQ[#, {_?NumericQ, _String}]) &), _List}],\n  result[[2]],\n  ListQ[result],\n  Flatten[result[[All, 2]], 1],\n  True,\n  {}\n];\nantiMatterHeads = Flatten[modeHeadNames /@ extractMatterStates[matterAntiSample]];\ntest3Result = holoVac =!= {} && MatchQ[holoVac[[1]], {0, _List}] && holoVac[[1, 2]] === {} &&\n  matterVac === {0, {{}}} && matterVacAnti === {0, {{}}} &&\n  antiMatterHeads =!= {} && AllTrue[antiMatterHeads, antiHeadNameQ];\nPrint[\"Test 3 (vacuum + matter-only APIs): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -175,7 +175,7 @@
   },
   {
    "kind": 2,
-   "value": "holoIntPic = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> False];\nholoHalfPic = generateBasisHolo[3, 0, -1/2, \"GSOProjected\" -> False];\npsiModesFromBasis[basis_List] := modeNumbersByHeadName[basis, \"\\[Psi]\"];\nintPsiModes = psiModesFromBasis[holoIntPic[[All, 2]]];\nhalfPsiModes = psiModesFromBasis[holoHalfPic[[All, 2]]];\noddHalfIntegerQ[x_] := IntegerQ[2 x] && OddQ[Numerator[Together[x]]];\ntest4Result = intPsiModes =!= {} && halfPsiModes =!= {} &&\n  AllTrue[intPsiModes, oddHalfIntegerQ] && AllTrue[halfPsiModes, IntegerQ] && !MemberQ[halfPsiModes, 0];\nPrint[\"Test 4 (integer vs half-integer picture psi moding; no psi[0] at half-integer picture): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
+   "value": "holoIntPic = generateBasisHoloModes[3, 0, -1, \"GSOProjected\" -> False];\nholoHalfPic = generateBasisHoloModes[3, 0, -1/2, \"GSOProjected\" -> False];\npsiModesFromBasis[basis_List] := modeNumbersByHeadName[basis, \"\\[Psi]\"];\nintPsiModes = psiModesFromBasis[holoIntPic[[All, 2]]];\nhalfPsiModes = psiModesFromBasis[holoHalfPic[[All, 2]]];\noddHalfIntegerQ[x_] := IntegerQ[2 x] && OddQ[Numerator[Together[x]]];\ntest4Result = intPsiModes =!= {} && halfPsiModes =!= {} &&\n  AllTrue[intPsiModes, oddHalfIntegerQ] && AllTrue[halfPsiModes, IntegerQ] && !MemberQ[halfPsiModes, 0];\nPrint[\"Test 4 (integer vs half-integer picture psi moding; no psi[0] at half-integer picture): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -225,7 +225,7 @@
   },
   {
    "kind": 2,
-   "value": "holoProj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> True];\nholoUnproj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> False];\nholoEven = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"Even\"];\nholoOdd = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"Odd\"];\nholoAll = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"All\"];\nsubsetQ[a_, b_] := Complement[a, b] === {};\noddParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === -1;\ntest5Result = holoProj =!= {} && holoUnproj =!= {} && subsetQ[holoProj, holoUnproj] && Length[holoUnproj] >= Length[holoProj] &&\n  Sort[holoEven] === Sort[holoProj] && Sort[holoAll] === Sort[holoUnproj] && AllTrue[holoOdd, oddParityQ];\nPrint[\"Test 5 (GSOParity + legacy option subset behavior): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "value": "holoProj = generateBasisHoloModes[3, 0, -1, \"GSOProjected\" -> True];\nholoUnproj = generateBasisHoloModes[3, 0, -1, \"GSOProjected\" -> False];\nholoEven = generateBasisHoloModes[3, 0, -1, \"GSOParity\" -> \"Even\"];\nholoOdd = generateBasisHoloModes[3, 0, -1, \"GSOParity\" -> \"Odd\"];\nholoAll = generateBasisHoloModes[3, 0, -1, \"GSOParity\" -> \"All\"];\nsubsetQ[a_, b_] := Complement[a, b] === {};\noddParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === -1;\ntest5Result = holoProj =!= {} && holoUnproj =!= {} && subsetQ[holoProj, holoUnproj] && Length[holoUnproj] >= Length[holoProj] &&\n  Sort[holoEven] === Sort[holoProj] && Sort[holoAll] === Sort[holoUnproj] && AllTrue[holoOdd, oddParityQ];\nPrint[\"Test 5 (GSOParity + legacy option subset behavior): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -275,7 +275,7 @@
   },
   {
    "kind": 2,
-   "value": "fullDefault = generateBasis[4, 0, {-1, -1}];\nvalidFullBasisQ[result_] := MatchQ[result, {{-1, -1}, _List}] && AllTrue[result[[2]], ListQ];\ntest6Result = fullDefault =!= {} && validFullBasisQ[fullDefault];\nPrint[\"Test 6 (full basis grouped-by-picture shape): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
+   "value": "fullDefault = generateBasisModes[4, 0, {-1, -1}];\nvalidFullBasisQ[result_] := MatchQ[result, {{-1, -1}, _List}] && AllTrue[result[[2]], ListQ];\ntest6Result = fullDefault =!= {} && validFullBasisQ[fullDefault];\nPrint[\"Test 6 (full basis grouped-by-picture shape): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -325,7 +325,7 @@
   },
   {
    "kind": 2,
-   "value": "fullExplicitLM = generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> True];\nsectorWeights[state_] := Module[{leftModes, rightModes},\n  leftModes = holoModes[state];\n  rightModes = antiModes[state];\n  {groundStateWeightFn[-1] + modeWeightFn[leftModes], groundStateWeightFn[-1] + modeWeightFn[rightModes]}\n];\nlevelMatchedQ[state_] := With[{weights = sectorWeights[state]}, weights[[1]] === weights[[2]]];\ntest7Result = normalizeFullBasis[fullDefault] === normalizeFullBasis[fullExplicitLM] && fullDefault =!= {} && AllTrue[fullDefault[[2]], levelMatchedQ];\nPrint[\"Test 7 (LevelMatched default/explicit semantics): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "value": "fullExplicitLM = generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> True];\nsectorWeights[state_] := Module[{leftModes, rightModes},\n  leftModes = holoModes[state];\n  rightModes = antiModes[state];\n  {groundStateWeightFn[-1] + modeWeightFn[leftModes], groundStateWeightFn[-1] + modeWeightFn[rightModes]}\n];\nlevelMatchedQ[state_] := With[{weights = sectorWeights[state]}, weights[[1]] === weights[[2]]];\ntest7Result = normalizeFullBasis[fullDefault] === normalizeFullBasis[fullExplicitLM] && fullDefault =!= {} && AllTrue[fullDefault[[2]], levelMatchedQ];\nPrint[\"Test 7 (LevelMatched default/explicit semantics): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -375,7 +375,7 @@
   },
   {
    "kind": 2,
-   "value": "fullAllSplits = generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> False];\nnonLevelMatchedCount = Count[fullAllSplits[[2]], state_ /; !levelMatchedQ[state]];\ntest8Result = subsetQ[fullDefault[[2]], fullAllSplits[[2]]] && Length[fullAllSplits[[2]]] >= Length[fullDefault[[2]]] && nonLevelMatchedCount >= 1;\nPrint[\"Test 8 (LevelMatched false superset + non-LM states): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "value": "fullAllSplits = generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> False];\nnonLevelMatchedCount = Count[fullAllSplits[[2]], state_ /; !levelMatchedQ[state]];\ntest8Result = subsetQ[fullDefault[[2]], fullAllSplits[[2]]] && Length[fullAllSplits[[2]]] >= Length[fullDefault[[2]]] && nonLevelMatchedCount >= 1;\nPrint[\"Test 8 (LevelMatched false superset + non-LM states): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -425,7 +425,7 @@
   },
   {
    "kind": 2,
-   "value": "fullProjected = generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> True];\nfullUnprojected = generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False];\nsectorGSOEvenQ[state_] := Module[{leftModes, rightModes},\n  leftModes = holoModes[state];\n  rightModes = antiModes[state];\n  gsoParityConfigFn[leftModes, -1] === 1 && gsoParityConfigFn[rightModes, -1] === 1\n];\ntest9Result = fullProjected =!= {} && fullUnprojected =!= {} &&\n  subsetQ[fullProjected[[2]], fullUnprojected[[2]]] && AllTrue[fullProjected[[2]], sectorGSOEvenQ] && Length[fullUnprojected[[2]]] >= Length[fullProjected[[2]]];\nPrint[\"Test 9 (per-sector GSO projection in full basis): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "value": "fullProjected = generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> True];\nfullUnprojected = generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False];\nsectorGSOEvenQ[state_] := Module[{leftModes, rightModes},\n  leftModes = holoModes[state];\n  rightModes = antiModes[state];\n  gsoParityConfigFn[leftModes, -1] === 1 && gsoParityConfigFn[rightModes, -1] === 1\n];\ntest9Result = fullProjected =!= {} && fullUnprojected =!= {} &&\n  subsetQ[fullProjected[[2]], fullUnprojected[[2]]] && AllTrue[fullProjected[[2]], sectorGSOEvenQ] && Length[fullUnprojected[[2]]] >= Length[fullProjected[[2]]];\nPrint[\"Test 9 (per-sector GSO projection in full basis): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -475,7 +475,7 @@
   },
   {
    "kind": 2,
-   "value": "det1 = normalizeFullBasis[generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False]];\ndet2 = normalizeFullBasis[generateBasis[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False]];\nspecialBasis = generateBasis[0, 2, {-1, -1}];\nleftSectorExpectedQ[state_List] :=\n  Count[modeNumbersByHeadName[holoModes[state], \"c\"], 1] >= 1 &&\n  Count[modeNumbersByHeadName[holoModes[state], \"\\[Psi]\"], -1/2] >= 1;\nrightSectorExpectedQ[state_List] :=\n  Count[modeNumbersByHeadName[antiModes[state], \"ct\"], 1] >= 1 &&\n  Count[modeNumbersByHeadName[antiModes[state], \"\\[Psi]t\"], -1/2] >= 1;\nexpectedSpecialStateQ[state_List] := leftSectorExpectedQ[state] && rightSectorExpectedQ[state];\ntest10Result = det1 === det2 && specialBasis =!= {} && specialBasis[[1]] === {-1, -1} && AnyTrue[specialBasis[[2]], expectedSpecialStateQ];\nPrint[\"Test 10 (determinism + expected (0,2,{-1,-1}) state): \", If[test10Result, \"PASSED\", \"FAILED\"]];\ntest10Result",
+   "value": "det1 = normalizeFullBasis[generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False]];\ndet2 = normalizeFullBasis[generateBasisModes[4, 0, {-1, -1}, \"LevelMatched\" -> False, \"GSOProjected\" -> False]];\nspecialBasis = generateBasisModes[0, 2, {-1, -1}];\nleftSectorExpectedQ[state_List] :=\n  Count[modeNumbersByHeadName[holoModes[state], \"c\"], 1] >= 1 &&\n  Count[modeNumbersByHeadName[holoModes[state], \"\\[Psi]\"], -1/2] >= 1;\nrightSectorExpectedQ[state_List] :=\n  Count[modeNumbersByHeadName[antiModes[state], \"ct\"], 1] >= 1 &&\n  Count[modeNumbersByHeadName[antiModes[state], \"\\[Psi]t\"], -1/2] >= 1;\nexpectedSpecialStateQ[state_List] := leftSectorExpectedQ[state] && rightSectorExpectedQ[state];\ntest10Result = det1 === det2 && specialBasis =!= {} && specialBasis[[1]] === {-1, -1} && AnyTrue[specialBasis[[2]], expectedSpecialStateQ];\nPrint[\"Test 10 (determinism + expected (0,2,{-1,-1}) state): \", If[test10Result, \"PASSED\", \"FAILED\"]];\ntest10Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -525,7 +525,7 @@
   },
   {
    "kind": 2,
-   "value": "pictureSpecQ[p_] := IntegerQ[p] || MatchQ[p, {q_ /; IntegerQ[2 q] && OddQ[Numerator[Together[q]]], \"chiral\" | \"antichiral\"}];\nvalidPicturePairQ[pair_] := MatchQ[pair, {left_, right_} /; pictureSpecQ[left] && pictureSpecQ[right]];\nstateModeListQ[state_] := ListQ[state] && AllTrue[state, symbolNameOfHead[#] === \"mode\" &];\nstateCollectionQ[states_List] := AllTrue[states, stateModeListQ];\ngroupQ[obj_] := MatchQ[obj, {pair_, states_List} /; validPicturePairQ[pair] && stateCollectionQ[states]];\nbasisGroups[result_] := Which[\n  result === {},\n  {},\n  groupQ[result],\n  {result},\n  ListQ[result] && AllTrue[result, groupQ],\n  result,\n  True,\n  {}\n];\ntotalStateCount[result_] := Module[{groups = basisGroups[result]},\n  Total[Length /@ (groups[[All, 2]] /. {} -> {})]\n];\ngroupStateCounts[result_] := Length /@ (basisGroups[result][[All, 2]] /. {} -> {});\ngroupLabels[result_] := basisGroups[result][[All, 1]] /. {} -> {};\nnormalizeGroupedBasis[result_] := SortBy[({#[[1]], Sort[#[[2]]]} &) /@ basisGroups[result], First];\nbasis021 = generateBasis[0, 2, {-1/2, -1}];\ntest11Result = totalStateCount[basis021] === 4 && Sort[groupStateCounts[basis021]] === {1, 3};\nPrint[\"Test 11 (count for (0,2,{-1/2,-1}) is 4): \", If[test11Result, \"PASSED\", \"FAILED\"]];\ntest11Result",
+   "value": "pictureSpecQ[p_] := IntegerQ[p] || MatchQ[p, {q_ /; IntegerQ[2 q] && OddQ[Numerator[Together[q]]], \"chiral\" | \"antichiral\"}];\nvalidPicturePairQ[pair_] := MatchQ[pair, {left_, right_} /; pictureSpecQ[left] && pictureSpecQ[right]];\nstateModeListQ[state_] := ListQ[state] && AllTrue[state, symbolNameOfHead[#] === \"mode\" &];\nstateCollectionQ[states_List] := AllTrue[states, stateModeListQ];\ngroupQ[obj_] := MatchQ[obj, {pair_, states_List} /; validPicturePairQ[pair] && stateCollectionQ[states]];\nbasisGroups[result_] := Which[\n  result === {},\n  {},\n  groupQ[result],\n  {result},\n  ListQ[result] && AllTrue[result, groupQ],\n  result,\n  True,\n  {}\n];\ntotalStateCount[result_] := Module[{groups = basisGroups[result]},\n  Total[Length /@ (groups[[All, 2]] /. {} -> {})]\n];\ngroupStateCounts[result_] := Length /@ (basisGroups[result][[All, 2]] /. {} -> {});\ngroupLabels[result_] := basisGroups[result][[All, 1]] /. {} -> {};\nnormalizeGroupedBasis[result_] := SortBy[({#[[1]], Sort[#[[2]]]} &) /@ basisGroups[result], First];\nbasis021 = generateBasisModes[0, 2, {-1/2, -1}];\ntest11Result = totalStateCount[basis021] === 4 && Sort[groupStateCounts[basis021]] === {1, 3};\nPrint[\"Test 11 (count for (0,2,{-1/2,-1}) is 4): \", If[test11Result, \"PASSED\", \"FAILED\"]];\ntest11Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -675,7 +675,7 @@
   },
   {
    "kind": 2,
-   "value": "basis021Unproj = generateBasis[0, 2, {-1/2, -1}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\ntest14Result = totalStateCount[basis021Unproj] === 8 && Sort[groupStateCounts[basis021Unproj]] === {4, 4} &&\n  totalStateCount[basis021Unproj] >= totalStateCount[basis021];\nPrint[\"Test 14 ((0,2,{-1/2,-1}) unprojected count profile): \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
+   "value": "basis021Unproj = generateBasisModes[0, 2, {-1/2, -1}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\ntest14Result = totalStateCount[basis021Unproj] === 8 && Sort[groupStateCounts[basis021Unproj]] === {4, 4} &&\n  totalStateCount[basis021Unproj] >= totalStateCount[basis021];\nPrint[\"Test 14 ((0,2,{-1/2,-1}) unprojected count profile): \", If[test14Result, \"PASSED\", \"FAILED\"]];\ntest14Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -725,7 +725,7 @@
   },
   {
    "kind": 2,
-   "value": "basis03HalfHalf = generateBasis[0, 3, {-1/2, -1/2}];\ntest15Result = totalStateCount[basis03HalfHalf] === 4;\nPrint[\"Test 15 (count for (0,3,{-1/2,-1/2}) is 4): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
+   "value": "basis03HalfHalf = generateBasisModes[0, 3, {-1/2, -1/2}];\ntest15Result = totalStateCount[basis03HalfHalf] === 4;\nPrint[\"Test 15 (count for (0,3,{-1/2,-1/2}) is 4): \", If[test15Result, \"PASSED\", \"FAILED\"]];\ntest15Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -825,7 +825,7 @@
   },
   {
    "kind": 2,
-   "value": "basis03HalfHalfUnproj = generateBasis[0, 3, {-1/2, -1/2}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\naaLabel03 = {{-1/2, \"antichiral\"}, {-1/2, \"antichiral\"}};\ntest17Result = totalStateCount[basis03HalfHalfUnproj] === 16 && Sort[groupStateCounts[basis03HalfHalfUnproj]] === {4, 4, 4, 4} &&\n  MemberQ[groupLabels[basis03HalfHalfUnproj], aaLabel03];\nPrint[\"Test 17 ((0,3,{-1/2,-1/2}) unprojected includes antichiral-antichiral): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
+   "value": "basis03HalfHalfUnproj = generateBasisModes[0, 3, {-1/2, -1/2}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\naaLabel03 = {{-1/2, \"antichiral\"}, {-1/2, \"antichiral\"}};\ntest17Result = totalStateCount[basis03HalfHalfUnproj] === 16 && Sort[groupStateCounts[basis03HalfHalfUnproj]] === {4, 4, 4, 4} &&\n  MemberQ[groupLabels[basis03HalfHalfUnproj], aaLabel03];\nPrint[\"Test 17 ((0,3,{-1/2,-1/2}) unprojected includes antichiral-antichiral): \", If[test17Result, \"PASSED\", \"FAILED\"]];\ntest17Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -875,7 +875,7 @@
   },
   {
    "kind": 2,
-   "value": "basis03IntInt = generateBasis[0, 3, {-1, -1}];\ntest18Result = totalStateCount[basis03IntInt] === 10 && groupLabels[basis03IntInt] === {{-1, -1}};\nPrint[\"Test 18 (count for (0,3,{-1,-1}) is 10): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
+   "value": "basis03IntInt = generateBasisModes[0, 3, {-1, -1}];\ntest18Result = totalStateCount[basis03IntInt] === 10 && groupLabels[basis03IntInt] === {{-1, -1}};\nPrint[\"Test 18 (count for (0,3,{-1,-1}) is 10): \", If[test18Result, \"PASSED\", \"FAILED\"]];\ntest18Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -925,7 +925,7 @@
   },
   {
    "kind": 2,
-   "value": "basis03IntIntUnproj = generateBasis[0, 3, {-1, -1}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\ntest19Result = totalStateCount[basis03IntIntUnproj] === 10 && normalizeGroupedBasis[basis03IntInt] === normalizeGroupedBasis[basis03IntIntUnproj];\nPrint[\"Test 19 ((0,3,{-1,-1}) projected and unprojected coincide): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
+   "value": "basis03IntIntUnproj = generateBasisModes[0, 3, {-1, -1}, \"GSOProjected\" -> False, \"LevelMatched\" -> False];\ntest19Result = totalStateCount[basis03IntIntUnproj] === 10 && normalizeGroupedBasis[basis03IntInt] === normalizeGroupedBasis[basis03IntIntUnproj];\nPrint[\"Test 19 ((0,3,{-1,-1}) projected and unprojected coincide): \", If[test19Result, \"PASSED\", \"FAILED\"]];\ntest19Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -975,7 +975,7 @@
   },
   {
    "kind": 2,
-   "value": "test20Result =\n  normalizeGroupedBasis[generateBasis[0, 2, {-1/2, -1}]] === normalizeGroupedBasis[generateBasis[0, 2, {-1/2, -1}]] &&\n  normalizeGroupedBasis[generateBasis[0, 3, {-1/2, -1/2}]] === normalizeGroupedBasis[generateBasis[0, 3, {-1/2, -1/2}]] &&\n  normalizeGroupedBasis[generateBasis[0, 3, {-1, -1}]] === normalizeGroupedBasis[generateBasis[0, 3, {-1, -1}]];\nPrint[\"Test 20 (determinism for new low-weight benchmark calls): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
+   "value": "test20Result =\n  normalizeGroupedBasis[generateBasisModes[0, 2, {-1/2, -1}]] === normalizeGroupedBasis[generateBasisModes[0, 2, {-1/2, -1}]] &&\n  normalizeGroupedBasis[generateBasisModes[0, 3, {-1/2, -1/2}]] === normalizeGroupedBasis[generateBasisModes[0, 3, {-1/2, -1/2}]] &&\n  normalizeGroupedBasis[generateBasisModes[0, 3, {-1, -1}]] === normalizeGroupedBasis[generateBasisModes[0, 3, {-1, -1}]];\nPrint[\"Test 20 (determinism for new low-weight benchmark calls): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1025,7 +1025,55 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result, test15Result, test16Result, test17Result, test18Result, test19Result, test20Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "defaultHoloOps = generateBasisHolo[2, 0, -1];\noperatorStateQ[entry_] := symbolNameOfHead[entry] =!= \"List\";\ntest21Result = defaultHoloOps =!= {} && AllTrue[defaultHoloOps, operatorStateQ];\nPrint[\"Test 21 (default holo output is operator list): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test22Result = normalizeGroupedBasis[generateBasisModes[0, 2, {-1/2, -1}]] ===\n  normalizeGroupedBasis[generateBasis[0, 2, {-1/2, -1}, \"OutputRepresentation\" -> \"Modes\"]];\nPrint[\"Test 22 (explicit modes option preserves closed basis output): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "superghostOpSample = generateBasisHolo[2, 0, -1];\nallNoBetaGammaQ = AllTrue[superghostOpSample, FreeQ[#, \\[Beta] | \\[Gamma] | \\[Beta]t | \\[Gamma]t] &];\nanyXiEtaQ = AnyTrue[superghostOpSample, !FreeQ[#, \\[Xi] | \\[Eta] | \\[Xi]t | \\[Eta]t] &];\ntest23Result = superghostOpSample =!= {} && allNoBetaGammaQ && anyXiEtaQ;\nPrint[\"Test 23 (operator conversion bosonizes superghost modes): \", If[test23Result, \"PASSED\", \"FAILED\"]];\ntest23Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "ramondMatterOps = generateBasisMatterHolo[3, -1/2, \"GSOProjected\" -> False];\noperatorListQ = ListQ[ramondMatterOps] && ramondMatterOps =!= {} && AllTrue[ramondMatterOps, symbolNameOfHead[#] =!= \"List\" &];\nspinModeLists = Flatten[Cases[ramondMatterOps, (S | St)[_, _, modes_List, __] :> modes, Infinity], 1];\nindexFirstSpinModesQ = spinModeLists =!= {} && AllTrue[spinModeLists, MatchQ[#, {_Symbol, _?NumericQ}] &];\ntest24Result = operatorListQ && indexFirstSpinModesQ;\nPrint[\"Test 24 (Ramond matter operators are ungrouped and spin tuples are {index,mode}): \", If[test24Result, \"PASSED\", \"FAILED\"]];\ntest24Result",
+   "languageId": "wolfram",
+   "outputs": [],
+    "metadata": {},
+    "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "uncanonOps = generateBasisHolo[2, 0, -1, \"CanonicalizeIndices\" -> False];\ncanonOps = generateBasisHolo[2, 0, -1, \"CanonicalizeIndices\" -> True];\nhasMuDollarQ[expr_] := !FreeQ[expr, _Symbol?(StringContainsQ[SymbolName[#], \"$\"] &)];\nnoMuDollarQ[expr_] := FreeQ[expr, _Symbol?(StringContainsQ[SymbolName[#], \"$\"] &)];\ntest25Result = uncanonOps =!= {} && canonOps =!= {} && AnyTrue[uncanonOps, hasMuDollarQ] && AllTrue[canonOps, noMuDollarQ];\nPrint[\"Test 25 (CanonicalizeIndices option toggles index canonicalization): \", If[test25Result, \"PASSED\", \"FAILED\"]];\ntest25Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "canonRamond = generateBasisMatterHolo[3, -1/2, \"GSOProjected\" -> False, \"CanonicalizeIndices\" -> True];\nspinAlphaNames = Cases[canonRamond, (S | St)[{a_Symbol, _}, __] :> SymbolName[a], Infinity];\ntest26Result = spinAlphaNames =!= {} && AllTrue[spinAlphaNames, StringStartsQ[#, FromCharacterCode[945]] &] && AllTrue[spinAlphaNames, !StringStartsQ[#, \"mu\"] &];\nPrint[\"Test 26 (spin-field canonical labels use \\[Alpha]N, not muN): \", If[test26Result, \"PASSED\", \"FAILED\"]];\ntest26Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result, test15Result, test16Result, test17Result, test18Result, test19Result, test20Result, test21Result, test22Result, test23Result, test24Result, test25Result, test26Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
    "languageId": "wolfram",
    "outputs": [
     {

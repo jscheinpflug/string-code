@@ -248,7 +248,16 @@ DefineField[S,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {},
-  "WeightHolo" -> Function[field, 5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] + Total[First /@ field[[3]]]],
+  "WeightHolo" -> Function[
+    field,
+    5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] +
+      Total[
+        Join[
+          Cases[field[[3]], {_, mode_?NumericQ} :> mode],
+          Cases[field[[3]], {mode_?NumericQ, _} :> mode]
+        ]
+      ]
+  ],
   "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])],
   "GSOParityAntiHolo" -> 1
@@ -266,7 +275,16 @@ DefineField[St,
   "RegularFermion" -> True,
   "PairsWith" -> {},
   "WeightHolo" -> 0,
-  "WeightAntiHolo" -> Function[field, 5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] + Total[First /@ field[[3]]]],
+  "WeightAntiHolo" -> Function[
+    field,
+    5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] +
+      Total[
+        Join[
+          Cases[field[[3]], {_, mode_?NumericQ} :> mode],
+          Cases[field[[3]], {mode_?NumericQ, _} :> mode]
+        ]
+      ]
+  ],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])]
 ];

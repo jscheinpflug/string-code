@@ -98,7 +98,9 @@ basisAntiModeFromHolo[mode[head_, modeNumber_]] := Module[
 
 (* Shared option parser for boolean options like "LevelMatched" and
    "GSOProjected". Returns $Failed on malformed/legacy-mismatched input. *)
-readBooleanOption[opts_List, optionName_String, default_] := Module[
+basisReadValidatedOption::usage =
+  "Reads one option with legacy-symbol safety and validates via a predicate function.";
+basisReadValidatedOption[opts_List, optionName_String, default_, validatorFunction_] := Module[
   {optionAssociation, legacySymbolUsedQ, optionValue},
   optionAssociation = Association[opts];
   legacySymbolUsedQ = AnyTrue[
@@ -113,7 +115,43 @@ readBooleanOption[opts_List, optionName_String, default_] := Module[
     Return[$Failed]
   ];
   optionValue = Lookup[optionAssociation, optionName, default];
-  If[BooleanQ[optionValue], optionValue, $Failed]
+  If[TrueQ[validatorFunction[optionValue]], optionValue, $Failed]
+];
+
+readBooleanOption[opts_List, optionName_String, default_] :=
+  basisReadValidatedOption[opts, optionName, default, BooleanQ];
+
+basisReadCanonicalizeIndicesOption::usage =
+  "Reads option \"CanonicalizeIndices\" as a boolean, returning $Failed on invalid input.";
+basisReadCanonicalizeIndicesOption[opts_List, default_: True] :=
+  readBooleanOption[opts, "CanonicalizeIndices", default];
+
+basisParseSinglePositionAndOptions::usage =
+  "Parses trailing arguments as either {position} or option rules, returning {position, optionList}.";
+basisParseSinglePositionAndOptions[args_List, defaultPosition_] := Which[
+  args === {}, {defaultPosition, {}},
+  OptionQ[args], {defaultPosition, args},
+  Length[args] >= 1 && OptionQ[Rest[args]], {First[args], Rest[args]},
+  True, $Failed
+];
+
+basisParsePositionAndCanonicalizeOption::usage =
+  "Parses one optional position argument plus \"CanonicalizeIndices\" option.";
+basisParsePositionAndCanonicalizeOption[
+  args_List,
+  defaultPosition_,
+  defaultCanonicalize_: True
+] := Module[{parsed, position, optionList, canonicalizeIndices},
+  parsed = basisParseSinglePositionAndOptions[args, defaultPosition];
+  If[parsed === $Failed,
+    Return[$Failed]
+  ];
+  {position, optionList} = parsed;
+  canonicalizeIndices = basisReadCanonicalizeIndicesOption[optionList, defaultCanonicalize];
+  If[canonicalizeIndices === $Failed,
+    Return[$Failed]
+  ];
+  {position, canonicalizeIndices}
 ];
 
 (* Shared helper: minimal sum of k distinct integer modes >= minMode.

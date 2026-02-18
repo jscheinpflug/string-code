@@ -21,9 +21,11 @@ Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Begin["Private`"];
 
 
-formatSpinModePair::usage = "formatSpinModePair[{mode, idx}, opts] formats one spin-mode tuple.";
-formatSpinModePair[{mode_, idx_}, opts_Association] :=
-  "(" <> toTeXDispatch[mode, opts] <> ", " <> formatIndex[idx, opts] <> ")";
+formatSpinModePair::usage = "formatSpinModePair[{idx, mode}, opts] formats one spin-mode tuple.";
+formatSpinModePair[{idx_, mode_?NumericQ}, opts_Association] :=
+  "(" <> formatIndex[idx, opts] <> ", " <> toTeXDispatch[mode, opts] <> ")";
+formatSpinModePair[{mode_?NumericQ, idx_}, opts_Association] :=
+  "(" <> formatIndex[idx, opts] <> ", " <> toTeXDispatch[mode, opts] <> ")";
 
 
 formatSpinModes::usage = "formatSpinModes[modes, opts] formats a list of spin-mode tuples.";

@@ -16,14 +16,14 @@
   - ∂X bosonic oscillators (conformal weight 1)
 
   States are organized by:
-  - Total conformal weight (h + h̄ for closed strings)
+  - Total conformal weight (h + h̄)
   - Ghost number (b/c contribute ∓1, β/γ contribute ∓1)
   - Picture number (shifted by β/γ zero modes)
   - GSO parity (worldsheet fermion number mod 2)
 
   Output format:
   - Holomorphic: {picture, {mode[field, n], ...}}
-  - Closed string: {{pictureL, pictureR}, {modeList, ...}}
+  - Both: {{pictureL, pictureR}, {modeList, ...}}
 *)
 
 BeginPackage["StringCode`BasisGeneration`TypeII`FlatSpace`"];
@@ -38,6 +38,9 @@ Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`OPE`TypeII`"];
+Needs["StringCode`Taylor`"];
+Needs["StringCode`Taylor`TypeII`"];
+Needs["StringCode`Taylor`TypeII`FlatSpace`"];
 
 (* ::Section:: *)
 (*Declare public variables and methods*)
@@ -664,6 +667,516 @@ antiModeFromHolo[mode[\[Psi][mu_], modeNumber_]] := mode[\[Psi]t[mu], modeNumber
 antiModeFromHolo[modeObj : mode[_, _]] := basisAntiModeFromHolo[modeObj];
 antiModeFromHolo[modeObj_] := modeObj;
 
+operatorFactorsFromExpression::usage =
+  "Returns multiplicative operator factors from an expression, flattening one top-level R.";
+operatorFactorsFromExpression[expr_] := Which[
+  expr === 1, {},
+  RTest[expr], List @@ expr,
+  True, {expr}
+];
+
+multiplyOperatorExpressions::usage =
+  "Combines two operator expressions into one normal-ordered factor when possible.";
+multiplyOperatorExpressions[a_, b_] := Which[
+  a === 0 || b === 0, 0,
+  a === 1, b,
+  b === 1, a,
+  True, R[a, b]
+];
+
+canonicalizeLorentzIndicesOperators::usage =
+  "Canonicalizes Lorentz placeholder symbols in operator expressions.";
+canonicalizeLorentzIndicesOperators[expr_] := Module[
+  {
+    lorentzSymbols,
+    spinAlphaSymbols,
+    canonicalLorentzSymbols,
+    canonicalSpinAlphaSymbols,
+    lorentzRenamingRules,
+    spinAlphaRenamingRules
+  },
+  lorentzSymbols = DeleteDuplicates @ Join[
+    Cases[expr, (dX | dXt | \[Psi] | \[Psi]t)[mu_Symbol, __] :> mu, Infinity],
+    Cases[
+      expr,
+      (S | St)[_, _, modes_List, __] :>
+        Join[
+          Cases[modes, {mu_Symbol, _} :> mu, Infinity],
+          Cases[modes, {_, mu_Symbol} :> mu, Infinity]
+        ],
+      Infinity
+    ] // Flatten
+  ];
+  spinAlphaSymbols = DeleteDuplicates @ Cases[
+    expr,
+    (S | St)[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
+    Infinity
+  ];
+  canonicalLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[lorentzSymbols]];
+  canonicalSpinAlphaSymbols = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbols]];
+  lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
+  spinAlphaRenamingRules = Thread[spinAlphaSymbols -> canonicalSpinAlphaSymbols];
+  expr /. Join[lorentzRenamingRules, spinAlphaRenamingRules]
+];
+
+stripOverallMinusInOperatorExpression::usage =
+  "Removes a global negative numeric prefactor from one operator expression.";
+stripOverallMinusInOperatorExpression[expr_] := Module[{prefactor},
+  prefactor = First[FactorTermsList[expr]];
+  If[NumericQ[prefactor] && prefactor < 0, -expr, expr]
+];
+
+canonicalizeOperatorIndicesQ::usage =
+  "Controls whether operator-output indices are canonicalized to mu1, mu2, ...";
+canonicalizeOperatorIndicesQ[canonicalizeIndices_?BooleanQ, expr_] := Module[
+  {canonicalExpression},
+  canonicalExpression =
+    If[TrueQ[canonicalizeIndices], canonicalizeLorentzIndicesOperators[expr], expr];
+  stripOverallMinusInOperatorExpression[canonicalExpression]
+];
+
+rescaleHoloFieldByParameter::usage =
+  "Rescales the holomorphic position argument(s) of one field by a parameter.";
+rescaleHoloFieldByParameter[parameter_][op_ /; isField[Head[op]] && isHolomorphic[Head[op]] && isAntiHolomorphic[Head[op]]] :=
+  Module[{args = List @@ op, head = Head[op]},
+    head @@ Join[Drop[args, -2], parameter Take[args, -2]]
+  ];
+rescaleHoloFieldByParameter[parameter_][op_ /; isField[Head[op]] && isHolomorphic[Head[op]]] :=
+  Module[{args = List @@ op, head = Head[op]},
+    head @@ Join[Drop[args, -1], {parameter Last[args]}]
+  ];
+rescaleHoloFieldByParameter[_][op_] := op;
+
+rescaleHoloExpressionByParameter::usage =
+  "Rescales all holomorphic field positions in an expression by a parameter.";
+rescaleHoloExpressionByParameter[expr_, parameter_] :=
+  expr /. op_ /; isField[Head[op]] :> rescaleHoloFieldByParameter[parameter][op];
+
+normalizeScalingParameterForModeProjection::usage =
+  "Pulls a common scaling parameter out of additive terms when all summands carry it.";
+normalizeScalingParameterForModeProjection[expr_, parameter_] := FixedPoint[
+  ReplaceAll[
+    #,
+    {
+      sum_Plus /; AllTrue[List @@ sum, MatchQ[#, parameter*__] &] :>
+        parameter Total[(# / parameter) & /@ (List @@ sum)]
+    }
+  ] &,
+  expr
+];
+
+projectScaledExpressionAtHoloPower::usage =
+  "Projects a scaled holomorphic expression onto a fixed contour power around zero.";
+projectScaledExpressionAtHoloPower[scaledExpr_, targetPower_, parameter_] := Module[
+  {result = 0, expandedExpr, terms, scaledTerm, termPower, expansionOrder},
+  If[scaledExpr === 1,
+    Return[If[targetPower === 0, 1, 0]]
+  ];
+  expandedExpr = Expand[scaledExpr];
+  terms = If[Head[expandedExpr] === Plus, List @@ expandedExpr, {expandedExpr}];
+  Scan[
+    Function[term,
+      scaledTerm = normalizeScalingParameterForModeProjection[term, parameter];
+      termPower = Exponent[scaledTerm, parameter];
+      expansionOrder = -termPower + targetPower;
+      If[IntegerQ[expansionOrder] && expansionOrder >= 0,
+        result = result + TaylorAtOrderHolo[scaledTerm, expansionOrder, 0]
+      ]
+    ],
+    terms
+  ];
+  result /. {parameter -> 1}
+];
+
+extractHoloPowerCoefficient::usage =
+  "Extracts the holomorphic contour coefficient with a given power from an OPE expression.";
+extractHoloPowerCoefficient[expr_, targetPower_] := Module[{parameter = Unique["\[Epsilon]Mode"]},
+  projectScaledExpressionAtHoloPower[
+    rescaleHoloExpressionByParameter[expr, parameter],
+    targetPower,
+    parameter
+  ]
+];
+
+modeExtractionPower::usage =
+  "Returns the contour extraction power for one TypeII superghost oscillator mode.";
+modeExtractionPower[mode[\[Beta], modeNumber_]] := -modeNumber - 3/2;
+modeExtractionPower[mode[\[Gamma], modeNumber_]] := -modeNumber + 1/2;
+
+superghostModePieces::usage =
+  "Returns {xi/eta piece, expPhi piece, picture shift} for one superghost mode.";
+superghostModePieces[mode[\[Beta], _], z_] := {\[Xi][1, z], exp\[Phi]f[-1, z], -1};
+superghostModePieces[mode[\[Gamma], _], z_] := {\[Eta][0, z], exp\[Phi]f[1, z], 1};
+
+intermediateGroundExponential::usage =
+  "Builds the temporary exponential representation of the picture ground state.";
+intermediateGroundExponential[picture_, z_] := exp\[Phi]f[picture, z];
+
+stripGroundExponential::usage =
+  "Removes one temporary exponential ground-state factor of the requested charge.";
+stripGroundExponential[expr_, picture_] := expr /. {
+  exp\[Phi]f[picture, 0] -> 1,
+  exp\[Phi]b[picture, 0] -> 1
+};
+
+applyOneSuperghostMode::usage =
+  "Applies one superghost mode to {picture, non-exp expression} via split OPE and contour projection.";
+applyOneSuperghostMode[{picture_, nonExpExpr_}, superghostMode : mode[(\[Beta] | \[Gamma]), _]] := Module[
+  {
+    z = Unique["zMode"],
+    scalingParameter = Unique["\[Epsilon]Mode"],
+    incomingNonExp,
+    incomingExp,
+    pictureShift,
+    extractionPower,
+    currentNonExpR,
+    groundExp,
+    scaledIncomingNonExp,
+    scaledIncomingExp,
+    nonExpOPE,
+    expOPE,
+    combinedOPE,
+    projectedOPE,
+    newPicture,
+    strippedExpr
+  },
+  {incomingNonExp, incomingExp, pictureShift} = superghostModePieces[superghostMode, z];
+  extractionPower = modeExtractionPower[superghostMode];
+  currentNonExpR = If[nonExpExpr === 1 || RTest[nonExpExpr], nonExpExpr, R[nonExpExpr]];
+  groundExp = intermediateGroundExponential[picture, 0];
+  scaledIncomingNonExp = rescaleHoloFieldByParameter[scalingParameter][incomingNonExp];
+  scaledIncomingExp = rescaleHoloFieldByParameter[scalingParameter][incomingExp];
+  nonExpOPE = OPE[R[scaledIncomingNonExp], currentNonExpR];
+  expOPE = OPE[R[scaledIncomingExp], R[groundExp]];
+  combinedOPE = multiplyOperatorExpressions[nonExpOPE, expOPE];
+  projectedOPE =
+    projectScaledExpressionAtHoloPower[combinedOPE, extractionPower, scalingParameter];
+  projectedOPE = Simplify[projectedOPE /. {z -> 1}];
+  newPicture = picture + pictureShift;
+  strippedExpr = stripGroundExponential[projectedOPE, newPicture];
+  {newPicture, strippedExpr}
+];
+
+superghostExpressionAndFinalPicture::usage =
+  "Converts a list of superghost modes to a non-ground expression and final picture value.";
+superghostExpressionAndFinalPicture[superghostModes_List, initialPicture_] := Fold[
+  applyOneSuperghostMode,
+  {initialPicture, 1},
+  superghostModes
+];
+
+dXModeToOperatorField::usage =
+  "Converts one dX mode to local-operator form at z.";
+dXModeToOperatorField[mode[dX[_], modeNumber_Integer], z_] := Module[{mu},
+  dX[mu, -1 - modeNumber, z]
+];
+
+psiModeToOperatorField::usage =
+  "Converts one psi mode to local-operator form at z.";
+psiModeToOperatorField[mode[\[Psi][_], modeNumber_], z_] := Module[{mu},
+  \[Psi][mu, -1/2 - modeNumber, z]
+];
+
+psiModeToSpinMode::usage =
+  "Converts one Ramond psi mode to a spin-field mode-pair entry.";
+psiModeToSpinMode[mode[\[Psi][_], modeNumber_Integer]] := Module[{mu},
+  {mu, -modeNumber}
+];
+
+integerPictureGroundField::usage =
+  "Builds the integer-picture matter ground-state exponential at z.";
+integerPictureGroundField[picture_Integer, z_] :=
+  If[OddQ[picture], exp\[Phi]f[picture, z], exp\[Phi]b[picture, z]];
+
+modeListSplitForHoloConversion::usage =
+  "Splits a holomorphic mode list into {bc, superghost, dX, psi} subsectors.";
+modeListSplitForHoloConversion[modeList_List] := Module[{bcModes, superghostModes, dXModes, psiModes},
+  bcModes = Cases[modeList, mode[(b | c), _]];
+  superghostModes = Cases[modeList, mode[(\[Beta] | \[Gamma]), _]];
+  dXModes = Cases[modeList, mode[dX[_], _]];
+  psiModes = Cases[modeList, mode[\[Psi][_], _]];
+  {bcModes, superghostModes, dXModes, psiModes}
+];
+
+buildMatterOperatorFromModesAtPicture::usage =
+  "Builds the matter operator factors from dX/psi modes at a specified picture value.";
+buildMatterOperatorFromModesAtPicture[
+  pictureSpec_?validPictureSpecQ,
+  pictureValueNow_,
+  dXModes_List,
+  psiModes_List,
+  z_,
+  spinHead_Symbol
+] := Module[
+  {dXFields, psiFields, spinModes, chirality, spinGround},
+  dXFields = dXModeToOperatorField[#, z] & /@ dXModes;
+  If[IntegerQ[pictureValueNow],
+    psiFields = psiModeToOperatorField[#, z] & /@ psiModes;
+    Return[R @@ Join[dXFields, psiFields, {integerPictureGroundField[pictureValueNow, z]}]]
+  ];
+  spinModes = psiModeToSpinMode /@ psiModes;
+  chirality = pictureChirality[pictureSpec];
+  spinGround = Module[{\[Alpha]},
+    spinHead[{\[Alpha], chirality}, pictureValueNow, spinModes, 0, z]
+  ];
+  R @@ Join[dXFields, {spinGround}]
+];
+
+assembleHoloOperatorFromModeList::usage =
+  "Converts one holomorphic TypeII mode list into one local operator expression.";
+assembleHoloOperatorFromModeList[
+  pictureSpec_?validPictureSpecQ,
+  modeList_List,
+  z_: 0,
+  canonicalizeIndices_: True
+] := Module[
+  {
+    bcModes,
+    superghostModes,
+    dXModes,
+    psiModes,
+    bcFields,
+    superghostResult,
+    finalPicture,
+    superghostExpr,
+    matterExpr,
+    rawOperator
+  },
+  {bcModes, superghostModes, dXModes, psiModes} = modeListSplitForHoloConversion[modeList];
+  bcFields = ghostModesToOperatorFields[bcModes, z];
+  superghostResult = superghostExpressionAndFinalPicture[superghostModes, pictureValue[pictureSpec]];
+  finalPicture = superghostResult[[1]];
+  superghostExpr = superghostResult[[2]];
+  matterExpr = buildMatterOperatorFromModesAtPicture[
+    pictureSpec,
+    finalPicture,
+    dXModes,
+    psiModes,
+    z,
+    S
+  ];
+  rawOperator = R @@ Join[bcFields, {superghostExpr, matterExpr}];
+  canonicalizeOperatorIndicesQ[canonicalizeIndices, rawOperator]
+];
+
+holoModeFromAntiMode::usage =
+  "Maps one antiholomorphic mode object to its holomorphic counterpart.";
+holoModeFromAntiMode[mode[bt, modeNumber_]] := mode[b, modeNumber];
+holoModeFromAntiMode[mode[ct, modeNumber_]] := mode[c, modeNumber];
+holoModeFromAntiMode[mode[\[Beta]t, modeNumber_]] := mode[\[Beta], modeNumber];
+holoModeFromAntiMode[mode[\[Gamma]t, modeNumber_]] := mode[\[Gamma], modeNumber];
+holoModeFromAntiMode[mode[dXt[mu_], modeNumber_]] := mode[dX[mu], modeNumber];
+holoModeFromAntiMode[mode[\[Psi]t[mu_], modeNumber_]] := mode[\[Psi][mu], modeNumber];
+holoModeFromAntiMode[modeObj_] := modeObj;
+
+antiOperatorFromHolo::usage =
+  "Maps a holomorphic operator expression to antiholomorphic symbols.";
+antiOperatorFromHolo[expr_] := expr /. {
+  b -> bt,
+  c -> ct,
+  \[Xi] -> \[Xi]t,
+  \[Eta] -> \[Eta]t,
+  d\[Phi] -> d\[Phi]t,
+  dX -> dXt,
+  \[Psi] -> \[Psi]t,
+  exp\[Phi]f -> exp\[Phi]tf,
+  exp\[Phi]b -> exp\[Phi]tb,
+  S -> St
+};
+
+assembleAntiOperatorFromModeList::usage =
+  "Converts one antiholomorphic TypeII mode list into one local operator expression.";
+assembleAntiOperatorFromModeList[
+  pictureSpec_?validPictureSpecQ,
+  modeList_List,
+  zbar_: 0,
+  canonicalizeIndices_: True
+] := Module[
+  {holoModes, holoOperator},
+  holoModes = holoModeFromAntiMode /@ modeList;
+  holoOperator = assembleHoloOperatorFromModeList[
+    pictureSpec,
+    holoModes,
+    zbar,
+    canonicalizeIndices
+  ];
+  antiOperatorFromHolo[holoOperator]
+];
+
+antiModeSpeciesQ::usage =
+  "Returns True if a mode species is antiholomorphic.";
+antiModeSpeciesQ[symbol_Symbol] := MemberQ[{bt, ct, \[Beta]t, \[Gamma]t, dXt, \[Psi]t}, symbol];
+
+splitJoinedModesByChirality::usage =
+  "Splits a joined closed-string mode list into {holoModes, antiModes}.";
+splitJoinedModesByChirality[joinedModeList_List] := Module[{holoModes, antiModes},
+  holoModes = Select[
+    joinedModeList,
+    MatchQ[#, mode[_, _]] && !antiModeSpeciesQ[basisModeSpecies[#]] &
+  ];
+  antiModes = Select[
+    joinedModeList,
+    MatchQ[#, mode[_, _]] && antiModeSpeciesQ[basisModeSpecies[#]] &
+  ];
+  {holoModes, antiModes}
+];
+
+closedOperatorFromJoinedModeList::usage =
+  "Converts one joined closed-string mode list to R[holoOperator, antiOperator].";
+closedOperatorFromJoinedModeList[
+  pictures : {pictureLeft_?validPictureSpecQ, pictureRight_?validPictureSpecQ},
+  joinedModeList_List,
+  z_: 0,
+  zbar_: 0,
+  canonicalizeIndices_: True
+] := Module[{splitModes, holoOperator, antiOperator},
+  splitModes = splitJoinedModesByChirality[joinedModeList];
+  holoOperator = assembleHoloOperatorFromModeList[
+    pictureLeft,
+    splitModes[[1]],
+    z,
+    canonicalizeIndices
+  ];
+  antiOperator = assembleAntiOperatorFromModeList[
+    pictureRight,
+    splitModes[[2]],
+    zbar,
+    canonicalizeIndices
+  ];
+  canonicalizeOperatorIndicesQ[canonicalizeIndices, R[holoOperator, antiOperator]]
+];
+
+convertMatterGroupToOperatorsHolo::usage =
+  "Converts one matter-mode group {picture, modeLists} to operator representation.";
+convertMatterGroupToOperatorsHolo[
+  group : {picture_?validPictureSpecQ, matterModeLists_List},
+  canonicalizeIndices_
+] := Module[
+  {operators},
+  operators = DeleteCases[
+    assembleHoloOperatorFromModeList[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
+    0
+  ];
+  {picture, DeleteDuplicates[operators]}
+];
+
+convertMatterGroupToOperatorsAnti::usage =
+  "Converts one antiholomorphic matter-mode group {picture, modeLists} to operator representation.";
+convertMatterGroupToOperatorsAnti[
+  group : {picture_?validPictureSpecQ, matterModeLists_List},
+  canonicalizeIndices_
+] := Module[
+  {operators},
+  operators = DeleteCases[
+    assembleAntiOperatorFromModeList[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
+    0
+  ];
+  {picture, DeleteDuplicates[operators]}
+];
+
+groupedResultToList::usage =
+  "Normalizes grouped results to a list of groups using a single-group pattern.";
+groupedResultToList[result_, singleGroupPattern_] := Which[
+  result === {}, {},
+  MatchQ[result, singleGroupPattern], {result},
+  ListQ[result], result,
+  True, {}
+];
+
+flattenGroupedOperatorEntries::usage =
+  "Extracts and deduplicates operator entries from grouped results.";
+flattenGroupedOperatorEntries[groupedResults_List] :=
+  DeleteDuplicates[Flatten[groupedResults[[All, 2]] /. {} -> {}, 1]];
+
+convertGroupedResultToOperators::usage =
+  "Converts grouped mode results to deduplicated operator lists.";
+convertGroupedResultToOperators[result_, singleGroupPattern_, convertGroupFunction_, canonicalizeIndices_] := Module[
+  {groups, convertedGroups},
+  groups = groupedResultToList[result, singleGroupPattern];
+  convertedGroups = convertGroupFunction[#, canonicalizeIndices] & /@ groups;
+  flattenGroupedOperatorEntries[convertedGroups]
+];
+
+mapGroupedResultPreservingShape::usage =
+  "Maps grouped results while preserving whether input was empty, single-group, or list.";
+mapGroupedResultPreservingShape[result_, singleGroupPattern_, mapGroupFunction_] := Which[
+  result === {}, {},
+  MatchQ[result, singleGroupPattern], mapGroupFunction[result],
+  ListQ[result], mapGroupFunction /@ result,
+  True, {}
+];
+
+convertSectorBasisToOperators::usage =
+  "Converts sector basis tuples {pictureSpec, modeList} to deduplicated operator lists.";
+convertSectorBasisToOperators[basis_List, assembleFunction_, canonicalizeIndices_] := Module[{converted},
+  converted = assembleFunction[#[[1]], #[[2]], 0, canonicalizeIndices] & /@ basis;
+  DeleteDuplicates[DeleteCases[converted, 0]]
+];
+
+collapseExpandedResult::usage =
+  "Collapses expanded grouped results to a single group when expansion size is one.";
+collapseExpandedResult[groupedResults_List, collapseToSingleQ_?BooleanQ] :=
+  If[groupedResults === {}, {}, If[collapseToSingleQ, First[groupedResults], groupedResults]];
+
+convertMatterResultToRepresentationHolo::usage =
+  "Converts a matter-only API result to the requested output representation.";
+convertMatterResultToRepresentationHolo[result_, "Modes", _] := result;
+convertMatterResultToRepresentationHolo[result_, "Operators", canonicalizeIndices_] :=
+  convertGroupedResultToOperators[
+    result,
+    {_?validPictureSpecQ, _List},
+    convertMatterGroupToOperatorsHolo,
+    canonicalizeIndices
+  ];
+
+convertMatterResultToRepresentationAnti::usage =
+  "Converts an antiholomorphic matter-only API result to the requested output representation.";
+convertMatterResultToRepresentationAnti[result_, "Modes", _] := result;
+convertMatterResultToRepresentationAnti[result_, "Operators", canonicalizeIndices_] :=
+  convertGroupedResultToOperators[
+    result,
+    {_?validPictureSpecQ, _List},
+    convertMatterGroupToOperatorsAnti,
+    canonicalizeIndices
+  ];
+
+convertHoloBasisToRepresentation::usage =
+  "Converts a holomorphic basis list to the requested representation.";
+convertHoloBasisToRepresentation[basis_List, "Modes", _] := basis;
+convertHoloBasisToRepresentation[basis_List, "Operators", canonicalizeIndices_] :=
+  convertSectorBasisToOperators[basis, assembleHoloOperatorFromModeList, canonicalizeIndices];
+
+convertAntiBasisToRepresentation::usage =
+  "Converts an antiholomorphic basis list to the requested representation.";
+convertAntiBasisToRepresentation[basis_List, "Modes", _] := basis;
+convertAntiBasisToRepresentation[basis_List, "Operators", canonicalizeIndices_] :=
+  convertSectorBasisToOperators[basis, assembleAntiOperatorFromModeList, canonicalizeIndices];
+
+convertClosedGroupToOperators::usage =
+  "Converts one grouped closed-string mode result to operator representation.";
+convertClosedGroupToOperators[
+  group : {pictures : {_?validPictureSpecQ, _?validPictureSpecQ}, states_List},
+  canonicalizeIndices_
+] := Module[
+  {operators},
+  operators = DeleteCases[
+    closedOperatorFromJoinedModeList[pictures, #, 0, 0, canonicalizeIndices] & /@ states,
+    0
+  ];
+  {pictures, DeleteDuplicates[operators]}
+];
+
+convertClosedResultToRepresentation::usage =
+  "Converts closed-string grouped basis output to the requested representation.";
+convertClosedResultToRepresentation[result_, "Modes", _] := result;
+convertClosedResultToRepresentation[result_, "Operators", canonicalizeIndices_] :=
+  convertGroupedResultToOperators[
+    result,
+    {{_?validPictureSpecQ, _?validPictureSpecQ}, _List},
+    convertClosedGroupToOperators,
+    canonicalizeIndices
+  ];
+
 (* ============================================================ *)
 (* SECTION 5: CLOSED STRING COMBINATORICS                       *)
 (* ============================================================ *)
@@ -703,26 +1216,13 @@ GSOParitySelectionFromLegacyProjection[projected_?BooleanQ] :=
 
 readGSOParityOption::usage =
   "Reads string option \"GSOParity\" and validates it; returns default when absent.";
-readGSOParityOption[opts_List, default_] := Module[
-  {optionAssociation, legacySymbolUsedQ, optionValue},
-  optionAssociation = Association[opts];
-  legacySymbolUsedQ = AnyTrue[
+readGSOParityOption[opts_List, default_] :=
+  basisReadValidatedOption[
     opts,
-    Function[opt,
-      MatchQ[opt, _Rule] &&
-        Head[First[opt]] === Symbol &&
-        SymbolName[First[opt]] === "GSOParity"
-    ]
-  ];
-  If[legacySymbolUsedQ && !KeyExistsQ[optionAssociation, "GSOParity"],
-    Return[$Failed]
-  ];
-  optionValue = Lookup[optionAssociation, "GSOParity", default];
-  If[optionValue === default,
+    "GSOParity",
     default,
-    If[validGSOParitySelectionQ[optionValue], optionValue, $Failed]
-  ]
-];
+    Function[value, value === default || validGSOParitySelectionQ[value]]
+  ];
 
 parseGSOParityOptionFromList::usage =
   "Parses GSO selector from options with legacy GSOProjected compatibility.";
@@ -749,6 +1249,35 @@ parseGSOParityOption::usage =
   "Parses GSO selector from options.";
 parseGSOParityOption[opts___] :=
   parseGSOParityOptionFromList[Flatten[{opts}]];
+
+validOutputRepresentationQ::usage =
+  "Checks whether an output representation selector is \"Operators\" or \"Modes\".";
+validOutputRepresentationQ[value_] := MemberQ[{"Operators", "Modes"}, value];
+
+readOutputRepresentationOption::usage =
+  "Reads option \"OutputRepresentation\" and validates it.";
+readOutputRepresentationOption[opts_List, default_] :=
+  basisReadValidatedOption[opts, "OutputRepresentation", default, validOutputRepresentationQ];
+
+readCanonicalizeIndicesOption::usage =
+  "Reads option \"CanonicalizeIndices\" and validates it as a boolean.";
+readCanonicalizeIndicesOption[optionList_List, default_] :=
+  basisReadCanonicalizeIndicesOption[optionList, default];
+
+parseRepresentationConversionOptionsFromList::usage =
+  "Parses output representation and canonicalization options from an option list.";
+parseRepresentationConversionOptionsFromList[optionList_List] := Module[
+  {outputRepresentation, canonicalizeIndices},
+  If[!OptionQ[optionList],
+    Return[$Failed]
+  ];
+  outputRepresentation = readOutputRepresentationOption[optionList, "Operators"];
+  canonicalizeIndices = readCanonicalizeIndicesOption[optionList, True];
+  If[outputRepresentation === $Failed || canonicalizeIndices === $Failed,
+    $Failed,
+    {outputRepresentation, canonicalizeIndices}
+  ]
+];
 
 (* Parse both "LevelMatched" and GSO parity options. *)
 parseFullBasisOptions[opts___] := Module[
@@ -1239,17 +1768,23 @@ generateBasisMatterHolo[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
   opts___
-] := Module[{groupedBySpec},
+] := Module[
+  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, groupedBySpec, groupedModeResult},
+  optionList = Flatten[{opts}];
+  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
+  If[parsedRepresentationOptions === $Failed,
+    Return[{}]
+  ];
+  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
   groupedBySpec = DeleteCases[
     generateBasisMatterHoloForPictureSpec[weight, #, opts] & /@ expandPictureSpecs[picture],
     {}
   ];
-  If[groupedBySpec === {},
-    {},
-    If[Length[groupedBySpec] == 1,
-      First[groupedBySpec],
-      groupedBySpec
-    ]
+  groupedModeResult = collapseExpandedResult[groupedBySpec, Length[groupedBySpec] == 1];
+  convertMatterResultToRepresentationHolo[
+    groupedModeResult,
+    outputRepresentation,
+    canonicalizeIndices
   ]
 ];
 
@@ -1262,46 +1797,66 @@ antiMatterModeListsFromHolo::usage =
 antiMatterModeListsFromHolo[matterModeLists_List] :=
   (antiModeFromHolo /@ #) & /@ matterModeLists;
 
+antiMatterGroupFromHolo::usage =
+  "Converts one grouped holomorphic matter-mode entry to antiholomorphic modes.";
+antiMatterGroupFromHolo[group : {picture_?validPictureSpecQ, matterModeLists_List}] :=
+  {picture, antiMatterModeListsFromHolo[matterModeLists]};
+
 generateBasisMatterAntiHolo[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
   opts___
-] := Module[{holoMatter},
-  holoMatter = generateBasisMatterHolo[weight, picture, opts];
-  Which[
-    holoMatter === {}, {},
-    MatchQ[holoMatter, {_?validPictureSpecQ, _List}],
-      {holoMatter[[1]], antiMatterModeListsFromHolo[holoMatter[[2]]]},
-    ListQ[holoMatter],
-      ({#[[1]], antiMatterModeListsFromHolo[#[[2]]]} &) /@ holoMatter,
-    True, {}
+] := Module[
+  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, holoMatterModes, antiMatterModes},
+  optionList = Flatten[{opts}];
+  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
+  If[parsedRepresentationOptions === $Failed,
+    Return[{}]
+  ];
+  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
+  holoMatterModes = generateBasisMatterHolo[
+    weight,
+    picture,
+    opts,
+    "OutputRepresentation" -> "Modes"
+  ];
+  antiMatterModes = mapGroupedResultPreservingShape[
+    holoMatterModes,
+    {_?validPictureSpecQ, _List},
+    antiMatterGroupFromHolo
+  ];
+  convertMatterResultToRepresentationAnti[
+    antiMatterModes,
+    outputRepresentation,
+    canonicalizeIndices
   ]
 ];
 
 generateBasisMatterAntiHolo[___] := {};
-
-generateBasisMatter::usage =
-  "Alias for generateBasisMatterHolo.";
-generateBasisMatter[
-  weight_?validWeightQ,
-  picture_?validPictureInputQ,
-  opts___
-] := generateBasisMatterHolo[weight, picture, opts];
-
-generateBasisMatter[___] := {};
 
 generateBasisHolo[
   weight_?validWeightQ,
   ghostNumber_Integer,
   picture_?validPictureInputQ,
   opts___
-] := Module[{basisBySpec},
+] := Module[
+  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, basisBySpec},
+  optionList = Flatten[{opts}];
+  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
+  If[parsedRepresentationOptions === $Failed,
+    Return[{}]
+  ];
+  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
   (* Expand picture to specs (handles chirality for Ramond) *)
   basisBySpec = Flatten[
     generateBasisHoloForPictureSpec[weight, ghostNumber, #, opts] & /@ expandPictureSpecs[picture],
     1
   ];
-  DeleteDuplicates[basisBySpec]
+  convertHoloBasisToRepresentation[
+    DeleteDuplicates[basisBySpec],
+    outputRepresentation,
+    canonicalizeIndices
+  ]
 ];
 
 generateBasisHolo[___] := {};
@@ -1311,12 +1866,23 @@ generateBasisAntiHolo[
   ghostNumber_Integer,
   picture_?validPictureInputQ,
   opts___
-] := Module[{basisBySpec},
+] := Module[
+  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, basisBySpec},
+  optionList = Flatten[{opts}];
+  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
+  If[parsedRepresentationOptions === $Failed,
+    Return[{}]
+  ];
+  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
   basisBySpec = Flatten[
     generateBasisAntiHoloForPictureSpec[weight, ghostNumber, #, opts] & /@ expandPictureSpecs[picture],
     1
   ];
-  DeleteDuplicates[basisBySpec]
+  convertAntiBasisToRepresentation[
+    DeleteDuplicates[basisBySpec],
+    outputRepresentation,
+    canonicalizeIndices
+  ]
 ];
 
 generateBasisAntiHolo[___] := {};
@@ -1327,7 +1893,22 @@ generateBasis[
   pictures : {pictureLeft_?validPictureInputQ, pictureRight_?validPictureInputQ},
   opts___
 ] := Module[
-  {leftSpecs, rightSpecs, groupedResults},
+  {
+    optionList,
+    parsedRepresentationOptions,
+    outputRepresentation,
+    canonicalizeIndices,
+    leftSpecs,
+    rightSpecs,
+    groupedResults,
+    groupedModeResult
+  },
+  optionList = Flatten[{opts}];
+  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
+  If[parsedRepresentationOptions === $Failed,
+    Return[{}]
+  ];
+  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
   (* Expand both pictures to handle Ramond chiralities *)
   leftSpecs = expandPictureSpecs[pictureLeft];
   rightSpecs = expandPictureSpecs[pictureRight];
@@ -1344,12 +1925,14 @@ generateBasis[
     {}
   ];
   (* Format output: single result if no expansion, list otherwise *)
-  If[groupedResults === {},
-    {},
-    If[Length[leftSpecs] == 1 && Length[rightSpecs] == 1,
-      First[groupedResults],
-      groupedResults
-    ]
+  groupedModeResult = collapseExpandedResult[
+    groupedResults,
+    Length[leftSpecs] == 1 && Length[rightSpecs] == 1
+  ];
+  convertClosedResultToRepresentation[
+    groupedModeResult,
+    outputRepresentation,
+    canonicalizeIndices
   ]
 ];
 

@@ -58,28 +58,24 @@ canonicalizeLorentzIndices[expr_] := Module[{indexSymbols, canonicalSymbols, ren
   expr /. renamingRules
 ];
 
-(* Final assembly stage: translate mode[...] data, then build/canonicalize the operator. *)
-buildHoloOperatorFromModes[ghostModes_List, matterModes_List, z_] := Module[
-  {ghostFields, matterFields, rawOperator},
-  ghostFields = ghostModesToOperatorFields[ghostModes, z];
-  matterFields = flatSpaceMatterModesToOperatorFields[matterModes, z];
-  rawOperator = R @@ Join[ghostFields, matterFields];
-  canonicalizeLorentzIndices[rawOperator]
-];
+canonicalizeLorentzIndicesQ::usage =
+  "Applies Lorentz-index canonicalization only when canonicalizeIndices is True.";
+canonicalizeLorentzIndicesQ[canonicalizeIndices_?BooleanQ, expr_] :=
+  If[TrueQ[canonicalizeIndices], canonicalizeLorentzIndices[expr], expr];
 
 matterOperatorFromModes::usage =
   "Builds one matter-only local operator from FlatSpace matter mode data.";
-matterOperatorFromModes[matterModes_List, z_] := Module[{matterFields},
+matterOperatorFromModes[matterModes_List, z_, canonicalizeIndices_: True] := Module[{matterFields},
   matterFields = flatSpaceMatterModesToOperatorFields[matterModes, z];
   If[matterFields === {},
     1,
-    canonicalizeLorentzIndices[R @@ matterFields]
+    canonicalizeLorentzIndicesQ[canonicalizeIndices, R @@ matterFields]
   ]
 ];
 
 joinGhostWithMatterOperator::usage =
   "Combines ghost modes with one matter-only operator into a canonicalized local operator.";
-joinGhostWithMatterOperator[ghostModes_List, matterOperator_, z_] := Module[
+joinGhostWithMatterOperator[ghostModes_List, matterOperator_, z_, canonicalizeIndices_: True] := Module[
   {ghostFields, matterFields, rawOperator},
   ghostFields = ghostModesToOperatorFields[ghostModes, z];
   matterFields = Which[
@@ -88,84 +84,133 @@ joinGhostWithMatterOperator[ghostModes_List, matterOperator_, z_] := Module[
     True, {matterOperator}
   ];
   rawOperator = R @@ Join[ghostFields, matterFields];
-  canonicalizeLorentzIndices[rawOperator]
+  canonicalizeLorentzIndicesQ[canonicalizeIndices, rawOperator]
+];
+
+withParsedPositionAndCanonicalize::usage =
+  "Parses optional position + CanonicalizeIndices and applies a handler on success.";
+withParsedPositionAndCanonicalize[args_List, defaultPosition_, handler_Function] := Module[
+  {parsedArgs},
+  parsedArgs = basisParsePositionAndCanonicalizeOption[args, defaultPosition, True];
+  If[parsedArgs === $Failed,
+    {},
+    handler @@ parsedArgs
+  ]
 ];
 
 generateBasisMatterHolo::usage =
   "Generates holomorphic bosonic matter-only local operators at fixed weight.";
-generateBasisMatterHolo[weight_Integer?NonNegative, z_: 0] := Module[
-  {matterModeConfigs, matterOperators},
-  matterModeConfigs = generateMatterModeConfigs[weight];
-  matterOperators = matterOperatorFromModes[#, z] & /@ matterModeConfigs;
-  DeleteDuplicates[matterOperators]
-];
+generateBasisMatterHolo[weight_Integer?NonNegative, args___] :=
+  withParsedPositionAndCanonicalize[
+    Flatten[{args}],
+    0,
+    Function[{z, canonicalizeIndices},
+      Module[{matterModeConfigs, matterOperators},
+        matterModeConfigs = generateMatterModeConfigs[weight];
+        matterOperators = matterOperatorFromModes[#, z, canonicalizeIndices] & /@ matterModeConfigs;
+        DeleteDuplicates[matterOperators]
+      ]
+    ]
+  ];
 
 generateBasisMatterHolo[_, ___] := {};
 
 generateBasisMatterAntiHolo::usage =
   "Generates antiholomorphic bosonic matter-only local operators at fixed weight.";
-generateBasisMatterAntiHolo[weight_Integer?NonNegative, zbar_: 0] := (
-  generateBasisMatterHolo[weight, zbar] /. dX -> dXt
-);
+generateBasisMatterAntiHolo[weight_Integer?NonNegative, args___] :=
+  withParsedPositionAndCanonicalize[
+    Flatten[{args}],
+    0,
+    Function[{zbar, canonicalizeIndices},
+      generateBasisMatterHolo[
+        weight,
+        zbar,
+        "CanonicalizeIndices" -> canonicalizeIndices
+      ] /. dX -> dXt
+    ]
+  ];
 generateBasisMatterAntiHolo[_, ___] := {};
 
 generateBasisMatter::usage =
   "Alias for generateBasisMatterHolo.";
-generateBasisMatter[weight_Integer?NonNegative, z_: 0] :=
-  generateBasisMatterHolo[weight, z];
+generateBasisMatter[weight_Integer?NonNegative, args___] :=
+  generateBasisMatterHolo[weight, args];
 generateBasisMatter[_, ___] := {};
 
 (* Fast fail: no states can exist below the ghost lower bound at fixed ghost number. *)
-generateBasisHolo[weight_Integer, ghostNumber_Integer, z_: 0] /;
-    weight < minGhostWeightForGhostNumberBosonic[ghostNumber] := {};
-
-(* Holomorphic basis generation strategy:
-   1) Enumerate admissible ghost configs {ghostModes,ghostWeight}.
-   2) Fill remaining weight with FlatSpace matter mode configs.
-   3) Translate mode[...] data to local operators only at the final stage. *)
-generateBasisHolo[weight_Integer, ghostNumber_Integer, z_: 0] := Module[
-  {ghostSectorConfigs, collectedOperators, basisOperators},
-  ghostSectorConfigs =
-    generateGhostConfigsHolo[weight, ghostNumber];
-  If[ghostSectorConfigs === {},
-    Return[{}]
-  ];
-  collectedOperators = Reap[
-    Scan[
-      Function[ghostConfig,
-        Module[{ghostModes, ghostSectorWeight, remainingMatterWeight, matterOperators},
-          {ghostModes, ghostSectorWeight} = ghostConfig;
-          remainingMatterWeight = weight - ghostSectorWeight;
-          If[remainingMatterWeight >= 0,
-            matterOperators = generateBasisMatterHolo[remainingMatterWeight, z];
-            Scan[
-              Function[matterOperator,
-                Module[{candidateOperator},
-                  candidateOperator = joinGhostWithMatterOperator[ghostModes, matterOperator, z];
-                  (* Keep only non-trivial normal-ordered products. *)
-                  If[candidateOperator =!= 1,
-                    Sow[candidateOperator]
+generateBasisHolo[weight_Integer, ghostNumber_Integer, args___] :=
+  withParsedPositionAndCanonicalize[
+    Flatten[{args}],
+    0,
+    Function[{z, canonicalizeIndices},
+      Module[{ghostSectorConfigs, collectedOperators, basisOperators},
+        If[weight < minGhostWeightForGhostNumberBosonic[ghostNumber],
+          Return[{}]
+        ];
+        (* Holomorphic basis generation strategy:
+           1) Enumerate admissible ghost configs {ghostModes,ghostWeight}.
+           2) Fill remaining weight with FlatSpace matter mode configs.
+           3) Translate mode[...] data to local operators only at the final stage. *)
+        ghostSectorConfigs = generateGhostConfigsHolo[weight, ghostNumber];
+        If[ghostSectorConfigs === {},
+          Return[{}]
+        ];
+        collectedOperators = Reap[
+          Scan[
+            Function[ghostConfig,
+              Module[{ghostModes, ghostSectorWeight, remainingMatterWeight, matterOperators},
+                {ghostModes, ghostSectorWeight} = ghostConfig;
+                remainingMatterWeight = weight - ghostSectorWeight;
+                If[remainingMatterWeight >= 0,
+                  matterOperators = generateBasisMatterHolo[
+                    remainingMatterWeight,
+                    z,
+                    "CanonicalizeIndices" -> canonicalizeIndices
+                  ];
+                  Scan[
+                    Function[matterOperator,
+                      Module[{candidateOperator},
+                        candidateOperator = joinGhostWithMatterOperator[
+                          ghostModes,
+                          matterOperator,
+                          z,
+                          canonicalizeIndices
+                        ];
+                        (* Keep only non-trivial normal-ordered products. *)
+                        If[candidateOperator =!= 1,
+                          Sow[candidateOperator]
+                        ]
+                      ]
+                    ],
+                    matterOperators
                   ]
-                ]
-              ],
-              matterOperators
-            ]
-          ];
-        ]
-      ],
-      ghostSectorConfigs
+                ];
+              ]
+            ],
+            ghostSectorConfigs
+          ]
+        ][[2]];
+        basisOperators = If[collectedOperators === {}, {}, collectedOperators[[1]]];
+        basisOperators
+      ]
     ]
-  ][[2]];
-  basisOperators = If[collectedOperators === {}, {}, collectedOperators[[1]]];
-  basisOperators
-];
-
+  ];
 generateBasisHolo[_, _, ___] := {};
 
 (* Anti-holomorphic basis is the same combinatorics, with symbol relabeling. *)
-generateBasisAntiHolo[weight_Integer, ghostNumber_Integer, zbar_: 0] := (
-  generateBasisHolo[weight, ghostNumber, zbar] /. {b -> bt, c -> ct, dX -> dXt}
-);
+generateBasisAntiHolo[weight_Integer, ghostNumber_Integer, args___] :=
+  withParsedPositionAndCanonicalize[
+    Flatten[{args}],
+    0,
+    Function[{zbar, canonicalizeIndices},
+      generateBasisHolo[
+        weight,
+        ghostNumber,
+        zbar,
+        "CanonicalizeIndices" -> canonicalizeIndices
+      ] /. {b -> bt, c -> ct, dX -> dXt}
+    ]
+  ];
 generateBasisAntiHolo[_, _, ___] := {};
 
 (* For fixed total (ghostNumber, weight), find all feasible holomorphic ghost-number splits.
@@ -195,14 +240,34 @@ ghostSplitRange[ghostNumber_Integer, weight_Integer] := Module[
 
 (* We treat the vacuum as available when a sector has (weight, ghostNumber)=(0,0),
    but final full basis still removes overall identity later. *)
-sectorBasisWithVacuum[generator_, sectorWeight_Integer, sectorGhostNumber_Integer, position_] :=
-  If[sectorGhostNumber == 0 && sectorWeight == 0, {1}, generator[sectorWeight, sectorGhostNumber, position]];
+sectorBasisWithVacuum::usage =
+  "Returns {1} for vacuum sectors; otherwise calls a sector generator with canonicalization option.";
+sectorBasisWithVacuum[
+  generator_,
+  sectorWeight_Integer,
+  sectorGhostNumber_Integer,
+  position_,
+  canonicalizeIndices_: True
+] :=
+  If[
+    sectorGhostNumber == 0 && sectorWeight == 0,
+    {1},
+    generator[
+      sectorWeight,
+      sectorGhostNumber,
+      position,
+      "CanonicalizeIndices" -> canonicalizeIndices
+    ]
+  ];
 
 (* Build the Cartesian product of sector bases and combine as R[holo, anti].
    Ordering matches nested loops: anti basis varies fastest for each holo element. *)
-combineSectorBases[holoBasis_List, antiBasis_List] := Module[
+combineSectorBases::usage =
+  "Builds closed operators from holo/anti lists and optionally canonicalizes Lorentz indices.";
+combineSectorBases[holoBasis_List, antiBasis_List, canonicalizeIndices_: True] := Module[
   {combinedProducts},
-  combinedProducts = canonicalizeLorentzIndices /@ Flatten[Outer[R, holoBasis, antiBasis], 1];
+  combinedProducts = Flatten[Outer[R, holoBasis, antiBasis], 1];
+  combinedProducts = canonicalizeLorentzIndicesQ[canonicalizeIndices, #] & /@ combinedProducts;
   DeleteCases[combinedProducts, 1 | R[1, 1]]
 ];
 
@@ -211,7 +276,7 @@ combineSectorBases[holoBasis_List, antiBasis_List] := Module[
    2) Split total weight between sectors within minimal-weight bounds.
    3) Take Cartesian product of sector bases and combine with R[hol, anti].
    4) Remove duplicates from different split paths. *)
-generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
+generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0, canonicalizeIndices_: True] := Module[
   {holoGhostNumberSplits, collectedOperators, basisOperators},
   holoGhostNumberSplits = ghostSplitRange[ghostNumber, weight];
   If[holoGhostNumberSplits === {},
@@ -232,11 +297,23 @@ generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := 
           Do[
             Module[{antiWeight, holoBasis, antiBasis},
               antiWeight = weight - holoWeight;
-              holoBasis = sectorBasisWithVacuum[generateBasisHolo, holoWeight, holoGhostNumber, z];
+              holoBasis = sectorBasisWithVacuum[
+                generateBasisHolo,
+                holoWeight,
+                holoGhostNumber,
+                z,
+                canonicalizeIndices
+              ];
               If[holoBasis === {}, Continue[]];
-              antiBasis = sectorBasisWithVacuum[generateBasisAntiHolo, antiWeight, antiGhostNumber, zbar];
+              antiBasis = sectorBasisWithVacuum[
+                generateBasisAntiHolo,
+                antiWeight,
+                antiGhostNumber,
+                zbar,
+                canonicalizeIndices
+              ];
               If[antiBasis === {}, Continue[]];
-              Scan[Sow, combineSectorBases[holoBasis, antiBasis]]
+              Scan[Sow, combineSectorBases[holoBasis, antiBasis, canonicalizeIndices]]
             ],
             {holoWeight, minHoloWeight, maxHoloWeight}
           ]
@@ -249,24 +326,37 @@ generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := 
   DeleteDuplicates[basisOperators]
 ];
 
+parseBosonicFullBasisOptionsFromList::usage =
+  "Parses \"LevelMatched\" and \"CanonicalizeIndices\" from a full-basis option list.";
+parseBosonicFullBasisOptionsFromList[optionList_List] := Module[
+  {levelMatchedQ, canonicalizeIndices},
+  If[!OptionQ[optionList],
+    Return[$Failed]
+  ];
+  levelMatchedQ = readBooleanOption[optionList, "LevelMatched", True];
+  canonicalizeIndices = basisReadCanonicalizeIndicesOption[optionList, True];
+  If[levelMatchedQ === $Failed || canonicalizeIndices === $Failed,
+    $Failed,
+    {levelMatchedQ, canonicalizeIndices}
+  ]
+];
+
 (* Public full basis API:
    - "LevelMatched" -> True (default): return only level-matched states
    - "LevelMatched" -> False: include all holomorphic/antiholomorphic weight splits *)
 generateBasis[weight_Integer, ghostNumber_Integer, opts___] :=
   generateBasis[weight, ghostNumber, 0, 0, opts];
 generateBasis[weight_Integer, ghostNumber_Integer, z_, zbar_, opts___] := Module[
-  {optionList, levelMatchedQ},
+  {optionList, parsedOptions, levelMatchedQ, canonicalizeIndices},
   optionList = Flatten[{opts}];
-  If[!OptionQ[optionList],
+  parsedOptions = parseBosonicFullBasisOptionsFromList[optionList];
+  If[parsedOptions === $Failed,
     Return[{}]
   ];
-  levelMatchedQ = readBooleanOption[optionList, "LevelMatched", True];
-  If[levelMatchedQ === $Failed,
-    Return[{}]
-  ];
+  {levelMatchedQ, canonicalizeIndices} = parsedOptions;
   If[TrueQ[levelMatchedQ],
-    generateBasisLevelMatchedInternal[weight, ghostNumber, z, zbar],
-    generateBasisAllSplits[weight, ghostNumber, z, zbar]
+    generateBasisLevelMatchedInternal[weight, ghostNumber, z, zbar, canonicalizeIndices],
+    generateBasisAllSplits[weight, ghostNumber, z, zbar, canonicalizeIndices]
   ]
 ];
 generateBasis[_, _, ___] := {};
@@ -277,7 +367,13 @@ generateBasis[_, _, ___] := {};
    3) Build Cartesian products at fixed equal sector weights only. *)
 generateBasisLevelMatchedInternal::usage =
   "Internal helper that enumerates only level-matched closed-string states.";
-generateBasisLevelMatchedInternal[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
+generateBasisLevelMatchedInternal[
+  weight_Integer,
+  ghostNumber_Integer,
+  z_: 0,
+  zbar_: 0,
+  canonicalizeIndices_: True
+] := Module[
   {sectorWeight, holoGhostNumberSplits, collectedOperators, basisOperators},
   If[OddQ[weight],
     Return[{}]
@@ -296,11 +392,23 @@ generateBasisLevelMatchedInternal[weight_Integer, ghostNumber_Integer, z_: 0, zb
       Function[holoGhostNumber,
         Module[{antiGhostNumber, holoBasis, antiBasis},
           antiGhostNumber = ghostNumber - holoGhostNumber;
-          holoBasis = sectorBasisWithVacuum[generateBasisHolo, sectorWeight, holoGhostNumber, z];
+          holoBasis = sectorBasisWithVacuum[
+            generateBasisHolo,
+            sectorWeight,
+            holoGhostNumber,
+            z,
+            canonicalizeIndices
+          ];
           If[holoBasis === {}, Continue[]];
-          antiBasis = sectorBasisWithVacuum[generateBasisAntiHolo, sectorWeight, antiGhostNumber, zbar];
+          antiBasis = sectorBasisWithVacuum[
+            generateBasisAntiHolo,
+            sectorWeight,
+            antiGhostNumber,
+            zbar,
+            canonicalizeIndices
+          ];
           If[antiBasis === {}, Continue[]];
-          Scan[Sow, combineSectorBases[holoBasis, antiBasis]]
+          Scan[Sow, combineSectorBases[holoBasis, antiBasis, canonicalizeIndices]]
         ]
       ],
       holoGhostNumberSplits

@@ -1125,7 +1125,15 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result, test15Result, test16Result, test17Result, test18Result, test19Result, test20Result, test21Result, test22Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "uncanonMatter = generateBasisMatterHolo[2, \"CanonicalizeIndices\" -> False];\ncanonMatter = generateBasisMatterHolo[2, \"CanonicalizeIndices\" -> True];\nuncanonHolo = generateBasisHolo[2, 0, \"CanonicalizeIndices\" -> False];\ncanonHolo = generateBasisHolo[2, 0, \"CanonicalizeIndices\" -> True];\nuncanonFull = generateBasis[2, 0, \"LevelMatched\" -> False, \"CanonicalizeIndices\" -> False];\ncanonFull = generateBasis[2, 0, \"LevelMatched\" -> False, \"CanonicalizeIndices\" -> True];\nhasDollarQ[expr_] := !FreeQ[expr, _Symbol?(StringContainsQ[SymbolName[#], \"$\"] &)];\nnoDollarQ[expr_] := FreeQ[expr, _Symbol?(StringContainsQ[SymbolName[#], \"$\"] &)];\ntest23Result = uncanonMatter =!= {} && canonMatter =!= {} && uncanonHolo =!= {} && canonHolo =!= {} &&\n  AnyTrue[uncanonMatter, hasDollarQ] && AllTrue[canonMatter, noDollarQ] &&\n  AnyTrue[uncanonHolo, hasDollarQ] && AllTrue[canonHolo, noDollarQ] &&\n  uncanonFull =!= {} && canonFull =!= {} && Length[uncanonFull] == Length[canonFull];\nPrint[\"Test 23 (CanonicalizeIndices toggle works for bosonic APIs): \", If[test23Result, \"PASSED\", \"FAILED\"]];\ntest23Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result, test15Result, test16Result, test17Result, test18Result, test19Result, test20Result, test21Result, test22Result, test23Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
    "languageId": "wolfram",
    "outputs": [
     {
