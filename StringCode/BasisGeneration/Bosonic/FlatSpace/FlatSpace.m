@@ -327,17 +327,18 @@ generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0, can
 ];
 
 parseBosonicFullBasisOptionsFromList::usage =
-  "Parses \"LevelMatched\" and \"CanonicalizeIndices\" from a full-basis option list.";
+  "Parses \"LevelMatched\", \"CanonicalizeIndices\", and \"B0MinusProjected\" from a full-basis option list.";
 parseBosonicFullBasisOptionsFromList[optionList_List] := Module[
-  {levelMatchedQ, canonicalizeIndices},
+  {levelMatchedQ, canonicalizeIndices, b0MinusProjectedQ},
   If[!OptionQ[optionList],
     Return[$Failed]
   ];
   levelMatchedQ = readBooleanOption[optionList, "LevelMatched", True];
   canonicalizeIndices = basisReadCanonicalizeIndicesOption[optionList, True];
-  If[levelMatchedQ === $Failed || canonicalizeIndices === $Failed,
+  b0MinusProjectedQ = basisReadB0MinusProjectedOption[optionList, False];
+  If[levelMatchedQ === $Failed || canonicalizeIndices === $Failed || b0MinusProjectedQ === $Failed,
     $Failed,
-    {levelMatchedQ, canonicalizeIndices}
+    {levelMatchedQ, canonicalizeIndices, b0MinusProjectedQ}
   ]
 ];
 
@@ -347,16 +348,29 @@ parseBosonicFullBasisOptionsFromList[optionList_List] := Module[
 generateBasis[weight_Integer, ghostNumber_Integer, opts___] :=
   generateBasis[weight, ghostNumber, 0, 0, opts];
 generateBasis[weight_Integer, ghostNumber_Integer, z_, zbar_, opts___] := Module[
-  {optionList, parsedOptions, levelMatchedQ, canonicalizeIndices},
+  {
+    optionList,
+    parsedOptions,
+    levelMatchedQ,
+    canonicalizeIndices,
+    b0MinusProjectedQ,
+    generatedBasisOperators
+  },
   optionList = Flatten[{opts}];
   parsedOptions = parseBosonicFullBasisOptionsFromList[optionList];
   If[parsedOptions === $Failed,
     Return[{}]
   ];
-  {levelMatchedQ, canonicalizeIndices} = parsedOptions;
-  If[TrueQ[levelMatchedQ],
+  {levelMatchedQ, canonicalizeIndices, b0MinusProjectedQ} = parsedOptions;
+  generatedBasisOperators = If[TrueQ[levelMatchedQ],
     generateBasisLevelMatchedInternal[weight, ghostNumber, z, zbar, canonicalizeIndices],
     generateBasisAllSplits[weight, ghostNumber, z, zbar, canonicalizeIndices]
+  ];
+  If[TrueQ[b0MinusProjectedQ],
+    basisIndependentROperatorsFromExpressions[
+      basisProjectOperatorBasisByB0Minus[generatedBasisOperators]
+    ],
+    generatedBasisOperators
   ]
 ];
 generateBasis[_, _, ___] := {};

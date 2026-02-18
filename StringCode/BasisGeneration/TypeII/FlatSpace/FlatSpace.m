@@ -1212,6 +1212,30 @@ convertClosedGroupToOperators[
   {pictures, DeleteDuplicates[operators]}
 ];
 
+convertClosedGroupToOperatorExpressions::usage =
+  "Converts one grouped closed-string mode result to full operator expressions without splitting additive terms.";
+convertClosedGroupToOperatorExpressions[
+  group : {pictures : {_?validPictureSpecQ, _?validPictureSpecQ}, states_List},
+  canonicalizeIndices_
+] := Module[
+  {convertedExpressions},
+  convertedExpressions = DeleteCases[
+    closedOperatorFromJoinedModeList[pictures, #, 0, 0, canonicalizeIndices] & /@ states,
+    0
+  ];
+  {pictures, DeleteDuplicates[convertedExpressions]}
+];
+
+convertClosedResultToOperatorExpressions::usage =
+  "Converts grouped closed-string mode results to deduplicated full operator expressions.";
+convertClosedResultToOperatorExpressions[result_, canonicalizeIndices_] :=
+  convertGroupedResultToOperators[
+    result,
+    {{_?validPictureSpecQ, _?validPictureSpecQ}, _List},
+    convertClosedGroupToOperatorExpressions,
+    canonicalizeIndices
+  ];
+
 convertClosedResultToRepresentation::usage =
   "Converts closed-string grouped basis output to the requested representation.";
 convertClosedResultToRepresentation[result_, "Modes", _] := result;
@@ -1944,10 +1968,12 @@ generateBasis[
     parsedRepresentationOptions,
     outputRepresentation,
     canonicalizeIndices,
+    b0MinusProjectedQ,
     leftSpecs,
     rightSpecs,
     groupedResults,
-    groupedModeResult
+    groupedModeResult,
+    convertedClosedBasis
   },
   optionList = Flatten[{opts}];
   parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
@@ -1955,6 +1981,13 @@ generateBasis[
     Return[{}]
   ];
   {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
+  b0MinusProjectedQ = basisReadB0MinusProjectedOption[optionList, False];
+  If[b0MinusProjectedQ === $Failed,
+    Return[{}]
+  ];
+  If[TrueQ[b0MinusProjectedQ] && outputRepresentation === "Modes",
+    Return[{}]
+  ];
   (* Expand both pictures to handle Ramond chiralities *)
   leftSpecs = expandPictureSpecs[pictureLeft];
   rightSpecs = expandPictureSpecs[pictureRight];
@@ -1975,10 +2008,19 @@ generateBasis[
     groupedResults,
     Length[leftSpecs] == 1 && Length[rightSpecs] == 1
   ];
-  convertClosedResultToRepresentation[
-    groupedModeResult,
-    outputRepresentation,
-    canonicalizeIndices
+  If[TrueQ[b0MinusProjectedQ],
+    convertedClosedBasis = convertClosedResultToOperatorExpressions[
+      groupedModeResult,
+      canonicalizeIndices
+    ];
+    basisIndependentROperatorsFromExpressions[
+      basisProjectOperatorBasisByB0Minus[convertedClosedBasis]
+    ],
+    convertClosedResultToRepresentation[
+      groupedModeResult,
+      outputRepresentation,
+      canonicalizeIndices
+    ]
   ]
 ];
 

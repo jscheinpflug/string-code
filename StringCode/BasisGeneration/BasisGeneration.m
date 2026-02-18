@@ -9,6 +9,7 @@ BeginPackage["StringCode`BasisGeneration`"];
 
 Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
+Needs["StringCode`Operators`"];
 
 
 (* ::Section:: *)
@@ -118,6 +119,8 @@ basisReadValidatedOption[opts_List, optionName_String, default_, validatorFuncti
   If[TrueQ[validatorFunction[optionValue]], optionValue, $Failed]
 ];
 
+readBooleanOption::usage =
+  "Reads one boolean option by name, returning $Failed on invalid input.";
 readBooleanOption[opts_List, optionName_String, default_] :=
   basisReadValidatedOption[opts, optionName, default, BooleanQ];
 
@@ -125,6 +128,11 @@ basisReadCanonicalizeIndicesOption::usage =
   "Reads option \"CanonicalizeIndices\" as a boolean, returning $Failed on invalid input.";
 basisReadCanonicalizeIndicesOption[opts_List, default_: True] :=
   readBooleanOption[opts, "CanonicalizeIndices", default];
+
+basisReadB0MinusProjectedOption::usage =
+  "Reads option \"B0MinusProjected\" as a boolean, returning $Failed on invalid input.";
+basisReadB0MinusProjectedOption[opts_List, default_: False] :=
+  readBooleanOption[opts, "B0MinusProjected", default];
 
 basisParseSinglePositionAndOptions::usage =
   "Parses trailing arguments as either {position} or option rules, returning {position, optionList}.";
@@ -153,6 +161,175 @@ basisParsePositionAndCanonicalizeOption[
   ];
   {position, canonicalizeIndices}
 ];
+
+bmodeHolo::usage =
+  "Acts one holomorphic b-ghost mode on an operator expression.";
+bmodeHolo[contourCenter_][mode_][Ra_ /; RTest[Ra]] := Module[
+  {result = 0, cAssociations = <||>, fermionNumber = 0, position = 1},
+  Scan[
+    Function[Relem,
+      If[Head[Relem] === c,
+        If[mode >= Relem[[1]] - 1,
+          If[Relem[[2]] - contourCenter =!= 0,
+            AssociateTo[
+              cAssociations,
+              position -> {
+                Relem -> (-1)^fermionNumber
+                  1/Factorial[mode - (Relem[[1]] - 1)]
+                  (Relem[[2]] - contourCenter)^(mode - (Relem[[1]] - 1))
+              }
+            ],
+            If[mode === Relem[[1]] - 1,
+              AssociateTo[cAssociations, position -> {Relem -> (-1)^fermionNumber}]
+            ]
+          ]
+        ]
+      ];
+      If[isFermion[Head[Relem]], fermionNumber = fermionNumber + 1];
+      position = position + 1;
+    ],
+    Ra
+  ];
+  KeyValueMap[
+    Function[{currentPosition, replacement},
+      result = result + ReplaceAt[Ra, replacement, currentPosition]
+    ],
+    cAssociations
+  ];
+  result
+];
+
+bmodeAntiHolo::usage =
+  "Acts one antiholomorphic b-ghost mode on an operator expression.";
+bmodeAntiHolo[contourCenter_][mode_][Ra_ /; RTest[Ra]] := Module[
+  {result = 0, cAssociations = <||>, fermionNumber = 0, position = 1},
+  Scan[
+    Function[Relem,
+      If[Head[Relem] === ct,
+        If[mode >= Relem[[1]] - 1,
+          If[Relem[[2]] - contourCenter =!= 0,
+            AssociateTo[
+              cAssociations,
+              position -> {
+                Relem -> (-1)^fermionNumber
+                  1/Factorial[mode - (Relem[[1]] - 1)]
+                  (Relem[[2]] - contourCenter)^(mode - (Relem[[1]] - 1))
+              }
+            ],
+            If[mode === Relem[[1]] - 1,
+              AssociateTo[cAssociations, position -> {Relem -> (-1)^fermionNumber}]
+            ]
+          ]
+        ]
+      ];
+      If[isFermion[Head[Relem]], fermionNumber = fermionNumber + 1];
+      position = position + 1;
+    ],
+    Ra
+  ];
+  KeyValueMap[
+    Function[{currentPosition, replacement},
+      result = result + ReplaceAt[Ra, replacement, currentPosition]
+    ],
+    cAssociations
+  ];
+  result
+];
+
+bmodeHolo[contourCenter_][mode_][a_ + b_] :=
+  bmodeHolo[contourCenter][mode][a] + bmodeHolo[contourCenter][mode][b];
+bmodeHolo[contourCenter_][mode_][a_ b_] :=
+  a bmodeHolo[contourCenter][mode][b] /; isScalarFactorQ[a];
+bmodeHolo[contourCenter_][mode_][0] := 0;
+
+bmodeAntiHolo[contourCenter_][mode_][a_ + b_] :=
+  bmodeAntiHolo[contourCenter][mode][a] + bmodeAntiHolo[contourCenter][mode][b];
+bmodeAntiHolo[contourCenter_][mode_][a_ b_] :=
+  a bmodeAntiHolo[contourCenter][mode][b] /; isScalarFactorQ[a];
+bmodeAntiHolo[contourCenter_][mode_][0] := 0;
+
+actBGhostMode::usage =
+  "Acts a b-ghost mode placeholder on a local-operator expression.";
+actBGhostMode[a_, op1_ + op2_] := actBGhostMode[a, op1] + actBGhostMode[a, op2];
+actBGhostMode[a_, b_ c_] := b actBGhostMode[a, c] /; isScalarFactorQ[b];
+
+actBGhostMode[
+  bmodeHolo[contourCenter_][mode_],
+  multiOp_ /; MultiOpTest[multiOp]
+] := Module[{result = 0, opList, parities},
+  opList = List @@ multiOp;
+  parities = Map[parityOp, opList];
+  Do[
+    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
+      actBGhostMode[bmodeHolo[contourCenter][mode], #] &,
+      opList,
+      i
+    ],
+    {i, 1, Length[opList]}
+  ];
+  result
+];
+
+actBGhostMode[
+  bmodeHolo[contourCenter_][mode_][position_],
+  multiOp_ /; MultiOpTest[multiOp]
+] := Module[{result = 0, opList, parities},
+  opList = List @@ multiOp;
+  parities = Map[parityOp, opList];
+  Do[
+    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
+      actBGhostMode[bmodeHolo[contourCenter][mode], #] &,
+      opList,
+      i
+    ],
+    {i, 1, Length[opList]}
+  ];
+  result
+];
+
+actBGhostMode[
+  bmodeAntiHolo[contourCenter_][mode_],
+  multiOp_ /; MultiOpTest[multiOp]
+] := Module[{result = 0, opList, parities},
+  opList = List @@ multiOp;
+  parities = Map[parityOp, opList];
+  Do[
+    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
+      actBGhostMode[bmodeAntiHolo[contourCenter][mode], #] &,
+      opList,
+      i
+    ],
+    {i, 1, Length[opList]}
+  ];
+  result
+];
+
+actBGhostMode[
+  bmodeAntiHolo[contourCenter_][mode_][position_],
+  multiOp_ /; MultiOpTest[multiOp]
+] := Module[{result = 0, opList, parities},
+  opList = List @@ multiOp;
+  parities = Map[parityOp, opList];
+  Do[
+    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
+      actBGhostMode[bmodeAntiHolo[contourCenter][mode], #] &,
+      opList,
+      i
+    ],
+    {i, 1, Length[opList]}
+  ];
+  result
+];
+
+actBGhostMode[bmodeHolo[contourCenter_][mode_][position_], Ra_ /; RTest[Ra]] :=
+  bmodeHolo[contourCenter][mode][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][mode_][position_], Ra_ /; RTest[Ra]] :=
+  bmodeAntiHolo[contourCenter][mode][Ra];
+actBGhostMode[bmodeHolo[contourCenter_][mode_], Ra_ /; RTest[Ra]] :=
+  bmodeHolo[contourCenter][mode][Ra];
+actBGhostMode[bmodeAntiHolo[contourCenter_][mode_], Ra_ /; RTest[Ra]] :=
+  bmodeAntiHolo[contourCenter][mode][Ra];
+actBGhostMode[_, a_ /; NumericQ[a]] := 0;
 
 (* Shared helper: minimal sum of k distinct integer modes >= minMode.
    Example: k=3, minMode=0 gives 0+1+2 = 3. *)
@@ -304,6 +481,183 @@ ghostModeToOperatorField[mode[c, modeNumber_Integer], z_] :=
 (* Shared helper: build holomorphic ghost factors from mode[...] lists. *)
 ghostModesToOperatorFields[ghostModes_List, z_] :=
   ghostModeToOperatorField[#, z] & /@ ghostModes;
+
+basisApplyB0Minus::usage =
+  "Applies b0m = b0 - bt0 to an operator expression using shared b-ghost mode action.";
+basisApplyB0Minus[expr_] :=
+  actBGhostMode[bmodeHolo[0][0], expr] - actBGhostMode[bmodeAntiHolo[0][0], expr];
+
+basisSplitScalarAndOperatorTerm::usage =
+  "Splits one expanded term into {scalarCoefficient, operatorKey} for linear-map assembly.";
+basisSplitScalarAndOperatorTerm[term_] := Module[{factors, scalarFactors, operatorFactors},
+  Which[
+    term === 0, {0, None},
+    RTest[term] || term === 1, {1, term},
+    Head[term] === Times,
+      factors = List @@ term;
+      scalarFactors = Select[factors, isScalarFactorQ];
+      operatorFactors = Select[factors, RTest];
+      Which[
+        Length[operatorFactors] === 1,
+          {If[scalarFactors === {}, 1, Times @@ scalarFactors], First[operatorFactors]},
+        operatorFactors === {} && AllTrue[factors, isScalarFactorQ],
+          {Times @@ factors, 1},
+        True,
+          {1, term}
+      ],
+    isScalarFactorQ[term], {term, 1},
+    True, {1, term}
+  ]
+];
+
+basisExpressionToOperatorAssociation::usage =
+  "Converts an operator expression to an association operatorKey -> scalarCoefficient.";
+basisExpressionToOperatorAssociation[expr_] := Module[
+  {expandedExpr, terms, association = <||>, coefficient, operatorKey},
+  expandedExpr = Expand[expr];
+  terms = Which[
+    expandedExpr === 0, {},
+    Head[expandedExpr] === Plus, List @@ expandedExpr,
+    True, {expandedExpr}
+  ];
+  Scan[
+    Function[term,
+      {coefficient, operatorKey} = basisSplitScalarAndOperatorTerm[term];
+      If[operatorKey =!= None && coefficient =!= 0,
+        association[operatorKey] =
+          Lookup[association, operatorKey, 0] + coefficient
+      ]
+    ],
+    terms
+  ];
+  Association @ Select[Normal[association], #[[2]] =!= 0 &]
+];
+
+basisLinearMapMatrixFromAssociations::usage =
+  "Builds a matrix for a linear map whose columns are operator-image associations.";
+basisLinearMapMatrixFromAssociations[domainImageAssociations_List, codomainBasis_List] :=
+  Table[
+    Lookup[domainImageAssociations[[column]], codomainBasis[[row]], 0],
+    {row, 1, Length[codomainBasis]},
+    {column, 1, Length[domainImageAssociations]}
+  ];
+
+basisNumericKernelVectorQ::usage =
+  "Returns True when every entry in a kernel vector is numeric.";
+basisNumericKernelVectorQ[vector_List] := AllTrue[vector, NumericQ];
+
+basisNormalizeKernelVector::usage =
+  "Normalizes a kernel basis vector to a primitive integer form with deterministic sign.";
+basisNormalizeKernelVector[vector_List] := Module[
+  {
+    rationalVector,
+    nonzeroEntries,
+    denominatorLCM,
+    integerVector,
+    integerNonzeroEntries,
+    commonFactor,
+    primitiveVector,
+    firstNonzero
+  },
+  If[!basisNumericKernelVectorQ[vector],
+    Return[vector]
+  ];
+  rationalVector = Rationalize[vector, 0];
+  If[!AllTrue[rationalVector, MatchQ[#, _Integer | _Rational] &],
+    Return[vector]
+  ];
+  nonzeroEntries = Select[rationalVector, # =!= 0 &];
+  If[nonzeroEntries === {},
+    Return[rationalVector]
+  ];
+  denominatorLCM = LCM @@ (Denominator /@ nonzeroEntries);
+  integerVector = Expand[denominatorLCM rationalVector];
+  integerNonzeroEntries = Select[integerVector, # =!= 0 &];
+  commonFactor = GCD @@ (Abs /@ integerNonzeroEntries);
+  primitiveVector = If[commonFactor === 0, integerVector, integerVector/commonFactor];
+  firstNonzero = First[Select[primitiveVector, # =!= 0 &]];
+  If[firstNonzero < 0, -primitiveVector, primitiveVector]
+];
+
+basisCombinationFromKernelVector::usage =
+  "Builds one operator combination from a kernel vector and the original domain basis.";
+basisCombinationFromKernelVector[kernelVector_List, domainBasis_List] := Total[
+  MapThread[
+    If[#1 === 0, 0, #1 #2] &,
+    {kernelVector, domainBasis}
+  ]
+];
+
+basisExpandedOperatorTerms::usage =
+  "Expands an operator expression and returns additive terms.";
+basisExpandedOperatorTerms[expr_] := Module[{expandedExpr},
+  expandedExpr = Expand[expr];
+  Which[
+    expandedExpr === 0, {},
+    Head[expandedExpr] === Plus, List @@ expandedExpr,
+    True, {expandedExpr}
+  ]
+];
+
+basisExtractROperatorFactorsFromTerm::usage =
+  "Extracts top-level R[...] multiplicative factors from one additive term.";
+basisExtractROperatorFactorsFromTerm[term_] :=
+  Select[
+    If[Head[term] === Times, List @@ term, {term}],
+    RTest
+  ];
+
+basisIndependentROperatorsFromExpression::usage =
+  "Extracts structurally unique R[...] terms from one operator expression.";
+basisIndependentROperatorsFromExpression[expr_] :=
+  DeleteDuplicates[
+    Flatten[basisExtractROperatorFactorsFromTerm /@ basisExpandedOperatorTerms[expr], 1]
+  ];
+
+basisIndependentROperatorsFromExpressions::usage =
+  "Extracts structurally unique R[...] terms across a list of operator expressions.";
+basisIndependentROperatorsFromExpressions[expressions_List] :=
+  DeleteDuplicates[
+    Flatten[basisIndependentROperatorsFromExpression /@ expressions, 1]
+  ];
+
+basisProjectOperatorBasisByB0Minus::usage =
+  "Projects an operator basis to the b0m-kernel and returns a basis of surviving combinations.";
+basisProjectOperatorBasisByB0Minus[basisOperators_List] := Module[
+  {
+    domainBasis,
+    imageExpressions,
+    imageAssociations,
+    codomainBasis,
+    mapMatrix,
+    kernelVectors,
+    normalizedKernelVectors,
+    projectedBasis
+  },
+  domainBasis = DeleteDuplicates[basisOperators];
+  If[domainBasis === {},
+    Return[{}]
+  ];
+  imageExpressions = Expand[basisApplyB0Minus[#]] & /@ domainBasis;
+  imageAssociations = basisExpressionToOperatorAssociation /@ imageExpressions;
+  codomainBasis = SortBy[
+    DeleteDuplicates[Flatten[Keys /@ imageAssociations]],
+    ToString[InputForm[#]] &
+  ];
+  If[codomainBasis === {},
+    Return[domainBasis]
+  ];
+  mapMatrix = basisLinearMapMatrixFromAssociations[imageAssociations, codomainBasis];
+  kernelVectors = NullSpace[mapMatrix];
+  If[kernelVectors === {},
+    Return[{}]
+  ];
+  normalizedKernelVectors = basisNormalizeKernelVector /@ kernelVectors;
+  projectedBasis = DeleteDuplicates[
+    Expand[basisCombinationFromKernelVector[#, domainBasis]] & /@ normalizedKernelVectors
+  ];
+  DeleteCases[projectedBasis, 0]
+];
 
 
 (* ::Section:: *)

@@ -33,7 +33,7 @@ generateBasisMatter::usage =
   "generateBasisMatter[weight, z:0, opts] generates holomorphic bosonic matter-only local operators. Option \"CanonicalizeIndices\" -> True|False (default True) controls Lorentz-index canonicalization.";
 
 generateBasis::usage =
-  "generateBasis[weight, ghostNumber, z:0, zbar:0, opts] generates full bosonic local operators; defaults are \"LevelMatched\" -> True and \"CanonicalizeIndices\" -> True.";
+  "generateBasis[weight, ghostNumber, z:0, zbar:0, opts] generates full bosonic local operators; defaults are \"LevelMatched\" -> True, \"CanonicalizeIndices\" -> True, and \"B0MinusProjected\" -> False.";
 
 
 (* ::Section:: *)

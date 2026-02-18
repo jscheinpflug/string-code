@@ -32,7 +32,7 @@ generateBasisMatterAntiHolo::usage =
   "generateBasisMatterAntiHolo[weight, picture, opts] generates antiholomorphic TypeII matter-only states grouped by picture. Option \"OutputRepresentation\" -> \"Operators\" (default) or \"Modes\" controls output form. Option \"CanonicalizeIndices\" -> True|False (default True) controls operator-index canonicalization.";
 
 generateBasis::usage =
-  "generateBasis[weight, ghostNumber, {pictureHolo, pictureAntiHolo}, opts] generates grouped TypeII closed-string basis states. Option \"OutputRepresentation\" -> \"Operators\" (default) or \"Modes\" controls output form. Option \"CanonicalizeIndices\" -> True|False (default True) controls operator-index canonicalization.";
+  "generateBasis[weight, ghostNumber, {pictureHolo, pictureAntiHolo}, opts] generates grouped TypeII closed-string basis states. Option \"OutputRepresentation\" -> \"Operators\" (default) or \"Modes\" controls output form. Option \"CanonicalizeIndices\" -> True|False (default True) controls operator-index canonicalization. Option \"B0MinusProjected\" -> True|False (default False) is supported only for operator output.";
 
 
 (* ::Section:: *)
