@@ -25,7 +25,7 @@
   },
   {
    "kind": 2,
-   "value": "h2 = generateBasisHolo[2, 0];\ntest1Result = Length[h2] == 5 && Count[h2, R[dX[_Symbol, 1, 0]]] == 1 && Count[h2, R[dX[_Symbol, 0, 0], dX[_Symbol, 0, 0]]] == 1;\nPrint[\"Test 1 (matter completion through public API): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "h2 = generateBasisHolo[2, 0];\nmatterH2 = Sort[generateBasisMatterHolo[2]];\nmatterAH2 = Sort[generateBasisMatterAntiHolo[2]];\nexpectedMatterH2 = Sort[{R[dX[mu1, 1, 0]], R[dX[mu1, 0, 0], dX[mu2, 0, 0]]}];\nexpectedMatterAH2 = Sort[{R[dXt[mu1, 1, 0]], R[dXt[mu1, 0, 0], dXt[mu2, 0, 0]]}];\ntest1Result = Length[h2] == 5 && Count[h2, R[dX[_Symbol, 1, 0]]] == 1 && Count[h2, R[dX[_Symbol, 0, 0], dX[_Symbol, 0, 0]]] == 1 &&\n  matterH2 === expectedMatterH2 && matterAH2 === expectedMatterAH2 && Sort[generateBasisMatter[2]] === expectedMatterH2;\nPrint[\"Test 1 (matter completion + matter-only APIs): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -975,7 +975,7 @@
   },
   {
    "kind": 2,
-   "value": "test20Result = generateBasisLevelMatched[3, 0] === {} && generateBasisLevelMatched[5, 1] === {};\nPrint[\"Test 20 (odd total weight has no level-matched states): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
+   "value": "test20Result = generateBasis[3, 0, \"LevelMatched\" -> True] === {} && generateBasis[5, 1, \"LevelMatched\" -> True] === {};\nPrint[\"Test 20 (odd total weight has no level-matched states): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1025,7 +1025,7 @@
   },
   {
    "kind": 2,
-   "value": "fieldWeight[field_] := Module[{headName = SymbolName[Head[field]]},\n  Switch[headName,\n    \"b\", 2 + field[[1]],\n    \"c\", -1 + field[[1]],\n    \"dX\", 1 + field[[2]],\n    \"bt\", 2 + field[[1]],\n    \"ct\", -1 + field[[1]],\n    \"dXt\", 1 + field[[2]],\n    _, 0\n  ]\n];\nsectorWeights[expr_] := Module[{holoWeight, antiWeight},\n  holoWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"b\", \"c\", \"dX\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  antiWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"bt\", \"ct\", \"dXt\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  {holoWeight, antiWeight}\n];\nfull40 = generateBasis[4, 0, \"LevelMatched\" -> False];\nlevelMatched40 = generateBasisLevelMatched[4, 0];\nexpectedLevelMatched40 = Select[full40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest21Result = Sort[levelMatched40] === Sort[expectedLevelMatched40] && levelMatched40 =!= {} &&\n  AllTrue[levelMatched40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 21 (level-matched subset equals filtered full basis at w=4,gh=0): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
+   "value": "fieldWeight[field_] := Module[{headName = SymbolName[Head[field]]},\n  Switch[headName,\n    \"b\", 2 + field[[1]],\n    \"c\", -1 + field[[1]],\n    \"dX\", 1 + field[[2]],\n    \"bt\", 2 + field[[1]],\n    \"ct\", -1 + field[[1]],\n    \"dXt\", 1 + field[[2]],\n    _, 0\n  ]\n];\nsectorWeights[expr_] := Module[{holoWeight, antiWeight},\n  holoWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"b\", \"c\", \"dX\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  antiWeight = Total[fieldWeight /@ Cases[\n      expr,\n      field_ /; MemberQ[{\"bt\", \"ct\", \"dXt\"}, SymbolName[Head[field]]],\n      Infinity\n    ]];\n  {holoWeight, antiWeight}\n];\nfull40 = generateBasis[4, 0, \"LevelMatched\" -> False];\nlevelMatched40 = generateBasis[4, 0, \"LevelMatched\" -> True];\nexpectedLevelMatched40 = Select[full40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest21Result = Sort[levelMatched40] === Sort[expectedLevelMatched40] && levelMatched40 =!= {} &&\n  AllTrue[levelMatched40, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 21 (level-matched subset equals filtered full basis at w=4,gh=0): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1075,7 +1075,7 @@
   },
   {
    "kind": 2,
-   "value": "full41 = generateBasis[4, 1, \"LevelMatched\" -> False];\nlevelMatched41 = generateBasisLevelMatched[4, 1];\nexpectedLevelMatched41 = Select[full41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest22Result = Sort[levelMatched41] === Sort[expectedLevelMatched41] &&\n  AllTrue[levelMatched41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 22 (level-matched subset equals filtered full basis at w=4,gh=1): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
+   "value": "full41 = generateBasis[4, 1, \"LevelMatched\" -> False];\nlevelMatched41 = generateBasis[4, 1, \"LevelMatched\" -> True];\nexpectedLevelMatched41 = Select[full41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\ntest22Result = Sort[levelMatched41] === Sort[expectedLevelMatched41] &&\n  AllTrue[levelMatched41, With[{weights = sectorWeights[#]}, weights[[1]] == weights[[2]]] &];\nPrint[\"Test 22 (level-matched subset equals filtered full basis at w=4,gh=1): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
    "languageId": "wolfram",
    "outputs": [
     {

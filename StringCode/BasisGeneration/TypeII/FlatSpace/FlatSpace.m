@@ -36,6 +36,8 @@ Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`NormalOrdering`TypeII`"];
 Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
+Needs["StringCode`OPE`"];
+Needs["StringCode`OPE`TypeII`"];
 
 (* ::Section:: *)
 (*Declare public variables and methods*)
@@ -521,6 +523,53 @@ generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
 
 generateMatterModeConfigs[_, _] := {};
 
+generateBasisMatterHoloForPictureSpecWithSelection::usage =
+  "Generates a matter-only holomorphic basis for one picture spec and one GSO selector.";
+generateBasisMatterHoloForPictureSpecWithSelection[
+  weight_?validWeightQ,
+  picture_?validPictureSpecQ,
+  GSOParitySelection_String
+] :=
+  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, GSOParitySelection] = Module[
+    {groundWeight, remainingWeight, matterModeConfigs, filteredMatterModes},
+    groundWeight = groundStateWeight[picture];
+    remainingWeight = weight - groundWeight;
+    If[remainingWeight < 0 || !IntegerQ[2 remainingWeight],
+      Return[{}]
+    ];
+    matterModeConfigs = generateMatterModeConfigs[remainingWeight, picture];
+    If[matterModeConfigs === {},
+      Return[{}]
+    ];
+    filteredMatterModes = DeleteDuplicates[canonicalizeLorentzIndicesModes /@ matterModeConfigs];
+    filteredMatterModes = Select[
+      filteredMatterModes,
+      GSOParitySelectionMatchesQ[GSOParityOfConfig[#, picture], GSOParitySelection] &
+    ];
+    If[filteredMatterModes === {},
+      {},
+      {picture, filteredMatterModes}
+    ]
+  ];
+
+generateBasisMatterHoloForPictureSpecWithSelection[___] := {};
+
+generateBasisMatterHoloForPictureSpec::usage =
+  "Parses options and generates matter-only holomorphic basis for one picture spec.";
+generateBasisMatterHoloForPictureSpec[
+  weight_?validWeightQ,
+  picture_?validPictureSpecQ,
+  opts___
+] := Module[{GSOParitySelection},
+  GSOParitySelection = parseGSOParityOption[opts];
+  If[GSOParitySelection === $Failed,
+    Return[{}]
+  ];
+  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, GSOParitySelection]
+];
+
+generateBasisMatterHoloForPictureSpec[___] := {};
+
 (* ============================================================ *)
 (* SECTION 4: MODE UTILITIES                                    *)
 (* ============================================================ *)
@@ -579,6 +628,24 @@ gsoParityOfConfig[modeList_List, picture_?validPictureSpecQ] :=
   gsoParityOfGroundState[picture] *
     Times @@ (modeGSOParityContribution /@ Cases[modeList, mode[_, _], Infinity]);
 
+GSOParityOfConfig::usage =
+  "Alias for gsoParityOfConfig with canonical GSO capitalization.";
+GSOParityOfConfig[modeList_List, picture_?validPictureSpecQ] :=
+  gsoParityOfConfig[modeList, picture];
+
+modeListGSOParityContribution::usage =
+  "Returns product of oscillator GSO parity contributions (without ground-state factor).";
+modeListGSOParityContribution[modeList_List] :=
+  Times @@ (modeGSOParityContribution /@ Cases[modeList, mode[_, _], Infinity]);
+
+requiredMatterGSOParitySelection::usage =
+  "Converts desired total GSO selector and ghost parity into the required matter selector.";
+requiredMatterGSOParitySelection["All", _Integer] := "All";
+requiredMatterGSOParitySelection["Even", ghostParity_Integer] :=
+  If[ghostParity === 1, "Even", "Odd"];
+requiredMatterGSOParitySelection["Odd", ghostParity_Integer] :=
+  If[ghostParity === 1, "Odd", "Even"];
+
 (* Assemble holomorphic state from component mode lists.
    Returns {picture, canonicalized mode list}. *)
 buildHoloState[picture_?validPictureSpecQ, bcModes_List, superghostModes_List, matterModes_List] :=
@@ -611,34 +678,90 @@ antiModeFromHolo[modeObj_] := modeObj;
 
   Options:
   - "LevelMatched" -> True: enforce h = h̄ (physical states)
-  - "GSOProjected" -> True: keep only GSO-even states
+  - "GSOParity" -> "Even"|"Odd"|"All": parity filter (default "Even")
+  - "GSOProjected" -> True|False: legacy alias (True->"Even", False->"All")
 
   Output: {{picture_L, picture_R}, {state1, state2, ...}}
   where each state is a joined mode list (holo modes ++ anti modes)
 *)
 
-(* Parse "GSOProjected" option, default True *)
-parseGSOOption[opts___] := Module[{optionList, GSOProjected},
-  optionList = Flatten[{opts}];
+validGSOParitySelectionQ::usage =
+  "Checks whether a GSO parity selector string is one of \"Even\", \"Odd\", or \"All\".";
+validGSOParitySelectionQ[value_] := MemberQ[{"Even", "Odd", "All"}, value];
+
+GSOParitySelectionMatchesQ::usage =
+  "Tests whether a parity value (+/-1) passes a GSO selector.";
+GSOParitySelectionMatchesQ[parity_Integer, "All"] := True;
+GSOParitySelectionMatchesQ[parity_Integer, "Even"] := parity === 1;
+GSOParitySelectionMatchesQ[parity_Integer, "Odd"] := parity === -1;
+GSOParitySelectionMatchesQ[_, _] := False;
+
+GSOParitySelectionFromLegacyProjection::usage =
+  "Converts legacy boolean GSOProjected option to a parity selector.";
+GSOParitySelectionFromLegacyProjection[projected_?BooleanQ] :=
+  If[TrueQ[projected], "Even", "All"];
+
+readGSOParityOption::usage =
+  "Reads string option \"GSOParity\" and validates it; returns default when absent.";
+readGSOParityOption[opts_List, default_] := Module[
+  {optionAssociation, legacySymbolUsedQ, optionValue},
+  optionAssociation = Association[opts];
+  legacySymbolUsedQ = AnyTrue[
+    opts,
+    Function[opt,
+      MatchQ[opt, _Rule] &&
+        Head[First[opt]] === Symbol &&
+        SymbolName[First[opt]] === "GSOParity"
+    ]
+  ];
+  If[legacySymbolUsedQ && !KeyExistsQ[optionAssociation, "GSOParity"],
+    Return[$Failed]
+  ];
+  optionValue = Lookup[optionAssociation, "GSOParity", default];
+  If[optionValue === default,
+    default,
+    If[validGSOParitySelectionQ[optionValue], optionValue, $Failed]
+  ]
+];
+
+parseGSOParityOptionFromList::usage =
+  "Parses GSO selector from options with legacy GSOProjected compatibility.";
+parseGSOParityOptionFromList[optionList_List] := Module[
+  {GSOParitySelection, GSOProjected},
   If[!OptionQ[optionList],
     Return[$Failed]
   ];
+  GSOParitySelection = readGSOParityOption[optionList, Missing["NotProvided"]];
+  If[GSOParitySelection === $Failed,
+    Return[$Failed]
+  ];
+  If[GSOParitySelection =!= Missing["NotProvided"],
+    Return[GSOParitySelection]
+  ];
   GSOProjected = readBooleanOption[optionList, "GSOProjected", True];
-  If[GSOProjected === $Failed, $Failed, GSOProjected]
+  If[GSOProjected === $Failed,
+    $Failed,
+    GSOParitySelectionFromLegacyProjection[GSOProjected]
+  ]
 ];
 
-(* Parse both "LevelMatched" and "GSOProjected" options *)
+parseGSOParityOption::usage =
+  "Parses GSO selector from options.";
+parseGSOParityOption[opts___] :=
+  parseGSOParityOptionFromList[Flatten[{opts}]];
+
+(* Parse both "LevelMatched" and GSO parity options. *)
 parseFullBasisOptions[opts___] := Module[
-  {optionList, levelMatched, GSOProjected},
+  {optionList, levelMatched, GSOParitySelection},
   optionList = Flatten[{opts}];
   If[!OptionQ[optionList],
     Return[$Failed]
   ];
   levelMatched = readBooleanOption[optionList, "LevelMatched", True];
-  GSOProjected = readBooleanOption[optionList, "GSOProjected", True];
-  If[levelMatched === $Failed || GSOProjected === $Failed,
+  GSOParitySelection = parseGSOParityOptionFromList[optionList];
+  If[levelMatched === $Failed || GSOParitySelection === $Failed,
     $Failed,
-    {levelMatched, GSOProjected}
+    {levelMatched, GSOParitySelection}
   ]
 ];
 
@@ -663,13 +786,13 @@ generateJoinedSectorStates[
   antiWeight_,
   antiGhostNumber_Integer,
   pictureRight_?validPictureSpecQ,
-  GSOProjected_
+  GSOParitySelection_
 ] := Module[{holoBasis, antiBasis},
   holoBasis = generateBasisHoloForPictureSpec[
     holoWeight,
     holoGhostNumber,
     pictureLeft,
-    "GSOProjected" -> GSOProjected
+    "GSOParity" -> GSOParitySelection
   ];
   If[holoBasis === {},
     Return[{}]
@@ -678,7 +801,7 @@ generateJoinedSectorStates[
     antiWeight,
     antiGhostNumber,
     pictureRight,
-    "GSOProjected" -> GSOProjected
+    "GSOParity" -> GSOParitySelection
   ];
   If[antiBasis === {},
     Return[{}]
@@ -693,7 +816,7 @@ collectLevelMatchedStates[
   ghostNumber_Integer,
   pictureLeft_?validPictureSpecQ,
   pictureRight_?validPictureSpecQ,
-  GSOProjected_,
+  GSOParitySelection_,
   holoGhostSplits_List
 ] := Module[
   {sectorWeight, collectedStates, antiGhostNumber, joinedStates},
@@ -714,7 +837,7 @@ collectLevelMatchedStates[
         sectorWeight,
         antiGhostNumber,
         pictureRight,
-        GSOProjected
+        GSOParitySelection
       ];
       Do[Sow[joinedState], {joinedState, joinedStates}],
       {holoGhostNumber, holoGhostSplits}
@@ -730,7 +853,7 @@ collectAllSplitStates[
   ghostNumber_Integer,
   pictureLeft_?validPictureSpecQ,
   pictureRight_?validPictureSpecQ,
-  GSOProjected_,
+  GSOParitySelection_,
   holoGhostSplits_List
 ] := Module[
   {
@@ -767,7 +890,7 @@ collectAllSplitStates[
           antiWeight,
           antiGhostNumber,
           pictureRight,
-          GSOProjected
+          GSOParitySelection
         ];
         Do[Sow[joinedState], {joinedState, joinedStates}],
         {holoWeight2, minHoloWeight2, maxHoloWeight2}
@@ -815,10 +938,14 @@ enumerateMatterAtRemainingWeight[
   remainingWeight_,
   picture_?validPictureSpecQ,
   ghostNumber_Integer,
-  GSOProjected_
+  GSOParitySelection_
 ] := Module[
   {
     remainingMatterWeight,
+    ghostModes,
+    ghostParity,
+    requiredMatterSelection,
+    matterBasis,
     matterModeConfigs,
     collectedTuples,
     groundWeight,
@@ -831,11 +958,21 @@ enumerateMatterAtRemainingWeight[
   If[remainingMatterWeight < 0,
     Return[{}]
   ];
-  matterModeConfigs = generateMatterModeConfigs[remainingMatterWeight, picture];
-  If[matterModeConfigs === {},
+  groundWeight = groundStateWeight[picture];
+  ghostModes = Join[bcModes, superghostModes];
+  ghostParity = If[modeListGSOParityContribution[ghostModes] === -1, -1, 1];
+  requiredMatterSelection =
+    requiredMatterGSOParitySelection[GSOParitySelection, ghostParity];
+  matterBasis =
+    generateBasisMatterHoloForPictureSpecWithSelection[
+      groundWeight + remainingMatterWeight,
+      picture,
+      requiredMatterSelection
+    ];
+  If[matterBasis === {},
     Return[{}]
   ];
-  groundWeight = groundStateWeight[picture];
+  matterModeConfigs = matterBasis[[2]];
   collectedTuples = Reap[
     Do[
       candidateState = buildHoloState[picture, bcModes, superghostModes, matterModes];
@@ -848,9 +985,9 @@ enumerateMatterAtRemainingWeight[
       If[groundWeight + modeListWeight[candidateModes] =!= remainingWeight + groundWeight,
         Continue[]
       ];
-      (* Apply GSO projection if requested *)
-      candidateParity = gsoParityOfConfig[candidateModes, picture];
-      If[(!TrueQ[GSOProjected]) || candidateParity === 1,
+      (* Apply GSO selector to the full state parity. *)
+      candidateParity = GSOParityOfConfig[candidateModes, picture];
+      If[GSOParitySelectionMatchesQ[candidateParity, GSOParitySelection],
         Sow[candidateState]
       ],
       {matterModes, matterModeConfigs}
@@ -865,7 +1002,7 @@ enumerateAtBcGhostSplit[
   ghostNumber_Integer,
   remainingWeight_,
   picture_?validPictureSpecQ,
-  GSOProjected_
+  GSOParitySelection_
 ] := Module[
   {
     superghostNumber,
@@ -910,7 +1047,7 @@ enumerateAtBcGhostSplit[
           remainingWeight,
           picture,
           ghostNumber,
-          GSOProjected
+          GSOParitySelection
         ];
         Do[Sow[matterTuple], {matterTuple, matterTuples}],
         {superghostConfig, superghostConfigs}
@@ -930,7 +1067,7 @@ generateBasisHoloForPictureSpec[
   opts___
 ] := Module[
   {
-    GSOProjected,
+    GSOParitySelection,
     groundWeight,
     remainingWeight,
     bcGhostSplits,
@@ -940,8 +1077,8 @@ generateBasisHoloForPictureSpec[
     splitTuples,
     splitTuple
   },
-  GSOProjected = parseGSOOption[opts];
-  If[GSOProjected === $Failed,
+  GSOParitySelection = parseGSOParityOption[opts];
+  If[GSOParitySelection === $Failed,
     Return[{}]
   ];
   groundWeight = groundStateWeight[picture];
@@ -962,7 +1099,7 @@ generateBasisHoloForPictureSpec[
         ghostNumber,
         remainingWeight,
         picture,
-        GSOProjected
+        GSOParitySelection
       ];
       Do[Sow[splitTuple], {splitTuple, splitTuples}],
       {bcGhostNumber, bcGhostSplits}
@@ -989,16 +1126,16 @@ generateBasisAntiHoloForPictureSpec[
   ghostNumber_Integer,
   picture_?validPictureSpecQ,
   opts___
-] := Module[{GSOProjected, holoBasis},
-  GSOProjected = parseGSOOption[opts];
-  If[GSOProjected === $Failed,
+] := Module[{GSOParitySelection, holoBasis},
+  GSOParitySelection = parseGSOParityOption[opts];
+  If[GSOParitySelection === $Failed,
     Return[{}]
   ];
   holoBasis = generateBasisHoloForPictureSpec[
     weight,
     ghostNumber,
     picture,
-    "GSOProjected" -> GSOProjected
+    "GSOParity" -> GSOParitySelection
   ];
   (* Map each holo state to its anti counterpart *)
   ({#[[1]], antiModeFromHolo /@ #[[2]]} &) /@ holoBasis
@@ -1023,7 +1160,7 @@ generateBasisForPictureSpecs[
   {
     parsedOptions,
     levelMatched,
-    GSOProjected,
+    GSOParitySelection,
     holoGhostSplits,
     basisStates
   },
@@ -1031,7 +1168,7 @@ generateBasisForPictureSpecs[
   If[parsedOptions === $Failed,
     Return[{}]
   ];
-  {levelMatched, GSOProjected} = parsedOptions;
+  {levelMatched, GSOParitySelection} = parsedOptions;
   (* Level matching requires even total weight (h = h̄ = weight/2) *)
   If[TrueQ[levelMatched] && OddQ[2 weight],
     Return[{}]
@@ -1053,7 +1190,7 @@ generateBasisForPictureSpecs[
       ghostNumber,
       pictureLeft,
       pictureRight,
-      GSOProjected,
+      GSOParitySelection,
       holoGhostSplits
     ],
     collectAllSplitStates[
@@ -1061,7 +1198,7 @@ generateBasisForPictureSpecs[
       ghostNumber,
       pictureLeft,
       pictureRight,
-      GSOProjected,
+      GSOParitySelection,
       holoGhostSplits
     ]
   ];
@@ -1091,9 +1228,67 @@ generateBasisForPictureSpecs[___] := {};
     Generate closed string basis states.
     Options:
       "LevelMatched" -> True (default): enforce h = h̄
-      "GSOProjected" -> True (default): keep only GSO-even states
+      "GSOParity" -> "Even"|"Odd"|"All" (default "Even")
+      "GSOProjected" -> True|False (legacy alias)
     Returns: {{pictureL, pictureR}, {state1, state2, ...}}
 *)
+
+generateBasisMatterHolo::usage =
+  "Generates holomorphic matter-only TypeII basis states grouped with their picture ground-state label.";
+generateBasisMatterHolo[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := Module[{groupedBySpec},
+  groupedBySpec = DeleteCases[
+    generateBasisMatterHoloForPictureSpec[weight, #, opts] & /@ expandPictureSpecs[picture],
+    {}
+  ];
+  If[groupedBySpec === {},
+    {},
+    If[Length[groupedBySpec] == 1,
+      First[groupedBySpec],
+      groupedBySpec
+    ]
+  ]
+];
+
+generateBasisMatterHolo[___] := {};
+
+generateBasisMatterAntiHolo::usage =
+  "Generates antiholomorphic matter-only TypeII basis states grouped with their picture ground-state label.";
+antiMatterModeListsFromHolo::usage =
+  "Converts a list of holomorphic matter mode lists to antiholomorphic mode lists.";
+antiMatterModeListsFromHolo[matterModeLists_List] :=
+  (antiModeFromHolo /@ #) & /@ matterModeLists;
+
+generateBasisMatterAntiHolo[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := Module[{holoMatter},
+  holoMatter = generateBasisMatterHolo[weight, picture, opts];
+  Which[
+    holoMatter === {}, {},
+    MatchQ[holoMatter, {_?validPictureSpecQ, _List}],
+      {holoMatter[[1]], antiMatterModeListsFromHolo[holoMatter[[2]]]},
+    ListQ[holoMatter],
+      ({#[[1]], antiMatterModeListsFromHolo[#[[2]]]} &) /@ holoMatter,
+    True, {}
+  ]
+];
+
+generateBasisMatterAntiHolo[___] := {};
+
+generateBasisMatter::usage =
+  "Alias for generateBasisMatterHolo.";
+generateBasisMatter[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := generateBasisMatterHolo[weight, picture, opts];
+
+generateBasisMatter[___] := {};
 
 generateBasisHolo[
   weight_?validWeightQ,

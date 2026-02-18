@@ -67,6 +67,54 @@ buildHoloOperatorFromModes[ghostModes_List, matterModes_List, z_] := Module[
   canonicalizeLorentzIndices[rawOperator]
 ];
 
+matterOperatorFromModes::usage =
+  "Builds one matter-only local operator from FlatSpace matter mode data.";
+matterOperatorFromModes[matterModes_List, z_] := Module[{matterFields},
+  matterFields = flatSpaceMatterModesToOperatorFields[matterModes, z];
+  If[matterFields === {},
+    1,
+    canonicalizeLorentzIndices[R @@ matterFields]
+  ]
+];
+
+joinGhostWithMatterOperator::usage =
+  "Combines ghost modes with one matter-only operator into a canonicalized local operator.";
+joinGhostWithMatterOperator[ghostModes_List, matterOperator_, z_] := Module[
+  {ghostFields, matterFields, rawOperator},
+  ghostFields = ghostModesToOperatorFields[ghostModes, z];
+  matterFields = Which[
+    matterOperator === 1, {},
+    Head[matterOperator] === R, List @@ matterOperator,
+    True, {matterOperator}
+  ];
+  rawOperator = R @@ Join[ghostFields, matterFields];
+  canonicalizeLorentzIndices[rawOperator]
+];
+
+generateBasisMatterHolo::usage =
+  "Generates holomorphic bosonic matter-only local operators at fixed weight.";
+generateBasisMatterHolo[weight_Integer?NonNegative, z_: 0] := Module[
+  {matterModeConfigs, matterOperators},
+  matterModeConfigs = generateMatterModeConfigs[weight];
+  matterOperators = matterOperatorFromModes[#, z] & /@ matterModeConfigs;
+  DeleteDuplicates[matterOperators]
+];
+
+generateBasisMatterHolo[_, ___] := {};
+
+generateBasisMatterAntiHolo::usage =
+  "Generates antiholomorphic bosonic matter-only local operators at fixed weight.";
+generateBasisMatterAntiHolo[weight_Integer?NonNegative, zbar_: 0] := (
+  generateBasisMatterHolo[weight, zbar] /. dX -> dXt
+);
+generateBasisMatterAntiHolo[_, ___] := {};
+
+generateBasisMatter::usage =
+  "Alias for generateBasisMatterHolo.";
+generateBasisMatter[weight_Integer?NonNegative, z_: 0] :=
+  generateBasisMatterHolo[weight, z];
+generateBasisMatter[_, ___] := {};
+
 (* Fast fail: no states can exist below the ghost lower bound at fixed ghost number. *)
 generateBasisHolo[weight_Integer, ghostNumber_Integer, z_: 0] /;
     weight < minGhostWeightForGhostNumberBosonic[ghostNumber] := {};
@@ -85,22 +133,22 @@ generateBasisHolo[weight_Integer, ghostNumber_Integer, z_: 0] := Module[
   collectedOperators = Reap[
     Scan[
       Function[ghostConfig,
-        Module[{ghostModes, ghostSectorWeight, remainingMatterWeight, matterModeConfigs},
+        Module[{ghostModes, ghostSectorWeight, remainingMatterWeight, matterOperators},
           {ghostModes, ghostSectorWeight} = ghostConfig;
           remainingMatterWeight = weight - ghostSectorWeight;
           If[remainingMatterWeight >= 0,
-            matterModeConfigs = generateMatterModeConfigs[remainingMatterWeight];
+            matterOperators = generateBasisMatterHolo[remainingMatterWeight, z];
             Scan[
-              Function[matterModes,
+              Function[matterOperator,
                 Module[{candidateOperator},
-                  candidateOperator = buildHoloOperatorFromModes[ghostModes, matterModes, z];
+                  candidateOperator = joinGhostWithMatterOperator[ghostModes, matterOperator, z];
                   (* Keep only non-trivial normal-ordered products. *)
                   If[candidateOperator =!= 1,
                     Sow[candidateOperator]
                   ]
                 ]
               ],
-              matterModeConfigs
+              matterOperators
             ]
           ];
         ]
@@ -202,7 +250,7 @@ generateBasisAllSplits[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := 
 ];
 
 (* Public full basis API:
-   - "LevelMatched" -> True (default): equivalent to generateBasisLevelMatched
+   - "LevelMatched" -> True (default): return only level-matched states
    - "LevelMatched" -> False: include all holomorphic/antiholomorphic weight splits *)
 generateBasis[weight_Integer, ghostNumber_Integer, opts___] :=
   generateBasis[weight, ghostNumber, 0, 0, opts];
@@ -217,7 +265,7 @@ generateBasis[weight_Integer, ghostNumber_Integer, z_, zbar_, opts___] := Module
     Return[{}]
   ];
   If[TrueQ[levelMatchedQ],
-    generateBasisLevelMatched[weight, ghostNumber, z, zbar],
+    generateBasisLevelMatchedInternal[weight, ghostNumber, z, zbar],
     generateBasisAllSplits[weight, ghostNumber, z, zbar]
   ]
 ];
@@ -227,7 +275,9 @@ generateBasis[_, _, ___] := {};
    1) Enforce equal holomorphic/antiholomorphic weights (weight/2 each).
    2) Split ghost number across sectors subject to each sector's minimal ghost bound.
    3) Build Cartesian products at fixed equal sector weights only. *)
-generateBasisLevelMatched[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
+generateBasisLevelMatchedInternal::usage =
+  "Internal helper that enumerates only level-matched closed-string states.";
+generateBasisLevelMatchedInternal[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] := Module[
   {sectorWeight, holoGhostNumberSplits, collectedOperators, basisOperators},
   If[OddQ[weight],
     Return[{}]
@@ -260,7 +310,7 @@ generateBasisLevelMatched[weight_Integer, ghostNumber_Integer, z_: 0, zbar_: 0] 
   DeleteDuplicates[basisOperators]
 ];
 
-generateBasisLevelMatched[_, _, ___] := {};
+generateBasisLevelMatchedInternal[_, _, ___] := {};
 
 
 (* ::Section:: *)

@@ -23,11 +23,17 @@ generateBasisHolo::usage =
 generateBasisAntiHolo::usage =
   "generateBasisAntiHolo[weight, ghostNumber, zbar:0] generates antiholomorphic bosonic local operators.";
 
+generateBasisMatterHolo::usage =
+  "generateBasisMatterHolo[weight, z:0] generates holomorphic bosonic matter-only local operators.";
+
+generateBasisMatterAntiHolo::usage =
+  "generateBasisMatterAntiHolo[weight, zbar:0] generates antiholomorphic bosonic matter-only local operators.";
+
+generateBasisMatter::usage =
+  "generateBasisMatter[weight, z:0] generates holomorphic bosonic matter-only local operators.";
+
 generateBasis::usage =
   "generateBasis[weight, ghostNumber, z:0, zbar:0, opts] generates full bosonic local operators; default option is \"LevelMatched\" -> True.";
-
-generateBasisLevelMatched::usage =
-  "generateBasisLevelMatched[weight, ghostNumber, z:0, zbar:0] generates full bosonic local operators with equal holomorphic and antiholomorphic weights.";
 
 
 (* ::Section:: *)

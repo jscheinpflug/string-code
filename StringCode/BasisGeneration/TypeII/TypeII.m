@@ -25,6 +25,15 @@ generateBasisHolo::usage =
 generateBasisAntiHolo::usage =
   "generateBasisAntiHolo[weight, ghostNumber, picture, opts] generates antiholomorphic TypeII basis states as mode tuples.";
 
+generateBasisMatterHolo::usage =
+  "generateBasisMatterHolo[weight, picture, opts] generates holomorphic TypeII matter-only mode tuples grouped with their picture ground-state label.";
+
+generateBasisMatterAntiHolo::usage =
+  "generateBasisMatterAntiHolo[weight, picture, opts] generates antiholomorphic TypeII matter-only mode tuples grouped with their picture ground-state label.";
+
+generateBasisMatter::usage =
+  "generateBasisMatter[weight, picture, opts] generates holomorphic TypeII matter-only mode tuples grouped with their picture ground-state label.";
+
 
 generateBasis::usage =
   "generateBasis[weight, ghostNumber, {pictureHolo, pictureAntiHolo}, opts] generates {{pictureHolo,pictureAntiHolo}, basisStates}, where each basis state is one joined holo+anti mode list.";

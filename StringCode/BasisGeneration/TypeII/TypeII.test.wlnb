@@ -25,7 +25,7 @@
   },
   {
    "kind": 2,
-   "value": "test1Result = Context[generateBasisHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisAntiHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasis] === \"StringCode`BasisGeneration`TypeII`\";\nPrint[\"Test 1 (public context export): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "test1Result = Context[generateBasisHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisAntiHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisMatterHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisMatterAntiHolo] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasisMatter] === \"StringCode`BasisGeneration`TypeII`\" &&\n  Context[generateBasis] === \"StringCode`BasisGeneration`TypeII`\";\nPrint[\"Test 1 (public context export): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -75,7 +75,7 @@
   },
   {
    "kind": 2,
-   "value": "publicNames = Sort[Names[\"StringCode`BasisGeneration`TypeII`*\"]];\nexpectedPublic = Sort[{\"generateBasis\", \"generateBasisAntiHolo\", \"generateBasisHolo\"}];\ntest2Result = publicNames === expectedPublic;\nPrint[\"Test 2 (only TypeII basis API exported): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "value": "publicNames = Sort[Names[\"StringCode`BasisGeneration`TypeII`*\"]];\nexpectedPublic = Sort[{\"generateBasis\", \"generateBasisAntiHolo\", \"generateBasisHolo\", \"generateBasisMatter\", \"generateBasisMatterAntiHolo\", \"generateBasisMatterHolo\"}];\ntest2Result = publicNames === expectedPublic;\nPrint[\"Test 2 (only TypeII basis API exported): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -375,7 +375,7 @@
   },
   {
    "kind": 2,
-   "value": "basisProjected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> True];\nbasisUnprojected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> False];\nsubsetQ[a_, b_] := Complement[a, b] === {};\nvalidHoloTupleQ[entry_] := MatchQ[entry, {-1, _List}];\nprojectedParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === 1;\nweightMatchQ[entry_] := groundStateWeightFn[-1] + modeWeightFn[entry[[2]]] === 2;\nghostMatchQ[entry_] := modeGhostNumberFn[entry[[2]]] === 0;\ntest8Result = basisProjected =!= {} && basisUnprojected =!= {} &&\n  AllTrue[basisProjected, validHoloTupleQ] &&\n  AllTrue[basisProjected, ghostMatchQ] &&\n  AllTrue[basisProjected, weightMatchQ] &&\n  AllTrue[basisProjected, projectedParityQ] &&\n  subsetQ[basisProjected, basisUnprojected] &&\n  Length[basisUnprojected] >= Length[basisProjected];\nPrint[\"Test 8 (holo invariants + GSO option behavior): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
+   "value": "basisEven = generateBasisHolo[2, 0, -1, \"GSOParity\" -> \"Even\"];\nbasisOdd = generateBasisHolo[2, 0, -1, \"GSOParity\" -> \"Odd\"];\nbasisAll = generateBasisHolo[2, 0, -1, \"GSOParity\" -> \"All\"];\nbasisProjected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> True];\nbasisUnprojected = generateBasisHolo[2, 0, -1, \"GSOProjected\" -> False];\nsubsetQ[a_, b_] := Complement[a, b] === {};\nvalidHoloTupleQ[entry_] := MatchQ[entry, {-1, _List}];\nevenParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === 1;\noddParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === -1;\nweightMatchQ[entry_] := groundStateWeightFn[-1] + modeWeightFn[entry[[2]]] === 2;\nghostMatchQ[entry_] := modeGhostNumberFn[entry[[2]]] === 0;\ntest8Result = basisEven =!= {} && basisAll =!= {} &&\n  AllTrue[basisEven, validHoloTupleQ] &&\n  AllTrue[basisEven, ghostMatchQ] &&\n  AllTrue[basisEven, weightMatchQ] &&\n  AllTrue[basisEven, evenParityQ] &&\n  AllTrue[basisOdd, oddParityQ] &&\n  subsetQ[basisEven, basisAll] && subsetQ[basisOdd, basisAll] &&\n  Sort[basisEven] === Sort[basisProjected] && Sort[basisAll] === Sort[basisUnprojected] &&\n  Length[basisAll] >= Length[basisEven];\nPrint[\"Test 8 (holo invariants + GSOParity/legacy option behavior): \", If[test8Result, \"PASSED\", \"FAILED\"]];\ntest8Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -425,7 +425,7 @@
   },
   {
    "kind": 2,
-   "value": "test9Result = generateBasisHolo[-1, 0, -1] === {} && generateBasisHolo[2, 0, 1/3] === {} && generateBasisHolo[2, 0, -1, \"GSOProjected\" -> 17] === {};\nPrint[\"Test 9 (invalid inputs/options fail closed): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "value": "test9Result = generateBasisHolo[-1, 0, -1] === {} && generateBasisHolo[2, 0, 1/3] === {} &&\n  generateBasisHolo[2, 0, -1, \"GSOProjected\" -> 17] === {} &&\n  generateBasisHolo[2, 0, -1, \"GSOParity\" -> \"Nope\"] === {};\nPrint[\"Test 9 (invalid inputs/options fail closed): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
    "languageId": "wolfram",
    "outputs": [
     {

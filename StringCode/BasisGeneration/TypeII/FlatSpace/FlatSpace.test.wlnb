@@ -125,7 +125,7 @@
   },
   {
    "kind": 2,
-   "value": "holoVac = generateBasisHolo[0, 0, 0];\ntest3Result = holoVac =!= {} && MatchQ[holoVac[[1]], {0, _List}] && holoVac[[1, 2]] === {};\nPrint[\"Test 3 (vacuum has no explicit ground mode): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "value": "holoVac = generateBasisHolo[0, 0, 0];\nmatterVac = generateBasisMatterHolo[0, 0];\nmatterVacAnti = generateBasisMatterAntiHolo[0, 0];\nmatterAntiSample = generateBasisMatterAntiHolo[2, -1/2, \"GSOParity\" -> \"All\"];\nextractMatterStates[result_] := Which[\n  result === {},\n  {},\n  MatchQ[result, {_?((IntegerQ[#] || MatchQ[#, {_?NumericQ, _String}]) &), _List}],\n  result[[2]],\n  ListQ[result],\n  Flatten[result[[All, 2]], 1],\n  True,\n  {}\n];\nantiMatterHeads = Flatten[modeHeadNames /@ extractMatterStates[matterAntiSample]];\ntest3Result = holoVac =!= {} && MatchQ[holoVac[[1]], {0, _List}] && holoVac[[1, 2]] === {} &&\n  matterVac === {0, {{}}} && matterVacAnti === {0, {{}}} && generateBasisMatter[0, 0] === {0, {{}}} &&\n  antiMatterHeads =!= {} && AllTrue[antiMatterHeads, antiHeadNameQ];\nPrint[\"Test 3 (vacuum + matter-only APIs): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -225,7 +225,7 @@
   },
   {
    "kind": 2,
-   "value": "holoProj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> True];\nholoUnproj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> False];\nsubsetQ[a_, b_] := Complement[a, b] === {};\ntest5Result = holoProj =!= {} && holoUnproj =!= {} && subsetQ[holoProj, holoUnproj] && Length[holoUnproj] >= Length[holoProj];\nPrint[\"Test 5 (GSO projection option subset behavior): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
+   "value": "holoProj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> True];\nholoUnproj = generateBasisHolo[3, 0, -1, \"GSOProjected\" -> False];\nholoEven = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"Even\"];\nholoOdd = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"Odd\"];\nholoAll = generateBasisHolo[3, 0, -1, \"GSOParity\" -> \"All\"];\nsubsetQ[a_, b_] := Complement[a, b] === {};\noddParityQ[entry_] := gsoParityConfigFn[entry[[2]], -1] === -1;\ntest5Result = holoProj =!= {} && holoUnproj =!= {} && subsetQ[holoProj, holoUnproj] && Length[holoUnproj] >= Length[holoProj] &&\n  Sort[holoEven] === Sort[holoProj] && Sort[holoAll] === Sort[holoUnproj] && AllTrue[holoOdd, oddParityQ];\nPrint[\"Test 5 (GSOParity + legacy option subset behavior): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
