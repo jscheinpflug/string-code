@@ -53,6 +53,24 @@ dot::usage = "Symbol for dot product";
 
 der::usage = "Symbol for a derivative";
 
+CGamma::usage = "CGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two chiral spinor indices.";
+
+CIGamma::usage = "CIGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two antichiral spinor indices.";
+
+GammaM::usage = "GammaM[{mu1,...}, alpha, beta] denotes a Clifford tensor with one chiral and one antichiral spinor index.";
+
+Gamma11CGamma::usage =
+  "Gamma11CGamma[{mu1,...}, alpha, beta] denotes Gamma11 times a chiral-chiral Clifford tensor.";
+
+Gamma11CIGamma::usage =
+  "Gamma11CIGamma[{mu1,...}, alpha, beta] denotes Gamma11 times an antichiral-antichiral Clifford tensor.";
+
+Gamma11GammaM::usage =
+  "Gamma11GammaM[{mu1,...}, alpha, beta] denotes Gamma11 times a mixed-chirality Clifford tensor.";
+
+Eps10::usage =
+  "Eps10[upIndices, downIndices] denotes the 10D Levi-Civita tensor with explicit upper/lower index lists.";
+
 
 (* ::Section:: *)
 (*Logic*)

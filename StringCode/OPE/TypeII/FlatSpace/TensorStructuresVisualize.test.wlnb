@@ -1,0 +1,31 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace TensorStructures Visualize Tests\n\nSmoke tests for the box-and-legs tensor visualization renderer, including explicit Eps10 nodes.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`\"]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\ngraph1 = tensorStructureGraph[Eps10[{mu1, mu2, mu3, mu4, mu5, mu6}, {nu1, nu2, nu3, nu4}] * GammaM[{nu1, nu2, nu3, nu4}, alpha, beta], \"ImageSize\" -> 200];\ntest1 = testReport[\"Test 1 (tensorStructureGraph Eps10)\", Head[graph1] === Graphics];\n\ngraph2 = tensorStructureGraph[1, \"ImageSize\" -> 200];\ntest2 = testReport[\"Test 2 (tensorStructureGraph scalar)\", Head[graph2] === Graphics];\n\ngroups = StringCode`OPE`TypeII`FlatSpace`TensorStructures`generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>\n];\n\nvis1 = visualizeTensorStructures[groups, \"ShowRepresentative\" -> False, \"ImageSize\" -> 200, \"MaxGroups\" -> 2];\ntest3 = testReport[\"Test 3 (visualize groups + MaxGroups)\", Head[vis1] === Column && Length[vis1[[1]]] == 2];\n\nvis2 = visualizeTensorStructures[\n  <|\"vector\" -> {mu}, \"spinor\" -> {{alpha, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{beta, \"antichiral\"}}|>,\n  \"ShowRepresentative\" -> True,\n  \"ImageSize\" -> 200\n];\ntest4 = testReport[\"Test 4 (association overload)\", Head[vis2] === Column];\n\nbad = Quiet[visualizeTensorStructures[{}, \"ImageSize\" -> 200], {visualizeTensorStructures::badgroups}];\ntest5 = testReport[\"Test 5 (bad group input)\", bad === $Failed];\n\nexportPrefix = FileNameJoin[{$TemporaryDirectory, \"tensor-visual-test\"}];\nexported = exportTensorStructureVisualizations[\n  exportPrefix,\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"ImageSize\" -> 180,\n  \"ImageFormat\" -> \"PNG\",\n  \"MaxGroups\" -> 1\n];\ntest6 = testReport[\"Test 6 (export visuals)\", ListQ[exported] && Length[exported] == 1 && FileExistsQ[First[exported]]];\n\nallTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}
