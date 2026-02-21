@@ -21,6 +21,7 @@ Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
 (* ::Section:: *)
 (*Declare public variables and methods*)
 
+Bosonize::usage = "Placeholder bosonization wrapper used by randomized spin-field OPE output.";
 
 (* ::Section:: *)
 (*Logic*)
@@ -29,6 +30,7 @@ Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
 Begin["Private`"];
 
 projectionExponentReplacement = {\[Alpha]p -> 0};
+If[FreeQ[Options[OPEProjected], "RandomSeed" -> _], Options[OPEProjected] = Append[Options[OPEProjected], "RandomSeed" -> Automatic]];
 
 hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
 hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
@@ -141,34 +143,56 @@ opeDataToExpression::usage = "Converts {{op, {tensor, ...}}, ...} to a sum of te
 opeDataToExpression[data_List] :=
   Total[Flatten[Function[{op, ts}, Table[t op, {t, ts}]] @@@ data]];
 
-OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ])] :=
-Module[
-  {localLists, splitLists, sign, holoOps, antiOps, holoData, antiData, holoExpr, antiExpr},
+getOutgoingOperatorsTensors::usage = "Returns sign and outgoing spin-field tensor data split into holomorphic/antiholomorphic sectors.";
+getOutgoingOperatorsTensors[ops_List, wH_, wA_] := Module[{l, s, sign, hOps, aOps, hData, aData},
+  l = List @@ # & /@ ops; s = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ l;
+  sign = If[Flatten[l] === {}, 1, factorizationSign[Flatten[l], isHolomorphic, isAntiHolomorphic]];
+  hOps = Select[R @@@ (s[[All, 1]]), RTest]; aOps = Select[R @@@ (s[[All, 2]]), RTest];
+  hData = If[hOps === {}, {}, generateSpinFieldOPEData[hOps, wH, generateBasisMatterHolo, ψ, S, pictureContributionHolo]];
+  aData = If[aOps === {}, {}, generateSpinFieldOPEData[aOps, wA, generateBasisMatterAntiHolo, ψt, St, pictureContributionAntiHolo]];
+  <|"sign" -> sign, "holoOps" -> hOps, "antiOps" -> aOps, "holoData" -> hData, "antiData" -> aData|>
+];
 
-  localLists = List @@ # & /@ {Ra};
-  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ localLists;
-  sign = If[Flatten[localLists] === {}, 1,
-    factorizationSign[Flatten[localLists], isHolomorphic, isAntiHolomorphic]
+attachCoefficients::usage = "Builds Sum[a[i] tensor op] from spin-field OPE data, returning {expr,lastUsedIndex}.";
+attachCoefficients[data_List, offset_Integer : 0] := Module[{i = offset, terms},
+  terms = Flatten[Function[{op, ts}, Table[i++; a[i] t op, {t, ts}]] @@@ data];
+  {If[terms === {}, 0, Total[terms]], i}
+];
+
+randomizeIndices::usage = "Randomizes singleton indices, sums repeated ones, and wraps every R[...] as Bosonize[R[...]].";
+randomizeIndices[inputOps_List, hExpr_, aExpr_, seed_: Automatic] := Module[
+  {obj = {inputOps, hExpr, aExpr}, typed, counts, vec, spi, free, dum, run},
+  typed = Join[
+    Cases[obj, (ψ | ψt)[μ_, __] /; SymbolQ[μ] :> {μ, "v"}, Infinity],
+    Cases[obj, (S | St)[{α_, ("chiral" | "antichiral")}, __] /; SymbolQ[α] :> {α, "s"}, Infinity],
+    Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
+      ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; SymbolQ[ν]} :> ν]),
+      ({#, "v"} & /@ Cases[m, {ν_ /; SymbolQ[ν], _?NumericQ} :> ν])], Infinity], 1],
+    Flatten[Cases[obj, (CGamma | CIGamma | GammaM | Gamma11CGamma | Gamma11CIGamma | Gamma11GammaM)[is_List, s1_, s2_] :>
+      Join[({#, "v"} & /@ Select[is, SymbolQ]), ({#, "s"} & /@ Select[{s1, s2}, SymbolQ])], Infinity], 1],
+    Flatten[Cases[obj, Eps10[u_List, d_List] :> ({#, "v"} & /@ Select[Join[u, d], SymbolQ]), Infinity], 1]
   ];
-
-  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
-  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
-
-  holoData = If[holoOps =!= {},
-    generateSpinFieldOPEData[holoOps, wH, generateBasisMatterHolo,
-      ψ, S, pictureContributionHolo],
-    {}
+  counts = Counts[First /@ typed]; vec = DeleteDuplicates[First /@ Select[typed, Last[#] === "v" &]];
+  spi = Complement[DeleteDuplicates[First /@ Select[typed, Last[#] === "s" &]], vec];
+  free = Keys[Select[counts, # == 1 &]]; dum = Keys[Select[counts, # > 1 &]];
+  run[] := Module[{rules, it, wrap, s},
+    rules = Join[(# -> RandomInteger[{1, 10}] & /@ Intersection[vec, free]), (# -> RandomInteger[{1, 16}] & /@ Intersection[spi, free])];
+    it = Join[({#, 1, 10} & /@ Intersection[vec, dum]), ({#, 1, 16} & /@ Intersection[spi, dum])];
+    wrap[e_] := e /. ra_ /; RTest[ra] :> Bosonize[ra];
+    s[e_] := If[it === {}, e, Apply[Sum, Prepend[it, e]]];
+    {s /@ (wrap /@ (inputOps /. rules)), s[wrap[hExpr /. rules]], s[wrap[aExpr /. rules]]}
   ];
-  antiData = If[antiOps =!= {},
-    generateSpinFieldOPEData[antiOps, wA, generateBasisMatterAntiHolo,
-      ψt, St, pictureContributionAntiHolo],
-    {}
-  ];
+  If[seed === Automatic, run[], BlockRandom[SeedRandom[seed]; run[]]]
+];
 
-  holoExpr = Which[holoOps === {}, 1, holoData === {}, 0, True, opeDataToExpression[holoData]];
-  antiExpr = Which[antiOps === {}, 1, antiData === {}, 0, True, opeDataToExpression[antiData]];
-
-  sign combineChiral[holoExpr, antiExpr]
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ]), opts___Rule] := Module[
+  {o, hExpr, aExpr, n, rIn, rH, rA, seed},
+  o = getOutgoingOperatorsTensors[{Ra}, wH, wA];
+  {hExpr, n} = Which[o["holoOps"] === {}, {1, 0}, o["holoData"] === {}, {0, 0}, True, attachCoefficients[o["holoData"], 0]];
+  {aExpr, n} = Which[o["antiOps"] === {}, {1, n}, o["antiData"] === {}, {0, n}, True, attachCoefficients[o["antiData"], n]];
+  seed = Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic];
+  {rIn, rH, rA} = randomizeIndices[{Ra}, hExpr, aExpr, seed];
+  <|"sign" -> o["sign"], "holo" -> rH, "anti" -> rA, "randomizedInputs" -> rIn|>
 ];
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldQ])] := Module[
