@@ -24,18 +24,6 @@ R::usage = "A sorted normal-ordered product of fields";
 Begin["Private`"];
 
 
-containsFieldQ::usage = "Checks if expression contains any registered field.";
-containsFieldQ[expr_] := !FreeQ[expr, field_ /; isField[Head[field]]];
-
-containsFermionQ::usage = "Checks if expression contains any registered fermion field.";
-containsFermionQ[expr_] := !FreeQ[expr, field_ /; isFermion[Head[field]]];
-
-containsRegularFermionQ::usage = "Checks if expression contains any registered regular fermion field.";
-containsRegularFermionQ[expr_] := !FreeQ[expr, field_ /; isRegFermion[Head[field]]];
-
-isScalarFactorQ::usage = "Checks if expression is scalar factor with respect to registered fields.";
-isScalarFactorQ[expr_] := !containsFieldQ[expr];
-
 needsOrdering::usage = "Private flag controlling whether R auto-orders. Default True.";
 needsOrdering = True;
 

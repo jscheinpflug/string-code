@@ -37,6 +37,7 @@ Begin["Private`"];
 
 
 (*Action of BRST charge splits into holomorphic and antiholomorphic parts*)
+BracketInputTest::usage = "Predicate used by bracket routines to recognize acceptable operator inputs (normal-ordered R[...] or MultiOp[...]).";
 BracketInputTest[x_] := RTest[x] || MultiOpTest[x];
 actBRST[op_/;RTest[op]]:= actBRSTHolo[op] + actBRSTAntiHolo[op];
 
@@ -96,6 +97,7 @@ result]
 (*Place string fields at positions given by local coordinates*)
 
 
+placeOpAtPosGivenLocalCoordinates::usage = "Places a list of string fields at positions specified by corresponding holomorphic/antiholomorphic local coordinate maps.";
 placeOpAtPosGivenLocalCoordinates[localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__, ops__]:= 
 Table[OpAtPos[ops[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]]], {i, 1, Length[ops]}]
 
@@ -146,6 +148,7 @@ BracketProjection[Wedge[a__] b___, weightHolo_, weightAntiHolo_] := Wedge[a, Bra
 (*Shared projected bracket helpers*)
 
 
+combineProjectedBracketChiral::usage = "Combines holomorphic and antiholomorphic projected bracket pieces into a single normal-ordered factor, simplifying identities for 0 and 1.";
 combineProjectedBracketChiral[projectedHolo_, projectedAntiHolo_] := Which[
   projectedHolo === 0 || projectedAntiHolo === 0, 0,
   projectedHolo === 1, projectedAntiHolo,
@@ -153,6 +156,7 @@ combineProjectedBracketChiral[projectedHolo_, projectedAntiHolo_] := Which[
   True, R[projectedHolo, projectedAntiHolo]
 ];
 
+projectBracketLocalOps::usage = "Projects a list of local operators to fixed chiral weights, using a factorized path when possible and falling back to generic OPE projection otherwise.";
 projectBracketLocalOps[localOps_List, weightHolo_, weightAntiHolo_] := Module[
   {
     dualChiralOps, factorizationPrefac, bracketHolo, bracketAntiHolo,
@@ -274,9 +278,6 @@ result = result + createBs[SFList[[i]], localCoordinateFunctionsHol[[i]], localC
 {i,1,bracketOrder}];
 result
 ]
-
-
-scalarQ[x_] := FreeQ[x, _MultiOp | _R]
 
 
 getMinCGhostModding::usage = "Get minimum c-ghost modding inside a local operator";
@@ -517,6 +518,7 @@ actBGhostMode[bmodeHolo[0][0], rescaledR] + actBGhostMode[bmodeAntiHolo[0][0],re
 
 ApplyPropagator[q_][0]:=0;
 
+rescaling::usage = "Returns a coordinate rescaling map z |-> factor z (expanded).";
 rescaling[factor_][z_]:= factor z //Expand;
 
 

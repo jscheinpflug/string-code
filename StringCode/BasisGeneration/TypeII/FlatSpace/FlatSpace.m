@@ -70,41 +70,50 @@ Begin["Private`"];
 *)
 
 (* Test if x is a half-integer (n + 1/2 for some integer n) *)
+halfIntegerQ::usage = "Tests whether x is a half-integer (n + 1/2 for some integer n).";
 halfIntegerQ[x_] := IntegerQ[2 x] && OddQ[2 x];
 
 (* Valid chirality values for Ramond sector *)
+validChiralityQ::usage = "Tests whether a chirality tag is valid (\"chiral\" or \"antichiral\").";
 validChiralityQ[chirality_] := MemberQ[{"chiral", "antichiral"}, chirality];
 
 (* User-facing picture input: integer or half-integer *)
+validPictureInputQ::usage = "Tests whether a user-facing picture input is an integer or half-integer.";
 validPictureInputQ[picture_] := IntegerQ[picture] || halfIntegerQ[picture];
 
 (* Internal picture spec: integer, or {half-integer, chirality} *)
+validPictureSpecQ::usage = "Tests whether a picture spec is an integer picture or a Ramond spec {q, chirality} with half-integer q.";
 validPictureSpecQ[picture_] :=
   IntegerQ[picture] ||
     MatchQ[picture, {q_ /; halfIntegerQ[q], chirality_ /; validChiralityQ[chirality]}];
 
 (* Expand user input to internal specs.
    Half-integer pictures expand to both chiralities. *)
+expandPictureSpecs::usage = "Expands a picture input to a list of internal picture specs (half-integers expand to both chiralities).";
 expandPictureSpecs[picture_Integer] := {picture};
 expandPictureSpecs[picture_ /; halfIntegerQ[picture]] :=
   {{picture, "chiral"}, {picture, "antichiral"}};
 
 (* Extract numeric picture value from spec *)
+pictureValue::usage = "Extracts the numeric picture value q from a picture spec.";
 pictureValue[picture_Integer] := picture;
 pictureValue[{picture_ /; halfIntegerQ[picture], chirality_ /; validChiralityQ[chirality]}] :=
   picture;
 
 (* Extract chirality from spec (None for NS sector) *)
+pictureChirality::usage = "Extracts the chirality tag from a picture spec (None for integer pictures).";
 pictureChirality[picture_Integer] := None;
 pictureChirality[{picture_ /; halfIntegerQ[picture], chirality_ /; validChiralityQ[chirality]}] :=
   chirality;
 
 (* Valid weight: non-negative, half-integer allowed *)
+validWeightQ::usage = "Tests whether a conformal weight is nonnegative and integer or half-integer.";
 validWeightQ[weight_] := NumericQ[weight] && weight >= 0 && IntegerQ[2 weight];
 
 (* Conformal weight of the picture-q ground state |q⟩.
    NS sector (integer q): h = -q(q+2)/2
    R sector (half-integer q): h = 5/8 - q(q+2)/2  (includes R ground state weight) *)
+groundStateWeight::usage = "Returns the conformal weight of the picture-q ground state for a given picture spec.";
 groundStateWeight[picture_?validPictureSpecQ] := Module[{q},
   q = pictureValue[picture];
   If[IntegerQ[q],
@@ -116,6 +125,7 @@ groundStateWeight[picture_?validPictureSpecQ] := Module[{q},
 (* GSO parity of the picture-q ground state.
    NS sector: (-1)^q
    R sector: (-1)^(q+1/2) with sign flip for antichiral *)
+gsoParityOfGroundState::usage = "Returns the GSO parity of the picture-q ground state for a given picture spec.";
 gsoParityOfGroundState[picture_?validPictureSpecQ] := Module[
   {q, baseParity, chiralitySign},
   q = pictureValue[picture];
@@ -149,6 +159,7 @@ gsoParityOfGroundState[picture_?validPictureSpecQ] := Module[
    - γ modes have weight ≥ -1/2 - q (creation modes: r ≤ 1/2 + q)
    For positive superghost number: use γ modes (cheaper)
    For negative superghost number: use β modes *)
+minSuperghostWeightForGhostNumber::usage = "Lower bound on superghost conformal weight for a given superghost number at a specified picture.";
 minSuperghostWeightForGhostNumber[ghostNumber_Integer, picture_?validPictureSpecQ] := Module[{q},
   q = pictureValue[picture];
   If[
@@ -161,6 +172,7 @@ minSuperghostWeightForGhostNumber[ghostNumber_Integer] :=
   minSuperghostWeightForGhostNumber[ghostNumber, 0];
 
 (* Total ghost weight at a specific bc/superghost split *)
+ghostWeightAtSplit::usage = "Computes the minimum ghost-sector weight for a fixed bc/superghost split at a specified picture.";
 ghostWeightAtSplit[
   totalGhostNumber_Integer,
   bcGhostNumber_Integer,
@@ -174,6 +186,7 @@ ghostWeightAtSplit[
    - The bc weight is a piecewise quadratic in bcGhostNumber
    - The superghost weight is linear with slope depending on sign
    We check candidate vertices of the piecewise function. *)
+minTypeIIGhostWeightForGhostNumber::usage = "Lower bound on TypeII ghost-sector weight for a given total ghost number at a specified picture.";
 minTypeIIGhostWeightForGhostNumber[ghostNumber_Integer, picture_?validPictureSpecQ] := Module[
   {q, case1Vertex, case2Vertex, case1Candidates, case2Candidates, values},
   q = pictureValue[picture];
@@ -200,12 +213,14 @@ minTypeIIGhostWeightForGhostNumber[ghostNumber_Integer] :=
   minTypeIIGhostWeightForGhostNumber[ghostNumber, 0];
 
 (* Minimum total sector weight = ground state + minimum ghost weight *)
+minSectorWeightForGhostAndPicture::usage = "Lower bound on total sector weight (ground state + ghosts) for a ghost number at a specified picture.";
 minSectorWeightForGhostAndPicture[ghostNumber_Integer, picture_?validPictureSpecQ] :=
   groundStateWeight[picture] + minTypeIIGhostWeightForGhostNumber[ghostNumber, picture];
 
 (* Find contiguous range of integers where splitFeasibleQ returns True.
    Searches outward from center, then expands to find full range.
    Returns {} if no feasible split exists. *)
+findFeasibleSplitRange::usage = "Finds a contiguous integer range of feasible splits by searching outward from a center and expanding to full extent.";
 findFeasibleSplitRange[splitFeasibleQ_, center_Integer, maxRadius_Integer?Positive] := Module[
   {seed = Missing["NotFound"], radius = 0, candidates, minSplit, maxSplit},
   (* Find first feasible split by expanding from center *)
@@ -227,6 +242,7 @@ findFeasibleSplitRange[splitFeasibleQ_, center_Integer, maxRadius_Integer?Positi
 
 (* Find feasible bc ghost number splits for holomorphic sector.
    A split is feasible if bc + superghost minimum weight ≤ maxWeight. *)
+ghostSplitRangeTypeII::usage = "Returns feasible bc-ghost-number splits for a TypeII holomorphic sector under a weight budget at a specified picture.";
 ghostSplitRangeTypeII[ghostNumber_Integer, maxWeight_?NumericQ, picture_?validPictureSpecQ] := Module[
   {center, maxRadius, splitFeasibleQ},
   If[maxWeight < minTypeIIGhostWeightForGhostNumber[ghostNumber, picture],
@@ -244,6 +260,7 @@ ghostSplitRangeTypeII[ghostNumber_Integer, maxWeight_?NumericQ] :=
 
 (* Find feasible holomorphic ghost number splits for closed string.
    A split is feasible if both sectors can be realized within total weight. *)
+ghostSplitRangeClosedString::usage = "Returns feasible holomorphic ghost-number splits for a closed string under a total weight budget at specified pictures.";
 ghostSplitRangeClosedString[
   totalGhostNumber_Integer,
   totalWeight_?NumericQ,
