@@ -458,7 +458,8 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
   generatePsiModeConfigs[targetWeight, picture] = Module[
     {
       minModeNumber,
-      psiCount = 0,
+      maxPsiCount,
+      psiCount,
       minPsiWeight,
       maxOffsetSum,
       minOffsetSum,
@@ -470,12 +471,15 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
       Return[{}]
     ];
     minModeNumber = minModeNumberForSpecies[\[Psi], picture];
+    maxPsiCount = Max[
+      0,
+      Floor[(1 + 2 minModeNumber + Sqrt[(1 + 2 minModeNumber)^2 + 8 targetWeight])/2]
+    ];
     collectedConfigs = Reap[
-      (* Iterate over number of ψ modes *)
-      While[True,
+      Do[
         minPsiWeight = -minModeNumber psiCount + minDistinctModeSum[psiCount, 0];
         If[minPsiWeight > targetWeight,
-          Break[]
+          Continue[]
         ];
         minOffsetSum = minDistinctModeSum[psiCount, 0];
         maxOffsetSum = Floor[targetWeight + minModeNumber psiCount];
@@ -486,8 +490,9 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
             {offsets, offsetConfigs}
           ],
           {offsetSum, minOffsetSum, maxOffsetSum}
-        ];
-        psiCount++;
+        ]
+        ,
+        {psiCount, 0, maxPsiCount}
       ]
     ][[2]];
     If[collectedConfigs === {}, {}, collectedConfigs[[1]]]

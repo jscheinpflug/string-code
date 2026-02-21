@@ -381,9 +381,6 @@ result]
 
 Differential[expr_, moduli_] /; !DependentQ[expr, moduli] := 0;
 
-(* 0 if the whole thing is independent of the moduli *)
-Differential[expr_, moduli_] /; !DependentQ[expr, moduli] := 0;
-
 (*Multilinearity*)
 Differential[a_ + b_, moduli_] := Differential[a, moduli] + Differential[b, moduli];
 Differential[c_ b_, moduli_] /; !DependentQ[c, moduli] := c Differential[b, moduli];
@@ -594,20 +591,19 @@ getPartitions[n_] := DeleteCases[IntegerPartitions[n], {1 ..}]
 (* Generate all ways to assign n items to groups of given sizes *)
 (* Works with positional indices to handle duplicate elements correctly *)
 assignToGroups::usage = "Generate all index-based assignments of n positions to groups of given sizes";
-assignToGroups[n_Integer, sizes_List] := Module[{indices = Range[n], result = {},
-  sortedSizes = Sort[sizes, Greater], helper},
+assignToGroups[n_Integer, sizes_List] := Module[{indices = Range[n], sortedSizes = Sort[sizes, Greater], helper, reaped},
 
   (* Recursive helper to build assignments using indices *)
-  helper[remaining_, {}, acc_] := AppendTo[result, acc];
+  helper[remaining_, {}, acc_] := Sow[acc];
   helper[remaining_, {size_, rest___}, acc_] := Module[{subsets},
     subsets = Subsets[remaining, {size}];
     Scan[helper[Complement[remaining, #], {rest}, Append[acc, #]] &, subsets]
   ];
 
-  helper[indices, sortedSizes, {}];
+  reaped = Last @ Reap[helper[indices, sortedSizes, {}]];
 
   (* Remove duplicates from repeated partition sizes *)
-  DeleteDuplicatesBy[result, Sort]
+  DeleteDuplicatesBy[If[reaped === {}, {}, First[reaped]], Sort]
 ]
 
 
@@ -719,14 +715,21 @@ drawNode[tLeaf[field_], x0_, depth_, fieldMap_] := Module[
 ]
 
 drawNode[tNode[type_, children_List], x0_, depth_, fieldMap_] := Module[
-  {nextX = x0, childResults = {}, myX, edgePrims, nodePrim, allPrims},
+  {nextX = x0, childResults, reaped, myX, edgePrims, nodePrim, allPrims},
 
-  Scan[Function[child,
-    Module[{r = drawNode[child, nextX, depth + 1, fieldMap]},
-      AppendTo[childResults, r];
-      nextX = r[[3]];
+  reaped = Last @ Reap[
+    nextX = Fold[
+      Function[{x, child},
+        Module[{r = drawNode[child, x, depth + 1, fieldMap]},
+          Sow[r];
+          r[[3]]
+        ]
+      ],
+      x0,
+      children
     ]
-  ], children];
+  ];
+  childResults = If[reaped === {}, {}, First[reaped]];
 
   myX = Mean[#[[2]] & /@ childResults];
 

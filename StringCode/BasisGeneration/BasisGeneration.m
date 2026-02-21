@@ -254,14 +254,14 @@ actBGhostMode[a_, op1_ + op2_] := actBGhostMode[a, op1] + actBGhostMode[a, op2];
 actBGhostMode[a_, b_ c_] := b actBGhostMode[a, c] /; isScalarFactorQ[b];
 
 actBGhostMode[
-  bmodeHolo[contourCenter_][mode_],
+  bMode : (bmodeHolo[contourCenter_][mode_] | bmodeAntiHolo[contourCenter_][mode_]),
   multiOp_ /; MultiOpTest[multiOp]
 ] := Module[{result = 0, opList, parities},
   opList = List @@ multiOp;
   parities = Map[parityOp, opList];
   Do[
     result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
-      actBGhostMode[bmodeHolo[contourCenter][mode], #] &,
+      actBGhostMode[bMode, #] &,
       opList,
       i
     ],
@@ -273,53 +273,12 @@ actBGhostMode[
 actBGhostMode[
   bmodeHolo[contourCenter_][mode_][position_],
   multiOp_ /; MultiOpTest[multiOp]
-] := Module[{result = 0, opList, parities},
-  opList = List @@ multiOp;
-  parities = Map[parityOp, opList];
-  Do[
-    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
-      actBGhostMode[bmodeHolo[contourCenter][mode], #] &,
-      opList,
-      i
-    ],
-    {i, 1, Length[opList]}
-  ];
-  result
-];
-
-actBGhostMode[
-  bmodeAntiHolo[contourCenter_][mode_],
-  multiOp_ /; MultiOpTest[multiOp]
-] := Module[{result = 0, opList, parities},
-  opList = List @@ multiOp;
-  parities = Map[parityOp, opList];
-  Do[
-    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
-      actBGhostMode[bmodeAntiHolo[contourCenter][mode], #] &,
-      opList,
-      i
-    ],
-    {i, 1, Length[opList]}
-  ];
-  result
-];
+] := actBGhostMode[bmodeHolo[contourCenter][mode], multiOp];
 
 actBGhostMode[
   bmodeAntiHolo[contourCenter_][mode_][position_],
   multiOp_ /; MultiOpTest[multiOp]
-] := Module[{result = 0, opList, parities},
-  opList = List @@ multiOp;
-  parities = Map[parityOp, opList];
-  Do[
-    result = result + (-1)^(Total[Take[parities, i - 1]]) MultiOp @@ MapAt[
-      actBGhostMode[bmodeAntiHolo[contourCenter][mode], #] &,
-      opList,
-      i
-    ],
-    {i, 1, Length[opList]}
-  ];
-  result
-];
+] := actBGhostMode[bmodeAntiHolo[contourCenter][mode], multiOp];
 
 actBGhostMode[bmodeHolo[contourCenter_][mode_][position_], Ra_ /; RTest[Ra]] :=
   bmodeHolo[contourCenter][mode][Ra];

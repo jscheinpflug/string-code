@@ -83,31 +83,35 @@ upperTriangleValues[m_List] := Module[{k = Length[m]},
 
 gammaTypeConfigs::usage = "gammaTypeConfigs[nChiral, nAnti] enumerates admissible {a,b,c} gamma-count configurations.";
 gammaTypeConfigs[nChiral_Integer, nAnti_Integer] := Module[
-  {k, configs = {}, a, c, b},
+  {k, a, c, b, reaped},
   If[nChiral < 0 || nAnti < 0 || OddQ[nChiral + nAnti], Return[{}]];
   k = (nChiral + nAnti)/2;
-  For[a = 0, a <= Floor[nChiral/2], a++,
-    c = nChiral - 2 a;
-    b = (nAnti - c)/2;
-    If[IntegerQ[b] && b >= 0 && a + b + c == k,
-      AppendTo[configs, <|"a" -> a, "b" -> b, "c" -> c|>]
-    ];
+  reaped = Last @ Reap[
+    For[a = 0, a <= Floor[nChiral/2], a++,
+      c = nChiral - 2 a;
+      b = (nAnti - c)/2;
+      If[IntegerQ[b] && b >= 0 && a + b + c == k,
+        Sow[<|"a" -> a, "b" -> b, "c" -> c|>]
+      ];
+    ]
   ];
-  configs
+  If[reaped === {}, {}, First[reaped]]
 ];
 
 outgoingSlotOptions::usage = "outgoingSlotOptions[typeConfig, outChirality] returns allowed outgoing-slot forms.";
 outgoingSlotOptions[typeConfig_Association, outChirality_String] := Module[
-  {a = typeConfig["a"], b = typeConfig["b"], c = typeConfig["c"], forms = {}},
+  {a = typeConfig["a"], b = typeConfig["b"], c = typeConfig["c"], reaped},
+  reaped = Last @ Reap[
   Switch[outChirality,
     "chiral",
-      If[a > 0, AppendTo[forms, CGamma]];
-      If[c > 0, AppendTo[forms, GammaM]],
+      If[a > 0, Sow[CGamma]];
+      If[c > 0, Sow[GammaM]],
     "antichiral",
-      If[b > 0, AppendTo[forms, CIGamma]];
-      If[c > 0, AppendTo[forms, GammaM]]
+      If[b > 0, Sow[CIGamma]];
+      If[c > 0, Sow[GammaM]]
   ];
-  forms
+  ];
+  If[reaped === {}, {}, First[reaped]]
 ];
 
 outgoingEmittedForm::usage =
