@@ -685,13 +685,13 @@ multiplyOperatorExpressions[a_, b_] := Which[
 ];
 
 canonicalizeLorentzIndicesOperators::usage =
-  "Canonicalizes Lorentz placeholder symbols in operator expressions.";
+  "Canonicalizes Lorentz placeholder symbols in operator expressions. Uses α for S and αt for St spinor indices.";
 canonicalizeLorentzIndicesOperators[expr_] := Module[
   {
     lorentzSymbols,
-    spinAlphaSymbols,
+    spinAlphaSymbolsHolo, spinAlphaSymbolsAnti,
     canonicalLorentzSymbols,
-    canonicalSpinAlphaSymbols,
+    canonicalSpinAlphaSymbolsHolo, canonicalSpinAlphaSymbolsAnti,
     lorentzRenamingRules,
     spinAlphaRenamingRules
   },
@@ -707,15 +707,24 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
       Infinity
     ] // Flatten
   ];
-  spinAlphaSymbols = DeleteDuplicates @ Cases[
+  spinAlphaSymbolsHolo = DeleteDuplicates @ Cases[
     expr,
-    (S | St)[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
+    S[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
+    Infinity
+  ];
+  spinAlphaSymbolsAnti = DeleteDuplicates @ Cases[
+    expr,
+    St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
     Infinity
   ];
   canonicalLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[lorentzSymbols]];
-  canonicalSpinAlphaSymbols = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbols]];
+  canonicalSpinAlphaSymbolsHolo = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsHolo]];
+  canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]t" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
   lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
-  spinAlphaRenamingRules = Thread[spinAlphaSymbols -> canonicalSpinAlphaSymbols];
+  spinAlphaRenamingRules = Join[
+    Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
+    Thread[spinAlphaSymbolsAnti -> canonicalSpinAlphaSymbolsAnti]
+  ];
   expr /. Join[lorentzRenamingRules, spinAlphaRenamingRules]
 ];
 
@@ -1000,15 +1009,16 @@ assembleAntiOperatorFromModeList[
   zbar_: 0,
   canonicalizeIndices_: True
 ] := Module[
-  {holoModes, holoOperator},
+  {holoModes, holoOperator, antiOperator},
   holoModes = holoModeFromAntiMode /@ modeList;
   holoOperator = assembleHoloOperatorFromModeList[
     pictureSpec,
     holoModes,
     zbar,
-    canonicalizeIndices
+    False
   ];
-  antiOperatorFromHolo[holoOperator]
+  antiOperator = antiOperatorFromHolo[holoOperator];
+  canonicalizeOperatorIndicesQ[canonicalizeIndices, antiOperator]
 ];
 
 antiModeSpeciesQ::usage =
