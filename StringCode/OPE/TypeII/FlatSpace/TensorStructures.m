@@ -40,12 +40,12 @@ Options[generateTensorStructures] = {"MaxK" -> 5, "RepresentativesOnly" -> False
 Begin["Private`"];
 
 formOrder::usage = "formOrder[form] gives a stable total ordering key for supported gamma heads.";
-formOrder[CGamma] := 1;
-formOrder[CIGamma] := 2;
-formOrder[GammaM] := 3;
-formOrder[Gamma11CGamma] := 4;
-formOrder[Gamma11CIGamma] := 5;
-formOrder[Gamma11GammaM] := 6;
+formOrder[GammaFormUU] := 1;
+formOrder[GammaFormDD] := 2;
+formOrder[GammaFormUD] := 3;
+formOrder[GammaForm11UU] := 4;
+formOrder[GammaForm11DD] := 5;
+formOrder[GammaForm11UD] := 6;
 formOrder[Eps10] := 7;
 
 parseMaxKOption::usage = "parseMaxKOption[opts] extracts a nonnegative integer MaxK option, defaulting to 5.";
@@ -104,11 +104,11 @@ outgoingSlotOptions[typeConfig_Association, outChirality_String] := Module[
   reaped = Last @ Reap[
   Switch[outChirality,
     "chiral",
-      If[a > 0, Sow[CGamma]];
-      If[c > 0, Sow[GammaM]],
+      If[a > 0, Sow[GammaFormUU]];
+      If[c > 0, Sow[GammaFormUD]],
     "antichiral",
-      If[b > 0, Sow[CIGamma]];
-      If[c > 0, Sow[GammaM]]
+      If[b > 0, Sow[GammaFormDD]];
+      If[c > 0, Sow[GammaFormUD]]
   ];
   ];
   If[reaped === {}, {}, First[reaped]]
@@ -116,23 +116,23 @@ outgoingSlotOptions[typeConfig_Association, outChirality_String] := Module[
 
 outgoingEmittedForm::usage =
   "outgoingEmittedForm[pairForm, outChirality] maps outgoing-pair chirality class to emitted gamma head.";
-outgoingEmittedForm[CGamma, "chiral"] := GammaM;
-outgoingEmittedForm[CIGamma, "antichiral"] := GammaM;
-outgoingEmittedForm[GammaM, "chiral"] := CIGamma;
-outgoingEmittedForm[GammaM, "antichiral"] := CGamma;
+outgoingEmittedForm[GammaFormUU, "chiral"] := GammaFormUD;
+outgoingEmittedForm[GammaFormDD, "antichiral"] := GammaFormUD;
+outgoingEmittedForm[GammaFormUD, "chiral"] := GammaFormDD;
+outgoingEmittedForm[GammaFormUD, "antichiral"] := GammaFormUU;
 outgoingEmittedForm[_, _] := $Failed;
 
 buildSlotBlueprint::usage =
   "buildSlotBlueprint[typeConfig, outPairForm, outChirality] constructs slot descriptors with pair/emitted forms.";
 buildSlotBlueprint[typeConfig_Association, outPairForm_, outChirality_] := Module[
   {counts, rest},
-  counts = <|CGamma -> typeConfig["a"], CIGamma -> typeConfig["b"], GammaM -> typeConfig["c"]|>;
+  counts = <|GammaFormUU -> typeConfig["a"], GammaFormDD -> typeConfig["b"], GammaFormUD -> typeConfig["c"]|>;
   If[outPairForm =!= None,
     counts[outPairForm] = counts[outPairForm] - 1;
     rest = Join[
-      Table[<|"pairForm" -> CGamma, "emitBaseForm" -> CGamma, "hasOutgoing" -> False|>, {counts[CGamma]}],
-      Table[<|"pairForm" -> CIGamma, "emitBaseForm" -> CIGamma, "hasOutgoing" -> False|>, {counts[CIGamma]}],
-      Table[<|"pairForm" -> GammaM, "emitBaseForm" -> GammaM, "hasOutgoing" -> False|>, {counts[GammaM]}]
+      Table[<|"pairForm" -> GammaFormUU, "emitBaseForm" -> GammaFormUU, "hasOutgoing" -> False|>, {counts[GammaFormUU]}],
+      Table[<|"pairForm" -> GammaFormDD, "emitBaseForm" -> GammaFormDD, "hasOutgoing" -> False|>, {counts[GammaFormDD]}],
+      Table[<|"pairForm" -> GammaFormUD, "emitBaseForm" -> GammaFormUD, "hasOutgoing" -> False|>, {counts[GammaFormUD]}]
     ];
     Prepend[
       rest,
@@ -143,16 +143,16 @@ buildSlotBlueprint[typeConfig_Association, outPairForm_, outChirality_] := Modul
       |>
     ],
     Join[
-      Table[<|"pairForm" -> CGamma, "emitBaseForm" -> CGamma, "hasOutgoing" -> False|>, {counts[CGamma]}],
-      Table[<|"pairForm" -> CIGamma, "emitBaseForm" -> CIGamma, "hasOutgoing" -> False|>, {counts[CIGamma]}],
-      Table[<|"pairForm" -> GammaM, "emitBaseForm" -> GammaM, "hasOutgoing" -> False|>, {counts[GammaM]}]
+      Table[<|"pairForm" -> GammaFormUU, "emitBaseForm" -> GammaFormUU, "hasOutgoing" -> False|>, {counts[GammaFormUU]}],
+      Table[<|"pairForm" -> GammaFormDD, "emitBaseForm" -> GammaFormDD, "hasOutgoing" -> False|>, {counts[GammaFormDD]}],
+      Table[<|"pairForm" -> GammaFormUD, "emitBaseForm" -> GammaFormUD, "hasOutgoing" -> False|>, {counts[GammaFormUD]}]
     ]
   ]
 ];
 
 baseParitySet::usage = "baseParitySet[emitBaseForm] returns allowed ranks before outgoing truncation.";
 baseParitySet[emitBaseForm_] := If[
-  MemberQ[{CGamma, CIGamma}, emitBaseForm],
+  MemberQ[{GammaFormUU, GammaFormDD}, emitBaseForm],
   {1, 3, 5, 7, 9},
   {0, 2, 4, 6, 8, 10}
 ];
@@ -296,11 +296,38 @@ contractionMatrices[dummyCounts_List] := Module[
   ]
 ];
 
-gamma11LiftHead::usage = "gamma11LiftHead[form] returns the explicit Gamma11-lifted head for a base gamma form.";
-gamma11LiftHead[CGamma] := Gamma11CGamma;
-gamma11LiftHead[CIGamma] := Gamma11CIGamma;
-gamma11LiftHead[GammaM] := Gamma11GammaM;
-gamma11LiftHead[other_] := other;
+initialChainIndex::usage = "initialChainIndex[form] returns the left boundary index type (\"U\" or \"D\") used to build a gamma chain.";
+initialChainIndex[GammaFormUU] := "U";
+initialChainIndex[GammaFormDD] := "D";
+initialChainIndex[GammaFormUD] := "U";
+initialChainIndex[_] := "U";
+
+flipChainIndex::usage = "flipChainIndex[idx] toggles chain index type between \"U\" and \"D\".";
+flipChainIndex["U"] := "D";
+flipChainIndex["D"] := "U";
+flipChainIndex[other_] := other;
+
+gammaLinkHeadForIndex::usage = "gammaLinkHeadForIndex[idx] returns GammaUD for \"U\" and GammaDU for \"D\".";
+gammaLinkHeadForIndex["U"] := GammaUD;
+gammaLinkHeadForIndex["D"] := GammaDU;
+gammaLinkHeadForIndex[_] := GammaUD;
+
+gamma11TailHeadForIndex::usage = "gamma11TailHeadForIndex[idx] returns Gamma11UU for \"U\" and Gamma11DD for \"D\".";
+gamma11TailHeadForIndex["U"] := Gamma11UU;
+gamma11TailHeadForIndex["D"] := Gamma11DD;
+gamma11TailHeadForIndex[_] := Gamma11UU;
+
+buildGammaLinks::usage =
+  "buildGammaLinks[startIndex, vectorIndices] returns {links, lastIndexType} for alternating GammaUD/GammaDU links.";
+buildGammaLinks[startIndex_String, vectorIndices_List] := Module[
+  {state = startIndex, links, i},
+  links = Table[Null, {Length[vectorIndices]}];
+  For[i = 1, i <= Length[vectorIndices], i++,
+    links[[i]] = gammaLinkHeadForIndex[state][vectorIndices[[i]]];
+    state = flipChainIndex[state];
+  ];
+  {links, state}
+];
 
 slotWithRank::usage =
   "slotWithRank[slotBlueprint, p] creates slot data {baseHead,pOrig,pEff,hasOutgoing,pairForm,canDualize} for one rank choice.";
@@ -365,12 +392,12 @@ canonicalizeAbstractStructure[slots_List, extCounts_List, cMatrix_List] := Modul
 ];
 
 typeConfigFromSlots::usage =
-  "typeConfigFromSlots[slots] returns count vector for {CGamma,CIGamma,GammaM}.";
+  "typeConfigFromSlots[slots] returns count vector for {GammaFormUU,GammaFormDD,GammaFormUD}.";
 typeConfigFromSlots[slots_List] := Module[{forms = slots[[All, 1]]},
   {
-    Count[forms, CGamma],
-    Count[forms, CIGamma],
-    Count[forms, GammaM]
+    Count[forms, GammaFormUU],
+    Count[forms, GammaFormDD],
+    Count[forms, GammaFormUD]
   }
 ];
 
@@ -444,9 +471,9 @@ generateAbstractStructures[inSpinors_List, outSpinor_, nExtVec_Integer] := Modul
 ];
 
 slotSpinorChiralities::usage = "slotSpinorChiralities[form] gives the ordered spinor chirality pair for one gamma form.";
-slotSpinorChiralities[CGamma] := {"chiral", "chiral"};
-slotSpinorChiralities[CIGamma] := {"antichiral", "antichiral"};
-slotSpinorChiralities[GammaM] := {"chiral", "antichiral"};
+slotSpinorChiralities[GammaFormUU] := {"chiral", "chiral"};
+slotSpinorChiralities[GammaFormDD] := {"antichiral", "antichiral"};
+slotSpinorChiralities[GammaFormUD] := {"chiral", "antichiral"};
 
 chiralityAssignmentUnits::usage =
   "chiralityAssignmentUnits[openPositions] groups chirality-specific open legs into ordered single/pair assignment units.";
@@ -540,7 +567,7 @@ canonicalizeSpinPlacementForSlots::usage =
   "canonicalizeSpinPlacementForSlots[slots, placement] sorts same-chirality slot spinor pairs deterministically.";
 canonicalizeSpinPlacementForSlots[slots_List, placement_List] := Module[{out = placement, i, pair},
   For[i = 1, i <= Length[slots], i++,
-    If[MemberQ[{CGamma, CIGamma}, slots[[i, 1]]],
+    If[MemberQ[{GammaFormUU, GammaFormDD}, slots[[i, 1]]],
       pair = SortBy[out[[i]], symbolSortKey];
       out[[i]] = pair;
     ];
@@ -714,14 +741,43 @@ buildDualIndexSymbols[count_Integer] := buildDualIndexSymbols[count] = Table[
   {i, 1, count}
 ];
 
-buildGammaFactor::usage = "buildGammaFactor[form, vectorIndices, spinor1, spinor2] constructs one gamma-factor expression.";
-buildGammaFactor[form_, vectorIndices_List, spinor1_, spinor2_] := Switch[form,
-  CGamma, CGamma[vectorIndices, spinor1, spinor2],
-  CIGamma, CIGamma[vectorIndices, spinor1, spinor2],
-  GammaM, GammaM[vectorIndices, spinor1, spinor2],
-  Gamma11CGamma, Gamma11CGamma[vectorIndices, spinor1, spinor2],
-  Gamma11CIGamma, Gamma11CIGamma[vectorIndices, spinor1, spinor2],
-  Gamma11GammaM, Gamma11GammaM[vectorIndices, spinor1, spinor2]
+gammaProductCTag::usage =
+  "gammaProductCTag[hasOutgoing, pairForm] returns CUD/CDU for incoming same-chirality slots and None otherwise.";
+gammaProductCTag[hasOutgoing_, pairForm_] := Which[
+  TrueQ[hasOutgoing], None,
+  pairForm === GammaFormUU, CUD,
+  pairForm === GammaFormDD, CDU,
+  True, None
+];
+
+gammaChainStartIndex::usage =
+  "gammaChainStartIndex[emitBaseForm, cTag] returns the chain start index after optional C insertion.";
+gammaChainStartIndex[emitBaseForm_, None] := initialChainIndex[emitBaseForm];
+gammaChainStartIndex[emitBaseForm_, cTag_] /; MemberQ[{CUD, CDU}, cTag] :=
+  flipChainIndex[initialChainIndex[emitBaseForm]];
+gammaChainStartIndex[emitBaseForm_, _] := initialChainIndex[emitBaseForm];
+
+gammaProductFromParts::usage =
+  "gammaProductFromParts[cTag, links, spinor1, spinor2] emits GammaProduct[linksWithOptionalCTag, spinor1, spinor2].";
+gammaProductFromParts[None, links_List, spinor1_, spinor2_] := GammaProduct[links, spinor1, spinor2];
+gammaProductFromParts[cTag_, links_List, spinor1_, spinor2_] /; MemberQ[{CUD, CDU}, cTag] :=
+  GammaProduct[Prepend[links, cTag], spinor1, spinor2];
+gammaProductFromParts[_, links_List, spinor1_, spinor2_] := GammaProduct[links, spinor1, spinor2];
+
+buildGammaProduct::usage =
+  "buildGammaProduct[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one GammaProduct chain factor.";
+buildGammaProduct[
+  emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
+] := Module[
+  {cTag, startIndex, links, lastIndexType, tailHead},
+  cTag = gammaProductCTag[hasOutgoing, pairForm];
+  startIndex = gammaChainStartIndex[emitBaseForm, cTag];
+  {links, lastIndexType} = buildGammaLinks[startIndex, vectorIndices];
+  If[TrueQ[includeGamma11],
+    tailHead = gamma11TailHeadForIndex[lastIndexType];
+    links = Append[links, tailHead[]];
+  ];
+  gammaProductFromParts[cTag, links, spinor1, spinor2]
 ];
 
 buildEpsilonFactor::usage = "buildEpsilonFactor[upIndices, downIndices] builds explicit Levi-Civita tensor factor.";
@@ -731,33 +787,12 @@ symbolSortKey::usage = "symbolSortKey[sym] gives a deterministic ordering key fo
 symbolSortKey[sym_Symbol] := SymbolName[Unevaluated[sym]];
 
 canonicalizeSameChiralityFactor::usage =
-  "canonicalizeSameChiralityFactor[factor] sorts spinor arguments for CGamma/CIGamma factors.";
-canonicalizeSameChiralityFactor[factor_CGamma] := Module[{vec = factor[[1]], s1 = factor[[2]], s2 = factor[[3]], pair},
-  pair = SortBy[{s1, s2}, symbolSortKey];
-  CGamma[vec, pair[[1]], pair[[2]]]
-];
-canonicalizeSameChiralityFactor[factor_CIGamma] := Module[{vec = factor[[1]], s1 = factor[[2]], s2 = factor[[3]], pair},
-  pair = SortBy[{s1, s2}, symbolSortKey];
-  CIGamma[vec, pair[[1]], pair[[2]]]
-];
-canonicalizeSameChiralityFactor[factor_Gamma11CGamma] := Module[{vec = factor[[1]], s1 = factor[[2]], s2 = factor[[3]], pair},
-  pair = SortBy[{s1, s2}, symbolSortKey];
-  Gamma11CGamma[vec, pair[[1]], pair[[2]]]
-];
-canonicalizeSameChiralityFactor[factor_Gamma11CIGamma] := Module[{vec = factor[[1]], s1 = factor[[2]], s2 = factor[[3]], pair},
-  pair = SortBy[{s1, s2}, symbolSortKey];
-  Gamma11CIGamma[vec, pair[[1]], pair[[2]]]
-];
+  "canonicalizeSameChiralityFactor[factor] canonicalizes same-chirality factor orientation when applicable.";
 canonicalizeSameChiralityFactor[factor_] := factor;
 
 canonicalizeStructureExpression::usage =
   "canonicalizeStructureExpression[expr] canonicalizes factor-level spinor ordering for same-chirality heads.";
-canonicalizeStructureExpression[expr_] := expr /. {
-  factor_CGamma :> canonicalizeSameChiralityFactor[factor],
-  factor_CIGamma :> canonicalizeSameChiralityFactor[factor],
-  factor_Gamma11CGamma :> canonicalizeSameChiralityFactor[factor],
-  factor_Gamma11CIGamma :> canonicalizeSameChiralityFactor[factor]
-};
+canonicalizeStructureExpression[expr_] := canonicalizeSameChiralityFactor[expr];
 
 deduplicateGroupStructures::usage =
   "deduplicateGroupStructures[group] canonicalizes and removes duplicates while preserving deterministic order.";
@@ -769,7 +804,7 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
   {
     k = Length[slots], slotVectorsOrig, dummyTotal, dummies, cursor = 1,
     i, j, count, pairDummies, dualTotal, dualSymbols, dualCursor = 1,
-    factors, factorCursor = 1, baseHead, pOrig, pGamma, hasOutgoing, pairForm, dualizeQ, gammaVecs, dualVecs, gammaHead, nDualFactors
+    factors, factorCursor = 1, baseHead, pOrig, pGamma, hasOutgoing, pairForm, dualizeQ, gammaVecs, dualVecs, nDualFactors
   },
   slotVectorsOrig = extPlacement;
   dummyTotal = Total[upperTriangleValues[cMatrix]];
@@ -792,16 +827,22 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
   For[i = 1, i <= k, i++,
     {baseHead, pOrig, pGamma, hasOutgoing, pairForm, dualizeQ} = slots[[i]];
     gammaVecs = slotVectorsOrig[[i]];
-    gammaHead = baseHead;
     If[TrueQ[dualizeQ],
       dualVecs = Take[dualSymbols, {dualCursor, dualCursor + pGamma - 1}];
       dualCursor += pGamma;
       factors[[factorCursor]] = buildEpsilonFactor[gammaVecs, dualVecs];
       factorCursor += 1;
       gammaVecs = dualVecs;
-      gammaHead = gamma11LiftHead[baseHead];
     ];
-    factors[[factorCursor]] = buildGammaFactor[gammaHead, gammaVecs, spinPlacement[[i, 1]], spinPlacement[[i, 2]]];
+    factors[[factorCursor]] = buildGammaProduct[
+      baseHead,
+      pairForm,
+      hasOutgoing,
+      gammaVecs,
+      spinPlacement[[i, 1]],
+      spinPlacement[[i, 2]],
+      dualizeQ
+    ];
     factorCursor += 1;
   ];
   If[factorCursor == 1, 1, Times @@ Take[factors, factorCursor - 1]]
@@ -850,7 +891,7 @@ slotSpinPairForKey[slot_List, spinPair_List, spinRank_Association] := Module[{r1
   r1 = Lookup[spinRank, spinPair[[1]], Infinity];
   r2 = Lookup[spinRank, spinPair[[2]], Infinity];
   If[
-  MemberQ[{CGamma, CIGamma}, slot[[5]]],
+  MemberQ[{GammaFormUU, GammaFormDD}, slot[[5]]],
   If[r1 <= r2, {r1, r2}, {r2, r1}],
   {r1, r2}
 ]

@@ -1214,6 +1214,38 @@
     "executionOrder": 92,
     "success": true
    }
+  },
+  {
+   "kind": 1,
+   "value": "## Partition Function Counts\n\nCoefficient checks for holomorphic and level-matched bosonic basis sizes.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "(* Partition-function count checks *)\npfBuildBCCountAssociation[maxWeight_Integer?NonNegative, ghostMin_Integer, ghostMax_Integer] := Module[\n  {minWeight, maxTrackedWeight, modeData, coeffs},\n  minWeight = -maxWeight - 4;\n  maxTrackedWeight = maxWeight + 4;\n  modeData = Join[\n    Table[{2 + n, -1}, {n, 0, maxWeight + 8}],\n    Table[{-1 + n, 1}, {n, 0, maxWeight + 8}]\n  ];\n  coeffs = <|{0, 0} -> 1|>;\n  Scan[\n    Function[{modeEntry},\n      Module[{modeWeight, modeGhost, nextCoeffs, shiftedKey},\n        {modeWeight, modeGhost} = modeEntry;\n        nextCoeffs = coeffs;\n        KeyValueMap[\n          Function[{key, value},\n            shiftedKey = {key[[1]] + modeWeight, key[[2]] + modeGhost};\n            If[\n              minWeight <= shiftedKey[[1]] <= maxTrackedWeight &&\n                ghostMin <= shiftedKey[[2]] <= ghostMax,\n              nextCoeffs[shiftedKey] = If[KeyExistsQ[nextCoeffs, shiftedKey], nextCoeffs[shiftedKey], 0] + value\n            ]\n          ],\n          coeffs\n        ];\n        coeffs = nextCoeffs;\n      ]\n    ],\n    modeData\n  ];\n  coeffs\n];\n\npfMatterPartitionCount[n_Integer] := If[n < 0, 0, Length[IntegerPartitions[n]]];\npfBosonicMaxWeight = 6;\npfBosonicGhostMin = -8;\npfBosonicGhostMax = 8;\npfBosonicGhostAssoc = pfBuildBCCountAssociation[pfBosonicMaxWeight + 4, pfBosonicGhostMin, pfBosonicGhostMax];\npfAssocLookup[assoc_Association, key_List] := If[KeyExistsQ[assoc, key], assoc[key], 0];\n\npfBosonicSectorCountIncludingVacuum[weight_Integer?NonNegative, ghost_Integer] := Module[{minGhostWeight = -pfBosonicMaxWeight - 8},\n  Sum[\n    pfAssocLookup[pfBosonicGhostAssoc, {ghostWeight, ghost}] * pfMatterPartitionCount[weight - ghostWeight],\n    {ghostWeight, minGhostWeight, weight}\n  ]\n];\n\npfBosonicHoloCount[weight_Integer?NonNegative, ghost_Integer] :=\n  pfBosonicSectorCountIncludingVacuum[weight, ghost] - If[weight == 0 && ghost == 0, 1, 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test24Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g]] === pfBosonicHoloCount[w, g],\n  {w, 0, 6},\n  {g, -2, 3}\n];\nPrint[\"Test 24 (bosonic holo PF count check): \", If[test24Result, \"PASSED\", \"FAILED\"]];\ntest24Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "pfBosonicClosedCount[weight_Integer?NonNegative, ghost_Integer] := Module[{sectorWeight},\n  If[\n    OddQ[weight],\n    0,\n    sectorWeight = Quotient[weight, 2];\n    Sum[\n      pfBosonicSectorCountIncludingVacuum[sectorWeight, ghostLeft] *\n        pfBosonicSectorCountIncludingVacuum[sectorWeight, ghost - ghostLeft],\n      {ghostLeft, pfBosonicGhostMin, pfBosonicGhostMax}\n    ] - If[weight == 0 && ghost == 0, 1, 0]\n  ]\n];\n\ntest25Result = And @@ Flatten @ Table[\n  Length[generateBasis[w, g]] === pfBosonicClosedCount[w, g],\n  {w, 0, 4},\n  {g, -2, 2}\n];\nPrint[\"Test 25 (bosonic closed level-matched PF count check): \", If[test25Result, \"PASSED\", \"FAILED\"]];\ntest25Result\n\npfBosonicAllTests = {test24Result, test25Result};\npfBosonicPassed = Count[pfBosonicAllTests, True];\npfBosonicTotal = Length[pfBosonicAllTests];\nPrint[\"\\n=== PF SUMMARY (Bosonic BasisGeneration) ===\"];\nPrint[\"Passed: \", pfBosonicPassed, \"/\", pfBosonicTotal];\nIf[pfBosonicPassed == pfBosonicTotal, Print[\"All PF tests PASSED!\"], Print[\"Some PF tests FAILED.\"]];\npfBosonicPassed == pfBosonicTotal",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
   }
  ]
 }

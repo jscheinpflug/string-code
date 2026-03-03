@@ -159,6 +159,15 @@ attachCoefficients[data_List, offset_Integer : 0] := Module[{i = offset, terms},
   {If[terms === {}, 0, Total[terms]], i}
 ];
 
+gammaLinkVectorIndices::usage = "gammaLinkVectorIndices[link] extracts explicit vector indices from one gamma-chain link.";
+gammaLinkVectorIndices[GammaUD[idx_]] := Flatten[{idx}];
+gammaLinkVectorIndices[GammaDU[idx_]] := Flatten[{idx}];
+gammaLinkVectorIndices[Gamma11UU[]] := {};
+gammaLinkVectorIndices[Gamma11DD[]] := {};
+gammaLinkVectorIndices[CUD] := {};
+gammaLinkVectorIndices[CDU] := {};
+gammaLinkVectorIndices[_] := {};
+
 randomizeIndices::usage = "Randomizes singleton indices, sums repeated ones, and wraps every R[...] as Bosonize[R[...]].";
 randomizeIndices[inputOps_List, hExpr_, aExpr_, seed_: Automatic] := Module[
   {obj = {inputOps, hExpr, aExpr}, typed, counts, vec, spi, free, dum, run},
@@ -168,8 +177,11 @@ randomizeIndices[inputOps_List, hExpr_, aExpr_, seed_: Automatic] := Module[
     Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
       ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; SymbolQ[ν]} :> ν]),
       ({#, "v"} & /@ Cases[m, {ν_ /; SymbolQ[ν], _?NumericQ} :> ν])], Infinity], 1],
-    Flatten[Cases[obj, (CGamma | CIGamma | GammaM | Gamma11CGamma | Gamma11CIGamma | Gamma11GammaM)[is_List, s1_, s2_] :>
-      Join[({#, "v"} & /@ Select[is, SymbolQ]), ({#, "s"} & /@ Select[{s1, s2}, SymbolQ])], Infinity], 1],
+    Flatten[Cases[obj, GammaProduct[links_List, s1_, s2_] :>
+      Join[
+        ({#, "v"} & /@ Select[Flatten[gammaLinkVectorIndices /@ links], SymbolQ]),
+        ({#, "s"} & /@ Select[{s1, s2}, SymbolQ])
+      ], Infinity], 1],
     Flatten[Cases[obj, Eps10[u_List, d_List] :> ({#, "v"} & /@ Select[Join[u, d], SymbolQ]), Infinity], 1]
   ];
   counts = Counts[First /@ typed]; vec = DeleteDuplicates[First /@ Select[typed, Last[#] === "v" &]];

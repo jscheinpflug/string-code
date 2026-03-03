@@ -53,6 +53,10 @@ Needs["StringCode`Taylor`TypeII`FlatSpace`"];
 (* ::Input::Initialization:: *)
 Begin["Private`"];
 
+$maxPsiPerLevel::usage =
+  "Maximum number of ψ oscillators permitted at one mode level (equal to target-space dimension in flat TypeII).";
+$maxPsiPerLevel = 10;
+
 (* ============================================================ *)
 (* SECTION 1: VALIDATION & PICTURE HANDLING                     *)
 (* ============================================================ *)
@@ -469,7 +473,7 @@ generatePsiModes[offsets_List, picture_?validPictureSpecQ] :=
   ] & /@ offsets);
 
 (* Generate all ψ configurations up to target weight.
-   ψ is fermionic: use distinctModesByExactSum (no repeats).
+   ψ is fermionic with Lorentz index multiplicity bound D=10 per level.
    Returns {modeList, weight} pairs. *)
 generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
   generatePsiModeConfigs[targetWeight, picture] = Module[
@@ -488,20 +492,20 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
       Return[{}]
     ];
     minModeNumber = minModeNumberForSpecies[\[Psi], picture];
-    maxPsiCount = Max[
-      0,
-      Floor[(1 + 2 minModeNumber + Sqrt[(1 + 2 minModeNumber)^2 + 8 targetWeight])/2]
-    ];
+    maxPsiCount = If[minModeNumber < 0, Max[0, Floor[targetWeight/(-minModeNumber)]], 0];
     collectedConfigs = Reap[
       Do[
-        minPsiWeight = -minModeNumber psiCount + minDistinctModeSum[psiCount, 0];
+        minOffsetSum = minBoundedModeSum[psiCount, 0, $maxPsiPerLevel];
+        minPsiWeight = -minModeNumber psiCount + minOffsetSum;
         If[minPsiWeight > targetWeight,
           Continue[]
         ];
-        minOffsetSum = minDistinctModeSum[psiCount, 0];
         maxOffsetSum = Floor[targetWeight + minModeNumber psiCount];
+        If[maxOffsetSum < minOffsetSum,
+          Continue[]
+        ];
         Do[
-          offsetConfigs = distinctModesByExactSum[psiCount, offsetSum, 0];
+          offsetConfigs = boundedModesByExactSum[psiCount, offsetSum, 0, $maxPsiPerLevel];
           Do[
             Sow[{generatePsiModes[offsets, picture], -minModeNumber psiCount + offsetSum}],
             {offsets, offsetConfigs}

@@ -53,6 +53,27 @@ dot::usage = "Symbol for dot product";
 
 der::usage = "Symbol for a derivative";
 
+GammaUD::usage =
+  "GammaUD[mu] denotes a single-link gamma block carrying an undotted-to-dotted spinor index flow.";
+
+GammaDU::usage =
+  "GammaDU[mu] denotes a single-link gamma block carrying a dotted-to-undotted spinor index flow.";
+
+Gamma11UU::usage =
+  "Gamma11UU[] denotes a chirality-preserving Gamma11 insertion with undotted end-index type.";
+
+Gamma11DD::usage =
+  "Gamma11DD[] denotes a chirality-preserving Gamma11 insertion with dotted end-index type.";
+
+CUD::usage =
+  "CUD denotes a charge-conjugation insertion used as the first element in GammaProduct link lists for incoming chiral/chiral chains.";
+
+CDU::usage =
+  "CDU denotes a charge-conjugation insertion used as the first element in GammaProduct link lists for incoming antichiral/antichiral chains.";
+
+GammaProduct::usage =
+  "GammaProduct[{link1,...}, alpha, beta] denotes an ordered gamma chain between spinor endpoints; when needed, CUD/CDU appears as the first list element.";
+
 CGamma::usage = "CGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two chiral spinor indices.";
 
 CIGamma::usage = "CIGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two antichiral spinor indices.";

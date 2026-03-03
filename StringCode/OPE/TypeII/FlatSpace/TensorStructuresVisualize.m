@@ -30,7 +30,7 @@ visualizeTensorStructures::badgroups =
   "Expected a list of non-empty structure groups.";
 
 tensorStructureGraph::badexpr =
-  "Expected an expression built from CGamma/CIGamma/GammaM/Gamma11*/Eps10 factors or scalar 1.";
+  "Expected an expression built from GammaProduct/Eps10 factors or scalar 1.";
 
 Options[tensorStructureGraph] = {
   "ImageSize" -> 500,
@@ -60,9 +60,59 @@ Begin["Private`"];
 
 isTensorHeadQ::usage = "isTensorHeadQ[head] is True if head is a supported tensor head in any context.";
 isTensorHeadQ[head_] := MemberQ[
-  {"CGamma", "CIGamma", "GammaM", "Gamma11CGamma", "Gamma11CIGamma", "Gamma11GammaM", "Eps10"},
+  {"GammaProduct", "GammaUD", "GammaDU", "Gamma11UU", "Gamma11DD", "CUD", "CDU", "Eps10"},
   SymbolName[Unevaluated[head]]
 ];
+
+gammaProductCTagNameVisual::usage =
+  "gammaProductCTagNameVisual[factor] returns None or \"CUD\"/\"CDU\" for supported GammaProduct factors, and $Failed otherwise.";
+gammaProductPartsVisual::usage =
+  "gammaProductPartsVisual[factor] returns <|\"cTag\", \"links\", \"spinors\"|> for supported GammaProduct forms, or $Failed.";
+gammaProductPartsVisual[factor_] := Module[{args, linksRaw, cTagName, restLinks},
+  If[SymbolName[Head[factor]] =!= "GammaProduct", Return[$Failed]];
+  args = List @@ factor;
+  If[Length[args] =!= 3 || !ListQ[args[[1]]], Return[$Failed]];
+  linksRaw = args[[1]];
+  If[linksRaw === {},
+    Return[<|"cTag" -> None, "links" -> {}, "spinors" -> {args[[2]], args[[3]]}|>]
+  ];
+  If[SymbolQ[First[linksRaw]],
+    cTagName = SymbolName[Unevaluated[First[linksRaw]]];
+    If[MemberQ[{"CUD", "CDU"}, cTagName],
+      restLinks = Rest[linksRaw];
+      If[
+        AnyTrue[
+          restLinks,
+          Function[entry, SymbolQ[entry] && MemberQ[{"CUD", "CDU"}, SymbolName[Unevaluated[entry]]]]
+        ],
+        Return[$Failed]
+      ];
+      Return[<|"cTag" -> cTagName, "links" -> restLinks, "spinors" -> {args[[2]], args[[3]]}|>]
+    ];
+  ];
+  <|"cTag" -> None, "links" -> linksRaw, "spinors" -> {args[[2]], args[[3]]}|>
+];
+
+gammaProductCTagNameVisual[factor_] := Module[{parts},
+  parts = gammaProductPartsVisual[factor];
+  If[AssociationQ[parts], parts["cTag"], $Failed]
+];
+
+gammaProductLinksVisual::usage = "gammaProductLinksVisual[factor] extracts the links list from a supported GammaProduct factor.";
+gammaProductLinksVisual[factor_] := Module[{parts},
+  parts = gammaProductPartsVisual[factor];
+  If[AssociationQ[parts], parts["links"], {}]
+];
+
+gammaProductSpinorsVisual::usage = "gammaProductSpinorsVisual[factor] extracts endpoint spinors from a supported GammaProduct factor.";
+gammaProductSpinorsVisual[factor_] := Module[{parts},
+  parts = gammaProductPartsVisual[factor];
+  If[AssociationQ[parts], parts["spinors"], {}]
+];
+
+isGammaFactorVisualQ::usage =
+  "isGammaFactorVisualQ[factor] is True for supported GammaProduct[{links},a,b] forms with optional leading CUD/CDU in the links list.";
+isGammaFactorVisualQ[factor_] := AssociationQ[gammaProductPartsVisual[factor]];
 
 extractTensorFactors::usage = "extractTensorFactors[expr] extracts gamma factors from expr in multiplicative order.";
 extractTensorFactors[1] := {};
@@ -70,11 +120,7 @@ extractTensorFactors[expr_] := Module[{factors},
   factors = If[Head[expr] === Times, List @@ expr, {expr}];
   Select[
     factors,
-    (
-      Length[#] == 3 && ListQ[#[[1]]] &&
-      MemberQ[{"CGamma", "CIGamma", "GammaM", "Gamma11CGamma", "Gamma11CIGamma", "Gamma11GammaM"}, SymbolName[Head[#]]]
-    ) ||
-    (
+    isGammaFactorVisualQ[#] || (
       Length[#] == 2 && ListQ[#[[1]]] && ListQ[#[[2]]] && SymbolName[Head[#]] === "Eps10"
     ) &
   ]
@@ -84,9 +130,17 @@ isEpsilonFactorQ::usage = "isEpsilonFactorQ[factor] is True for Eps10[up_List, d
 isEpsilonFactorQ[factor_] := MatchQ[factor, _[_, _]] && SymbolName[Head[factor]] === "Eps10" &&
   ListQ[factor[[1]]] && ListQ[factor[[2]]];
 
-isGammaFactorVisualQ::usage = "isGammaFactorVisualQ[factor] is True for supported 3-argument gamma-style factors.";
-isGammaFactorVisualQ[factor_] := MatchQ[factor, _[_, _, _]] && ListQ[factor[[1]]] &&
-  MemberQ[{"CGamma", "CIGamma", "GammaM", "Gamma11CGamma", "Gamma11CIGamma", "Gamma11GammaM"}, SymbolName[Head[factor]]];
+gammaLinkVectorIndexVisual::usage = "gammaLinkVectorIndexVisual[link] extracts a vector index list from one gamma-chain link.";
+gammaLinkVectorIndexVisual[link_] /; SymbolName[Head[link]] === "GammaUD" && Length[link] == 1 := Flatten[{link[[1]]}];
+gammaLinkVectorIndexVisual[link_] /; SymbolName[Head[link]] === "GammaDU" && Length[link] == 1 := Flatten[{link[[1]]}];
+gammaLinkVectorIndexVisual[link_] /; SymbolName[Head[link]] === "Gamma11UU" && Length[link] == 0 := {};
+gammaLinkVectorIndexVisual[link_] /; SymbolName[Head[link]] === "Gamma11DD" && Length[link] == 0 := {};
+gammaLinkVectorIndexVisual[_] := {};
+
+gammaProductVectorIndicesVisual::usage = "gammaProductVectorIndicesVisual[factor] extracts ordered vector indices from a GammaProduct factor.";
+gammaProductVectorIndicesVisual[factor_] /; isGammaFactorVisualQ[factor] :=
+  Flatten[gammaLinkVectorIndexVisual /@ gammaProductLinksVisual[factor]];
+gammaProductVectorIndicesVisual[_] := {};
 
 vectorListKey::usage = "vectorListKey[vecs] gives a stable string key for a vector-index list.";
 vectorListKey[vecs_List] := ToString[HoldForm[vecs], InputForm];
@@ -103,7 +157,7 @@ reorderFactorsForVisualization[factors_List] := Module[
   ];
   Do[
     g = gammas[[i]];
-    key = vectorListKey[g[[1]]];
+    key = vectorListKey[gammaProductVectorIndicesVisual[g]];
     If[KeyExistsQ[epsByDown, key] && epsByDown[key] =!= {},
       AppendTo[out, First[epsByDown[key]]];
       epsByDown[key] = Rest[epsByDown[key]];
@@ -116,12 +170,35 @@ reorderFactorsForVisualization[factors_List] := Module[
 ];
 
 slotSpinorChiralitiesVisual::usage = "slotSpinorChiralitiesVisual[form] returns spinor chiralities for one gamma head.";
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "CGamma" := {"chiral", "chiral"};
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "CIGamma" := {"antichiral", "antichiral"};
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "GammaM" := {"chiral", "antichiral"};
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "Gamma11CGamma" := {"chiral", "chiral"};
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "Gamma11CIGamma" := {"antichiral", "antichiral"};
-slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "Gamma11GammaM" := {"chiral", "antichiral"};
+slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "GammaUD" := {"chiral", "antichiral"};
+slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "GammaDU" := {"antichiral", "chiral"};
+slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "Gamma11UU" := {"chiral", "chiral"};
+slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "Gamma11DD" := {"antichiral", "antichiral"};
+
+gammaProductChiralityPairVisual::usage =
+  "gammaProductChiralityPairVisual[factor] infers endpoint chirality labels for one supported GammaProduct factor.";
+gammaProductChiralityPairVisual[factor_] /; isGammaFactorVisualQ[factor] := Module[
+  {cTag, links, state, toggleCount, firstHead},
+  cTag = gammaProductCTagNameVisual[factor];
+  If[cTag === "CUD", Return[{"chiral", "chiral"}]];
+  If[cTag === "CDU", Return[{"antichiral", "antichiral"}]];
+  links = gammaProductLinksVisual[factor];
+  firstHead = If[links === {}, "", SymbolName[Head[First[links]]]];
+  state = Which[
+    links === {}, "chiral",
+    firstHead === "GammaUD", "chiral",
+    firstHead === "GammaDU", "antichiral",
+    firstHead === "Gamma11UU", "chiral",
+    firstHead === "Gamma11DD", "antichiral",
+    True, "chiral"
+  ];
+  toggleCount = Count[links, l_ /; MemberQ[{"GammaUD", "GammaDU"}, SymbolName[Head[l]]]];
+  {
+    state,
+    If[OddQ[toggleCount], If[state === "chiral", "antichiral", "chiral"], state]
+  }
+];
+gammaProductChiralityPairVisual[_] := {};
 
 factorData::usage = "factorData[factor] returns normalized factor metadata association.";
 factorData[factor_] := If[
@@ -130,6 +207,7 @@ factorData[factor_] := If[
     "form" -> Head[factor],
     "formName" -> SymbolName[Head[factor]],
     "kind" -> "epsilon",
+    "cTag" -> None,
     "vectors" -> Join[factor[[1]], factor[[2]]],
     "spinors" -> {},
     "chiralityPair" -> {}
@@ -138,9 +216,10 @@ factorData[factor_] := If[
     "form" -> Head[factor],
     "formName" -> SymbolName[Head[factor]],
     "kind" -> "gamma",
-    "vectors" -> factor[[1]],
-    "spinors" -> {factor[[2]], factor[[3]]},
-    "chiralityPair" -> slotSpinorChiralitiesVisual[Head[factor]]
+    "cTag" -> gammaProductCTagNameVisual[factor],
+    "vectors" -> gammaProductVectorIndicesVisual[factor],
+    "spinors" -> gammaProductSpinorsVisual[factor],
+    "chiralityPair" -> gammaProductChiralityPairVisual[factor]
   |>
 ];
 
