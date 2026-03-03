@@ -1,0 +1,326 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# IIB Partition Function Integration Tests\n\nPartition-function-based counting checks for TypeII FlatSpace basis generation (moved from FlatSpace basis tests).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1772507566054,
+     "endTime": 1772507566200
+    },
+    "executionOrder": 242,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Partition Function Counts\n\nNS/R coefficient checks against default TypeII basis-count outputs.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## PF Definitions (Physicist's View)\n\nThe natural object is a three-fugacity partition function\n`Z(t,y,xi) = Sum_{h,g,q} N(h,g,q) t^h y^g xi^q`,\nwith fugacities:\n- `t` for conformal weight,\n- `y` for ghost number,\n- `xi` for picture.\n\nIn this test block we do **fixed-picture counting**: we do not expand in `xi` explicitly.\nInstead, we pick a picture `q` and compute the `xi^q` coefficient directly.\nSo operationally we work with\n`Z_q(t,y) = [xi^q] Z(t,y,xi)`.\n\nFor numerical coefficient extraction we switch to integer exponents:\n- NS sector: `u = t^(1/2)`, so `E = 2h`.\n- R sector: `u = t^(1/8)`, so `E = 8h`.\nHence the computed table is\n`Z_q(u,y) = Sum_{E,G} C_q(E,G) u^E y^G`.\n\nHow picture dependence enters in practice:\n- Through the `beta,gamma` mode spectrum at picture `q` (mode energies shift with `q`).\n- Through the picture-dependent ground-state weight shift (used in `E_target`).\n- Through the picture-dependent ground-state GSO sign.\n\nMode content in this TypeII flat-space test:\n- `b,c` ghosts: fermionic, occupancy `0` or `1` per mode.\n- `beta,gamma` superghosts: bosonic occupation numbers.\n- `psi`: fermionic with 10 target-space components, occupancy `0..10` per mode level.\n- `dX`: bosonic occupation numbers.\n\nFor one oscillator mode `i` with weight step `e_i`, ghost step `g_i`, max occupancy `N_i`, factor\n`Z_i(u,y) = Sum_{n=0..N_i} c_i(n) u^(n e_i) y^(n g_i)`.\nThen\n`Z_{osc,q}(u,y) = Product_i Z_i(u,y)`.\n\nGSO is implemented via\n`Z_{F,q} = Tr_q[(-1)^F ...]`.\nOperationally, on fermion-number-carrying modes we use `c_i(n)=(-1)^n` (untwisted has `c_i(n)=1`).\nProjected sectors are built from `(Z_q +/- Z_{F,q})/2`, including ground-state parity signs in `pfNSCount` / `pfRCount`.\n\nF convention used in this PF block (for oscillators):\n- each `psi`, `beta`, or `gamma` quantum contributes `+1` to `F`;\n- `b`, `c`, and `dX` oscillators contribute `0` to `F`.\nSo for occupancy numbers, `(-1)^F = (-1)^(N_psi + N_beta + N_gamma)`.\nIn the Ramond sector, spin-field (ground-state) parity is handled separately through the ground-state sign factors in `pfRCount` (not as an extra oscillator mode).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## PF Helper Methods (What Is Actually Computed)\n\nNumerically we extract coefficients at fixed picture `q` (the `xi^q` slice).\n\nTarget coefficient:\n- NS: `C_q(E_target,G)` with `E_target = 2 w - E0_NS(q)`, `E0_NS(q) = -q(q+2)`.\n- R:  `C_q(E_target,G)` with `E_target = 8 w - E0_R(q)`, `E0_R(q) = 5 - 4 q(q+2)`.\n\nDynamic-programming algorithm:\n1. Build oscillator list `{e_i, g_i, N_i, c_i}` from `pfModeDataNS[q,...]` or `pfModeDataR[q,...]`.\n2. Start `A[{0,0}] = 1`.\n3. For each mode, discrete convolution:\n   `A'[{E + n e_i, G + n g_i}] += A[{E,G}] c_i(n)`, `n=0..N_i`.\n4. Keep only a finite `(E,G)` box (truncation window).\n5. Final `A` gives `C_q(E,G) = [u^E y^G] Z_q(u,y)`.\n\nFunction map:\n- `pfModeDataNS`, `pfModeDataR`: implement the fixed-picture oscillator spectrum (this is where `q` enters first).\n  When `twistedQ=True` they insert `(-1)^n` weights exactly on `psi,beta,gamma` occupancies, i.e. the code's definition of `(-1)^F`.\n- `pfUpdateWithMode`: one convolution step.\n- `pfBuildAssocFromModeData`: folds convolution over all modes.\n- `pfNSAssocUntwisted/pfNSAssocTwisted`, `pfRAssocUntwisted/pfRAssocTwisted`: memoized `Z_q` and `Z_{F,q}` coefficient tables.\n- `pfNSCount`, `pfRCount`: apply ground-state shifts and GSO combinations to produce physical counts `All/Even/Odd` at that picture.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "(* Partition-function count checks *)\npfHalfIntegerQ[x_] := IntegerQ[2 x] && OddQ[Numerator[Together[x]]];\n\npfUpdateWithMode[\n  coeffs_Association,\n  modeExp_Integer,\n  modeGhost_Integer,\n  maxOccupancy_,\n  occCoeffFn_,\n  expMin_Integer,\n  expMax_Integer,\n  ghostMin_Integer,\n  ghostMax_Integer\n] := Module[{next, exp, ghost, occUpper, occ, newKey, newCoeff},\n  next = <||>;\n  KeyValueMap[\n    Function[{key, value},\n      exp = key[[1]];\n      ghost = key[[2]];\n      occUpper = maxOccupancy;\n      If[modeExp > 0, occUpper = Min[occUpper, Floor[(expMax - exp)/modeExp]]];\n      If[modeExp < 0, occUpper = Min[occUpper, Floor[(exp - expMin)/(-modeExp)]]];\n      If[modeGhost > 0, occUpper = Min[occUpper, Floor[(ghostMax - ghost)/modeGhost]]];\n      If[modeGhost < 0, occUpper = Min[occUpper, Floor[(ghost - ghostMin)/(-modeGhost)]]];\n      If[NumericQ[occUpper] && occUpper >= 0,\n        Do[\n          newKey = {exp + occ modeExp, ghost + occ modeGhost};\n          If[\n            expMin <= newKey[[1]] <= expMax && ghostMin <= newKey[[2]] <= ghostMax,\n            newCoeff = value occCoeffFn[occ];\n            next[newKey] = If[KeyExistsQ[next, newKey], next[newKey], 0] + newCoeff\n          ],\n          {occ, 0, occUpper}\n        ]\n      ]\n    ],\n    coeffs\n  ];\n  next\n];\n\npfBuildAssocFromModeData[modeData_List, expMin_Integer, expMax_Integer, ghostMin_Integer, ghostMax_Integer] := Module[{coeffs},\n  coeffs = <|{0, 0} -> 1|>;\n  Scan[\n    Function[{entry},\n      coeffs = pfUpdateWithMode[\n        coeffs,\n        entry[[1]],\n        entry[[2]],\n        entry[[3]],\n        entry[[4]],\n        expMin,\n        expMax,\n        ghostMin,\n        ghostMax\n      ]\n    ],\n    modeData\n  ];\n  coeffs\n];\n\npfModeDataNS[q_Integer, expMin_Integer, expMax_Integer, twistedQ_?BooleanQ] := Module[\n  {cutoff, bosonCoeffFn, psiCoeffFn, oneCoeffFn},\n  cutoff = expMax + Abs[expMin] + 10;\n  bosonCoeffFn = If[twistedQ, Function[occ, (-1)^occ], Function[occ, 1]];\n  psiCoeffFn = If[twistedQ, Function[occ, (-1)^occ], Function[occ, 1]];\n  oneCoeffFn = Function[occ, 1];\n  Join[\n    Table[{4 + 2 n, -1, 1, oneCoeffFn}, {n, 0, cutoff}],\n    Table[{-2 + 2 n, 1, 1, oneCoeffFn}, {n, 0, cutoff}],\n    Table[{3 + 2 q + 2 n, -1, Infinity, bosonCoeffFn}, {n, 0, cutoff}],\n    Table[{-1 - 2 q + 2 n, 1, Infinity, bosonCoeffFn}, {n, 0, cutoff}],\n    Table[{1 + 2 n, 0, 10, psiCoeffFn}, {n, 0, cutoff}],\n    Table[{2 + 2 n, 0, Infinity, oneCoeffFn}, {n, 0, cutoff}]\n  ]\n];\n\npfModeDataR[q_?pfHalfIntegerQ, expMin_Integer, expMax_Integer, twistedQ_?BooleanQ] := Module[\n  {cutoff, oneCoeffFn, fermionCoeffFn},\n  cutoff = expMax + Abs[expMin] + 10;\n  oneCoeffFn = Function[occ, 1];\n  fermionCoeffFn = If[twistedQ, Function[occ, (-1)^occ], oneCoeffFn];\n  Join[\n    Table[{16 + 8 n, -1, 1, oneCoeffFn}, {n, 0, cutoff}],\n    Table[{-8 + 8 n, 1, 1, oneCoeffFn}, {n, 0, cutoff}],\n    Table[{12 + 8 q + 8 n, -1, Infinity, fermionCoeffFn}, {n, 0, cutoff}],\n    Table[{-4 - 8 q + 8 n, 1, Infinity, fermionCoeffFn}, {n, 0, cutoff}],\n    Table[{8 + 8 n, 0, 10, fermionCoeffFn}, {n, 0, cutoff}],\n    Table[{8 + 8 n, 0, Infinity, oneCoeffFn}, {n, 0, cutoff}]\n  ]\n];\n\npfAssocLookup[assoc_Association, key_List] := If[KeyExistsQ[assoc, key], assoc[key], 0];\n\npfNSExpMin = -12;\npfNSExpMax = 18;\npfNSGhostMin = -8;\npfNSGhostMax = 8;\n\npfNSAssocUntwisted[q_Integer] :=\n  pfNSAssocUntwisted[q] = pfBuildAssocFromModeData[\n    pfModeDataNS[q, pfNSExpMin, pfNSExpMax, False],\n    pfNSExpMin,\n    pfNSExpMax,\n    pfNSGhostMin,\n    pfNSGhostMax\n  ];\n\npfNSAssocTwisted[q_Integer] :=\n  pfNSAssocTwisted[q] = pfBuildAssocFromModeData[\n    pfModeDataNS[q, pfNSExpMin, pfNSExpMax, True],\n    pfNSExpMin,\n    pfNSExpMax,\n    pfNSGhostMin,\n    pfNSGhostMax\n  ];\n\npfNSCount[q_Integer, weight_?NumericQ, ghost_Integer, selector_String : \"Even\"] := Module[\n  {groundExp, targetExp, allCount, twistedCount, groundParity, rawCount, vacuumIncludedQ},\n  groundExp = -q (q + 2);\n  targetExp = 2 weight - groundExp;\n  If[!IntegerQ[targetExp], Return[0]];\n  allCount = pfAssocLookup[pfNSAssocUntwisted[q], {targetExp, ghost}];\n  groundParity = (-1)^q;\n  twistedCount = pfAssocLookup[pfNSAssocTwisted[q], {targetExp, ghost}];\n  rawCount = Switch[selector,\n    \"All\", allCount,\n    \"Even\", Quotient[allCount + groundParity twistedCount, 2],\n    \"Odd\", Quotient[allCount - groundParity twistedCount, 2],\n    _, 0\n  ];\n  vacuumIncludedQ = Switch[selector,\n    \"All\", True,\n    \"Even\", groundParity === 1,\n    \"Odd\", groundParity === -1,\n    _, False\n  ];\n  rawCount - If[targetExp == 0 && ghost == 0 && vacuumIncludedQ, 1, 0]\n];\npfRExpMin = -40;\npfRExpMax = 96;\npfRGhostMin = -8;\npfRGhostMax = 12;\n\npfRAssocUntwisted[q_?pfHalfIntegerQ] :=\n  pfRAssocUntwisted[q] = pfBuildAssocFromModeData[\n    pfModeDataR[q, pfRExpMin, pfRExpMax, False],\n    pfRExpMin,\n    pfRExpMax,\n    pfRGhostMin,\n    pfRGhostMax\n  ];\n\npfRAssocTwisted[q_?pfHalfIntegerQ] :=\n  pfRAssocTwisted[q] = pfBuildAssocFromModeData[\n    pfModeDataR[q, pfRExpMin, pfRExpMax, True],\n    pfRExpMin,\n    pfRExpMax,\n    pfRGhostMin,\n    pfRGhostMax\n  ];\n\npfRCount[q_?pfHalfIntegerQ, weight_?NumericQ, ghost_Integer, selector_String : \"Even\"] := Module[\n  {\n    groundExp,\n    targetExp,\n    allCount,\n    twistedCount,\n    groundParity,\n    chiralEven,\n    antiChiralEven,\n    chiralOdd,\n    antiChiralOdd\n  },\n  groundExp = 5 - 4 q (q + 2);\n  targetExp = 8 weight - groundExp;\n  If[!IntegerQ[targetExp], Return[0]];\n  allCount = pfAssocLookup[pfRAssocUntwisted[q], {targetExp, ghost}];\n  twistedCount = pfAssocLookup[pfRAssocTwisted[q], {targetExp, ghost}];\n  groundParity = (-1)^(q + 1/2);\n  chiralEven = Quotient[allCount + groundParity twistedCount, 2];\n  antiChiralEven = Quotient[allCount - groundParity twistedCount, 2];\n  chiralOdd = Quotient[allCount - groundParity twistedCount, 2];\n  antiChiralOdd = Quotient[allCount + groundParity twistedCount, 2];\n  Switch[selector,\n    \"All\", 2 allCount,\n    \"Even\", chiralEven + antiChiralEven,\n    \"Odd\", chiralOdd + antiChiralOdd,\n    _, 0\n  ]\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1772507566206,
+     "endTime": 1772507567472
+    },
+    "executionOrder": 244,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "test35Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g, -1]] === pfNSCount[-1, w, g, \"Even\"],\n  {w, 0, 4},\n  {g, -1, 3}\n];\nPrint[\"Test 35 (NS q=-1 PF count check, default GSO): \", If[test35Result, \"PASSED\", \"FAILED\"]];\ntest35Result\n\ntest36Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g, 0]] === pfNSCount[0, w, g, \"Even\"],\n  {w, 0, 3},\n  {g, 0, 3}\n];\nPrint[\"Test 36 (NS q=0 PF count check, default GSO): \", If[test36Result, \"PASSED\", \"FAILED\"]];\ntest36Result\n\ntest37Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g, -1, \"GSOParity\" -> \"All\"]] === pfNSCount[-1, w, g, \"All\"] &&\n    Length[generateBasisHolo[w, g, -1, \"GSOParity\" -> \"Even\"]] === pfNSCount[-1, w, g, \"Even\"],\n  {w, 0, 4},\n  {g, -1, 3}\n];\nPrint[\"Test 37 (NS GSO Even/All match untwisted/twisted PF): \", If[test37Result, \"PASSED\", \"FAILED\"]];\ntest37Result\n\ntest38Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g, -1/2]] === pfRCount[-1/2, w, g, \"Even\"],\n  {w, 1, 3},\n  {g, 0, 4}\n];\nPrint[\"Test 38 (R q=-1/2 PF count check, default GSO): \", If[test38Result, \"PASSED\", \"FAILED\"]];\ntest38Result\n\ntest39Result = And @@ Flatten @ Table[\n  Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"All\"]] === pfRCount[-1/2, w, g, \"All\"] &&\n    Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"Even\"]] === pfRCount[-1/2, w, g, \"Even\"] &&\n    Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"Odd\"]] === pfRCount[-1/2, w, g, \"Odd\"] &&\n    Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"Even\"]] +\n      Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"Odd\"]] ===\n      Length[generateBasisHolo[w, g, -1/2, \"GSOParity\" -> \"All\"]],\n  {w, 1, 3},\n  {g, 0, 4}\n];\nPrint[\"Test 39 (R GSO projector counts from untwisted/twisted PF): \", If[test39Result, \"PASSED\", \"FAILED\"]];\ntest39Result\n\npfTypeIIAllTests = {test35Result, test36Result, test37Result, test38Result, test39Result};\npfTypeIIPassed = Count[pfTypeIIAllTests, True];\npfTypeIITotal = Length[pfTypeIIAllTests];\nPrint[\"\\n=== PF SUMMARY (TypeII BasisGeneration) ===\"];\nPrint[\"Passed: \", pfTypeIIPassed, \"/\", pfTypeIITotal];\nIf[pfTypeIIPassed == pfTypeIITotal, Print[\"All PF tests PASSED!\"], Print[\"Some PF tests FAILED.\"]];\npfTypeIIPassed == pfTypeIITotal",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 35 (NS q=-1 PF count check, default GSO): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 35 (NS q=-1 PF count check, default GSO): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9d55a22b-37be-4e29-acc3-8e18668cfecf",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7f16fdb4-8594-4fca-bea8-431ab71c40af",
+     "metadata": {
+      "cellLabel": "Out[266]= ",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 36 (NS q=0 PF count check, default GSO): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 36 (NS q=0 PF count check, default GSO): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "67bfd891-dd45-4081-ba50-e107db7fdcd2",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "abc2857e-8c50-42ff-bfb5-a76b6a11476b",
+     "metadata": {
+      "cellLabel": "Out[269]= ",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 37 (NS GSO Even/All match untwisted/twisted PF): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 37 (NS GSO Even/All match untwisted/twisted PF): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "820b0b49-d01b-43db-ab30-6c9ac06fe2e4",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ca91c26f-e527-47a9-b446-9b172c7b9c64",
+     "metadata": {
+      "cellLabel": "Out[272]= ",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 38 (R q=-1/2 PF count check, default GSO): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 38 (R q=-1/2 PF count check, default GSO): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "24b161e1-4824-4f41-ad11-1237e92997c6",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "94966cca-f8fd-4731-be58-52aa51a289f9",
+     "metadata": {
+      "cellLabel": "Out[275]= ",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 39 (R GSO projector counts from untwisted/twisted PF): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 39 (R GSO projector counts from untwisted/twisted PF): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f9117779-c6c9-4cc7-ab7f-518086b07c85",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "78061ab5-baff-42f0-a363-9f4088af8a7b",
+     "metadata": {
+      "cellLabel": "Out[278]= ",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== PF SUMMARY (TypeII BasisGeneration) ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== PF SUMMARY (TypeII BasisGeneration) ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3c9dc763-0c8d-4f7b-94a1-bfd1521752dd",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 5/5\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 5/5\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "663612c7-c684-41b3-8595-0231d0e20be0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>All PF tests PASSED!\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"All PF tests PASSED!\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2ecec043-ddf4-4fd8-b4d8-4a0c36cacc8d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "db9f505b-abbd-442e-ab57-417a4c2de910",
+     "metadata": {
+      "cellLabel": "Out[285]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1772507567472,
+     "endTime": 1772508987044
+    },
+    "executionOrder": 264,
+    "success": true
+   }
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "Wolfram Language"
+  },
+  "version": 1
+ }
+}

@@ -332,6 +332,77 @@ bosonicModesByExactSum[count_Integer?Positive, sum_Integer?NonNegative, minMode_
       1
     ];
 
+minBoundedModeSum::usage =
+  "Returns the minimal sum for count nondecreasing integer modes >= minMode when each distinct value can repeat at most maxMultiplicity times.";
+minBoundedModeSum[0, _Integer?NonNegative, _Integer?Positive] := 0;
+minBoundedModeSum[
+  count_Integer?Positive,
+  minMode_Integer?NonNegative,
+  maxMultiplicity_Integer?Positive
+] := Module[{fullLevels, remainder},
+  fullLevels = Quotient[count, maxMultiplicity];
+  remainder = Mod[count, maxMultiplicity];
+  maxMultiplicity (fullLevels minMode + Quotient[fullLevels (fullLevels - 1), 2]) +
+    remainder (minMode + fullLevels)
+];
+
+boundedModesByExactSum::usage =
+  "Enumerates nondecreasing mode offset lists of fixed count and exact sum with bounded multiplicity per distinct offset.";
+boundedModesByExactSum[
+  0,
+  0,
+  _Integer?NonNegative,
+  _Integer?Positive
+] := {{}};
+boundedModesByExactSum[
+  0,
+  _Integer,
+  _Integer?NonNegative,
+  _Integer?Positive
+] := {};
+boundedModesByExactSum[
+  _Integer?Positive,
+  _Integer?Negative,
+  _Integer?NonNegative,
+  _Integer?Positive
+] := {};
+boundedModesByExactSum[
+  count_Integer?Positive,
+  sum_Integer?NonNegative,
+  minMode_Integer?NonNegative,
+  maxMultiplicity_Integer?Positive
+] /; sum < minBoundedModeSum[count, minMode, maxMultiplicity] := {};
+boundedModesByExactSum[
+  count_Integer?Positive,
+  sum_Integer?NonNegative,
+  minMode_Integer?NonNegative,
+  maxMultiplicity_Integer?Positive
+] :=
+  boundedModesByExactSum[count, sum, minMode, maxMultiplicity] =
+    Flatten[
+      Table[
+        Module[
+          {localCount, localSum, minRemainingSum, tailConfigs},
+          localCount = count - multiplicityAtMinMode;
+          localSum = sum - multiplicityAtMinMode minMode;
+          minRemainingSum =
+            minBoundedModeSum[localCount, minMode + 1, maxMultiplicity];
+          If[localSum < minRemainingSum,
+            {},
+            tailConfigs = boundedModesByExactSum[
+              localCount,
+              localSum,
+              minMode + 1,
+              maxMultiplicity
+            ];
+            (Join[ConstantArray[minMode, multiplicityAtMinMode], #] & /@ tailConfigs)
+          ]
+        ],
+        {multiplicityAtMinMode, 0, Min[count, maxMultiplicity]}
+      ],
+      1
+    ];
+
 (* Shared helper: minimal ghost contribution for fixed b/c counts. *)
 minGhostWeightForGhostCounts[bGhostCount_Integer?NonNegative, cGhostCount_Integer?NonNegative] :=
   2 bGhostCount + minDistinctModeSum[bGhostCount, 0] - cGhostCount + minDistinctModeSum[cGhostCount, 0];

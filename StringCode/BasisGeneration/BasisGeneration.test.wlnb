@@ -1,0 +1,58 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# BasisGeneration Core Tests\n\nUniversal b/c ghost partition-function checks for shared BasisGeneration helpers.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]\n\nbcExactCountPF[weight_Integer, ghost_Integer] := Module[\n  {minBCount, maxBCount, totalCount = 0, bCount, cCount, minBSum, minCSum, maxBSum, bSum, cSum},\n  minBCount = Max[0, -ghost];\n  maxBCount = Private`maxBCountForGhostNumber[ghost, weight];\n  If[!IntegerQ[maxBCount] || maxBCount < minBCount, Return[0]];\n  Do[\n    cCount = ghost + bCount;\n    minBSum = Private`minDistinctModeSum[bCount, 0];\n    minCSum = Private`minDistinctModeSum[cCount, 0];\n    maxBSum = weight + ghost - bCount - minCSum;\n    If[maxBSum < minBSum, Continue[]];\n    Do[\n      cSum = weight + ghost - bCount - bSum;\n      If[cSum < minCSum, Continue[]];\n      totalCount += Length[Private`distinctModesByExactSum[bCount, bSum, 0]] *\n        Length[Private`distinctModesByExactSum[cCount, cSum, 0]];\n      ,\n      {bSum, minBSum, maxBSum}\n    ];\n    ,\n    {bCount, minBCount, maxBCount}\n  ];\n  totalCount\n];\n\nghostCountByGenerator[weight_Integer, ghost_Integer] :=\n  Count[Private`generateGhostConfigsHolo[weight, ghost], {_, weight}];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "maxW = 6;\nghostRange = Range[-3, 3];\nweightRange = Range[0, maxW];\n\ntest1Result = And @@ Flatten @ Table[\n  ghostCountByGenerator[w, g] === bcExactCountPF[w, g],\n  {w, weightRange},\n  {g, ghostRange}\n];\nPrint[\"Test 1 (exact-weight b/c counts match PF): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "ghostCumulativeByPF[maxWeight_Integer, ghost_Integer] := Module[{minWeight = -maxW - 4},\n  Sum[bcExactCountPF[w, ghost], {w, minWeight, maxWeight}]\n];\n\ntest2Result = And @@ Flatten @ Table[\n  Length[Private`generateGhostConfigsHolo[w, g]] === ghostCumulativeByPF[w, g],\n  {w, weightRange},\n  {g, ghostRange}\n];\nPrint[\"Test 2 (cumulative b/c counts match PF): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3Result = And @@ Flatten @ Table[\n  bcExactCountPF[w, g] >= 0 && IntegerQ[bcExactCountPF[w, g]],\n  {w, weightRange},\n  {g, ghostRange}\n];\nPrint[\"Test 3 (b/c PF coefficients are nonnegative integers): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTests = {test1Result, test2Result, test3Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernel": {
+   "name": "Wolfram Language"
+  },
+  "version": 1
+ }
+}
