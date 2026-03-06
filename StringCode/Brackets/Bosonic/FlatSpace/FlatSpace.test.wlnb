@@ -1,0 +1,323 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic FlatSpace BRST Nilpotency Tests\n\nChecks that `actBRST` is nilpotent (`Q^2 = 0`) on at least 10 sample `R[...]` operators.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Remove[\"Global`*\"];\nNeeds[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]\n",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre><span class=\"wl-message\">Remove::rmnsm</span>: There are no symbols matching \"Global`*\".</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "Remove::rmnsm: There are no symbols matching \"Global`*\".",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ff97441c-d585-4904-8f84-1ce47dd6323c",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1772476579041,
+     "endTime": 1772476580682
+    },
+    "executionOrder": 1,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "replaceGeneratedSymbols[expr_] := expr /. s_Symbol /; StringContainsQ[SymbolName[s], \"$\"] :> Symbol[StringReplace[SymbolName[s], \"$\" -> \"dol\"]];\n\ncanon[expr_] := Module[{e = expr},\n  e = Expand[e /. {\\[Alpha]p -> 1}];\n  e = replaceGeneratedSymbols[e];\n  e = Expand[ContractDelta[e]];\n  Expand[e]\n];\n\nzeroQ[expr_] := TrueQ[expr === 0] || TrueQ[Simplify[expr] === 0] || TrueQ[FullSimplify[expr] === 0];\n\nnilpotentQ[op_] := Module[{res = Expand[actBRST[actBRST[op]]], c},\n  c = canon[res];\n  zeroQ[res] || zeroQ[c]\n];\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  cond\n];\n\nuniqueOps[ops_List] := DeleteDuplicatesBy[ops, ToString[InputForm[#]] &];\n\ncuratedOps = {\n  R[c[0, 0]],\n  R[b[0, 0]],\n  R[dX[\\[Mu], 0, 0]],\n  R[dXt[\\[Nu], 0, 0]],\n  R[c[0, 0], ct[0, 0], ProfileX[f, {}, 0, 0]]\n};\n\nautoOps = uniqueOps@Join[\n  generateBasisHolo[2, 0],\n  generateBasisAntiHolo[2, 0]\n];\n\nsamples = Take[uniqueOps@Join[curatedOps, autoOps], UpTo[10]];\nsampleCountTest = testReport[\"Test 0 (at least 10 samples)\", Length[samples] >= 10];\n\nresults = If[\n  sampleCountTest,\n  MapIndexed[\n    Function[{op, idx},\n      Module[{ok, resid},\n        ok = nilpotentQ[op];\n        Print[\"Test \", idx[[1]], \" (Q^2=0): \", If[ok, \"PASSED\", \"FAILED\"]];\n        If[!ok,\n          resid = canon[Expand[actBRST[actBRST[op]]]];\n          Print[\"  Operator: \", op];\n          Print[\"  Canonical residual: \", resid];\n        ];\n        ok\n      ]\n    ],\n    samples\n  ],\n  {}\n];\n\nallTests = Prepend[results, sampleCountTest];\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total\n",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 0 (at least 10 samples): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 0 (at least 10 samples): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "4b209c53-1e3b-4b9d-9d5e-181597f203c5",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ce88e956-c8c2-4af2-bd2b-bbd69eccf4e8",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "9d66fe64-498c-4eed-ba3a-a6f6ba419d59",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "31d067af-7e5d-4775-9b29-333ee0459f7d",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f4843294-1a33-496e-a424-d10d2667213e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3b7bb352-2d5f-4f29-9a01-e7841ae42189",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "13ab88d0-f222-445f-8137-d2dd6460ba48",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 7 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 7 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "842b3316-b213-41d1-a365-1cbe5c670da0",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 8 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 8 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "d4f0d94d-f8c6-4836-8896-ddf50c679ccb",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 9 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 9 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "7eefa048-6c0a-4758-8932-9efb192edd64",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Test 10 (Q^2=0): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 10 (Q^2=0): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "11d9aa30-b9c2-4b42-b978-955860dffb68",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>\n=== SUMMARY ===\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"\\n=== SUMMARY ===\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "20477e19-f4ab-43ae-8ac4-2ac638bfb0d7",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>Passed: 11/11\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Passed: 11/11\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "2a5413b9-49c9-40a9-8125-5be40fba13e7",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<pre>All tests PASSED!\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"All tests PASSED!\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0f0c3f39-11e0-4ad5-b111-80272b6b6256",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "3da71d44-b306-431c-b3a5-086d77480e21",
+     "metadata": {
+      "cellLabel": "Out[21]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1772476580682,
+     "endTime": 1772476582157
+    },
+    "executionOrder": 4,
+    "success": true
+   }
+  }
+ ],
+ "metadata": {
+  "kernelInfo": {
+   "local": {
+    "name": "wolfram"
+   }
+  }
+ }
+}
