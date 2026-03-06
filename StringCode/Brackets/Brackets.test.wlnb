@@ -25,7 +25,7 @@
   },
   {
    "kind": 1,
-   "value": "## Helper Function Tests\n\nTest the internal combinatorial helpers.",
+   "value": "## Helper Function Tests\n\nTest the internal tree-enumeration helpers used by `EffectiveBracketHold`.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -33,7 +33,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 1: getPartitions excludes all-1s partition\n\nFor n=4, should return {{4}, {3,1}, {2,2}, {2,1,1}} (not {1,1,1,1})",
+   "value": "### Test 1: effectiveBracketTrees for n=2\n\nFor two fields, the only tree should be the single leaf `{1,2}`.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -41,7 +41,7 @@
   },
   {
    "kind": 2,
-   "value": "test1 = Private`getPartitions[4];\nexpected1 = {{4}, {3, 1}, {2, 2}, {2, 1, 1}};\ntest1Result = Sort[test1] === Sort[expected1];\nPrint[\"Test 1 (getPartitions[4]): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
+   "value": "test1 = Private`effectiveBracketTrees[Range[2]];\nexpected1 = {{1, 2}};\ntest1Result = test1 === expected1;\nPrint[\"Test 1 (effectiveBracketTrees n=2): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -84,7 +84,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 2: getPartitions for n=3\n\nShould return {{3}, {2,1}}",
+   "value": "### Test 2: effectiveBracketTrees count for n=3\n\nThree fields should generate one leaf and three one-propagator trees.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -92,7 +92,7 @@
   },
   {
    "kind": 2,
-   "value": "test2 = Private`getPartitions[3];\nexpected2 = {{3}, {2, 1}};\ntest2Result = Sort[test2] === Sort[expected2];\nPrint[\"Test 2 (getPartitions[3]): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
+   "value": "test2 = Private`effectiveBracketTrees[Range[3]];\ntest2Count = Length[test2];\ntest2Result = test2Count == 4;\nPrint[\"Test 2 (effectiveBracketTrees n=3 count): \", test2Count, \" trees - \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -135,7 +135,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 3: assignToGroups generates correct number of index assignments\n\nFor n=4 with sizes {2,2}, should generate 3 distinct index assignments (since groups of same size are interchangeable)",
+   "value": "### Test 3: effectiveBracketTrees exact trees for n=3\n\nThe n=3 tree set should contain the 3-bracket and the three choices of outer singleton.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -143,7 +143,7 @@
   },
   {
    "kind": 2,
-   "value": "test3 = Private`assignToGroups[4, {2, 2}];\ntest3Count = Length[test3];\ntest3Result = test3Count == 3;\nPrint[\"Test 3 (assignToGroups {2,2} count): \", test3Count, \" assignments - \", If[test3Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Assignments: \", test3];\ntest3Result",
+   "value": "test3 = Sort[ToString[InputForm[#]] & /@ Private`effectiveBracketTrees[Range[3]]];\nexpected3 = Sort[{\"{1, 2, 3}\", \"{{1}, {2, 3}}\", \"{{2}, {1, 3}}\", \"{{3}, {1, 2}}\"}];\ntest3Result = test3 === expected3;\nPrint[\"Test 3 (effectiveBracketTrees n=3 exact trees): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -203,7 +203,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 4: assignToGroups for {3,1}\n\nFor n=4 with sizes {3,1}, should generate 4 index assignments",
+   "value": "### Test 4: effectiveBracketTrees count for n=4\n\nThe n=4 tree enumeration should still produce 23 trees.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -211,7 +211,7 @@
   },
   {
    "kind": 2,
-   "value": "test4 = Private`assignToGroups[4, {3, 1}];\ntest4Count = Length[test4];\ntest4Result = test4Count == 4;\nPrint[\"Test 4 (assignToGroups {3,1} count): \", test4Count, \" assignments - \", If[test4Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Assignments: \", test4];\ntest4Result",
+   "value": "test4 = Private`effectiveBracketTrees[Range[4]];\ntest4Count = Length[test4];\ntest4Result = test4Count == 23;\nPrint[\"Test 4 (effectiveBracketTrees n=4 count): \", test4Count, \" trees - \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -271,7 +271,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 5: generateNestings for single group\n\nFor a single group of size >= 2, should return 1 nesting (it's the outer bracket)",
+   "value": "### Test 5: singleton outer branch appears for n=4\n\nThe tree set should include the branch where field 4 is outer and `{1,2,3}` is the inner leaf.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -279,7 +279,7 @@
   },
   {
    "kind": 2,
-   "value": "test5 = Private`generateNestings[{{1, 2, 3}}];\ntest5Count = Length[test5];\ntest5Result = test5Count == 1;\nPrint[\"Test 5 (generateNestings single group): \", test5Count, \" nestings - \", If[test5Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Nestings: \", test5];\ntest5Result",
+   "value": "test5Result = MemberQ[Private`effectiveBracketTrees[Range[4]], {{4}, {1, 2, 3}}];\nPrint[\"Test 5 (n=4 includes singleton outer branch): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -339,7 +339,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 6: generateNestings for two groups\n\nFor two groups of size >= 2, should return 2 nestings (either can be outer)",
+   "value": "### Test 6: simple tree converts to the expected hold term\n\nA one-propagator tree should assign `q1` to the single internal edge.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -347,7 +347,7 @@
   },
   {
    "kind": 2,
-   "value": "test6 = Private`generateNestings[{{1, 2}, {3, 4}}];\ntest6Count = Length[test6];\ntest6Result = test6Count == 2;\nPrint[\"Test 6 (generateNestings two groups): \", test6Count, \" nestings - \", If[test6Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  Nestings: \", test6];\ntest6Result",
+   "value": "test6 = First[Private`effectiveBracketTreeToHold[{{1}, {2, 3, 4}}, {A1, A2, A3, A4}, 0, 0, 1]];\nexpected6 = Private`BracketHold[A1, Private`PropagatorHold[q1][Private`ProjectorBarHold[0, 0][Private`BracketHold[A2, A3, A4]]]];\ntest6Result = test6 === expected6;\nPrint[\"Test 6 (simple tree to hold): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -407,7 +407,7 @@
   },
   {
    "kind": 1,
-   "value": "### Test 7: generateNestings with singletons\n\nFor groups with singletons, singletons should go to outer bracket",
+   "value": "### Test 7: nested tree increments q-slots by depth\n\nA two-edge tree should use `q1` on the outer edge and `q2` on the inner edge.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -415,7 +415,7 @@
   },
   {
    "kind": 2,
-   "value": "test7 = Private`generateNestings[{{1, 2, 3}, {4}}];\ntest7Count = Length[test7];\nPrint[\"Test 7 (generateNestings with singleton): \", test7Count, \" nestings\"];\nPrint[\"  Nestings: \", test7];\n(* Singleton {4} can only go outer, {1,2,3} must be innermost *)\ntest7Result = test7Count == 1;\nPrint[\"Test 7: \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
+   "value": "test7 = First[Private`effectiveBracketTreeToHold[{{1}, {{2}, {3, 4}}}, {A1, A2, A3, A4}, 0, 0, 1]];\nexpected7 = Private`BracketHold[A1, Private`PropagatorHold[q1][Private`ProjectorBarHold[0, 0][Private`BracketHold[A2, Private`PropagatorHold[q2][Private`ProjectorBarHold[0, 0][Private`BracketHold[A3, A4]]]]]]];\ntest7Result = test7 === expected7;\nPrint[\"Test 7 (nested tree q-slot numbering): \", If[test7Result, \"PASSED\", \"FAILED\"]];\ntest7Result",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -1247,6 +1247,190 @@
   },
   {
    "kind": 1,
+   "value": "## Curly-B Regression Tests\n\nValidate the trimmed curly-B path against exact low-level coefficients and stable golden hashes.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+  "value": "termList[expr_] := If[Head[expr] === Plus, List @@ expr, {expr}];\nnormalizeGeneratedSymbols[expr_] := Module[{symbols, groups, rules},\n  symbols = DeleteDuplicates @ Cases[\n    HoldComplete[expr],\n    s_Symbol /; StringMatchQ[SymbolName[Unevaluated[s]], ___ ~~ \"$\" ~~ DigitCharacter ..] :> Unevaluated[s],\n    Infinity\n  ];\n  groups = KeySort[GroupBy[symbols, StringReplace[SymbolName[#], \"$\" ~~ DigitCharacter .. -> \"\"] &]];\n  rules = Flatten @ KeyValueMap[\n    Function[{base, syms},\n      MapIndexed[\n        HoldPattern[#1] :> Symbol[Context[#1] <> base <> \"$\" <> ToString[First[#2]]] &,\n        SortBy[syms, SymbolName]\n      ]\n    ],\n    groups\n  ];\n  expr /. rules\n];\ntermHash[expr_] := IntegerString[Hash[ToString[InputForm[Sort[ToString[InputForm[#]] & /@ termList[normalizeGeneratedSymbols[Expand[expr]]]]], CharacterEncoding -> \"ASCII\"], \"SHA256\"], 16, 64];\ncurlyBExpr[data_Association] := If[data === <||>, 0, Total[KeyValueMap[#2 Times @@ ReleaseHold[#1] &, data]]];\ntestCurlyBCombine[left_Association, right_Association] := Module[{result = <||>, coeff, sign, key},\n  KeyValueMap[\n    Function[{leftModes, leftCoeff},\n      KeyValueMap[\n        Function[{rightModes, rightCoeff},\n          coeff = Wedge[leftCoeff, rightCoeff];\n          If[coeff =!= 0,\n            {sign, key} = Private`canonicalCurlyBKey[Join[ReleaseHold[leftModes], ReleaseHold[rightModes]]];\n            If[sign =!= 0, result[key] = Lookup[result, key, 0] + sign coeff]\n          ]\n        ],\n        right\n      ]\n    ],\n    left\n  ];\n  Select[result, # =!= 0 &]\n];\nbGhostModeCoeff[expr_, mode_] := Total[Cases[termList[Expand[expr]], coeff_. mode :> coeff]];\nholdInnerSignature[Private`BracketHold[args__]] := {\"Bracket\", holdArgSignature /@ {args}};\nholdArgSignature[Private`PropagatorHold[q_][Private`ProjectorBarHold[wH_, wA_][inner_]]] := {\"Propagator\", q, holdInnerSignature[inner]};\nholdArgSignature[field_] := field;\nholdTermSignature[Private`ProjectorHold[wH_, wA_][inner_]] := {\"Projector\", holdInnerSignature[inner]};\nholdSignatureSet[expr_] := Sort[ToString[InputForm[#]] & /@ (holdTermSignature /@ termList[expr])];\nholdSignatureHash[expr_] := IntegerString[Hash[ToString[InputForm[holdSignatureSet[expr]], CharacterEncoding -> \"ASCII\"], \"SHA256\"], 16, 64];\nvalidQSlotsQ[expr_] := Module[{terms = termList[expr], qs, expected},\n  And @@ (Function[term,\n      qs = Cases[term, Private`PropagatorHold[q_][_] :> q, Infinity];\n      expected = Table[ToExpression[\"q\" <> ToString[i]], {i, Length[qs]}];\n      Sort[DeleteDuplicates[qs]] === expected && Length[DeleteDuplicates[qs]] === Length[qs]\n    ] /@ terms)\n];\n\n{lch3, lca3, w3, wbar3, moduli3, rep3} = Private`getLocalCoordinateData[3];\nops3 = Private`placeOpAtPosGivenLocalCoordinates[lch3, lca3, {\n  R[c[0, w3], ct[0, wbar3]],\n  R[c[1, w3], ct[1, wbar3]],\n  R[c[0, w3], dXt[mu, 0, wbar3]]\n}];\nrawCurlyB1 = curlyBExpr[Private`createBs[ops3[[1]], lch3[[1]], lca3[[1]], 1, moduli3, w3, wbar3]];\nrawCurlyB2 = curlyBExpr[Private`createBs[ops3[[2]], lch3[[2]], lca3[[2]], 2, moduli3, w3, wbar3]];\nrawCurlyB3 = curlyBExpr[Private`createBs[ops3[[3]], lch3[[3]], lca3[[3]], 3, moduli3, w3, wbar3]];\nscaleH1 = Coefficient[Expand[lch3[[1]][w3] - lch3[[1]][0]], w3, 1];\nscaleA1 = Coefficient[Expand[lca3[[1]][wbar3] - lca3[[1]][0]], wbar3, 1];\nscaleH2 = Coefficient[Expand[lch3[[2]][w3] - lch3[[2]][0]], w3, 1];\nscaleA2 = Coefficient[Expand[lca3[[2]][wbar3] - lca3[[2]][0]], wbar3, 1];\nopListCurly = Private`placeOpAtPosGivenLocalCoordinates[lch3, lca3, {\n  R[c[0, w3], ct[0, wbar3]],\n  R[c[0, w3], ct[0, wbar3]],\n  R[c[0, w3], ct[0, wbar3]]\n}];\nsingleCurly = Private`createCurlyB[opListCurly, lch3, lca3, 3, moduli3, w3, wbar3];\ncurlyStructured = Private`createCurlyBs[singleCurly, Length[moduli3]];\ncurlyStructuredExpr = curlyBExpr[curlyStructured];\ncurlyApplied = Private`applyCurlyBs[opListCurly, curlyStructured, Length[moduli3]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 20: createBs coefficients for the first insertion\n\nPlaced `c`/`ct` operators should generate the expected `b_{-1}`/`b_0` and `\\!\\(\\*OverscriptBox[\\(b\\), \\(_\\)]\\)_{-1}`/`\\!\\(\\*OverscriptBox[\\(b\\), \\(_\\)]\\)_{0}` coefficients.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test20Result = And[\n  Simplify[bGhostModeCoeff[rawCurlyB1, Private`bmodeHolo[lch3[[1]][0]][-1][1]] + Differential[lch3[[1]][0], moduli3]] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB1, Private`bmodeHolo[lch3[[1]][0]][0][1]] + Differential[scaleH1, moduli3]/scaleH1] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB1, Private`bmodeAntiHolo[lca3[[1]][0]][-1][1]] + Differential[lca3[[1]][0], moduli3]] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB1, Private`bmodeAntiHolo[lca3[[1]][0]][0][1]] + Differential[scaleA1, moduli3]/scaleA1] === 0,\n  FreeQ[rawCurlyB1, Alternatives[Private`bmodeHolo[_][1][1], Private`bmodeAntiHolo[_][1][1]]]\n];\nPrint[\"Test 20 (createBs coefficients for insertion 1): \", If[test20Result, \"PASSED\", \"FAILED\"]];\ntest20Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 21: createBs coefficients for the second insertion\n\nA second placed ghost insertion should obey the same exact coefficient formulas with its own local-coordinate data.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test21Result = And[\n  Simplify[bGhostModeCoeff[rawCurlyB2, Private`bmodeHolo[lch3[[2]][0]][-1][2]] + Differential[lch3[[2]][0], moduli3]] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB2, Private`bmodeHolo[lch3[[2]][0]][0][2]] + Differential[scaleH2, moduli3]/scaleH2] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB2, Private`bmodeAntiHolo[lca3[[2]][0]][-1][2]] + Differential[lca3[[2]][0], moduli3]] === 0,\n  Simplify[bGhostModeCoeff[rawCurlyB2, Private`bmodeAntiHolo[lca3[[2]][0]][0][2]] + Differential[scaleA2, moduli3]/scaleA2] === 0,\n  FreeQ[rawCurlyB2, Alternatives[Private`bmodeHolo[_][1][2], Private`bmodeAntiHolo[_][1][2]]]\n];\nPrint[\"Test 21 (createBs coefficients for insertion 2): \", If[test21Result, \"PASSED\", \"FAILED\"]];\ntest21Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 22: createBs drops the missing chirality\n\nIf an insertion has no antiholomorphic `c`-ghost, the generated curly-B data should contain no antiholomorphic b-modes.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "rawCurlyB3String = ToString[InputForm[rawCurlyB3]];\ntest22Result = StringContainsQ[rawCurlyB3String, \"bmodeHolo\"] && !StringContainsQ[rawCurlyB3String, \"bmodeAntiHolo\"];\nPrint[\"Test 22 (createBs missing chirality stays zero): \", If[test22Result, \"PASSED\", \"FAILED\"]];\ntest22Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 23: structured curly-B combined expression hash\n\nThe combined curly-B expression should remain stable after the runtime trim.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+  "value": "test23Result = termHash[curlyStructuredExpr] === \"ef08430542b5a8e316fd2c42acd3d5025a7ff298695e8e039e47fa2155c94023\";\nPrint[\"Test 23 (structured curly-B expression hash): \", If[test23Result, \"PASSED\", \"FAILED\"]];\ntest23Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 24: applying structured curly-Bs matches the golden output\n\nApplying the trimmed curly-B representation should reproduce the same expanded multilocal operator.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+  "value": "test24Result = termHash[curlyApplied] === \"0f3da351b3193928014d40722c3ad08b80020cdc9228a71675752dfe939e3e12\";\nPrint[\"Test 24 (structured curly-B application hash): \", If[test24Result, \"PASSED\", \"FAILED\"]];\ntest24Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 25: structured combination is canonical and respects wedge antisymmetry\n\nCombining the trimmed association form should be order-independent and vanish when the differential wedge repeats.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "dupA = <|HoldComplete[{Private`bmodeHolo[zA][-1][1]}] -> Differential[s, {m}]|>;\ndupB = <|HoldComplete[{Private`bmodeHolo[zB][-1][2]}] -> Differential[s, {m}]|>;\nordC = <|HoldComplete[{Private`bmodeAntiHolo[zC][-1][3]}] -> Differential[t, {m}]|>;\ntest25Result = curlyBExpr[testCurlyBCombine[dupA, dupB]] === 0 && Simplify[Expand[curlyBExpr[testCurlyBCombine[dupA, ordC]] - curlyBExpr[testCurlyBCombine[ordC, dupA]]]] === 0;\nPrint[\"Test 25 (structured curly-B canonicalization and wedge antisymmetry): \", If[test25Result, \"PASSED\", \"FAILED\"]];\ntest25Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Additional EffectiveBracketHold Regression Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 26: n=5 term count\n\nThe 5-point combinatorics should still generate exactly 166 terms.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test26 = EffectiveBracketHold[A1, A2, A3, A4, A5, 0, 0];\ntest26Count = Length[termList[test26]];\ntest26Result = test26Count == 166;\nPrint[\"Test 26 (n=5 term count): \", test26Count, \" terms - \", If[test26Result, \"PASSED\", \"FAILED\"]];\ntest26Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 27: n=4 canonical hold signature hash",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test27Result = holdSignatureHash[EffectiveBracketHold[A1, A2, A3, A4, 0, 0]] === \"0b634c2f3fc1a0efb7e9dda79177408f6351993e03134d0f86730d5d0be798ac\";\nPrint[\"Test 27 (n=4 canonical signature hash): \", If[test27Result, \"PASSED\", \"FAILED\"]];\ntest27Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 28: n=5 canonical hold signature hash",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test28Result = holdSignatureHash[test26] === \"d0099c67f5979c2966a435a93450d0df58962b1f943b0d9de7435d88f0fcfa45\";\nPrint[\"Test 28 (n=5 canonical signature hash): \", If[test28Result, \"PASSED\", \"FAILED\"]];\ntest28Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Test 29: each hold term uses exactly q1..qd once each\n\nThe new subset recursion should assign propagator slots deterministically by nesting depth.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test29Result = validQSlotsQ[test26];\nPrint[\"Test 29 (deterministic q-slot numbering): \", If[test29Result, \"PASSED\", \"FAILED\"]];\ntest29Result",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -1255,7 +1439,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result,\n            test7Result, test8Result, test9Result, test10Result, test11Result, test12Result,\n            test13Result, test14Result, test15Result, test16Result, test17Result, test18Result,\n            test19Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result,\n            test7Result, test8Result, test9Result, test10Result, test11Result, test12Result,\n            test13Result, test14Result, test15Result, test16Result, test17Result, test18Result,\n            test19Result, test20Result, test21Result, test22Result, test23Result, test24Result,\n            test25Result, test26Result, test27Result, test28Result, test29Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
    "languageId": "wolfram",
    "outputs": [
     {

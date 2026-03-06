@@ -270,11 +270,11 @@ extractListFromRTimesConstant[Ra_/;RTest[Ra]] := List @@ Ra;
 
 createCurlyB::usage = "Create curlyB insertion given local coordinate functions, moduli and number of bracket insertions"
 createCurlyB[SFList__, localCoordinateFunctionsHol__, localCoordinateFunctionsAntiHol__,  bracketOrder_, moduli_,  w_, wbar_]:= 
-Module[{i,result = 0},
+Module[{i,result = <||>},
 
 (*For each modulus and insertion, create the relevant b-ghost insertions*)
 Do[
-result = result + createBs[SFList[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]], i, moduli, w, wbar], 
+result = mergeCurlyBAssociations[result, createBs[SFList[[i]], localCoordinateFunctionsHol[[i]], localCoordinateFunctionsAntiHol[[i]], i, moduli, w, wbar]],
 {i,1,bracketOrder}];
 result
 ]
@@ -304,7 +304,7 @@ getMinCGhostModding[z0_][a_]:= "None";
 
 getMinCbarGhostModding::usage = "Get minimum cbar-ghost modding inside a local operator";
 
-getMinCbarGhostModding[z0bar_][expr_Times] := getMinCGhostModding[z0bar][SelectFirst[List @@ expr, !scalarQ[#] &]]
+getMinCbarGhostModding[z0bar_][expr_Times] := getMinCbarGhostModding[z0bar][SelectFirst[List @@ expr, !scalarQ[#] &]]
 
 getMinCbarGhostModding[z0bar_][Ma_/; MultiOpTest[Ma]]:=  Module[{moddingList = Select[getMinCbarGhostModding[z0bar] /@ List @@ Ma,# != "None" &]},
 If[moddingList =!= {}, Min[moddingList], "None"]
@@ -325,56 +325,70 @@ getMinCbarGhostModding[z0bar_][a_]:= "None";
 
 
 getInverseSeriesAtOrder::usage = "Get series of inverse function to a given order";
-getInverseSeriesAtOrder[toInvert_, coord_, inversionCoord_, order_]:= 
-(InverseSeries[Series[toInvert,{coord,0,order}]]//Normal)/.{coord->inversionCoord};
+getInverseSeriesAtOrder[toInvert_, coord_, inversionCoord_, order_]:=
+  getInverseSeriesAtOrder[toInvert, coord, inversionCoord, order] =
+    (InverseSeries[Series[toInvert,{coord,0,order}]]//Normal)/.{coord->inversionCoord};
+
+canonicalCurlyBKey::usage = "Sort a b-ghost mode list into canonical order and return the induced fermionic sign plus held key.";
+canonicalCurlyBKey[modes_List] := Module[{sign = Signature[modes]},
+  If[sign === 0,
+    {0, HoldComplete[{}]},
+    With[{sortedModes = Sort[modes]},
+      (*Store the evaluated canonical ordering so equivalent mode pairs really merge*)
+      {sign, HoldComplete[sortedModes]}
+    ]
+  ]
+];
+
+mergeCurlyBAssociations::usage = "Merge curly-B associations, summing coefficients for identical canonical mode lists.";
+mergeCurlyBAssociations[] := <||>;
+mergeCurlyBAssociations[data__Association] := Select[Merge[{data}, Total], # =!= 0 &];
+
+bgGhostModeCoefficients::usage = "Compute memoized b-ghost mode coefficients for a local coordinate map.";
+bgGhostModeCoefficients[localCoordinate_, moduli_, maxOrder_Integer] :=
+  bgGhostModeCoefficients[localCoordinate, moduli, maxOrder] = Module[
+    {localCoord, sphereCoord, center, inverseSeries, shift, shiftedIntegrand},
+    localCoord = Unique["curlyBW"];
+    sphereCoord = Unique["curlyBZ"];
+    center = localCoordinate[0];
+    inverseSeries = getInverseSeriesAtOrder[localCoordinate[localCoord], localCoord, sphereCoord, maxOrder];
+    shift = Unique["curlyBShift"];
+    (*Expand the differentiated inverse map around the insertion point and read off mode coefficients by powers of the shifted sphere coordinate*)
+    shiftedIntegrand = Expand[
+      (Series[-(Differential[localCoordinate[localCoord], moduli] /. localCoord -> inverseSeries), {sphereCoord, center, maxOrder}] // Normal) /. sphereCoord -> shift + center
+    ];
+    Association @ Cases[
+      Table[(power - 1) -> Coefficient[shiftedIntegrand, shift, power], {power, 0, maxOrder}],
+      (_ -> coeff_) /; coeff =!= 0
+    ]
+  ];
+
+createBsChiralData::usage = "Construct a single-chirality b-ghost insertion as an association keyed by held mode lists.";
+createBsChiralData[insertion_, localCoordinate_, insertionLabel_, moduli_, contourCenter_, minGhostModdingFn_, modeHead_] := Module[
+  {minGhostModding, maxOrder},
+  minGhostModding = minGhostModdingFn[contourCenter][insertion];
+  If[minGhostModding === "None", Return[<||>]];
+  maxOrder = -minGhostModding + 1;
+  If[maxOrder <= 0,
+    (*If no derivatives of the c-ghost appear, only the b_{-1} mode survives*)
+    Return[<|HoldComplete[{modeHead[contourCenter][-1][insertionLabel]}] -> -Differential[contourCenter, moduli]|>]
+  ];
+  (*Otherwise attach the coefficient of each shifted power to the corresponding b-mode*)
+  Association @ KeyValueMap[
+    HoldComplete[{modeHead[contourCenter][#1][insertionLabel]}] -> #2 &,
+    bgGhostModeCoefficients[localCoordinate, moduli, maxOrder]
+  ]
+];
 
 
 createBs::usage = "Creates b-ghost insertions for a given modulus and set of local coordinates, given an upper bound on b-ghost modding"
-createBs[insertion_, localCoordinateHol_, localCoordinateAntiHol_, insertionLabel_, moduli_, w_, wbar_]:= 
-Module[{result, expandedBGhostIntegrandHol,expandedBGhostIntegrandAntiHol, BGhostIntegrandHolo, BGhostIntegrandAntiHolo, wInTermsOfZ, wbarInTermsOfZbar, 
-z, zbar, z0 = localCoordinateHol[0], z0bar = localCoordinateAntiHol[0], maxOrderHolo, maxOrderAntiHolo, minCGhostModding, minCbarGhostModding},
-
-minCGhostModding = getMinCGhostModding[z0][insertion];
-
-If[minCGhostModding != "None",
-maxOrderHolo = -minCGhostModding + 1;
-
-If[maxOrderHolo > 0,
-(*Obtain a disc coordinate w in terms of sphere coordinate z*)
-wInTermsOfZ = getInverseSeriesAtOrder[localCoordinateHol[w], w,z, maxOrderHolo];
-
-(*Differentiate local coordinates as a function of w with respect to the modulus, substituting the sphere coordinate z in the end*)
-expandedBGhostIntegrandHol = (Series[-(Differential[localCoordinateHol[w], moduli]/.{w->wInTermsOfZ}), {z,z0,maxOrderHolo}]//Normal);
-
-(*Replace terms in the above series with b-ghost modes*)
-BGhostIntegrandHolo = Total[(#/.{Times[rest___,(z-z0)^p_?NumericQ]:> rest bmodeHolo[z0][p-1][insertionLabel],Times[rest___,diff_/;diff===(z-z0)]:> rest bmodeHolo[z0][0][insertionLabel],Times[rest___,1]:> rest bmodeHolo[z0][-1][insertionLabel]}) & /@ (List@@(expandedBGhostIntegrandHol))],
-(*If no derivatives of c-ghost appear, then return dz(w)/d(modulus)_{w=0} b_{-1}*)
-BGhostIntegrandHolo = -Differential[localCoordinateHol[0], moduli] bmodeHolo[z0][-1][insertionLabel];
-], 
-BGhostIntegrandHolo = 0;
-];
-
-minCbarGhostModding = getMinCbarGhostModding[z0bar][insertion];
-
-If[minCbarGhostModding != "None",
-maxOrderAntiHolo = -minCbarGhostModding + 1;
-If[maxOrderAntiHolo > 0,
-(*Obtain a disc coordinate wbar in terms of local coordinate zbar*)
-wbarInTermsOfZbar = getInverseSeriesAtOrder[localCoordinateAntiHol[wbar], wbar, zbar, maxOrderAntiHolo];
-
-(*Differentiate local coordinates as a function of wbar with respect to the modulus, substituting the sphere coordinate zbar in the end*)
-expandedBGhostIntegrandAntiHol = (Series[-(Differential[localCoordinateAntiHol[wbar], moduli]/.{wbar->wbarInTermsOfZbar}), {zbar,z0bar,maxOrderAntiHolo}]//Normal);
-
-(*Replace terms in the above series with bt-ghost modes*)
-BGhostIntegrandAntiHolo = Total[(#/.{Times[rest___,(zbar-z0bar)^p_?NumericQ]:> rest bmodeAntiHolo[z0bar][p-1][insertionLabel],Times[rest___,diff_/;diff===(zbar-z0bar)]:> rest bmodeAntiHolo[z0bar][0][insertionLabel],Times[rest___,1]:> rest bmodeAntiHolo[z0bar][-1][insertionLabel]})& /@ (List@@(expandedBGhostIntegrandAntiHol))],
-
-(*If no derivatives of c-ghost appear, then return dzbar(wbar)/d(modulus)_{wbar=0} bt_{-1}*)
-BGhostIntegrandAntiHolo = -Differential[localCoordinateAntiHol[0], moduli] bmodeAntiHolo[z0bar][-1][insertionLabel];
-],
-BGhostIntegrandAntiHolo = 0;
-];
-result = BGhostIntegrandHolo + BGhostIntegrandAntiHolo;
-result]
+createBs[insertion_, localCoordinateHol_, localCoordinateAntiHol_, insertionLabel_, moduli_, w_, wbar_]:=
+Module[{z0 = localCoordinateHol[0], z0bar = localCoordinateAntiHol[0]},
+(*Combine the holomorphic and antiholomorphic contributions for this insertion*)
+mergeCurlyBAssociations[
+  createBsChiralData[insertion, localCoordinateHol, insertionLabel, moduli, z0, getMinCGhostModding, bmodeHolo],
+  createBsChiralData[insertion, localCoordinateAntiHol, insertionLabel, moduli, z0bar, getMinCbarGhostModding, bmodeAntiHolo]
+]]
 
 
 (* ::Subsubsection:: *)
@@ -403,22 +417,32 @@ DependentQ[expr_, moduli_List] := moduli =!= {} && !FreeQ[expr, Alternatives @@ 
 (* ::Subsection:: *)
 (*Create B-ghost insertions*)
 
-
-combineCurlyBs::usage = "Takes two curly B's and combines them";
-combineCurlyBs[a_+b_, c___]:= combineCurlyBs[a, c] + combineCurlyBs[b, c];
-combineCurlyBs[a___, b_+c_]:= combineCurlyBs[a, b] + combineCurlyBs[a, c];
-combineCurlyBs[a_ f_,d___]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, Wedge, bmodeHolo, bmodeAntiHolo}))
-combineCurlyBs[f___, a_ d_]:= a combineCurlyBs[f,d]/;(And @@(FreeQ[a,#]&/@ {Differential, Wedge, bmodeHolo, bmodeAntiHolo}))
-combineCurlyBs[a_ b___, c_ d___]:= Wedge[a, c] combineCurlyBs[b,d]/; (MemberQ[{Differential, Wedge}, Head[a]] && MemberQ[{Differential, Wedge}, Head[c]]);
-combineCurlyBs[combineCurlyBs[a___],b___]:= combineCurlyBs[a,b];
-combineCurlyBs[a___, combineCurlyBs[b___]]:= combineCurlyBs[a,b];
-
+combineCurlyBAssociations::usage = "Combine two curly-B associations using wedge products and canonicalized mode tuples.";
+combineCurlyBAssociations[left_Association, right_Association] := Module[{result = <||>, coeff, sign, key},
+  (*Combine every left/right term, wedge the differential prefactors, and merge by the canonical mode tuple*)
+  KeyValueMap[
+    Function[{leftModes, leftCoeff},
+      KeyValueMap[
+        Function[{rightModes, rightCoeff},
+          coeff = Wedge[leftCoeff, rightCoeff];
+          If[coeff =!= 0,
+            {sign, key} = canonicalCurlyBKey[Join[ReleaseHold[leftModes], ReleaseHold[rightModes]]];
+            If[sign =!= 0, result[key] = Lookup[result, key, 0] + sign coeff]
+          ]
+        ],
+        right
+      ]
+    ],
+    left
+  ];
+  Select[result, # =!= 0 &]
+];
 
 createCurlyBs::usage = "Takes in a single curlyB object, and creates a joined action of all required curlyB insertions"
-createCurlyBs[curlyB_, numberOfModuli_]:= Module[{result = curlyB}, 
+createCurlyBs[curlyB_Association, numberOfModuli_]:= Module[{result = curlyB},
 If[numberOfModuli > 1,
-(*Combine curlyBs by iterating the combination on two curlyBs, and then sort b-ghost modes into canonical ordering*)
-result = (Nest[combineCurlyBs[curlyB, #] &, result, numberOfModuli - 1] /.{combineCurlyBs[a__]:>Signature[{a}] combinedCurlyBs[Sort[{a}]]});
+(*Combine one single-modulus curlyB for each modulus in the integration measure*)
+result = Nest[combineCurlyBAssociations[curlyB, #] &, result, numberOfModuli - 1];
 ];
 result]
 
@@ -449,25 +473,15 @@ nonDifferentialQ[expr_] := FreeQ[expr, Differential];
 
 
 applyCurlyBs::usage = "Apply a curlyB [sum over b-ghost modes attached to positions] to a multi-local operator"
-applyCurlyBs[SFList_, curlyBs_, moduliLength_]:= 
-Module[{result = 0, prefac, bGhostModes, curlyBOnPosition,
-curlyBList = curlyBs/.{Plus->List}},
-If[Head[curlyBList] === List,
-Scan[Function[curlyB,
-(*Action of a curlyB is application of its b-ghost modes on each local operator in the input multilocal operator*)
- result = result + applyBghostModes[curlyB, SFList];
-], curlyBList],
- result = result + applyBghostModes[curlyBs, SFList];
- ];
-
+applyCurlyBs[SFList_, curlyBs_Association, moduliLength_]:=
 (*The overall sign is for anticommutation of coordinate functions and b-ghosts*)
-(-1)^(moduliLength/2)/Factorial[moduliLength] result
+(-1)^(moduliLength/2)/Factorial[moduliLength] Total[
+  KeyValueMap[#2 applyBghostModes[ReleaseHold[#1], SFList] &, curlyBs]
 ];
 
 
-applyBghostModes::usage = "Apply a set of b-ghost modes to a local operator";
-applyBghostModes[a_ b_, SFList_]:= a applyBghostModes[b, SFList]/;Head[b]==combinedCurlyBs;
-applyBghostModes[BghostModes_, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], currentSFList},
+applyBghostModes::usage = "Apply an ordered list of b-ghost modes to a list of local operators.";
+applyBghostModes[modes_List, SFList_] := Module[{result, bGhostPosition, currentResultAtPosition, SFParities = Map[parityOp, SFList], currentSFList},
 currentSFList = SFList;
 Scan[Function[BghostMode,
 (*Act the b-ghost mode*)
@@ -475,11 +489,9 @@ bGhostPosition = getBGhostPosition[BghostMode];
 currentResultAtPosition =  currentSFList[[bGhostPosition]];
 currentSFList[[bGhostPosition]] = (-1)^(Total[Take[SFParities, bGhostPosition - 1]]) actBGhostMode[BghostMode, currentResultAtPosition];
 SFParities[[bGhostPosition]] = Mod[SFParities[[bGhostPosition]] + 1,2];
-], Reverse @@ BghostModes];
+], Reverse[modes]];
 result = MultiOp @@ currentSFList;
 result]
-
-applyBghostModes[][a_] := a;
 
 
 getBGhostPosition::usage = "Obtain the position at which a b-ghost mode acts";
@@ -584,77 +596,53 @@ ProjectorBarHold[wH_, wA_][a_ + b_] := ProjectorBarHold[wH,wA][a] + ProjectorBar
 ProjectorBarHold[wH_, wA_][c_ a_] := c ProjectorBarHold[wH,wA][a] /; isScalarFactorQ[c]
 ProjectorBarHold[wH_, wA_][0] := 0;
 
-
-(* Get partitions excluding all-1s *)
-getPartitions::usage = "Get integer partitions excluding the all-1s partition";
-getPartitions[n_] := DeleteCases[IntegerPartitions[n], {1 ..}]
-
-
-(* Generate all ways to assign n items to groups of given sizes *)
-(* Works with positional indices to handle duplicate elements correctly *)
-assignToGroups::usage = "Generate all index-based assignments of n positions to groups of given sizes";
-assignToGroups[n_Integer, sizes_List] := Module[{indices = Range[n], sortedSizes = Sort[sizes, Greater], helper, reaped},
-
-  (* Recursive helper to build assignments using indices *)
-  helper[remaining_, {}, acc_] := Sow[acc];
-  helper[remaining_, {size_, rest___}, acc_] := Module[{subsets},
-    subsets = Subsets[remaining, {size}];
-    Scan[helper[Complement[remaining, #], {rest}, Append[acc, #]] &, subsets]
+effectiveBracketTrees::usage = "Enumerate effective-bracket trees as nested index lists.";
+effectiveBracketTrees[indices_List] := effectiveBracketTrees[indices] =
+  If[Length[indices] < 2,
+    {},
+    Join[
+      {indices},
+      (*Choose an outer subset and recurse on the complementary inner subtree*)
+      Flatten[
+        Table[
+          With[{innerIndices = Complement[indices, outerIndices]},
+            If[Length[innerIndices] < 2, Nothing, {outerIndices, #} & /@ effectiveBracketTrees[innerIndices]]
+          ],
+          {outerSize, 1, Length[indices] - 2},
+          {outerIndices, Subsets[indices, {outerSize}]}
+        ],
+        2
+      ]
+    ]
   ];
 
-  reaped = Last @ Reap[helper[indices, sortedSizes, {}]];
-
-  (* Remove duplicates from repeated partition sizes *)
-  DeleteDuplicatesBy[If[reaped === {}, {}, First[reaped]], Sort]
-]
-
-
-(* Generate all valid orderings of groups for the linear chain *)
-(* Returns list of ordered groups from outer to inner *)
-(* Constraint: innermost (last) group must have size >= 2 *)
-generateNestings::usage = "Generate all valid orderings of groups (innermost must have >=2 elements)";
-generateNestings[groups_List] := Module[{perms},
-  perms = Permutations[groups];
-  (* Filter: innermost (last) group must have size >= 2 *)
-  Select[perms, Length[Last[#]] >= 2 &]
-]
-
-
-(* Build the chain recursively from innermost outward *)
-buildChain::usage = "Build nested bracket chain from ordered groups";
-buildChain[{innermost_}, {}, wH_, wA_] := BracketHold[Sequence @@ innermost];
-buildChain[{outer_, rest__}, {q_, qrest___}, wH_, wA_] :=
-  BracketHold[Sequence @@ outer, PropagatorHold[q][ProjectorBarHold[wH,wA][buildChain[{rest}, {qrest}, wH, wA]]]];
-
-
-(* Build a single Hold term from an ordered list of index groups *)
-buildHoldTerm::usage = "Build a ProjectorHold[BracketHold[...]] term from ordered index groups";
-buildHoldTerm[orderedIndexGroups_List, fieldList_List, wH_, wA_] := Module[
-  {orderedGroups = Map[fieldList[[#]] &, orderedIndexGroups, {1}],
-   qs = Table[ToExpression["q" <> ToString[i]], {i, Length[orderedIndexGroups] - 1}]},
-  ProjectorHold[wH,wA][buildChain[orderedGroups, qs, wH, wA]]
-]
+effectiveBracketTreeToHold::usage = "Convert a nested index-list tree into BracketHold/PropagatorHold/ProjectorBarHold expressions.";
+effectiveBracketTreeToHold[indices_List /; VectorQ[indices, IntegerQ], fieldList_List, wH_, wA_, nextQ_Integer] :=
+  {BracketHold[Sequence @@ fieldList[[indices]]], nextQ};
+effectiveBracketTreeToHold[{outerIndices_List, innerTree_}, fieldList_List, wH_, wA_, nextQ_Integer] := Module[
+  {innerHold, finalQ, q},
+  (*Build the inner subtree first so q1, q2, ... follow the nesting depth deterministically*)
+  {innerHold, finalQ} = effectiveBracketTreeToHold[innerTree, fieldList, wH, wA, nextQ + 1];
+  q = ToExpression["q" <> ToString[nextQ]];
+  {
+    BracketHold[
+      Sequence @@ fieldList[[outerIndices]],
+      PropagatorHold[q][ProjectorBarHold[wH, wA][innerHold]]
+    ],
+    finalQ
+  }
+];
 
 
 (* Main EffectiveBracketHold function *)
 (* Returns symbolic expression using BracketHold, PropagatorHold, ProjectorHold, ProjectorBarHold *)
 EffectiveBracketHold[fields__, wH_, wA_] := Module[
-  {n = Length[{fields}], partitions, allTerms = 0, fieldList = {fields}},
-
-  partitions = getPartitions[n];
-
-  (* Sum over all partitions *)
-  Scan[Function[partition,
-    (* Sum over all index-based assignments *)
-    Scan[Function[indexAssignment,
-      (* Sum over all valid orderings *)
-      Scan[Function[ordering,
-        allTerms = allTerms + buildHoldTerm[ordering, fieldList, wH, wA]
-      ], generateNestings[indexAssignment]]
-    ], assignToGroups[n, partition]]
-  ], partitions];
-
-  allTerms
+  {n = Length[{fields}], fieldList = {fields}, trees},
+  (*Enumerate all tree skeletons once, then convert each skeleton into the held bracket expression*)
+  trees = effectiveBracketTrees[Range[n]];
+  Total[
+    ProjectorHold[wH, wA][First[effectiveBracketTreeToHold[#, fieldList, wH, wA, 1]]] & /@ trees
+  ]
 ]
 
 (* Multilinearity of EffectiveBracketHold *)
