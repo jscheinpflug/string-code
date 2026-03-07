@@ -21,8 +21,6 @@ Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
 (* ::Section:: *)
 (*Declare public variables and methods*)
 
-Bosonize::usage = "Placeholder bosonization wrapper used by randomized spin-field OPE output.";
-
 (* ::Section:: *)
 (*Logic*)
 
@@ -168,31 +166,94 @@ gammaLinkVectorIndices[CUD] := {};
 gammaLinkVectorIndices[CDU] := {};
 gammaLinkVectorIndices[_] := {};
 
+
+gammaProductSpinorChiralities::usage = "gammaProductSpinorChiralities[links] infers the endpoint chiralities carried by a GammaProduct link list.";
+gammaProductSpinorChiralities[links_List] := Module[{reducedLinks, left, right},
+  If[links =!= {} && First[links] === CUD, Return[{"chiral", "chiral"}]];
+  If[links =!= {} && First[links] === CDU, Return[{"antichiral", "antichiral"}]];
+  reducedLinks = DeleteCases[links, Gamma11UU[] | Gamma11DD[]];
+  If[reducedLinks === {}, Return[{"chiral", "antichiral"}]];
+  left = Which[
+    Head[First[reducedLinks]] === GammaUD, "chiral",
+    Head[First[reducedLinks]] === GammaDU, "antichiral",
+    True, "chiral"
+  ];
+  right = left;
+  Scan[
+    Function[link,
+      If[MatchQ[link, GammaUD[_] | GammaDU[_]],
+        right = If[right === "chiral", "antichiral", "chiral"]
+      ]
+    ],
+    reducedLinks
+  ];
+  {left, right}
+];
+
+
+spinSymbolChiralities::usage = "spinSymbolChiralities[obj] collects the intended chirality for symbolic spinor indices appearing in spin fields and gamma products.";
+spinSymbolChiralities[obj_] := Module[{fieldPairs, gammaTriples, gammaPairs},
+  fieldPairs = Cases[
+    obj,
+    (S | St)[{idx_Symbol, chirality : ("chiral" | "antichiral")}, __] :> (idx -> chirality),
+    Infinity
+  ];
+  gammaTriples = Cases[obj, GammaProduct[links_List, s1_, s2_] :> {links, s1, s2}, Infinity];
+  gammaPairs = Flatten[
+    Function[{triple},
+      Module[{pair = gammaProductSpinorChiralities[triple[[1]]]},
+        Join[
+          Cases[{triple[[2]]}, idx_Symbol :> (idx -> pair[[1]])],
+          Cases[{triple[[3]]}, idx_Symbol :> (idx -> pair[[2]])]
+        ]
+      ]
+    ] /@ gammaTriples,
+    1
+  ];
+  Association[DeleteDuplicatesBy[Join[fieldPairs, gammaPairs], First]]
+];
+
+
+spinIterationValues::usage = "spinIterationValues[chirality] returns the explicit spin-vector basis used to randomize or sum over that chirality.";
+spinIterationValues["antichiral"] := antichiralspins;
+spinIterationValues[_] := chiralspins;
+
+
+symbolIndexQ::usage = "symbolIndexQ[x] checks whether x is a symbolic index placeholder rather than a numeric value.";
+symbolIndexQ[x_] := Head[x] === Symbol;
+
 randomizeIndices::usage = "Randomizes singleton indices, sums repeated ones, and wraps every R[...] as Bosonize[R[...]].";
 randomizeIndices[inputOps_List, hExpr_, aExpr_, seed_: Automatic] := Module[
-  {obj = {inputOps, hExpr, aExpr}, typed, counts, vec, spi, free, dum, run},
+  {obj = {inputOps, hExpr, aExpr}, typed, counts, vec, spi, free, dum, spinChiralities, run},
   typed = Join[
-    Cases[obj, (ψ | ψt)[μ_, __] /; SymbolQ[μ] :> {μ, "v"}, Infinity],
-    Cases[obj, (S | St)[{α_, ("chiral" | "antichiral")}, __] /; SymbolQ[α] :> {α, "s"}, Infinity],
+    Cases[obj, (ψ | ψt)[μ_, __] /; symbolIndexQ[μ] :> {μ, "v"}, Infinity],
+    Cases[obj, (S | St)[{α_, ("chiral" | "antichiral")}, __] /; symbolIndexQ[α] :> {α, "s"}, Infinity],
     Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
-      ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; SymbolQ[ν]} :> ν]),
-      ({#, "v"} & /@ Cases[m, {ν_ /; SymbolQ[ν], _?NumericQ} :> ν])], Infinity], 1],
+      ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; symbolIndexQ[ν]} :> ν]),
+      ({#, "v"} & /@ Cases[m, {ν_ /; symbolIndexQ[ν], _?NumericQ} :> ν])], Infinity], 1],
     Flatten[Cases[obj, GammaProduct[links_List, s1_, s2_] :>
       Join[
-        ({#, "v"} & /@ Select[Flatten[gammaLinkVectorIndices /@ links], SymbolQ]),
-        ({#, "s"} & /@ Select[{s1, s2}, SymbolQ])
+        ({#, "v"} & /@ Select[Flatten[gammaLinkVectorIndices /@ links], symbolIndexQ]),
+        ({#, "s"} & /@ Select[{s1, s2}, symbolIndexQ])
       ], Infinity], 1],
-    Flatten[Cases[obj, Eps10[u_List, d_List] :> ({#, "v"} & /@ Select[Join[u, d], SymbolQ]), Infinity], 1]
+    Flatten[Cases[obj, Eps10[u_List, d_List] :> ({#, "v"} & /@ Select[Join[u, d], symbolIndexQ]), Infinity], 1]
   ];
+  spinChiralities = spinSymbolChiralities[obj];
   counts = Counts[First /@ typed]; vec = DeleteDuplicates[First /@ Select[typed, Last[#] === "v" &]];
   spi = Complement[DeleteDuplicates[First /@ Select[typed, Last[#] === "s" &]], vec];
   free = Keys[Select[counts, # == 1 &]]; dum = Keys[Select[counts, # > 1 &]];
   run[] := Module[{rules, it, wrap, s},
-    rules = Join[(# -> RandomInteger[{1, 10}] & /@ Intersection[vec, free]), (# -> RandomInteger[{1, 16}] & /@ Intersection[spi, free])];
-    it = Join[({#, 1, 10} & /@ Intersection[vec, dum]), ({#, 1, 16} & /@ Intersection[spi, dum])];
+    rules = Join[
+      (# -> RandomInteger[{1, 10}] & /@ Intersection[vec, free]),
+      (# -> RandomChoice[spinIterationValues[Lookup[spinChiralities, #, "chiral"]]] & /@ Intersection[spi, free])
+    ];
+    it = Join[
+      ({#, 1, 10} & /@ Intersection[vec, dum]),
+      ({#, spinIterationValues[Lookup[spinChiralities, #, "chiral"]]} & /@ Intersection[spi, dum])
+    ];
     wrap[e_] := e /. ra_ /; RTest[ra] :> Bosonize[ra];
     s[e_] := If[it === {}, e, Apply[Sum, Prepend[it, e]]];
-    {s /@ (wrap /@ (inputOps /. rules)), s[wrap[hExpr /. rules]], s[wrap[aExpr /. rules]]}
+    {wrap /@ (s /@ (inputOps /. rules)), wrap[s[hExpr /. rules]], wrap[s[aExpr /. rules]]}
   ];
   If[seed === Automatic, run[], BlockRandom[SeedRandom[seed]; run[]]]
 ];

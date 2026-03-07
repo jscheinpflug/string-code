@@ -9,6 +9,7 @@ BeginPackage["StringCode`NormalOrdering`TypeII`"];
 
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
+Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`NormalOrdering`"]
 
 
@@ -76,6 +77,90 @@ bosExpRules = {
 };
 
 
+bosonizedExponentialFieldQ::usage = "bosonizedExponentialFieldQ[field] checks whether field is expH or expHt.";
+bosonizedExponentialFieldQ[field_] := MatchQ[field, expH[_List, _] | expHt[_List, _]];
+
+
+bosonizedTermSpec::usage = "bosonizedTermSpec[expr] parses one bosonized single-field term into coefficient, charge, and field-factor data.";
+bosonizedTermSpec[expr_] := Module[
+  {factors, scalarFactors, fieldFactors, expFactors, charge, chirality, coord},
+  factors = If[Head[expr] === Times, List @@ expr, {expr}];
+  scalarFactors = Select[factors, isScalarFactorQ];
+  fieldFactors = Select[factors, Not @* isScalarFactorQ];
+  expFactors = Select[fieldFactors, bosonizedExponentialFieldQ];
+  If[Length[expFactors] > 1, Return[$Failed]];
+  {charge, chirality, coord} = If[
+    expFactors === {},
+    {charge6Zero, None, None},
+    {
+      expFactors[[1, 1]],
+      If[Head[expFactors[[1]]] === expH, "Holo", "AntiHolo"],
+      expFactors[[1, 2]]
+    }
+  ];
+  <|
+    "coefficient" -> Times @@ scalarFactors,
+    "charge" -> charge,
+    "chirality" -> chirality,
+    "coordinate" -> coord,
+    "fields" -> fieldFactors
+  |>
+];
+
+
+bosonizedSingleFieldTerms::usage = "bosonizedSingleFieldTerms[field] expands Bosonize[field] into a list of parsed term specifications.";
+bosonizedSingleFieldTerms[field_] := Module[{raw, terms, parsed},
+  raw = Expand[Bosonize[field]];
+  If[Head[raw] === Bosonize, Return[$Failed]];
+  terms = If[Head[raw] === Plus, List @@ raw, {raw}];
+  parsed = bosonizedTermSpec /@ terms;
+  If[MemberQ[parsed, $Failed], $Failed, parsed]
+];
+
+
+mergeBosonizedExponentials::usage = "mergeBosonizedExponentials[fields] merges same-head exponentials inserted at the same coordinate by adding charges.";
+mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, key},
+  Scan[
+    Function[field,
+      If[
+        bosonizedExponentialFieldQ[field],
+        key = {Head[field], field[[2]]};
+        If[
+          KeyExistsQ[sums, key],
+          sums[key] = sums[key] + field[[1]],
+          sums[key] = field[[1]];
+          sequence = Append[sequence, key]
+        ],
+        sequence = Append[sequence, field]
+      ]
+    ],
+    fields
+  ];
+  DeleteCases[
+    sequence /. key : {head_Symbol, coord_} :> head[sums[key], coord],
+    1
+  ]
+];
+
+
+bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] multiplies pairwise cocycles in the original factor order for one tuple of bosonized terms.";
+bosonizedCocycleFactor[combo_List] := Module[{n = Length[combo]},
+  Times @@ Flatten@Table[cocycle[combo[[i, "charge"]], combo[[j, "charge"]]], {i, 1, n - 1}, {j, i + 1, n}]
+];
+
+
+bosonizedTupleExpression::usage = "bosonizedTupleExpression[combo] rebuilds one bosonized tuple of term data as a scalar or normal-ordered product.";
+bosonizedTupleExpression[combo_List] := Module[{coeff, fields},
+  coeff = bosonizedCocycleFactor[combo] Times @@ Lookup[combo, "coefficient"];
+  fields = mergeBosonizedExponentials[Flatten[Lookup[combo, "fields"], 1]];
+  Which[
+    coeff === 0, 0,
+    fields === {}, coeff,
+    True, coeff R @@ fields
+  ]
+];
+
+
 (* ::Subsection::Closed:: *)
 (*Define normal-ordered product*)
 
@@ -104,6 +189,14 @@ totalAntiHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolPicture[Ra];
 
 GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
 GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
+
+
+Bosonize[Ra_ /; RTest[Ra]] := Module[{termLists, tuples},
+  termLists = bosonizedSingleFieldTerms /@ (List @@ Ra);
+  If[MemberQ[termLists, $Failed], Return[Unevaluated[Bosonize[Ra]]]];
+  tuples = Tuples[termLists];
+  Expand[Total[bosonizedTupleExpression /@ tuples]]
+];
 
 
 (* ::Section:: *)

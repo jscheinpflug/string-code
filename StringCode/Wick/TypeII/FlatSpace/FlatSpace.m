@@ -36,6 +36,10 @@ Begin["Private`"];
 
 Wick[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= Wick[dX[\[Mu],n,z], dX[\[Nu],m,w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
 Wick[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:= Wick[dXt[\[Mu],n,z],dXt[\[Nu],m,w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
+Wick[dH[i_, n_, z_], dH[j_, m_, w_]] := Wick[dH[i, n, z], dH[j, m, w]] =
+  Module[{zd}, -hMetric[[i, j]] (-1)^m D[-1/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
+Wick[dHt[i_, n_, zbar_], dHt[j_, m_, wbar_]] := Wick[dHt[i, n, zbar], dHt[j, m, wbar]] =
+  Module[{zd}, -hMetric[[i, j]] (-1)^m D[-1/(zd - wbar)^2, {zd, n + m}] /. {zd -> zbar}];
 
 
 (* ::Subsubsection:: *)
@@ -81,6 +85,14 @@ SWick[dXt[\[Mu]_, n_, z_], ProfileXAntiHolo[profile_, ders_, wbar_]] := SWick[dX
 Module[{zd}, (-\[Alpha]p/2 der[profile][\[Mu]]) D[1/(zd - wbar), {zd, n}] /. {zd -> z}]
 SWick[ProfileXAntiHolo[profile_, ders_, wbar_], dXt[\[Mu]_, n_, z_]] := SWick[ProfileXAntiHolo[profile, ders, wbar], dXt[\[Mu], n, z]] =
  Module[{zd}, (-\[Alpha]p/2 der[profile][\[Mu]]) D[1/(zd - wbar), {zd, n}] /. {zd -> z}]
+SWick[dH[i_, n_, z_], expH[charges_, w_]] := SWick[dH[i, n, z], expH[charges, w]] =
+  Module[{zd}, hMetric[[i, i]] charges[[i]] D[1/(zd - w), {zd, n}] /. {zd -> z}];
+SWick[expH[charges_, w_], dH[i_, n_, z_]] := SWick[expH[charges, w], dH[i, n, z]] =
+  Module[{zd}, hMetric[[i, i]] charges[[i]] D[1/(zd - w), {zd, n}] /. {zd -> z}];
+SWick[dHt[i_, n_, zbar_], expHt[charges_, wbar_]] := SWick[dHt[i, n, zbar], expHt[charges, wbar]] =
+  Module[{zd}, hMetric[[i, i]] charges[[i]] D[1/(zd - wbar), {zd, n}] /. {zd -> zbar}];
+SWick[expHt[charges_, wbar_], dHt[i_, n_, zbar_]] := SWick[expHt[charges, wbar], dHt[i, n, zbar]] =
+  Module[{zd}, hMetric[[i, i]] charges[[i]] D[1/(zd - wbar), {zd, n}] /. {zd -> zbar}];
 
 
 (* ::Subsection:: *)
@@ -110,6 +122,8 @@ MWick[ProfileXAntiHolo[profile_, ders_, zbar_],expXAntiHolo[p_,wbar_]]:=MWick[Pr
 (zbar-wbar)^(-I \[Alpha]p/2 dot[p,der[profile]])
 MWick[ProfileXAntiHolo[profile1_, ders1_, zbar_],ProfileXAntiHolo[profile2_, ders2_, wbar_]]:=
 MWick[ProfileXAntiHolo[profile1, ders1,zbar],ProfileXAntiHolo[profile2, ders2, wbar]] = (zbar-wbar)^(-\[Alpha]p/2 dot[der[profile1],der[profile2]])
+MWick[expH[q_, z_], expH[p_, w_]] := MWick[expH[q, z], expH[p, w]] = cocycle[q, p] (z - w)^chargeDot[q, p];
+MWick[expHt[q_, zbar_], expHt[p_, wbar_]] := MWick[expHt[q, zbar], expHt[p, wbar]] = cocycle[q, p] (zbar - wbar)^chargeDot[q, p];
 
 
 (* ::Section:: *)

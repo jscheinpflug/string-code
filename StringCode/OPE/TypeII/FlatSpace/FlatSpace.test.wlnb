@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# TypeII FlatSpace OPE Tests\n\nCFT-specific tests (matter fermion sector).",
+   "value": "# TypeII FlatSpace OPE Tests\n\nDirect OPE probes, including bosonized spin-field products.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -10,338 +10,7 @@
   },
   {
    "kind": 2,
-   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762409286,
-     "endTime": 1770762409502
-    },
-    "executionOrder": 1,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "test1 = Wick[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]];\nexpected1 = -1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest1Result = Simplify[test1 - expected1] === 0;\nPrint[\"Test 1 (psi-psi Wick): \", If[test1Result, \"PASSED\", \"FAILED\"]];\ntest1Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 1 (psi-psi Wick): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 1 (psi-psi Wick): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "d022c9c3-4c66-4627-9b1b-326a4a520030",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "7e1fd2bb-3004-4dc8-9f1c-2c14c82e1abd",
-     "metadata": {
-      "cellLabel": "Out[7]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762409502,
-     "endTime": 1770762409936
-    },
-    "executionOrder": 3,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "test2 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\nexpected2 = R[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]] - 1/2 \\[Delta][\\[Mu], \\[Nu]]/(z - w);\ntest2Result = Simplify[test2 - expected2] === 0;\nPrint[\"Test 2 (OPE psi-psi): \", If[test2Result, \"PASSED\", \"FAILED\"]];\ntest2Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 2 (OPE psi-psi): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 2 (OPE psi-psi): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "8cacbeac-fb34-4bbb-885e-fd3144471fce",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "6bb1db18-5993-4d2e-9619-fe2cea2b4be1",
-     "metadata": {
-      "cellLabel": "Out[12]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762409937,
-     "endTime": 1770762410342
-    },
-    "executionOrder": 8,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "test3 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Eta][0, w]]];\nexpected3 = R[\\[Psi][\\[Mu], 0, z], \\[Eta][0, w]];\ntest3Result = Simplify[test3 - expected3] === 0;\nPrint[\"Test 3 (psi-eta no contraction): \", If[test3Result, \"PASSED\", \"FAILED\"]];\ntest3Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 3 (psi-eta no contraction): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 3 (psi-eta no contraction): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "93f3cbae-8bd7-400a-9798-e282ca339150",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "b4f92ee9-61dd-4860-97e4-51d20adf6c56",
-     "metadata": {
-      "cellLabel": "Out[17]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762410342,
-     "endTime": 1770762410748
-    },
-    "executionOrder": 13,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "test4 = OPE[R[\\[Psi][\\[Mu], 0, z]], R[d\\[Phi][0, w]]];\nexpected4 = R[\\[Psi][\\[Mu], 0, z], d\\[Phi][0, w]];\ntest4Result = Simplify[test4 - expected4] === 0;\nPrint[\"Test 4 (psi-dphi no contraction): \", If[test4Result, \"PASSED\", \"FAILED\"]];\ntest4Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 4 (psi-dphi no contraction): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4 (psi-dphi no contraction): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "a94350a1-11b9-4530-bdc2-6dc4b2578b60",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "18604048-30e3-40b6-957a-2194d5b9c83b",
-     "metadata": {
-      "cellLabel": "Out[22]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762410749,
-     "endTime": 1770762411156
-    },
-    "executionOrder": 18,
-    "success": true
-   }
-  },
-  {
-   "kind": 1,
-   "value": "## OPEProjection in FlatSpace",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "expr5 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\ntest5Result = Not[FreeQ[expr5, \\[Delta][\\[Mu], \\[Nu]]]];\nPrint[\"Test 5 (projection psi-psi contains delta): \", If[test5Result, \"PASSED\", \"FAILED\"]];\ntest5Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 5 (projection psi-psi contains delta): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 5 (projection psi-psi contains delta): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "67745ca8-f3fd-47fb-bb5a-8c9e01ccd976",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "096399b0-36b7-4bde-8691-dbfed1017fc8",
-     "metadata": {
-      "cellLabel": "Out[26]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762411157,
-     "endTime": 1770762411493
-    },
-    "executionOrder": 23,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "lhs6 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]] + R[\\[Psi][\\[Rho], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\nrhs6 = OPEProjected[0, 0][R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]] + OPEProjected[0, 0][R[\\[Psi][\\[Rho], 0, z]], R[\\[Psi][\\[Nu], 0, w]]];\ntest6Result = Simplify[lhs6 - rhs6] === 0;\nPrint[\"Test 6 (projection linearity): \", If[test6Result, \"PASSED\", \"FAILED\"]];\ntest6Result",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 6 (projection linearity): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 6 (projection linearity): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "8adca839-99e3-45b9-b472-f02f67749b3f",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "903aa658-61d0-412f-a077-dadf973274f7",
-     "metadata": {
-      "cellLabel": "Out[31]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762411493,
-     "endTime": 1770762411901
-    },
-    "executionOrder": 27,
-    "success": true
-   }
-  },
-  {
-   "kind": 1,
-   "value": "## Spin Field OPE (Matter Basis + Tensor Structures)",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "(* Test 7: \\[Psi] \\[Times] S at weight 1 (picture -1/2, R sector output), via helper pipeline *)\ndataA = Private`getOutgoingOperatorsTensors[{R[\\[Psi][\\[Mu], 0, z]], R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0];\n{holoA, nA} = Which[dataA[\"holoOps\"] === {}, {1, 0}, dataA[\"holoData\"] === {}, {0, 0}, True, Private`attachCoefficients[dataA[\"holoData\"], 0]];\n{antiA, nA} = Which[dataA[\"antiOps\"] === {}, {1, nA}, dataA[\"antiData\"] === {}, {0, nA}, True, Private`attachCoefficients[dataA[\"antiData\"], nA]];\nresultA = dataA[\"sign\"] Private`combineChiral[holoA, antiA];\ntest7Result = And[\n  resultA =!= 0,\n  Not[FreeQ[resultA, R]],\n  Not[FreeQ[resultA, S]],\n  Not[FreeQ[resultA, GammaProduct]]\n];\nPrint[\"Test 7 (\\[Psi] \\[Times] S spin field symbolic pipeline): \", If[test7Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultA = \", resultA];\ntest7Result",
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -349,23 +18,7 @@
   },
   {
    "kind": 2,
-   "value": "(* Test 8: S \\[Times] S at weight 1 (picture -1, NS sector output), via helper pipeline *)\ndataB = Private`getOutgoingOperatorsTensors[{R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, z]], R[S[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0];\n{holoB, nB} = Which[dataB[\"holoOps\"] === {}, {1, 0}, dataB[\"holoData\"] === {}, {0, 0}, True, Private`attachCoefficients[dataB[\"holoData\"], 0]];\n{antiB, nB} = Which[dataB[\"antiOps\"] === {}, {1, nB}, dataB[\"antiData\"] === {}, {0, nB}, True, Private`attachCoefficients[dataB[\"antiData\"], nB]];\nresultB = dataB[\"sign\"] Private`combineChiral[holoB, antiB];\ntest8Result = And[\n  resultB =!= 0,\n  Not[FreeQ[resultB, R]],\n  Not[FreeQ[resultB, GammaProduct]]\n];\nPrint[\"Test 8 (S \\[Times] S spin field symbolic pipeline): \", If[test8Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultB = \", resultB];\ntest8Result",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "(* Test 9: Mixed holo/anti-holo Grassmann sign, via helper pipeline *)\ndataC = Private`getOutgoingOperatorsTensors[{R[\\[Psi][\\[Mu], 0, z], \\[Psi]t[\\[Nu], 0, z]], R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, w], St[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]]}, 1, 1];\n{holoC, nC} = Which[dataC[\"holoOps\"] === {}, {1, 0}, dataC[\"holoData\"] === {}, {0, 0}, True, Private`attachCoefficients[dataC[\"holoData\"], 0]];\n{antiC, nC} = Which[dataC[\"antiOps\"] === {}, {1, nC}, dataC[\"antiData\"] === {}, {0, nC}, True, Private`attachCoefficients[dataC[\"antiData\"], nC]];\nresultC = dataC[\"sign\"] Private`combineChiral[holoC, antiC];\ntest9Result = And[\n  resultC =!= 0,\n  Not[FreeQ[resultC, R]],\n  Not[FreeQ[resultC, S]],\n  Not[FreeQ[resultC, St]]\n];\nPrint[\"Test 9 (mixed holo/anti-holo symbolic pipeline): \", If[test9Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultC = \", resultC];\ntest9Result",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "(* Test 10: Pure antiholomorphic St \\[Times] St, via helper pipeline *)\ndataD = Private`getOutgoingOperatorsTensors[{R[St[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, z]], R[St[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]]}, 0, 1];\n{holoD, nD} = Which[dataD[\"holoOps\"] === {}, {1, 0}, dataD[\"holoData\"] === {}, {0, 0}, True, Private`attachCoefficients[dataD[\"holoData\"], 0]];\n{antiD, nD} = Which[dataD[\"antiOps\"] === {}, {1, nD}, dataD[\"antiData\"] === {}, {0, nD}, True, Private`attachCoefficients[dataD[\"antiData\"], nD]];\nresultD = dataD[\"sign\"] Private`combineChiral[holoD, antiD];\ntest10Result = And[\n  resultD =!= 0,\n  Not[FreeQ[resultD, R]],\n  Not[FreeQ[resultD, \\[Psi]t]],\n  Not[FreeQ[resultD, GammaProduct]]\n];\nPrint[\"Test 10 (St \\[Times] St anti-holo symbolic pipeline): \", If[test10Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultD = \", resultD];\ntest10Result",
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -373,7 +26,7 @@
   },
   {
    "kind": 1,
-   "value": "## Spin Field OPE (Randomized Association API)",
+   "value": "## Basic OPEs",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -381,7 +34,7 @@
   },
   {
    "kind": 2,
-   "value": "(* Test 11: \\[Psi] \\[Times] S Association output contract *)\nresultE = OPEProjected[1, 0][R[\\[Psi][\\[Mu], 0, z]], R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, w]], \"RandomSeed\" -> 11];\ntest11Result = And[\n  AssociationQ[resultE],\n  KeyExistsQ[resultE, \"sign\"],\n  KeyExistsQ[resultE, \"holo\"],\n  KeyExistsQ[resultE, \"anti\"],\n  KeyExistsQ[resultE, \"randomizedInputs\"],\n  MemberQ[{1, -1}, resultE[\"sign\"]],\n  Not[FreeQ[resultE[\"holo\"], _Symbol[_Integer]]],\n  Not[FreeQ[resultE[\"randomizedInputs\"], Bosonize]]\n];\nPrint[\"Test 11 (\\[Psi] \\[Times] S Association output): \", If[test11Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultE = \", resultE];\ntest11Result",
+   "value": "test1 = testReport[\"Test 1 (OPE psi-psi)\", Simplify[OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Psi][\\[Nu], 0, w]]] - (R[\\[Psi][\\[Mu], 0, z], \\[Psi][\\[Nu], 0, w]] - \\[Delta][\\[Mu], \\[Nu]]/(2 (z - w)))] === 0];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -389,7 +42,7 @@
   },
   {
    "kind": 2,
-   "value": "(* Test 12: seeded randomization is deterministic *)\nresultF1 = OPEProjected[1, 0][R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, z]], R[S[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]], \"RandomSeed\" -> 22];\nresultF2 = OPEProjected[1, 0][R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, z]], R[S[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]], \"RandomSeed\" -> 22];\ntest12Result = resultF1 === resultF2;\nPrint[\"Test 12 (seeded deterministic output): \", If[test12Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultF1 = \", resultF1];\ntest12Result",
+   "value": "test2 = testReport[\"Test 2 (OPE psi-eta no contraction)\", Simplify[OPE[R[\\[Psi][\\[Mu], 0, z]], R[\\[Eta][0, w]]] - R[\\[Psi][\\[Mu], 0, z], \\[Eta][0, w]]] === 0];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -397,7 +50,23 @@
   },
   {
    "kind": 2,
-   "value": "(* Test 13: Mixed holo/anti-holo keeps separate sign/holo/anti fields *)\nresultG = OPEProjected[1, 1][\n  R[\\[Psi][\\[Mu], 0, z], \\[Psi]t[\\[Nu], 0, z]],\n  R[S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, w], St[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]],\n  \"RandomSeed\" -> 33\n];\ntest13Result = And[\n  AssociationQ[resultG],\n  MemberQ[{1, -1}, resultG[\"sign\"]],\n  Not[FreeQ[resultG[\"holo\"], _Symbol[_Integer]]],\n  Not[FreeQ[resultG[\"anti\"], _Symbol[_Integer]]]\n];\nPrint[\"Test 13 (mixed holo/anti-holo Association): \", If[test13Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultG = \", resultG];\ntest13Result",
+   "value": "test3 = testReport[\"Test 3 (OPE psi-dphi no contraction)\", Simplify[OPE[R[\\[Psi][\\[Mu], 0, z]], R[d\\[Phi][0, w]]] - R[\\[Psi][\\[Mu], 0, z], d\\[Phi][0, w]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Bosonized Spin-Field OPEs",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expected4 = I*R[expH[{-1/2, 1/2, 1/2, 1/2, -1/2, -1/2}, w], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]];\ntest4 = testReport[\"Test 4 (bosonized S-S OPE)\", OPE[Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]]], Bosonize[R[S[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, w]]]] === expected4];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -405,7 +74,7 @@
   },
   {
    "kind": 2,
-   "value": "(* Test 14: Pure antiholomorphic St \\[Times] St has anti contribution with coefficients *)\nresultH = OPEProjected[0, 1][R[St[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, z]], R[St[{\\[Beta], \"chiral\"}, -1/2, {}, 0, w]], \"RandomSeed\" -> 44];\ntest14Result = And[\n  AssociationQ[resultH],\n  resultH[\"holo\"] === 1,\n  Not[FreeQ[resultH[\"anti\"], _Symbol[_Integer]]],\n  Not[FreeQ[resultH[\"randomizedInputs\"], Bosonize]]\n];\nPrint[\"Test 14 (St \\[Times] St anti-holo Association): \", If[test14Result, \"PASSED\", \"FAILED\"]];\nPrint[\"  resultH = \", resultH];\ntest14Result",
+   "value": "expected5 = I*R[expHt[{-1/2, 1/2, 1/2, 1/2, -1/2, -1/2}, wb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, zb]];\ntest5 = testReport[\"Test 5 (bosonized St-St OPE)\", OPE[Bosonize[R[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]], Bosonize[R[St[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, wb]]]] === expected5];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -413,87 +82,54 @@
   },
   {
    "kind": 2,
-   "value": "allTests = {test1Result, test2Result, test3Result, test4Result, test5Result, test6Result, test7Result, test8Result, test9Result, test10Result, test11Result, test12Result, test13Result, test14Result};\npassed = Count[allTests, True];\ntotal = Length[allTests];\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", passed, \"/\", total];\nIf[passed == total, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\npassed == total",
+   "value": "expected6 = R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w], expH[{0, -1, 0, 0, 0, 0}, z]]/(Sqrt[2]*E^(((3*I)/4)*Pi)*Sqrt[-w + z]) + (E^(((3*I)/4)*Pi)*Sqrt[-w + z]*R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w], expH[{0, 1, 0, 0, 0, 0}, z]])/Sqrt[2];\ntest6 = testReport[\"Test 6 (bosonized psi-S OPE)\", OPE[Bosonize[R[\\[Psi][1, 0, z]]], Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, w]]]] === expected6];",
    "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>\n=== SUMMARY ===\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"\\n=== SUMMARY ===\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "8c7d99ae-9d37-4cda-9e3c-a7e5ee307424",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Passed: 6/6\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Passed: 6/6\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "4611f7ac-4a04-4255-93fc-e063d36488e1",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>All tests PASSED!\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"All tests PASSED!\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "bb69d5eb-ae14-44b0-90aa-7b3b51294534",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "ea6e11d0-a6a6-4108-99ca-1e9c62b4b78d",
-     "metadata": {
-      "cellLabel": "Out[38]= ",
-      "isBoxData": false
-     }
-    }
-   ],
+   "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1770762411901,
-     "endTime": 1770762412492
-    },
-    "executionOrder": 32,
-    "success": true
-   }
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expected7 = R[expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb], expHt[{0, -1, 0, 0, 0, 0}, zb]]/(Sqrt[2]*E^(((3*I)/4)*Pi)*Sqrt[-wb + zb]) + (E^(((3*I)/4)*Pi)*Sqrt[-wb + zb]*R[expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb], expHt[{0, 1, 0, 0, 0, 0}, zb]])/Sqrt[2];\ntest7 = testReport[\"Test 7 (bosonized psit-St OPE)\", OPE[Bosonize[R[\\[Psi]t[1, 0, zb]]], Bosonize[R[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, wb]]]] === expected7];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expected8 = R[expH[{-1, -1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]]/(Sqrt[2]*(-w + z)) + (I*R[expH[{-1, 1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]])/Sqrt[2];\ntest8 = testReport[\"Test 8 (bosonized e^-phi psi with S)\", OPE[Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]], Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, w]]]] === expected8];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expected9 = R[expHt[{-1, -1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]]/(Sqrt[2]*(-wb + zb)) + (I*R[expHt[{-1, 1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]])/Sqrt[2];\ntest9 = testReport[\"Test 9 (bosonized e^-phi psit with St)\", OPE[Bosonize[R[exp\\[Phi]tf[-1, zb], \\[Psi]t[1, 0, zb]]], Bosonize[R[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, wb]]]] === expected9];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
   }
- ]
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
 }

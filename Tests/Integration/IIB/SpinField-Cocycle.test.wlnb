@@ -1,0 +1,71 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII Spin-Field Cocycle Integration Tests\n\nDeterministic associativity, graded-sign, and Euclidean gamma-covariance checks on bosonized spin-field states.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];\n\nClearAll[\n  halfIntegerQ,\n  gsoProjectedQ,\n  rSectorQ,\n  nsSectorQ,\n  assocResidualNumericQ,\n  gradedSignCheck,\n  withShift,\n  toOp,\n  firstNonZeroIndex,\n  deterministicPairs,\n  deterministicTriples,\n  suiteSummary,\n  mergedPowerCoefficient,\n  stateCoefficient,\n  spinSpinToVectorMatrices,\n  pairingMatrix,\n  extractGammaMatrices,\n  proportionalityCheck\n];\n\nnumericAssocCoords = {u -> 5, z -> 3, w -> 1};\nnumericPairCoords = {z -> 3, w -> 1};\n\nhalfIntegerQ[x_] := IntegerQ[2 x] && !IntegerQ[x];\ngsoProjectedQ[spinVec_] := IntegerQ[Total[spinVec]] && EvenQ[Total[spinVec]];\nrSectorQ[spinVec_] := And @@ (halfIntegerQ /@ spinVec);\nnsSectorQ[spinVec_] := And @@ (IntegerQ /@ spinVec);\n\nassocResidualNumericQ[a_, b_, c_] := TrueQ[\n  Simplify[((OPE[OPE[a, b], c] - OPE[a, OPE[b, c]]) /. numericAssocCoords) == 0]\n];\n\ngradedSignCheck[a_, b_, expectedSign_] := Module[{ab, ba},\n  ab = Simplify[OPE[a, b] /. numericPairCoords];\n  ba = Simplify[OPE[R[b[[1]]], R[a[[1]]]] /. numericPairCoords];\n  TrueQ[Simplify[ab/ba == expectedSign]]\n];\n\nwithShift[spin6_, compIndex_, delta_] := ReplacePart[spin6, compIndex -> spin6[[compIndex]] + delta];\ntoOp[spin6_, coord_] := R[expH[spin6, coord]];\nfirstNonZeroIndex[v_] := First @ FirstPosition[Abs[v], _?(# > 0 &)];\n\ndeterministicPairs[candsA_, candsB_, n_] := Take[\n  Flatten[\n    Table[{candsA[[i]], candsB[[j]]}, {i, 1, Min[10, Length[candsA]]}, {j, 1, Length[candsB]}],\n    1\n  ],\n  UpTo[n]\n];\n\ndeterministicTriples[pool_, n_] := Take[\n  Flatten[\n    Table[{pool[[i]], pool[[j]], pool[[k]]}, {i, 1, Min[5, Length[pool]]}, {j, 1, Min[4, Length[pool]]}, {k, 1, Length[pool]}],\n    2\n  ],\n  UpTo[n]\n];\n\nsuiteSummary[name_, cases_, results_] := Association[\n  \"name\" -> name,\n  \"total\" -> Length[cases],\n  \"passed\" -> Count[results, True],\n  \"failed\" -> Count[results, False],\n  \"sampleFailures\" -> Take[Pick[cases, results, False], UpTo[3]]\n];\n\nmergedPowerCoefficient[leftCharge_List, rightCharge_List, power_] := mergedPowerCoefficient[leftCharge, rightCharge, power] =\n  Bosonize[\n    Expand[\n      Coefficient[OPE[R[expH[leftCharge, z]], R[expH[rightCharge, 0]]], z, power] /. z -> 0\n    ]\n  ];\n\nstateCoefficient[pVec_, vecCharge_, pSpin_, inSpin_, pOut_, outSpin_, zPower_] := Simplify[\n  Coefficient[\n    mergedPowerCoefficient[Join[{pVec}, vecCharge], Join[{pSpin}, inSpin], zPower],\n    R[expH[Join[{pOut}, outSpin], 0]]\n  ]\n];\n\nspinSpinToVectorMatrices[pLeft_, basisLeft_, pRight_, basisRight_, pOut_, zPower_] := Table[\n  Table[\n    Simplify[\n      Coefficient[\n        mergedPowerCoefficient[Join[{pLeft}, basisLeft[[a]]], Join[{pRight}, basisRight[[b]]], zPower],\n        R[expH[Join[{pOut}, Private`vectors[[vec]]], 0]]\n      ]\n    ],\n    {a, 1, Length[basisLeft]},\n    {b, 1, Length[basisRight]}\n  ],\n  {vec, 1, Length[Private`vectors]}\n];\n\npairingMatrix[pLeft_, basisLeft_, pRight_, basisRight_, pOut_, zPower_] := Table[\n  Simplify[\n    Coefficient[\n      mergedPowerCoefficient[Join[{pLeft}, basisLeft[[a]]], Join[{pRight}, basisRight[[b]]], zPower],\n      R[expH[Join[{pOut}, ConstantArray[0, 5]], 0]]\n    ]\n  ],\n  {a, 1, Length[basisLeft]},\n  {b, 1, Length[basisRight]}\n];\n\nextractGammaMatrices[pVec_, pSpin_, basisIn_, pOut_, basisOut_, zPower_] := Module[{rawMats, transformed},\n  rawMats = Table[\n    Table[\n      stateCoefficient[pVec, Private`vectors[[vec]], pSpin, basisIn[[a]], pOut, basisOut[[b]], zPower],\n      {a, 1, Length[basisIn]},\n      {b, 1, Length[basisOut]}\n    ],\n    {vec, 1, Length[Private`vectors]}\n  ];\n  transformed = Table[\n    Simplify[Sum[Private`basisChangeM[[mu, vec]] rawMats[[vec]], {vec, 1, Length[Private`vectors]}]],\n    {mu, 1, Length[Private`vectors]}\n  ];\n  transformed\n];\n\nproportionalityCheck[mats_, gammaList_] := Module[{perMu, coeffs, uniformQ},\n  perMu = Table[\n    Module[{gamma, ratios, mismatch, cVal, pass},\n      gamma = gammaList[[mu]];\n      ratios = {};\n      mismatch = False;\n      Do[\n        If[TrueQ[Simplify[gamma[[i, j]] == 0]],\n          If[!TrueQ[Simplify[mats[[mu, i, j]] == 0]], mismatch = True],\n          ratios = Append[ratios, Simplify[mats[[mu, i, j]]/gamma[[i, j]]]]\n        ],\n        {i, 1, Length[gamma]},\n        {j, 1, Length[gamma[[1]]]}]\n      ;\n      If[mismatch || Length[ratios] == 0,\n        Association[\"mu\" -> mu, \"pass\" -> False, \"coefficient\" -> Missing[\"NoProportionality\"]],\n        cVal = First[ratios];\n        pass = And @@ (TrueQ[Simplify[# == cVal]] & /@ ratios);\n        Association[\"mu\" -> mu, \"pass\" -> pass, \"coefficient\" -> cVal]\n      ]\n    ],\n    {mu, 1, Length[mats]}\n  ];\n  coeffs = perMu[[All, \"coefficient\"]];\n  uniformQ = If[\n    AllTrue[coeffs, !MatchQ[#, _Missing] &],\n    And @@ Table[TrueQ[Simplify[coeffs[[i]] == coeffs[[1]]]], {i, 2, Length[coeffs]}],\n    False\n  ];\n  Association[\n    \"allMuPass\" -> AllTrue[perMu[[All, \"pass\"]], TrueQ],\n    \"uniformCoefficientQ\" -> uniformQ,\n    \"coefficients\" -> coeffs,\n    \"details\" -> perMu\n  ]\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Core Suites",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "rBaseSpin6 = Join[\n  Table[Join[{-1/2}, Private`chiralspins[[i]]], {i, 1, Length[Private`chiralspins]}],\n  Table[Join[{-1/2}, Private`antichiralspins[[i]]], {i, 1, Length[Private`antichiralspins]}]\n];\n\nrExcitedSpin6 = DeleteDuplicates @ Join[\n  Table[withShift[rBaseSpin6[[i]], 2 + Mod[i - 1, 5], 1], {i, 1, Min[20, Length[rBaseSpin6]]}],\n  Table[withShift[rBaseSpin6[[i]], 2 + Mod[i, 5], 2], {i, 1, Min[10, Length[rBaseSpin6]]}],\n  Table[withShift[rBaseSpin6[[i]], 2 + Mod[i + 1, 5], -1], {i, 1, Min[20, Length[rBaseSpin6]]}],\n  Table[ReplacePart[rBaseSpin6[[i]], 1 -> -3/2], {i, 1, Min[12, Length[rBaseSpin6]]}],\n  Table[ReplacePart[rBaseSpin6[[i]], 1 -> 1/2], {i, 1, Min[12, Length[rBaseSpin6]]}]\n];\n\nnsBaseSpin6 = Table[Join[{-1}, Private`vectors[[i]]], {i, 1, Length[Private`vectors]}];\n\nnsExcitedSpin6 = DeleteDuplicates @ Join[\n  Table[\n    Module[{idx = firstNonZeroIndex[Private`vectors[[i]]]},\n      withShift[Join[{-1}, Private`vectors[[i]]], idx + 1, 2 Sign[Private`vectors[[i, idx]]]]\n    ],\n    {i, 1, Length[Private`vectors]}\n  ],\n  Table[\n    Module[{idx = firstNonZeroIndex[Private`vectors[[i]]]},\n      withShift[Join[{1}, Private`vectors[[i]]], idx + 1, 2 Sign[Private`vectors[[i, idx]]]]\n    ],\n    {i, 1, Length[Private`vectors]}\n  ],\n  Table[Join[{1}, Private`vectors[[i]]], {i, 1, Length[Private`vectors]}]\n];\n\nrCandidates = Select[DeleteDuplicates @ Join[rBaseSpin6, rExcitedSpin6], rSectorQ[#] && gsoProjectedQ[#] &];\nnsCandidates = Select[DeleteDuplicates @ Join[nsBaseSpin6, nsExcitedSpin6], nsSectorQ[#] && gsoProjectedQ[#] &];\nassocStatePool = Sort @ DeleteDuplicates @ Join[\n  Take[rCandidates, UpTo[20]],\n  Take[nsCandidates, UpTo[20]],\n  Take[Select[rCandidates, Max[Abs[Rest[#]]] > 1/2 &], UpTo[10]],\n  Take[Select[nsCandidates, Max[Abs[Rest[#]]] > 1/2 &], UpTo[10]]\n];\n\nassocTriples = deterministicTriples[assocStatePool, 60];\nrPairs = deterministicPairs[rCandidates, rCandidates, 60];\nnsPairs = deterministicPairs[nsCandidates, nsCandidates, 60];\nmixedPairs = deterministicPairs[rCandidates, nsCandidates, 60];\n\ncaseCountCheck = Length[assocTriples] == 60 && Length[rPairs] == 60 && Length[nsPairs] == 60 && Length[mixedPairs] == 60;\n\nassocResults = assocResidualNumericQ[toOp[#[[1]], u], toOp[#[[2]], z], toOp[#[[3]], w]] & /@ assocTriples;\nrResults = gradedSignCheck[toOp[#[[1]], z], toOp[#[[2]], w], -1] & /@ rPairs;\nnsResults = gradedSignCheck[toOp[#[[1]], z], toOp[#[[2]], w], 1] & /@ nsPairs;\nmixedResults = gradedSignCheck[toOp[#[[1]], z], toOp[#[[2]], w], 1] & /@ mixedPairs;\n\ncoreSuites = {\n  suiteSummary[\"Associativity\", assocTriples, assocResults],\n  suiteSummary[\"R/R graded sign\", rPairs, rResults],\n  suiteSummary[\"NS/NS graded sign\", nsPairs, nsResults],\n  suiteSummary[\"R/NS graded sign\", mixedPairs, mixedResults]\n};\n\ncoreCaseResults = Join[assocResults, rResults, nsResults, mixedResults];\ncoreCaseCount = Length[coreCaseResults];\ncoreTestsPass = caseCountCheck && coreCaseCount == 240 && AllTrue[coreCaseResults, TrueQ];\n\nPrint[<|\"caseCountCheck\" -> caseCountCheck, \"coreCaseCount\" -> coreCaseCount|>];\nPrint /@ coreSuites;",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Euclidean Gamma Covariance",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "GammaRMS = Sqrt[2] spinSpinToVectorMatrices[-1/2, Private`chiralspins, -1/2, Private`chiralspins, -1, -1];\nGammaRMA = Sqrt[2] spinSpinToVectorMatrices[-3/2, Private`antichiralspins, -3/2, Private`antichiralspins, -3, -3];\nRSAPairing = pairingMatrix[-1/2, Private`chiralspins, -3/2, Private`antichiralspins, -2, -2];\nRASPairing = pairingMatrix[-3/2, Private`antichiralspins, -1/2, Private`chiralspins, -2, -2];\n\nGammaRS = Table[\n  Simplify[Sum[Inverse[Private`basisChangeM][[vec, mu]] GammaRMS[[vec]], {vec, 1, Length[Private`vectors]}].Inverse[RSAPairing]],\n  {mu, 1, Length[Private`vectors]}\n];\nGammaRA = Table[\n  Simplify[Sum[Inverse[Private`basisChangeM][[vec, mu]] GammaRMA[[vec]], {vec, 1, Length[Private`vectors]}].Inverse[RASPairing]],\n  {mu, 1, Length[Private`vectors]}\n];\n\ngammaCheck1 = proportionalityCheck[\n  extractGammaMatrices[-1, -1/2, Private`chiralspins, -3/2, Private`antichiralspins, -1],\n  GammaRS\n];\ngammaCheck2 = proportionalityCheck[\n  extractGammaMatrices[1, -1/2, Private`chiralspins, 1/2, Private`antichiralspins, 0],\n  GammaRS\n];\ngammaCheck3 = proportionalityCheck[\n  extractGammaMatrices[-1, 1/2, Private`antichiralspins, -1/2, Private`chiralspins, 0],\n  GammaRA\n];\ngammaCheck4 = proportionalityCheck[\n  extractGammaMatrices[1, -3/2, Private`antichiralspins, -1/2, Private`chiralspins, 1],\n  GammaRA\n];\n\nallGammaChecksPassed = And @@ {\n  gammaCheck1[\"allMuPass\"],\n  gammaCheck2[\"allMuPass\"],\n  gammaCheck3[\"allMuPass\"],\n  gammaCheck4[\"allMuPass\"]\n};\n\ngammaSummary = {\n  Association[\"check\" -> \"e^{-phi} psi with e^{-phi/2} S\", \"allMuPass\" -> gammaCheck1[\"allMuPass\"], \"uniformCoefficientQ\" -> gammaCheck1[\"uniformCoefficientQ\"], \"coefficient\" -> If[gammaCheck1[\"uniformCoefficientQ\"], First[gammaCheck1[\"coefficients\"]], gammaCheck1[\"coefficients\"]]],\n  Association[\"check\" -> \"e^{phi} psi with e^{-phi/2} S\", \"allMuPass\" -> gammaCheck2[\"allMuPass\"], \"uniformCoefficientQ\" -> gammaCheck2[\"uniformCoefficientQ\"], \"coefficient\" -> If[gammaCheck2[\"uniformCoefficientQ\"], First[gammaCheck2[\"coefficients\"]], gammaCheck2[\"coefficients\"]]],\n  Association[\"check\" -> \"e^{-phi} psi with e^{phi/2} Sbar\", \"allMuPass\" -> gammaCheck3[\"allMuPass\"], \"uniformCoefficientQ\" -> gammaCheck3[\"uniformCoefficientQ\"], \"coefficient\" -> If[gammaCheck3[\"uniformCoefficientQ\"], First[gammaCheck3[\"coefficients\"]], gammaCheck3[\"coefficients\"]]],\n  Association[\"check\" -> \"e^{phi} psi with e^{-3 phi/2} Sbar\", \"allMuPass\" -> gammaCheck4[\"allMuPass\"], \"uniformCoefficientQ\" -> gammaCheck4[\"uniformCoefficientQ\"], \"coefficient\" -> If[gammaCheck4[\"uniformCoefficientQ\"], First[gammaCheck4[\"coefficients\"]], gammaCheck4[\"coefficients\"]]]\n};\n\nPrint /@ gammaSummary;",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = coreTestsPass && allGammaChecksPassed;\nfinalSummary = Association[\n  \"allTestsPassed\" -> allTestsPassed,\n  \"coreCaseCount\" -> coreCaseCount,\n  \"coreTestsPass\" -> coreTestsPass,\n  \"allGammaChecksPassed\" -> allGammaChecksPassed,\n  \"suiteCounts\" -> coreSuites[[All, {\"name\", \"total\", \"passed\", \"failed\"}]],\n  \"gammaSummary\" -> gammaSummary\n];\nPrint[finalSummary];\nallTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

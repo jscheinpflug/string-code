@@ -1,0 +1,135 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace Wick Tests\n\nBosonized H-field contraction checks.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Contraction Rules",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = testReport[\"Test 1 (mixed chiral sectors do not contract)\", DWick[R[dH[2, 0, z]], R[dHt[2, 0, wb]]] === 0 && DWick[R[dH[2, 0, z]], R[expHt[{0, 1, 0, 0, 0, 0}, wb]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = testReport[\"Test 2 (dH-dH Wick)\", Simplify[Wick[dH[2, 0, z], dH[2, 0, w]] - 1/(z - w)^2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = testReport[\"Test 3 (dHt-dHt Wick)\", Simplify[Wick[dHt[2, 0, zb], dHt[2, 0, wb]] - 1/(zb - wb)^2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = testReport[\"Test 4 (dH-expH SWick)\", Simplify[SWick[dH[2, 0, z], expH[{0, 1, 0, 0, 0, 0}, w]] - 1/(z - w)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = testReport[\"Test 5 (dHt-expHt SWick)\", Simplify[SWick[dHt[2, 0, zb], expHt[{0, 1, 0, 0, 0, 0}, wb]] - 1/(zb - wb)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = testReport[\"Test 6 (phi-metric sign in SWick)\", Simplify[SWick[dH[1, 0, z], expH[{1, 0, 0, 0, 0, 0}, w]] + 1/(z - w)] === 0 && Simplify[SWick[dHt[1, 0, zb], expHt[{1, 0, 0, 0, 0, 0}, wb]] + 1/(zb - wb)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = testReport[\"Test 7 (expH MWick cocycle)\", MWick[expH[{0, 1, 0, 0, 0, 0}, z], expH[{0, 0, 1, 0, 0, 0}, w]] === -I];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = testReport[\"Test 8 (expHt MWick cocycle)\", MWick[expHt[{0, 1, 0, 0, 0, 0}, zb], expHt[{0, 0, 1, 0, 0, 0}, wb]] === -I];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = testReport[\"Test 9 (expH MWick singularity)\", Simplify[MWick[expH[{0, 1, 0, 0, 0, 0}, z], expH[{0, -1, 0, 0, 0, 0}, w]] - 1/(z - w)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = testReport[\"Test 10 (expHt MWick singularity)\", Simplify[MWick[expHt[{0, 1, 0, 0, 0, 0}, zb], expHt[{0, -1, 0, 0, 0, 0}, wb]] - 1/(zb - wb)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

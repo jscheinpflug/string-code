@@ -1049,6 +1049,46 @@
   },
   {
    "kind": 1,
+   "value": "## Bosonization",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "dHWeightHoloMeta = Private`fieldProperty[dH, \"WeightHolo\"];\ndHtWeightAntiMeta = Private`fieldProperty[dHt, \"WeightAntiHolo\"];\nexpHWeightHoloMeta = Private`fieldProperty[expH, \"WeightHolo\"];\nexpHtWeightAntiMeta = Private`fieldProperty[expHt, \"WeightAntiHolo\"];\ntest21 = isField[dH] && isField[dHt] && isField[expH] && isField[expHt] && isBoson[dH] && isBoson[dHt] && isBoson[expH] && isBoson[expHt] && isSimple[dH] && isSimple[dHt] && isComposite[expH] && isComposite[expHt] && isCollapsable[dH] && isCollapsable[dHt] && isCollapsable[expH] && isCollapsable[expHt] && MatchQ[dHWeightHoloMeta, _Function] && MatchQ[dHtWeightAntiMeta, _Function] && MatchQ[expHWeightHoloMeta, _Function] && MatchQ[expHtWeightAntiMeta, _Function] && dHWeightHoloMeta[dH[3, 2, z]] === 3 && dHtWeightAntiMeta[dHt[4, 1, zb]] === 2 && expHWeightHoloMeta[expH[{1, 1, 0, 0, 0, 0}, z]] === -1 && expHtWeightAntiMeta[expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, zb]] === 1 && expH[{0, 0, 0, 0, 0, 0}, z] === 1 && expHt[{0, 0, 0, 0, 0, 0}, zb] === 1 && Private`fieldProperty[dH, \"WeightAntiHolo\"] === 0 && Private`fieldProperty[dHt, \"WeightHolo\"] === 0 && Private`fieldProperty[expH, \"WeightAntiHolo\"] === 0 && Private`fieldProperty[expHt, \"WeightHolo\"] === 0;\nPrint[\"Test 21 (bosonized head registration and weights): \", If[test21, \"PASSED\", \"FAILED\"]];\ntest21",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test22 = Length[Private`chiralspins] === 16 && Length[Private`antichiralspins] === 16 && Length[Private`vectors] === 10 && AllTrue[Private`chiralspins, Private`spinVectorChiralityQ[#, \"chiral\"] &] && AllTrue[Private`antichiralspins, Private`spinVectorChiralityQ[#, \"antichiral\"] &] && Dimensions[Private`basisChangeM] === {10, 10} && Max[Abs[Chop[N[Private`basisChangeM . ConjugateTranspose[Private`basisChangeM] - IdentityMatrix[10]]]]] == 0;\nPrint[\"Test 22 (spin basis data is complete and unitary): \", If[test22, \"PASSED\", \"FAILED\"]];\ntest22",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test23 = Bosonize[exp\\[Phi]f[-1/2, z]] === expH[{-1/2, 0, 0, 0, 0, 0}, z] && Bosonize[exp\\[Phi]tf[-1/2, zb]] === expHt[{-1/2, 0, 0, 0, 0, 0}, zb] && Bosonize[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]] === expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z] && Bosonize[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]] === expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, zb];\nPrint[\"Test 23 (single-field bosonization for picture and spin fields): \", If[test23, \"PASSED\", \"FAILED\"]];\ntest23",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "psiBosonized0 = (expH[{0, -1, 0, 0, 0, 0}, z] + expH[{0, 1, 0, 0, 0, 0}, z])/Sqrt[2];\npsitBosonized0 = (expHt[{0, -1, 0, 0, 0, 0}, zb] + expHt[{0, 1, 0, 0, 0, 0}, zb])/Sqrt[2];\npsiBosonized1 = -((dH[2, 0, z] expH[{0, -1, 0, 0, 0, 0}, z])/Sqrt[2]) + (dH[2, 0, z] expH[{0, 1, 0, 0, 0, 0}, z])/Sqrt[2];\ntest24 = Simplify[Bosonize[\\[Psi][1, 0, z]] - psiBosonized0] === 0 && Simplify[Bosonize[\\[Psi]t[1, 0, zb]] - psitBosonized0] === 0 && Simplify[Bosonize[\\[Psi][1, 1, z]] - psiBosonized1] === 0;\nPrint[\"Test 24 (psi/psit bosonization matches the six-boson basis): \", If[test24, \"PASSED\", \"FAILED\"]];\ntest24",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -1057,7 +1097,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20];\nPrint[\"TypeII FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24];\nPrint[\"TypeII FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [
     {
