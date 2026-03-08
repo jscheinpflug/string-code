@@ -171,6 +171,8 @@ gammaProductSpinorChiralities::usage = "gammaProductSpinorChiralities[links] inf
 gammaProductSpinorChiralities[links_List] := Module[{reducedLinks, left, right},
   If[links =!= {} && First[links] === CUD, Return[{"chiral", "chiral"}]];
   If[links =!= {} && First[links] === CDU, Return[{"antichiral", "antichiral"}]];
+  If[links =!= {} && AllTrue[links, # === Gamma11UU[] &], Return[{"chiral", "chiral"}]];
+  If[links =!= {} && AllTrue[links, # === Gamma11DD[] &], Return[{"antichiral", "antichiral"}]];
   reducedLinks = DeleteCases[links, Gamma11UU[] | Gamma11DD[]];
   If[reducedLinks === {}, Return[{"chiral", "antichiral"}]];
   left = Which[

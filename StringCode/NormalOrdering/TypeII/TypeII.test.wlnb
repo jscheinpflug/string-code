@@ -282,6 +282,62 @@
   },
   {
    "kind": 1,
+   "value": "## Mixed-Sector Consistency",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "mixedFactorwiseBosonize[expr_] := expr /; isScalarFactorQ[expr];\nmixedFactorwiseBosonize[c_ ra_] := c mixedFactorwiseBosonize[ra] /; isScalarFactorQ[c] && Head[ra] === R;\nmixedFactorwiseBosonize[ra_] := Expand[R @@ (Bosonize /@ (List @@ ra))] /; Head[ra] === R;\nmixedBosonizeConsistencyQ[expr_] := TrueQ[Simplify[Expand[Bosonize[expr] - mixedFactorwiseBosonize[expr]] == 0]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test29 = mixedBosonizeConsistencyQ[R[\\[Psi][1, 0, z], \\[Psi]t[1, 0, zb]]];\nPrint[\"Test 29 (Bosonize[R[psi, psit]] matches factorwise bosonization): \", If[test29, \"PASSED\", \"FAILED\"]];\ntest29",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test30 = mixedBosonizeConsistencyQ[R[exp\\[Phi]f[-1/2, z], exp\\[Phi]tf[-1/2, zb]]];\nPrint[\"Test 30 (Bosonize[R[e^{-phi/2}, e^{-phit/2}]] matches factorwise bosonization): \", If[test30, \"PASSED\", \"FAILED\"]];\ntest30",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test31 = mixedBosonizeConsistencyQ[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]];\nPrint[\"Test 31 (Bosonize[R[S, St]] matches factorwise bosonization): \", If[test31, \"PASSED\", \"FAILED\"]];\ntest31",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test32 = mixedBosonizeConsistencyQ[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], \\[Psi]t[1, 0, zb]]];\nPrint[\"Test 32 (Bosonize[R[S, psit]] matches factorwise bosonization): \", If[test32, \"PASSED\", \"FAILED\"]];\ntest32",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test33 = mixedBosonizeConsistencyQ[R[exp\\[Phi]f[-1/2, z], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]];\nPrint[\"Test 33 (Bosonize[R[e^{-phi/2}, St]] matches factorwise bosonization): \", If[test33, \"PASSED\", \"FAILED\"]];\ntest33",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -290,7 +346,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32, test33];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

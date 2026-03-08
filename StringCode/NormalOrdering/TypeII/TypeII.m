@@ -143,9 +143,17 @@ mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, k
 ];
 
 
-bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] multiplies pairwise cocycles in the original factor order for one tuple of bosonized terms.";
+bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] multiplies pairwise same-sector cocycles in the original factor order for one tuple of bosonized terms.";
 bosonizedCocycleFactor[combo_List] := Module[{n = Length[combo]},
-  Times @@ Flatten@Table[cocycle[combo[[i, "charge"]], combo[[j, "charge"]]], {i, 1, n - 1}, {j, i + 1, n}]
+  Times @@ Flatten@Table[
+    If[
+      MatchQ[{combo[[i, "chirality"]], combo[[j, "chirality"]]}, {"Holo", "AntiHolo"} | {"AntiHolo", "Holo"}],
+      1,
+      cocycle[combo[[i, "charge"]], combo[[j, "charge"]]]
+    ],
+    {i, 1, n - 1},
+    {j, i + 1, n}
+  ]
 ];
 
 
