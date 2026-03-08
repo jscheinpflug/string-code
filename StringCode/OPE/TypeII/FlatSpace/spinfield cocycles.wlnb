@@ -1,0 +1,79 @@
+{
+  "cells": [
+    {
+      "kind": 2,
+      "value": "ClearAll[\"Global`*\"];\n\n(*** Declaring field content - ignore everything but spinfield below ***)\n\nbosons={expX,dX,dXt,d\\[Phi],d\\[Phi]t,exp\\[Phi]b,exp\\[Phi]tb};\nfermions={\\[Psi],\\[Psi]t,b,bt,c,ct,\\[Xi],\\[Xi]t,\\[Eta],\\[Eta]t,exp\\[Phi]f,exp\\[Phi]tf};\nregbosons={spinfield,expX,dX,dXt,d\\[Phi],d\\[Phi]t,exp\\[Phi]b,exp\\[Phi]tb};\nregfermions={\\[Psi],\\[Psi]t,b,bt,c,ct,\\[Xi],\\[Xi]t,\\[Eta],\\[Eta]t};\nsimplefields={dX,dXt,d\\[Phi],d\\[Phi]t,\\[Psi],\\[Psi]t,b,bt,c,ct,\\[Xi],\\[Xi]t,\\[Eta],\\[Eta]t};\ncompositefields={spinfield,expX,exp\\[Phi]b,exp\\[Phi]tb,exp\\[Phi]f,exp\\[Phi]tf};\nallfields=Join[regbosons,regfermions];\n\npairing[pair_]:=If[MemberQ[{{spinfield,spinfield},{expX,expX},{dX,expX},{dXt,expX},{dX,dX},{dXt,dXt},{d\\[Phi],d\\[Phi]},{d\\[Phi]t,d\\[Phi]t},{exp\\[Phi]b,exp\\[Phi]b},{d\\[Phi],exp\\[Phi]b},{exp\\[Phi]bt,exp\\[Phi]bt},{d\\[Phi]t,exp\\[Phi]bt},{d\\[Phi],exp\\[Phi]f},{exp\\[Phi]f,exp\\[Phi]f},{exp\\[Phi]b,exp\\[Phi]f},{d\\[Phi]t,exp\\[Phi]tf},{exp\\[Phi]tf,exp\\[Phi]tf},{exp\\[Phi]tb,exp\\[Phi]tf},{\\[Psi],\\[Psi]},{\\[Psi]t,\\[Psi]t},{b,c},{bt,ct},{\\[Eta],\\[Xi]},{\\[Eta]t,\\[Xi]t}},Sort[pair]],1,0]\n\n\n(*** preparing for computing Wick contraction between spin fields ***)\n\nLDot[spin1_,spin2_]:=Module[{i},-spin1[[1]] spin2[[1]]+Sum[spin1[[i]] spin2[[i]],{i,2,Length[spin1]}]]/;Length[spin1]==Length[spin2]\n\nMWick[spinfield[spin1_,z1_],spinfield[spin2_,z2_]]:=cocycle[spin1,spin2] BranchPower[z1-z2,LDot[spin1,spin2]]\n\nMWick[R[a_],R[b_]]:=MWick[a,b]\n\n(*** BranchPower is meant to keep track of branch in taking fractional powers ***)\n\nBranchPower[z_,n_]:=z^n/;IntegerQ[n]\n\n(*** The cocycle phase is captured by the set of real constants x[i,j] ***)\n\ncocycle[a_,b_]:=Module[{i,j},E^(I Pi Sum[x[i,j] a[[i]] b[[j]],{i,1,Length[a]},{j,1,Length[a]}])]/;( Length[a]==Length[b])\n\n\n(*** R stands for normal ordered product of spinfields ***)\n\nRtest[f_]:=(Head[f]==R)\nRlength[f_]:=If[Rtest[f],Length[List @@ f],0]\nRone[f_]:=(Rlength[f]==1)\n\nregcomm[f_,g_]:=1(*(-1)^(parity[f] parity[g])(-1)^(exp\\[Phi]parity[f] exp\\[Phi]parity[g])(-1)^(exp\\[Phi]tparity[f] exp\\[Phi]tparity[g])*)\n\nR[c___,b_,a_,d___]:=regcomm[a,b] R[c,a,b,d]/;(!OrderedQ[{b,a}])\nR[ c___,a_,a_,d___]:=0/;(regparity[a]==1)\n\nR[c___,a_+b_,d___]:=R[c,a,d]+R[c,b,d]\nR[c___,a_ f_,d___]:=a R[c,f,d]/;(And @@(FreeQ[a,#]&/@ allfields))\nR[c___,a_ ,d___]:=a R[c,d]/;(And @@(FreeQ[a,#]&/@ allfields))\n\nR[]:=1\nR[a___,R[b___],c___]:=R[a,b,c]\nOPE[a___,0,b___]:=0\n\nR[g___,a_ f_,h___]:=R[g,a,f,h]/;MemberQ[regbosons,Head[a]]\nR[g___,a_^n_ f_,h___]:=R[g,(R @@ ConstantArray[a,n]),f,h]/;MemberQ[regbosons,Head[a]]\nR[g___,a_^n_,h___]:=R[g,(R @@ ConstantArray[a,n]),h]/;MemberQ[regbosons,Head[a]]\n\nR[ c___,a_,a_,d___]:=R[c,spinfield[2a[[1]],a[[2]]],d]/;(Head[a]==spinfield)\nR[ c___,a_,b_,d___]:=R[c,spinfield[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==spinfield && Head[b]==spinfield && a[[2]]==b[[2]])\n\n(*** defining OPE between normal ordered expressions involving spin fields ***)\n\nOPE[Ra_,Rb_]:= If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1, MWick[Ra,Rb],1]  R[Ra,Rb]/;(Rone[Ra] && Rone[Rb] && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])\n\nDWick[Ra_,Rb_]:=  If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1,  MWick[Ra,Rb],1] Rb/;(Rone[Ra] && Rone[Rb] && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])\n\nDWick[Ra_,Rb_]:=  If[pairing[{Head[Ra[[1]]],Head[Rb[[1]]]}]==1,  MWick[Ra[[1]],Rb[[1]]],1] R[Rb[[1]],DWick[Ra,(R @@ (Drop[(List @@ Rb),1]))]]/;(Rone[Ra] && Rtest[Rb] &&(!Rone[Rb]) && MemberQ[compositefields,Head[Ra[[1]]]] && MemberQ[compositefields,Head[Rb[[1]]]])\n\nOPE[Ra_,Rb_]:= R[Ra,DWick[R[Ra[[1]]],Rb]]/;(Rone[Ra] && Rtest[Rb]  && MemberQ[compositefields,Head[Ra[[1]]]] )\n\nOPE[Ra_,Rb_]:=R[R[Ra[[1]]],OPE[(R @@ (Drop[(List @@ Ra),1])),DWick[R[Ra[[1]]],Rb]]]/;(Rtest[Ra] && Rtest[Rb] &&(!Rone[Ra]) && MemberQ[compositefields,Head[Ra[[1]]]] )\n\nOPE[f_,g_]:=f g/;((And @@(FreeQ[f,#]&/@ allfields))||(And @@(FreeQ[g,#]&/@ allfields)))\nOPE[a_+b_,c_]:=OPE[a,c]+OPE[b,c]\nOPE[c_,a_+b_]:=OPE[c,a]+OPE[c,b]\nOPE[a_ b_,c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))\nOPE[ b_,a_ c_]:=a OPE[b,c]/;(And @@(FreeQ[a,#]&/@ allfields))\n\nOPE[c__,a_,b_]:=OPE[c,OPE[a,b]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "spinfield[{0,0,0,0,0,0},z_]:=1\n\nSpic[pic_,spins_,z_]:=spinfield[Join[{pic},spins],z]\n\n(*** spin assignment for the chiral and anti-chiral spinor representation ***)\nchiralspins=Join[{{(1)/(2),(1)/(2),(1)/(2),(1)/(2),(1)/(2)}},Permutations[{(1)/(2),(1)/(2),(1)/(2),-(1)/(2),-(1)/(2)}],Permutations[{(1)/(2),-(1)/(2),-(1)/(2),-(1)/(2),-(1)/(2)}]];\nantichiralspins=-chiralspins;\n\n(*** spin assignment for the vector representation ***)\nvectors=Join[Permutations[{1,0,0,0,0}],Permutations[{-1,0,0,0,0}]];\n\n(*** what turns out to be a consistent assignment of cocycle phase coefficients ***)\nx[i_,i_]:=0\nx[i_,j_]:=-x[j,i]/;i<j\nx[i_,j_]:=(-1)^(i j)/2/;i>j && j!=1\nx[i_,1]:=1/2/;i>1\n(*** this is a key result of this notebook ***)",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "OPE[OPE[R[Spic[-1/2,{1/2,1/2,3/2,1/2,1/2},u]],R[Spic[-1/2,{1/2,1/2,1/2,-1/2,1/2},z]]],R[Spic[-1/2,{1/2,1/2,1/2,-1/2,1/2},w]]]\nOPE[R[Spic[-1/2,{1/2,1/2,3/2,1/2,1/2},u]],OPE[R[Spic[-1/2,{1/2,1/2,1/2,-1/2,1/2},z]],R[Spic[-1/2,{1/2,1/2,1/2,-1/2,1/2},w]]]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Flatten[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-1/2,chiralspins[[j]],w]]]/\nOPE[R[R[Spic[-1/2,chiralspins[[j]],w]]],R[Spic[-1/2,chiralspins[[i]],z]]]//Simplify,{i,1,16},{j,1,i-1}]]\n\nJoin[Flatten[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-1/2,chiralspins[[j]],w]]]/\nOPE[R[R[Spic[-1/2,chiralspins[[j]],w]]],R[Spic[-1/2,chiralspins[[i]],z]]]==-1//Simplify,{i,1,16},{j,1,i-1}]],Flatten[Table[OPE[R[Spic[-1/2,antichiralspins[[i]],z]],R[Spic[-1/2,antichiralspins[[j]],w]]]/\nOPE[R[R[Spic[-1/2,antichiralspins[[j]],w]]],R[Spic[-1/2,antichiralspins[[i]],z]]]==-1//Simplify,{i,1,16},{j,1,i-1}]],Flatten[Table[OPE[R[Spic[-1,vectors[[i]],z]],R[Spic[-1,vectors[[j]],w]]]/\nOPE[R[R[Spic[-1,vectors[[j]],w]]],R[Spic[-1,vectors[[i]],z]]]==1//Simplify,{i,1,10},{j,1,i-1}]],Flatten[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-1,vectors[[j]],w]]]/\nOPE[R[R[Spic[-1,vectors[[j]],w]]],R[Spic[-1/2,chiralspins[[i]],z]]]==1//Simplify,{i,1,16},{j,1,10}]]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** SSOPE stands for the OPE between a pair of chiral spin fields in -1/2 picture ***)\nSSOPE=Coefficient[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-1/2,chiralspins[[j]],0]]],{i,1,16},{j,1,16}],1/z]/.z->0;\n\n(*** AAOPE stands for the OPE between a pair of anti-chiral spin fields in -1/2 picture ***)\n\nAAOPE=Coefficient[Table[OPE[R[Spic[-1/2,antichiralspins[[i]],z]],R[Spic[-1/2,antichiralspins[[j]],0]]],{i,1,16},{j,1,16}],1/z]/.z->0;\n\n(*** Coefficient of e^-\\[Phi] in the OPE between a pair of chiral and anti-chiral spin fields; this amounts to the charge conjugation matrix up to an overall phase \\[ExponentialE]^(\\[ImaginaryI] \\[Pi])/(4) or \\[ExponentialE]^-(\\[ImaginaryI] \\[Pi])/(4) ***)\nSAPairing=(Coefficient[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-1/2,antichiralspins[[j]],0]]],{i,1,16},{j,1,16}],BranchPower[z,-(3)/(2)]]/.z->0)/R[spinfield[{-1,0,0,0,0,0},0]]\nASPairing=(Coefficient[Table[OPE[R[Spic[-1/2,antichiralspins[[i]],z]],R[Spic[-1/2,chiralspins[[j]],0]]],{i,1,16},{j,1,16}],BranchPower[z,-(3)/(2)]]/.z->0)/R[spinfield[{-1,0,0,0,0,0},0]]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** diagonalizing the translation basis ***)\n\nVectorPairing=(-1)*(Coefficient[Table[OPE[R[Spic[-1,vectors[[i]],z]],R[Spic[-1,vectors[[j]],0]]],{i,1,10},{j,1,10}],1/z^2]/.z->0)/R[spinfield[{-2,0,0,0,0,0},0]];\n\n(*** extra (-1) due to e^-\\[Phi] anti-commuting with \\[Psi]^\\[Mu] ***)\n\nM={{(1)/(Sqrt[2]),0,0,0,0,(1)/(Sqrt[2]),0,0,0,0},{0,(1)/(Sqrt[2]),0,0,0,0,(1)/(Sqrt[2]),0,0,0},{0,0,(1)/(Sqrt[2]),0,0,0,0,(1)/(Sqrt[2]),0,0},{0,0,0,(1)/(Sqrt[2]),0,0,0,0,(1)/(Sqrt[2]),0},{0,0,0,0,(1)/(Sqrt[2]),0,0,0,0,(1)/(Sqrt[2])},{(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0,-(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0},{0,(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0,-(\\[ImaginaryI])/(Sqrt[2]),0,0,0},{0,0,(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0,-(\\[ImaginaryI])/(Sqrt[2]),0,0},{0,0,0,(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0,-(\\[ImaginaryI])/(Sqrt[2]),0},{0,0,0,0,(\\[ImaginaryI])/(Sqrt[2]),0,0,0,0,-(\\[ImaginaryI])/(Sqrt[2])}};\nM.VectorPairing.Transpose[M]//MatrixForm",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(*** Checking the supersymmetry current algebra involving SO(10) gamma matrices ***)\n\nDo[\\[Gamma]MS[i]=Sqrt[2] Coefficient[SSOPE,R[Spic[-1,vectors[[i]],0]]].Inverse[SAPairing];\\[Gamma]MA[i]=Sqrt[2] Coefficient[AAOPE,R[Spic[-1,vectors[[i]],0]]].Inverse[ASPairing],{i,1,10}]\n\n(*** \\[Gamma]S[i] has its first index chiral and second index anti-chiral, \\[Gamma]A[i] is the other way around ***)\n\nDo[\\[Gamma]S[i]=  Sum[M[[i,j]] \\[Gamma]MS[j],{j,1,10}];\\[Gamma]A[i]=  Sum[M[[i,j]] \\[Gamma]MA[j],{j,1,10}],{i,1,10}]\n\n(*** verying the SO(10) Clifford algebra ***)\nTable[\\[Gamma]S[i].\\[Gamma]A[j]+\\[Gamma]S[j].\\[Gamma]A[i]-2 KroneckerDelta[i,j] IdentityMatrix[16]==0 IdentityMatrix[16],{i,1,10},{j,1,10}]\nTable[\\[Gamma]A[i].\\[Gamma]S[j]+\\[Gamma]A[j].\\[Gamma]S[i]-2 KroneckerDelta[i,j] IdentityMatrix[16]==0 IdentityMatrix[16],{i,1,10},{j,1,10}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Do[GammaRMA[i]=Sqrt[2]Coefficient[ Coefficient[\n  Table[OPE[R[Spic[-3/2, antichiralspins[[i]], z]], R[Spic[-3/2, antichiralspins[[j]], 0]]], {i, 1, 16}, {j, 1, 16}],\n  z,\n  -3\n] /. z -> 0,R[Spic[-3,vectors[[i]],0]]],{i,1,10}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Do[GammaRMS[i]=Sqrt[2]Coefficient[SSOPE, R[Spic[-1, vectors[[i]], 0]]],{i,1,10}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "RASPairing = (Coefficient[Table[OPE[R[Spic[-3/2,antichiralspins[[i]],z]],R[Spic[-1/2,chiralspins[[j]],0]]],{i,1,16},{j,1,16}],BranchPower[z,-2]]/.z->0)/R[spinfield[{-2,0,0,0,0,0},0]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "RSAPairing= (Coefficient[Table[OPE[R[Spic[-1/2,chiralspins[[i]],z]],R[Spic[-3/2,antichiralspins[[j]],0]]],{i,1,16},{j,1,16}],BranchPower[z,-2]]/.z->0)/R[spinfield[{-2,0,0,0,0,0},0]];",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Do[GammaRS[i]=Sum[M[[i,j]]GammaRMS[j].Inverse[RSAPairing],{j,1,10}],{i,1,10}]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "Do[GammaRA[i]=Sum[M[[i,j]]GammaRMA[j].Inverse[RASPairing],{j,1,10}],{i,1,10} ]",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(Table[GammaRS[i].GammaRA[j]+GammaRS[j].GammaRA[i]-2 KroneckerDelta[i,j]IdentityMatrix[16] == 0 IdentityMatrix[16],{i,1,10},{j,1,10}]//Simplify)",
+      "languageId": "wolfram"
+    },
+    {
+      "kind": 2,
+      "value": "(Table[GammaRA[i].GammaRS[j]+GammaRA[j].GammaRS[i]-2 KroneckerDelta[i,j]IdentityMatrix[16] == 0 IdentityMatrix[16],{i,1,10},{j,1,10}]//Simplify)",
+      "languageId": "wolfram"
+    }
+  ]
+}
