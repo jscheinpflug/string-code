@@ -835,6 +835,9 @@ projectScaledExpressionAtAntiHoloPower[scaledExpr_, targetPower_, parameter_] :=
 
 projectScaledContourContributionAtOrigin::usage =
   "Projects one pre-scaled contour expression and evaluates the insertion coordinate at 1.";
+(* Mode extraction is done with scaled insertions epsilon z. After projecting
+   onto the target epsilon-power, the contour coordinate itself is set to 1 so
+   only the residue data is carried forward. *)
 projectScaledContourContributionAtOrigin[projector_, scaledExpr_, targetPower_, parameter_, coord_] :=
   Expand @ Simplify[projector[scaledExpr, targetPower, parameter] /. coord -> 1];
 
@@ -842,6 +845,8 @@ bosonizeSpinModesHolo::usage =
   "Bosonizes a holomorphic excited Ramond spin field by bilocal psi-pair contour blocks with single-mode leftovers.";
 bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
+  (* A lone mode is extracted directly from the projected OPE of psi with the
+     current bosonized Ramond state. *)
   singleStep[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
     projectScaledContourContributionAtOrigin[
       projectScaledExpressionAtHoloPower,
@@ -851,6 +856,10 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
       zMode
     ]
   ];
+  (* Even-sector descendants are applied in bilocal pairs. Splitting each psi
+     bosonization term into scalar and field pieces keeps coefficients outside
+     the nested OPEs and lets expH factors merge only after both contours are
+     taken. *)
   pairStep[currentState_, pair_] := Module[
     {zMode1 = Unique["zMode"], zMode2 = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
     outerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[2, 1]], 0, parameter zMode1]];
@@ -876,16 +885,24 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
       {innerTerm, innerTerms}
     ]
   ];
+  (* Start from the Ramond ground state at the origin. Odd GSO ground states
+     need one single-mode step first so the remaining descendants can be
+     processed by the even-sector pair rule. *)
   state = Bosonize[R[S[{spinVec, chirality}, q, {}, 0, 0]]];
   If[GSOParity[S[{spinVec, chirality}, q, {}, 0, 0]] === -1 && remainingModes =!= {}, state = singleStep[state, First[remainingModes]]; remainingModes = Rest[remainingModes]];
   pairedModeCount = 2 Floor[Length[remainingModes]/2];
   If[pairedModeCount > 0, state = Fold[pairStep, state, Partition[Take[remainingModes, pairedModeCount], 2, 2]]];
   If[OddQ[Length[remainingModes]], state = singleStep[state, Last[remainingModes]]];
+  (* The contour algebra was normalized to coordinate 0 during extraction; only
+     after all residues are taken do we restore the requested external
+     insertion point. *)
   Expand[(state /. R[a___] :> Times[a]) /. {dH[i_, n_, 0] :> dH[i, n, coord], expH[charges_, 0] :> expH[charges, coord]}]
 ];
 
 bosonizeSpinModesAntiHolo::usage =
   "Bosonizes an antiholomorphic excited Ramond spin field by bilocal psit-pair contour blocks with single-mode leftovers.";
+(* Antiholomorphic descendant bosonization follows the same contour algorithm
+   as the holomorphic case, with psit/dHt/expHt replacing psi/dH/expH. *)
 bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
   singleStep[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},

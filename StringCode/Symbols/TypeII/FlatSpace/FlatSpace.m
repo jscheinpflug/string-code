@@ -214,6 +214,9 @@ cocycle[a_List, b_List] := Exp[I Pi Sum[x[i, j] a[[i]] b[[j]], {i, 1, 6}, {j, 1,
 
 
 derivativeOfBosonizedExponential::usage = "derivativeOfBosonizedExponential[n] caches the nth derivative of Exp[func[x]].";
+(* Use a dummy scalar exponential to let Mathematica generate the nth-derivative
+   combinatorics once; later rules rewrite each Derivative[func] back into the
+   appropriate linear combination of dH or dHt fields. *)
 derivativeOfBosonizedExponential[n_Integer?NonNegative] :=
   derivativeOfBosonizedExponential[n] = D[E^(func[x]), {x, n}];
 
@@ -231,6 +234,9 @@ bosonizedExponentialDerivative[
   derivativeHead_Symbol,
   exponentialHead_Symbol
 ] := Expand[
+  (* After the cached scalar derivative is generated, replace func^(m) by the
+     charge-weighted H-derivative sum and replace the base exponential by the
+     concrete expH/expHt carrying the requested six-charge vector. *)
   derivativeOfBosonizedExponential[n] /. {
     E^(func[x]) :> exponentialHead[charges, coord],
     Power[Derivative[m_][func][x], p_] :> bosonizedExponentDerivative[charges, derivativeHead, m, coord]^p,
@@ -578,6 +584,9 @@ St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]
 
 
 Bosonize[0] := 0;
+(* Bosonize is linear on sums and scalar multiples so larger expressions can be
+   pushed down to single-field rules before the normal-ordering layer rebuilds
+   mixed products. *)
 Bosonize[a_ + b_] := Bosonize[a] + Bosonize[b];
 Bosonize[c_ a_] := c Bosonize[a] /; isScalarFactorQ[c];
 Bosonize[a_ /; isScalarFactorQ[a]] := a;
@@ -595,6 +604,9 @@ Bosonize[exp\[Phi]tb[q_?NumericQ, zbar_]] := expHt[{q, 0, 0, 0, 0, 0}, zbar];
 Bosonize[exp\[Phi]tf[q_?NumericQ, zbar_]] := expHt[{q, 0, 0, 0, 0, 0}, zbar];
 
 
+(* Ramond ground states become a single six-charge exponential: the picture
+   charge q occupies the first slot and the SO(10) spin weight fills the last
+   five entries. *)
 Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, z_]]] :=
   expH[Join[{q}, spinVec], z] /; (spinVectorQ[spinVec] && spinVectorChiralityQ[spinVec, chirality]);
 
@@ -603,6 +615,9 @@ Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q
   expHt[Join[{q}, spinVec], zbar] /; (spinVectorQ[spinVec] && spinVectorChiralityQ[spinVec, chirality]);
 
 
+(* Excited spin fields are delegated to the contour-based helpers from
+   BasisGeneration once those helpers have been loaded and every mode label is
+   concrete. If those prerequisites are missing, Bosonize stays unevaluated. *)
 Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, z_]]] :=
   bosonizeSpinModesHolo[{spinVec, chirality}, q, modes, z] /;
     modes =!= {} &&
@@ -621,6 +636,9 @@ Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q
     AllTrue[modes, MatchQ[#, {mu_Integer /; 1 <= mu <= Length[vectors], n_Integer?NonNegative}] &];
 
 
+(* The fermion bosonization is stored in the vector-charge basis and then
+   rotated back to the spacetime mu-basis with the fixed notebook-derived
+   change-of-basis matrix. *)
 Bosonize[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
   Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
 

@@ -82,12 +82,18 @@ bosonizedExponentialFieldQ[field_] := MatchQ[field, expH[_List, _] | expHt[_List
 
 
 bosonizedTermSpec::usage = "bosonizedTermSpec[expr] parses one bosonized single-field term into coefficient, charge, and field-factor data.";
+(* Multi-field bosonization works termwise. Each single-field term is reduced to
+   scalar data plus at most one charge-carrying exponential so later code can
+   take cartesian products of term lists without re-running rewrite logic. *)
 bosonizedTermSpec[expr_] := Module[
   {factors, scalarFactors, fieldFactors, expFactors, charge, chirality, coord},
   factors = If[Head[expr] === Times, List @@ expr, {expr}];
   scalarFactors = Select[factors, isScalarFactorQ];
   fieldFactors = Select[factors, Not @* isScalarFactorQ];
   expFactors = Select[fieldFactors, bosonizedExponentialFieldQ];
+  (* A single source field should not bosonize into multiple independent expH
+     factors; if that ever happens, abort tuple bosonization and leave the
+     original Bosonize[R[...]] unevaluated. *)
   If[Length[expFactors] > 1, Return[$Failed]];
   {charge, chirality, coord} = If[
     expFactors === {},
@@ -119,6 +125,9 @@ bosonizedSingleFieldTerms[field_] := Module[{raw, terms, parsed},
 
 
 mergeBosonizedExponentials::usage = "mergeBosonizedExponentials[fields] merges same-head exponentials inserted at the same coordinate by adding charges.";
+(* Preserve the left-to-right order of ordinary factors while collecting each
+   same-point expH/expHt slot once. The stored sequence records where each
+   merged exponential should be reinserted after charges are summed. *)
 mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, key},
   Scan[
     Function[field,
@@ -192,6 +201,9 @@ GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
 
 
 Bosonize[Ra_ /; RTest[Ra]] := Module[{termLists, tuples},
+  (* Bosonize each input field independently, form all term combinations, then
+     rebuild one normal-ordered tuple per combination so coincident bosonized
+     exponentials merge only after every source field has contributed. *)
   termLists = bosonizedSingleFieldTerms /@ (List @@ Ra);
   If[MemberQ[termLists, $Failed], Return[Unevaluated[Bosonize[Ra]]]];
   tuples = Tuples[termLists];
