@@ -307,18 +307,18 @@ flipChainIndex["U"] := "D";
 flipChainIndex["D"] := "U";
 flipChainIndex[other_] := other;
 
-gammaLinkHeadForIndex::usage = "gammaLinkHeadForIndex[idx] returns GammaUD for \"U\" and GammaDU for \"D\".";
-gammaLinkHeadForIndex["U"] := GammaUD;
-gammaLinkHeadForIndex["D"] := GammaDU;
-gammaLinkHeadForIndex[_] := GammaUD;
+gammaLinkHeadForIndex::usage = "gammaLinkHeadForIndex[idx] returns GammaUDHold for \"U\" and GammaDUHold for \"D\".";
+gammaLinkHeadForIndex["U"] := GammaUDHold;
+gammaLinkHeadForIndex["D"] := GammaDUHold;
+gammaLinkHeadForIndex[_] := GammaUDHold;
 
-gamma11TailHeadForIndex::usage = "gamma11TailHeadForIndex[idx] returns Gamma11UU for \"U\" and Gamma11DD for \"D\".";
-gamma11TailHeadForIndex["U"] := Gamma11UU;
-gamma11TailHeadForIndex["D"] := Gamma11DD;
-gamma11TailHeadForIndex[_] := Gamma11UU;
+gamma11TailHeadForIndex::usage = "gamma11TailHeadForIndex[idx] returns Gamma11UUHold for \"U\" and Gamma11DDHold for \"D\".";
+gamma11TailHeadForIndex["U"] := Gamma11UUHold;
+gamma11TailHeadForIndex["D"] := Gamma11DDHold;
+gamma11TailHeadForIndex[_] := Gamma11UUHold;
 
 buildGammaLinks::usage =
-  "buildGammaLinks[startIndex, vectorIndices] returns {links, lastIndexType} for alternating GammaUD/GammaDU links.";
+  "buildGammaLinks[startIndex, vectorIndices] returns {links, lastIndexType} for alternating GammaUDHold/GammaDUHold links.";
 buildGammaLinks[startIndex_String, vectorIndices_List] := Module[
   {state = startIndex, links, i},
   links = Table[Null, {Length[vectorIndices]}];
@@ -742,30 +742,30 @@ buildDualIndexSymbols[count_Integer] := buildDualIndexSymbols[count] = Table[
 ];
 
 gammaProductCTag::usage =
-  "gammaProductCTag[hasOutgoing, pairForm] returns CUD/CDU for incoming same-chirality slots and None otherwise.";
+  "gammaProductCTag[hasOutgoing, pairForm] returns CUDHold/CDUHold for incoming same-chirality slots and None otherwise.";
 gammaProductCTag[hasOutgoing_, pairForm_] := Which[
   TrueQ[hasOutgoing], None,
-  pairForm === GammaFormUU, CUD,
-  pairForm === GammaFormDD, CDU,
+  pairForm === GammaFormUU, CUDHold,
+  pairForm === GammaFormDD, CDUHold,
   True, None
 ];
 
 gammaChainStartIndex::usage =
   "gammaChainStartIndex[emitBaseForm, cTag] returns the chain start index after optional C insertion.";
 gammaChainStartIndex[emitBaseForm_, None] := initialChainIndex[emitBaseForm];
-gammaChainStartIndex[emitBaseForm_, cTag_] /; MemberQ[{CUD, CDU}, cTag] :=
+gammaChainStartIndex[emitBaseForm_, cTag_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
   flipChainIndex[initialChainIndex[emitBaseForm]];
 gammaChainStartIndex[emitBaseForm_, _] := initialChainIndex[emitBaseForm];
 
 gammaProductFromParts::usage =
-  "gammaProductFromParts[cTag, links, spinor1, spinor2] emits GammaProduct[linksWithOptionalCTag, spinor1, spinor2].";
-gammaProductFromParts[None, links_List, spinor1_, spinor2_] := GammaProduct[links, spinor1, spinor2];
-gammaProductFromParts[cTag_, links_List, spinor1_, spinor2_] /; MemberQ[{CUD, CDU}, cTag] :=
-  GammaProduct[Prepend[links, cTag], spinor1, spinor2];
-gammaProductFromParts[_, links_List, spinor1_, spinor2_] := GammaProduct[links, spinor1, spinor2];
+  "gammaProductFromParts[cTag, links, spinor1, spinor2] emits GammaProductHold[linksWithOptionalCTag, spinor1, spinor2].";
+gammaProductFromParts[None, links_List, spinor1_, spinor2_] := GammaProductHold[links, spinor1, spinor2];
+gammaProductFromParts[cTag_, links_List, spinor1_, spinor2_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
+  GammaProductHold[Prepend[links, cTag], spinor1, spinor2];
+gammaProductFromParts[_, links_List, spinor1_, spinor2_] := GammaProductHold[links, spinor1, spinor2];
 
 buildGammaProduct::usage =
-  "buildGammaProduct[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one GammaProduct chain factor.";
+  "buildGammaProduct[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one GammaProductHold chain factor.";
 buildGammaProduct[
   emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
 ] := Module[

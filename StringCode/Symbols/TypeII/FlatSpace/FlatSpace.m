@@ -65,41 +65,65 @@ dot::usage = "Symbol for dot product";
 
 der::usage = "Symbol for a derivative";
 
+CGamma::usage =
+  "CGamma[mu] returns the exact 16x16 chiral-chiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
+
+CIGamma::usage =
+  "CIGamma[mu] returns the exact 16x16 antichiral-antichiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
+
 GammaUD::usage =
-  "GammaUD[mu] denotes a single-link gamma block carrying an undotted-to-dotted spinor index flow.";
+  "GammaUD[mu] returns the exact 16x16 mixed-chirality gamma matrix mapping chiral to antichiral spinors in the canonical TypeII flat-space basis.";
 
 GammaDU::usage =
-  "GammaDU[mu] denotes a single-link gamma block carrying a dotted-to-undotted spinor index flow.";
-
-Gamma11UU::usage =
-  "Gamma11UU[] denotes a chirality-preserving Gamma11 insertion with undotted end-index type.";
-
-Gamma11DD::usage =
-  "Gamma11DD[] denotes a chirality-preserving Gamma11 insertion with dotted end-index type.";
+  "GammaDU[mu] returns the exact 16x16 mixed-chirality gamma matrix mapping antichiral to chiral spinors in the canonical TypeII flat-space basis.";
 
 CUD::usage =
-  "CUD denotes a charge-conjugation insertion used as the first element in GammaProduct link lists for incoming chiral/chiral chains.";
+  "CUD is the exact 16x16 chiral-antichiral spinor pairing matrix in the canonical TypeII flat-space basis.";
 
 CDU::usage =
-  "CDU denotes a charge-conjugation insertion used as the first element in GammaProduct link lists for incoming antichiral/antichiral chains.";
+  "CDU is the exact 16x16 antichiral-chiral spinor pairing matrix in the canonical TypeII flat-space basis.";
 
-GammaProduct::usage =
-  "GammaProduct[{link1,...}, alpha, beta] denotes an ordered gamma chain between spinor endpoints; when needed, CUD/CDU appears as the first list element.";
+Gamma11UU::usage =
+  "Gamma11UU is the exact 16x16 chiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
-CGamma::usage = "CGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two chiral spinor indices.";
+Gamma11DD::usage =
+  "Gamma11DD is the exact 16x16 antichiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
-CIGamma::usage = "CIGamma[{mu1,...}, alpha, beta] denotes a Clifford tensor with two antichiral spinor indices.";
+GammaProductHold::usage =
+  "GammaProductHold[{link1,...}, alpha, beta] denotes an inert ordered gamma-chain tensor structure between spinor endpoints; when needed, CUDHold/CDUHold appears as the first list element.";
 
-GammaM::usage = "GammaM[{mu1,...}, alpha, beta] denotes a Clifford tensor with one chiral and one antichiral spinor index.";
+GammaUDHold::usage =
+  "GammaUDHold[mu] denotes an inert single-link gamma block carrying chiral-to-antichiral spinor index flow.";
 
-Gamma11CGamma::usage =
-  "Gamma11CGamma[{mu1,...}, alpha, beta] denotes Gamma11 times a chiral-chiral Clifford tensor.";
+GammaDUHold::usage =
+  "GammaDUHold[mu] denotes an inert single-link gamma block carrying antichiral-to-chiral spinor index flow.";
 
-Gamma11CIGamma::usage =
-  "Gamma11CIGamma[{mu1,...}, alpha, beta] denotes Gamma11 times an antichiral-antichiral Clifford tensor.";
+Gamma11UUHold::usage =
+  "Gamma11UUHold[] denotes an inert chirality-preserving Gamma11 insertion with chiral end-index type.";
 
-Gamma11GammaM::usage =
-  "Gamma11GammaM[{mu1,...}, alpha, beta] denotes Gamma11 times a mixed-chirality Clifford tensor.";
+Gamma11DDHold::usage =
+  "Gamma11DDHold[] denotes an inert chirality-preserving Gamma11 insertion with antichiral end-index type.";
+
+CUDHold::usage =
+  "CUDHold denotes an inert charge-conjugation insertion used as the first element in GammaProductHold link lists for incoming chiral-chiral chains.";
+
+CDUHold::usage =
+  "CDUHold denotes an inert charge-conjugation insertion used as the first element in GammaProductHold link lists for incoming antichiral-antichiral chains.";
+
+CGammaHold::usage = "CGammaHold[{mu1,...}, alpha, beta] denotes an inert Clifford tensor with two chiral spinor indices.";
+
+CIGammaHold::usage = "CIGammaHold[{mu1,...}, alpha, beta] denotes an inert Clifford tensor with two antichiral spinor indices.";
+
+GammaMHold::usage = "GammaMHold[{mu1,...}, alpha, beta] denotes an inert Clifford tensor with one chiral and one antichiral spinor index.";
+
+Gamma11CGammaHold::usage =
+  "Gamma11CGammaHold[{mu1,...}, alpha, beta] denotes an inert Gamma11 times chiral-chiral Clifford tensor.";
+
+Gamma11CIGammaHold::usage =
+  "Gamma11CIGammaHold[{mu1,...}, alpha, beta] denotes an inert Gamma11 times antichiral-antichiral Clifford tensor.";
+
+Gamma11GammaMHold::usage =
+  "Gamma11GammaMHold[{mu1,...}, alpha, beta] denotes an inert Gamma11 times mixed-chirality Clifford tensor.";
 
 Eps10::usage =
   "Eps10[upIndices, downIndices] denotes the 10D Levi-Civita tensor with explicit upper/lower index lists.";

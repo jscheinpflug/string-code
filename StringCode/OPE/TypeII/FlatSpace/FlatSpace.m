@@ -14,6 +14,7 @@ Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
 Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
 
@@ -158,32 +159,32 @@ attachCoefficients[data_List, offset_Integer : 0] := Module[{i = offset, terms},
 ];
 
 gammaLinkVectorIndices::usage = "gammaLinkVectorIndices[link] extracts explicit vector indices from one gamma-chain link.";
-gammaLinkVectorIndices[GammaUD[idx_]] := Flatten[{idx}];
-gammaLinkVectorIndices[GammaDU[idx_]] := Flatten[{idx}];
-gammaLinkVectorIndices[Gamma11UU[]] := {};
-gammaLinkVectorIndices[Gamma11DD[]] := {};
-gammaLinkVectorIndices[CUD] := {};
-gammaLinkVectorIndices[CDU] := {};
+gammaLinkVectorIndices[GammaUDHold[idx_]] := Flatten[{idx}];
+gammaLinkVectorIndices[GammaDUHold[idx_]] := Flatten[{idx}];
+gammaLinkVectorIndices[Gamma11UUHold[]] := {};
+gammaLinkVectorIndices[Gamma11DDHold[]] := {};
+gammaLinkVectorIndices[CUDHold] := {};
+gammaLinkVectorIndices[CDUHold] := {};
 gammaLinkVectorIndices[_] := {};
 
 
-gammaProductSpinorChiralities::usage = "gammaProductSpinorChiralities[links] infers the endpoint chiralities carried by a GammaProduct link list.";
+gammaProductSpinorChiralities::usage = "gammaProductSpinorChiralities[links] infers the endpoint chiralities carried by a GammaProductHold link list.";
 gammaProductSpinorChiralities[links_List] := Module[{reducedLinks, left, right},
-  If[links =!= {} && First[links] === CUD, Return[{"chiral", "chiral"}]];
-  If[links =!= {} && First[links] === CDU, Return[{"antichiral", "antichiral"}]];
-  If[links =!= {} && AllTrue[links, # === Gamma11UU[] &], Return[{"chiral", "chiral"}]];
-  If[links =!= {} && AllTrue[links, # === Gamma11DD[] &], Return[{"antichiral", "antichiral"}]];
-  reducedLinks = DeleteCases[links, Gamma11UU[] | Gamma11DD[]];
+  If[links =!= {} && First[links] === CUDHold, Return[{"chiral", "chiral"}]];
+  If[links =!= {} && First[links] === CDUHold, Return[{"antichiral", "antichiral"}]];
+  If[links =!= {} && AllTrue[links, # === Gamma11UUHold[] &], Return[{"chiral", "chiral"}]];
+  If[links =!= {} && AllTrue[links, # === Gamma11DDHold[] &], Return[{"antichiral", "antichiral"}]];
+  reducedLinks = DeleteCases[links, Gamma11UUHold[] | Gamma11DDHold[]];
   If[reducedLinks === {}, Return[{"chiral", "antichiral"}]];
   left = Which[
-    Head[First[reducedLinks]] === GammaUD, "chiral",
-    Head[First[reducedLinks]] === GammaDU, "antichiral",
+    Head[First[reducedLinks]] === GammaUDHold, "chiral",
+    Head[First[reducedLinks]] === GammaDUHold, "antichiral",
     True, "chiral"
   ];
   right = left;
   Scan[
     Function[link,
-      If[MatchQ[link, GammaUD[_] | GammaDU[_]],
+      If[MatchQ[link, GammaUDHold[_] | GammaDUHold[_]],
         right = If[right === "chiral", "antichiral", "chiral"]
       ]
     ],
@@ -200,7 +201,7 @@ spinSymbolChiralities[obj_] := Module[{fieldPairs, gammaTriples, gammaPairs},
     (S | St)[{idx_Symbol, chirality : ("chiral" | "antichiral")}, __] :> (idx -> chirality),
     Infinity
   ];
-  gammaTriples = Cases[obj, GammaProduct[links_List, s1_, s2_] :> {links, s1, s2}, Infinity];
+  gammaTriples = Cases[obj, GammaProductHold[links_List, s1_, s2_] :> {links, s1, s2}, Infinity];
   gammaPairs = Flatten[
     Function[{triple},
       Module[{pair = gammaProductSpinorChiralities[triple[[1]]]},
@@ -233,7 +234,7 @@ randomizeIndices[inputOps_List, hExpr_, aExpr_, seed_: Automatic] := Module[
     Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
       ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; symbolIndexQ[ν]} :> ν]),
       ({#, "v"} & /@ Cases[m, {ν_ /; symbolIndexQ[ν], _?NumericQ} :> ν])], Infinity], 1],
-    Flatten[Cases[obj, GammaProduct[links_List, s1_, s2_] :>
+    Flatten[Cases[obj, GammaProductHold[links_List, s1_, s2_] :>
       Join[
         ({#, "v"} & /@ Select[Flatten[gammaLinkVectorIndices /@ links], symbolIndexQ]),
         ({#, "s"} & /@ Select[{s1, s2}, symbolIndexQ])
