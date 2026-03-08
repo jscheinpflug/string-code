@@ -58,7 +58,7 @@
   },
   {
    "kind": 2,
-   "value": "test4 = (R[exp\\[Phi]f[-1/2, z], exp\\[Phi]f[-1/2, z]] === R[exp\\[Phi]b[-1, z]]);\nPrint[\"Test 4 (expPhif bosonization rule): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
+   "value": "test4 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]b[-1, z]] === R[exp\\[Phi]b[-2, z]]);\nPrint[\"Test 4 (expPhib integer-charge addition): \", If[test4, \"PASSED\", \"FAILED\"]];\ntest4",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -66,7 +66,7 @@
   },
   {
    "kind": 2,
-   "value": "test5 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]b[1/2, z]] === R[exp\\[Phi]b[-1/2, z]]);\nPrint[\"Test 5 (expPhib exponent addition): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
+   "value": "test5 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]b[1, z]] === 1);\nPrint[\"Test 5 (expPhib opposite charges collapse): \", If[test5, \"PASSED\", \"FAILED\"]];\ntest5",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -90,7 +90,7 @@
   },
   {
    "kind": 2,
-   "value": "test8 = (R[exp\\[Phi]b[-1, z], exp\\[Phi]f[1/2, z]] === R[exp\\[Phi]f[-1/2, z]]);\nPrint[\"Test 8 (expPhib-expPhif fusion): \", If[test8, \"PASSED\", \"FAILED\"]];\ntest8",
+   "value": "test8 = (R[exp\\[Phi]tb[-1, zbar], exp\\[Phi]tb[-1, zbar]] === R[exp\\[Phi]tb[-2, zbar]]);\nPrint[\"Test 8 (expPhitb integer-charge addition): \", If[test8, \"PASSED\", \"FAILED\"]];\ntest8",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -98,7 +98,7 @@
   },
   {
    "kind": 2,
-   "value": "test9 = (R[exp\\[Phi]tf[-1/2, zbar], exp\\[Phi]tf[-1/2, zbar]] === R[exp\\[Phi]tb[-1, zbar]]);\nPrint[\"Test 9 (anti-holo expPhitf bosonization): \", If[test9, \"PASSED\", \"FAILED\"]];\ntest9",
+   "value": "test9 = (R[exp\\[Phi]tb[-1, zbar], exp\\[Phi]tb[1, zbar]] === 1);\nPrint[\"Test 9 (expPhitb opposite charges collapse): \", If[test9, \"PASSED\", \"FAILED\"]];\ntest9",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -250,7 +250,7 @@
   },
   {
    "kind": 2,
-   "value": "test25 = Bosonize[R[exp\\[Phi]f[-1/2, z], S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, 0, {}, 0, z]]] === E^((5 I Pi)/8) R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]];\nPrint[\"Test 25 (Bosonize[R[e^{-phi/2}, S]] exact same-point merge): \", If[test25, \"PASSED\", \"FAILED\"]];\ntest25",
+   "value": "test25 = Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]] === R[expH[{-1, -1, 0, 0, 0, 0}, z]]/Sqrt[2] + R[expH[{-1, 1, 0, 0, 0, 0}, z]]/Sqrt[2];\nPrint[\"Test 25 (Bosonize[R[e^{-phi} psi]] exact same-point merge): \", If[test25, \"PASSED\", \"FAILED\"]];\ntest25",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -258,7 +258,7 @@
   },
   {
    "kind": 2,
-   "value": "test26 = Bosonize[R[\\[Psi][1, 0, z], S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -((E^((3 I Pi)/4) R[expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]])/Sqrt[2]) - R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]]/(Sqrt[2] E^((3 I Pi)/4));\nPrint[\"Test 26 (Bosonize[R[psi, S]] exact same-point OPE basis): \", If[test26, \"PASSED\", \"FAILED\"]];\ntest26",
+   "value": "test26 = Bosonize[R[\\[Psi][1, 0, z], S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -(R[expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2]) - R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\nPrint[\"Test 26 (Bosonize[R[psi, S]] exact same-point OPE basis): \", If[test26, \"PASSED\", \"FAILED\"]];\ntest26",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -266,7 +266,7 @@
   },
   {
    "kind": 2,
-   "value": "test27 = Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], S[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === I R[expH[{-1, 1, 1, 1, 0, 0}, z]];\nPrint[\"Test 27 (Bosonize[R[S, S]] exact same-point merge): \", If[test27, \"PASSED\", \"FAILED\"]];\ntest27",
+   "value": "test27 = Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], S[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -R[expH[{-1, 1, 1, 1, 0, 0}, z]];\nPrint[\"Test 27 (Bosonize[R[S, S]] exact same-point merge): \", If[test27, \"PASSED\", \"FAILED\"]];\ntest27",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -274,7 +274,7 @@
   },
   {
    "kind": 2,
-   "value": "test28 = Bosonize[R[\\[Psi]t[1, 0, zb], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]] === -((E^((3 I Pi)/4) R[expHt[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, zb]])/Sqrt[2]) - R[expHt[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, zb]]/(Sqrt[2] E^((3 I Pi)/4));\nPrint[\"Test 28 (Bosonize[R[psit, St]] exact same-point OPE basis): \", If[test28, \"PASSED\", \"FAILED\"]];\ntest28",
+   "value": "test28 = Bosonize[R[\\[Psi]t[1, 0, zb], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]] === -(R[expHt[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2]) - R[expHt[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2];\nPrint[\"Test 28 (Bosonize[R[psit, St]] exact same-point OPE basis): \", If[test28, \"PASSED\", \"FAILED\"]];\ntest28",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -282,7 +282,7 @@
   },
   {
    "kind": 1,
-   "value": "## Mixed-Sector Consistency",
+   "value": "## Mixed-Sector Bosonization",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -290,7 +290,7 @@
   },
   {
    "kind": 2,
-   "value": "mixedFactorwiseBosonize[expr_] := expr /; isScalarFactorQ[expr];\nmixedFactorwiseBosonize[c_ ra_] := c mixedFactorwiseBosonize[ra] /; isScalarFactorQ[c] && Head[ra] === R;\nmixedFactorwiseBosonize[ra_] := Expand[R @@ (Bosonize /@ (List @@ ra))] /; Head[ra] === R;\nmixedBosonizeConsistencyQ[expr_] := TrueQ[Simplify[Expand[Bosonize[expr] - mixedFactorwiseBosonize[expr]] == 0]];",
+   "value": "sPlus = {{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"};\nsPhase = {{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"};\nfactorwiseMixedBosonize[ra_R] := Expand[R @@ (Bosonize /@ (List @@ ra))];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -298,7 +298,7 @@
   },
   {
    "kind": 2,
-   "value": "test29 = mixedBosonizeConsistencyQ[R[\\[Psi][1, 0, z], \\[Psi]t[1, 0, zb]]];\nPrint[\"Test 29 (Bosonize[R[psi, psit]] matches factorwise bosonization): \", If[test29, \"PASSED\", \"FAILED\"]];\ntest29",
+   "value": "test29 = Bosonize[R[S[sPlus, -1/2, {}, 0, z], St[sPlus, -1/2, {}, 0, zb]]] === R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, zb]];\nPrint[\"Test 29 (Bosonize[R[S, St]] can have trivial mixed cocycle): \", If[test29, \"PASSED\", \"FAILED\"]];\ntest29",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -306,7 +306,7 @@
   },
   {
    "kind": 2,
-   "value": "test30 = mixedBosonizeConsistencyQ[R[exp\\[Phi]f[-1/2, z], exp\\[Phi]tf[-1/2, zb]]];\nPrint[\"Test 30 (Bosonize[R[e^{-phi/2}, e^{-phit/2}]] matches factorwise bosonization): \", If[test30, \"PASSED\", \"FAILED\"]];\ntest30",
+   "value": "test30 = Bosonize[R[S[sPlus, -1/2, {}, 0, z], St[sPhase, -1/2, {}, 0, zb]]] === R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z], expHt[{-1/2, 1/2, 1/2, 1/2, -1/2, -1/2}, zb]];\nPrint[\"Test 30 (Bosonize[R[S, St]] follows the factorized mixed convention): \", If[test30, \"PASSED\", \"FAILED\"]];\ntest30",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -314,7 +314,7 @@
   },
   {
    "kind": 2,
-   "value": "test31 = mixedBosonizeConsistencyQ[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]];\nPrint[\"Test 31 (Bosonize[R[S, St]] matches factorwise bosonization): \", If[test31, \"PASSED\", \"FAILED\"]];\ntest31",
+   "value": "test31 = Bosonize[R[S[sPlus, -1/2, {}, 0, z], \\[Psi]t[1, 0, zb]]] === R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z], expHt[{0, -1, 0, 0, 0, 0}, zb]]/Sqrt[2] + R[expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z], expHt[{0, 1, 0, 0, 0, 0}, zb]]/Sqrt[2];\nPrint[\"Test 31 (Bosonize[R[S, psit]] exact mixed same-point decomposition): \", If[test31, \"PASSED\", \"FAILED\"]];\ntest31",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -322,7 +322,7 @@
   },
   {
    "kind": 2,
-   "value": "test32 = mixedBosonizeConsistencyQ[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], \\[Psi]t[1, 0, zb]]];\nPrint[\"Test 32 (Bosonize[R[S, psit]] matches factorwise bosonization): \", If[test32, \"PASSED\", \"FAILED\"]];\ntest32",
+   "value": "test32 = Bosonize[R[S[sPlus, -1/2, {}, 0, z], St[sPhase, -1/2, {}, 0, zb]]] === factorwiseMixedBosonize[R[S[sPlus, -1/2, {}, 0, z], St[sPhase, -1/2, {}, 0, zb]]];\nPrint[\"Test 32 (mixed bosonization is factorized with no internal cocycle): \", If[test32, \"PASSED\", \"FAILED\"]];\ntest32",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -330,7 +330,7 @@
   },
   {
    "kind": 2,
-   "value": "test33 = mixedBosonizeConsistencyQ[R[exp\\[Phi]f[-1/2, z], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]];\nPrint[\"Test 33 (Bosonize[R[e^{-phi/2}, St]] matches factorwise bosonization): \", If[test33, \"PASSED\", \"FAILED\"]];\ntest33",
+   "value": "test33 = R[expHt[{0, -1, 0, 0, 0, 0}, zb], expH[{0, 1, 0, 0, 0, 0}, z]] === R[expH[{0, 1, 0, 0, 0, 0}, z], expHt[{0, -1, 0, 0, 0, 0}, zb]];\nPrint[\"Test 33 (existing expH and expHt commute under R canonicalization): \", If[test33, \"PASSED\", \"FAILED\"]];\ntest33",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

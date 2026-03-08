@@ -98,7 +98,7 @@
   },
   {
    "kind": 2,
-   "value": "expected8 = R[expH[{-1, -1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]]/(Sqrt[2]*(-w + z)) + (I*R[expH[{-1, 1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]])/Sqrt[2];\ntest8 = testReport[\"Test 8 (bosonized e^-phi psi with S)\", OPE[Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]], Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, w]]]] === expected8];",
+   "value": "expected8 = (I*R[expH[{-1, -1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]])/(Sqrt[2]*(-w + z)) + R[expH[{-1, 1, 0, 0, 0, 0}, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, w]]/Sqrt[2];\ntest8 = testReport[\"Test 8 (bosonized e^-phi psi with S)\", OPE[Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]], Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, w]]]] === expected8];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -106,7 +106,7 @@
   },
   {
    "kind": 2,
-   "value": "expected9 = R[expHt[{-1, -1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]]/(Sqrt[2]*(-wb + zb)) + (I*R[expHt[{-1, 1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]])/Sqrt[2];\ntest9 = testReport[\"Test 9 (bosonized e^-phi psit with St)\", OPE[Bosonize[R[exp\\[Phi]tf[-1, zb], \\[Psi]t[1, 0, zb]]], Bosonize[R[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, wb]]]] === expected9];",
+   "value": "expected9 = (I*R[expHt[{-1, -1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]])/(Sqrt[2]*(-wb + zb)) + R[expHt[{-1, 1, 0, 0, 0, 0}, zb], expHt[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, wb]]/Sqrt[2];\ntest9 = testReport[\"Test 9 (bosonized e^-phi psit with St)\", OPE[Bosonize[R[exp\\[Phi]tf[-1, zb], \\[Psi]t[1, 0, zb]]], Bosonize[R[St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, wb]]]] === expected9];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -115,6 +115,46 @@
   {
    "kind": 2,
    "value": "gamma11Chiralities = Private`spinSymbolChiralities[GammaProduct[{Gamma11UU[]}, alpha, beta] + GammaProduct[{Gamma11DD[]}, alphad, betad]];\ntest10 = testReport[\"Test 10 (pure Gamma11 chirality inference)\", Private`gammaProductSpinorChiralities[{Gamma11UU[]}] === {\"chiral\", \"chiral\"} && Private`gammaProductSpinorChiralities[{Gamma11DD[]}] === {\"antichiral\", \"antichiral\"} && Lookup[gamma11Chiralities, alpha] === \"chiral\" && Lookup[gamma11Chiralities, beta] === \"chiral\" && Lookup[gamma11Chiralities, alphad] === \"antichiral\" && Lookup[gamma11Chiralities, betad] === \"antichiral\"];\n",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Composite Associativity",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "assocResidualNumericQ[a_, b_, c_] := TrueQ[Simplify[((OPE[OPE[a, b], c] - OPE[a, OPE[b, c]]) /. {u -> 5, ub -> 5, z -> 3, zb -> 3, w -> 1, wb -> 1}) == 0]];\nsPlus = {{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"};\nsPhase = {{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"};\nmixSpinSame[coord_, anti_] := Bosonize[R[S[sPlus, -1/2, {}, 0, coord], St[sPlus, -1/2, {}, 0, anti]]];\nmixSpinPhase[coord_, anti_] := Bosonize[R[S[sPlus, -1/2, {}, 0, coord], St[sPhase, -1/2, {}, 0, anti]]];\nmixPsi[coord_, anti_] := Bosonize[R[\\[Psi][1, 0, coord], \\[Psi]t[1, 0, anti]]];\nmixSpinPsi[coord_, anti_] := Bosonize[R[S[sPlus, -1/2, {}, 0, coord], \\[Psi]t[1, 0, anti]]];\nmixNS[coord_] := Bosonize[R[exp\\[Phi]f[-1, coord], \\[Psi][1, 0, coord]]];\nmixNSAnti[anti_] := Bosonize[R[exp\\[Phi]tf[-1, anti], \\[Psi]t[1, 0, anti]]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = testReport[\"Test 11 (composite associativity for S-St composites)\", assocResidualNumericQ[mixSpinSame[u, ub], mixSpinPhase[z, zb], mixSpinPhase[w, wb]]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = testReport[\"Test 12 (composite associativity for S-psit and psi-psit composites)\", assocResidualNumericQ[mixSpinPsi[u, ub], mixSpinSame[z, zb], mixPsi[w, wb]]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = testReport[\"Test 13 (composite associativity for NS-R mixed composites)\", assocResidualNumericQ[mixNS[u], mixSpinPhase[z, zb], mixNSAnti[wb]]];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
