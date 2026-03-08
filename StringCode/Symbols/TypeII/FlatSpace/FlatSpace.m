@@ -579,6 +579,24 @@ Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q
   expHt[Join[{q}, spinVec], zbar] /; (spinVectorQ[spinVec] && spinVectorChiralityQ[spinVec, chirality]);
 
 
+Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, z_]]] :=
+  bosonizeSpinModesHolo[{spinVec, chirality}, q, modes, z] /;
+    modes =!= {} &&
+    spinVectorQ[spinVec] &&
+    spinVectorChiralityQ[spinVec, chirality] &&
+    Length[DownValues[bosonizeSpinModesHolo]] > 0 &&
+    AllTrue[modes, MatchQ[#, {mu_Integer /; 1 <= mu <= Length[vectors], n_Integer?NonNegative}] &];
+
+
+Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, zbar_]]] :=
+  bosonizeSpinModesAntiHolo[{spinVec, chirality}, q, modes, zbar] /;
+    modes =!= {} &&
+    spinVectorQ[spinVec] &&
+    spinVectorChiralityQ[spinVec, chirality] &&
+    Length[DownValues[bosonizeSpinModesAntiHolo]] > 0 &&
+    AllTrue[modes, MatchQ[#, {mu_Integer /; 1 <= mu <= Length[vectors], n_Integer?NonNegative}] &];
+
+
 Bosonize[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
   Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
 

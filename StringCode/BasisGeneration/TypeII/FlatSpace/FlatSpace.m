@@ -833,6 +833,113 @@ extractHoloPowerCoefficient[expr_, targetPower_] := Module[{parameter = Unique["
   ]
 ];
 
+projectScaledExpressionAtAntiHoloPower::usage =
+  "Projects a scaled antiholomorphic expression onto a fixed contour power around zero.";
+projectScaledExpressionAtAntiHoloPower[scaledExpr_, targetPower_, parameter_] := Module[
+  {result = 0, expandedExpr, terms, scaledTerm, termPower, expansionOrder},
+  If[scaledExpr === 1,
+    Return[If[targetPower === 0, 1, 0]]
+  ];
+  expandedExpr = Expand[scaledExpr];
+  terms = If[Head[expandedExpr] === Plus, List @@ expandedExpr, {expandedExpr}];
+  Scan[
+    Function[term,
+      scaledTerm = normalizeScalingParameterForModeProjection[term, parameter];
+      termPower = Exponent[scaledTerm, parameter];
+      expansionOrder = -termPower + targetPower;
+      If[IntegerQ[expansionOrder] && expansionOrder >= 0,
+        result = result + TaylorAtOrderAntiHolo[scaledTerm, expansionOrder, 0]
+      ]
+    ],
+    terms
+  ];
+  result /. parameter -> 1
+];
+
+bosonizeSpinModesHolo::usage =
+  "Bosonizes a holomorphic excited Ramond spin field by bilocal psi-pair contour blocks with single-mode leftovers.";
+bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
+  {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
+  singleStep[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
+    Expand @ Simplify[
+      projectScaledExpressionAtHoloPower[
+        OPE[Bosonize[R[\[Psi][spinMode[[1]], 0, parameter zMode]]], currentState],
+        spinMode[[2]] - 1/2,
+        parameter
+      ] /. zMode -> 1
+    ]
+  ];
+  pairStep[currentState_, pair_] := Module[
+    {zMode1 = Unique["zMode"], zMode2 = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
+    outerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[2, 1]], 0, parameter zMode1]];
+    innerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[1, 1]], 0, parameter delta zMode2]];
+    Expand @ Simplify @ Total @ Flatten @ Table[
+      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledExpressionAtHoloPower[
+        OPE[
+          If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
+          projectScaledExpressionAtHoloPower[
+            OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
+            pair[[1, 2]] - 1/2,
+            delta
+          ] /. zMode2 -> 1
+        ],
+        pair[[1, 2]] + pair[[2, 2]] - 1,
+        parameter
+      ] /. zMode1 -> 1,
+      {outerTerm, outerTerms},
+      {innerTerm, innerTerms}
+    ]
+  ];
+  state = Bosonize[R[S[{spinVec, chirality}, q, {}, 0, 0]]];
+  If[GSOParity[S[{spinVec, chirality}, q, {}, 0, 0]] === -1 && remainingModes =!= {}, state = singleStep[state, First[remainingModes]]; remainingModes = Rest[remainingModes]];
+  pairedModeCount = 2 Floor[Length[remainingModes]/2];
+  If[pairedModeCount > 0, state = Fold[pairStep, state, Partition[Take[remainingModes, pairedModeCount], 2, 2]]];
+  If[OddQ[Length[remainingModes]], state = singleStep[state, Last[remainingModes]]];
+  Expand[(state /. R[a___] :> Times[a]) /. {dH[i_, n_, 0] :> dH[i, n, coord], expH[charges_, 0] :> expH[charges, coord]}]
+];
+
+bosonizeSpinModesAntiHolo::usage =
+  "Bosonizes an antiholomorphic excited Ramond spin field by bilocal psit-pair contour blocks with single-mode leftovers.";
+bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
+  {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
+  singleStep[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
+    Expand @ Simplify[
+      projectScaledExpressionAtAntiHoloPower[
+        OPE[Bosonize[R[\[Psi]t[spinMode[[1]], 0, parameter zbarMode]]], currentState],
+        spinMode[[2]] - 1/2,
+        parameter
+      ] /. zbarMode -> 1
+    ]
+  ];
+  pairStep[currentState_, pair_] := Module[
+    {zbarMode1 = Unique["zbarMode"], zbarMode2 = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
+    outerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[2, 1]], 0, parameter zbarMode1]];
+    innerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[1, 1]], 0, parameter delta zbarMode2]];
+    Expand @ Simplify @ Total @ Flatten @ Table[
+      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledExpressionAtAntiHoloPower[
+        OPE[
+          If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
+          projectScaledExpressionAtAntiHoloPower[
+            OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
+            pair[[1, 2]] - 1/2,
+            delta
+          ] /. zbarMode2 -> 1
+        ],
+        pair[[1, 2]] + pair[[2, 2]] - 1,
+        parameter
+      ] /. zbarMode1 -> 1,
+      {outerTerm, outerTerms},
+      {innerTerm, innerTerms}
+    ]
+  ];
+  state = Bosonize[R[St[{spinVec, chirality}, q, {}, 0, 0]]];
+  If[GSOParity[St[{spinVec, chirality}, q, {}, 0, 0]] === -1 && remainingModes =!= {}, state = singleStep[state, First[remainingModes]]; remainingModes = Rest[remainingModes]];
+  pairedModeCount = 2 Floor[Length[remainingModes]/2];
+  If[pairedModeCount > 0, state = Fold[pairStep, state, Partition[Take[remainingModes, pairedModeCount], 2, 2]]];
+  If[OddQ[Length[remainingModes]], state = singleStep[state, Last[remainingModes]]];
+  Expand[(state /. R[a___] :> Times[a]) /. {dHt[i_, n_, 0] :> dHt[i, n, coord], expHt[charges_, 0] :> expHt[charges, coord]}]
+];
+
 modeExtractionPower::usage =
   "Returns the contour extraction power for one TypeII superghost oscillator mode.";
 modeExtractionPower[mode[\[Beta], modeNumber_]] := -modeNumber - 3/2;

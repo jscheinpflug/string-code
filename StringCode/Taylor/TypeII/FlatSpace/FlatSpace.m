@@ -37,16 +37,20 @@ Begin["Private`"];
 
 
 isAtPointHolo[dX[\[Mu]_, n_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[dH[i_, n_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[ProfileX[profile_, ders_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[ProfileXHolo[profile_, ders_, z_], z0_] := SameQ[z,z0];
 isAtPointHolo[expX[k_, z_, zbar_], z0_] := SameQ[z,z0];
 isAtPointHolo[expXHolo[k_, z_], z0_] := SameQ[z,z0];
+isAtPointHolo[expH[charges_, z_], z0_] := SameQ[z,z0];
 
 isAtPointAntiHolo[dXt[\[Mu]_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[dHt[i_, n_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ProfileX[profile_, ders_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[ProfileXAntiHolo[profile_, ders_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expX[k_, z_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 isAtPointAntiHolo[expXAntiHolo[k_, zbar_], z0bar_] := SameQ[zbar,z0bar];
+isAtPointAntiHolo[expHt[charges_, zbar_], z0bar_] := SameQ[zbar,z0bar];
 
 
 (* ::Subsubsection:: *)
@@ -76,6 +80,7 @@ isAtPointAntiHolo[field_, z0bar_] := False /; isHolomorphic[Head[field]] && !isA
 
 
 addHoloDerivatives[dX[\[Mu]_,n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]dX[\[Mu],n+ord,z0];
+addHoloDerivatives[dH[i_,n_,z_], ord_, z0_]:= taylorDerivativePrefactor[z-z0, ord]dH[i,n+ord,z0];
 
 
 addHoloDerivatives[ProfileX[profile_, ders_, z_, zbar_], ord_, z0_] :=
@@ -98,7 +103,15 @@ addHoloDerivatives[expXHolo[k_, z_], ord_, z0_] :=
     expXHolo[k, z0] * (expXPoly[k, ord] /. x -> z0)//Expand;
 
 
+addHoloDerivatives[expH[charges_, z_], ord_, z0_] :=
+  Expand[
+    taylorDerivativePrefactor[z - z0, ord] *
+      bosonizedExponentialDerivative[charges, ord, z0, dH, expH]
+  ];
+
+
 addAntiHoloDerivatives[dXt[\[Mu]_,n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]dXt[\[Mu],n+ord,z0bar];
+addAntiHoloDerivatives[dHt[i_,n_,z_], ord_, z0bar_]:= taylorDerivativePrefactor[z-z0bar, ord]dHt[i,n+ord,z0bar];
 
 
 addAntiHoloDerivatives[ProfileX[profile_, ders_, z_, zbar_], ord_, z0bar_] :=
@@ -119,6 +132,13 @@ addAntiHoloDerivatives[expX[k_, z_, zbar_], ord_, z0bar_] :=
 addAntiHoloDerivatives[expXAntiHolo[k_, zbar_], ord_, z0bar_] :=
   taylorDerivativePrefactor[zbar - z0bar, ord] *
     expXAntiHolo[k, z0bar] * (expXPolyT[k, ord] /. x -> z0bar)//Expand;
+
+
+addAntiHoloDerivatives[expHt[charges_, zbar_], ord_, z0bar_] :=
+  Expand[
+    taylorDerivativePrefactor[zbar - z0bar, ord] *
+      bosonizedExponentialDerivative[charges, ord, z0bar, dHt, expHt]
+  ];
 
 
 (* ::Subsubsection::Closed:: *)

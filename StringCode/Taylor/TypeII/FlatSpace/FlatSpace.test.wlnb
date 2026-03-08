@@ -1180,6 +1180,30 @@
    }
   },
   {
+   "kind": 2,
+   "value": "test20 = Private`isAtPointHolo[dH[2,0,0],0] && Private`isAtPointAntiHolo[dHt[2,0,0],0] && Private`isAtPointHolo[expH[{0,1,0,0,0,0},0],0] && Private`isAtPointAntiHolo[expHt[{0,1,0,0,0,0},0],0];\nPrint[\"Test 20 (dH/dHt and expH/expHt point-detection): \", If[test20, \"PASSED\", \"FAILED\"]];\ntest20",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test21 = TaylorAtOrderHolo[R[dH[2,0,z]],1,0] === z R[dH[2,1,0]] && TaylorAtOrderAntiHolo[R[dHt[2,0,zb]],1,0] === zb R[dHt[2,1,0]];\nPrint[\"Test 21 (Taylor exact dH/dHt first-order shift): \", If[test21, \"PASSED\", \"FAILED\"]];\ntest21",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expectedExpH1 = z R[dH[2,0,0], expH[{0,1,0,0,0,0},0]];\nexpectedExpH2 = z^2 R[dH[2,1,0], expH[{0,1,0,0,0,0},0]]/2 + z^2 R[dH[2,0,0], dH[2,0,0], expH[{0,1,0,0,0,0},0]]/2;\nexpectedExpHt1 = zb R[dHt[2,0,0], expHt[{0,1,0,0,0,0},0]];\nexpectedExpHt2 = zb^2 R[dHt[2,1,0], expHt[{0,1,0,0,0,0},0]]/2 + zb^2 R[dHt[2,0,0], dHt[2,0,0], expHt[{0,1,0,0,0,0},0]]/2;\ntest22 = TaylorAtOrderHolo[R[expH[{0,1,0,0,0,0},z]],1,0] === expectedExpH1 && TaylorAtOrderHolo[R[expH[{0,1,0,0,0,0},z]],2,0] === expectedExpH2 && TaylorAtOrderAntiHolo[R[expHt[{0,1,0,0,0,0},zb]],1,0] === expectedExpHt1 && TaylorAtOrderAntiHolo[R[expHt[{0,1,0,0,0,0},zb]],2,0] === expectedExpHt2;\nPrint[\"Test 22 (Taylor exact expH/expHt first and second order): \", If[test22, \"PASSED\", \"FAILED\"]];\ntest22",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
@@ -1189,7 +1213,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test9a, test9b, test9c, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test9a, test9b, test9c, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [
     {
