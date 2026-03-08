@@ -800,9 +800,9 @@ normalizeScalingParameterForModeProjection[expr_, parameter_] := FixedPoint[
   expr
 ];
 
-projectScaledExpressionAtHoloPower::usage =
-  "Projects a scaled holomorphic expression onto a fixed contour power around zero.";
-projectScaledExpressionAtHoloPower[scaledExpr_, targetPower_, parameter_] := Module[
+projectScaledExpressionAtPower::usage =
+  "Projects a scaled contour expression onto a fixed power around zero.";
+projectScaledExpressionAtPower[scaledExpr_, targetPower_, parameter_, taylorFunction_] := Module[
   {result = 0, expandedExpr, terms, scaledTerm, termPower, expansionOrder},
   If[scaledExpr === 1,
     Return[If[targetPower === 0, 1, 0]]
@@ -815,40 +815,7 @@ projectScaledExpressionAtHoloPower[scaledExpr_, targetPower_, parameter_] := Mod
       termPower = Exponent[scaledTerm, parameter];
       expansionOrder = -termPower + targetPower;
       If[IntegerQ[expansionOrder] && expansionOrder >= 0,
-        result = result + TaylorAtOrderHolo[scaledTerm, expansionOrder, 0]
-      ]
-    ],
-    terms
-  ];
-  result /. {parameter -> 1}
-];
-
-extractHoloPowerCoefficient::usage =
-  "Extracts the holomorphic contour coefficient with a given power from an OPE expression.";
-extractHoloPowerCoefficient[expr_, targetPower_] := Module[{parameter = Unique["\[Epsilon]Mode"]},
-  projectScaledExpressionAtHoloPower[
-    rescaleHoloExpressionByParameter[expr, parameter],
-    targetPower,
-    parameter
-  ]
-];
-
-projectScaledExpressionAtAntiHoloPower::usage =
-  "Projects a scaled antiholomorphic expression onto a fixed contour power around zero.";
-projectScaledExpressionAtAntiHoloPower[scaledExpr_, targetPower_, parameter_] := Module[
-  {result = 0, expandedExpr, terms, scaledTerm, termPower, expansionOrder},
-  If[scaledExpr === 1,
-    Return[If[targetPower === 0, 1, 0]]
-  ];
-  expandedExpr = Expand[scaledExpr];
-  terms = If[Head[expandedExpr] === Plus, List @@ expandedExpr, {expandedExpr}];
-  Scan[
-    Function[term,
-      scaledTerm = normalizeScalingParameterForModeProjection[term, parameter];
-      termPower = Exponent[scaledTerm, parameter];
-      expansionOrder = -termPower + targetPower;
-      If[IntegerQ[expansionOrder] && expansionOrder >= 0,
-        result = result + TaylorAtOrderAntiHolo[scaledTerm, expansionOrder, 0]
+        result = result + taylorFunction[scaledTerm, expansionOrder, 0]
       ]
     ],
     terms
@@ -856,17 +823,32 @@ projectScaledExpressionAtAntiHoloPower[scaledExpr_, targetPower_, parameter_] :=
   result /. parameter -> 1
 ];
 
+projectScaledExpressionAtHoloPower::usage =
+  "Projects a scaled holomorphic expression onto a fixed contour power around zero.";
+projectScaledExpressionAtHoloPower[scaledExpr_, targetPower_, parameter_] :=
+  projectScaledExpressionAtPower[scaledExpr, targetPower, parameter, TaylorAtOrderHolo];
+
+projectScaledExpressionAtAntiHoloPower::usage =
+  "Projects a scaled antiholomorphic expression onto a fixed contour power around zero.";
+projectScaledExpressionAtAntiHoloPower[scaledExpr_, targetPower_, parameter_] :=
+  projectScaledExpressionAtPower[scaledExpr, targetPower, parameter, TaylorAtOrderAntiHolo];
+
+projectScaledContourContributionAtOrigin::usage =
+  "Projects one pre-scaled contour expression and evaluates the insertion coordinate at 1.";
+projectScaledContourContributionAtOrigin[projector_, scaledExpr_, targetPower_, parameter_, coord_] :=
+  Expand @ Simplify[projector[scaledExpr, targetPower, parameter] /. coord -> 1];
+
 bosonizeSpinModesHolo::usage =
   "Bosonizes a holomorphic excited Ramond spin field by bilocal psi-pair contour blocks with single-mode leftovers.";
 bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
   singleStep[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
-    Expand @ Simplify[
-      projectScaledExpressionAtHoloPower[
-        OPE[Bosonize[R[\[Psi][spinMode[[1]], 0, parameter zMode]]], currentState],
-        spinMode[[2]] - 1/2,
-        parameter
-      ] /. zMode -> 1
+    projectScaledContourContributionAtOrigin[
+      projectScaledExpressionAtHoloPower,
+      OPE[Bosonize[R[\[Psi][spinMode[[1]], 0, parameter zMode]]], currentState],
+      spinMode[[2]] - 1/2,
+      parameter,
+      zMode
     ]
   ];
   pairStep[currentState_, pair_] := Module[
@@ -874,18 +856,22 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
     outerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[2, 1]], 0, parameter zMode1]];
     innerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[1, 1]], 0, parameter delta zMode2]];
     Expand @ Simplify @ Total @ Flatten @ Table[
-      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledExpressionAtHoloPower[
+      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
+        projectScaledExpressionAtHoloPower,
         OPE[
           If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
-          projectScaledExpressionAtHoloPower[
+          projectScaledContourContributionAtOrigin[
+            projectScaledExpressionAtHoloPower,
             OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
             pair[[1, 2]] - 1/2,
-            delta
-          ] /. zMode2 -> 1
+            delta,
+            zMode2
+          ]
         ],
         pair[[1, 2]] + pair[[2, 2]] - 1,
-        parameter
-      ] /. zMode1 -> 1,
+        parameter,
+        zMode1
+      ],
       {outerTerm, outerTerms},
       {innerTerm, innerTerms}
     ]
@@ -903,12 +889,12 @@ bosonizeSpinModesAntiHolo::usage =
 bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
   singleStep[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
-    Expand @ Simplify[
-      projectScaledExpressionAtAntiHoloPower[
-        OPE[Bosonize[R[\[Psi]t[spinMode[[1]], 0, parameter zbarMode]]], currentState],
-        spinMode[[2]] - 1/2,
-        parameter
-      ] /. zbarMode -> 1
+    projectScaledContourContributionAtOrigin[
+      projectScaledExpressionAtAntiHoloPower,
+      OPE[Bosonize[R[\[Psi]t[spinMode[[1]], 0, parameter zbarMode]]], currentState],
+      spinMode[[2]] - 1/2,
+      parameter,
+      zbarMode
     ]
   ];
   pairStep[currentState_, pair_] := Module[
@@ -916,18 +902,22 @@ bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] :=
     outerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[2, 1]], 0, parameter zbarMode1]];
     innerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[1, 1]], 0, parameter delta zbarMode2]];
     Expand @ Simplify @ Total @ Flatten @ Table[
-      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledExpressionAtAntiHoloPower[
+      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
+        projectScaledExpressionAtAntiHoloPower,
         OPE[
           If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
-          projectScaledExpressionAtAntiHoloPower[
+          projectScaledContourContributionAtOrigin[
+            projectScaledExpressionAtAntiHoloPower,
             OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
             pair[[1, 2]] - 1/2,
-            delta
-          ] /. zbarMode2 -> 1
+            delta,
+            zbarMode2
+          ]
         ],
         pair[[1, 2]] + pair[[2, 2]] - 1,
-        parameter
-      ] /. zbarMode1 -> 1,
+        parameter,
+        zbarMode1
+      ],
       {outerTerm, outerTerms},
       {innerTerm, innerTerms}
     ]
@@ -996,9 +986,13 @@ applyOneSuperghostMode[{picture_, nonExpExpr_}, superghostMode : mode[(\[Beta] |
   nonExpOPE = OPE[R[scaledIncomingNonExp], currentNonExpR];
   expOPE = OPE[R[scaledIncomingExp], R[groundExp]];
   combinedOPE = multiplyOperatorExpressions[nonExpOPE, expOPE];
-  projectedOPE =
-    projectScaledExpressionAtHoloPower[combinedOPE, extractionPower, scalingParameter];
-  projectedOPE = Simplify[projectedOPE /. {z -> 1}];
+  projectedOPE = projectScaledContourContributionAtOrigin[
+    projectScaledExpressionAtHoloPower,
+    combinedOPE,
+    extractionPower,
+    scalingParameter,
+    z
+  ];
   newPicture = picture + pictureShift;
   strippedExpr = stripGroundExponential[projectedOPE, newPicture];
   {newPicture, strippedExpr}
