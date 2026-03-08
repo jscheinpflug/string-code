@@ -181,6 +181,8 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]b[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tb[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tf && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]b && Head[b]==exp\[Phi]f && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
+R[ c___,a_,b_,d___]:=R[c,expH[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==expH && Head[b]==expH && a[[2]]==b[[2]])
+R[ c___,a_,b_,d___]:=R[c,expHt[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==expHt && Head[b]==expHt && a[[2]]==b[[2]])
 
 (* ::Subsection:: *)
 (*Define total picture number*)

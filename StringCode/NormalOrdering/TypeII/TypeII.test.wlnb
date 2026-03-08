@@ -338,6 +338,54 @@
   },
   {
    "kind": 1,
+   "value": "## Direct H-Exponential Canonicalization",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test34 = R[expH[{0, 1, 0, 0, 0, 0}, z], expH[{0, 0, 1, 0, 0, 0}, z]] === R[expH[{0, 1, 1, 0, 0, 0}, z]];\nPrint[\"Test 34 (direct expH same-point merge adds charge vectors): \", If[test34, \"PASSED\", \"FAILED\"]];\ntest34",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test35 = R[expHt[{0, 1, 0, 0, 0, 0}, zb], expHt[{0, 0, 1, 0, 0, 0}, zb]] === R[expHt[{0, 1, 1, 0, 0, 0}, zb]];\nPrint[\"Test 35 (direct expHt same-point merge adds charge vectors): \", If[test35, \"PASSED\", \"FAILED\"]];\ntest35",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test36 = R[expH[{0, 1, 0, 0, 0, 0}, z], expH[{0, -1, 0, 0, 0, 0}, z]] === 1 && R[expHt[{0, 1, 0, 0, 0, 0}, zb], expHt[{0, -1, 0, 0, 0, 0}, zb]] === 1;\nPrint[\"Test 36 (opposite H-charges collapse through the zero vector): \", If[test36, \"PASSED\", \"FAILED\"]];\ntest36",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "holDifferentCoord = R[expH[{0, 1, 0, 0, 0, 0}, z], expH[{0, -1, 0, 0, 0, 0}, w]];\nmixedHFields = R[expH[{0, 1, 0, 0, 0, 0}, z], expHt[{0, -1, 0, 0, 0, 0}, zb]];\ntest37 = MatchQ[holDifferentCoord, _R] && Length[List @@ holDifferentCoord] === 2 && MatchQ[mixedHFields, _R] && Length[List @@ mixedHFields] === 2;\nPrint[\"Test 37 (different coordinates and mixed sectors do not merge): \", If[test37, \"PASSED\", \"FAILED\"]];\ntest37",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test38 = Bosonize[R[expH[{0, 1, 0, 0, 0, 0}, z]]] === R[expH[{0, 1, 0, 0, 0, 0}, z]] && Bosonize[R[expHt[{0, 1, 0, 0, 0, 0}, zb]]] === R[expHt[{0, 1, 0, 0, 0, 0}, zb]];\nPrint[\"Test 38 (single H-exponentials remain unchanged under Bosonize): \", If[test38, \"PASSED\", \"FAILED\"]];\ntest38",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
@@ -346,7 +394,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32, test33];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32, test33, test34, test35, test36, test37, test38];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
