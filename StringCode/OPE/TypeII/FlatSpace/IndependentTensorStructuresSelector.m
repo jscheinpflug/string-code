@@ -23,21 +23,24 @@ selectorCandidates[candidates_List] := Module[{parsed},
   If[MemberQ[parsed, $Failed], $Failed, parsed]
 ];
 
-probeAssignment::usage = "probeAssignment[spinorSymbols, externalVectors, baseSeed, probeIndex] builds one deterministic component probe.";
-probeAssignment[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer] := BlockRandom[
+probeModulus::usage = "probeModulus[primes] returns a shared sampling modulus whose residues are uniform modulo every selection prime.";
+probeModulus[primes_List] := LCM @@ primes;
+
+probeAssignment::usage = "probeAssignment[spinorSymbols, externalVectors, modulus, baseSeed, probeIndex] builds one deterministic component probe.";
+probeAssignment[spinorSymbols_List, externalVectors_List, modulus_Integer?Positive, baseSeed_, probeIndex_Integer] := BlockRandom[
   If[baseSeed === Automatic,
     SeedRandom[Hash[{DateList[], probeIndex, Length[spinorSymbols], Length[externalVectors]}]],
     SeedRandom[Hash[{baseSeed, probeIndex}]]
   ];
   <|
-    "SpinorComponents" -> AssociationThread[spinorSymbols -> Table[RandomInteger[{0, 255}, 16], {Length[spinorSymbols]}]],
-    "VectorComponents" -> AssociationThread[externalVectors -> Table[RandomInteger[{0, 255}, 10], {Length[externalVectors]}]]
+    "SpinorComponents" -> AssociationThread[spinorSymbols -> Table[RandomInteger[{0, modulus - 1}, 16], {Length[spinorSymbols]}]],
+    "VectorComponents" -> AssociationThread[externalVectors -> Table[RandomInteger[{0, modulus - 1}, 10], {Length[externalVectors]}]]
   |>
 ];
 
-buildProbeBank::usage = "buildProbeBank[spinorSymbols, externalVectors, count, seed] builds a deterministic list of component probes.";
-buildProbeBank[spinorSymbols_List, externalVectors_List, count_Integer?NonNegative, seed_] := Table[
-  probeAssignment[spinorSymbols, externalVectors, seed, i],
+buildProbeBank::usage = "buildProbeBank[spinorSymbols, externalVectors, modulus, count, seed] builds a deterministic list of component probes.";
+buildProbeBank[spinorSymbols_List, externalVectors_List, modulus_Integer?Positive, count_Integer?NonNegative, seed_] := Table[
+  probeAssignment[spinorSymbols, externalVectors, modulus, seed, i],
   {i, 1, count}
 ];
 
@@ -69,16 +72,18 @@ incrementalPivotInsert[state_Association, row_List] := Module[
 
 selectionRuntime::usage = "selectionRuntime[parsedCandidates, optsAssoc, targetRank] initializes shared runtime state for one selector run.";
 selectionRuntime[parsedCandidates_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
-  {probeCount, seed, primes, spinorMap, externalVectors},
+  {probeCount, seed, primes, spinorMap, externalVectors, modulus},
   probeCount = Max[Lookup[optsAssoc, "ProbeCount", 5], targetRank];
   seed = Lookup[optsAssoc, "RandomSeed", Automatic];
   primes = Lookup[optsAssoc, "ModulusPrimes", {32009, 32057, 32089}];
+  modulus = probeModulus[primes];
   spinorMap = If[parsedCandidates === {}, <||>, Merge[parsedCandidates[[All, "SpinorChiralities"]], First]];
   externalVectors = If[parsedCandidates === {}, {}, SortBy[DeleteDuplicates[Flatten[parsedCandidates[[All, "ExternalVectors"]], 1]], SymbolName]];
   <|
     "Primes" -> primes,
     "PrimeData" -> AssociationThread[primes -> (primeEvaluationData /@ primes)],
-    "Probes" -> buildProbeBank[Keys[spinorMap], externalVectors, probeCount, seed],
+    "Probes" -> buildProbeBank[Keys[spinorMap], externalVectors, modulus, probeCount, seed],
+    "ProbeModulus" -> modulus,
     "BaseSeed" -> seed,
     "SpinorSymbols" -> Keys[spinorMap],
     "ExternalVectors" -> externalVectors,
@@ -96,7 +101,7 @@ listSelectionRuntime[candidates_List, optsAssoc_Association, targetRank_Integer?
 
 ensureCandidatePrimeSignature::usage = "ensureCandidatePrimeSignature[candidate, runtime, prime] ensures that runtime holds the full active-probe signature for one candidate under one modulus.";
 ensureCandidatePrimeSignature[candidate_Association, runtime_Association, prime_Integer] := Module[
-  {candidateAssoc, existing, start, extended},
+  {candidateAssoc, existing, start, extended, nextRuntime},
   candidateAssoc = Lookup[runtime["SignatureCache"], candidate["Key"], <||>];
   existing = Lookup[candidateAssoc, prime, {}];
   If[Length[existing] >= Length[runtime["Probes"]], Return[runtime]];
@@ -106,22 +111,25 @@ ensureCandidatePrimeSignature[candidate_Association, runtime_Association, prime_
     Table[evaluateCandidateAtProbe[candidate, runtime["Probes"][[i]], runtime["PrimeData"][prime]], {i, start, Length[runtime["Probes"]]}]
   ];
   candidateAssoc = Join[candidateAssoc, <|prime -> extended|>];
-  Join[runtime, <|"SignatureCache" -> Join[runtime["SignatureCache"], <|candidate["Key"] -> candidateAssoc|>]|>]
+  nextRuntime = runtime;
+  AssociateTo[nextRuntime, "SignatureCache" -> Join[nextRuntime["SignatureCache"], <|candidate["Key"] -> candidateAssoc|>]];
+  nextRuntime
 ];
 
 candidateSignature::usage = "candidateSignature[candidate, runtime, prime] returns the modular signature list for one candidate under one prime.";
 candidateSignature[candidate_Association, runtime_Association, prime_Integer] := Lookup[Lookup[runtime["SignatureCache"], candidate["Key"], <||>], prime, {}];
 
 queueDeferredCandidate::usage = "queueDeferredCandidate[candidate, runtime] appends one candidate to the deferred queue if it is not already present.";
-queueDeferredCandidate[candidate_Association, runtime_Association] := If[
-  MemberQ[runtime["DeferredQueue"][[All, "Key"]], candidate["Key"]],
-  runtime,
-  Join[runtime, <|"DeferredQueue" -> Append[runtime["DeferredQueue"], candidate]|>]
+queueDeferredCandidate[candidate_Association, runtime_Association] := Module[{nextRuntime},
+  If[MemberQ[runtime["DeferredQueue"][[All, "Key"]], candidate["Key"]], Return[runtime]];
+  nextRuntime = runtime;
+  AssociateTo[nextRuntime, "DeferredQueue" -> Append[nextRuntime["DeferredQueue"], candidate]];
+  nextRuntime
 ];
 
 tryAcceptCandidate::usage = "tryAcceptCandidate[candidate, runtime] tests one candidate against the current modular pivot states.";
 tryAcceptCandidate[candidate_Association, runtime_Association] := Module[
-  {nextRuntime, primaryPrime, primaryInsertion, insertions, statuses, signature, primes},
+  {nextRuntime, primaryPrime, primaryInsertion, insertions = <||>, allAccepted = True, signature, primes, prime},
   nextRuntime = runtime;
   primes = nextRuntime["Primes"];
   primaryPrime = First[primes];
@@ -130,18 +138,17 @@ tryAcceptCandidate[candidate_Association, runtime_Association] := Module[
   If[AnyTrue[signature, # === $Failed &], Return[<|"Runtime" -> nextRuntime, "Status" -> "Invalid"|>]];
   primaryInsertion = incrementalPivotInsert[nextRuntime["PrimeStates"][primaryPrime], signature];
   If[!TrueQ[primaryInsertion["RankIncreased"]], Return[<|"Runtime" -> nextRuntime, "Status" -> "Rejected"|>]];
-  insertions = <|primaryPrime -> primaryInsertion|>;
-  statuses = <|primaryPrime -> True|>;
+  AssociateTo[insertions, primaryPrime -> primaryInsertion];
   Do[
     nextRuntime = ensureCandidatePrimeSignature[candidate, nextRuntime, prime];
     signature = candidateSignature[candidate, nextRuntime, prime];
     If[AnyTrue[signature, # === $Failed &], Return[<|"Runtime" -> nextRuntime, "Status" -> "Invalid"|>]];
-    insertions = Join[insertions, <|prime -> incrementalPivotInsert[nextRuntime["PrimeStates"][prime], signature]|>];
-    statuses = Join[statuses, <|prime -> insertions[prime]["RankIncreased"]|>],
+    AssociateTo[insertions, prime -> incrementalPivotInsert[nextRuntime["PrimeStates"][prime], signature]];
+    allAccepted = allAccepted && TrueQ[insertions[prime]["RankIncreased"]],
     {prime, Rest[primes]}
   ];
-  If[And @@ Values[statuses],
-    nextRuntime = Join[
+  If[allAccepted,
+    AssociateTo[
       nextRuntime,
       <|
         "PrimeStates" -> Association@Table[prime -> insertions[prime]["State"], {prime, primes}],
@@ -154,22 +161,22 @@ tryAcceptCandidate[candidate_Association, runtime_Association] := Module[
 ];
 
 appendVerificationProbes::usage = "appendVerificationProbes[runtime, optsAssoc] appends fresh verification probes to the runtime probe bank.";
-appendVerificationProbes[runtime_Association, optsAssoc_Association] := Module[{extraCount, startIndex},
+appendVerificationProbes[runtime_Association, optsAssoc_Association] := Module[{extraCount, startIndex, nextRuntime},
   extraCount = Lookup[optsAssoc, "VerificationProbeCount", 3];
   If[extraCount <= 0, Return[runtime]];
   startIndex = Length[runtime["Probes"]] + 1;
-  Join[
-    runtime,
-    <|
-      "Probes" -> Join[
-        runtime["Probes"],
-        Table[
-          probeAssignment[runtime["SpinorSymbols"], runtime["ExternalVectors"], runtime["BaseSeed"], startIndex + i - 1],
-          {i, 1, extraCount}
-        ]
+  nextRuntime = runtime;
+  AssociateTo[
+    nextRuntime,
+    "Probes" -> Join[
+      nextRuntime["Probes"],
+      Table[
+        probeAssignment[nextRuntime["SpinorSymbols"], nextRuntime["ExternalVectors"], nextRuntime["ProbeModulus"], nextRuntime["BaseSeed"], startIndex + i - 1],
+        {i, 1, extraCount}
       ]
-    |>
-  ]
+    ]
+  ];
+  nextRuntime
 ];
 
 rebuildAcceptedBasis::usage = "rebuildAcceptedBasis[runtime] rebuilds the accepted-basis prime states on the current probe bank and drops unstable candidates.";
@@ -191,12 +198,14 @@ rebuildAcceptedBasis[runtime_Association] := Module[
     ],
     {candidate, runtime["AcceptedCandidates"]}
   ];
-  Join[nextRuntime, <|"AcceptedCandidates" -> kept, "PrimeStates" -> freshStates|>]
+  AssociateTo[nextRuntime, <|"AcceptedCandidates" -> kept, "PrimeStates" -> freshStates|>];
+  nextRuntime
 ];
 
 retryDeferredQueue::usage = "retryDeferredQueue[runtime] retries deferred candidates under the current probe bank.";
 retryDeferredQueue[runtime_Association] := Module[{nextRuntime, result},
-  nextRuntime = Join[runtime, <|"DeferredQueue" -> {}|>];
+  nextRuntime = runtime;
+  AssociateTo[nextRuntime, "DeferredQueue" -> {}];
   Do[
     result = tryAcceptCandidate[candidate, nextRuntime];
     nextRuntime = result["Runtime"],
@@ -217,6 +226,7 @@ automaticCandidateTargetRank[candidates_List] := Module[{parsed, chiralityMap, n
   counts = {
     countSinglets[Count[Values[chiralityMap], "chiral"], Count[Values[chiralityMap], "antichiral"], nVectors]
   };
+  (* For explicit candidate lists the outgoing spinor is unknown, so flip each endpoint once and keep the tightest positive bound. *)
   counts = Join[
     counts,
     Table[
@@ -231,20 +241,26 @@ automaticCandidateTargetRank[candidates_List] := Module[{parsed, chiralityMap, n
 
 scanCandidateList::usage = "scanCandidateList[candidates, targetRank, optsAssoc] scans an explicit candidate list in order and returns the verified basis and visit count.";
 scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
-  {parsed, effectiveTarget, runtime, visited = 0, result},
+  {parsed, effectiveTarget, runtime, visited = 0, result, cursor = 1, count},
   parsed = selectorCandidates[candidates];
   If[parsed === $Failed, Return[$Failed]];
   effectiveTarget = If[targetRank === Automatic, automaticCandidateTargetRank[parsed], targetRank];
-  runtime = selectionRuntime[parsed, optsAssoc, effectiveTarget];
-  Do[
-    If[Length[runtime["AcceptedCandidates"]] >= effectiveTarget, Break[]];
-    visited++;
-    result = tryAcceptCandidate[candidate, runtime];
-    runtime = result["Runtime"],
-    {candidate, parsed}
+  If[effectiveTarget <= 0,
+    Return[<|"Basis" -> {}, "TargetRank" -> 0, "VisitedCandidates" -> 0|>]
   ];
-  If[targetRank === Automatic && Length[runtime["AcceptedCandidates"]] < effectiveTarget, effectiveTarget = Length[runtime["AcceptedCandidates"]]];
-  runtime = verifySelectionRuntime[runtime, optsAssoc];
+  runtime = listSelectionRuntime[parsed, optsAssoc, effectiveTarget];
+  If[runtime === $Failed, Return[$Failed]];
+  count = Length[parsed];
+  While[True,
+    While[cursor <= count && Length[runtime["AcceptedCandidates"]] < effectiveTarget,
+      visited++;
+      result = tryAcceptCandidate[parsed[[cursor]], runtime];
+      runtime = result["Runtime"];
+      cursor++;
+    ];
+    runtime = verifySelectionRuntime[runtime, optsAssoc];
+    If[Length[runtime["AcceptedCandidates"]] >= effectiveTarget || cursor > count, Break[]];
+  ];
   If[targetRank === Automatic, effectiveTarget = Length[runtime["AcceptedCandidates"]]];
   <|
     "Basis" -> runtime["AcceptedCandidates"][[All, "Expression"]],

@@ -700,46 +700,6 @@ firstVectorPlacement[externalCounts_List, vectorIndices_List] := Module[
   out
 ];
 
-spinorPlacementIteratorInit::usage =
-  "spinorPlacementIteratorInit[slots, inSpinors, outSpinor] initializes a deterministic resumable iterator over spinorPlacements output.";
-spinorPlacementIteratorInit[slots_List, inSpinors_List, outSpinor_] := <|
-  "Placements" -> spinorPlacements[slots, inSpinors, outSpinor],
-  "Cursor" -> 1
-|>;
-
-spinorPlacementIteratorNext::usage =
-  "spinorPlacementIteratorNext[state] advances a spinor placement iterator and returns <|\"Done\"->bool,\"State\"->...,\"Value\"->placement|> when available.";
-spinorPlacementIteratorNext[state_Association] := Module[
-  {placements, cursor, nextState},
-  placements = Lookup[state, "Placements", {}];
-  cursor = Lookup[state, "Cursor", 1];
-  If[cursor > Length[placements],
-    Return[<|"Done" -> True, "State" -> state|>]
-  ];
-  nextState = ReplacePart[state, "Cursor" -> cursor + 1];
-  <|"Done" -> False, "State" -> nextState, "Value" -> placements[[cursor]]|>
-];
-
-vectorPlacementIteratorInit::usage =
-  "vectorPlacementIteratorInit[externalCounts, vectorIndices] initializes a deterministic resumable iterator over vectorPlacements output.";
-vectorPlacementIteratorInit[externalCounts_List, vectorIndices_List] := <|
-  "Placements" -> vectorPlacements[externalCounts, vectorIndices],
-  "Cursor" -> 1
-|>;
-
-vectorPlacementIteratorNext::usage =
-  "vectorPlacementIteratorNext[state] advances a vector placement iterator and returns <|\"Done\"->bool,\"State\"->...,\"Value\"->placement|> when available.";
-vectorPlacementIteratorNext[state_Association] := Module[
-  {placements, cursor, nextState},
-  placements = Lookup[state, "Placements", {}];
-  cursor = Lookup[state, "Cursor", 1];
-  If[cursor > Length[placements],
-    Return[<|"Done" -> True, "State" -> state|>]
-  ];
-  nextState = ReplacePart[state, "Cursor" -> cursor + 1];
-  <|"Done" -> False, "State" -> nextState, "Value" -> placements[[cursor]]|>
-];
-
 buildDummyIndexSymbols::usage =
   "buildDummyIndexSymbols[count] returns deterministic dummy symbols \\[Nu]1, \\[Nu]2, ... in package context.";
 buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
@@ -933,72 +893,6 @@ uniquePlacementPairs[
   harvested = First[harvested];
   harvested = SortBy[harvested, #[[3]] &];
   harvested[[All, {1, 2}]]
-];
-
-placementPairIteratorInit::usage =
-  "placementPairIteratorInit[slots, extCounts, inSpinors, outSpinor, vectorIndices, automorphisms, spinRank, vecRank] initializes a resumable orbit-deduplicating iterator over concrete placement pairs.";
-placementPairIteratorInit[
-  slots_List, extCounts_List, inSpinors_List, outSpinor_, vectorIndices_List,
-  automorphisms_List, spinRank_Association, vecRank_Association
-] := <|
-  "Slots" -> slots,
-  "SpinorState" -> spinorPlacementIteratorInit[slots, inSpinors, outSpinor],
-  "CurrentSpinPlacement" -> None,
-  "VectorState" -> vectorPlacementIteratorInit[extCounts, vectorIndices],
-  "Automorphisms" -> automorphisms,
-  "SpinRank" -> spinRank,
-  "VectorRank" -> vecRank,
-  "SeenOrbitKeys" -> <||>
-|>;
-
-placementPairIteratorNext::usage =
-  "placementPairIteratorNext[state] advances a placement-pair iterator and returns the next unseen orbit representative as <|\"Done\"->bool,\"State\"->...,\"Value\"->{spinPlacement,vecPlacement},\"OrbitKey\"->key|>.";
-placementPairIteratorNext[state_Association] := Module[
-  {
-    nextState = state, slots, spinorResult, vectorResult, spinPlacement, vecPlacement,
-    automorphisms, spinRank, vecRank, orbitKey, seen
-  },
-  slots = Lookup[nextState, "Slots", {}];
-  automorphisms = Lookup[nextState, "Automorphisms", {}];
-  spinRank = Lookup[nextState, "SpinRank", <||>];
-  vecRank = Lookup[nextState, "VectorRank", <||>];
-  seen = Lookup[nextState, "SeenOrbitKeys", <||>];
-  While[True,
-    If[Lookup[nextState, "CurrentSpinPlacement", None] === None,
-      spinorResult = spinorPlacementIteratorNext[Lookup[nextState, "SpinorState"]];
-      nextState = ReplacePart[nextState, "SpinorState" -> spinorResult["State"]];
-      If[TrueQ[spinorResult["Done"]],
-        Return[<|"Done" -> True, "State" -> nextState|>]
-      ];
-      nextState = ReplacePart[nextState, {
-        "CurrentSpinPlacement" -> spinorResult["Value"],
-        "VectorState" -> <|
-          "Placements" -> Lookup[Lookup[nextState, "VectorState"], "Placements", {}],
-          "Cursor" -> 1
-        |>
-      }];
-    ];
-    spinPlacement = Lookup[nextState, "CurrentSpinPlacement", None];
-    vectorResult = vectorPlacementIteratorNext[Lookup[nextState, "VectorState"]];
-    nextState = ReplacePart[nextState, "VectorState" -> vectorResult["State"]];
-    If[TrueQ[vectorResult["Done"]],
-      nextState = ReplacePart[nextState, "CurrentSpinPlacement" -> None];
-      Continue[];
-    ];
-    vecPlacement = vectorResult["Value"];
-    orbitKey = placementOrbitKey[slots, spinPlacement, vecPlacement, automorphisms, spinRank, vecRank];
-    If[KeyExistsQ[seen, orbitKey],
-      Continue[];
-    ];
-    seen[orbitKey] = True;
-    nextState = ReplacePart[nextState, "SeenOrbitKeys" -> seen];
-    Return[<|
-      "Done" -> False,
-      "State" -> nextState,
-      "Value" -> {spinPlacement, vecPlacement},
-      "OrbitKey" -> orbitKey
-    |>];
-  ]
 ];
 
 generateTensorStructures::usage = "generateTensorStructures[incoming, outgoing, opts] enumerates grouped Clifford tensor structures.";

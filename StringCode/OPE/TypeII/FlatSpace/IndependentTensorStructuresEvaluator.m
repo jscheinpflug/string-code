@@ -23,6 +23,15 @@ allBasisSubsets[rank_Integer?Positive] := allBasisSubsets[rank] = Subsets[Range[
 associationLookup::usage = "associationLookup[assoc, key, default] looks up an association value while supporting non-atomic keys.";
 associationLookup[assoc_Association, key_, default_] := If[KeyExistsQ[assoc, key], assoc[key], default];
 
+orderedAssociationRules::usage = "orderedAssociationRules[assoc] returns deterministic rules sorted by key for exact cache keys.";
+orderedAssociationRules[assoc_Association] := SortBy[Normal[assoc], First];
+
+bitCount::usage = "bitCount[mask] returns the number of set bits in one nonnegative integer mask.";
+bitCount[mask_Integer?NonNegative] := DigitCount[mask, 2, 1];
+
+maskPositions::usage = "maskPositions[mask, length] returns the 1-based positions of set bits in mask.";
+maskPositions[mask_Integer?NonNegative, length_Integer?NonNegative] := Select[Range[length], BitGet[mask, # - 1] == 1 &];
+
 modularImaginaryUnit::usage = "modularImaginaryUnit[prime] returns a square root of -1 modulo prime.";
 modularImaginaryUnit[prime_Integer] := PowerMod[-1, Quotient[prime - 1, 4], prime];
 
@@ -66,34 +75,42 @@ gammaHeadBasisMatrix[_, _, _] := $Failed;
 matrixProductMod::usage = "matrixProductMod[left, right, prime] multiplies two matrices modulo prime.";
 matrixProductMod[left_List, right_List, prime_Integer] := Mod[left . right, prime];
 
-matrixVectorProductMod::usage = "matrixVectorProductMod[matrix, vector, prime] multiplies one matrix into one vector modulo prime.";
-matrixVectorProductMod[matrix_List, vector_List, prime_Integer] := Mod[matrix . vector, prime];
-
 antisymmetrizedVectorMatrixCache::usage = "antisymmetrizedVectorMatrixCache memoizes antisymmetrized basis gamma matrices.";
 antisymmetrizedVectorMatrixCache = <||>;
 
-antisymmetrizedVectorMatrix::usage = "antisymmetrizedVectorMatrix[vectorHeads, basisSubset, primeData] returns the antisymmetrized gamma matrix for one basis subset.";
-antisymmetrizedVectorMatrix[vectorHeads_List, basisSubset_List, primeData_Association] := Module[
-  {key, cached, rank, invRank, sumMatrix, i, headMatrix, restMatrix},
-  key = {primeData["Prime"], vectorHeads, basisSubset};
+antisymmetrizedVectorMatrixState::usage =
+  "antisymmetrizedVectorMatrixState[headTypes, headMask, basisSubset, primeData] memoizes subset-DP states for antisymmetrized gamma products.";
+antisymmetrizedVectorMatrixState[headTypes_List, 0, {}, primeData_Association] := primeData["Identity"];
+antisymmetrizedVectorMatrixState[headTypes_List, headMask_Integer?NonNegative, basisSubset_List, primeData_Association] := Module[
+  {key, cached, remainingHeads, rank, invRank, sumMatrix, pos, headPos, headMatrix, restMatrix},
+  If[Length[basisSubset] =!= bitCount[headMask], Return[$Failed]];
+  key = {primeData["Prime"], headTypes, headMask, basisSubset};
   cached = associationLookup[antisymmetrizedVectorMatrixCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
-  cached = If[
-    vectorHeads === {},
-    primeData["Identity"],
-    rank = Length[vectorHeads];
-    invRank = PowerMod[rank, -1, primeData["Prime"]];
-    sumMatrix = ConstantArray[0, {16, 16}];
-    For[i = 1, i <= rank, i++,
-      headMatrix = gammaHeadBasisMatrix[Head[vectorHeads[[i]]], basisSubset[[i]], primeData];
-      restMatrix = antisymmetrizedVectorMatrix[Delete[vectorHeads, i], Delete[basisSubset, i], primeData];
-      If[headMatrix === $Failed || restMatrix === $Failed, Return[$Failed]];
-      sumMatrix = Mod[sumMatrix + (-1)^(i - 1) matrixProductMod[headMatrix, restMatrix, primeData["Prime"]], primeData["Prime"]];
+  remainingHeads = maskPositions[headMask, Length[headTypes]];
+  rank = Length[remainingHeads];
+  invRank = PowerMod[rank, -1, primeData["Prime"]];
+  sumMatrix = ConstantArray[0, {16, 16}];
+  For[pos = 1, pos <= rank, pos++,
+    headPos = remainingHeads[[pos]];
+    headMatrix = gammaHeadBasisMatrix[headTypes[[headPos]], basisSubset[[pos]], primeData];
+    restMatrix = antisymmetrizedVectorMatrixState[headTypes, BitClear[headMask, headPos - 1], Delete[basisSubset, pos], primeData];
+    If[headMatrix === $Failed || restMatrix === $Failed, Return[$Failed]];
+    sumMatrix = Mod[
+      sumMatrix + (-1)^(pos - 1) matrixProductMod[headMatrix, restMatrix, primeData["Prime"]],
+      primeData["Prime"]
     ];
-    Mod[invRank sumMatrix, primeData["Prime"]]
   ];
-  antisymmetrizedVectorMatrixCache = Join[antisymmetrizedVectorMatrixCache, <|key -> cached|>];
+  cached = Mod[invRank sumMatrix, primeData["Prime"]];
+  AssociateTo[antisymmetrizedVectorMatrixCache, key -> cached];
   cached
+];
+
+antisymmetrizedVectorMatrix::usage = "antisymmetrizedVectorMatrix[vectorHeads, basisSubset, primeData] returns the antisymmetrized gamma matrix for one basis subset.";
+antisymmetrizedVectorMatrix[vectorHeads_List, basisSubset_List, primeData_Association] := Module[
+  {headTypes},
+  headTypes = Head /@ vectorHeads;
+  antisymmetrizedVectorMatrixState[headTypes, 2^Length[headTypes] - 1, basisSubset, primeData]
 ];
 
 gammaFactorMatrixAssociationCache::usage = "gammaFactorMatrixAssociationCache memoizes basis-subset matrix associations for parsed gamma factors.";
@@ -134,7 +151,7 @@ gammaFactorMatrixAssociation[parts_Association, primeData_Association] := Module
     ],
     {subset, subsets}
   ];
-  gammaFactorMatrixAssociationCache = Join[gammaFactorMatrixAssociationCache, <|key -> assoc|>];
+  AssociateTo[gammaFactorMatrixAssociationCache, key -> assoc];
   assoc
 ];
 
@@ -173,7 +190,7 @@ highRankComplementData[parts_Association, primeData_Association] := Module[
     {subset, Keys[highAssoc]}
   ];
   cached = <|"LowParts" -> lowParts, "Factors" -> factors|>;
-  highRankComplementDataCache = Join[highRankComplementDataCache, <|key -> cached|>];
+  AssociateTo[highRankComplementDataCache, key -> cached];
   cached
 ];
 
@@ -181,7 +198,7 @@ gammaFactorCoefficientAssociationCache::usage = "gammaFactorCoefficientAssociati
 gammaFactorCoefficientAssociationCache = <||>;
 
 gammaFactorCoefficientAssociationKey::usage = "gammaFactorCoefficientAssociationKey[parts, spin1, spin2, prime] builds the cache key for one factor coefficient association.";
-gammaFactorCoefficientAssociationKey[parts_Association, spin1_List, spin2_List, prime_Integer] := {gammaFactorMatrixAssociationKey[parts, prime], Hash[spin1], Hash[spin2]};
+gammaFactorCoefficientAssociationKey[parts_Association, spin1_List, spin2_List, prime_Integer] := {gammaFactorMatrixAssociationKey[parts, prime], spin1, spin2};
 
 gammaFactorMatrixCoefficientAssociation::usage = "gammaFactorMatrixCoefficientAssociation[matrixAssoc, spin1, spin2, prime] contracts one cached gamma-matrix association with a probe spinor pair.";
 gammaFactorMatrixCoefficientAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[
@@ -218,7 +235,7 @@ gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Associat
     gammaFactorMatrixCoefficientAssociation[matrixAssoc, spin1, spin2, prime]
   ];
   If[parts["VectorLinks"] === {} && !KeyExistsQ[cached, {}], cached = Join[cached, <|{} -> 0|>]];
-  gammaFactorCoefficientAssociationCache = Join[gammaFactorCoefficientAssociationCache, <|key -> cached|>];
+  AssociateTo[gammaFactorCoefficientAssociationCache, key -> cached];
   cached
 ];
 
@@ -327,6 +344,15 @@ factorBlockTensorEntryCache = <||>;
 factorBlockTensorProbeCache::usage = "factorBlockTensorProbeCache memoizes complete block tensors for one parsed factor under one probe and modulus.";
 factorBlockTensorProbeCache = <||>;
 
+coefficientAssociationKey::usage = "coefficientAssociationKey[coefficients] canonicalizes an alternating-form coefficient table for cache keys.";
+coefficientAssociationKey[coefficients_Association] := orderedAssociationRules[coefficients];
+
+probeCacheKey::usage = "probeCacheKey[probe] canonicalizes one selector probe for exact cache keys.";
+probeCacheKey[probe_Association] := {
+  orderedAssociationRules[Lookup[probe, "SpinorComponents", <||>]],
+  orderedAssociationRules[Lookup[probe, "VectorComponents", <||>]]
+};
+
 factorBlockTensor::usage = "factorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData] builds one sparse block tensor for one parsed factor.";
 factorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Association, probe_Association, primeData_Association] := Module[
   {parts, coeffs, reduced, blocks, entryKey, entries},
@@ -336,11 +362,11 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Ass
   reduced = reduceFactorCoefficientsByExternalVectors[coeffs, parts["VectorSymbols"], probe, primeData["Prime"]];
   blocks = factorDummyBlocks[parts, factorIndex, dummyLocations, probe];
   If[blocks === $Failed || Total[Length /@ blocks] =!= Length[reduced["DummySymbols"]], Return[$Failed]];
-  entryKey = {primeData["Prime"], Length /@ blocks, Hash[SortBy[Normal[reduced["Coefficients"]], First]]};
+  entryKey = {primeData["Prime"], Length /@ blocks, coefficientAssociationKey[reduced["Coefficients"]]};
   entries = associationLookup[factorBlockTensorEntryCache, entryKey, Missing["NotFound"]];
   If[entries === Missing["NotFound"],
     entries = blockTensorFromReducedCoefficients[reduced["Coefficients"], blocks, primeData["Prime"]]["Entries"];
-    factorBlockTensorEntryCache = Join[factorBlockTensorEntryCache, <|entryKey -> entries|>];
+    AssociateTo[factorBlockTensorEntryCache, entryKey -> entries];
   ];
   <|"Blocks" -> blocks, "Entries" -> entries|>
 ];
@@ -348,11 +374,11 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Ass
 cachedFactorBlockTensor::usage = "cachedFactorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData] memoizes sparse block tensors across selector probes.";
 cachedFactorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Association, probe_Association, primeData_Association] := Module[
   {key, cached},
-  key = {primeData["Prime"], Hash[probe], factorIndex, candidate["Key"]};
+  key = {primeData["Prime"], probeCacheKey[probe], factorIndex, candidate["Key"]};
   cached = associationLookup[factorBlockTensorProbeCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   cached = factorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData];
-  factorBlockTensorProbeCache = Join[factorBlockTensorProbeCache, <|key -> cached|>];
+  AssociateTo[factorBlockTensorProbeCache, key -> cached];
   cached
 ];
 
@@ -379,14 +405,12 @@ contractBlockTensors[left_Association, leftPos_Integer, right_Association, right
 ];
 
 sharedBlockPair::usage = "sharedBlockPair[tensors] returns the first pair of tensors and block positions that share the same dummy block.";
-sharedBlockPair[tensors_List] := Module[{i, j, p, q},
-  For[i = 1, i <= Length[tensors] - 1, i++,
-    For[j = i + 1, j <= Length[tensors], j++,
-      For[p = 1, p <= Length[tensors[[i, "Blocks"]]], p++,
-        For[q = 1, q <= Length[tensors[[j, "Blocks"]]], q++,
-          If[tensors[[i, "Blocks", p]] === tensors[[j, "Blocks", q]], Return[{i, p, j, q}]]
-        ]
-      ]
+sharedBlockPair[tensors_List] := Module[{seen = <||>, i, p, block},
+  For[i = 1, i <= Length[tensors], i++,
+    For[p = 1, p <= Length[tensors[[i, "Blocks"]]], p++,
+      block = tensors[[i, "Blocks", p]];
+      If[KeyExistsQ[seen, block], Return[Join[seen[block], {i, p}]]];
+      AssociateTo[seen, block -> {i, p}];
     ]
   ];
   Missing["NoSharedBlock"]
@@ -420,6 +444,7 @@ evaluateCandidateAtProbe[candidate_Association, probe_Association, primeData_Ass
 evaluateCandidateAtProbe[expr_, probe_Association, primeData_Association] := Module[{candidate = parseCandidate[expr]},
   If[candidate === $Failed, $Failed, evaluateCandidateAtProbe[candidate, probe, primeData]]
 ];
+evaluateCandidateAtProbe[_, _, _] := $Failed;
 
 
 (* ::Section:: *)

@@ -138,9 +138,6 @@ Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion a
 
 Begin["Private`"];
 
-
-GammaProductHold::usage =
-  "GammaProductHold[args___] rewrites the deprecated held-head spelling to GammaAntisymmetricProductHold[args].";
 GammaProductHold[args___] := GammaAntisymmetricProductHold[args];
 
 

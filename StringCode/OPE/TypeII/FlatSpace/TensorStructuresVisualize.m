@@ -136,10 +136,6 @@ gammaProductVectorIndicesVisual[_] := {};
 vectorListKey::usage = "vectorListKey[vecs] gives a stable string key for a vector-index list.";
 vectorListKey[vecs_List] := ToString[HoldForm[vecs], InputForm];
 
-reorderFactorsForVisualization::usage =
-  "reorderFactorsForVisualization[factors] preserves the concrete gamma-factor order used for visualization.";
-reorderFactorsForVisualization[factors_List] := factors;
-
 slotSpinorChiralitiesVisual::usage = "slotSpinorChiralitiesVisual[form] returns spinor chiralities for one gamma head.";
 slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "GammaUDHold" := {"chiral", "antichiral"};
 slotSpinorChiralitiesVisual[form_] /; SymbolName[Unevaluated[form]] === "GammaDUHold" := {"antichiral", "chiral"};
@@ -350,7 +346,7 @@ buildTensorGraphic[factors_List, optsAssoc_Association] := Module[
 tensorStructureGraph::usage = "tensorStructureGraph[expr, opts] draws a box-and-legs diagram for one tensor structure.";
 tensorStructureGraph[expr_, opts : OptionsPattern[]] := Module[
   {factors, settings},
-  factors = reorderFactorsForVisualization[extractTensorFactors[expr]];
+  factors = extractTensorFactors[expr];
   settings = Association[Join[Options[tensorStructureGraph], {opts}]];
   If[expr === 1,
     Return[

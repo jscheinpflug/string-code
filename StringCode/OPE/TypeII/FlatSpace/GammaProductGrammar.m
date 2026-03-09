@@ -108,6 +108,14 @@ candidateExternalVectors[parts_List] := SortBy[
 candidateExternalVectors[expr_] := candidateExternalVectors[gammaFactorPartsSelector /@ candidateFactors[expr]];
 
 parseCandidate::usage = "parseCandidate[expr] parses one selector candidate into reusable factor, spinor, and vector metadata.";
+parseCandidate[1] := <|
+  "Expression" -> 1,
+  "Key" -> candidateCacheKey[1],
+  "Factors" -> {},
+  "FactorParts" -> {},
+  "SpinorChiralities" -> <||>,
+  "ExternalVectors" -> {}
+|>;
 parseCandidate[expr_] := Module[{factors, parts},
   factors = candidateFactors[expr];
   If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];

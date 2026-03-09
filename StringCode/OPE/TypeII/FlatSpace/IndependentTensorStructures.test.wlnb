@@ -25,7 +25,7 @@
   },
   {
    "kind": 2,
-   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nflattenCandidates[groups_] := Flatten[groups, 1];\nbasisSubsetQ[basis_, candidates_] := And @@ (MemberQ[candidates, #] & /@ basis);\nbasisLength[result_Association] := Length[result[\"Basis\"]];\nassocEntriesQ[left_Association, right_Association] := SortBy[Normal[left], First] === SortBy[Normal[right], First];\nmatrixCoeffsFromAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[\n  KeyValueMap[(#1 -> Mod[spin1 . #2 . spin2, prime]) &, matrixAssoc],\n  Last[#] =!= 0 &\n];",
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nflattenCandidates[groups_] := Flatten[groups, 1];\nbasisSubsetQ[basis_, candidates_] := And @@ (MemberQ[candidates, #] & /@ basis);\nbasisLength[result_Association] := Length[result[\"Basis\"]];\nassocEntriesQ[left_Association, right_Association] := SortBy[Normal[left], First] === SortBy[Normal[right], First];\nmatrixCoeffsFromAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[\n  KeyValueMap[(#1 -> Mod[spin1 . #2 . spin2, prime]) &, matrixAssoc],\n  Last[#] =!= 0 &\n];\nantisymmetrizedMatrixScratch[vectorHeads_List, basisSubset_List, primeData_Association] := Module[\n  {rank = Length[vectorHeads], perms, sumMatrix, factors},\n  perms = Permutations[Range[rank]];\n  sumMatrix = ConstantArray[0, {16, 16}];\n  Do[\n    factors = Table[\n      Private`gammaHeadBasisMatrix[Head[vectorHeads[[perm[[i]]]]], basisSubset[[i]], primeData],\n      {i, 1, rank}\n    ];\n    sumMatrix = Mod[\n      sumMatrix + Signature[perm] Fold[Private`matrixProductMod[#1, #2, primeData[\"Prime\"]] &, primeData[\"Identity\"], factors],\n      primeData[\"Prime\"]\n    ],\n    {perm, perms}\n  ];\n  Mod[PowerMod[Factorial[rank], -1, primeData[\"Prime\"]] sumMatrix, primeData[\"Prime\"]]\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -42,6 +42,14 @@
    "kind": 1,
    "value": "## Public Regressions",
    "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "scalarGroups = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nscalarFlat = flattenCandidates[scalarGroups];\nscalarAssoc = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nscalarList = findIndependentTensorStructures[scalarFlat, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest0 = testReport[\n  \"Test 0 (scalar basis selection)\",\n  scalarGroups === {{1}} && scalarFlat === {1} &&\n    scalarAssoc[\"Basis\"] === {1} && scalarAssoc[\"TargetRank\"] == 1 && scalarAssoc[\"VisitedCandidates\"] == 1 &&\n    scalarList[\"Basis\"] === {1} && scalarList[\"TargetRank\"] == 1 && scalarList[\"VisitedCandidates\"] == 1\n];",
+   "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
    "executionSummary": {}
@@ -188,7 +196,7 @@
   },
   {
    "kind": 2,
-   "value": "rank3Factor = Private`candidateFactors[flat4[[16]]][[2]];\nmixedFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ flat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] &&\n      Length[parts[\"VectorLinks\"]] == 1 &&\n      Head[First[parts[\"VectorLinks\"]]] === GammaUDHold &&\n      parts[\"CTag\"] === None &&\n      parts[\"TailLinks\"] === {}\n  ] &,\n  Missing[\"NotFound\"]\n];\n\nruntime4 = Private`listSelectionRuntime[flat4, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 16, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 16];\nprobe4 = runtime4[\"Probes\"][[1]];\nprimeData4 = runtime4[\"PrimeData\"][32009];\nrank3Parts = Private`gammaFactorPartsSelector[rank3Factor];\nrank3Spin1 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[1]]];\nrank3Spin2 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[2]]];\nrank3MatrixAssoc = Private`gammaFactorMatrixAssociation[rank3Parts, primeData4];\nrank3Scratch = matrixCoeffsFromAssociation[rank3MatrixAssoc, rank3Spin1, rank3Spin2, primeData4[\"Prime\"]];\nrank3Coeffs = Private`gammaFactorCoefficientAssociation[rank3Factor, probe4, primeData4];\n\nruntime3 = Private`listSelectionRuntime[flat3, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 5];\nprobe3 = runtime3[\"Probes\"][[1]];\nprimeData3 = runtime3[\"PrimeData\"][32009];\nmixedParts = Private`gammaFactorPartsSelector[mixedFactor];\nmixedSpin1 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[1]]];\nmixedSpin2 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[2]]];\nmixedMatrixAssoc = Private`gammaFactorMatrixAssociation[mixedParts, primeData3];\nmixedScratch = matrixCoeffsFromAssociation[mixedMatrixAssoc, mixedSpin1, mixedSpin2, primeData3[\"Prime\"]];\nmixedCoeffs = Private`gammaFactorCoefficientAssociation[mixedFactor, probe3, primeData3];\n\ntest5 = testReport[\n  \"Test 5 (matrix coefficient path)\",\n  mixedFactor =!= Missing[\"NotFound\"] &&\n    assocEntriesQ[rank3Coeffs, rank3Scratch] &&\n    assocEntriesQ[mixedCoeffs, mixedScratch]\n];",
+   "value": "rank3Factor = Private`candidateFactors[flat4[[16]]][[2]];\nmixedFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ flat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] &&\n      Length[parts[\"VectorLinks\"]] == 1 &&\n      Head[First[parts[\"VectorLinks\"]]] === GammaUDHold &&\n      parts[\"CTag\"] === None &&\n      parts[\"TailLinks\"] === {}\n  ] &,\n  Missing[\"NotFound\"]\n];\n\nruntime4 = Private`listSelectionRuntime[flat4, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 16, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 16];\nprobe4 = runtime4[\"Probes\"][[1]];\nprimeData4 = runtime4[\"PrimeData\"][32009];\nrank3Parts = Private`gammaFactorPartsSelector[rank3Factor];\nrank3Spin1 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[1]]];\nrank3Spin2 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[2]]];\nrank3MatrixAssoc = Private`gammaFactorMatrixAssociation[rank3Parts, primeData4];\nrank3Scratch = matrixCoeffsFromAssociation[rank3MatrixAssoc, rank3Spin1, rank3Spin2, primeData4[\"Prime\"]];\nrank3Coeffs = Private`gammaFactorCoefficientAssociation[rank3Factor, probe4, primeData4];\n\nruntime3 = Private`listSelectionRuntime[flat3, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 5];\nprobe3 = runtime3[\"Probes\"][[1]];\nprimeData3 = runtime3[\"PrimeData\"][32009];\nmixedParts = Private`gammaFactorPartsSelector[mixedFactor];\nmixedSpin1 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[1]]];\nmixedSpin2 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[2]]];\nmixedMatrixAssoc = Private`gammaFactorMatrixAssociation[mixedParts, primeData3];\nmixedScratch = matrixCoeffsFromAssociation[mixedMatrixAssoc, mixedSpin1, mixedSpin2, primeData3[\"Prime\"]];\nmixedCoeffs = Private`gammaFactorCoefficientAssociation[mixedFactor, probe3, primeData3];\nrank6Heads = {GammaUDHold[mu1], GammaDUHold[mu2], GammaUDHold[mu3], GammaDUHold[mu4], GammaUDHold[mu5], GammaDUHold[mu6]};\nrank6Matrix = Private`antisymmetrizedVectorMatrix[rank6Heads, Range[6], primeData4];\nrank6Scratch = antisymmetrizedMatrixScratch[rank6Heads, Range[6], primeData4];\n\ntest5 = testReport[\n  \"Test 5 (matrix coefficient path)\",\n  mixedFactor =!= Missing[\"NotFound\"] &&\n    assocEntriesQ[rank3Coeffs, rank3Scratch] &&\n    assocEntriesQ[mixedCoeffs, mixedScratch]\n];\ntest6 = testReport[\"Test 6 (rank-6 antisymmetrized matrix DP)\", rank6Matrix === rank6Scratch];",
    "languageId": "wolfram",
    "outputs": [
     {
@@ -221,6 +229,22 @@
   },
   {
    "kind": 1,
+   "value": "## Control Flow",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "mockCandidates = {\n  <|\"Expression\" -> expr1, \"Key\" -> \"c1\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> expr2, \"Key\" -> \"c2\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> expr3, \"Key\" -> \"c3\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>\n};\ncontrolFlowResult = Block[\n  {Private`selectorCandidates, Private`listSelectionRuntime, Private`tryAcceptCandidate, Private`verifySelectionRuntime},\n  Private`selectorCandidates[list_List] := list;\n  Private`listSelectionRuntime[___] := <|\"AcceptedCandidates\" -> {}, \"VerificationCalls\" -> 0|>;\n  Private`tryAcceptCandidate[candidate_, runtime_] := Module[{nextRuntime = runtime},\n    AssociateTo[nextRuntime, \"AcceptedCandidates\" -> Append[nextRuntime[\"AcceptedCandidates\"], candidate]];\n    <|\"Runtime\" -> nextRuntime, \"Status\" -> \"Accepted\"|>\n  ];\n  Private`verifySelectionRuntime[runtime_, _] := Module[{nextRuntime = runtime, calls},\n    calls = Lookup[nextRuntime, \"VerificationCalls\", 0] + 1;\n    AssociateTo[nextRuntime, \"VerificationCalls\" -> calls];\n    If[calls == 1,\n      AssociateTo[nextRuntime, \"AcceptedCandidates\" -> {First[nextRuntime[\"AcceptedCandidates\"]]}]\n    ];\n    nextRuntime\n  ];\n  Private`scanCandidateList[mockCandidates, 2, <||>]\n];\n\ntest7 = testReport[\n  \"Test 7 (resume scanning after verification)\",\n  controlFlowResult[\"Basis\"] === {expr1, expr3} && controlFlowResult[\"TargetRank\"] == 2 && controlFlowResult[\"VisitedCandidates\"] == 3\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Validation",
    "languageId": "markdown",
    "outputs": [],
@@ -229,7 +253,7 @@
   },
   {
    "kind": 2,
-   "value": "badPrime1 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {32011}], {findIndependentTensorStructures::badprime}];\nbadPrime2 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\nbadTarget = Quiet[findIndependentTensorStructures[flat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\ntooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a3, \"chiral\"}, {a4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\ninvalidExplicit = Quiet[\n  findIndependentTensorStructures[{GammaUDHold[mu]}],\n  {findIndependentTensorStructures::badarg}\n];\nunreachable = Quiet[\n  findIndependentTensorStructures[flat1, \"TargetRank\" -> 20],\n  {findIndependentTensorStructures::targetunmet}\n];\n\ntest6 = testReport[\n  \"Test 6 (option validation)\",\n  badPrime1 === $Failed &&\n    badPrime2 === $Failed &&\n    badTarget === $Failed &&\n    tooManyOut === $Failed &&\n    invalidExplicit === $Failed &&\n    unreachable === $Failed\n];\n\nallTestsPassed",
+   "value": "badPrime1 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {32011}], {findIndependentTensorStructures::badprime}];\nbadPrime2 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\nbadTarget = Quiet[findIndependentTensorStructures[flat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\ntooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a3, \"chiral\"}, {a4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\ninvalidExplicit = Quiet[\n  findIndependentTensorStructures[{GammaUDHold[mu]}],\n  {findIndependentTensorStructures::badarg}\n];\nunreachable = Quiet[\n  findIndependentTensorStructures[flat1, \"TargetRank\" -> 20],\n  {findIndependentTensorStructures::targetunmet}\n];\n\ntest8 = testReport[\n  \"Test 8 (option validation)\",\n  badPrime1 === $Failed &&\n    badPrime2 === $Failed &&\n    badTarget === $Failed &&\n    tooManyOut === $Failed &&\n    invalidExplicit === $Failed &&\n    unreachable === $Failed\n];\n\nallTestsPassed",
    "languageId": "wolfram",
    "outputs": [
     {
