@@ -14,6 +14,7 @@ Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
 Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
