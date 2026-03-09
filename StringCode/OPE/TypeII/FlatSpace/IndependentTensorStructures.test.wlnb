@@ -1,0 +1,284 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace IndependentTensorStructures Tests\n\nPublic regression checks for streaming modular basis selection.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[\n  <|\n    \"theory\" -> \"TypeII\",\n    \"CFT\" -> \"FlatSpace\",\n    \"conventions\" -> \"TypeII-Xi\",\n    \"bracket\" -> \"Flat\"\n  |>\n];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`\"];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082960563,
+     "endTime": 1773082961210
+    },
+    "executionOrder": 1,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nflattenCandidates[groups_] := Flatten[groups, 1];\nbasisSubsetQ[basis_, candidates_] := And @@ (MemberQ[candidates, #] & /@ basis);\nbasisLength[result_Association] := Length[result[\"Basis\"]];\nassocEntriesQ[left_Association, right_Association] := SortBy[Normal[left], First] === SortBy[Normal[right], First];\nmatrixCoeffsFromAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[\n  KeyValueMap[(#1 -> Mod[spin1 . #2 . spin2, prime]) &, matrixAssoc],\n  Last[#] =!= 0 &\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082961210,
+     "endTime": 1773082961657
+    },
+    "executionOrder": 4,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Public Regressions",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "groups1 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat1 = flattenCandidates[groups1];\nassoc1 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist1 = findIndependentTensorStructures[flat1, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest1 = testReport[\n  \"Test 1 (4 chiral -> scalar)\",\n  Length[flat1] == 15 &&\n    basisLength[assoc1] == 2 && assoc1[\"TargetRank\"] == 2 && assoc1[\"VisitedCandidates\"] < Length[flat1] &&\n    basisLength[list1] == 2 && list1[\"TargetRank\"] == 2 &&\n    basisSubsetQ[assoc1[\"Basis\"], flat1] && basisSubsetQ[list1[\"Basis\"], flat1]\n];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 1 (4 chiral -&gt; scalar): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 1 (4 chiral -> scalar): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "430a6df8-0ea1-402c-a457-4970f30ffc13",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082961658,
+     "endTime": 1773082962964
+    },
+    "executionOrder": 11,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "groups2 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat2 = flattenCandidates[groups2];\nassoc2 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist2 = findIndependentTensorStructures[flat2, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest2 = testReport[\n  \"Test 2 (2 chiral + 2 antichiral -> scalar)\",\n  Length[flat2] == 17 &&\n    basisLength[assoc2] == 3 && assoc2[\"TargetRank\"] == 3 &&\n    basisLength[list2] == 3 && list2[\"TargetRank\"] == 3 &&\n    basisSubsetQ[assoc2[\"Basis\"], flat2] && basisSubsetQ[list2[\"Basis\"], flat2]\n];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 2 (2 chiral + 2 antichiral -&gt; scalar): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 2 (2 chiral + 2 antichiral -> scalar): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "26bff1d7-d9cd-4fba-aa7a-611879136cf9",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082962964,
+     "endTime": 1773082964002
+    },
+    "executionOrder": 16,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "groups3 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>\n];\nflat3 = flattenCandidates[groups3];\nassoc3 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist3 = findIndependentTensorStructures[flat3, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest3 = testReport[\n  \"Test 3 (mixed -> vector + spinor)\",\n  Length[flat3] == 17 &&\n    basisLength[assoc3] == 5 && assoc3[\"TargetRank\"] == 5 &&\n    basisLength[list3] == 5 && list3[\"TargetRank\"] == 5 &&\n    basisSubsetQ[assoc3[\"Basis\"], flat3] && basisSubsetQ[list3[\"Basis\"], flat3]\n];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 3 (mixed -&gt; vector + spinor): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 3 (mixed -> vector + spinor): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "f428be40-a10d-40dd-94a0-31333908af9b",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082964003,
+     "endTime": 1773082966916
+    },
+    "executionOrder": 21,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## High-Rank Regression",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "groups4 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>\n];\nflat4 = flattenCandidates[groups4];\nassoc4 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist4 = findIndependentTensorStructures[flat4, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest4 = testReport[\n  \"Test 4 (5 chiral -> 1 chiral)\",\n  Length[flat4] == 540 &&\n    Sort[Keys[assoc4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    Sort[Keys[list4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    basisLength[assoc4] == 16 && assoc4[\"TargetRank\"] == 16 && assoc4[\"VisitedCandidates\"] == 16 &&\n    basisLength[list4] == 16 && list4[\"TargetRank\"] == 16 && list4[\"VisitedCandidates\"] == 16 &&\n    assoc4[\"Basis\"] === list4[\"Basis\"]\n];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 4 (5 chiral -&gt; 1 chiral): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 4 (5 chiral -> 1 chiral): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "65e53cca-f939-46f9-8eec-56904a4f7b8e",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082966916,
+     "endTime": 1773082977186
+    },
+    "executionOrder": 26,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "rank3Factor = Private`candidateFactors[flat4[[16]]][[2]];\nmixedFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ flat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] &&\n      Length[parts[\"VectorLinks\"]] == 1 &&\n      Head[First[parts[\"VectorLinks\"]]] === GammaUDHold &&\n      parts[\"CTag\"] === None &&\n      parts[\"TailLinks\"] === {}\n  ] &,\n  Missing[\"NotFound\"]\n];\n\nruntime4 = Private`listSelectionRuntime[flat4, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 16, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 16];\nprobe4 = runtime4[\"Probes\"][[1]];\nprimeData4 = runtime4[\"PrimeData\"][32009];\nrank3Parts = Private`gammaFactorPartsSelector[rank3Factor];\nrank3Spin1 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[1]]];\nrank3Spin2 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[2]]];\nrank3MatrixAssoc = Private`gammaFactorMatrixAssociation[rank3Parts, primeData4];\nrank3Scratch = matrixCoeffsFromAssociation[rank3MatrixAssoc, rank3Spin1, rank3Spin2, primeData4[\"Prime\"]];\nrank3Coeffs = Private`gammaFactorCoefficientAssociation[rank3Factor, probe4, primeData4];\n\nruntime3 = Private`listSelectionRuntime[flat3, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 5];\nprobe3 = runtime3[\"Probes\"][[1]];\nprimeData3 = runtime3[\"PrimeData\"][32009];\nmixedParts = Private`gammaFactorPartsSelector[mixedFactor];\nmixedSpin1 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[1]]];\nmixedSpin2 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[2]]];\nmixedMatrixAssoc = Private`gammaFactorMatrixAssociation[mixedParts, primeData3];\nmixedScratch = matrixCoeffsFromAssociation[mixedMatrixAssoc, mixedSpin1, mixedSpin2, primeData3[\"Prime\"]];\nmixedCoeffs = Private`gammaFactorCoefficientAssociation[mixedFactor, probe3, primeData3];\n\ntest5 = testReport[\n  \"Test 5 (matrix coefficient path)\",\n  mixedFactor =!= Missing[\"NotFound\"] &&\n    assocEntriesQ[rank3Coeffs, rank3Scratch] &&\n    assocEntriesQ[mixedCoeffs, mixedScratch]\n];",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 5 (matrix coefficient path): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 5 (matrix coefficient path): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "46997367-49b9-432b-ab1e-7e8bf27c5168",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082977187,
+     "endTime": 1773082978916
+    },
+    "executionOrder": 31,
+    "success": true
+   }
+  },
+  {
+   "kind": 1,
+   "value": "## Validation",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "badPrime1 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {32011}], {findIndependentTensorStructures::badprime}];\nbadPrime2 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\nbadTarget = Quiet[findIndependentTensorStructures[flat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\ntooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a3, \"chiral\"}, {a4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\ninvalidExplicit = Quiet[\n  findIndependentTensorStructures[{GammaUDHold[mu]}],\n  {findIndependentTensorStructures::badarg}\n];\nunreachable = Quiet[\n  findIndependentTensorStructures[flat1, \"TargetRank\" -> 20],\n  {findIndependentTensorStructures::targetunmet}\n];\n\ntest6 = testReport[\n  \"Test 6 (option validation)\",\n  badPrime1 === $Failed &&\n    badPrime2 === $Failed &&\n    badTarget === $Failed &&\n    tooManyOut === $Failed &&\n    invalidExplicit === $Failed &&\n    unreachable === $Failed\n];\n\nallTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<pre>Test 6 (option validation): PASSED\n</pre>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "\"Test 6 (option validation): PASSED\\n\"",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "8f76ec68-6b8e-47e5-a280-2fa27aeb19d1",
+     "metadata": {
+      "cellLabel": "",
+      "isBoxData": false
+     }
+    },
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><w>True</w></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "True",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "df7ba1d3-95e8-4e92-b0a8-2ccb70802950",
+     "metadata": {
+      "cellLabel": "Out[59]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1773082978917,
+     "endTime": 1773083000870
+    },
+    "executionOrder": 52,
+    "success": true
+   }
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

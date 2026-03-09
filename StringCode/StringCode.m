@@ -43,6 +43,7 @@ AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext,
 AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Operators`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"];

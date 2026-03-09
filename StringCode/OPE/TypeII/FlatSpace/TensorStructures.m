@@ -46,7 +46,6 @@ formOrder[GammaFormUD] := 3;
 formOrder[GammaForm11UU] := 4;
 formOrder[GammaForm11DD] := 5;
 formOrder[GammaForm11UD] := 6;
-formOrder[Eps10] := 7;
 
 parseMaxKOption::usage = "parseMaxKOption[opts] extracts a nonnegative integer MaxK option, defaulting to 5.";
 parseMaxKOption[opts_List] := Module[{maxK},
@@ -330,32 +329,8 @@ buildGammaLinks[startIndex_String, vectorIndices_List] := Module[
 ];
 
 slotWithRank::usage =
-  "slotWithRank[slotBlueprint, p] creates slot data {baseHead,pOrig,pEff,hasOutgoing,pairForm,canDualize} for one rank choice.";
-slotWithRank[slot_Association, p_Integer] := Module[{canDualize},
-  canDualize = (!TrueQ[slot["hasOutgoing"]] && p > 5);
-  {slot["emitBaseForm"], p, If[canDualize, 10 - p, p], slot["hasOutgoing"], slot["pairForm"], canDualize}
-];
-
-finalizeSlotDescriptors::usage =
-  "finalizeSlotDescriptors[slotData, cMatrix] resolves which slots are dualized and returns concrete slot descriptors.";
-finalizeSlotDescriptors[slotData_List, cMatrix_List] := Module[
-  {k = Length[slotData]},
-  Table[
-    Module[{baseHead, pOrig, pDual, hasOutgoing, pairForm, canDualize, useDualize},
-      {baseHead, pOrig, pDual, hasOutgoing, pairForm, canDualize} = slotData[[i]];
-      useDualize = TrueQ[canDualize];
-      {
-        baseHead,
-        pOrig,
-        If[useDualize, pDual, pOrig],
-        hasOutgoing,
-        pairForm,
-        useDualize
-      }
-    ],
-    {i, 1, k}
-  ]
-];
+  "slotWithRank[slotBlueprint, p] creates slot data {baseHead, rank, hasOutgoing, pairForm} for one rank choice.";
+slotWithRank[slot_Association, p_Integer] := {slot["emitBaseForm"], p, slot["hasOutgoing"], slot["pairForm"]};
 
 canonicalizeAbstractStructure::usage =
   "canonicalizeAbstractStructure[slots, extCounts, cMatrix] canonicalizes under permutations within equal non-outgoing form classes.";
@@ -364,12 +339,12 @@ canonicalizeAbstractStructure[slots_List, extCounts_List, cMatrix_List] := Modul
     k = Length[slots], outgoingPos, permutable, groups, permBlocks, blockChoices,
     basePerm, perm, candidates = {}, g, choice, slotRep, key, slotPerm, extPerm, cPerm
   },
-  outgoingPos = FirstPosition[slots, {_, _, _, True, _, _}, Missing["NotFound"]];
+  outgoingPos = FirstPosition[slots, {_, _, True, _}, Missing["NotFound"]];
   permutable = Complement[
     Range[k],
     If[outgoingPos === Missing["NotFound"], {}, {outgoingPos[[1]]}]
   ];
-  groups = Values @ GroupBy[permutable, {slots[[#, 1]], slots[[#, 5]], Boole[slots[[#, 6]]]} &];
+  groups = Values @ GroupBy[permutable, {slots[[#, 1]], slots[[#, 4]]} &];
   permBlocks = Permutations /@ groups;
   blockChoices = If[permBlocks === {}, {{}}, Tuples[permBlocks]];
   Do[
@@ -383,7 +358,7 @@ canonicalizeAbstractStructure[slots_List, extCounts_List, cMatrix_List] := Modul
     slotPerm = slots[[perm]];
     extPerm = extCounts[[perm]];
     cPerm = cMatrix[[perm, perm]];
-    slotRep = ({formOrder[#[[1]]], #[[2]], #[[3]], Boole[#[[4]]], formOrder[#[[5]]], Boole[#[[6]]]} &) /@ slotPerm;
+    slotRep = ({formOrder[#[[1]]], #[[2]], Boole[#[[3]]], formOrder[#[[4]]]} &) /@ slotPerm;
     key = {slotRep, extPerm, upperTriangleValues[cPerm]};
     AppendTo[candidates, <|"slots" -> slotPerm, "externalCounts" -> extPerm, "contractionMatrix" -> cPerm, "key" -> key|>],
     {g, Length[blockChoices]}
@@ -408,9 +383,8 @@ abstractSortKey[abstract_Association] := Module[
     Sequence @@ typeConfigFromSlots[slots],
     formOrder /@ slots[[All, 1]],
     slots[[All, 2]],
-    slots[[All, 3]],
-    formOrder /@ slots[[All, 5]],
-    Boole /@ slots[[All, 6]],
+    Boole /@ slots[[All, 3]],
+    formOrder /@ slots[[All, 4]],
     ext,
     upperTriangleValues[c]
   }
@@ -422,7 +396,7 @@ generateAbstractStructures[inSpinors_List, outSpinor_, nExtVec_Integer] := Modul
   {
     allSpinors, nChiral, nAnti, typeConfigs, canonicalByKey = <||>,
     cfg, outPairForms, outPairForm, slotBlueprint, pSets, pTuples, pTuple,
-    slotsWithRankData, slotsWithP, pOrigTuple, extDistributions, extCounts, dummyCounts, cMats, cMat,
+    slotsWithRankData, pOrigTuple, extDistributions, extCounts, dummyCounts, cMats, cMat,
     canonical, contractionCache = <||>, extDistCache = <||>, extKey, dummyKey
   },
   allSpinors = Join[inSpinors, If[outSpinor === None, {}, {outSpinor}]];
@@ -452,8 +426,7 @@ generateAbstractStructures[inSpinors_List, outSpinor_, nExtVec_Integer] := Modul
           ];
           cMats = contractionCache[dummyKey];
           Do[
-            slotsWithP = finalizeSlotDescriptors[slotsWithRankData, cMat];
-            canonical = canonicalizeAbstractStructure[slotsWithP, extCounts, cMat];
+            canonical = canonicalizeAbstractStructure[slotsWithRankData, extCounts, cMat];
             If[!KeyExistsQ[canonicalByKey, canonical["key"]],
               canonicalByKey[canonical["key"]] = canonical
             ],
@@ -585,7 +558,7 @@ spinorPlacements[slots_List, inSpinors_List, outSpinor_] := Module[
   },
   basePlacement = ConstantArray[{None, None}, k];
   Do[
-    form = slots[[slot, 5]];
+    form = slots[[slot, 4]];
     chirPair = slotSpinorChiralities[form];
     Do[
       AppendTo[openPos, <|"id" -> 2 (slot - 1) + leg, "slot" -> slot, "leg" -> leg, "chirality" -> chirPair[[leg]]|>],
@@ -595,9 +568,9 @@ spinorPlacements[slots_List, inSpinors_List, outSpinor_] := Module[
   ];
 
   If[outSpinor =!= None,
-    outgoingPos = FirstPosition[slots, {_, _, _, True, _, _}, Missing["NotFound"]];
+    outgoingPos = FirstPosition[slots, {_, _, True, _}, Missing["NotFound"]];
     If[outgoingPos === Missing["NotFound"], Return[{}]];
-    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 5]]];
+    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 4]]];
     outgoingLeg = FirstPosition[chirPair, outSpinor[[2]], Missing["NotFound"]];
     If[outgoingLeg === Missing["NotFound"], Return[{}]];
     basePlacement[[outgoingPos[[1]], outgoingLeg[[1]]]] = outSpinor[[1]];
@@ -642,7 +615,7 @@ firstSpinorPlacement[slots_List, inSpinors_List, outSpinor_] := Module[
   },
   placement = ConstantArray[{None, None}, k];
   Do[
-    form = slots[[slot, 5]];
+    form = slots[[slot, 4]];
     chirPair = slotSpinorChiralities[form];
     Do[
       AppendTo[openPos, <|"id" -> 2 (slot - 1) + leg, "slot" -> slot, "leg" -> leg, "chirality" -> chirPair[[leg]]|>],
@@ -652,9 +625,9 @@ firstSpinorPlacement[slots_List, inSpinors_List, outSpinor_] := Module[
   ];
 
   If[outSpinor =!= None,
-    outgoingPos = FirstPosition[slots, {_, _, _, True, _, _}, Missing["NotFound"]];
+    outgoingPos = FirstPosition[slots, {_, _, True, _}, Missing["NotFound"]];
     If[outgoingPos === Missing["NotFound"], Return[$Failed]];
-    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 5]]];
+    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 4]]];
     outgoingLeg = FirstPosition[chirPair, outSpinor[[2]], Missing["NotFound"]];
     If[outgoingLeg === Missing["NotFound"], Return[$Failed]];
     placement[[outgoingPos[[1]], outgoingLeg[[1]]]] = outSpinor[[1]];
@@ -727,17 +700,50 @@ firstVectorPlacement[externalCounts_List, vectorIndices_List] := Module[
   out
 ];
 
+spinorPlacementIteratorInit::usage =
+  "spinorPlacementIteratorInit[slots, inSpinors, outSpinor] initializes a deterministic resumable iterator over spinorPlacements output.";
+spinorPlacementIteratorInit[slots_List, inSpinors_List, outSpinor_] := <|
+  "Placements" -> spinorPlacements[slots, inSpinors, outSpinor],
+  "Cursor" -> 1
+|>;
+
+spinorPlacementIteratorNext::usage =
+  "spinorPlacementIteratorNext[state] advances a spinor placement iterator and returns <|\"Done\"->bool,\"State\"->...,\"Value\"->placement|> when available.";
+spinorPlacementIteratorNext[state_Association] := Module[
+  {placements, cursor, nextState},
+  placements = Lookup[state, "Placements", {}];
+  cursor = Lookup[state, "Cursor", 1];
+  If[cursor > Length[placements],
+    Return[<|"Done" -> True, "State" -> state|>]
+  ];
+  nextState = ReplacePart[state, "Cursor" -> cursor + 1];
+  <|"Done" -> False, "State" -> nextState, "Value" -> placements[[cursor]]|>
+];
+
+vectorPlacementIteratorInit::usage =
+  "vectorPlacementIteratorInit[externalCounts, vectorIndices] initializes a deterministic resumable iterator over vectorPlacements output.";
+vectorPlacementIteratorInit[externalCounts_List, vectorIndices_List] := <|
+  "Placements" -> vectorPlacements[externalCounts, vectorIndices],
+  "Cursor" -> 1
+|>;
+
+vectorPlacementIteratorNext::usage =
+  "vectorPlacementIteratorNext[state] advances a vector placement iterator and returns <|\"Done\"->bool,\"State\"->...,\"Value\"->placement|> when available.";
+vectorPlacementIteratorNext[state_Association] := Module[
+  {placements, cursor, nextState},
+  placements = Lookup[state, "Placements", {}];
+  cursor = Lookup[state, "Cursor", 1];
+  If[cursor > Length[placements],
+    Return[<|"Done" -> True, "State" -> state|>]
+  ];
+  nextState = ReplacePart[state, "Cursor" -> cursor + 1];
+  <|"Done" -> False, "State" -> nextState, "Value" -> placements[[cursor]]|>
+];
+
 buildDummyIndexSymbols::usage =
   "buildDummyIndexSymbols[count] returns deterministic dummy symbols \\[Nu]1, \\[Nu]2, ... in package context.";
 buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
   Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`" <> "\[Nu]" <> ToString[i]],
-  {i, 1, count}
-];
-
-buildDualIndexSymbols::usage =
-  "buildDualIndexSymbols[count] returns deterministic dualization symbols \\[Rho]1, \\[Rho]2, ... in package context.";
-buildDualIndexSymbols[count_Integer] := buildDualIndexSymbols[count] = Table[
-  Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`" <> "\[Rho]" <> ToString[i]],
   {i, 1, count}
 ];
 
@@ -757,16 +763,16 @@ gammaChainStartIndex[emitBaseForm_, cTag_] /; MemberQ[{CUDHold, CDUHold}, cTag] 
   flipChainIndex[initialChainIndex[emitBaseForm]];
 gammaChainStartIndex[emitBaseForm_, _] := initialChainIndex[emitBaseForm];
 
-gammaProductFromParts::usage =
-  "gammaProductFromParts[cTag, links, spinor1, spinor2] emits GammaProductHold[linksWithOptionalCTag, spinor1, spinor2].";
-gammaProductFromParts[None, links_List, spinor1_, spinor2_] := GammaProductHold[links, spinor1, spinor2];
-gammaProductFromParts[cTag_, links_List, spinor1_, spinor2_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
-  GammaProductHold[Prepend[links, cTag], spinor1, spinor2];
-gammaProductFromParts[_, links_List, spinor1_, spinor2_] := GammaProductHold[links, spinor1, spinor2];
+gammaAntisymmetricProductFromParts::usage =
+  "gammaAntisymmetricProductFromParts[cTag, links, spinor1, spinor2] emits GammaAntisymmetricProductHold[linksWithOptionalCTag, spinor1, spinor2].";
+gammaAntisymmetricProductFromParts[None, links_List, spinor1_, spinor2_] := GammaAntisymmetricProductHold[links, spinor1, spinor2];
+gammaAntisymmetricProductFromParts[cTag_, links_List, spinor1_, spinor2_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
+  GammaAntisymmetricProductHold[Prepend[links, cTag], spinor1, spinor2];
+gammaAntisymmetricProductFromParts[_, links_List, spinor1_, spinor2_] := GammaAntisymmetricProductHold[links, spinor1, spinor2];
 
-buildGammaProduct::usage =
-  "buildGammaProduct[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one GammaProductHold chain factor.";
-buildGammaProduct[
+buildGammaAntisymmetricProduct::usage =
+  "buildGammaAntisymmetricProduct[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one GammaAntisymmetricProductHold chain factor.";
+buildGammaAntisymmetricProduct[
   emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
 ] := Module[
   {cTag, startIndex, links, lastIndexType, tailHead},
@@ -777,11 +783,8 @@ buildGammaProduct[
     tailHead = gamma11TailHeadForIndex[lastIndexType];
     links = Append[links, tailHead[]];
   ];
-  gammaProductFromParts[cTag, links, spinor1, spinor2]
+  gammaAntisymmetricProductFromParts[cTag, links, spinor1, spinor2]
 ];
-
-buildEpsilonFactor::usage = "buildEpsilonFactor[upIndices, downIndices] builds explicit Levi-Civita tensor factor.";
-buildEpsilonFactor[upIndices_List, downIndices_List] := Eps10[upIndices, downIndices];
 
 symbolSortKey::usage = "symbolSortKey[sym] gives a deterministic ordering key for symbolic indices.";
 symbolSortKey[sym_Symbol] := SymbolName[Unevaluated[sym]];
@@ -803,8 +806,8 @@ buildConcreteStructure::usage =
 buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacement_List] := Module[
   {
     k = Length[slots], slotVectorsOrig, dummyTotal, dummies, cursor = 1,
-    i, j, count, pairDummies, dualTotal, dualSymbols, dualCursor = 1,
-    factors, factorCursor = 1, baseHead, pOrig, pGamma, hasOutgoing, pairForm, dualizeQ, gammaVecs, dualVecs, nDualFactors
+    i, j, count, pairDummies,
+    factors, factorCursor = 1, baseHead, pRank, hasOutgoing, pairForm, gammaVecs
   },
   slotVectorsOrig = extPlacement;
   dummyTotal = Total[upperTriangleValues[cMatrix]];
@@ -820,28 +823,17 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
       ];
     ];
   ];
-  dualTotal = Total[If[TrueQ[#[[6]]], #[[3]], 0] & /@ slots];
-  dualSymbols = buildDualIndexSymbols[dualTotal];
-  nDualFactors = Count[slots[[All, 6]], True];
-  factors = ConstantArray[Null, k + nDualFactors];
+  factors = ConstantArray[Null, k];
   For[i = 1, i <= k, i++,
-    {baseHead, pOrig, pGamma, hasOutgoing, pairForm, dualizeQ} = slots[[i]];
+    {baseHead, pRank, hasOutgoing, pairForm} = slots[[i]];
     gammaVecs = slotVectorsOrig[[i]];
-    If[TrueQ[dualizeQ],
-      dualVecs = Take[dualSymbols, {dualCursor, dualCursor + pGamma - 1}];
-      dualCursor += pGamma;
-      factors[[factorCursor]] = buildEpsilonFactor[gammaVecs, dualVecs];
-      factorCursor += 1;
-      gammaVecs = dualVecs;
-    ];
-    factors[[factorCursor]] = buildGammaProduct[
+    factors[[factorCursor]] = buildGammaAntisymmetricProduct[
       baseHead,
       pairForm,
       hasOutgoing,
       gammaVecs,
       spinPlacement[[i, 1]],
-      spinPlacement[[i, 2]],
-      dualizeQ
+      spinPlacement[[i, 2]]
     ];
     factorCursor += 1;
   ];
@@ -851,8 +843,8 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
 spinorPlacementCacheKey::usage =
   "spinorPlacementCacheKey[slots, outSpinor] builds a cache key for spinor placement enumeration from slot chirality layout.";
 spinorPlacementCacheKey[slots_List, outSpinor_] := Module[{forms, outgoing},
-  forms = slots[[All, 5]];
-  outgoing = slots[[All, 4]];
+  forms = slots[[All, 4]];
+  outgoing = slots[[All, 3]];
   {forms, outgoing, If[outSpinor === None, None, outSpinor[[2]]]}
 ];
 
@@ -891,7 +883,7 @@ slotSpinPairForKey[slot_List, spinPair_List, spinRank_Association] := Module[{r1
   r1 = Lookup[spinRank, spinPair[[1]], Infinity];
   r2 = Lookup[spinRank, spinPair[[2]], Infinity];
   If[
-  MemberQ[{GammaFormUU, GammaFormDD}, slot[[5]]],
+  MemberQ[{GammaFormUU, GammaFormDD}, slot[[4]]],
   If[r1 <= r2, {r1, r2}, {r2, r1}],
   {r1, r2}
 ]
@@ -941,6 +933,72 @@ uniquePlacementPairs[
   harvested = First[harvested];
   harvested = SortBy[harvested, #[[3]] &];
   harvested[[All, {1, 2}]]
+];
+
+placementPairIteratorInit::usage =
+  "placementPairIteratorInit[slots, extCounts, inSpinors, outSpinor, vectorIndices, automorphisms, spinRank, vecRank] initializes a resumable orbit-deduplicating iterator over concrete placement pairs.";
+placementPairIteratorInit[
+  slots_List, extCounts_List, inSpinors_List, outSpinor_, vectorIndices_List,
+  automorphisms_List, spinRank_Association, vecRank_Association
+] := <|
+  "Slots" -> slots,
+  "SpinorState" -> spinorPlacementIteratorInit[slots, inSpinors, outSpinor],
+  "CurrentSpinPlacement" -> None,
+  "VectorState" -> vectorPlacementIteratorInit[extCounts, vectorIndices],
+  "Automorphisms" -> automorphisms,
+  "SpinRank" -> spinRank,
+  "VectorRank" -> vecRank,
+  "SeenOrbitKeys" -> <||>
+|>;
+
+placementPairIteratorNext::usage =
+  "placementPairIteratorNext[state] advances a placement-pair iterator and returns the next unseen orbit representative as <|\"Done\"->bool,\"State\"->...,\"Value\"->{spinPlacement,vecPlacement},\"OrbitKey\"->key|>.";
+placementPairIteratorNext[state_Association] := Module[
+  {
+    nextState = state, slots, spinorResult, vectorResult, spinPlacement, vecPlacement,
+    automorphisms, spinRank, vecRank, orbitKey, seen
+  },
+  slots = Lookup[nextState, "Slots", {}];
+  automorphisms = Lookup[nextState, "Automorphisms", {}];
+  spinRank = Lookup[nextState, "SpinRank", <||>];
+  vecRank = Lookup[nextState, "VectorRank", <||>];
+  seen = Lookup[nextState, "SeenOrbitKeys", <||>];
+  While[True,
+    If[Lookup[nextState, "CurrentSpinPlacement", None] === None,
+      spinorResult = spinorPlacementIteratorNext[Lookup[nextState, "SpinorState"]];
+      nextState = ReplacePart[nextState, "SpinorState" -> spinorResult["State"]];
+      If[TrueQ[spinorResult["Done"]],
+        Return[<|"Done" -> True, "State" -> nextState|>]
+      ];
+      nextState = ReplacePart[nextState, {
+        "CurrentSpinPlacement" -> spinorResult["Value"],
+        "VectorState" -> <|
+          "Placements" -> Lookup[Lookup[nextState, "VectorState"], "Placements", {}],
+          "Cursor" -> 1
+        |>
+      }];
+    ];
+    spinPlacement = Lookup[nextState, "CurrentSpinPlacement", None];
+    vectorResult = vectorPlacementIteratorNext[Lookup[nextState, "VectorState"]];
+    nextState = ReplacePart[nextState, "VectorState" -> vectorResult["State"]];
+    If[TrueQ[vectorResult["Done"]],
+      nextState = ReplacePart[nextState, "CurrentSpinPlacement" -> None];
+      Continue[];
+    ];
+    vecPlacement = vectorResult["Value"];
+    orbitKey = placementOrbitKey[slots, spinPlacement, vecPlacement, automorphisms, spinRank, vecRank];
+    If[KeyExistsQ[seen, orbitKey],
+      Continue[];
+    ];
+    seen[orbitKey] = True;
+    nextState = ReplacePart[nextState, "SeenOrbitKeys" -> seen];
+    Return[<|
+      "Done" -> False,
+      "State" -> nextState,
+      "Value" -> {spinPlacement, vecPlacement},
+      "OrbitKey" -> orbitKey
+    |>];
+  ]
 ];
 
 generateTensorStructures::usage = "generateTensorStructures[incoming, outgoing, opts] enumerates grouped Clifford tensor structures.";

@@ -89,8 +89,11 @@ Gamma11UU::usage =
 Gamma11DD::usage =
   "Gamma11DD is the exact 16x16 antichiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
+GammaAntisymmetricProductHold::usage =
+  "GammaAntisymmetricProductHold[{link1,...}, alpha, beta] denotes an inert antisymmetrized gamma tensor structure between spinor endpoints; when needed, CUDHold/CDUHold appears as the first list element.";
+
 GammaProductHold::usage =
-  "GammaProductHold[{link1,...}, alpha, beta] denotes an inert ordered gamma-chain tensor structure between spinor endpoints; when needed, CUDHold/CDUHold appears as the first list element.";
+  "GammaProductHold[{link1,...}, alpha, beta] is a deprecated alias for GammaAntisymmetricProductHold[{link1,...}, alpha, beta].";
 
 GammaUDHold::usage =
   "GammaUDHold[mu] denotes an inert single-link gamma block carrying chiral-to-antichiral spinor index flow.";
@@ -105,10 +108,10 @@ Gamma11DDHold::usage =
   "Gamma11DDHold[] denotes an inert chirality-preserving Gamma11 insertion with antichiral end-index type.";
 
 CUDHold::usage =
-  "CUDHold denotes an inert charge-conjugation insertion used as the first element in GammaProductHold link lists for incoming chiral-chiral chains.";
+  "CUDHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming chiral-chiral chains.";
 
 CDUHold::usage =
-  "CDUHold denotes an inert charge-conjugation insertion used as the first element in GammaProductHold link lists for incoming antichiral-antichiral chains.";
+  "CDUHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming antichiral-antichiral chains.";
 
 CGammaHold::usage = "CGammaHold[{mu1,...}, alpha, beta] denotes an inert Clifford tensor with two chiral spinor indices.";
 
@@ -125,9 +128,6 @@ Gamma11CIGammaHold::usage =
 Gamma11GammaMHold::usage =
   "Gamma11GammaMHold[{mu1,...}, alpha, beta] denotes an inert Gamma11 times mixed-chirality Clifford tensor.";
 
-Eps10::usage =
-  "Eps10[upIndices, downIndices] denotes the 10D Levi-Civita tensor with explicit upper/lower index lists.";
-
 
 Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion and spin fields into the bosonized H-boson basis.";
 
@@ -137,6 +137,11 @@ Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion a
 
 
 Begin["Private`"];
+
+
+GammaProductHold::usage =
+  "GammaProductHold[args___] rewrites the deprecated held-head spelling to GammaAntisymmetricProductHold[args].";
+GammaProductHold[args___] := GammaAntisymmetricProductHold[args];
 
 
 (* ::Subsection:: *)
