@@ -113,8 +113,13 @@ automaticAssociationTargetRank[data_Association] := Module[{nChiral, nAnti},
   countSinglets[nChiral, nAnti, Length[data["ExternalVectors"]]]
 ];
 
-scanOrFail::usage = "scanOrFail[candidates, targetRank, optsAssoc] runs the explicit-list selector and emits badarg on parse failure.";
-scanOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanCandidateList[candidates, targetRank, optsAssoc]},
+scanParsedOrFail::usage = "scanParsedOrFail[candidates, targetRank, optsAssoc] runs the parsed-list selector and emits badarg on parse failure.";
+scanParsedOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanCandidateList[candidates, targetRank, optsAssoc]},
+  If[result === $Failed, Message[findIndependentTensorStructures::badarg]; $Failed, result]
+];
+
+scanRawOrFail::usage = "scanRawOrFail[candidates, targetRank, optsAssoc] runs the raw-list lazy selector and emits badarg on parse failure.";
+scanRawOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanRawCandidateList[candidates, targetRank, optsAssoc]},
   If[result === $Failed, Message[findIndependentTensorStructures::badarg]; $Failed, result]
 ];
 
@@ -128,7 +133,7 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
   targetRank = If[targetRank === Automatic, automaticAssociationTargetRank[searchData], targetRank];
   If[targetRank === 0, Return[selectorResult[{}, 0, 0, optsAssoc]]];
   candidates = normalizeCandidateInput @ generateTensorStructures[searchData["Incoming"], searchData["Outgoing"]];
-  scanResult = scanOrFail[candidates, targetRank, optsAssoc];
+  scanResult = scanRawOrFail[candidates, targetRank, optsAssoc];
   If[scanResult === $Failed, Return[$Failed]];
   If[Length[scanResult["Basis"]] < targetRank,
     Message[findIndependentTensorStructures::targetunmet, targetRank, Length[scanResult["Basis"]]];
@@ -148,7 +153,11 @@ findIndependentTensorStructures[candidates_List, opts___Rule] := Module[
     If[targetRank =!= 0, Message[findIndependentTensorStructures::targetunmet, targetRank, 0]; Return[$Failed]];
     Return[selectorResult[{}, 0, 0, optsAssoc]];
   ];
-  scanResult = scanOrFail[normalizedCandidates, targetRank, optsAssoc];
+  scanResult = If[
+    AllTrue[normalizedCandidates, MatchQ[#, _Association] &],
+    scanParsedOrFail[normalizedCandidates, targetRank, optsAssoc],
+    scanRawOrFail[normalizedCandidates, targetRank, optsAssoc]
+  ];
   If[scanResult === $Failed, Return[$Failed]];
   If[targetRank =!= Automatic && Length[scanResult["Basis"]] < targetRank,
     Message[findIndependentTensorStructures::targetunmet, targetRank, Length[scanResult["Basis"]]];

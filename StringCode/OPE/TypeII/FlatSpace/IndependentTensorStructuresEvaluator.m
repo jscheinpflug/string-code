@@ -206,11 +206,9 @@ gammaFactorMatrixCoefficientAssociation[matrixAssoc_Association, spin1_List, spi
   Last[#] =!= 0 &
 ];
 
-gammaFactorCoefficientAssociation::usage = "gammaFactorCoefficientAssociation[factor, probe, primeData] returns alternating-form coefficients for one gamma factor after spinor contraction.";
-gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Association] := Module[
-  {parts, spin1, spin2, key, cached, complementData, lowCoeffs, matrixAssoc, prime = primeData["Prime"]},
-  parts = gammaFactorPartsSelector[factor];
-  If[parts === $Failed, Return[$Failed]];
+gammaFactorCoefficientAssociation::usage = "gammaFactorCoefficientAssociation[factorOrParts, probe, primeData] returns alternating-form coefficients for one gamma factor after spinor contraction.";
+gammaFactorCoefficientAssociation[parts_Association, probe_Association, primeData_Association] := Module[
+  {spin1, spin2, key, cached, complementData, lowCoeffs, matrixAssoc, prime = primeData["Prime"]},
   spin1 = Lookup[probe["SpinorComponents"], parts["Spinors"][[1]], Missing["Unassigned"]];
   spin2 = Lookup[probe["SpinorComponents"], parts["Spinors"][[2]], Missing["Unassigned"]];
   If[!VectorQ[spin1, IntegerQ] || !VectorQ[spin2, IntegerQ], Return[$Failed]];
@@ -221,7 +219,7 @@ gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Associat
     Length[parts["VectorLinks"]] > 5 && parts["TailLinks"] === {},
     complementData = highRankComplementData[parts, primeData];
     If[complementData === $Failed, Return[$Failed]];
-    lowCoeffs = gammaFactorCoefficientAssociation[syntheticFactorFromParts[complementData["LowParts"]], probe, primeData];
+    lowCoeffs = gammaFactorCoefficientAssociation[complementData["LowParts"], probe, primeData];
     If[lowCoeffs === $Failed, Return[$Failed]];
     Association @ Select[
       Table[
@@ -237,6 +235,10 @@ gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Associat
   If[parts["VectorLinks"] === {} && !KeyExistsQ[cached, {}], cached = Join[cached, <|{} -> 0|>]];
   AssociateTo[gammaFactorCoefficientAssociationCache, key -> cached];
   cached
+];
+gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Association] := Module[{parts},
+  parts = gammaFactorPartsSelector[factor];
+  If[parts === $Failed, $Failed, gammaFactorCoefficientAssociation[parts, probe, primeData]]
 ];
 
 formCoefficientValue::usage = "formCoefficientValue[coefficients, tuple, prime] evaluates one alternating-form coefficient table on an ordered basis tuple.";
@@ -322,6 +324,33 @@ factorDummyBlocks[parts_Association, factorIndex_Integer, dummyLocations_Associa
   blocks
 ];
 
+candidateExternalVectorSymbolSetKey::usage = "candidateExternalVectorSymbolSetKey[probe] returns a deterministic key for the set of external vectors assigned by one probe.";
+candidateExternalVectorSymbolSetKey[probe_Association] := SortBy[Keys[Lookup[probe, "VectorComponents", <||>]], SymbolName];
+
+candidateStructureCache::usage = "candidateStructureCache memoizes dummy-symbol incidence and per-factor dummy blocks by candidate and external-vector symbol set.";
+candidateStructureCache = <||>;
+
+candidateStructureCacheKey::usage = "candidateStructureCacheKey[candidate, probe] builds the cache key for candidate structure data.";
+candidateStructureCacheKey[candidate_Association, probe_Association] := {candidate["Key"], candidateExternalVectorSymbolSetKey[probe]};
+
+candidateStructureData::usage = "candidateStructureData[candidate, probe] returns cached dummy-symbol incidence and per-factor dummy blocks.";
+candidateStructureData[candidate_Association, probe_Association] := Module[
+  {key, cached, dummyLocations, factorBlocks},
+  key = candidateStructureCacheKey[candidate, probe];
+  cached = associationLookup[candidateStructureCache, key, Missing["NotFound"]];
+  If[cached =!= Missing["NotFound"], Return[cached]];
+  dummyLocations = dummySymbolLocations[candidate, probe];
+  If[dummyLocations === $Failed, Return[$Failed]];
+  factorBlocks = Table[
+    factorDummyBlocks[candidate["FactorParts"][[i]], i, dummyLocations, probe],
+    {i, Length[candidate["FactorParts"]]}
+  ];
+  If[AnyTrue[factorBlocks, # === $Failed &], Return[$Failed]];
+  cached = <|"DummyLocations" -> dummyLocations, "FactorBlocks" -> factorBlocks|>;
+  AssociateTo[candidateStructureCache, key -> cached];
+  cached
+];
+
 blockTensorFromReducedCoefficients::usage = "blockTensorFromReducedCoefficients[coefficients, blocks, prime] builds one sparse block tensor from reduced factor coefficients.";
 blockTensorFromReducedCoefficients[coefficients_Association, blocks_List, prime_Integer] := If[
   blocks === {},
@@ -353,14 +382,14 @@ probeCacheKey[probe_Association] := {
   orderedAssociationRules[Lookup[probe, "VectorComponents", <||>]]
 };
 
-factorBlockTensor::usage = "factorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData] builds one sparse block tensor for one parsed factor.";
-factorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Association, probe_Association, primeData_Association] := Module[
+factorBlockTensor::usage = "factorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData] builds one sparse block tensor for one parsed factor.";
+factorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List, probe_Association, primeData_Association] := Module[
   {parts, coeffs, reduced, blocks, entryKey, entries},
   parts = candidate["FactorParts"][[factorIndex]];
-  coeffs = gammaFactorCoefficientAssociation[candidate["Factors"][[factorIndex]], probe, primeData];
+  coeffs = gammaFactorCoefficientAssociation[parts, probe, primeData];
   If[coeffs === $Failed, Return[$Failed]];
   reduced = reduceFactorCoefficientsByExternalVectors[coeffs, parts["VectorSymbols"], probe, primeData["Prime"]];
-  blocks = factorDummyBlocks[parts, factorIndex, dummyLocations, probe];
+  blocks = factorBlocks;
   If[blocks === $Failed || Total[Length /@ blocks] =!= Length[reduced["DummySymbols"]], Return[$Failed]];
   entryKey = {primeData["Prime"], Length /@ blocks, coefficientAssociationKey[reduced["Coefficients"]]};
   entries = associationLookup[factorBlockTensorEntryCache, entryKey, Missing["NotFound"]];
@@ -371,13 +400,13 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Ass
   <|"Blocks" -> blocks, "Entries" -> entries|>
 ];
 
-cachedFactorBlockTensor::usage = "cachedFactorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData] memoizes sparse block tensors across selector probes.";
-cachedFactorBlockTensor[candidate_Association, factorIndex_Integer, dummyLocations_Association, probe_Association, primeData_Association] := Module[
+cachedFactorBlockTensor::usage = "cachedFactorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData] memoizes sparse block tensors across selector probes.";
+cachedFactorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List, probe_Association, primeData_Association] := Module[
   {key, cached},
   key = {primeData["Prime"], probeCacheKey[probe], factorIndex, candidate["Key"]};
   cached = associationLookup[factorBlockTensorProbeCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
-  cached = factorBlockTensor[candidate, factorIndex, dummyLocations, probe, primeData];
+  cached = factorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData];
   AssociateTo[factorBlockTensorProbeCache, key -> cached];
   cached
 ];
@@ -434,10 +463,11 @@ reduceBlockTensorNetwork[tensors_List, prime_Integer] := Module[{work = tensors,
 ];
 
 evaluateCandidateAtProbe::usage = "evaluateCandidateAtProbe[candidate, probe, primeData] evaluates one parsed or raw candidate expression at one modular probe.";
-evaluateCandidateAtProbe[candidate_Association, probe_Association, primeData_Association] := Module[{dummyLocations, tensors},
-  dummyLocations = dummySymbolLocations[candidate, probe];
-  If[dummyLocations === $Failed, Return[$Failed]];
-  tensors = Table[cachedFactorBlockTensor[candidate, i, dummyLocations, probe, primeData], {i, Length[candidate["Factors"]]}];
+evaluateCandidateAtProbe[candidate_Association, probe_Association, primeData_Association] := Module[{structureData, tensors, factorBlocks},
+  structureData = candidateStructureData[candidate, probe];
+  If[structureData === $Failed, Return[$Failed]];
+  factorBlocks = structureData["FactorBlocks"];
+  tensors = Table[cachedFactorBlockTensor[candidate, i, factorBlocks[[i]], probe, primeData], {i, Length[candidate["Factors"]]}];
   If[AnyTrue[tensors, # === $Failed &], Return[$Failed]];
   reduceBlockTensorNetwork[tensors, primeData["Prime"]]
 ];

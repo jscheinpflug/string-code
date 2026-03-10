@@ -16,11 +16,18 @@ Needs["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresEvaluator`"];
 
 Begin["Private`"];
 
-selectorCandidates::usage = "selectorCandidates[candidates] parses one explicit candidate list into reusable selector data.";
+selectorCandidates::usage = "selectorCandidates[candidates] parses one explicit candidate list into full reusable selector data.";
 selectorCandidates[candidates_List] := Module[{parsed},
   If[candidates === {} || AllTrue[candidates, MatchQ[#, _Association] &], Return[candidates]];
   parsed = parseCandidate /@ candidates;
   If[MemberQ[parsed, $Failed], $Failed, parsed]
+];
+
+selectorCandidateMetadata::usage = "selectorCandidateMetadata[candidates] parses one explicit candidate list into metadata used for target-rank inference and runtime setup.";
+selectorCandidateMetadata[candidates_List] := Module[{metadata},
+  If[candidates === {} || AllTrue[candidates, MatchQ[#, _Association] &], Return[candidates]];
+  metadata = candidateMetadata /@ candidates;
+  If[MemberQ[metadata, $Failed], $Failed, metadata]
 ];
 
 probeModulus::usage = "probeModulus[primes] returns a shared sampling modulus whose residues are uniform modulo every selection prime.";
@@ -49,10 +56,16 @@ initialPivotState[prime_Integer] := <|"Prime" -> prime, "Rows" -> {}, "PivotColu
 
 incrementalPivotInsert::usage = "incrementalPivotInsert[state, row] inserts one modular signature row into an incremental row-echelon state.";
 incrementalPivotInsert[state_Association, row_List] := Module[
-  {reducedRow, rows, pivots, pivotPos, pivotValue, insertPos, newRows, newPivots, i},
+  {reducedRow, rows, pivots, pivotPos, pivotValue, insertPos, newRows, newPivots, i, rowLength, existingLength},
   reducedRow = Mod[row, state["Prime"]];
   rows = state["Rows"];
   pivots = state["PivotColumns"];
+  rowLength = Length[reducedRow];
+  If[rows =!= {},
+    existingLength = Length[rows[[1]]];
+    If[existingLength < rowLength, rows = (PadRight[#, rowLength] &) /@ rows];
+    If[existingLength > rowLength, reducedRow = PadRight[reducedRow, existingLength]];
+  ];
   For[i = 1, i <= Length[rows], i++,
     If[reducedRow[[pivots[[i]]]] =!= 0, reducedRow = Mod[reducedRow - reducedRow[[pivots[[i]]]] rows[[i]], state["Prime"]]];
   ];
@@ -70,15 +83,15 @@ incrementalPivotInsert[state_Association, row_List] := Module[
   <|"State" -> <|"Prime" -> state["Prime"], "Rows" -> newRows, "PivotColumns" -> newPivots|>, "RankIncreased" -> True|>
 ];
 
-selectionRuntime::usage = "selectionRuntime[parsedCandidates, optsAssoc, targetRank] initializes shared runtime state for one selector run.";
-selectionRuntime[parsedCandidates_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
+selectionRuntimeFromMetadata::usage = "selectionRuntimeFromMetadata[candidateMetadataList, optsAssoc, targetRank] initializes shared runtime state from metadata only.";
+selectionRuntimeFromMetadata[candidateMetadataList_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
   {probeCount, seed, primes, spinorMap, externalVectors, modulus},
   probeCount = Max[Lookup[optsAssoc, "ProbeCount", 5], targetRank];
   seed = Lookup[optsAssoc, "RandomSeed", Automatic];
   primes = Lookup[optsAssoc, "ModulusPrimes", {32009, 32057, 32089}];
   modulus = probeModulus[primes];
-  spinorMap = If[parsedCandidates === {}, <||>, Merge[parsedCandidates[[All, "SpinorChiralities"]], First]];
-  externalVectors = If[parsedCandidates === {}, {}, SortBy[DeleteDuplicates[Flatten[parsedCandidates[[All, "ExternalVectors"]], 1]], SymbolName]];
+  spinorMap = If[candidateMetadataList === {}, <||>, Merge[Lookup[candidateMetadataList, "SpinorChiralities", <||>], First]];
+  externalVectors = If[candidateMetadataList === {}, {}, SortBy[DeleteDuplicates[Flatten[Lookup[candidateMetadataList, "ExternalVectors", {}], 1]], SymbolName]];
   <|
     "Primes" -> primes,
     "PrimeData" -> AssociationThread[primes -> (primeEvaluationData /@ primes)],
@@ -93,6 +106,9 @@ selectionRuntime[parsedCandidates_List, optsAssoc_Association, targetRank_Intege
     "PrimeStates" -> AssociationThread[primes -> (initialPivotState /@ primes)]
   |>
 ];
+
+selectionRuntime::usage = "selectionRuntime[parsedCandidates, optsAssoc, targetRank] initializes shared runtime state for one selector run.";
+selectionRuntime[parsedCandidates_List, optsAssoc_Association, targetRank_Integer?NonNegative] := selectionRuntimeFromMetadata[parsedCandidates, optsAssoc, targetRank];
 
 listSelectionRuntime::usage = "listSelectionRuntime[candidates, optsAssoc, targetRank] initializes selector runtime for candidate-list input.";
 listSelectionRuntime[candidates_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[{parsed = selectorCandidates[candidates]},
@@ -215,14 +231,18 @@ retryDeferredQueue[runtime_Association] := Module[{nextRuntime, result},
 ];
 
 verifySelectionRuntime::usage = "verifySelectionRuntime[runtime, optsAssoc] appends verification probes, rebuilds the basis, and retries deferred candidates.";
-verifySelectionRuntime[runtime_Association, optsAssoc_Association] := retryDeferredQueue @ rebuildAcceptedBasis @ appendVerificationProbes[runtime, optsAssoc];
+verifySelectionRuntime[runtime_Association, optsAssoc_Association] := If[
+  Lookup[runtime, "DeferredQueue", {}] === {},
+  runtime,
+  retryDeferredQueue @ rebuildAcceptedBasis @ appendVerificationProbes[runtime, optsAssoc]
+];
 
 automaticCandidateTargetRank::usage = "automaticCandidateTargetRank[candidates] infers an exact singlet-count upper bound from candidate spinor chiralities and external vectors.";
-automaticCandidateTargetRank[candidates_List] := Module[{parsed, chiralityMap, nVectors, counts, flipped},
-  parsed = selectorCandidates[candidates];
-  If[parsed === $Failed || parsed === {}, Return[0]];
-  chiralityMap = Merge[parsed[[All, "SpinorChiralities"]], First];
-  nVectors = Length[DeleteDuplicates[Flatten[parsed[[All, "ExternalVectors"]], 1]]];
+automaticCandidateTargetRank[candidates_List] := Module[{metadata, chiralityMap, nVectors, counts, flipped},
+  metadata = If[candidates === {} || AllTrue[candidates, MatchQ[#, _Association] &], candidates, selectorCandidateMetadata[candidates]];
+  If[metadata === $Failed || metadata === {}, Return[0]];
+  chiralityMap = Merge[Lookup[metadata, "SpinorChiralities", <||>], First];
+  nVectors = Length[DeleteDuplicates[Flatten[Lookup[metadata, "ExternalVectors", {}], 1]]];
   counts = {
     countSinglets[Count[Values[chiralityMap], "chiral"], Count[Values[chiralityMap], "antichiral"], nVectors]
   };
@@ -239,7 +259,15 @@ automaticCandidateTargetRank[candidates_List] := Module[{parsed, chiralityMap, n
   If[counts === {}, 0, Min[counts]]
 ];
 
-scanCandidateList::usage = "scanCandidateList[candidates, targetRank, optsAssoc] scans an explicit candidate list in order and returns the verified basis and visit count.";
+parsedCandidateAtIndex::usage = "parsedCandidateAtIndex[candidates, parseCache, i] returns the parsed candidate at index i and an updated lazy parse cache.";
+parsedCandidateAtIndex[candidates_List, parseCache_Association, i_Integer?Positive] := Module[{cached, parsed},
+  cached = Lookup[parseCache, i, Missing["NotCached"]];
+  If[cached =!= Missing["NotCached"], Return[{cached, parseCache}]];
+  parsed = parseCandidate[candidates[[i]]];
+  {parsed, Join[parseCache, <|i -> parsed|>]}
+];
+
+scanCandidateList::usage = "scanCandidateList[candidates, targetRank, optsAssoc] scans a pre-parsed candidate list in order and returns the verified basis and visit count.";
 scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
   {parsed, effectiveTarget, runtime, visited = 0, result, cursor = 1, count},
   parsed = selectorCandidates[candidates];
@@ -255,6 +283,37 @@ scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module
     While[cursor <= count && Length[runtime["AcceptedCandidates"]] < effectiveTarget,
       visited++;
       result = tryAcceptCandidate[parsed[[cursor]], runtime];
+      runtime = result["Runtime"];
+      cursor++;
+    ];
+    runtime = verifySelectionRuntime[runtime, optsAssoc];
+    If[Length[runtime["AcceptedCandidates"]] >= effectiveTarget || cursor > count, Break[]];
+  ];
+  If[targetRank === Automatic, effectiveTarget = Length[runtime["AcceptedCandidates"]]];
+  <|
+    "Basis" -> runtime["AcceptedCandidates"][[All, "Expression"]],
+    "TargetRank" -> effectiveTarget,
+    "VisitedCandidates" -> visited
+  |>
+];
+
+scanRawCandidateList::usage = "scanRawCandidateList[candidates, targetRank, optsAssoc] scans a raw explicit expression list with metadata prepass and lazy full parsing.";
+scanRawCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
+  {metadata, effectiveTarget, runtime, visited = 0, result, cursor = 1, count, parseCache = <||>, parsedCandidate},
+  metadata = selectorCandidateMetadata[candidates];
+  If[metadata === $Failed, Return[$Failed]];
+  effectiveTarget = If[targetRank === Automatic, automaticCandidateTargetRank[metadata], targetRank];
+  If[effectiveTarget <= 0,
+    Return[<|"Basis" -> {}, "TargetRank" -> 0, "VisitedCandidates" -> 0|>]
+  ];
+  runtime = selectionRuntimeFromMetadata[metadata, optsAssoc, effectiveTarget];
+  count = Length[candidates];
+  While[True,
+    While[cursor <= count && Length[runtime["AcceptedCandidates"]] < effectiveTarget,
+      visited++;
+      {parsedCandidate, parseCache} = parsedCandidateAtIndex[candidates, parseCache, cursor];
+      If[parsedCandidate === $Failed, Return[$Failed]];
+      result = tryAcceptCandidate[parsedCandidate, runtime];
       runtime = result["Runtime"];
       cursor++;
     ];

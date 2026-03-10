@@ -75,6 +75,18 @@ gammaFactorPartsSelector[factor_ /; gammaProductFactorQ[factor]] := Module[
 ];
 gammaFactorPartsSelector[_] := $Failed;
 
+gammaFactorMetadataSelector::usage = "gammaFactorMetadataSelector[factor] extracts only selector metadata fields from one GammaAntisymmetricProductHold factor.";
+gammaFactorMetadataSelector[factor_ /; gammaProductFactorQ[factor]] := Module[{links, vectorLinks},
+  links = factor[[1]];
+  vectorLinks = Select[links, gammaVectorLinkQ];
+  <|
+    "Spinors" -> {factor[[2]], factor[[3]]},
+    "SpinorChiralities" -> gammaProductSpinorChiralities[links],
+    "VectorSymbols" -> (gammaLinkIndexSelector /@ vectorLinks)
+  |>
+];
+gammaFactorMetadataSelector[_] := $Failed;
+
 candidateSpinorChiralities::usage = "candidateSpinorChiralities[data] infers external spinor chiralities from one candidate expression or parsed-factor list.";
 candidateSpinorChiralities[parts_List] := Merge[
   Flatten[
@@ -88,7 +100,7 @@ candidateSpinorChiralities[parts_List] := Merge[
   ],
   First
 ];
-candidateSpinorChiralities[expr_] := candidateSpinorChiralities[gammaFactorPartsSelector /@ candidateFactors[expr]];
+candidateSpinorChiralities[expr_] := candidateSpinorChiralities[gammaFactorMetadataSelector /@ candidateFactors[expr]];
 
 generatedDummyVectorSymbolQ::usage = "generatedDummyVectorSymbolQ[sym] identifies TensorStructures dummy vector symbols built from \\[Nu]i names.";
 generatedDummyVectorSymbolQ[sym_Symbol] := With[
@@ -105,7 +117,27 @@ candidateExternalVectors[parts_List] := SortBy[
   ],
   SymbolName
 ];
-candidateExternalVectors[expr_] := candidateExternalVectors[gammaFactorPartsSelector /@ candidateFactors[expr]];
+candidateExternalVectors[expr_] := candidateExternalVectors[gammaFactorMetadataSelector /@ candidateFactors[expr]];
+
+candidateMetadata::usage = "candidateMetadata[expr] extracts selector metadata used for target-rank inference and runtime setup.";
+candidateMetadata[1] := <|
+  "Expression" -> 1,
+  "Key" -> candidateCacheKey[1],
+  "SpinorChiralities" -> <||>,
+  "ExternalVectors" -> {}
+|>;
+candidateMetadata[expr_] := Module[{factors, parts},
+  factors = candidateFactors[expr];
+  If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];
+  parts = gammaFactorMetadataSelector /@ factors;
+  If[MemberQ[parts, $Failed], Return[$Failed]];
+  <|
+    "Expression" -> expr,
+    "Key" -> candidateCacheKey[expr],
+    "SpinorChiralities" -> candidateSpinorChiralities[parts],
+    "ExternalVectors" -> candidateExternalVectors[parts]
+  |>
+];
 
 parseCandidate::usage = "parseCandidate[expr] parses one selector candidate into reusable factor, spinor, and vector metadata.";
 parseCandidate[1] := <|
