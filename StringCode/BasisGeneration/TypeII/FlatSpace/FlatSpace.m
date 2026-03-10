@@ -521,33 +521,46 @@ generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
 
 generatePsiModeConfigs[_, _] := {};
 
+derGroundStateHolo::usage =
+  "Marks derivatives acting on a Ramond holomorphic charged ground state inside matter-mode output.";
+
+derGroundStateAntiHolo::usage =
+  "Marks derivatives acting on a Ramond antiholomorphic charged ground state inside matter-mode output.";
+
 (* Generate all matter (ψ + ∂X) configurations at target weight.
-   Combines ψ configs with ∂X configs for remaining weight. *)
+   In the Ramond sector this also tracks derivatives of the charged ground state. *)
 generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
   generateMatterModeConfigs[targetWeight, picture] = Module[
-    {psiModeConfigs, collectedConfigs},
+    {groundDerivativeWeights},
     If[targetWeight < 0 || !IntegerQ[2 targetWeight],
       Return[{}]
     ];
-    psiModeConfigs = generatePsiModeConfigs[targetWeight, picture];
-    If[psiModeConfigs === {},
-      Return[{}]
-    ];
-    collectedConfigs = Reap[
-      Do[
-        Module[{psiModes, psiWeight, remainingDXWeight, dxModeConfigs, dxModes},
-          {psiModes, psiWeight} = psiConfig;
-          remainingDXWeight = targetWeight - psiWeight;
-          If[remainingDXWeight >= 0 && IntegerQ[remainingDXWeight],
-            dxModeConfigs = generateDXModeConfigs[remainingDXWeight];
-            (* Combine each ∂X config with this ψ config *)
-            Do[Sow[Join[dxModes, psiModes]], {dxModes, dxModeConfigs}]
+    groundDerivativeWeights =
+      If[IntegerQ[pictureValue[picture]] || !IntegerQ[targetWeight], {0}, Range[0, targetWeight]];
+    Flatten[
+      Table[
+        With[
+          {
+            groundDerivativeModes =
+              If[groundDerivativeWeight == 0, {}, {mode[derGroundStateHolo[groundDerivativeWeight], 0]}],
+            psiModeConfigs = generatePsiModeConfigs[targetWeight - groundDerivativeWeight, picture]
+          },
+          Flatten[
+            Function[{psiModes, psiWeight},
+              With[{remainingDXWeight = targetWeight - groundDerivativeWeight - psiWeight},
+                If[remainingDXWeight >= 0 && IntegerQ[remainingDXWeight],
+                  Join[groundDerivativeModes, #, psiModes] & /@ generateDXModeConfigs[remainingDXWeight],
+                  {}
+                ]
+              ]
+            ] @@@ psiModeConfigs,
+            1
           ]
         ],
-        {psiConfig, psiModeConfigs}
-      ]
-    ][[2]];
-    If[collectedConfigs === {}, {}, collectedConfigs[[1]]]
+        {groundDerivativeWeight, groundDerivativeWeights}
+      ],
+      1
+    ]
   ];
 
 generateMatterModeConfigs[_, _] := {};
@@ -630,9 +643,11 @@ canonicalizeLorentzIndicesModes[modes_List] := Module[
 ];
 
 (* Conformal weight contribution: mode with number n contributes -n *)
+modeWeightContribution[mode[(derGroundStateHolo | derGroundStateAntiHolo)[weight_Integer?Positive], 0]] := weight;
 modeWeightContribution[mode[_, modeNumber_]] := -modeNumber;
 
 (* Ghost number contribution of one oscillator mode. *)
+modeGhostContribution[mode[(derGroundStateHolo | derGroundStateAntiHolo)[_Integer?Positive], 0]] := 0;
 modeGhostContribution[modeObj : mode[_, _]] := Switch[
   basisModeSpecies[modeObj],
   \[Beta] | \[Beta]t, -1,
@@ -641,6 +656,7 @@ modeGhostContribution[modeObj : mode[_, _]] := Switch[
 ];
 
 (* GSO parity contribution of one oscillator mode. *)
+modeGSOParityContribution[mode[(derGroundStateHolo | derGroundStateAntiHolo)[_Integer?Positive], 0]] := 1;
 modeGSOParityContribution[modeObj : mode[_, _]] :=
   basisModeGSOParityContribution[modeObj];
 
@@ -690,6 +706,8 @@ antiModeFromHolo[mode[\[Beta], modeNumber_]] := mode[\[Beta]t, modeNumber];
 antiModeFromHolo[mode[\[Gamma], modeNumber_]] := mode[\[Gamma]t, modeNumber];
 antiModeFromHolo[mode[dX[mu_], modeNumber_]] := mode[dXt[mu], modeNumber];
 antiModeFromHolo[mode[\[Psi][mu_], modeNumber_]] := mode[\[Psi]t[mu], modeNumber];
+antiModeFromHolo[mode[derGroundStateHolo[weight_Integer?Positive], 0]] :=
+  mode[derGroundStateAntiHolo[weight], 0];
 antiModeFromHolo[modeObj : mode[_, _]] := basisAntiModeFromHolo[modeObj];
 antiModeFromHolo[modeObj_] := modeObj;
 
@@ -1050,22 +1068,30 @@ integerPictureGroundField[picture_Integer, z_] :=
   If[OddQ[picture], exp\[Phi]f[picture, z], exp\[Phi]b[picture, z]];
 
 modeListSplitForHoloConversion::usage =
-  "Splits a holomorphic mode list into {bc, superghost, dX, psi} subsectors.";
-modeListSplitForHoloConversion[modeList_List] := Module[{bcModes, superghostModes, dXModes, psiModes},
+  "Splits a holomorphic mode list into {bc, superghost, dX, psi, ground-derivative} subsectors.";
+modeListSplitForHoloConversion[modeList_List] := Module[
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes},
   bcModes = Cases[modeList, mode[(b | c), _]];
   superghostModes = Cases[modeList, mode[(\[Beta] | \[Gamma]), _]];
   dXModes = Cases[modeList, mode[dX[_], _]];
   psiModes = Cases[modeList, mode[\[Psi][_], _]];
-  {bcModes, superghostModes, dXModes, psiModes}
+  groundDerivativeModes = Cases[modeList, mode[derGroundStateHolo[_Integer?Positive], 0]];
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes}
 ];
 
+groundDerivativeOrderFromModes::usage =
+  "Returns the total Ramond charged-ground-state derivative order carried by a mode list.";
+groundDerivativeOrderFromModes[modes_List] :=
+  Total[Cases[modes, mode[derGroundStateHolo[weight_Integer?Positive], 0] :> weight, Infinity]];
+
 buildMatterOperatorFromModesAtPicture::usage =
-  "Builds the matter operator factors from dX/psi modes at a specified picture value.";
+  "Builds the matter operator factors from dX/psi modes at a specified picture value and ground-state derivative order.";
 buildMatterOperatorFromModesAtPicture[
   pictureSpec_?validPictureSpecQ,
   pictureValueNow_,
   dXModes_List,
   psiModes_List,
+  groundDerivativeOrder_Integer?NonNegative,
   z_,
   spinHead_Symbol
 ] := Module[
@@ -1078,7 +1104,7 @@ buildMatterOperatorFromModesAtPicture[
   spinModes = psiModeToSpinMode /@ psiModes;
   chirality = pictureChirality[pictureSpec];
   spinGround = Module[{\[Alpha]},
-    spinHead[{\[Alpha], chirality}, pictureValueNow, spinModes, 0, z]
+    spinHead[{\[Alpha], chirality}, pictureValueNow, spinModes, groundDerivativeOrder, z]
   ];
   R @@ Join[dXFields, {spinGround}]
 ];
@@ -1096,6 +1122,7 @@ assembleHoloOperatorFromModeList[
     superghostModes,
     dXModes,
     psiModes,
+    groundDerivativeModes,
     bcFields,
     superghostResult,
     finalPicture,
@@ -1103,7 +1130,8 @@ assembleHoloOperatorFromModeList[
     matterExpr,
     rawOperator
   },
-  {bcModes, superghostModes, dXModes, psiModes} = modeListSplitForHoloConversion[modeList];
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes} =
+    modeListSplitForHoloConversion[modeList];
   bcFields = ghostModesToOperatorFields[bcModes, z];
   superghostResult = superghostExpressionAndFinalPicture[superghostModes, pictureValue[pictureSpec]];
   finalPicture = superghostResult[[1]];
@@ -1113,6 +1141,7 @@ assembleHoloOperatorFromModeList[
     finalPicture,
     dXModes,
     psiModes,
+    groundDerivativeOrderFromModes[groundDerivativeModes],
     z,
     S
   ];
@@ -1128,6 +1157,8 @@ holoModeFromAntiMode[mode[\[Beta]t, modeNumber_]] := mode[\[Beta], modeNumber];
 holoModeFromAntiMode[mode[\[Gamma]t, modeNumber_]] := mode[\[Gamma], modeNumber];
 holoModeFromAntiMode[mode[dXt[mu_], modeNumber_]] := mode[dX[mu], modeNumber];
 holoModeFromAntiMode[mode[\[Psi]t[mu_], modeNumber_]] := mode[\[Psi][mu], modeNumber];
+holoModeFromAntiMode[mode[derGroundStateAntiHolo[weight_Integer?Positive], 0]] :=
+  mode[derGroundStateHolo[weight], 0];
 holoModeFromAntiMode[modeObj_] := modeObj;
 
 antiOperatorFromHolo::usage =
@@ -1167,7 +1198,8 @@ assembleAntiOperatorFromModeList[
 
 antiModeSpeciesQ::usage =
   "Returns True if a mode species is antiholomorphic.";
-antiModeSpeciesQ[symbol_Symbol] := MemberQ[{bt, ct, \[Beta]t, \[Gamma]t, dXt, \[Psi]t}, symbol];
+antiModeSpeciesQ[symbol_Symbol] :=
+  MemberQ[{bt, ct, \[Beta]t, \[Gamma]t, dXt, \[Psi]t, derGroundStateAntiHolo}, symbol];
 
 splitJoinedModesByChirality::usage =
   "Splits a joined closed-string mode list into {holoModes, antiModes}.";
@@ -1209,32 +1241,95 @@ closedOperatorFromJoinedModeList[
 ];
 
 convertMatterGroupToOperatorsHolo::usage =
-  "Converts one matter-mode group {picture, modeLists} to operator representation.";
-convertMatterGroupToOperatorsHolo[
+  "Converts one matter-mode group {picture, modeLists} to OPE-basis holomorphic operators.";
+groundDerivativeOPEFactorLists::usage =
+  "Returns all dphi-factor lists of a fixed total weight.";
+groundDerivativeOPEFactorLists[0, _, _] := {{}};
+groundDerivativeOPEFactorLists[weight_Integer?Positive, derivativeHead_Symbol, coord_] :=
+  (derivativeHead[# - 1, coord] & /@ #) & /@ IntegerPartitions[weight];
+
+matterOPEOperatorsFromHoloModeList::usage =
+  "Builds matter OPE-basis operators from one holomorphic matter mode list.";
+matterOPEOperatorsFromHoloModeList[
+  pictureSpec_?validPictureSpecQ,
+  modeList_List,
+  z_: 0,
+  canonicalizeIndices_: True
+] := Module[
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes, totalGroundDerivative},
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes} =
+    modeListSplitForHoloConversion[modeList];
+  totalGroundDerivative = groundDerivativeOrderFromModes[groundDerivativeModes];
+  DeleteDuplicates @ DeleteCases[
+    Flatten[
+      Table[
+        With[
+          {
+            matterExpr = buildMatterOperatorFromModesAtPicture[
+              pictureSpec,
+              pictureValue[pictureSpec],
+              dXModes,
+              psiModes,
+              totalGroundDerivative - phiWeight,
+              z,
+              S
+            ]
+          },
+          If[matterExpr === 0,
+            {},
+            canonicalizeOperatorIndicesQ[
+              canonicalizeIndices,
+              R @@ Join[#, operatorFactorsFromExpression[matterExpr]]
+            ] & /@ groundDerivativeOPEFactorLists[phiWeight, d\[Phi], z]
+          ]
+        ],
+        {phiWeight, 0, totalGroundDerivative}
+      ],
+      1
+    ],
+    0
+  ]
+];
+
+matterOPEOperatorsFromAntiModeList::usage =
+  "Builds matter OPE-basis operators from one antiholomorphic matter mode list.";
+matterOPEOperatorsFromAntiModeList[
+  pictureSpec_?validPictureSpecQ,
+  modeList_List,
+  zbar_: 0,
+  canonicalizeIndices_: True
+] := Module[{holoModes, holoOperators},
+  holoModes = holoModeFromAntiMode /@ modeList;
+  holoOperators = matterOPEOperatorsFromHoloModeList[pictureSpec, holoModes, zbar, False];
+  canonicalizeOperatorIndicesQ[canonicalizeIndices, antiOperatorFromHolo[#]] & /@ holoOperators
+];
+
+convertMatterGroupToOperators::usage =
+  "Converts one matter-mode group {picture, modeLists} using a provided mode-list to operator conversion function.";
+convertMatterGroupToOperators[
   group : {picture_?validPictureSpecQ, matterModeLists_List},
+  modeListConverter_,
   canonicalizeIndices_
 ] := Module[
   {operators},
-  operators = DeleteCases[
-    assembleHoloOperatorFromModeList[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
-    0
+  operators = Flatten[
+    modeListConverter[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
+    1
   ];
   {picture, DeleteDuplicates[operators]}
 ];
 
+convertMatterGroupToOperatorsHolo[
+  group : {picture_?validPictureSpecQ, matterModeLists_List},
+  canonicalizeIndices_
+] := convertMatterGroupToOperators[group, matterOPEOperatorsFromHoloModeList, canonicalizeIndices];
+
 convertMatterGroupToOperatorsAnti::usage =
-  "Converts one antiholomorphic matter-mode group {picture, modeLists} to operator representation.";
+  "Converts one antiholomorphic matter-mode group {picture, modeLists} to OPE-basis operators.";
 convertMatterGroupToOperatorsAnti[
   group : {picture_?validPictureSpecQ, matterModeLists_List},
   canonicalizeIndices_
-] := Module[
-  {operators},
-  operators = DeleteCases[
-    assembleAntiOperatorFromModeList[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
-    0
-  ];
-  {picture, DeleteDuplicates[operators]}
-];
+] := convertMatterGroupToOperators[group, matterOPEOperatorsFromAntiModeList, canonicalizeIndices];
 
 groupedResultToList::usage =
   "Normalizes grouped results to a list of groups using a single-group pattern.";
@@ -1316,28 +1411,6 @@ collapseExpandedResult::usage =
   "Collapses expanded grouped results to a single group when expansion size is one.";
 collapseExpandedResult[groupedResults_List, collapseToSingleQ_?BooleanQ] :=
   If[groupedResults === {}, {}, If[collapseToSingleQ, First[groupedResults], groupedResults]];
-
-convertMatterResultToRepresentationHolo::usage =
-  "Converts a matter-only API result to the requested output representation.";
-convertMatterResultToRepresentationHolo[result_, "Modes", _] := result;
-convertMatterResultToRepresentationHolo[result_, "Operators", canonicalizeIndices_] :=
-  convertGroupedResultToOperators[
-    result,
-    {_?validPictureSpecQ, _List},
-    convertMatterGroupToOperatorsHolo,
-    canonicalizeIndices
-  ];
-
-convertMatterResultToRepresentationAnti::usage =
-  "Converts an antiholomorphic matter-only API result to the requested output representation.";
-convertMatterResultToRepresentationAnti[result_, "Modes", _] := result;
-convertMatterResultToRepresentationAnti[result_, "Operators", canonicalizeIndices_] :=
-  convertGroupedResultToOperators[
-    result,
-    {_?validPictureSpecQ, _List},
-    convertMatterGroupToOperatorsAnti,
-    canonicalizeIndices
-  ];
 
 convertHoloBasisToRepresentation::usage =
   "Converts a holomorphic basis list to the requested representation.";
@@ -1986,77 +2059,98 @@ generateBasisForPictureSpecs[___] := {};
     Returns: {{pictureL, pictureR}, {state1, state2, ...}}
 *)
 
-generateBasisMatterHolo::usage =
-  "Generates holomorphic matter-only TypeII basis states grouped with their picture ground-state label.";
-generateBasisMatterHolo[
+generateBasisMatterModeGroups::usage =
+  "Generates grouped holomorphic matter-mode results for a user-facing picture input.";
+generateBasisMatterModeGroups[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
   opts___
-] := Module[
-  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, groupedBySpec, groupedModeResult},
-  optionList = Flatten[{opts}];
-  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
-  If[parsedRepresentationOptions === $Failed,
-    Return[{}]
-  ];
-  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
+] := Module[{groupedBySpec},
   groupedBySpec = DeleteCases[
     generateBasisMatterHoloForPictureSpec[weight, #, opts] & /@ expandPictureSpecs[picture],
     {}
   ];
-  groupedModeResult = collapseExpandedResult[groupedBySpec, Length[groupedBySpec] == 1];
-  convertMatterResultToRepresentationHolo[
-    groupedModeResult,
-    outputRepresentation,
-    canonicalizeIndices
-  ]
+  collapseExpandedResult[groupedBySpec, Length[groupedBySpec] == 1]
 ];
+
+generateBasisMatterModeGroups[___] := {};
+
+generateBasisMatterHolo::usage =
+  "Generates holomorphic matter-only TypeII mode states grouped with their picture ground-state label.";
+generateBasisMatterHolo[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := generateBasisMatterModeGroups[weight, picture, opts];
 
 generateBasisMatterHolo[___] := {};
 
 generateBasisMatterAntiHolo::usage =
-  "Generates antiholomorphic matter-only TypeII basis states grouped with their picture ground-state label.";
-antiMatterModeListsFromHolo::usage =
-  "Converts a list of holomorphic matter mode lists to antiholomorphic mode lists.";
-antiMatterModeListsFromHolo[matterModeLists_List] :=
-  (antiModeFromHolo /@ #) & /@ matterModeLists;
-
+  "Generates antiholomorphic matter-only TypeII mode states grouped with their picture ground-state label.";
 antiMatterGroupFromHolo::usage =
   "Converts one grouped holomorphic matter-mode entry to antiholomorphic modes.";
 antiMatterGroupFromHolo[group : {picture_?validPictureSpecQ, matterModeLists_List}] :=
-  {picture, antiMatterModeListsFromHolo[matterModeLists]};
+  {picture, (antiModeFromHolo /@ #) & /@ matterModeLists};
 
 generateBasisMatterAntiHolo[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
   opts___
-] := Module[
-  {optionList, parsedRepresentationOptions, outputRepresentation, canonicalizeIndices, holoMatterModes, antiMatterModes},
-  optionList = Flatten[{opts}];
-  parsedRepresentationOptions = parseRepresentationConversionOptionsFromList[optionList];
-  If[parsedRepresentationOptions === $Failed,
-    Return[{}]
-  ];
-  {outputRepresentation, canonicalizeIndices} = parsedRepresentationOptions;
-  holoMatterModes = generateBasisMatterHolo[
-    weight,
-    picture,
-    opts,
-    "OutputRepresentation" -> "Modes"
-  ];
-  antiMatterModes = mapGroupedResultPreservingShape[
-    holoMatterModes,
+] := mapGroupedResultPreservingShape[
+    generateBasisMatterModeGroups[weight, picture, opts],
     {_?validPictureSpecQ, _List},
     antiMatterGroupFromHolo
   ];
-  convertMatterResultToRepresentationAnti[
-    antiMatterModes,
-    outputRepresentation,
+
+generateBasisMatterAntiHolo[___] := {};
+
+generateMatterOPEFromGroups::usage =
+  "Converts grouped matter-mode results to deduplicated OPE-basis operators after parsing canonicalization options.";
+generateMatterOPEFromGroups[groupedModes_, convertGroupFunction_, opts___] := Module[
+  {optionList, canonicalizeIndices},
+  optionList = Flatten[{opts}];
+  If[!OptionQ[optionList],
+    Return[{}]
+  ];
+  canonicalizeIndices = readCanonicalizeIndicesOption[optionList, True];
+  If[canonicalizeIndices === $Failed,
+    Return[{}]
+  ];
+  convertGroupedResultToOperators[
+    groupedModes,
+    {_?validPictureSpecQ, _List},
+    convertGroupFunction,
     canonicalizeIndices
   ]
 ];
 
-generateBasisMatterAntiHolo[___] := {};
+generateBasisMatterHoloOPE::usage =
+  "Generates holomorphic matter-only TypeII OPE-basis operators.";
+generateBasisMatterHoloOPE[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := generateMatterOPEFromGroups[
+    generateBasisMatterModeGroups[weight, picture, opts],
+    convertMatterGroupToOperatorsHolo,
+    opts
+  ];
+
+generateBasisMatterHoloOPE[___] := {};
+
+generateBasisMatterAntiHoloOPE::usage =
+  "Generates antiholomorphic matter-only TypeII OPE-basis operators.";
+generateBasisMatterAntiHoloOPE[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := generateMatterOPEFromGroups[
+    generateBasisMatterAntiHolo[weight, picture, opts],
+    convertMatterGroupToOperatorsAnti,
+    opts
+  ];
+
+generateBasisMatterAntiHoloOPE[___] := {};
 
 generateBasisHolo[
   weight_?validWeightQ,
