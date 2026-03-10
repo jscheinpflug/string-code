@@ -43,12 +43,26 @@ dot::usage = "Symbol for dot product";
 
 der::usage = "Symbol for a derivative";
 
+\[Delta]::usage = "Inert Kronecker delta tensor for flat-space vector-index contractions.";
+
 
 (* ::Section:: *)
 (*Logic*)
 
 
 Begin["Private`"];
+
+
+flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns bosonic FlatSpace contraction rules for \\[Delta] tensors.";
+flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim};
+
+Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
+Contract[f_] := Contract[f, 10];
+
+ContractDelta[f_] := f //. {
+  g_ \[Delta][\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
+};
 
 
 (* ::Subsection:: *)

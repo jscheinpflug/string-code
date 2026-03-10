@@ -5,6 +5,7 @@
 
 
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
+Needs["StringCode`Symbols`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 
 
@@ -30,7 +31,7 @@ visualizeTensorStructures::badgroups =
   "Expected a list of non-empty structure groups.";
 
 tensorStructureGraph::badexpr =
-  "Expected an expression built from GammaAntisymmetricProductHold factors or scalar 1.";
+  "Expected an expression built from GammaAntisymmetricProductHold and/or \\[Delta] factors, or scalar 1.";
 
 Options[tensorStructureGraph] = {
   "ImageSize" -> 500,
@@ -60,7 +61,7 @@ Begin["Private`"];
 
 isTensorHeadQ::usage = "isTensorHeadQ[head] is True if head is a supported tensor head in any context.";
 isTensorHeadQ[head_] := MemberQ[
-  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold"},
+  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold", SymbolName[Unevaluated[\[Delta]]]},
   SymbolName[Unevaluated[head]]
 ];
 
@@ -114,11 +115,17 @@ isGammaFactorVisualQ::usage =
   "isGammaFactorVisualQ[factor] is True for supported GammaAntisymmetricProductHold[{links},a,b] forms with optional leading CUDHold/CDUHold in the links list.";
 isGammaFactorVisualQ[factor_] := AssociationQ[gammaProductPartsVisual[factor]];
 
-extractTensorFactors::usage = "extractTensorFactors[expr] extracts gamma factors from expr in multiplicative order.";
+deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported \\[Delta][mu, nu] vector-contraction factors.";
+deltaFactorVisualQ[factor_] := Head[factor] === \[Delta] && Length[factor] == 2;
+
+isTensorFactorVisualQ::usage = "isTensorFactorVisualQ[factor] is True for supported gamma or delta tensor factors.";
+isTensorFactorVisualQ[factor_] := isGammaFactorVisualQ[factor] || deltaFactorVisualQ[factor];
+
+extractTensorFactors::usage = "extractTensorFactors[expr] extracts supported tensor factors from expr in multiplicative order.";
 extractTensorFactors[1] := {};
 extractTensorFactors[expr_] := Module[{factors},
   factors = If[Head[expr] === Times, List @@ expr, {expr}];
-  Select[factors, isGammaFactorVisualQ]
+  Select[factors, isTensorFactorVisualQ]
 ];
 
 gammaLinkVectorIndexVisual::usage = "gammaLinkVectorIndexVisual[link] extracts a vector index list from one gamma-chain link.";
@@ -132,6 +139,10 @@ gammaProductVectorIndicesVisual::usage = "gammaProductVectorIndicesVisual[factor
 gammaProductVectorIndicesVisual[factor_] /; isGammaFactorVisualQ[factor] :=
   Flatten[gammaLinkVectorIndexVisual /@ gammaProductLinksVisual[factor]];
 gammaProductVectorIndicesVisual[_] := {};
+
+deltaVectorIndicesVisual::usage = "deltaVectorIndicesVisual[factor] extracts the two vector indices from one \\[Delta] factor.";
+deltaVectorIndicesVisual[factor_] /; deltaFactorVisualQ[factor] := List @@ factor;
+deltaVectorIndicesVisual[_] := {};
 
 vectorListKey::usage = "vectorListKey[vecs] gives a stable string key for a vector-index list.";
 vectorListKey[vecs_List] := ToString[HoldForm[vecs], InputForm];
@@ -168,7 +179,7 @@ gammaProductChiralityPairVisual[factor_] /; isGammaFactorVisualQ[factor] := Modu
 gammaProductChiralityPairVisual[_] := {};
 
 factorData::usage = "factorData[factor] returns normalized factor metadata association.";
-factorData[factor_] := <|
+factorData[factor_ /; isGammaFactorVisualQ[factor]] := <|
   "form" -> Head[factor],
   "formName" -> SymbolName[Head[factor]],
   "kind" -> "gamma",
@@ -177,12 +188,22 @@ factorData[factor_] := <|
   "spinors" -> gammaProductSpinorsVisual[factor],
   "chiralityPair" -> gammaProductChiralityPairVisual[factor]
 |>;
+factorData[factor_ /; deltaFactorVisualQ[factor]] := <|
+  "form" -> Head[factor],
+  "formName" -> SymbolName[Unevaluated[\[Delta]]],
+  "kind" -> "delta",
+  "cTag" -> None,
+  "vectors" -> deltaVectorIndicesVisual[factor],
+  "spinors" -> {},
+  "chiralityPair" -> {}
+|>;
+factorData[_] := $Failed;
 
 indexLabel::usage = "indexLabel[idx] gives compact display text for an index symbol/expression.";
 indexLabel[idx_Symbol] := ToString[Unevaluated[idx], TraditionalForm];
 indexLabel[idx_] := ToString[idx, InputForm];
 
-factorSpacing::usage = "factorSpacing[boxWidth] returns horizontal spacing between neighboring gamma boxes.";
+factorSpacing::usage = "factorSpacing[boxWidth] returns horizontal spacing between neighboring tensor boxes.";
 factorSpacing[boxWidth_?NumericQ] := 2.1 boxWidth;
 
 centerXAt::usage = "centerXAt[i, n, spacing] gives x-coordinate for i-th box among n boxes.";
@@ -198,17 +219,19 @@ spinorLegXOffsets[boxWidth_?NumericQ] := {-boxWidth/4, boxWidth/4};
 
 buildFactorGeometry::usage = "buildFactorGeometry[data, idx, n, boxWidth, boxHeight, legLength] builds box and leg attachment geometry.";
 buildFactorGeometry[data_Association, idx_Integer, n_Integer, boxWidth_?NumericQ, boxHeight_?NumericQ, legLength_?NumericQ] := Module[
-  {cx, cy = 0, vecOffsets, spinOffsets, topY, botY, label},
+  {cx, cy = 0, localBoxWidth, localBoxHeight, vecOffsets, spinOffsets, topY, botY, label},
   cx = centerXAt[idx, n, factorSpacing[boxWidth]];
-  topY = cy + boxHeight/2;
-  botY = cy - boxHeight/2;
-  vecOffsets = vectorLegXOffsets[Length[data["vectors"]], boxWidth];
-  spinOffsets = spinorLegXOffsets[boxWidth];
-  label = data["formName"] <> "[" <> ToString[Length[data["vectors"]]] <> "]";
+  localBoxWidth = If[data["kind"] === "delta", 0.78 boxWidth, boxWidth];
+  localBoxHeight = If[data["kind"] === "delta", 0.72 boxHeight, boxHeight];
+  topY = cy + localBoxHeight/2;
+  botY = cy - localBoxHeight/2;
+  vecOffsets = vectorLegXOffsets[Length[data["vectors"]], localBoxWidth];
+  spinOffsets = spinorLegXOffsets[localBoxWidth];
+  label = If[data["kind"] === "delta", data["formName"], data["formName"] <> "[" <> ToString[Length[data["vectors"]]] <> "]"];
   <|
     "center" -> {cx, cy},
     "kind" -> data["kind"],
-    "box" -> {{cx - boxWidth/2, cy - boxHeight/2}, {cx + boxWidth/2, cy + boxHeight/2}},
+    "box" -> {{cx - localBoxWidth/2, cy - localBoxHeight/2}, {cx + localBoxWidth/2, cy + localBoxHeight/2}},
     "label" -> label,
     "vectorLegs" -> Table[
       <|
@@ -218,14 +241,18 @@ buildFactorGeometry[data_Association, idx_Integer, n_Integer, boxWidth_?NumericQ
       |>,
       {j, Length[data["vectors"]]}
     ],
-    "spinorLegs" -> Table[
-      <|
-        "index" -> data["spinors"][[j]],
-        "chirality" -> data["chiralityPair"][[j]],
-        "root" -> {cx + spinOffsets[[j]], botY},
-        "tip" -> {cx + spinOffsets[[j]], botY - legLength}
-      |>,
-      {j, 2}
+    "spinorLegs" -> If[
+      data["spinors"] === {},
+      {},
+      Table[
+        <|
+          "index" -> data["spinors"][[j]],
+          "chirality" -> data["chiralityPair"][[j]],
+          "root" -> {cx + spinOffsets[[j]], botY},
+          "tip" -> {cx + spinOffsets[[j]], botY - legLength}
+        |>,
+        {j, Length[data["spinors"]]}
+      ]
     ]
   |>
 ];
@@ -233,15 +260,21 @@ buildFactorGeometry[data_Association, idx_Integer, n_Integer, boxWidth_?NumericQ
 buildAllGeometry::usage = "buildAllGeometry[factors, boxWidth, boxHeight, legLength] builds geometry for all factors.";
 buildAllGeometry[factors_List, boxWidth_?NumericQ, boxHeight_?NumericQ, legLength_?NumericQ] := Module[{data, n},
   data = factorData /@ factors;
+  If[MemberQ[data, $Failed], Return[$Failed]];
   n = Length[data];
   Table[buildFactorGeometry[data[[i]], i, n, boxWidth, boxHeight, legLength], {i, 1, n}]
 ];
 
-boxPrimitives::usage = "boxPrimitives[geometry] returns gamma box primitives and labels.";
+factorBoxFillColor::usage = "factorBoxFillColor[kind] returns the box fill color for one visualized tensor factor kind.";
+factorBoxFillColor["gamma"] := RGBColor[0.98, 0.78, 0.46];
+factorBoxFillColor["delta"] := GrayLevel[0.9];
+factorBoxFillColor[_] := GrayLevel[0.92];
+
+boxPrimitives::usage = "boxPrimitives[geometry] returns tensor-factor box primitives and labels.";
 boxPrimitives[geometry_List] := Flatten[
   Table[
     {
-      RGBColor[0.98, 0.78, 0.46],
+      factorBoxFillColor[geometry[[i, "kind"]]],
       EdgeForm[Directive[GrayLevel[0.25], AbsoluteThickness[1.2]]],
       Rectangle @@ geometry[[i, "box"]],
       Black,
@@ -328,6 +361,7 @@ buildTensorGraphic[factors_List, optsAssoc_Association] := Module[
   legLength = optsAssoc["LegLength"];
   showSpinorLabels = optsAssoc["ShowSpinorLabels"];
   geometry = buildAllGeometry[factors, boxWidth, boxHeight, legLength];
+  If[geometry === $Failed, Return[$Failed]];
   prims = Join[
     boxPrimitives[geometry],
     spinorLegPrimitives[geometry, showSpinorLabels],

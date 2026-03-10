@@ -69,13 +69,6 @@ isIndexed::usage = "Checks if is indexed";
 (*Define index contractions*)
 
 
-Contract[f_,dim_]:=f /.{\[Delta][\[Mu]_,\[Mu]_]:>dim,\[Delta][\[Mu]_,\[Nu]_]^2:>dim};
-Contract[f_]:=Contract[f,10];
-
-
-ContractDelta[f_]:=f//.{g_ \[Delta][\[Mu]_,\[Mu]1_]:>(g/.{\[Mu]->\[Mu]1})/;!FreeQ[g,\[Mu]],g_ \[Delta][\[Mu]1_,\[Mu]_]:>(g/.{\[Mu]->\[Mu]1})/;!FreeQ[g,\[Mu]]};
-
-
 Begin["Private`"];
 
 

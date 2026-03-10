@@ -57,6 +57,9 @@ toTeXDispatch[expXHolo[k_, z_], opts_Association] :=
 toTeXDispatch[expXAntiHolo[k_, zbar_], opts_Association] :=
   "e^{i " <> toTeXDispatch[k, opts] <> " \\cdot X}" <> formatPosition[zbar, opts];
 
+toTeXDispatch[\[Delta][idx1_, idx2_], opts_Association] :=
+  "\\delta_{" <> formatIndex[idx1, opts] <> formatIndex[idx2, opts] <> "}";
+
 
 (* ::Subsection:: *)
 (*Profile conversions*)

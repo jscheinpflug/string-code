@@ -5,6 +5,7 @@
 
 
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
+Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 
 
@@ -16,6 +17,12 @@ Begin["Private`"];
 
 gammaProductFactorQ::usage = "gammaProductFactorQ[expr] is True when expr is one GammaAntisymmetricProductHold factor.";
 gammaProductFactorQ[expr_] := Head[expr] === GammaAntisymmetricProductHold;
+
+deltaFactorQ::usage = "deltaFactorQ[expr] is True when expr is one inert vector-contraction factor \\[Delta][mu, nu].";
+deltaFactorQ[expr_] := Head[expr] === \[Delta] && Length[expr] == 2;
+
+candidateFactorQ::usage = "candidateFactorQ[expr] is True when expr is a supported tensor-structure factor.";
+candidateFactorQ[expr_] := gammaProductFactorQ[expr] || deltaFactorQ[expr];
 
 candidateFactors::usage = "candidateFactors[expr] returns the multiplicative factor list for one candidate expression.";
 candidateFactors[expr_] := If[Head[expr] === Times, List @@ expr, {expr}];
@@ -66,6 +73,7 @@ gammaFactorPartsSelector[factor_ /; gammaProductFactorQ[factor]] := Module[
   coreLinks = If[cTag === None, links, Rest[links]];
   vectorLinks = Select[coreLinks, gammaVectorLinkQ];
   <|
+    "Kind" -> "Gamma",
     "CTag" -> cTag,
     "VectorLinks" -> vectorLinks,
     "VectorSymbols" -> (gammaLinkIndexSelector /@ vectorLinks),
@@ -81,12 +89,45 @@ gammaFactorMetadataSelector[factor_ /; gammaProductFactorQ[factor]] := Module[{l
   links = factor[[1]];
   vectorLinks = Select[links, gammaVectorLinkQ];
   <|
+    "Kind" -> "Gamma",
     "Spinors" -> {factor[[2]], factor[[3]]},
     "SpinorChiralities" -> gammaProductSpinorChiralities[links],
     "VectorSymbols" -> (gammaLinkIndexSelector /@ vectorLinks)
   |>
 ];
 gammaFactorMetadataSelector[_] := $Failed;
+
+deltaFactorPartsSelector::usage = "deltaFactorPartsSelector[factor] parses one \\[Delta][mu, nu] factor into selector/evaluator metadata.";
+deltaFactorPartsSelector[factor_ /; deltaFactorQ[factor]] := <|
+  "Kind" -> "Delta",
+  "VectorSymbols" -> List @@ factor,
+  "Spinors" -> {},
+  "SpinorChiralities" -> {}
+|>;
+deltaFactorPartsSelector[_] := $Failed;
+
+deltaFactorMetadataSelector::usage = "deltaFactorMetadataSelector[factor] extracts selector metadata from one \\[Delta][mu, nu] factor.";
+deltaFactorMetadataSelector[factor_ /; deltaFactorQ[factor]] := <|
+  "Kind" -> "Delta",
+  "Spinors" -> {},
+  "SpinorChiralities" -> {},
+  "VectorSymbols" -> List @@ factor
+|>;
+deltaFactorMetadataSelector[_] := $Failed;
+
+factorPartsSelector::usage = "factorPartsSelector[factor] parses one supported tensor-structure factor into reusable metadata.";
+factorPartsSelector[factor_] := Which[
+  gammaProductFactorQ[factor], gammaFactorPartsSelector[factor],
+  deltaFactorQ[factor], deltaFactorPartsSelector[factor],
+  True, $Failed
+];
+
+factorMetadataSelector::usage = "factorMetadataSelector[factor] extracts selector metadata from one supported tensor-structure factor.";
+factorMetadataSelector[factor_] := Which[
+  gammaProductFactorQ[factor], gammaFactorMetadataSelector[factor],
+  deltaFactorQ[factor], deltaFactorMetadataSelector[factor],
+  True, $Failed
+];
 
 candidateSpinorChiralities::usage = "candidateSpinorChiralities[data] infers external spinor chiralities from one candidate expression or parsed-factor list.";
 candidateSpinorChiralities[parts_List] := Merge[
@@ -101,7 +142,7 @@ candidateSpinorChiralities[parts_List] := Merge[
   ],
   First
 ];
-candidateSpinorChiralities[expr_] := candidateSpinorChiralities[gammaFactorMetadataSelector /@ candidateFactors[expr]];
+candidateSpinorChiralities[expr_] := candidateSpinorChiralities[factorMetadataSelector /@ candidateFactors[expr]];
 
 generatedDummyVectorSymbolQ::usage = "generatedDummyVectorSymbolQ[sym] identifies TensorStructures dummy vector symbols built from \\[Nu]i names.";
 (* Generated \[Nu]i symbols are local contraction dummies and must not contribute to external-vector counting. *)
@@ -119,7 +160,7 @@ candidateExternalVectors[parts_List] := SortBy[
   ],
   SymbolName
 ];
-candidateExternalVectors[expr_] := candidateExternalVectors[gammaFactorMetadataSelector /@ candidateFactors[expr]];
+candidateExternalVectors[expr_] := candidateExternalVectors[factorMetadataSelector /@ candidateFactors[expr]];
 
 candidateMetadata::usage = "candidateMetadata[expr] extracts selector metadata used for target-rank inference and runtime setup.";
 candidateMetadata[1] := <|
@@ -131,8 +172,8 @@ candidateMetadata[1] := <|
 candidateMetadata[expr_] := Module[{factors, parts},
   (* Metadata parsing is intentionally cheap: enough for rank/probe setup, no evaluator-only structures. *)
   factors = candidateFactors[expr];
-  If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];
-  parts = gammaFactorMetadataSelector /@ factors;
+  If[!AllTrue[factors, candidateFactorQ], Return[$Failed]];
+  parts = factorMetadataSelector /@ factors;
   If[MemberQ[parts, $Failed], Return[$Failed]];
   <|
     "Expression" -> expr,
@@ -154,8 +195,8 @@ parseCandidate[1] := <|
 parseCandidate[expr_] := Module[{factors, parts},
   (* Full parsing keeps evaluator-ready "FactorParts"; invalid explicit candidates fail here and upstream as badarg. *)
   factors = candidateFactors[expr];
-  If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];
-  parts = gammaFactorPartsSelector /@ factors;
+  If[!AllTrue[factors, candidateFactorQ], Return[$Failed]];
+  parts = factorPartsSelector /@ factors;
   If[MemberQ[parts, $Failed], Return[$Failed]];
   <|
     "Expression" -> expr,
@@ -167,8 +208,8 @@ parseCandidate[expr_] := Module[{factors, parts},
   |>
 ];
 
-syntheticFactorFromParts::usage = "syntheticFactorFromParts[parts] rebuilds one GammaAntisymmetricProductHold factor from parsed parts data.";
-syntheticFactorFromParts[parts_Association] := GammaAntisymmetricProductHold[
+syntheticFactorFromParts::usage = "syntheticFactorFromParts[parts] rebuilds one parsed gamma or delta factor.";
+syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Gamma" := GammaAntisymmetricProductHold[
   Join[
     If[parts["CTag"] === None, {}, {parts["CTag"]}],
     parts["VectorLinks"],
@@ -176,6 +217,8 @@ syntheticFactorFromParts[parts_Association] := GammaAntisymmetricProductHold[
   ],
   Sequence @@ parts["Spinors"]
 ];
+syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Delta" := \[Delta] @@ parts["VectorSymbols"];
+syntheticFactorFromParts[_] := $Failed;
 
 
 (* ::Section:: *)

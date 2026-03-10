@@ -244,6 +244,14 @@ gammaFactorCoefficientAssociation[factor_, probe_Association, primeData_Associat
   If[parts === $Failed, $Failed, gammaFactorCoefficientAssociation[parts, probe, primeData]]
 ];
 
+deltaFactorValue::usage = "deltaFactorValue[parts, probe, prime] evaluates one parsed \\[Delta] factor at a modular probe.";
+deltaFactorValue[parts_Association, probe_Association, prime_Integer] := Module[{vec1, vec2},
+  vec1 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[1]], Missing["Unassigned"]];
+  vec2 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[2]], Missing["Unassigned"]];
+  If[!VectorQ[vec1, IntegerQ] || !VectorQ[vec2, IntegerQ], Return[$Failed]];
+  Mod[vec1 . vec2, prime]
+];
+
 formCoefficientValue::usage = "formCoefficientValue[coefficients, tuple, prime] evaluates one alternating-form coefficient table on an ordered basis tuple.";
 formCoefficientValue[coefficients_Association, tuple_List, prime_Integer] := Module[{sorted},
   If[!DuplicateFreeQ[tuple], Return[0]];
@@ -388,8 +396,14 @@ probeCacheKey[probe_Association] := {
 
 factorBlockTensor::usage = "factorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData] builds one sparse block tensor for one parsed factor.";
 factorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List, probe_Association, primeData_Association] := Module[
-  {parts, coeffs, reduced, blocks, entryKey, entries},
+  {parts, coeffs, reduced, blocks, entryKey, entries, deltaValue},
   parts = candidate["FactorParts"][[factorIndex]];
+  If[Lookup[parts, "Kind", "Gamma"] === "Delta",
+    If[factorBlocks =!= {}, Return[$Failed]];
+    deltaValue = deltaFactorValue[parts, probe, primeData["Prime"]];
+    If[deltaValue === $Failed, Return[$Failed]];
+    Return[<|"Blocks" -> {}, "Entries" -> <|{} -> deltaValue|>|>]
+  ];
   coeffs = gammaFactorCoefficientAssociation[parts, probe, primeData];
   If[coeffs === $Failed, Return[$Failed]];
   reduced = reduceFactorCoefficientsByExternalVectors[coeffs, parts["VectorSymbols"], probe, primeData["Prime"]];

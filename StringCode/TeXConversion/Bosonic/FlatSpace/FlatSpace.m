@@ -37,6 +37,9 @@ toTeXDispatch[dXt[idx_, n_, zbar_], opts_Association] :=
 toTeXDispatch[expX[k_, z_, zbar_], opts_Association] :=
   "e^{i " <> toTeXDispatch[k, opts] <> " \\cdot X}" <> formatPosition[z, zbar, opts];
 
+toTeXDispatch[\[Delta][idx1_, idx2_], opts_Association] :=
+  "\\delta_{" <> formatIndex[idx1, opts] <> formatIndex[idx2, opts] <> "}";
+
 
 (* ::Subsection:: *)
 (*Profile conversions*)

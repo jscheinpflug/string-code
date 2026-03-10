@@ -239,11 +239,6 @@ toTeXDispatch[ct[n_, zbar_], opts_Association] := derivativePrefix[n, False] <> 
 toTeXDispatch[bt[n_, zbar_], opts_Association] := derivativePrefix[n, False] <> "\\bar{b}" <> formatPosition[zbar, opts];
 
 
-(* Kronecker delta *)
-toTeXDispatch[\[Delta][idx1_, idx2_], opts_Association] :=
-  "\\delta_{" <> formatIndex[idx1, opts] <> formatIndex[idx2, opts] <> "}";
-
-
 (* Bracket-generated structures *)
 toTeXDispatch[Verbatim[Differential][expr_, moduli_], opts_Association] /; TrueQ[opts["BracketFormatting"]] :=
   formatDifferential[expr, moduli, opts];

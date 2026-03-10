@@ -5,6 +5,8 @@
 
 
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
+Needs["StringCode`Symbols`"];
+Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 
 
@@ -13,7 +15,7 @@ Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 
 
 generateTensorStructures::usage =
-  "generateTensorStructures[incoming, outgoing, opts] enumerates allowed Clifford tensor structures grouped by abstract shape.";
+  "generateTensorStructures[incoming, outgoing, opts] enumerates allowed gamma and vector-contraction tensor structures grouped by abstract shape.";
 
 generateTensorStructures::dupidx =
   "Duplicate or colliding index symbols were found across incoming/outgoing vector/spinor inputs.";
@@ -172,12 +174,18 @@ pTupleSymmetryCompatibleQ[slotBlueprint_List, pTuple_List] := Module[
   And @@ (OrderedQ[pTuple[[#]]] & /@ Values[indicesByForm])
 ];
 
-validPTuples::usage = "validPTuples[pSets, nExtVec, slotBlueprint] returns admissible p-tuples after parity/size/symmetry filtering.";
+validPTuples::usage = "validPTuples[pSets, nExtVec, slotBlueprint] returns admissible p-tuples after parity/symmetry filtering.";
 validPTuples[pSets_List, nExtVec_Integer, slotBlueprint_List] := Select[
   Tuples[pSets],
-  Total[#] >= nExtVec &&
-    EvenQ[Total[#] - nExtVec] &&
+  OddQ[Total[#]] === OddQ[nExtVec] &&
     pTupleSymmetryCompatibleQ[slotBlueprint, #] &
+];
+
+externalVectorAssignmentTotals::usage =
+  "externalVectorAssignmentTotals[pTuple, nExtVec] returns admissible numbers of external vectors assigned directly to gamma slots.";
+externalVectorAssignmentTotals[pTuple_List, nExtVec_Integer] := Select[
+  Range[0, Min[nExtVec, Total[pTuple]]],
+  EvenQ[nExtVec - #] && EvenQ[Total[pTuple] - #] &
 ];
 
 externalCountDistributions::usage = "externalCountDistributions[pTuple, nExtVec] distributes external vectors among slots with bounds 0<=e_i<=p_i.";
@@ -396,7 +404,7 @@ generateAbstractStructures[inSpinors_List, outSpinor_, nExtVec_Integer] := Modul
   {
     allSpinors, nChiral, nAnti, typeConfigs, canonicalByKey = <||>,
     cfg, outPairForms, outPairForm, slotBlueprint, pSets, pTuples, pTuple,
-    slotsWithRankData, pOrigTuple, extDistributions, extCounts, dummyCounts, cMats, cMat,
+    slotsWithRankData, pOrigTuple, extTotals, nAssignedExt, extDistributions, extCounts, dummyCounts, cMats, cMat,
     canonical, contractionCache = <||>, extDistCache = <||>, extKey, dummyKey
   },
   allSpinors = Join[inSpinors, If[outSpinor === None, {}, {outSpinor}]];
@@ -413,26 +421,30 @@ generateAbstractStructures[inSpinors_List, outSpinor_, nExtVec_Integer] := Modul
       Do[
         slotsWithRankData = MapThread[slotWithRank, {slotBlueprint, pTuple}];
         pOrigTuple = slotsWithRankData[[All, 2]];
-        extKey = pOrigTuple;
-        If[!KeyExistsQ[extDistCache, extKey],
-          extDistCache[extKey] = externalCountDistributions[pOrigTuple, nExtVec]
-        ];
-        extDistributions = extDistCache[extKey];
+        extTotals = externalVectorAssignmentTotals[pOrigTuple, nExtVec];
         Do[
-          dummyCounts = pOrigTuple - extCounts;
-          dummyKey = dummyCounts;
-          If[!KeyExistsQ[contractionCache, dummyKey],
-            contractionCache[dummyKey] = contractionMatrices[dummyCounts]
+          extKey = {pOrigTuple, nAssignedExt};
+          If[!KeyExistsQ[extDistCache, extKey],
+            extDistCache[extKey] = externalCountDistributions[pOrigTuple, nAssignedExt]
           ];
-          cMats = contractionCache[dummyKey];
+          extDistributions = extDistCache[extKey];
           Do[
-            canonical = canonicalizeAbstractStructure[slotsWithRankData, extCounts, cMat];
-            If[!KeyExistsQ[canonicalByKey, canonical["key"]],
-              canonicalByKey[canonical["key"]] = canonical
+            dummyCounts = pOrigTuple - extCounts;
+            dummyKey = dummyCounts;
+            If[!KeyExistsQ[contractionCache, dummyKey],
+              contractionCache[dummyKey] = contractionMatrices[dummyCounts]
+            ];
+            cMats = contractionCache[dummyKey];
+            Do[
+              canonical = canonicalizeAbstractStructure[slotsWithRankData, extCounts, cMat];
+              If[!KeyExistsQ[canonicalByKey, canonical["key"]],
+                canonicalByKey[canonical["key"]] = canonical
+              ],
+              {cMat, cMats}
             ],
-            {cMat, cMats}
+            {extCounts, extDistributions}
           ],
-          {extCounts, extDistributions}
+          {nAssignedExt, extTotals}
         ],
         {pTuple, pTuples}
       ],
@@ -652,15 +664,47 @@ firstSpinorPlacement[slots_List, inSpinors_List, outSpinor_] := Module[
   canonicalizeSpinPlacementForSlots[slots, placement]
 ];
 
-vectorPlacements::usage =
-  "vectorPlacements[externalCounts, vectorIndices] distributes named external vectors among slots in deterministic lexicographic order.";
-vectorPlacements[externalCounts_List, vectorIndices_List] := Module[
-  {k = Length[externalCounts], n = Length[vectorIndices], recurse, labelAssignments},
-  If[n == 0, Return[{ConstantArray[{}, k]}]];
-  If[Total[externalCounts] =!= n, Return[{}]];
+canonicalizeVectorPair::usage =
+  "canonicalizeVectorPair[pair] sorts one vector-index pair deterministically for \\[Delta]-factor emission.";
+canonicalizeVectorPair[pair_List] := SortBy[pair, symbolSortKey];
 
-  recurse[pos_, rem_, acc_] := Module[{slot, out = {}},
-    If[pos > n, Return[{acc}]];
+vectorPairings::usage = "vectorPairings[vectorIndices] enumerates deterministic perfect matchings of vectorIndices.";
+vectorPairings[{}] := {{}};
+vectorPairings[vectorIndices_List] := Module[{first, rest},
+  If[OddQ[Length[vectorIndices]], Return[{}]];
+  first = First[vectorIndices];
+  rest = Rest[vectorIndices];
+  Flatten[
+    Table[
+      Prepend[
+        #,
+        canonicalizeVectorPair[{first, rest[[i]]}]
+      ] & /@ vectorPairings[Delete[rest, i]],
+      {i, 1, Length[rest]}
+    ],
+    1
+  ]
+];
+
+vectorPlacements::usage =
+  "vectorPlacements[externalCounts, vectorIndices] distributes named external vectors among slots and leftover \\[Delta] pairings.";
+vectorPlacements[externalCounts_List, vectorIndices_List] := Module[
+  {k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, recurse},
+  leftoverCount = n - Total[externalCounts];
+  If[leftoverCount < 0 || OddQ[leftoverCount], Return[{}]];
+  recurse[pos_, rem_, remLeftover_, slotAcc_, leftoverAcc_] := Module[{slot, out = {}},
+    If[pos > n,
+      Return[
+        If[
+          remLeftover == 0 && And @@ Thread[rem == 0],
+          (<|"SlotVectors" -> slotAcc, "DeltaPairs" -> #|> &) /@ vectorPairings[leftoverAcc],
+          {}
+        ]
+      ]
+    ];
+    If[remLeftover > 0,
+      out = Join[out, recurse[pos + 1, rem, remLeftover - 1, slotAcc, Append[leftoverAcc, vectorIndices[[pos]]]]]
+    ];
     For[slot = 1, slot <= k, slot++,
       If[rem[[slot]] > 0,
         out = Join[
@@ -668,36 +712,36 @@ vectorPlacements[externalCounts_List, vectorIndices_List] := Module[
           recurse[
             pos + 1,
             ReplacePart[rem, slot -> rem[[slot]] - 1],
-            Append[acc, slot]
+            remLeftover,
+            ReplacePart[slotAcc, slot -> Append[slotAcc[[slot]], vectorIndices[[pos]]]],
+            leftoverAcc
           ]
         ];
       ];
     ];
     out
   ];
-
-  labelAssignments = recurse[1, externalCounts, {}];
-  Table[
-    Table[Pick[vectorIndices, labels, slot], {slot, 1, k}],
-    {labels, labelAssignments}
-  ]
+  recurse[1, externalCounts, leftoverCount, ConstantArray[{}, k], {}]
 ];
 
 firstVectorPlacement::usage =
-  "firstVectorPlacement[externalCounts, vectorIndices] builds one deterministic external-vector assignment.";
+  "firstVectorPlacement[externalCounts, vectorIndices] builds one deterministic slot-plus-\\[Delta] vector assignment.";
 firstVectorPlacement[externalCounts_List, vectorIndices_List] := Module[
-  {k = Length[externalCounts], n = Length[vectorIndices], out, cursor = 1, i, takeCount},
-  If[n == 0, Return[ConstantArray[{}, k]]];
-  If[Total[externalCounts] =!= n, Return[$Failed]];
-  out = ConstantArray[{}, k];
+  {k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, slotVectors, cursor = 1, i, takeCount, leftovers, pairings},
+  leftoverCount = n - Total[externalCounts];
+  If[leftoverCount < 0 || OddQ[leftoverCount], Return[$Failed]];
+  slotVectors = ConstantArray[{}, k];
   For[i = 1, i <= k, i++,
     takeCount = externalCounts[[i]];
     If[takeCount > 0,
-      out[[i]] = Take[vectorIndices, {cursor, cursor + takeCount - 1}];
+      slotVectors[[i]] = Take[vectorIndices, {cursor, cursor + takeCount - 1}];
       cursor += takeCount;
     ];
   ];
-  out
+  leftovers = If[cursor > n, {}, Take[vectorIndices, {cursor, n}]];
+  pairings = vectorPairings[leftovers];
+  If[pairings === {}, Return[$Failed]];
+  <|"SlotVectors" -> slotVectors, "DeltaPairs" -> First[pairings]|>
 ];
 
 buildDummyIndexSymbols::usage =
@@ -705,6 +749,12 @@ buildDummyIndexSymbols::usage =
 buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
   Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`" <> "\[Nu]" <> ToString[i]],
   {i, 1, count}
+];
+
+deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert \\[Delta] factor.";
+deltaFactorFromPair[pair_List] := Module[{ordered},
+  ordered = canonicalizeVectorPair[pair];
+  \[Delta][ordered[[1]], ordered[[2]]]
 ];
 
 gammaProductCTag::usage =
@@ -762,14 +812,15 @@ deduplicateGroupStructures::usage =
 deduplicateGroupStructures[group_List] := DeleteDuplicates[canonicalizeStructureExpression /@ group];
 
 buildConcreteStructure::usage =
-  "buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement] builds one Times-product structure.";
-buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacement_List] := Module[
+  "buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement] builds one Times-product structure with gamma and optional \\[Delta] factors.";
+buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association] := Module[
   {
-    k = Length[slots], slotVectorsOrig, dummyTotal, dummies, cursor = 1,
+    k = Length[slots], slotVectorsOrig, deltaPairs, dummyTotal, dummies, cursor = 1,
     i, j, count, pairDummies,
-    factors, factorCursor = 1, baseHead, pRank, hasOutgoing, pairForm, gammaVecs
+    gammaFactors, deltaFactors, baseHead, pRank, hasOutgoing, pairForm, gammaVecs
   },
-  slotVectorsOrig = extPlacement;
+  slotVectorsOrig = Lookup[extPlacement, "SlotVectors", {}];
+  deltaPairs = Lookup[extPlacement, "DeltaPairs", {}];
   dummyTotal = Total[upperTriangleValues[cMatrix]];
   dummies = buildDummyIndexSymbols[dummyTotal];
   For[i = 1, i <= k - 1, i++,
@@ -783,21 +834,21 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
       ];
     ];
   ];
-  factors = ConstantArray[Null, k];
-  For[i = 1, i <= k, i++,
+  gammaFactors = Table[
     {baseHead, pRank, hasOutgoing, pairForm} = slots[[i]];
     gammaVecs = slotVectorsOrig[[i]];
-    factors[[factorCursor]] = buildGammaAntisymmetricProduct[
+    buildGammaAntisymmetricProduct[
       baseHead,
       pairForm,
       hasOutgoing,
       gammaVecs,
       spinPlacement[[i, 1]],
       spinPlacement[[i, 2]]
-    ];
-    factorCursor += 1;
+    ],
+    {i, 1, k}
   ];
-  If[factorCursor == 1, 1, Times @@ Take[factors, factorCursor - 1]]
+  deltaFactors = deltaFactorFromPair /@ deltaPairs;
+  If[Join[gammaFactors, deltaFactors] === {}, 1, Times @@ Join[gammaFactors, deltaFactors]]
 ];
 
 spinorPlacementCacheKey::usage =
@@ -872,7 +923,10 @@ placementOrbitKey[
 ];
 
 uniquePlacementPairs::usage =
-  "uniquePlacementPairs[slots, spins, vecs, automorphisms] keeps one representative pair per automorphism orbit.";
+  "uniquePlacementPairs[slots, spins, vecs, automorphisms] keeps one representative spin/vector-placement pair per automorphism orbit.";
+deltaPairingKey::usage = "deltaPairingKey[pairs] returns a deterministic key for one list of \\[Delta] pairings.";
+deltaPairingKey[pairs_List] := ({symbolSortKey[#[[1]]], symbolSortKey[#[[2]]]} &) /@ pairs;
+
 uniquePlacementPairs[
   slots_List, spins_List, vecs_List, automorphisms_List,
   spinRank_Association, vecRank_Association
@@ -881,7 +935,10 @@ uniquePlacementPairs[
   harvested = Reap[
     For[i = 1, i <= Length[spins], i++,
       For[j = 1, j <= Length[vecs], j++,
-        key = placementOrbitKey[slots, spins[[i]], vecs[[j]], automorphisms, spinRank, vecRank];
+        key = {
+          placementOrbitKey[slots, spins[[i]], vecs[[j, "SlotVectors"]], automorphisms, spinRank, vecRank],
+          deltaPairingKey[vecs[[j, "DeltaPairs"]]]
+        };
         If[!KeyExistsQ[seen, key],
           seen[key] = True;
           Sow[{spins[[i]], vecs[[j]], key}]
@@ -895,7 +952,7 @@ uniquePlacementPairs[
   harvested[[All, {1, 2}]]
 ];
 
-generateTensorStructures::usage = "generateTensorStructures[incoming, outgoing, opts] enumerates grouped Clifford tensor structures.";
+generateTensorStructures::usage = "generateTensorStructures[incoming, outgoing, opts] enumerates grouped gamma and vector-contraction tensor structures.";
 generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
   {
     maxK, inNorm, outNorm, inVec, outVec, inSpin, outSpin, allIndexSymbols,
@@ -952,10 +1009,6 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
     Return[{}];
   ];
 
-  If[k == 0,
-    Return[If[Length[inVec] + Length[outVec] == 0, {{1}}, {}]];
-  ];
-
   outSpinor = If[outSpin === {}, None, First[outSpin]];
   extVectors = Join[inVec, outVec];
   spinRank = AssociationThread[inSpin[[All, 1]] -> Range[Length[inSpin]]];
@@ -1007,7 +1060,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
     {abstract, abstractStructures}
   ];
 
-  groups
+  deduplicateGroupStructures /@ groups
 ];
 
 
