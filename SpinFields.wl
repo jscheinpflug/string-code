@@ -1,3 +1,5 @@
+(* ::Package:: *)
+
 Spin Fields
 
 (*Function that computes spinField associated with NSNS operator*)
@@ -83,7 +85,7 @@ spinFieldPsiAntiHolo[\[Mu]_ /; NumberQ[\[Mu]], d_, z_] :=
   \[Mu] == 9, -I/Sqrt[2] (Stb[0, 0, 0, 0, 0, 1, z] - Stb[0, 0, 0, 0, 0, -1, z])]
 *)
  
-(*Necessary for the bosonization of \[Psi]'s*)
+(*Necessary for the bosonization of \[Psi]'s in NS sector operators*)
 spinFieldHoloExp[\[Mu]_ /; NumberQ[\[Mu]], d_, z_] := 
  Which[\[Mu] <= 1, 1/Sqrt[2] D[(Exp[I H0[0, z]] + (-1)^(\[Mu] + 1) Exp[-I H0[0, z]]), {z, d}],
   \[Mu] == 2, 1/Sqrt[2] D[(Exp[I H1[0, z]] + Exp[-I H1[0, z]]), {z, d}],
@@ -106,28 +108,34 @@ spinFieldAntiHoloExp[\[Mu]_ /; NumberQ[\[Mu]], d_, z_] :=
   \[Mu] == 8, 1/Sqrt[2] D[(Exp[I Ht4[0, z]] + Exp[-I Ht4[0, z]]), {z, d}],
   \[Mu] == 9, -I/Sqrt[2] D[(Exp[I Ht4[0, z]] - Exp[-I Ht4[0, z]]), {z, d}]]
 
-replaceDerHoloH = {Derivative[0, d_][H0][0, z_] :> dH0[d - 1, z],
+(*Turns derivatives of H's into dH as in the rest of the code*)
+
+replaceDerHoloH = {Derivative[0, d_][\[Phi]][0, z_] :> d\[Phi][d - 1, z],
+   Derivative[0, d_][H0][0, z_] :> dH0[d - 1, z],
    Derivative[0, d_][H1][0, z_] :> dH1[d - 1, z],
    Derivative[0, d_][H2][0, z_] :> dH2[d - 1, z],
    Derivative[0, d_][H3][0, z_] :> dH3[d - 1, z],
    Derivative[0, d_][H4][0, z_] :> dH4[d - 1, z]};
-replaceDerAntiHoloH = {Derivative[0, d_][Ht0][0, z_] :> dHt0[d - 1, z],
+replaceDerAntiHoloH = {Derivative[0, d_][\[Phi]t][0, z_] :> d\[Phi]t[d - 1, z],
+  Derivative[0, d_][Ht0][0, z_] :> dHt0[d - 1, z],
    Derivative[0, d_][Ht1][0, z_] :> dHt1[d - 1, z],
    Derivative[0, d_][Ht2][0, z_] :> dHt2[d - 1, z],
    Derivative[0, d_][Ht3][0, z_] :> dHt3[d - 1, z],
    Derivative[0, d_][Ht4][0, z_] :> dHt4[d - 1, z]};
 
-replaceHoloExpH = {Exp[Times[a_, H0[0, z_]]] :> spinFieldHolo[0, a, 0, 0, 0, 0, z],
-   Exp[Times[a_, H1[0, z_]]] :> spinFieldHolo[0, 0, a, 0, 0, 0, z],
-   Exp[Times[a_, H2[0, z_]]] :> spinFieldHolo[0, 0, 0, a, 0, 0, z],
-   Exp[Times[a_, H3[0, z_]]] :> spinFieldHolo[0, 0, 0, 0, a, 0, z],
-   Exp[Times[a_, H4[0, z_]]] :> spinFieldHolo[0, 0, 0, 0, 0, a, z]};
+(*Turns Exp of H's into the bosonized S field.*)
 
-replaceAntiHoloExpH = {Exp[Times[a_, Ht0[0, z_]]] :> spinFieldAntiHolo[0, a, 0, 0, 0, 0, z],
-   Exp[Times[a_, Ht1[0, z_]]] :> spinFieldAntiHolo[0, 0, a, 0, 0, 0, z],
-   Exp[Times[a_, Ht2[0, z_]]] :> spinFieldAntiHolo[0, 0, 0, a, 0, 0, z],
-   Exp[Times[a_, Ht3[0, z_]]] :> spinFieldAntiHolo[0, 0, 0, 0, a, 0, z],
-   Exp[Times[a_, Ht4[0, z_]]] :> spinFieldAntiHolo[0, 0, 0, 0, 0, a, z]};
+replaceHoloExpH = {Exp[Times[a_, H0[0, z_]]] :> Sb[{0, a, 0, 0, 0, 0},{}, z],
+   Exp[Times[a_, H1[0, z_]]] :> Sb[{0, 0, a, 0, 0, 0}, {}, z],
+   Exp[Times[a_, H2[0, z_]]] :> Sb[{0, 0, 0, a, 0, 0}, {}, z],
+   Exp[Times[a_, H3[0, z_]]] :> Sb[{0, 0, 0, 0, a, 0}, {}, z],
+   Exp[Times[a_, H4[0, z_]]] :> Sb[{0, 0, 0, 0, 0, a}, {}, z]};
+
+replaceAntiHoloExpH = {Exp[Times[a_, Ht0[0, z_]]] :> Stb[{0, a, 0, 0, 0, 0}, {}, z],
+   Exp[Times[a_, Ht1[0, z_]]] :> Stb[{0, 0, a, 0, 0, 0}, {}, z],
+   Exp[Times[a_, Ht2[0, z_]]] :> Stb[{0, 0, 0, a, 0, 0}, {}, z],
+   Exp[Times[a_, Ht3[0, z_]]] :> Stb[{0, 0, 0, 0, a, 0}, {}, z],
+   Exp[Times[a_, Ht4[0, z_]]] :> Stb[{0, 0, 0, 0, 0, a}, {}, z]};
 
 
 (*Defines bosonization of \[Psi]'s as a spin Field*)
@@ -136,13 +144,12 @@ spinFieldPsiHolo[\[Mu]_ /; NumberQ[\[Mu]], d_, z_] := (spinFieldHoloExp[\[Mu], d
 spinFieldPsiAntiHolo[\[Mu]_ /; NumberQ[\[Mu]], d_, z_] := (spinFieldAntiHoloExp[\[Mu], d, z] /. replaceDerAntiHoloH) /. 
   replaceAntiHoloExpH
 
-(*Turns \[Psi]^\[Mu] into bosonized form and exp\[Phi]\
- into spin Field representation.*)
+(*Turns \[Psi]^\[Mu] into bosonized form and exp\[Phi] into spin Field representation.*)
 spinFieldNS[op_ /; RTestUpToConstant[op]] := Module[{list}, list = List @@ op;
-  list = list /. {exp\[Phi]b[a_, z_] :> Sb[a, 0, 0, 0, 0, 0, z], 
-     exp\[Phi]f[a_, z_] :> Sb[a, 0, 0, 0, 0, 0, z], 
-     exp\[Phi]tb[a_, zbar_] :> Stb[a, 0, 0, 0, 0, 0, zbar], 
-     exp\[Phi]tf[a_, zbar_] :> Stb[a, 0, 0, 0, 0, 0, zbar], 
+  list = list /. {exp\[Phi]b[a_, z_] :> Sb[{a, 0, 0, 0, 0, 0}, {}, z], 
+     exp\[Phi]f[a_, z_] :> Sb[{a, 0, 0, 0, 0, 0}, {}, z], 
+     exp\[Phi]tb[a_, zbar_] :> Stb[{a, 0, 0, 0, 0, 0}, {}, zbar], 
+     exp\[Phi]tf[a_, zbar_] :> Stb[{a, 0, 0, 0, 0, 0}, {}, zbar], 
      \[Psi][\[Mu]_ /; NumberQ[\[Mu]], d_, z_] :> spinFieldPsiHolo[\[Mu], d, z], 
      \[Psi]t[\[Mu]_ /; NumberQ[\[Mu]], dbar_, zbar_] :> spinFieldPsiAntiHolo[\[Mu], dbar, zbar]};
   R @@ list]
@@ -168,24 +175,48 @@ oddSigns = Select[signs, OddQ[Count[#, 1]] &];
 matrixChiral = Table[Join[{0}, oddSigns[[i]]*I/2], {i, Length[oddSigns]}];
 matrixAntiChiral = Table[Join[{0}, evenSigns[[i]]*I/2], {i, Length[evenSigns]}];
 
-(*Given an operator with \[CapitalTheta]^\[Alpha], \
+(*Given an operator with S^\[Alpha], \
 picks out a random component for \[Alpha] to perform computations.*)
 compPickerR[op_ /; RTestUpToConstant[op]] := Module[{list}, list = List @@ op;
   list = list /. {S[\[Alpha]_, chirality_, q_, modes_, d_, z_] :> S[RandomInteger[{1, 16}], chirality , q, modes, d, z], 
      St[\[Alpha]_, chirality_, q_, modes_, dbar_, zbar_] :> St[RandomInteger[{1, 16}], chirality , q, modes, d, z]};
   R @@ list]
 
-(*Turns particular component of S or St
- into spinField in bosonized form.*)
-spinFieldR[op_ /; RTestUpToConstant[op]] := Module[{list}, list = List @@ op;
-  list = list /. {S[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="chiral"),q_,modes_, d_, z_] :> Sb[q, ##, modes, d, z] & @@ matrixChiral[[\[Alpha]]],
-  S[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="antichiral"),q_, modes_, d_, z_] :> Sb[q, ##, modes, d, z] & @@ matrixAntiChiral[[\[Alpha]]],
-  St[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="chiral"),q_,modes_, d_, z_] :> Sbt[q, ##, modes, d, z] & @@ matrixChiral[[\[Alpha]]],
-  St[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="antichiral"),q_, modes_, d_, z_] :> Sbt[q, ##, modes, d, z] & @@ matrixAntiChiral[[\[Alpha]]]};
-  R @@ list]
+(*Turns particular component of S or St into spinField in bosonized form.*)
 
-(*Still have to extend definition of R such that spin fields are combined (making use of cocyle phases?).
-Not sure about what's the best way to proceed with the modes.*)
+(*Expressing derivatives acting on spin fields in the bosonized version*)
+bosonizedFieldsHolo[z_]:={\[Phi][0,z],H1[0,z],H2[0,z],H3[0,z],H4[0,z],H5[0,z]};
+bosonizedFieldsAntiHolo[z_]:={\[Phi]t[0,z],Ht1[0,z],Ht2[0,z],Ht3[0,z],Ht4[0,z],Ht5[0,z]};
+
+spinFieldR[op_ /; RTestUpToConstant[op]] := Module[{list, listT1, listT2}, list = List @@ op;
+  listT1 = list /. {S[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="chiral"),q_,modes_, d_, z_] :> Sb[Join[{q}, {##}], modes, d, z] & @@ matrixChiral[[\[Alpha]]],
+  S[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="antichiral"),q_, modes_, d_, z_] :> Sb[Join[{q}, {##}], modes, d, z] & @@ matrixAntiChiral[[\[Alpha]]],
+  St[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="chiral"),q_, modes_, d_, z_] :> Stb[Join[{q}, {##}], modes, d, z] & @@ matrixChiral[[\[Alpha]]],
+  St[\[Alpha]_ /; NumberQ[\[Alpha]], chirality_ /; (chirality=="antichiral"),q_, modes_, d_, z_] :> Stb[Join[{q}, {##}], modes, d, z] & @@ matrixAntiChiral[[\[Alpha]]]};
+  listT2 = listT1 /. {Sb[spins_List, modes_List, d_, z_] :> D[Exp[spins . bosonizedFieldsHolo[z]],{z,d}] Sb[spins, modes, z], 
+  Stb[spins_List, modes_List, d_, z_] :> D[Exp[spins . bosonizedFieldsAntiHolo[z]],{z,d}] Stb[spins, modes, z]};
+  listT2 = listT2 /. {Exp[a_] :> 1};
+  listT2 = ( listT2 /. replaceDerHoloH )/. replaceDerAntiHoloH;
+  R @@ listT2];
+
+(*R sector bosonization*)
+bosonizeR[op_ /; RTestUpToConstant[op]]:= spinFieldR[compPickerR[op]];
+
+
+(*Copying cocyle phases from Xi's 'spinfield cocyle' notebook*)
+cocycle[a_, b_] := 
+ Module[{i, j}, 
+ E^(I Pi Sum[x[i, j] a[[i]] b[[j]], {i, 1, Length[a]}, {j, 1, Length[a]}])] /; ( Length[a] == Length[b]);
+
+x[i_, i_] := 0
+x[i_, j_] := -x[j, i] /; i < j
+x[i_, j_] := (-1)^(i j)/2 /; i > j && j != 1
+x[i_, 1] := 1/2 /; i > 1
+
+R[c___,a_,b_,d___]:= cocycle[a[[1]],b[[1]]] R[c,Head[a][a[[1]]+b[[1]],Join[a[[2]],b[[2]]],a[[3]]],d]/;((Head[a]==Head[b]==Sb || Head[a]==Head[b]=St) && a[[3]]==b[[3]])
+
+(*Still have to bosonize polynomials of \[Gamma] and \[Beta]*)
+
 
 (*
 pGSOHolo[field_ /; isField[Head[field]]] := Which[
@@ -242,3 +273,4 @@ pGSOAntiHoloT[field_ /; isField[Head[field]]] := Which[
 projGSOIIA[Ra_ /; RTestUpToConstant[Ra]]:= projGSOHolo[Ra] && projGSOAntiHoloT[Ra];
 projGSOIIB[Ra_ /; RTestUpToConstant[Ra]]:= projGSOHolo[Ra] && projGSOAntiHolo[Ra];
 *)
+
