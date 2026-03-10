@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# TypeII FlatSpace IndependentTensorStructures Tests\n\nPublic regression checks for streaming modular basis selection.",
+   "value": "# TypeII FlatSpace IndependentTensorStructures Tests\n\nSubmodule coverage for API, selector, and evaluator internals, plus preserved end-to-end regressions.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -14,33 +14,19 @@
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103385419,
-     "endTime": 1773103386105
-    },
-    "executionOrder": 1,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 2,
-   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nflattenCandidates[groups_] := Flatten[groups, 1];\nbasisSubsetQ[basis_, candidates_] := And @@ (MemberQ[candidates, #] & /@ basis);\nbasisLength[result_Association] := Length[result[\"Basis\"]];\nassocEntriesQ[left_Association, right_Association] := SortBy[Normal[left], First] === SortBy[Normal[right], First];\nmatrixCoeffsFromAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[\n  KeyValueMap[(#1 -> Mod[spin1 . #2 . spin2, prime]) &, matrixAssoc],\n  Last[#] =!= 0 &\n];\nantisymmetrizedMatrixScratch[vectorHeads_List, basisSubset_List, primeData_Association] := Module[\n  {rank = Length[vectorHeads], perms, sumMatrix, factors},\n  perms = Permutations[Range[rank]];\n  sumMatrix = ConstantArray[0, {16, 16}];\n  Do[\n    factors = Table[\n      Private`gammaHeadBasisMatrix[Head[vectorHeads[[perm[[i]]]]], basisSubset[[i]], primeData],\n      {i, 1, rank}\n    ];\n    sumMatrix = Mod[\n      sumMatrix + Signature[perm] Fold[Private`matrixProductMod[#1, #2, primeData[\"Prime\"]] &, primeData[\"Identity\"], factors],\n      primeData[\"Prime\"]\n    ],\n    {perm, perms}\n  ];\n  Mod[PowerMod[Factorial[rank], -1, primeData[\"Prime\"]] sumMatrix, primeData[\"Prime\"]]\n];",
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nbaseSelectorOptions = <|\n  \"RandomSeed\" -> 1234,\n  \"ModulusPrimes\" -> {32009, 32057, 32089},\n  \"ProbeCount\" -> 5,\n  \"VerificationProbeCount\" -> 3\n|>;\n\nselectorOptionRules[overrides___Rule] := Normal @ Join[baseSelectorOptions, <|overrides|>];\nflattenCandidates[groupList_] := Flatten[groupList, 1];\nbasisSubsetQ[basisList_, candidateList_] := And @@ (MemberQ[candidateList, #] & /@ basisList);\nbasisLength[result_Association] := Length[result[\"Basis\"]];\nassocEntriesQ[left_Association, right_Association] := SortBy[Normal[left], First] === SortBy[Normal[right], First];\nmatrixCoeffsFromAssociation[matrixAssoc_Association, spinorLeft_List, spinorRight_List, prime_Integer] := Association @ Select[\n  KeyValueMap[(#1 -> Mod[spinorLeft . #2 . spinorRight, prime]) &, matrixAssoc],\n  Last[#] =!= 0 &\n];\n\nantisymmetrizedMatrixScratch[vectorHeads_List, basisSubset_List, primeData_Association] := Module[\n  {rank = Length[vectorHeads], permutations, sumMatrix, factors},\n  permutations = Permutations[Range[rank]];\n  sumMatrix = ConstantArray[0, {16, 16}];\n  Do[\n    factors = Table[\n      Private`gammaHeadBasisMatrix[Head[vectorHeads[[perm[[i]]]]], basisSubset[[i]], primeData],\n      {i, 1, rank}\n    ];\n    sumMatrix = Mod[\n      sumMatrix + Signature[perm] Fold[Private`matrixProductMod[#1, #2, primeData[\"Prime\"]] &, primeData[\"Identity\"], factors],\n      primeData[\"Prime\"]\n    ],\n    {perm, permutations}\n  ];\n  Mod[PowerMod[Factorial[rank], -1, primeData[\"Prime\"]] sumMatrix, primeData[\"Prime\"]]\n];\n\nmaximalBasisStats[candidateList_List, optionList_List] := Module[{best = $Failed, attempt, targetRank},\n  For[targetRank = 1, targetRank <= Length[candidateList], targetRank++,\n    attempt = Quiet @ Check[\n      findIndependentTensorStructures[\n        candidateList,\n        Sequence @@ Join[optionList, {\"TargetRank\" -> targetRank, \"ReturnStatistics\" -> True}]\n      ],\n      $Failed\n    ];\n    If[AssociationQ[attempt] && basisLength[attempt] == targetRank,\n      best = attempt,\n      Break[]\n    ];\n  ];\n  best\n];\n\nmaximalByAugmentationQ[candidateList_List, basisList_List, optionList_List] := Module[\n  {rank, nonBasisCandidates, augmentedOptions, attempt},\n  rank = Length[basisList];\n  nonBasisCandidates = Select[candidateList, !MemberQ[basisList, #] &];\n  augmentedOptions = Join[optionList, {\"TargetRank\" -> rank + 1, \"ReturnStatistics\" -> True}];\n  And @@ Table[\n    attempt = Quiet @ Check[\n      findIndependentTensorStructures[Append[basisList, nonBasisCandidates[[i]]], Sequence @@ augmentedOptions],\n      $Failed\n    ];\n    !AssociationQ[attempt],\n    {i, 1, Length[nonBasisCandidates]}\n  ]\n];\n\nSetAttributes[countParsedCandidateVisits, HoldFirst];\ncountParsedCandidateVisits[heldExpression_] := Module[{count = 0, savedDownValues, result},\n  savedDownValues = DownValues[Private`parsedCandidateAtIndex];\n  Block[{Private`parsedCandidateAtIndex},\n    Private`parsedCandidateAtIndex[listInput_, cacheInput_, indexInput_] := Module[{value},\n      count++;\n      Block[{Private`parsedCandidateAtIndex},\n        DownValues[Private`parsedCandidateAtIndex] = savedDownValues;\n        value = Private`parsedCandidateAtIndex[listInput, cacheInput, indexInput];\n      ];\n      value\n    ];\n    result = heldExpression;\n  ];\n  <|\"Result\" -> result, \"ParseCount\" -> count|>\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103386105,
-     "endTime": 1773103386598
-    },
-    "executionOrder": 4,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 1,
-   "value": "## Public Regressions",
+   "value": "## API Submodule Tests",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -48,139 +34,15 @@
   },
   {
    "kind": 2,
-   "value": "scalarGroups = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nscalarFlat = flattenCandidates[scalarGroups];\nscalarAssoc = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nscalarList = findIndependentTensorStructures[scalarFlat, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest0 = testReport[\n  \"Test 0 (scalar basis selection)\",\n  scalarGroups === {{1}} && scalarFlat === {1} &&\n    scalarAssoc[\"Basis\"] === {1} && scalarAssoc[\"TargetRank\"] == 1 && scalarAssoc[\"VisitedCandidates\"] == 1 &&\n    scalarList[\"Basis\"] === {1} && scalarList[\"TargetRank\"] == 1 && scalarList[\"VisitedCandidates\"] == 1\n];",
+   "value": "apiIncoming1 = <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>;\napiOutgoing1 = <|\"vector\" -> {}, \"spinor\" -> {}|>;\napiGroups1 = generateTensorStructures[apiIncoming1, apiOutgoing1];\napiFlat1 = flattenCandidates[apiGroups1];\napiAssoc1 = findIndependentTensorStructures[apiIncoming1, apiOutgoing1, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]];\napiList1 = findIndependentTensorStructures[apiFlat1, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]];\n\n(* API Test 1: Association input vs explicit list input give consistent basis/rank on a 4-chiral scalar case. *)\napiTest1 = testReport[\n  \"API Test 1 (scalar/chiral association-list parity)\",\n  Length[apiFlat1] == 15 &&\n    basisLength[apiAssoc1] == 2 && apiAssoc1[\"TargetRank\"] == 2 &&\n    basisLength[apiList1] == 2 && apiList1[\"TargetRank\"] == 2 &&\n    basisSubsetQ[apiAssoc1[\"Basis\"], apiFlat1] && basisSubsetQ[apiList1[\"Basis\"], apiFlat1]\n];\n\napiRankOne = findIndependentTensorStructures[\n  apiFlat1,\n  Sequence @@ selectorOptionRules[\"TargetRank\" -> 1, \"ReturnStatistics\" -> True]\n];\n(* API Test 2: Explicit \"TargetRank\" -> 1 returns exactly one basis element and stops early. *)\napiTest2 = testReport[\n  \"API Test 2 (explicit target rank)\",\n  basisLength[apiRankOne] == 1 && apiRankOne[\"TargetRank\"] == 1 && apiRankOne[\"VisitedCandidates\"] == 1\n];\n\napiNested = findIndependentTensorStructures[apiGroups1, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]];\n(* API Test 3: Nested grouped candidates are normalized correctly (Flatten[...,1] behavior parity). *)\napiTest3 = testReport[\n  \"API Test 3 (nested candidate normalization)\",\n  apiNested[\"Basis\"] === apiList1[\"Basis\"] && apiNested[\"TargetRank\"] == apiList1[\"TargetRank\"]\n];\n\napiPlain = findIndependentTensorStructures[apiFlat1, Sequence @@ selectorOptionRules[]];\n(* API Test 4: \"ReturnStatistics\" behavior: plain list when false, association with expected keys when true. *)\napiTest4 = testReport[\n  \"API Test 4 (ReturnStatistics shape)\",\n  ListQ[apiPlain] &&\n    AssociationQ[apiList1] &&\n    Sort[Keys[apiList1]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"}\n];\n\napiIncoming2 = <|\"vector\" -> {}, \"spinor\" -> {{b1, \"chiral\"}, {b2, \"chiral\"}, {b3, \"antichiral\"}, {b4, \"antichiral\"}}|>;\napiOutgoing2 = <|\"vector\" -> {}, \"spinor\" -> {}|>;\napiAssoc2 = findIndependentTensorStructures[apiIncoming2, apiOutgoing2, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]];\n(* API Test 5: Automatic target inference gives expected rank for 2 chiral + 2 antichiral case. *)\napiTest5 = testReport[\n  \"API Test 5 (automatic target for 2+2 chirality)\",\n  apiAssoc2[\"TargetRank\"] == 3 && basisLength[apiAssoc2] == 3\n];\n\napiIncoming3 = <|\"vector\" -> {}, \"spinor\" -> {{c1, \"chiral\"}, {c2, \"chiral\"}, {c3, \"antichiral\"}}|>;\napiOutgoing3 = <|\"vector\" -> {mu}, \"spinor\" -> {{c4, \"antichiral\"}}|>;\napiGroups3 = generateTensorStructures[apiIncoming3, apiOutgoing3];\napiFlat3 = flattenCandidates[apiGroups3];\napiAssoc3 = findIndependentTensorStructures[apiIncoming3, apiOutgoing3, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]];\n\napiMaxStats1 = maximalBasisStats[apiFlat1, selectorOptionRules[]];\n(* API Test 6: Maximality after saturation: find highest reachable rank in a fixed candidate order, then verify no non-basis candidate can raise rank by augmentation. *)\napiTest6 = testReport[\n  \"API Test 6 (maximality after target-rank saturation)\",\n  AssociationQ[apiMaxStats1] &&\n    basisLength[apiMaxStats1] >= basisLength[apiList1] &&\n    maximalByAugmentationQ[apiFlat1, apiMaxStats1[\"Basis\"], selectorOptionRules[]]\n];\n\napiFlat1Reversed = Reverse[apiFlat1];\napiMaxStats1Reversed = maximalBasisStats[apiFlat1Reversed, selectorOptionRules[]];\n(* API Test 7: Same maximality check under reversed candidate order (order-sensitive robustness). *)\napiTest7 = testReport[\n  \"API Test 7 (maximality under reversed candidate order)\",\n  AssociationQ[apiMaxStats1Reversed] &&\n    maximalByAugmentationQ[apiFlat1Reversed, apiMaxStats1Reversed[\"Basis\"], selectorOptionRules[]]\n];\n\napiBadPrime = Quiet[findIndependentTensorStructures[apiFlat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\napiBadTarget = Quiet[findIndependentTensorStructures[apiFlat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\napiTooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{d1, \"chiral\"}, {d2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{d3, \"chiral\"}, {d4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\napiInvalidExplicit = Quiet[findIndependentTensorStructures[{GammaUDHold[muBad]}], {findIndependentTensorStructures::badarg}];\napiUnreachable = Quiet[findIndependentTensorStructures[apiFlat1, \"TargetRank\" -> 20], {findIndependentTensorStructures::targetunmet}];\n\n(* API Test 8: Validation failures: bad primes, bad target rank, invalid outgoing spinors, invalid explicit candidate, unreachable target rank. *)\napiTest8 = testReport[\n  \"API Test 8 (validation failures)\",\n  apiBadPrime === $Failed &&\n    apiBadTarget === $Failed &&\n    apiTooManyOut === $Failed &&\n    apiInvalidExplicit === $Failed &&\n    apiUnreachable === $Failed\n];",
    "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 0 (scalar basis selection): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 0 (scalar basis selection): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "9726a325-a46c-4f16-9a35-7f079d943e45",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
+   "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103386598,
-     "endTime": 1773103387399
-    },
-    "executionOrder": 12,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "groups1 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat1 = flattenCandidates[groups1];\nassoc1 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist1 = findIndependentTensorStructures[flat1, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest1 = testReport[\n  \"Test 1 (4 chiral -> scalar)\",\n  Length[flat1] == 15 &&\n    basisLength[assoc1] == 2 && assoc1[\"TargetRank\"] == 2 && assoc1[\"VisitedCandidates\"] < Length[flat1] &&\n    basisLength[list1] == 2 && list1[\"TargetRank\"] == 2 &&\n    basisSubsetQ[assoc1[\"Basis\"], flat1] && basisSubsetQ[list1[\"Basis\"], flat1]\n];",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 1 (4 chiral -&gt; scalar): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 1 (4 chiral -> scalar): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "9c8cc494-6780-4140-ba2e-27f7890bd77e",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103387399,
-     "endTime": 1773103388107
-    },
-    "executionOrder": 17,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "groups2 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat2 = flattenCandidates[groups2];\nassoc2 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist2 = findIndependentTensorStructures[flat2, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest2 = testReport[\n  \"Test 2 (2 chiral + 2 antichiral -> scalar)\",\n  Length[flat2] == 17 &&\n    basisLength[assoc2] == 3 && assoc2[\"TargetRank\"] == 3 &&\n    basisLength[list2] == 3 && list2[\"TargetRank\"] == 3 &&\n    basisSubsetQ[assoc2[\"Basis\"], flat2] && basisSubsetQ[list2[\"Basis\"], flat2]\n];",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 2 (2 chiral + 2 antichiral -&gt; scalar): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 2 (2 chiral + 2 antichiral -> scalar): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "3aa53372-5b1a-4306-80b1-6ecc4381a3fa",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103388108,
-     "endTime": 1773103388965
-    },
-    "executionOrder": 22,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "groups3 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>\n];\nflat3 = flattenCandidates[groups3];\nassoc3 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist3 = findIndependentTensorStructures[flat3, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest3 = testReport[\n  \"Test 3 (mixed -> vector + spinor)\",\n  Length[flat3] == 17 &&\n    basisLength[assoc3] == 5 && assoc3[\"TargetRank\"] == 5 &&\n    basisLength[list3] == 5 && list3[\"TargetRank\"] == 5 &&\n    basisSubsetQ[assoc3[\"Basis\"], flat3] && basisSubsetQ[list3[\"Basis\"], flat3]\n];",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 3 (mixed -&gt; vector + spinor): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 3 (mixed -> vector + spinor): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "c50c7747-1900-4504-a1b1-af401c96bd5e",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103388966,
-     "endTime": 1773103391653
-    },
-    "executionOrder": 27,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 1,
-   "value": "## High-Rank Regression",
+   "value": "## Selector Submodule Tests",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -188,141 +50,71 @@
   },
   {
    "kind": 2,
-   "value": "groups4 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>\n];\nflat4 = flattenCandidates[groups4];\nassoc4 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist4 = findIndependentTensorStructures[flat4, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest4 = testReport[\n  \"Test 4 (5 chiral -> 1 chiral)\",\n  Length[flat4] == 540 &&\n    Sort[Keys[assoc4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    Sort[Keys[list4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    basisLength[assoc4] == 16 && assoc4[\"TargetRank\"] == 16 && assoc4[\"VisitedCandidates\"] == 16 &&\n    basisLength[list4] == 16 && list4[\"TargetRank\"] == 16 && list4[\"VisitedCandidates\"] == 16 &&\n    assoc4[\"Basis\"] === list4[\"Basis\"]\n];",
+   "value": "(* Selector Test 1: probeModulus equals LCM of active primes. *)\nselectorTest1 = testReport[\n  \"Selector Test 1 (probe modulus)\",\n  Private`probeModulus[{32009, 32057, 32089}] == LCM[32009, 32057, 32089]\n];\n\nselectorProbeA = Private`buildProbeBank[{selAlpha, selBeta}, {selMu}, 101, 3, 987654];\nselectorProbeB = Private`buildProbeBank[{selAlpha, selBeta}, {selMu}, 101, 3, 987654];\n(* Selector Test 2: Probe bank generation is deterministic for fixed seed and has correct spinor/vector dimensions. *)\nselectorTest2 = testReport[\n  \"Selector Test 2 (deterministic probe bank)\",\n  selectorProbeA === selectorProbeB &&\n    Length[selectorProbeA] == 3 &&\n    Length[selectorProbeA[[1]][\"SpinorComponents\"][selAlpha]] == 16 &&\n    Length[selectorProbeA[[1]][\"VectorComponents\"][selMu]] == 10\n];\n\nselectorPivot0 = Private`initialPivotState[11];\nselectorInsert1 = Private`incrementalPivotInsert[selectorPivot0, {1, 0, 0, 0}];\nselectorInsert2 = Private`incrementalPivotInsert[selectorInsert1[\"State\"], {0, 1, 0, 0}];\nselectorInsert3 = Private`incrementalPivotInsert[selectorInsert2[\"State\"], {1, 1, 0, 0}];\n(* Selector Test 3: Incremental pivot insertion increases rank for independent rows and rejects dependent row. *)\nselectorTest3 = testReport[\n  \"Selector Test 3 (incremental pivot insertion)\",\n  TrueQ[selectorInsert1[\"RankIncreased\"]] &&\n    TrueQ[selectorInsert2[\"RankIncreased\"]] &&\n    !TrueQ[selectorInsert3[\"RankIncreased\"]] &&\n    Length[selectorInsert2[\"State\"][\"PivotColumns\"]] == 2\n];\n\nselectorMetadata1 = Private`selectorCandidateMetadata[apiFlat1];\nselectorRuntime1 = Private`selectionRuntimeFromMetadata[\n  selectorMetadata1,\n  <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 3, \"VerificationProbeCount\" -> 2, \"ModulusPrimes\" -> {32009, 32057}|>,\n  8\n];\n(* Selector Test 4: Runtime preallocates probe bank to requested target rank width. *)\nselectorTest4 = testReport[\n  \"Selector Test 4 (runtime probe preallocation)\",\n  Length[selectorRuntime1[\"Probes\"]] == 8 &&\n    Sort[selectorRuntime1[\"Primes\"]] === {32009, 32057}\n];\n\n(* Selector Test 5: automaticCandidateTargetRank from metadata returns expected bound. *)\nselectorTest5 = testReport[\n  \"Selector Test 5 (automatic target inference from metadata)\",\n  Private`automaticCandidateTargetRank[selectorMetadata1] == 2\n];\n\nselectorScanOpts = <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009, 32057, 32089}|>;\nselectorParsed1 = Private`selectorCandidates[apiFlat1];\nselectorScanParsed = Private`scanCandidateList[selectorParsed1, Automatic, selectorScanOpts];\nselectorScanRaw = Private`scanRawCandidateList[apiFlat1, Automatic, selectorScanOpts];\n(* Selector Test 6: Parsed-list scan and raw-list scan produce identical basis/target/visited results. *)\nselectorTest6 = testReport[\n  \"Selector Test 6 (parsed/raw scan parity)\",\n  selectorScanParsed[\"Basis\"] === selectorScanRaw[\"Basis\"] &&\n    selectorScanParsed[\"TargetRank\"] == selectorScanRaw[\"TargetRank\"] &&\n    selectorScanParsed[\"VisitedCandidates\"] == selectorScanRaw[\"VisitedCandidates\"]\n];\n\nselectorMockCandidates = {\n  <|\"Expression\" -> selectorExpr1, \"Key\" -> \"selector-c1\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> selectorExpr2, \"Key\" -> \"selector-c2\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> selectorExpr3, \"Key\" -> \"selector-c3\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>\n};\nselectorControlFlow = Block[\n  {Private`selectorCandidates, Private`listSelectionRuntime, Private`tryAcceptCandidate, Private`verifySelectionRuntime},\n  Private`selectorCandidates[listInput_List] := listInput;\n  Private`listSelectionRuntime[___] := <|\"AcceptedCandidates\" -> {}, \"VerificationCalls\" -> 0|>;\n  Private`tryAcceptCandidate[candidateInput_, runtimeInput_] := Module[{nextRuntime = runtimeInput},\n    AssociateTo[nextRuntime, \"AcceptedCandidates\" -> Append[nextRuntime[\"AcceptedCandidates\"], candidateInput]];\n    <|\"Runtime\" -> nextRuntime, \"Status\" -> \"Accepted\"|>\n  ];\n  Private`verifySelectionRuntime[runtimeInput_, _] := Module[{nextRuntime = runtimeInput, calls},\n    calls = Lookup[nextRuntime, \"VerificationCalls\", 0] + 1;\n    AssociateTo[nextRuntime, \"VerificationCalls\" -> calls];\n    If[calls == 1,\n      AssociateTo[nextRuntime, \"AcceptedCandidates\" -> {First[nextRuntime[\"AcceptedCandidates\"]]}]\n    ];\n    nextRuntime\n  ];\n  Private`scanCandidateList[selectorMockCandidates, 2, <||>]\n];\n(* Selector Test 7: Control-flow regression: scanner resumes after verification prunes accepted candidates. *)\nselectorTest7 = testReport[\n  \"Selector Test 7 (resume after verification)\",\n  selectorControlFlow[\"Basis\"] === {selectorExpr1, selectorExpr3} &&\n    selectorControlFlow[\"TargetRank\"] == 2 &&\n    selectorControlFlow[\"VisitedCandidates\"] == 3\n];\n\nselectorCounted = countParsedCandidateVisits[\n  findIndependentTensorStructures[apiFlat1, Sequence @@ selectorOptionRules[\"ReturnStatistics\" -> True]]\n];\nselectorLazyResult = selectorCounted[\"Result\"];\n(* Selector Test 8: Lazy parsing regression: number of parsed candidates equals reported visited candidates. *)\nselectorTest8 = testReport[\n  \"Selector Test 8 (lazy parse matches visited)\",\n  AssociationQ[selectorLazyResult] &&\n    selectorCounted[\"ParseCount\"] == selectorLazyResult[\"VisitedCandidates\"]\n];",
    "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 4 (5 chiral -&gt; 1 chiral): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4 (5 chiral -> 1 chiral): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "e3374c79-9c5f-4a73-aed3-d56834981a6b",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
+   "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103391653,
-     "endTime": 1773103399345
-    },
-    "executionOrder": 32,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "assoc4Repeat = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\n\ntest4c = testReport[\n  \"Test 4c (seeded determinism)\",\n  assoc4Repeat[\"Basis\"] === assoc4[\"Basis\"] &&\n    assoc4Repeat[\"TargetRank\"] == assoc4[\"TargetRank\"] &&\n    assoc4Repeat[\"VisitedCandidates\"] == assoc4[\"VisitedCandidates\"]\n];\n\nSetAttributes[countParsedCandidateVisits, HoldFirst];\ncountParsedCandidateVisits[expr_] := Module[{count = 0, savedDV, result},\n  savedDV = DownValues[Private`parsedCandidateAtIndex];\n  Block[{Private`parsedCandidateAtIndex},\n    Private`parsedCandidateAtIndex[list_, cache_, i_] := Module[{value},\n      count++;\n      Block[{Private`parsedCandidateAtIndex},\n        DownValues[Private`parsedCandidateAtIndex] = savedDV;\n        value = Private`parsedCandidateAtIndex[list, cache, i];\n      ];\n      value\n    ];\n    result = expr;\n  ];\n  <|\"Result\" -> result, \"ParseCount\" -> count|>\n];\n\ncountedList4 = countParsedCandidateVisits[\n  findIndependentTensorStructures[flat4, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True]\n];\nlazyList4 = countedList4[\"Result\"];\n\ntest4a = testReport[\n  \"Test 4a (lazy parse count explicit list)\",\n  AssociationQ[lazyList4] && countedList4[\"ParseCount\"] == lazyList4[\"VisitedCandidates\"]\n];\n\ncountedAssoc4 = countParsedCandidateVisits[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n    \"RandomSeed\" -> 1234,\n    \"ReturnStatistics\" -> True\n  ]\n];\nlazyAssoc4 = countedAssoc4[\"Result\"];\n\ntest4b = testReport[\n  \"Test 4b (lazy parse count association input)\",\n  AssociationQ[lazyAssoc4] && countedAssoc4[\"ParseCount\"] == lazyAssoc4[\"VisitedCandidates\"]\n];\n\nrank3Factor = Private`candidateFactors[flat4[[16]]][[2]];\nmixedFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ flat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] &&\n      Length[parts[\"VectorLinks\"]] == 1 &&\n      Head[First[parts[\"VectorLinks\"]]] === GammaUDHold &&\n      parts[\"CTag\"] === None &&\n      parts[\"TailLinks\"] === {}\n  ] &,\n  Missing[\"NotFound\"]\n];\n\nruntime4 = Private`listSelectionRuntime[flat4, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 16, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 16];\nprobe4 = runtime4[\"Probes\"][[1]];\nprimeData4 = runtime4[\"PrimeData\"][32009];\nrank3Parts = Private`gammaFactorPartsSelector[rank3Factor];\nrank3Spin1 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[1]]];\nrank3Spin2 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[2]]];\nrank3MatrixAssoc = Private`gammaFactorMatrixAssociation[rank3Parts, primeData4];\nrank3Scratch = matrixCoeffsFromAssociation[rank3MatrixAssoc, rank3Spin1, rank3Spin2, primeData4[\"Prime\"]];\nrank3Coeffs = Private`gammaFactorCoefficientAssociation[rank3Factor, probe4, primeData4];\n\nruntime3 = Private`listSelectionRuntime[flat3, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 5];\nprobe3 = runtime3[\"Probes\"][[1]];\nprimeData3 = runtime3[\"PrimeData\"][32009];\nmixedParts = Private`gammaFactorPartsSelector[mixedFactor];\nmixedSpin1 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[1]]];\nmixedSpin2 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[2]]];\nmixedMatrixAssoc = Private`gammaFactorMatrixAssociation[mixedParts, primeData3];\nmixedScratch = matrixCoeffsFromAssociation[mixedMatrixAssoc, mixedSpin1, mixedSpin2, primeData3[\"Prime\"]];\nmixedCoeffs = Private`gammaFactorCoefficientAssociation[mixedFactor, probe3, primeData3];\nrank6Heads = {GammaUDHold[mu1], GammaDUHold[mu2], GammaUDHold[mu3], GammaDUHold[mu4], GammaUDHold[mu5], GammaDUHold[mu6]};\nrank6Matrix = Private`antisymmetrizedVectorMatrix[rank6Heads, Range[6], primeData4];\nrank6Scratch = antisymmetrizedMatrixScratch[rank6Heads, Range[6], primeData4];\n\ntest5 = testReport[\n  \"Test 5 (matrix coefficient path)\",\n  mixedFactor =!= Missing[\"NotFound\"] &&\n    assocEntriesQ[rank3Coeffs, rank3Scratch] &&\n    assocEntriesQ[mixedCoeffs, mixedScratch]\n];\ntest6 = testReport[\"Test 6 (rank-6 antisymmetrized matrix DP)\", rank6Matrix === rank6Scratch];",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 4c (seeded determinism): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4c (seeded determinism): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "cb2193c8-b8f8-426d-8b9d-bede5f9d04cd",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 4a (lazy parse count explicit list): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4a (lazy parse count explicit list): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "5c67a0fb-411a-4ee0-9288-422d95f4a9ac",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 4b (lazy parse count association input): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4b (lazy parse count association input): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "3e39c3dc-9748-43d5-824c-47bd38e278ee",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 5 (matrix coefficient path): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 5 (matrix coefficient path): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "1bd22cdb-2cca-48d9-8a6d-d474b00beddd",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 6 (rank-6 antisymmetrized matrix DP): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 6 (rank-6 antisymmetrized matrix DP): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "7797f854-0ea0-4117-a60d-26cd06f5291d",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103399345,
-     "endTime": 1773103406073
-    },
-    "executionOrder": 37,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 1,
-   "value": "## Control Flow",
+   "value": "## Evaluator Submodule Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "evaluatorPrimeData = Private`primeEvaluationData[32009];\n(* Evaluator Test 1: Prime evaluation data has correct prime tag and gamma-table dimensions. *)\nevaluatorTest1 = testReport[\n  \"Evaluator Test 1 (prime data dimensions)\",\n  evaluatorPrimeData[\"Prime\"] == 32009 &&\n    Length[evaluatorPrimeData[\"GammaUD\"]] == 10 &&\n    Length[evaluatorPrimeData[\"GammaDU\"]] == 10 &&\n    Dimensions[evaluatorPrimeData[\"GammaUD\"][[1]]] == {16, 16}\n];\n\nevaluatorVectorFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ apiFlat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] && Length[parts[\"VectorLinks\"]] > 0\n  ] &,\n  Missing[\"NotFound\"]\n];\nevaluatorVectorParts = If[evaluatorVectorFactor === Missing[\"NotFound\"], $Failed, Private`gammaFactorPartsSelector[evaluatorVectorFactor]];\nevaluatorHead = If[evaluatorVectorParts === $Failed, $Failed, Head[evaluatorVectorParts[\"VectorLinks\"][[1]]]];\nevaluatorHeadMatrix = If[evaluatorHead === $Failed, $Failed, Private`gammaHeadBasisMatrix[evaluatorHead, 1, evaluatorPrimeData]];\n(* Evaluator Test 2: Gamma head matrix lookup returns valid 16x16 matrix for selected vector head. *)\nevaluatorTest2 = testReport[\n  \"Evaluator Test 2 (gamma head basis matrix lookup)\",\n  evaluatorVectorFactor =!= Missing[\"NotFound\"] && MatrixQ[evaluatorHeadMatrix] && Dimensions[evaluatorHeadMatrix] == {16, 16}\n];\n\nevaluatorRuntime3 = Private`listSelectionRuntime[\n  apiFlat3,\n  <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>,\n  5\n];\nevaluatorProbe3 = evaluatorRuntime3[\"Probes\"][[1]];\nevaluatorPrimeData3 = evaluatorRuntime3[\"PrimeData\"][32009];\nevaluatorSpin1 = evaluatorProbe3[\"SpinorComponents\"][evaluatorVectorParts[\"Spinors\"][[1]]];\nevaluatorSpin2 = evaluatorProbe3[\"SpinorComponents\"][evaluatorVectorParts[\"Spinors\"][[2]]];\nevaluatorMatrixAssoc = Private`gammaFactorMatrixAssociation[evaluatorVectorParts, evaluatorPrimeData3];\nevaluatorScratch = matrixCoeffsFromAssociation[evaluatorMatrixAssoc, evaluatorSpin1, evaluatorSpin2, evaluatorPrimeData3[\"Prime\"]];\nevaluatorCoeffs = Private`gammaFactorCoefficientAssociation[evaluatorVectorFactor, evaluatorProbe3, evaluatorPrimeData3];\n(* Evaluator Test 3: Matrix-association contraction path matches direct coefficient contraction. *)\nevaluatorTest3 = testReport[\n  \"Evaluator Test 3 (matrix coefficient contraction path)\",\n  assocEntriesQ[evaluatorCoeffs, evaluatorScratch]\n];\n\nevaluatorRank6Heads = {GammaUDHold[mu1], GammaDUHold[mu2], GammaUDHold[mu3], GammaDUHold[mu4], GammaUDHold[mu5], GammaDUHold[mu6]};\nevaluatorRank6Matrix = Private`antisymmetrizedVectorMatrix[evaluatorRank6Heads, Range[6], evaluatorPrimeData3];\nevaluatorRank6Scratch = antisymmetrizedMatrixScratch[evaluatorRank6Heads, Range[6], evaluatorPrimeData3];\n(* Evaluator Test 4: Rank-6 antisymmetrized DP matrix matches brute-force antisymmetrization. *)\nevaluatorTest4 = testReport[\n  \"Evaluator Test 4 (rank-6 antisymmetrized DP)\",\n  evaluatorRank6Matrix === evaluatorRank6Scratch\n];\n\nevaluatorReduced = Private`reduceFactorCoefficientsByExternalVectors[\n  evaluatorCoeffs,\n  evaluatorVectorParts[\"VectorSymbols\"],\n  evaluatorProbe3,\n  evaluatorPrimeData3[\"Prime\"]\n];\nevaluatorAssignedCount = Count[\n  evaluatorVectorParts[\"VectorSymbols\"],\n  symbol_ /; KeyExistsQ[evaluatorProbe3[\"VectorComponents\"], symbol]\n];\n(* Evaluator Test 5: External-vector substitution bookkeeping leaves expected number of dummy symbols. *)\nevaluatorTest5 = testReport[\n  \"Evaluator Test 5 (external vector reduction bookkeeping)\",\n  Length[evaluatorReduced[\"DummySymbols\"]] == Length[evaluatorVectorParts[\"VectorSymbols\"]] - evaluatorAssignedCount\n];\n\nevaluatorTuples = Private`disjointBlockBasisTuples[{2, 1}];\n(* Evaluator Test 6: disjointBlockBasisTuples[{2,1}] returns expected count/shape/disjointness. *)\nevaluatorTest6 = testReport[\n  \"Evaluator Test 6 (disjoint block tuple enumeration)\",\n  Length[evaluatorTuples] == 360 &&\n    AllTrue[\n      evaluatorTuples,\n      Length[#] == 2 && Length[#[[1]]] == 2 && Length[#[[2]]] == 1 && DuplicateFreeQ[Flatten[#]] &\n    ]\n];\n\nevaluatorRuntime1 = Private`listSelectionRuntime[\n  apiFlat1,\n  <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 2, \"VerificationProbeCount\" -> 1, \"ModulusPrimes\" -> {32009}|>,\n  2\n];\nevaluatorProbe1 = evaluatorRuntime1[\"Probes\"][[1]];\nevaluatorPrimeData1 = evaluatorRuntime1[\"PrimeData\"][32009];\nevaluatorCandidateExpr = First[apiFlat1];\nevaluatorCandidateParsed = Private`parseCandidate[evaluatorCandidateExpr];\nevaluatorValueParsed = Private`evaluateCandidateAtProbe[evaluatorCandidateParsed, evaluatorProbe1, evaluatorPrimeData1];\nevaluatorValueRaw = Private`evaluateCandidateAtProbe[evaluatorCandidateExpr, evaluatorProbe1, evaluatorPrimeData1];\n(* Evaluator Test 7: Parsed-candidate and raw-expression evaluation at a probe are identical. *)\nevaluatorTest7 = testReport[\n  \"Evaluator Test 7 (parsed/raw candidate evaluation parity)\",\n  IntegerQ[evaluatorValueParsed] && evaluatorValueParsed == evaluatorValueRaw\n];\n\nevaluatorBrokenCandidate = <|\"Key\" -> \"broken-dummy\", \"FactorParts\" -> {<|\"VectorSymbols\" -> {evaluatorDanglingDummy}|>}|>;\nevaluatorBrokenProbe = <|\"SpinorComponents\" -> <||>, \"VectorComponents\" -> <||>|>;\n(* Evaluator Test 8: Broken dummy incidence (unpaired dummy symbol) is rejected ($Failed). *)\nevaluatorTest8 = testReport[\n  \"Evaluator Test 8 (reject unpaired dummy incidence)\",\n  Private`candidateStructureData[evaluatorBrokenCandidate, evaluatorBrokenProbe] === $Failed\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## End-to-End Tests",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Public Regressions",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "scalarGroups = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nscalarFlat = flattenCandidates[scalarGroups];\nscalarAssoc = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nscalarList = findIndependentTensorStructures[scalarFlat, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest0 = testReport[\n  \"Test 0 (scalar basis selection)\",\n  scalarGroups === {{1}} && scalarFlat === {1} &&\n    scalarAssoc[\"Basis\"] === {1} && scalarAssoc[\"TargetRank\"] == 1 && scalarAssoc[\"VisitedCandidates\"] == 1 &&\n    scalarList[\"Basis\"] === {1} && scalarList[\"TargetRank\"] == 1 && scalarList[\"VisitedCandidates\"] == 1\n];\n\ngroups1 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat1 = flattenCandidates[groups1];\nassoc1 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist1 = findIndependentTensorStructures[flat1, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest1 = testReport[\n  \"Test 1 (4 chiral -> scalar)\",\n  Length[flat1] == 15 &&\n    basisLength[assoc1] == 2 && assoc1[\"TargetRank\"] == 2 && assoc1[\"VisitedCandidates\"] < Length[flat1] &&\n    basisLength[list1] == 2 && list1[\"TargetRank\"] == 2 &&\n    basisSubsetQ[assoc1[\"Basis\"], flat1] && basisSubsetQ[list1[\"Basis\"], flat1]\n];\n\ngroups2 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>\n];\nflat2 = flattenCandidates[groups2];\nassoc2 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}, {a4, \"antichiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist2 = findIndependentTensorStructures[flat2, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest2 = testReport[\n  \"Test 2 (2 chiral + 2 antichiral -> scalar)\",\n  Length[flat2] == 17 &&\n    basisLength[assoc2] == 3 && assoc2[\"TargetRank\"] == 3 &&\n    basisLength[list2] == 3 && list2[\"TargetRank\"] == 3 &&\n    basisSubsetQ[assoc2[\"Basis\"], flat2] && basisSubsetQ[list2[\"Basis\"], flat2]\n];\n\ngroups3 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>\n];\nflat3 = flattenCandidates[groups3];\nassoc3 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"antichiral\"}}|>,\n  <|\"vector\" -> {mu}, \"spinor\" -> {{a4, \"antichiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist3 = findIndependentTensorStructures[flat3, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest3 = testReport[\n  \"Test 3 (mixed -> vector + spinor)\",\n  Length[flat3] == 17 &&\n    basisLength[assoc3] == 5 && assoc3[\"TargetRank\"] == 5 &&\n    basisLength[list3] == 5 && list3[\"TargetRank\"] == 5 &&\n    basisSubsetQ[assoc3[\"Basis\"], flat3] && basisSubsetQ[list3[\"Basis\"], flat3]\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### High-Rank Regression",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "groups4 = generateTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>\n];\nflat4 = flattenCandidates[groups4];\nassoc4 = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\nlist4 = findIndependentTensorStructures[flat4, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True];\n\ntest4 = testReport[\n  \"Test 4 (5 chiral -> 1 chiral)\",\n  Length[flat4] == 540 &&\n    Sort[Keys[assoc4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    Sort[Keys[list4]] === {\"Basis\", \"TargetRank\", \"VisitedCandidates\"} &&\n    basisLength[assoc4] == 16 && assoc4[\"TargetRank\"] == 16 && assoc4[\"VisitedCandidates\"] == 16 &&\n    basisLength[list4] == 16 && list4[\"TargetRank\"] == 16 && list4[\"VisitedCandidates\"] == 16 &&\n    assoc4[\"Basis\"] === list4[\"Basis\"]\n];\n\nassoc4Repeat = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n  \"RandomSeed\" -> 1234,\n  \"ReturnStatistics\" -> True\n];\n\ntest4c = testReport[\n  \"Test 4c (seeded determinism)\",\n  assoc4Repeat[\"Basis\"] === assoc4[\"Basis\"] &&\n    assoc4Repeat[\"TargetRank\"] == assoc4[\"TargetRank\"] &&\n    assoc4Repeat[\"VisitedCandidates\"] == assoc4[\"VisitedCandidates\"]\n];\n\ncountedList4 = countParsedCandidateVisits[\n  findIndependentTensorStructures[flat4, \"RandomSeed\" -> 1234, \"ReturnStatistics\" -> True]\n];\nlazyList4 = countedList4[\"Result\"];\n\ntest4a = testReport[\n  \"Test 4a (lazy parse count explicit list)\",\n  AssociationQ[lazyList4] && countedList4[\"ParseCount\"] == lazyList4[\"VisitedCandidates\"]\n];\n\ncountedAssoc4 = countParsedCandidateVisits[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a6, \"chiral\"}}|>,\n    \"RandomSeed\" -> 1234,\n    \"ReturnStatistics\" -> True\n  ]\n];\nlazyAssoc4 = countedAssoc4[\"Result\"];\n\ntest4b = testReport[\n  \"Test 4b (lazy parse count association input)\",\n  AssociationQ[lazyAssoc4] && countedAssoc4[\"ParseCount\"] == lazyAssoc4[\"VisitedCandidates\"]\n];\n\nrank3Factor = Private`candidateFactors[flat4[[16]]][[2]];\nmixedFactor = SelectFirst[\n  Flatten[Private`candidateFactors /@ flat3, 1],\n  With[{parts = Private`gammaFactorPartsSelector[#]},\n    AssociationQ[parts] &&\n      Length[parts[\"VectorLinks\"]] == 1 &&\n      Head[First[parts[\"VectorLinks\"]]] === GammaUDHold &&\n      parts[\"CTag\"] === None &&\n      parts[\"TailLinks\"] === {}\n  ] &,\n  Missing[\"NotFound\"]\n];\n\nruntime4 = Private`listSelectionRuntime[flat4, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 16, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 16];\nprobe4 = runtime4[\"Probes\"][[1]];\nprimeData4 = runtime4[\"PrimeData\"][32009];\nrank3Parts = Private`gammaFactorPartsSelector[rank3Factor];\nrank3Spin1 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[1]]];\nrank3Spin2 = probe4[\"SpinorComponents\"][rank3Parts[\"Spinors\"][[2]]];\nrank3MatrixAssoc = Private`gammaFactorMatrixAssociation[rank3Parts, primeData4];\nrank3Scratch = matrixCoeffsFromAssociation[rank3MatrixAssoc, rank3Spin1, rank3Spin2, primeData4[\"Prime\"]];\nrank3Coeffs = Private`gammaFactorCoefficientAssociation[rank3Factor, probe4, primeData4];\n\nruntime3 = Private`listSelectionRuntime[flat3, <|\"RandomSeed\" -> 1234, \"ProbeCount\" -> 5, \"VerificationProbeCount\" -> 3, \"ModulusPrimes\" -> {32009}|>, 5];\nprobe3 = runtime3[\"Probes\"][[1]];\nprimeData3 = runtime3[\"PrimeData\"][32009];\nmixedParts = Private`gammaFactorPartsSelector[mixedFactor];\nmixedSpin1 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[1]]];\nmixedSpin2 = probe3[\"SpinorComponents\"][mixedParts[\"Spinors\"][[2]]];\nmixedMatrixAssoc = Private`gammaFactorMatrixAssociation[mixedParts, primeData3];\nmixedScratch = matrixCoeffsFromAssociation[mixedMatrixAssoc, mixedSpin1, mixedSpin2, primeData3[\"Prime\"]];\nmixedCoeffs = Private`gammaFactorCoefficientAssociation[mixedFactor, probe3, primeData3];\nrank6Heads = {GammaUDHold[mu1], GammaDUHold[mu2], GammaUDHold[mu3], GammaDUHold[mu4], GammaUDHold[mu5], GammaDUHold[mu6]};\nrank6Matrix = Private`antisymmetrizedVectorMatrix[rank6Heads, Range[6], primeData4];\nrank6Scratch = antisymmetrizedMatrixScratch[rank6Heads, Range[6], primeData4];\n\ntest5 = testReport[\n  \"Test 5 (matrix coefficient path)\",\n  mixedFactor =!= Missing[\"NotFound\"] &&\n    assocEntriesQ[rank3Coeffs, rank3Scratch] &&\n    assocEntriesQ[mixedCoeffs, mixedScratch]\n];\ntest6 = testReport[\"Test 6 (rank-6 antisymmetrized matrix DP)\", rank6Matrix === rank6Scratch];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "### Control Flow",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -332,38 +124,13 @@
    "kind": 2,
    "value": "mockCandidates = {\n  <|\"Expression\" -> expr1, \"Key\" -> \"c1\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> expr2, \"Key\" -> \"c2\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>,\n  <|\"Expression\" -> expr3, \"Key\" -> \"c3\", \"SpinorChiralities\" -> <||>, \"ExternalVectors\" -> {}|>\n};\ncontrolFlowResult = Block[\n  {Private`selectorCandidates, Private`listSelectionRuntime, Private`tryAcceptCandidate, Private`verifySelectionRuntime},\n  Private`selectorCandidates[list_List] := list;\n  Private`listSelectionRuntime[___] := <|\"AcceptedCandidates\" -> {}, \"VerificationCalls\" -> 0|>;\n  Private`tryAcceptCandidate[candidate_, runtime_] := Module[{nextRuntime = runtime},\n    AssociateTo[nextRuntime, \"AcceptedCandidates\" -> Append[nextRuntime[\"AcceptedCandidates\"], candidate]];\n    <|\"Runtime\" -> nextRuntime, \"Status\" -> \"Accepted\"|>\n  ];\n  Private`verifySelectionRuntime[runtime_, _] := Module[{nextRuntime = runtime, calls},\n    calls = Lookup[nextRuntime, \"VerificationCalls\", 0] + 1;\n    AssociateTo[nextRuntime, \"VerificationCalls\" -> calls];\n    If[calls == 1,\n      AssociateTo[nextRuntime, \"AcceptedCandidates\" -> {First[nextRuntime[\"AcceptedCandidates\"]]}]\n    ];\n    nextRuntime\n  ];\n  Private`scanCandidateList[mockCandidates, 2, <||>]\n];\n\ntest7 = testReport[\n  \"Test 7 (resume scanning after verification)\",\n  controlFlowResult[\"Basis\"] === {expr1, expr3} && controlFlowResult[\"TargetRank\"] == 2 && controlFlowResult[\"VisitedCandidates\"] == 3\n];",
    "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 7 (resume scanning after verification): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 7 (resume scanning after verification): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "5e2c7e2a-0f26-4113-8994-b79efe85678f",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    }
-   ],
+   "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103406074,
-     "endTime": 1773103406335
-    },
-    "executionOrder": 72,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 1,
-   "value": "## Validation",
+   "value": "### Validation",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -371,53 +138,27 @@
   },
   {
    "kind": 2,
-   "value": "badPrime1 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {32011}], {findIndependentTensorStructures::badprime}];\nbadPrime2 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\nbadTarget = Quiet[findIndependentTensorStructures[flat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\ntooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a3, \"chiral\"}, {a4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\ninvalidExplicit = Quiet[\n  findIndependentTensorStructures[{GammaUDHold[mu]}],\n  {findIndependentTensorStructures::badarg}\n];\ninvalidExplicitLate = Quiet[\n  findIndependentTensorStructures[Append[flat4, GammaUDHold[muLateBad]]],\n  {findIndependentTensorStructures::badarg}\n];\nunreachable = Quiet[\n  findIndependentTensorStructures[flat1, \"TargetRank\" -> 20],\n  {findIndependentTensorStructures::targetunmet}\n];\n\ntest8 = testReport[\n  \"Test 8 (option validation)\",\n  badPrime1 === $Failed &&\n    badPrime2 === $Failed &&\n    badTarget === $Failed &&\n    tooManyOut === $Failed &&\n    invalidExplicit === $Failed &&\n    invalidExplicitLate === $Failed &&\n    unreachable === $Failed\n];\n\nallTestsPassed",
+   "value": "badPrime1 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {32011}], {findIndependentTensorStructures::badprime}];\nbadPrime2 = Quiet[findIndependentTensorStructures[flat1, \"ModulusPrimes\" -> {9}], {findIndependentTensorStructures::badprime}];\nbadTarget = Quiet[findIndependentTensorStructures[flat1, \"TargetRank\" -> -1], {findIndependentTensorStructures::badtarget}];\ntooManyOut = Quiet[\n  findIndependentTensorStructures[\n    <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}}|>,\n    <|\"vector\" -> {}, \"spinor\" -> {{a3, \"chiral\"}, {a4, \"antichiral\"}}|>\n  ],\n  {findIndependentTensorStructures::toomanyout}\n];\ninvalidExplicit = Quiet[\n  findIndependentTensorStructures[{GammaUDHold[mu]}],\n  {findIndependentTensorStructures::badarg}\n];\ninvalidExplicitLate = Quiet[\n  findIndependentTensorStructures[Append[flat4, GammaUDHold[muLateBad]]],\n  {findIndependentTensorStructures::badarg}\n];\nunreachable = Quiet[\n  findIndependentTensorStructures[flat1, \"TargetRank\" -> 20],\n  {findIndependentTensorStructures::targetunmet}\n];\n\ntest8 = testReport[\n  \"Test 8 (option validation)\",\n  badPrime1 === $Failed &&\n    badPrime2 === $Failed &&\n    badTarget === $Failed &&\n    tooManyOut === $Failed &&\n    invalidExplicit === $Failed &&\n    invalidExplicitLate === $Failed &&\n    unreachable === $Failed\n];",
    "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<pre>Test 8 (option validation): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 8 (option validation): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "ec7c8d13-78f8-4021-90ac-e16de07b7f75",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "65aef54c-3e18-447a-9fd7-9137bac4eb37",
-     "metadata": {
-      "cellLabel": "Out[83]= ",
-      "isBoxData": false
-     }
-    }
-   ],
+   "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773103406335,
-     "endTime": 1773103434658
-    },
-    "executionOrder": 75,
-    "success": true
-   }
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
   }
  ],
  "metadata": {
