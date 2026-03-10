@@ -21,6 +21,7 @@ candidateFactors::usage = "candidateFactors[expr] returns the multiplicative fac
 candidateFactors[expr_] := If[Head[expr] === Times, List @@ expr, {expr}];
 
 candidateCacheKey::usage = "candidateCacheKey[expr] builds a deterministic cache key for one candidate expression.";
+(* Cache keys are consumed across selector/evaluator caches and must be stable across kernels. *)
 candidateCacheKey[expr_] := ToString[InputForm[expr]];
 
 gammaVectorLinkQ::usage = "gammaVectorLinkQ[link] is True when link is GammaUDHold or GammaDUHold.";
@@ -103,6 +104,7 @@ candidateSpinorChiralities[parts_List] := Merge[
 candidateSpinorChiralities[expr_] := candidateSpinorChiralities[gammaFactorMetadataSelector /@ candidateFactors[expr]];
 
 generatedDummyVectorSymbolQ::usage = "generatedDummyVectorSymbolQ[sym] identifies TensorStructures dummy vector symbols built from \\[Nu]i names.";
+(* Generated \[Nu]i symbols are local contraction dummies and must not contribute to external-vector counting. *)
 generatedDummyVectorSymbolQ[sym_Symbol] := With[
   {name = SymbolName[Unevaluated[sym]], context = Context[Unevaluated[sym]]},
   context === "StringCode`OPE`TypeII`FlatSpace`TensorStructures`" && StringStartsQ[name, "\[Nu]"]
@@ -127,6 +129,7 @@ candidateMetadata[1] := <|
   "ExternalVectors" -> {}
 |>;
 candidateMetadata[expr_] := Module[{factors, parts},
+  (* Metadata parsing is intentionally cheap: enough for rank/probe setup, no evaluator-only structures. *)
   factors = candidateFactors[expr];
   If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];
   parts = gammaFactorMetadataSelector /@ factors;
@@ -149,6 +152,7 @@ parseCandidate[1] := <|
   "ExternalVectors" -> {}
 |>;
 parseCandidate[expr_] := Module[{factors, parts},
+  (* Full parsing keeps evaluator-ready "FactorParts"; invalid explicit candidates fail here and upstream as badarg. *)
   factors = candidateFactors[expr];
   If[!AllTrue[factors, gammaProductFactorQ], Return[$Failed]];
   parts = gammaFactorPartsSelector /@ factors;

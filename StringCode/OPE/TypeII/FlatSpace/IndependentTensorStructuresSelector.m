@@ -61,6 +61,7 @@ incrementalPivotInsert[state_Association, row_List] := Module[
   rows = state["Rows"];
   pivots = state["PivotColumns"];
   rowLength = Length[reducedRow];
+  (* Probe-bank growth can change signature width; keep historical rows width-aligned before elimination. *)
   If[rows =!= {},
     existingLength = Length[rows[[1]]];
     If[existingLength < rowLength, rows = (PadRight[#, rowLength] &) /@ rows];
@@ -86,6 +87,7 @@ incrementalPivotInsert[state_Association, row_List] := Module[
 selectionRuntimeFromMetadata::usage = "selectionRuntimeFromMetadata[candidateMetadataList, optsAssoc, targetRank] initializes shared runtime state from metadata only.";
 selectionRuntimeFromMetadata[candidateMetadataList_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
   {probeCount, seed, primes, spinorMap, externalVectors, modulus},
+  (* Preallocate enough probes for the full requested rank so candidate signatures have fixed length. *)
   probeCount = Max[Lookup[optsAssoc, "ProbeCount", 5], targetRank];
   seed = Lookup[optsAssoc, "RandomSeed", Automatic];
   primes = Lookup[optsAssoc, "ModulusPrimes", {32009, 32057, 32089}];
@@ -148,6 +150,7 @@ tryAcceptCandidate[candidate_Association, runtime_Association] := Module[
   {nextRuntime, primaryPrime, primaryInsertion, insertions = <||>, allAccepted = True, signature, primes, prime},
   nextRuntime = runtime;
   primes = nextRuntime["Primes"];
+  (* Filter cheaply on one prime first; only attempt full multi-prime acceptance when rank can increase. *)
   primaryPrime = First[primes];
   nextRuntime = ensureCandidatePrimeSignature[candidate, nextRuntime, primaryPrime];
   signature = candidateSignature[candidate, nextRuntime, primaryPrime];
@@ -232,6 +235,7 @@ retryDeferredQueue[runtime_Association] := Module[{nextRuntime, result},
 
 verifySelectionRuntime::usage = "verifySelectionRuntime[runtime, optsAssoc] appends verification probes, rebuilds the basis, and retries deferred candidates.";
 verifySelectionRuntime[runtime_Association, optsAssoc_Association] := If[
+  (* Most passes have no deferred candidates; skip expensive rebuild/retry work in that common case. *)
   Lookup[runtime, "DeferredQueue", {}] === {},
   runtime,
   retryDeferredQueue @ rebuildAcceptedBasis @ appendVerificationProbes[runtime, optsAssoc]
@@ -280,6 +284,7 @@ scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module
   If[runtime === $Failed, Return[$Failed]];
   count = Length[parsed];
   While[True,
+    (* Preserve input order: candidates are visited once in-order; verification may only prune/retry prior accepts. *)
     While[cursor <= count && Length[runtime["AcceptedCandidates"]] < effectiveTarget,
       visited++;
       result = tryAcceptCandidate[parsed[[cursor]], runtime];
@@ -300,6 +305,7 @@ scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module
 scanRawCandidateList::usage = "scanRawCandidateList[candidates, targetRank, optsAssoc] scans a raw explicit expression list with metadata prepass and lazy full parsing.";
 scanRawCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
   {metadata, effectiveTarget, runtime, visited = 0, result, cursor = 1, count, parseCache = <||>, parsedCandidate},
+  (* Raw-list path pays one metadata prepass, then parses full candidates only when the scan cursor reaches them. *)
   metadata = selectorCandidateMetadata[candidates];
   If[metadata === $Failed, Return[$Failed]];
   effectiveTarget = If[targetRank === Automatic, automaticCandidateTargetRank[metadata], targetRank];

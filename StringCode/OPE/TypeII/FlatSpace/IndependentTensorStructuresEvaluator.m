@@ -40,6 +40,7 @@ modularReduceExact[expr_, prime_Integer, imag_Integer] := Mod[expr /. Complex[a_
 
 primeEvaluationData::usage = "primeEvaluationData[prime] precomputes the modular gamma data needed by the selector evaluator.";
 primeEvaluationData[prime_Integer] := primeEvaluationData[prime] = Module[{imag = modularImaginaryUnit[prime]},
+  (* All downstream arithmetic is modular; reduce matrices once per prime and reuse aggressively. *)
   <|
     "Prime" -> prime,
     "Identity" -> IdentityMatrix[16],
@@ -90,6 +91,7 @@ antisymmetrizedVectorMatrixState[headTypes_List, headMask_Integer?NonNegative, b
   remainingHeads = maskPositions[headMask, Length[headTypes]];
   rank = Length[remainingHeads];
   invRank = PowerMod[rank, -1, primeData["Prime"]];
+  (* Dynamic programming over remaining-head masks avoids factorial re-expansion of antisymmetrization. *)
   sumMatrix = ConstantArray[0, {16, 16}];
   For[pos = 1, pos <= rank, pos++,
     headPos = remainingHeads[[pos]];
@@ -216,6 +218,7 @@ gammaFactorCoefficientAssociation[parts_Association, probe_Association, primeDat
   cached = associationLookup[gammaFactorCoefficientAssociationCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   cached = If[
+    (* Use Hodge-dual complement for rank>5 pure-vector factors to stay in low-rank matrix families. *)
     Length[parts["VectorLinks"]] > 5 && parts["TailLinks"] === {},
     complementData = highRankComplementData[parts, primeData];
     If[complementData === $Failed, Return[$Failed]];
@@ -345,6 +348,7 @@ candidateStructureData[candidate_Association, probe_Association] := Module[
     factorDummyBlocks[candidate["FactorParts"][[i]], i, dummyLocations, probe],
     {i, Length[candidate["FactorParts"]]}
   ];
+  (* Valid tensor networks require every dummy symbol to pair with exactly one partner factor. *)
   If[AnyTrue[factorBlocks, # === $Failed &], Return[$Failed]];
   cached = <|"DummyLocations" -> dummyLocations, "FactorBlocks" -> factorBlocks|>;
   AssociateTo[candidateStructureCache, key -> cached];
@@ -391,6 +395,7 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List,
   reduced = reduceFactorCoefficientsByExternalVectors[coeffs, parts["VectorSymbols"], probe, primeData["Prime"]];
   blocks = factorBlocks;
   If[blocks === $Failed || Total[Length /@ blocks] =!= Length[reduced["DummySymbols"]], Return[$Failed]];
+  (* Entry cache is keyed by block arities plus reduced alternating-form coefficients, not symbol identities. *)
   entryKey = {primeData["Prime"], Length /@ blocks, coefficientAssociationKey[reduced["Coefficients"]]};
   entries = associationLookup[factorBlockTensorEntryCache, entryKey, Missing["NotFound"]];
   If[entries === Missing["NotFound"],
@@ -450,6 +455,7 @@ reduceBlockTensorNetwork[tensors_List, prime_Integer] := Module[{work = tensors,
   work = Select[work, # =!= $Failed &];
   If[AnyTrue[work, # === $Failed &], Return[$Failed]];
   While[True,
+    (* Eagerly fold scalar factors to keep the working network small before choosing the next shared block. *)
     For[i = Length[work], i >= 1, i--,
       If[work[[i, "Blocks"]] === {}, scalar = Mod[scalar scalarBlockTensorValue[work[[i]], prime], prime]; work = Delete[work, i]];
     ];

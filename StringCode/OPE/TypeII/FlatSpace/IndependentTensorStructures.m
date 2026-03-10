@@ -90,6 +90,7 @@ associationSelectionData[incoming_Association, outgoing_Association] := Module[
   ];
   If[Length[outSpin] > 1, Message[findIndependentTensorStructures::toomanyout]; Return[$Failed]];
   allIndexSymbols = Join[inVec, outVec, inSpin[[All, 1]], outSpin[[All, 1]]];
+  (* Repeated symbols or odd spinor count imply malformed index bookkeeping for tensor generation/selection. *)
   If[!DuplicateFreeQ[allIndexSymbols] || OddQ[Length[inSpin] + Length[outSpin]],
     Message[findIndependentTensorStructures::badarg];
     Return[$Failed];
@@ -132,6 +133,7 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
   targetRank = Lookup[optsAssoc, "TargetRank", Automatic];
   targetRank = If[targetRank === Automatic, automaticAssociationTargetRank[searchData], targetRank];
   If[targetRank === 0, Return[selectorResult[{}, 0, 0, optsAssoc]]];
+  (* Association mode owns generation; selector runs on concrete candidates with lazy parsing. *)
   candidates = normalizeCandidateInput @ generateTensorStructures[searchData["Incoming"], searchData["Outgoing"]];
   scanResult = scanRawOrFail[candidates, targetRank, optsAssoc];
   If[scanResult === $Failed, Return[$Failed]];
@@ -153,6 +155,7 @@ findIndependentTensorStructures[candidates_List, opts___Rule] := Module[
     If[targetRank =!= 0, Message[findIndependentTensorStructures::targetunmet, targetRank, 0]; Return[$Failed]];
     Return[selectorResult[{}, 0, 0, optsAssoc]];
   ];
+  (* List mode is the direct selector API for precomputed/custom candidate orderings. *)
   scanResult = If[
     AllTrue[normalizedCandidates, MatchQ[#, _Association] &],
     scanParsedOrFail[normalizedCandidates, targetRank, optsAssoc],
