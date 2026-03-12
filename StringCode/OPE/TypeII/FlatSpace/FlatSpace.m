@@ -818,14 +818,12 @@ solveSpinProjectionVariables[eqns_List, vars_List] := Module[{normalizedEqns, so
   If[solutions === {}, $Failed, First[solutions]]
 ];
 
-spinProjectionSectorEvaluation::usage =
-  "spinProjectionSectorEvaluation[sector, weight, inputs] evaluates one randomized projected OPE sector on bosonized inputs.";
-spinProjectionSectorEvaluation[sector : ("Holo" | "Anti"), weight_, inputs_List] := spinProjectionSectorEvaluation[sector, weight, inputs] = Module[
-  {spec, insertionWeight, targetWeight},
+spinProjectionProjectInputs::usage =
+  "spinProjectionProjectInputs[sector, weight, targetWeight, inputs] evaluates one projected bosonized OPE sector when the insertion target weight is already known.";
+spinProjectionProjectInputs[sector : ("Holo" | "Anti"), weight_, targetWeight_, inputs_List] := Module[
+  {spec},
   spec = spinProjectionSectorSpec[sector];
   If[inputs === {}, Return[If[weight === 0, 1, 0]]];
-  insertionWeight = Total[spinProjectionExpressionWeight[#, sector] & /@ inputs];
-  targetWeight = weight - insertionWeight;
   spinProjectionWeightFilteredExpression[
     spec["Project"][
       opeOfRList[spinProjectionRescaleInputExpression[#, spec["ScaleSymbol"]] & /@ inputs],
@@ -835,6 +833,16 @@ spinProjectionSectorEvaluation[sector : ("Holo" | "Anti"), weight_, inputs_List]
     sector,
     weight
   ]
+];
+
+spinProjectionSectorEvaluation::usage =
+  "spinProjectionSectorEvaluation[sector, weight, inputs] evaluates one randomized projected OPE sector on bosonized inputs.";
+spinProjectionSectorEvaluation[sector : ("Holo" | "Anti"), weight_, inputs_List] := Module[
+  {insertionWeight, targetWeight},
+  If[inputs === {}, Return[If[weight === 0, 1, 0]]];
+  insertionWeight = Total[spinProjectionExpressionWeight[#, sector] & /@ inputs];
+  targetWeight = weight - insertionWeight;
+  spinProjectionProjectInputs[sector, weight, targetWeight, inputs]
 ];
 
 spinProjectionGroundSpinRQ::usage =
@@ -1006,58 +1014,13 @@ spinProjectionOutputBasis[op_ /; RTest[op]] := Module[{data, symbols, domains, t
 ];
 spinProjectionOutputBasis[_] := $Failed;
 
-splitSpinProjectionTerm::usage =
-  "splitSpinProjectionTerm[term, vars] parses one ansatz term into {column, scalar tensor candidate, output data, output basis}.";
-splitSpinProjectionTerm[term_, vars_List] := Module[
-  {factors, varMatches, opMatches, var, op, remainder, tensorFactors, scalarFactor, parsedTensor, basis, column, indexSymbols, outputData},
-  factors = If[Head[term] === Times, List @@ term, {term}];
-  varMatches = Cases[factors, _spinProjectedCoefficient];
-  opMatches = Select[factors, RTest];
-  If[Length[varMatches] =!= 1 || Length[opMatches] =!= 1, Return[$Failed]];
-  var = First[varMatches];
-  op = First[opMatches];
-  column = FirstPosition[vars, var, Missing["UnknownVariable"]];
-  If[MissingQ[column], Return[$Failed]];
-  remainder = DeleteCases[factors, x_ /; x === var || x === op];
-  tensorFactors = Select[remainder, candidateFactorQ];
-  scalarFactor = Times @@ Select[remainder, !candidateFactorQ[#] &];
-  indexSymbols = DeleteDuplicates[First /@ spinTypedIndices[term]];
-  If[indexSymbols =!= {} && !FreeQ[scalarFactor, Alternatives @@ indexSymbols], Return[$Failed]];
-  parsedTensor = If[tensorFactors === {}, parseCandidate[1], parseCandidate[Times @@ tensorFactors]];
-  If[parsedTensor === $Failed, Return[$Failed]];
-  parsedTensor = Join[
-    parsedTensor,
-    <|
-      "DummyVectorSymbols" -> SortBy[
-        DeleteDuplicates @ Select[
-          Flatten[Lookup[parsedTensor["FactorParts"], "VectorSymbols", {}]],
-          Head[#] === Symbol &
-        ],
-        SymbolName
-      ]
-    |>
-  ];
-  outputData = spinProjectionOutputSymbolData[op];
-  If[outputData === $Failed, Return[$Failed]];
-  basis = spinProjectionOutputBasis[op];
-  If[basis === $Failed, Return[$Failed]];
-  <|
-    "Var" -> var,
-    "VarColumn" -> First[column],
-    "ScalarFactor" -> scalarFactor,
-    "Tensor" -> parsedTensor,
-    "OutputTemplate" -> op,
-    "OutputData" -> outputData,
-    "OutputBasis" -> basis
-  |>
-];
-
 compileSpinProjectionSectorModel::usage =
-  "compileSpinProjectionSectorModel[sector, ops, weight, expr, vars] builds the direct numeric RHS model for one supported chiral sector, or returns $Failed.";
-compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, expr_, vars_List] := compileSpinProjectionSectorModel[sector, ops, weight, expr, vars] = Module[
+  "compileSpinProjectionSectorModel[sector, ops, weight, data] builds the direct numeric RHS model for one supported chiral sector straight from outgoing tensor data, or returns $Failed.";
+compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, data_List] := Module[
   {
+    expr,
+    vars,
     template,
-    terms,
     pieces,
     freeSpinSymbols,
     freeSpinChiralities,
@@ -1080,12 +1043,61 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     scalarDesc,
     outputDesc,
     fastTerm,
-    spinChirs
+    spinChirs,
+    pieceColumn = 0
   },
-  If[expr === 0 || expr === 1 || vars === {}, Return[<|"Sector" -> sector, "Ops" -> ops, "Weight" -> weight, "Expr" -> expr, "Vars" -> vars, "VarCount" -> Length[vars], "Terms" -> {}|>]];
+  If[ops === {}, Return[<|"Sector" -> sector, "Ops" -> ops, "Weight" -> weight, "TargetWeight" -> weight, "Expr" -> If[weight === 0, 1, 0], "Vars" -> {}, "VarCount" -> 0, "Terms" -> {}|>]];
+  If[data === {}, Return[<|"Sector" -> sector, "Ops" -> ops, "Weight" -> weight, "TargetWeight" -> weight, "Expr" -> 0, "Vars" -> {}, "VarCount" -> 0, "Terms" -> {}|>]];
+  {expr, vars} = Take[attachSpinProjectionCoefficients[data], 2];
   template = spinProjectionSectorTemplate[ops, expr];
-  terms = Replace[Expand[expr], {0 -> {}, sum_Plus :> List @@ sum, other_ :> {other}}];
-  pieces = splitSpinProjectionTerm[#, vars] & /@ terms;
+  pieces = Reap[
+    Scan[
+      Function[pair,
+        Module[{op = pair[[1]], tensors = pair[[2]], outputData, basis},
+          outputData = spinProjectionOutputSymbolData[op];
+          If[outputData === $Failed, Sow[$Failed]; Return[]];
+          basis = spinProjectionOutputBasis[op];
+          If[basis === $Failed, Sow[$Failed]; Return[]];
+          Scan[
+            Function[tensor,
+              Module[{factors, scalarFactor, tensorFactors, parsedTensor, indexSymbols},
+                pieceColumn++;
+                factors = If[Head[tensor] === Times, List @@ tensor, {tensor}];
+                tensorFactors = Select[factors, candidateFactorQ];
+                scalarFactor = Times @@ Select[factors, !candidateFactorQ[#] &];
+                indexSymbols = DeleteDuplicates[First /@ spinTypedIndices[tensor]];
+                If[indexSymbols =!= {} && !FreeQ[scalarFactor, Alternatives @@ indexSymbols], Sow[$Failed]; Return[]];
+                parsedTensor = If[tensorFactors === {}, parseCandidate[1], parseCandidate[Times @@ tensorFactors]];
+                If[parsedTensor === $Failed, Sow[$Failed]; Return[]];
+                parsedTensor = Join[
+                  parsedTensor,
+                  <|
+                    "DummyVectorSymbols" -> SortBy[
+                      DeleteDuplicates @ Select[
+                        Flatten[Lookup[parsedTensor["FactorParts"], "VectorSymbols", {}]],
+                        Head[#] === Symbol &
+                      ],
+                      SymbolName
+                    ]
+                  |>
+                ];
+                Sow[<|
+                  "VarColumn" -> pieceColumn,
+                  "ScalarFactor" -> scalarFactor,
+                  "Tensor" -> parsedTensor,
+                  "OutputTemplate" -> op,
+                  "OutputData" -> outputData,
+                  "OutputBasis" -> basis
+                |>]
+              ]
+            ],
+            tensors
+          ]
+        ]
+      ],
+      data
+    ]
+  ][[2, 1]];
   If[MemberQ[pieces, $Failed], Return[$Failed]];
   freeSpinSymbols = SortBy[Intersection[template["SpinSymbols"], template["FreeSymbols"]], SymbolName];
   freeSpinChiralities = Lookup[template["SpinChiralities"], freeSpinSymbols];
@@ -1272,6 +1284,7 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     "Sector" -> sector,
     "Ops" -> ops,
     "Weight" -> weight,
+    "TargetWeight" -> None,
     "Expr" -> expr,
     "Vars" -> vars,
     "VarCount" -> Length[vars],
@@ -1330,6 +1343,13 @@ spinProjectionNumericGammaFactorMatrix[links_List] := spinProjectionNumericGamma
       spinProjectionNumericGammaLinkMatrix /@ tailLinks
     ]
   ]
+];
+
+spinProjectionChargeBasisIndex::usage =
+  "spinProjectionChargeBasisIndex[table, charge] returns the 1-based basis index for a charge vector in a small ordered charge table, or 0 if absent.";
+spinProjectionChargeBasisIndex[table_List, charge_] := Module[{pos},
+  pos = FirstPosition[table, charge, 0, {1}, Heads -> False];
+  If[ListQ[pos], First[pos], 0]
 ];
 
 spinProjectionTupleStep::usage =
@@ -1586,7 +1606,7 @@ spinProjectionAssignmentIterator[model_Association, seed_] := Module[
     nextTuple,
     yielded = 0,
     outputCharges,
-    solvedLookup,
+    solvedTable,
     fixedTables,
     tuple,
     outputIndex = 1,
@@ -1603,22 +1623,19 @@ spinProjectionAssignmentIterator[model_Association, seed_] := Module[
   If[TrueQ[model["ChargeGuidedQ"]],
     If[spinDomains === {}, Return[Function[{}, EndOfFile]]];
     fixedTables = MapThread[spinProjectionSpinBasisChargeTable, {Most[model["FreeSpinChiralities"]], Most[model["FreeSpinPictures"]]}];
-    solvedLookup = AssociationThread[
-      spinProjectionSpinBasisChargeTable[Last[model["FreeSpinChiralities"]], Last[model["FreeSpinPictures"]]] ->
-        Range[Length[spinProjectionSpinBasisState[Last[model["FreeSpinChiralities"]]]]]
-    ];
+    solvedTable = spinProjectionSpinBasisChargeTable[Last[model["FreeSpinChiralities"]], Last[model["FreeSpinPictures"]]];
     outputCharges = spinProjectionSeededOrder[model["OutputCharges"], seed, "outputCharges"];
-    tupleIterator = spinProjectionTupleIterator[Most[spinDomains], tupleSeed, {"chargeTuples", model["FreeSpinSymbols"]}];
+    tupleIterator = spinProjectionTupleIterator[Reverse[Most[spinDomains]], tupleSeed, {"chargeTuples", model["FreeSpinSymbols"]}];
     tuple = tupleIterator[];
-    next[] := Module[{outputCharge, currentTuple, required, solvedValue, rules},
+    next[] := Module[{outputCharge, currentTuple, required, solvedValue},
       While[yielded < maxCount && tuple =!= EndOfFile,
-        currentTuple = tuple;
+        currentTuple = Reverse[tuple];
         While[outputIndex <= Length[outputCharges],
           outputCharge = outputCharges[[outputIndex]];
           outputIndex++;
           required = outputCharge - Total[MapThread[#1[[#2]] &, {fixedTables, currentTuple}]];
-          solvedValue = If[KeyExistsQ[solvedLookup, required], solvedLookup[required], Missing["NotFound"]];
-          If[MissingQ[solvedValue], Continue[]];
+          solvedValue = spinProjectionChargeBasisIndex[solvedTable, required];
+          If[solvedValue == 0, Continue[]];
           yielded++;
           Return[{Developer`ToPackedArray[Join[currentTuple, {solvedValue}]], Developer`ToPackedArray[{}]}];
         ];
@@ -1629,11 +1646,12 @@ spinProjectionAssignmentIterator[model_Association, seed_] := Module[
     ];
     Return[next]
   ];
-  nextTuple = spinProjectionTupleIterator[Join[spinDomains, vectorDomains], tupleSeed, {"genericTuples", model["FreeSpinSymbols"], model["FreeVectorGroups"]}];
+  nextTuple = spinProjectionTupleIterator[Reverse@Join[spinDomains, vectorDomains], tupleSeed, {"genericTuples", model["FreeSpinSymbols"], model["FreeVectorGroups"]}];
   next[] := Module[{tuple, spinCount = Length[spinDomains]},
     If[yielded >= maxCount, Return[EndOfFile]];
     tuple = nextTuple[];
     If[tuple === EndOfFile, Return[EndOfFile]];
+    tuple = Reverse[tuple];
     yielded++;
     {
       Developer`ToPackedArray[Take[tuple, spinCount]],
@@ -1698,10 +1716,18 @@ spinProjectionExactBasisInsert[state_Association, rows_?MatrixQ] := Module[
 
 solveCompiledSpinProjectionSector::usage =
   "solveCompiledSpinProjectionSector[model, seed] solves one supported sector using deterministic concrete probes and direct exact RHS contraction, or returns $Failed.";
-solveCompiledSpinProjectionSector[model_Association, seed_] := solveCompiledSpinProjectionSector[model, seed] = Module[
+solveCompiledSpinProjectionSector[model_Association, seed_] := Module[
   {
+    expr = model["Expr"],
+    vars = model["Vars"],
+    varCount = model["VarCount"],
+    sector = model["Sector"],
+    weight = model["Weight"],
+    targetWeight = Lookup[model, "TargetWeight", model["Weight"]],
+    outputKeys = model["OutputKeys"],
     nextCandidate,
     useSelector,
+    targetInputs,
     selectorBasis = {},
     exactBasis = <|"Rows" -> {}, "Pivots" -> {}|>,
     rows = {},
@@ -1719,13 +1745,23 @@ solveCompiledSpinProjectionSector[model_Association, seed_] := solveCompiledSpin
     solution,
     candidate
   },
-  If[model["Expr"] === 0, Return[<|"Expr" -> 0, "Attempts" -> 0|>]];
-  If[model["Expr"] === 1, Return[<|"Expr" -> 1, "Attempts" -> 0|>]];
-  If[model["VarCount"] == 0, Return[<|"Expr" -> model["Expr"], "Attempts" -> 0|>]];
-  useSelector = model["SelectorRowCount"] > 0 && model["VarCount"] > 2;
+  If[expr === 0, Return[<|"Expr" -> 0, "Attempts" -> 0|>]];
+  If[expr === 1, Return[<|"Expr" -> 1, "Attempts" -> 0|>]];
+  If[varCount == 0, Return[<|"Expr" -> expr, "Attempts" -> 0|>]];
+  If[targetWeight === None,
+    targetInputs = spinProjectionConcreteInputs[
+      model,
+      {
+        Developer`ToPackedArray[ConstantArray[1, Length[model["FreeSpinSymbols"]]]],
+        Developer`ToPackedArray[ConstantArray[1, Length[model["FreeVectorGroups"]]]]
+      }
+    ];
+    targetWeight = weight - Total[spinProjectionExpressionWeight[#, sector] & /@ targetInputs];
+  ];
+  useSelector = model["SelectorRowCount"] > 0 && varCount > 2;
   nextCandidate = spinProjectionAssignmentIterator[model, seed];
   If[nextCandidate === $Failed, Return[$Failed]];
-  While[Length[rows] < model["VarCount"],
+  While[Length[rows] < varCount,
     candidate = nextCandidate[];
     If[candidate === EndOfFile, Break[]];
     If[useSelector,
@@ -1743,23 +1779,23 @@ solveCompiledSpinProjectionSector[model_Association, seed_] := solveCompiledSpin
     exactBasis = exactInsert["Basis"];
     If[useSelector, selectorBasis = selectorInsert["Basis"]];
     inputs = spinProjectionConcreteInputs[model, candidate];
-    lhs = spinProjectionSectorEvaluation[model["Sector"], model["Weight"], inputs];
+    lhs = spinProjectionProjectInputs[sector, weight, targetWeight, inputs];
     lhsAssoc = spinProjectionOperatorAssociation[lhs];
     rows = Join[rows, independentRows];
-    rhs = Join[rhs, Lookup[lhsAssoc, model["OutputKeys"][[#]], 0] & /@ independentIndices];
+    rhs = Join[rhs, Lookup[lhsAssoc, outputKeys[[#]], 0] & /@ independentIndices];
     attempts++;
   ];
-  If[Length[rows] < model["VarCount"], Return[$Failed]];
-  solution = Thread[model["Vars"] -> LinearSolve[rows, rhs]];
-  <|"Expr" -> (model["Expr"] /. solution), "Attempts" -> attempts|>
+  If[Length[rows] < varCount, Return[$Failed]];
+  solution = Thread[vars -> LinearSolve[rows, rhs]];
+  <|"Expr" -> (expr /. solution), "Attempts" -> attempts|>
 ];
 
 solveCompiledSpinProjectionSectors::usage =
-  "solveCompiledSpinProjectionSectors[holoOps, antiOps, wH, wA, hExpr, hVars, aExpr, aVars, seed] solves all supported spin-field sectors with the compiled direct-contraction path or returns $Failed.";
-solveCompiledSpinProjectionSectors[holoOps_List, antiOps_List, wH_, wA_, hExpr_, hVars_List, aExpr_, aVars_List, seed_] := Module[
+  "solveCompiledSpinProjectionSectors[holoOps, antiOps, wH, wA, holoData, antiData, seed] solves all supported spin-field sectors with the compiled direct-contraction path or returns $Failed.";
+solveCompiledSpinProjectionSectors[holoOps_List, antiOps_List, wH_, wA_, holoData_List, antiData_List, seed_] := Module[
   {hModel, aModel, hSolved, aSolved},
-  hModel = compileSpinProjectionSectorModel["Holo", holoOps, wH, hExpr, hVars];
-  aModel = compileSpinProjectionSectorModel["Anti", antiOps, wA, aExpr, aVars];
+  hModel = compileSpinProjectionSectorModel["Holo", holoOps, wH, holoData];
+  aModel = compileSpinProjectionSectorModel["Anti", antiOps, wA, antiData];
   If[MemberQ[{hModel, aModel}, $Failed], Return[$Failed]];
   hSolved = solveCompiledSpinProjectionSector[hModel, seed];
   aSolved = solveCompiledSpinProjectionSector[aModel, seed];
@@ -1920,16 +1956,16 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   {o, hExpr, aExpr, hVars, aVars, n, seed, template, solved, buildSectorProjection},
   seed = Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic];
   o = getOutgoingOperatorsTensors[{Ra}, wH, wA, seed];
-  buildSectorProjection[opsKey_, dataKey_, weight_, offset_] := Which[
-    o[opsKey] === {}, {If[weight === 0, 1, 0], {}, offset},
-    o[dataKey] === {}, {0, {}, offset},
-    True, attachSpinProjectionCoefficients[o[dataKey], offset]
-  ];
-  {hExpr, hVars, n} = buildSectorProjection["holoOps", "holoData", wH, 0];
-  {aExpr, aVars, n} = buildSectorProjection["antiOps", "antiData", wA, n];
-  If[hExpr === 0 || aExpr === 0, Return[0]];
-  solved = solveCompiledSpinProjectionSectors[o["holoOps"], o["antiOps"], wH, wA, hExpr, hVars, aExpr, aVars, seed];
+  solved = solveCompiledSpinProjectionSectors[o["holoOps"], o["antiOps"], wH, wA, o["holoData"], o["antiData"], seed];
   If[solved === $Failed,
+    buildSectorProjection[opsKey_, dataKey_, weight_, offset_] := Which[
+      o[opsKey] === {}, {If[weight === 0, 1, 0], {}, offset},
+      o[dataKey] === {}, {0, {}, offset},
+      True, attachSpinProjectionCoefficients[o[dataKey], offset]
+    ];
+    {hExpr, hVars, n} = buildSectorProjection["holoOps", "holoData", wH, 0];
+    {aExpr, aVars, n} = buildSectorProjection["antiOps", "antiData", wA, n];
+    If[hExpr === 0 || aExpr === 0, Return[0]];
     template = spinRandomizationTemplate[o["holoOps"], o["antiOps"], hExpr, aExpr];
     solved = solveSpinProjectionSectors[template, wH, wA, hExpr, hVars, aExpr, aVars, seed];
   ];
