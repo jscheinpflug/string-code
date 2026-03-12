@@ -432,6 +432,15 @@ spinIterationValues::usage = "spinIterationValues[chirality] returns the explici
 spinIterationValues["antichiral"] := antichiralspins;
 spinIterationValues[_] := chiralspins;
 
+spinProjectionSpinBasisState::usage =
+  "spinProjectionSpinBasisState[chirality] returns the ordered explicit spin basis used by the compiled numeric probe solver.";
+spinProjectionSpinBasisState[chirality_String] := spinProjectionSpinBasisState[chirality] = spinIterationValues[chirality];
+
+spinProjectionSpinBasisChargeTable::usage =
+  "spinProjectionSpinBasisChargeTable[chirality, q] returns the bosonized charge vectors for one fixed picture and chirality, indexed in spin-basis order.";
+spinProjectionSpinBasisChargeTable[chirality_String, q_?NumericQ] :=
+  spinProjectionSpinBasisChargeTable[chirality, q] = (Prepend[#, q] & /@ spinProjectionSpinBasisState[chirality]);
+
 spinProjectionSpinorBasisAssociation::usage =
   "spinProjectionSpinorBasisAssociation[chirality] returns the exact ordered spin-state lookup used for probe gamma-matrix evaluation.";
 spinProjectionSpinorBasisAssociation["chiral"] :=
@@ -882,6 +891,14 @@ spinProjectionCompiledSelectorTolerance::usage =
   "Tolerance used by the numeric selector basis when screening dense compiled probe rows.";
 spinProjectionCompiledSelectorTolerance = 10.^-9;
 
+spinProjectionSelectorProjection::usage =
+  "spinProjectionSelectorProjection[n, k, tag] returns a deterministic packed machine-complex selector sketch matrix.";
+spinProjectionSelectorProjection[n_Integer?NonNegative, k_Integer?NonNegative, tag_] := Developer`ToPackedArray @ N @ If[
+  n == 0 || k == 0,
+  ConstantArray[0., {k, n}],
+  Table[(I^Mod[Hash[{tag, i, j}], 4])/Sqrt[n], {i, k}, {j, n}]
+];
+
 spinProjectionSectorTemplate::usage =
   "spinProjectionSectorTemplate[ops, expr] collects free/dummy vector and spin symbols for one chiral spin-projection sector.";
 spinProjectionSectorTemplate[ops_List, expr_] := Module[
@@ -1041,165 +1058,235 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
   {
     template,
     terms,
-    compiledTerms,
+    pieces,
+    freeSpinSymbols,
+    freeSpinChiralities,
+    freeSpinSlot,
+    freeVectorGroups,
+    freeVectorSlot,
     chargeGuidedQ,
+    freeSpinPictures,
     outputSpinSymbols,
     outputKeys,
-    outputRowIndex
+    outputRowIndex,
+    selectorMatrix,
+    selectorCols,
+    selectorRows,
+    rowsFromAssoc,
+    selectorWeights,
+    vsrc,
+    ssrc,
+    matrixDesc,
+    scalarDesc,
+    outputDesc,
+    fastTerm,
+    spinChirs
   },
-  If[expr === 0 || expr === 1 || vars === {}, Return[<|"Sector" -> sector, "Ops" -> ops, "Weight" -> weight, "Expr" -> expr, "Vars" -> vars|>]];
+  If[expr === 0 || expr === 1 || vars === {}, Return[<|"Sector" -> sector, "Ops" -> ops, "Weight" -> weight, "Expr" -> expr, "Vars" -> vars, "VarCount" -> Length[vars], "Terms" -> {}|>]];
   template = spinProjectionSectorTemplate[ops, expr];
-  terms = Replace[Expand[expr], {
-    0 -> {},
-    sum_Plus :> List @@ sum,
-    other_ :> {other}
-  }];
-  compiledTerms = splitSpinProjectionTerm[#, vars] & /@ terms;
-  If[MemberQ[compiledTerms, $Failed], Return[$Failed]];
-  outputSpinSymbols = DeleteDuplicates @ Flatten[Lookup[Lookup[compiledTerms, "OutputData", <||>], "SpinSymbols", {}], 1];
-  If[
-    Complement[Intersection[template["SpinSymbols"], template["DummySymbols"]], outputSpinSymbols] =!= {},
-    Return[$Failed]
-  ];
+  terms = Replace[Expand[expr], {0 -> {}, sum_Plus :> List @@ sum, other_ :> {other}}];
+  pieces = splitSpinProjectionTerm[#, vars] & /@ terms;
+  If[MemberQ[pieces, $Failed], Return[$Failed]];
+  freeSpinSymbols = SortBy[Intersection[template["SpinSymbols"], template["FreeSymbols"]], SymbolName];
+  freeSpinChiralities = Lookup[template["SpinChiralities"], freeSpinSymbols];
+  freeSpinSlot = AssociationThread[freeSpinSymbols -> Range[Length[freeSpinSymbols]]];
+  freeVectorGroups = SortBy[template["FreeVectorGroups"], SymbolName @* First];
+  freeVectorSlot = Association @ Flatten[MapIndexed[Thread[#1 -> First[#2]] &, freeVectorGroups], 1];
+  outputSpinSymbols = DeleteDuplicates @ Flatten[Lookup[Lookup[pieces, "OutputData", <||>], "SpinSymbols", {}], 1];
+  If[Complement[Intersection[template["SpinSymbols"], template["DummySymbols"]], outputSpinSymbols] =!= {}, Return[$Failed]];
   chargeGuidedQ =
-    template["FreeVectorGroups"] === {} &&
-    Intersection[template["SpinSymbols"], template["FreeSymbols"]] =!= {} &&
+    freeVectorGroups === {} &&
+    freeSpinSymbols =!= {} &&
     ops =!= {} &&
     AllTrue[ops, spinProjectionGroundSpinRQ] &&
     AllTrue[Cases[expr, ra_ /; RTest[ra] :> ra, Infinity], spinProjectionGroundSpinRQ];
+  freeSpinPictures = Association @ Cases[
+    ops,
+    R[(S | St)[{sym_, _}, q_?NumericQ, {}, 0, _]] /; MemberQ[freeSpinSymbols, sym] :> (sym -> q),
+    Infinity
+  ];
+  If[chargeGuidedQ && Length[freeSpinPictures] =!= Length[freeSpinSymbols], chargeGuidedQ = False];
   outputKeys = SortBy[
     DeleteDuplicates @ Flatten[
-      Cases[
-        compiledTerms,
-        state_Association /; KeyExistsQ[state, "Assoc"] :> Keys[state["Assoc"]],
-        Infinity
-      ],
+      Cases[pieces, state_Association /; KeyExistsQ[state, "Assoc"] :> Keys[state["Assoc"]], Infinity],
       1
     ],
     ToString[InputForm[#]] &
   ];
   outputRowIndex = AssociationThread[outputKeys -> Range[Length[outputKeys]]];
-  compiledTerms = Function[term,
-      Module[{outputSpinSymbol},
-        outputSpinSymbol = If[
-          term["OutputData"]["VectorSymbols"] === {} &&
-            Length[term["OutputData"]["SpinSymbols"]] === 1,
-          First[term["OutputData"]["SpinSymbols"]],
-          None
+  selectorMatrix = If[
+    outputKeys === {},
+    ConstantArray[0., {0, 0}],
+    Join[
+      spinProjectionSelectorProjection[Length[outputKeys], Min[8, Length[outputKeys]], {sector, "A", outputKeys}],
+      spinProjectionSelectorProjection[Length[outputKeys], Min[8, Length[outputKeys]], {sector, "B", outputKeys}]
+    ]
+  ];
+  selectorCols = If[selectorMatrix === {}, {}, Transpose[selectorMatrix]];
+  selectorRows = Length[selectorMatrix];
+  rowsFromAssoc[assoc_Association] := KeyValueMap[Function[{key, coeff}, {outputRowIndex[key], coeff}], assoc];
+  selectorWeights[rows_List] := Which[
+    selectorRows == 0, {},
+    rows === {}, ConstantArray[0. + 0. I, {selectorRows}],
+    True, Developer`ToPackedArray @ Total[(#[[2]] selectorCols[[#[[1]]]] &) /@ rows]
+  ];
+  vsrc[sym_, stateVectors_, dummyVectors_] := Which[
+    IntegerQ[sym], {4, sym},
+    KeyExistsQ[freeVectorSlot, sym], {1, freeVectorSlot[sym]},
+    KeyExistsQ[stateVectors, sym], {2, stateVectors[sym]},
+    KeyExistsQ[dummyVectors, sym], {3, dummyVectors[sym]},
+    True, $Failed
+  ];
+  ssrc[sym_, stateSpins_, outputSym_] := Which[
+    KeyExistsQ[freeSpinSlot, sym], {1, freeSpinSlot[sym]},
+    KeyExistsQ[stateSpins, sym], {2, stateSpins[sym]},
+    sym === outputSym, {3, 1},
+    True, $Failed
+  ];
+  matrixDesc[part_, stateVectors_, dummyVectors_] := Module[{sources, links},
+    sources = vsrc[#, stateVectors, dummyVectors] & /@ part["VectorSymbols"];
+    If[MemberQ[sources, $Failed], Return[$Failed]];
+    If[AllTrue[sources, First[#] === 4 &],
+      links = Join[
+        If[part["CTag"] === None, {}, {part["CTag"]}],
+        MapThread[If[#1 === GammaUDHold, GammaUDHold[#2[[2]]], GammaDUHold[#2[[2]]]] &, {Head /@ part["VectorLinks"], sources}],
+        part["TailLinks"]
+      ];
+      {part["CTag"], Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1], sources, part["TailLinks"], spinProjectionGammaFactorMatrix[links], spinProjectionNumericGammaFactorMatrix[links]},
+      {part["CTag"], Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1], sources, part["TailLinks"], None, None}
+    ]
+  ];
+  scalarDesc[part_, stateSpins_, stateVectors_, dummyVectors_, outputSym_] := Module[{left, right, matrix},
+    Switch[part["Kind"],
+      "Delta",
+      {0, vsrc[part["VectorSymbols"][[1]], stateVectors, dummyVectors], vsrc[part["VectorSymbols"][[2]], stateVectors, dummyVectors]},
+      "Gamma",
+      If[MemberQ[part["Spinors"], outputSym], Return[$Failed]];
+      left = ssrc[part["Spinors"][[1]], stateSpins, outputSym];
+      right = ssrc[part["Spinors"][[2]], stateSpins, outputSym];
+      If[MemberQ[{left, right}, $Failed], Return[$Failed]];
+      If[part["VectorLinks"] === {} && part["CTag"] === None && part["TailLinks"] === {} && SameQ @@ part["SpinorChiralities"],
+        {1, left, right},
+        matrix = matrixDesc[part, stateVectors, dummyVectors];
+        If[matrix === $Failed, $Failed, {2, matrix, left, right}]
+      ],
+      _,
+      $Failed
+    ]
+  ];
+  outputDesc[part_, stateSpins_, stateVectors_, dummyVectors_, outputSym_] := Module[{pos, other, matrix},
+    If[Count[part["Spinors"], outputSym] =!= 1, Return[$Failed]];
+    pos = First @ FirstPosition[part["Spinors"], outputSym];
+    other = ssrc[part["Spinors"][[3 - pos]], stateSpins, outputSym];
+    If[other === $Failed, Return[$Failed]];
+    If[part["VectorLinks"] === {} && part["CTag"] === None && part["TailLinks"] === {},
+      {0, other},
+      matrix = matrixDesc[part, stateVectors, dummyVectors];
+      If[matrix === $Failed, $Failed, {1, pos, matrix, other}]
+    ]
+  ];
+  fastTerm[piece_] := Module[
+    {
+      outputSym,
+      stateSpinSymbols,
+      stateVectorSymbols,
+      stateSpins,
+      stateVectors,
+      dummySymbols,
+      dummyVectors,
+      parts,
+      outputPos,
+      scalarFactors,
+      outputFactor,
+      states,
+      basisDim,
+      rows,
+      basisStates,
+      spinIndex,
+      sharedStates
+    },
+    outputSym = If[piece["OutputData"]["VectorSymbols"] === {} && Length[piece["OutputData"]["SpinSymbols"]] === 1, First[piece["OutputData"]["SpinSymbols"]], None];
+    spinChirs = spinSymbolChiralities[piece["OutputTemplate"]];
+    stateSpinSymbols = DeleteCases[piece["OutputData"]["SpinSymbols"], outputSym];
+    stateVectorSymbols = piece["OutputData"]["VectorSymbols"];
+    stateSpins = AssociationThread[stateSpinSymbols -> Range[Length[stateSpinSymbols]]];
+    stateVectors = AssociationThread[stateVectorSymbols -> Range[Length[stateVectorSymbols]]];
+    dummySymbols = Complement[piece["Tensor"]["DummyVectorSymbols"], stateVectorSymbols, Keys[freeVectorSlot]];
+    dummyVectors = AssociationThread[dummySymbols -> Range[Length[dummySymbols]]];
+    parts = piece["Tensor"]["FactorParts"];
+    If[outputSym === None,
+      scalarFactors = scalarDesc[#, stateSpins, stateVectors, dummyVectors, None] & /@ parts;
+      If[MemberQ[scalarFactors, $Failed], Return[$Failed]];
+      states = Function[state,
+          rows = rowsFromAssoc[state["Assoc"]];
+          {
+            Developer`ToPackedArray[
+              spinProjectionSpinorBasisIndex[Lookup[state["Spins"], #], Lookup[spinChirs, #]] & /@ stateSpinSymbols
+            ],
+            Developer`ToPackedArray[Lookup[state["Vectors"], stateVectorSymbols, {}]],
+            rows,
+            selectorWeights[rows]
+          }
+        ] /@ piece["OutputBasis"];
+      If[!AllTrue[states[[All, 1]], VectorQ[#, IntegerQ] &] || !AllTrue[states[[All, 2]], VectorQ[#, IntegerQ] &], Return[$Failed]];
+      Return[{1, piece["VarColumn"], piece["ScalarFactor"], N[piece["ScalarFactor"]], scalarFactors, states, Length[dummySymbols]}]
+    ];
+    outputPos = Select[Range[Length[parts]], MemberQ[parts[[#, "Spinors"]], outputSym] &];
+    If[Length[outputPos] =!= 1, Return[$Failed]];
+    scalarFactors = scalarDesc[#, stateSpins, stateVectors, dummyVectors, outputSym] & /@ Delete[parts, First[outputPos]];
+    If[MemberQ[scalarFactors, $Failed], Return[$Failed]];
+    outputFactor = outputDesc[parts[[First[outputPos]]], stateSpins, stateVectors, dummyVectors, outputSym];
+    If[outputFactor === $Failed, Return[$Failed]];
+    basisDim = Length[spinIterationValues[Lookup[spinChirs, outputSym]]];
+    basisStates = Table[
+      {Developer`ToPackedArray[{}], Developer`ToPackedArray[{}], {}, ConstantArray[0. + 0. I, {selectorRows}]},
+      {basisDim}
+    ];
+    Scan[
+      Function[state,
+        rows = rowsFromAssoc[state["Assoc"]];
+        spinIndex = spinProjectionSpinorBasisIndex[state["Spins"][outputSym], Lookup[spinChirs, outputSym]];
+        If[IntegerQ[spinIndex],
+          basisStates[[spinIndex]] = {
+            Developer`ToPackedArray[
+              spinProjectionSpinorBasisIndex[Lookup[state["Spins"], #], Lookup[spinChirs, #]] & /@ stateSpinSymbols
+            ],
+            Developer`ToPackedArray[Lookup[state["Vectors"], stateVectorSymbols, {}]],
+            rows,
+            selectorWeights[rows]
+          }
         ];
-        Join[
-          KeyDrop[term, {"OutputBasis"}],
-          <|
-            "OutputSpinSymbol" -> outputSpinSymbol,
-            "OutputStates" -> (Append[
-                #,
-                "Rows" -> KeyValueMap[
-                  Function[{key, coeff}, {outputRowIndex[key], coeff}],
-                  #["Assoc"]
-                ]
-              ] & /@ term["OutputBasis"])
-          |>
-        ]
-      ]
-    ] /@ compiledTerms;
+      ],
+      piece["OutputBasis"]
+    ];
+    sharedStates = DeleteDuplicates[basisStates[[All, {1, 2}]]];
+    If[
+      Length[sharedStates] == 1,
+      {0, piece["VarColumn"], piece["ScalarFactor"], N[piece["ScalarFactor"]], scalarFactors, outputFactor, sharedStates[[1, 1]], sharedStates[[1, 2]], basisStates[[All, 3]], basisStates[[All, 4]], Length[dummySymbols]},
+      {2, piece["VarColumn"], piece["ScalarFactor"], N[piece["ScalarFactor"]], scalarFactors, outputFactor, basisStates, Length[dummySymbols]}
+    ]
+  ];
+  pieces = fastTerm /@ pieces;
+  If[MemberQ[pieces, $Failed], Return[$Failed]];
   <|
     "Sector" -> sector,
     "Ops" -> ops,
     "Weight" -> weight,
     "Expr" -> expr,
     "Vars" -> vars,
-    "Template" -> template,
-    "Terms" -> compiledTerms,
+    "VarCount" -> Length[vars],
     "OutputKeys" -> outputKeys,
     "OutputCount" -> Length[outputKeys],
+    "SelectorRowCount" -> selectorRows,
+    "FreeSpinSymbols" -> freeSpinSymbols,
+    "FreeSpinChiralities" -> freeSpinChiralities,
+    "FreeVectorGroups" -> freeVectorGroups,
     "ChargeGuidedQ" -> chargeGuidedQ,
-    "OutputCharges" -> If[chargeGuidedQ, spinProjectionGroundSpinOutputCharges[expr], {}]
+    "FreeSpinPictures" -> Lookup[freeSpinPictures, freeSpinSymbols, Missing["NotChargeGuided"]],
+    "OutputCharges" -> If[chargeGuidedQ, spinProjectionGroundSpinOutputCharges[expr], {}],
+    "Terms" -> pieces
   |>
 ];
-
-spinProjectionAssignmentData::usage =
-  "spinProjectionAssignmentData[rules] converts concrete symbol rules into vector/spin lookup associations used by the compiled RHS evaluator.";
-spinProjectionAssignmentData[rules_List] := <|
-  "Rules" -> rules,
-  "Vectors" -> Association @ Cases[rules, Rule[sym_, value_Integer] :> (sym -> value)],
-  "Spins" -> Association @ Cases[rules, Rule[sym_, value_List] :> (sym -> value)]
-|>;
-
-spinProjectionTupleAssignmentRules::usage =
-  "spinProjectionTupleAssignmentRules[domainSpecs, values] converts one concrete tuple of domain values into symbol rules for a compiled probe assignment.";
-spinProjectionTupleAssignmentRules[domainSpecs_List, values_List] := Flatten @ MapThread[
-  Function[{lhs, rhs}, If[ListQ[lhs], (Rule[#, rhs] & /@ lhs), {lhs -> rhs}]],
-  {domainSpecs[[All, 1]], values}
-];
-
-spinProjectionCandidateDummyVectors::usage =
-  "spinProjectionCandidateDummyVectors[candidate, assignment] returns the unresolved dummy vector symbols that must still be summed numerically.";
-spinProjectionCandidateDummyVectors[candidate_Association, assignment_Association] :=
-  Select[candidate["DummyVectorSymbols"], !KeyExistsQ[assignment["Vectors"], #] &];
-
-spinProjectionEvaluateFactorExact::usage =
-  "spinProjectionEvaluateFactorExact[parts, assignment] evaluates one parsed gamma or delta factor at one concrete compiled probe assignment.";
-spinProjectionFastGammaMatrix::usage =
-  "spinProjectionFastGammaMatrix[parts, assignment] returns one concrete rank-1 exact gamma matrix when a parsed factor is in a fast-path family, or $Failed otherwise.";
-spinProjectionFastGammaMatrix[parts_Association, assignment_Association] := Module[{link, idx},
-  If[Lookup[parts, "TailLinks", {}] =!= {} || Length[Lookup[parts, "VectorLinks", {}]] =!= 1, Return[$Failed]];
-  link = First[parts["VectorLinks"]];
-  idx = Lookup[assignment["Vectors"], gammaLinkIndexSelector[link], Missing["Unassigned"]];
-  If[!IntegerQ[idx], Return[$Failed]];
-  Which[
-    parts["CTag"] === None && MatchQ[link, GammaUDHold[_]], GammaUD[idx],
-    parts["CTag"] === None && MatchQ[link, GammaDUHold[_]], GammaDU[idx],
-    parts["CTag"] === CUDHold && MatchQ[link, GammaDUHold[_]], CGamma[idx],
-    parts["CTag"] === CDUHold && MatchQ[link, GammaUDHold[_]], CIGamma[idx],
-    True, $Failed
-  ]
-];
-
-spinProjectionConcreteGammaLinks::usage =
-  "spinProjectionConcreteGammaLinks[parts, assignment] resolves the vector-link list of one compiled gamma factor to concrete integer gamma links.";
-spinProjectionConcreteGammaLinks[parts_Association, assignment_Association] := Module[{links},
-  links = Join[
-    If[parts["CTag"] === None, {}, {parts["CTag"]}],
-    Replace[
-      parts["VectorLinks"],
-      {
-        GammaUDHold[sym_Symbol] :> GammaUDHold[Lookup[assignment["Vectors"], sym, Missing["Unassigned"]]],
-        GammaDUHold[sym_Symbol] :> GammaDUHold[Lookup[assignment["Vectors"], sym, Missing["Unassigned"]]]
-      },
-      1
-    ],
-    parts["TailLinks"]
-  ];
-  If[AnyTrue[links, !FreeQ[#, Missing["Unassigned"]] &], $Failed, links]
-];
-
-spinProjectionEvaluateFactorExact[parts_Association, assignment_Association] /; Lookup[parts, "Kind", None] === "Delta" := Module[{values},
-  values = Replace[parts["VectorSymbols"], sym_Symbol :> Lookup[assignment["Vectors"], sym, Missing["Unassigned"]], 1];
-  If[!AllTrue[values, IntegerQ], Return[$Failed]];
-  KroneckerDelta[values[[1]], values[[2]]]
-];
-spinProjectionEvaluateFactorExact[parts_Association, assignment_Association] /; Lookup[parts, "Kind", None] === "Gamma" := Module[
-  {links, spinors, concreteChiralities, indices, matrix},
-  spinors = Replace[parts["Spinors"], sym_Symbol :> Lookup[assignment["Spins"], sym, Missing["Unassigned"]], 1];
-  If[!AllTrue[spinors, ListQ], Return[$Failed]];
-  concreteChiralities = spinProjectionConcreteSpinChirality /@ spinors;
-  If[parts["VectorLinks"] === {} && parts["CTag"] === None && parts["TailLinks"] === {} && AllTrue[concreteChiralities, StringQ] && SameQ @@ concreteChiralities,
-    indices = MapThread[spinProjectionSpinorBasisIndex, {spinors, concreteChiralities}];
-    If[!AllTrue[indices, IntegerQ], Return[$Failed]];
-    Return[KroneckerDelta[indices[[1]], indices[[2]]]];
-  ];
-  matrix = spinProjectionFastGammaMatrix[parts, assignment];
-  If[!MatrixQ[matrix],
-    links = spinProjectionConcreteGammaLinks[parts, assignment];
-    If[links === $Failed, Return[$Failed]];
-    matrix = spinProjectionGammaFactorMatrix[links];
-  ];
-  If[!MatrixQ[matrix], Return[$Failed]];
-  indices = MapThread[spinProjectionSpinorBasisIndex, {spinors, parts["SpinorChiralities"]}];
-  If[!AllTrue[indices, IntegerQ], Return[$Failed]];
-  matrix[[indices[[1]], indices[[2]]]]
-];
-spinProjectionEvaluateFactorExact[_, _] := $Failed;
 
 spinProjectionNumericGammaLinkMatrix::usage =
   "spinProjectionNumericGammaLinkMatrix[link] returns the machine-precision 16x16 matrix for one concrete gamma-chain link.";
@@ -1242,154 +1329,6 @@ spinProjectionNumericGammaFactorMatrix[links_List] := spinProjectionNumericGamma
       {spinProjectionNumericAntisymmetrizedMatrix[vectorLinks]},
       spinProjectionNumericGammaLinkMatrix /@ tailLinks
     ]
-  ]
-];
-
-spinProjectionPrepareFactorPart::usage =
-  "spinProjectionPrepareFactorPart[parts, assignment, mode, sym] resolves all probe-fixed data of one gamma or delta factor before dummy-vector tuple iteration.";
-spinProjectionPrepareFactorPart[parts_Association, assignment_Association, "Scalar", _ : None] /; Lookup[parts, "Kind", None] === "Delta" := <|
-  "Kind" -> "Delta",
-  "Values" -> Replace[parts["VectorSymbols"], sym_Symbol :> Lookup[assignment["Vectors"], sym, sym], 1]
-|>;
-spinProjectionPrepareFactorPart[parts_Association, assignment_Association, mode : ("Scalar" | "Vector"), sym_] /; Lookup[parts, "Kind", None] === "Gamma" := Module[
-  {
-    spinors,
-    concreteChiralities,
-    indices,
-    otherIndex,
-    concreteChirality,
-    fixedLinks,
-    vectorSpecs,
-    offset,
-    side
-  },
-  spinors = Replace[
-    parts["Spinors"],
-    idx_Symbol /; (mode === "Scalar" || idx =!= sym) :> Lookup[assignment["Spins"], idx, Missing["Unassigned"]],
-    1
-  ];
-  If[MemberQ[spinors, Missing["Unassigned"]], Return[$Failed]];
-  concreteChiralities = spinProjectionConcreteSpinChirality /@ Select[spinors, ListQ];
-  If[
-    parts["VectorLinks"] === {} && parts["CTag"] === None && parts["TailLinks"] === {} &&
-    mode === "Scalar" && Length[concreteChiralities] === 2 && SameQ @@ concreteChiralities,
-    indices = MapThread[spinProjectionSpinorBasisIndex, {spinors, concreteChiralities}];
-    If[!AllTrue[indices, IntegerQ], Return[$Failed]];
-    Return[<|"Kind" -> "IdentityScalar", "Indices" -> indices|>]
-  ];
-  If[
-    parts["VectorLinks"] === {} && parts["CTag"] === None && parts["TailLinks"] === {} &&
-    mode === "Vector",
-    concreteChirality = spinProjectionConcreteSpinChirality[If[parts["Spinors"][[1]] === sym, spinors[[2]], spinors[[1]]]];
-    otherIndex = If[
-      parts["Spinors"][[1]] === sym,
-      spinProjectionSpinorBasisIndex[spinors[[2]], concreteChirality],
-      spinProjectionSpinorBasisIndex[spinors[[1]], concreteChirality]
-    ];
-    side = If[parts["Spinors"][[1]] === sym, "Column", "Row"];
-    If[StringQ[concreteChirality] && IntegerQ[otherIndex],
-      Return[<|"Kind" -> "IdentityVector", "Side" -> side, "Index" -> otherIndex, "Dimension" -> Length[spinIterationValues[concreteChirality]]|>]
-    ];
-    Return[$Failed]
-  ];
-  If[mode === "Scalar",
-    indices = MapThread[spinProjectionSpinorBasisIndex, {spinors, parts["SpinorChiralities"]}];
-    If[!AllTrue[indices, IntegerQ], Return[$Failed]],
-    side = If[parts["Spinors"][[1]] === sym, "Column", "Row"];
-    otherIndex = If[
-      side === "Column",
-      spinProjectionSpinorBasisIndex[spinors[[2]], parts["SpinorChiralities"][[2]]],
-      spinProjectionSpinorBasisIndex[spinors[[1]], parts["SpinorChiralities"][[1]]]
-    ];
-    If[!IntegerQ[otherIndex], Return[$Failed]]
-  ];
-  fixedLinks = Join[
-    If[parts["CTag"] === None, {}, {parts["CTag"]}],
-    parts["VectorLinks"],
-    parts["TailLinks"]
-  ];
-  offset = If[parts["CTag"] === None, 0, 1];
-  vectorSpecs = Reap[
-    Do[
-      Module[{pos = offset + i, link = parts["VectorLinks"][[i]], idx},
-        idx = gammaLinkIndexSelector[link];
-        If[KeyExistsQ[assignment["Vectors"], idx],
-          fixedLinks[[pos]] = Replace[link, {
-            GammaUDHold[_] :> GammaUDHold[assignment["Vectors"][idx]],
-            GammaDUHold[_] :> GammaDUHold[assignment["Vectors"][idx]]
-          }],
-          fixedLinks[[pos]] = None;
-          Sow[{pos, Head[link], idx}]
-        ];
-      ],
-      {i, Length[parts["VectorLinks"]]}
-    ]
-  ];
-  <|
-    "Kind" -> If[mode === "Scalar", "GammaScalar", "GammaVector"],
-    "Links" -> fixedLinks,
-    "VectorSpecs" -> If[vectorSpecs[[2]] === {}, {}, vectorSpecs[[2, 1]]],
-    "Indices" -> If[mode === "Scalar", indices, None],
-    "Side" -> If[mode === "Vector", side, None],
-    "Index" -> If[mode === "Vector", otherIndex, None]
-  |>
-];
-spinProjectionPrepareFactorPart[_, _, _, _] := $Failed;
-
-spinProjectionPreparedConcreteLinks::usage =
-  "spinProjectionPreparedConcreteLinks[prepared, vectorValues] fills the dummy-vector slots of one prepared gamma factor with concrete integer links.";
-spinProjectionPreparedConcreteLinks[prepared_Association, vectorValues_Association] := Module[{links = prepared["Links"], value},
-  Do[
-    value = Lookup[vectorValues, spec[[3]], Missing["Unassigned"]];
-    If[!IntegerQ[value], Return[$Failed]];
-    links[[spec[[1]]]] = Which[
-      spec[[2]] === GammaUDHold, GammaUDHold[value],
-      spec[[2]] === GammaDUHold, GammaDUHold[value],
-      True, Return[$Failed]
-    ],
-    {spec, Lookup[prepared, "VectorSpecs", {}]}
-  ];
-  links
-];
-
-spinProjectionPreparedFactorValue::usage =
-  "spinProjectionPreparedFactorValue[prepared, vectorValues, numericQ] evaluates one prepared scalar factor after the dummy-vector tuple is fixed.";
-spinProjectionPreparedFactorValue[prepared_Association, vectorValues_Association, numericQ_: False] := Module[{links, matrix, values},
-  Switch[prepared["Kind"],
-    "Delta",
-    values = Replace[prepared["Values"], sym_Symbol :> Lookup[vectorValues, sym, Missing["Unassigned"]], 1];
-    If[!AllTrue[values, IntegerQ], Return[$Failed]];
-    If[numericQ, N[KroneckerDelta[values[[1]], values[[2]]]], KroneckerDelta[values[[1]], values[[2]]]],
-    "IdentityScalar",
-    If[numericQ, N[KroneckerDelta @@ prepared["Indices"]], KroneckerDelta @@ prepared["Indices"]],
-    "GammaScalar",
-    links = spinProjectionPreparedConcreteLinks[prepared, vectorValues];
-    If[links === $Failed, Return[$Failed]];
-    matrix = If[numericQ, spinProjectionNumericGammaFactorMatrix[links], spinProjectionGammaFactorMatrix[links]];
-    If[!MatrixQ[matrix], Return[$Failed]];
-    matrix[[prepared["Indices"][[1]], prepared["Indices"][[2]]]],
-    _,
-    $Failed
-  ]
-];
-
-spinProjectionPreparedFactorVector::usage =
-  "spinProjectionPreparedFactorVector[prepared, vectorValues, numericQ] evaluates one prepared output-spin factor after the dummy-vector tuple is fixed.";
-spinProjectionPreparedFactorVector[prepared_Association, vectorValues_Association, numericQ_: False] := Module[{links, matrix},
-  Switch[prepared["Kind"],
-    "IdentityVector",
-    If[numericQ,
-      N[UnitVector[prepared["Dimension"], prepared["Index"]]],
-      UnitVector[prepared["Dimension"], prepared["Index"]]
-    ],
-    "GammaVector",
-    links = spinProjectionPreparedConcreteLinks[prepared, vectorValues];
-    If[links === $Failed, Return[$Failed]];
-    matrix = If[numericQ, spinProjectionNumericGammaFactorMatrix[links], spinProjectionGammaFactorMatrix[links]];
-    If[!MatrixQ[matrix], Return[$Failed]];
-    If[prepared["Side"] === "Column", matrix[[All, prepared["Index"]]], matrix[[prepared["Index"], All]]],
-    _,
-    $Failed
   ]
 ];
 
@@ -1439,198 +1378,237 @@ spinProjectionTupleIterator[domains_List, seed_: Automatic, tag_: None] := Modul
   ]
 ];
 
-spinProjectionEvaluateCandidateSpinRowPrepared::usage =
-  "spinProjectionEvaluateCandidateSpinRowPrepared[candidate, scalarFactor, assignment, sym, numericQ] evaluates one parsed tensor candidate into an output-spin row after one-time factor preparation.";
-spinProjectionEvaluateCandidateSpinRowPrepared[candidate_Association, scalarFactor_, assignment_Association, sym_Symbol, numericQ_: False] := Module[
-  {
-    dummyVectors,
-    unassignedSpinors,
-    vectorPositions,
-    vectorPart,
-    scalarParts,
-    preparedVector,
-    preparedScalars,
-    tuples,
-    total,
-    tupleValues,
-    vectorFactor,
-    scalarValues
-  },
-  If[candidate["Expression"] === 1, Return[$Failed]];
-  unassignedSpinors = DeleteDuplicates @ Select[
-    Flatten[Lookup[candidate["FactorParts"], "Spinors", {}]],
-    Head[#] === Symbol && # =!= sym && !KeyExistsQ[assignment["Spins"], #] &
-  ];
-  If[unassignedSpinors =!= {}, Return[$Failed]];
-  vectorPositions = Flatten @ Position[Lookup[candidate["FactorParts"], "Spinors"], spinors_ /; MemberQ[spinors, sym], {1}];
-  If[Length[vectorPositions] =!= 1, Return[$Failed]];
-  vectorPart = candidate["FactorParts"][[First[vectorPositions]]];
-  scalarParts = Delete[candidate["FactorParts"], First[vectorPositions]];
-  preparedVector = spinProjectionPrepareFactorPart[vectorPart, assignment, "Vector", sym];
-  If[preparedVector === $Failed, Return[$Failed]];
-  preparedScalars = spinProjectionPrepareFactorPart[#, assignment, "Scalar", None] & /@ scalarParts;
-  If[MemberQ[preparedScalars, $Failed], Return[$Failed]];
-  dummyVectors = spinProjectionCandidateDummyVectors[candidate, assignment];
-  tuples = If[dummyVectors === {}, {{}}, Tuples[Range[10], Length[dummyVectors]]];
-  total = ConstantArray[If[numericQ, 0., 0], Length[spinIterationValues["chiral"]]];
-  Do[
-    tupleValues = AssociationThread[dummyVectors -> tuple];
-    vectorFactor = spinProjectionPreparedFactorVector[preparedVector, tupleValues, numericQ];
-    If[vectorFactor === $Failed, Return[$Failed]];
-    scalarValues = spinProjectionPreparedFactorValue[#, tupleValues, numericQ] & /@ preparedScalars;
-    If[MemberQ[scalarValues, $Failed], Return[$Failed]];
-    If[!MemberQ[If[numericQ, Chop[scalarValues], scalarValues], 0], total += If[numericQ, N[scalarFactor], scalarFactor] Times @@ scalarValues vectorFactor],
-    {tuple, tuples}
-  ];
-  If[numericQ, Chop[total], total]
-];
-
-spinProjectionEvaluateCandidateExact::usage =
-  "spinProjectionEvaluateCandidateExact[candidate, scalarFactor, assignment] evaluates one parsed tensor candidate exactly by direct finite dummy-index summation.";
-spinProjectionEvaluateCandidateExact[candidate_Association, scalarFactor_, assignment_Association] := Module[
-  {dummyVectors, unassignedSpinors, tuples, total = 0, localAssignment, factorValues},
-  If[candidate["Expression"] === 1, Return[scalarFactor]];
-  unassignedSpinors = DeleteDuplicates @ Select[
-    Flatten[Lookup[candidate["FactorParts"], "Spinors", {}]],
-    Head[#] === Symbol && !KeyExistsQ[assignment["Spins"], #] &
-  ];
-  If[unassignedSpinors =!= {}, Return[$Failed]];
-  dummyVectors = spinProjectionCandidateDummyVectors[candidate, assignment];
-  tuples = If[dummyVectors === {}, {{}}, Tuples[Range[10], Length[dummyVectors]]];
-  Do[
-    localAssignment = <|
-      "Vectors" -> Join[assignment["Vectors"], AssociationThread[dummyVectors -> tuple]],
-      "Spins" -> assignment["Spins"]
-    |>;
-    factorValues = spinProjectionEvaluateFactorExact[#, localAssignment] & /@ candidate["FactorParts"];
-    If[MemberQ[factorValues, $Failed], Return[$Failed]];
-    If[!MemberQ[factorValues, 0], total += Times @@ factorValues],
-    {tuple, tuples}
-  ];
-  scalarFactor total
-];
-
 spinProjectionRowBlock::usage =
   "spinProjectionRowBlock[model, assignment, numericQ] returns one RHS coefficient row block in machine or exact arithmetic for a concrete compiled probe assignment.";
-spinProjectionRowBlock[model_Association, assignment_Association, numericQ_: False] := Module[
-  {rowBlock, termAssignment, value, outputSpinSymbol, spinRow},
-  rowBlock = ConstantArray[If[numericQ, 0., 0], {model["OutputCount"], Length[model["Vars"]]}];
-  Do[
-    outputSpinSymbol = term["OutputSpinSymbol"];
+spinProjectionRowBlock[model_Association, assignment : {freeSpins_List, freeVectors_List}, numericQ_: False] := Module[
+  {
+    rows = If[numericQ, model["SelectorRowCount"], model["OutputCount"]],
+    cols = model["VarCount"],
+    zero = If[numericQ, 0. + 0. I, 0],
+    one = If[numericQ, 1. + 0. I, 1],
+    block,
+    vectorValue,
+    spinValue,
+    gammaMatrix,
+    scalarValue,
+    outputVector,
+    outputScalar,
+    addTerm,
+    loopDummy
+  },
+  block = ConstantArray[zero, {rows, cols}];
+  vectorValue[src_, stateVectors_, dummy_] := Switch[src[[1]],
+    1, freeVectors[[src[[2]]]],
+    2, stateVectors[[src[[2]]]],
+    3, dummy[[src[[2]]]],
+    4, src[[2]],
+    _, $Failed
+  ];
+  spinValue[src_, stateSpins_, out_] := Switch[src[[1]],
+    1, freeSpins[[src[[2]]]],
+    2, stateSpins[[src[[2]]]],
+    3, out,
+    _, $Failed
+  ];
+  gammaMatrix[desc_, stateVectors_, dummy_] := Module[{cached, values},
+    cached = If[numericQ, desc[[6]], desc[[5]]];
+    If[cached =!= None, Return[cached]];
+    values = vectorValue[#, stateVectors, dummy] & /@ desc[[3]];
+    If[!AllTrue[values, IntegerQ], Return[$Failed]];
     If[
-      outputSpinSymbol === None,
-      Do[
-        termAssignment = <|
-          "Vectors" -> Join[assignment["Vectors"], state["Vectors"]],
-          "Spins" -> Join[assignment["Spins"], state["Spins"]]
-        |>;
-        value = spinProjectionEvaluateCandidateExact[term["Tensor"], term["ScalarFactor"], termAssignment];
-        If[value === $Failed, Return[$Failed]];
-        value = If[numericQ, N[value], value];
-        If[If[numericQ, Chop[value] =!= 0., value =!= 0],
-          Scan[
-            Function[rowSpec,
-              rowBlock[[rowSpec[[1]], term["VarColumn"]]] += rowSpec[[2]] value
-            ],
-            state["Rows"]
-          ];
-        ],
-        {state, term["OutputStates"]}
+      numericQ,
+      spinProjectionNumericGammaFactorMatrix @ Join[
+        If[desc[[1]] === None, {}, {desc[[1]]}],
+        MapThread[If[#1 === 1, GammaUDHold[#2], GammaDUHold[#2]] &, {desc[[2]], values}],
+        desc[[4]]
       ],
-      spinRow = spinProjectionEvaluateCandidateSpinRowPrepared[
-        term["Tensor"],
-        term["ScalarFactor"],
-        assignment,
-        outputSpinSymbol,
-        numericQ
-      ];
-      If[
-        spinRow === $Failed,
-        Do[
-          termAssignment = <|
-            "Vectors" -> Join[assignment["Vectors"], state["Vectors"]],
-            "Spins" -> Join[assignment["Spins"], state["Spins"]]
-          |>;
-          value = spinProjectionEvaluateCandidateExact[term["Tensor"], term["ScalarFactor"], termAssignment];
-          If[value === $Failed, Return[$Failed]];
-          value = If[numericQ, N[value], value];
-          If[If[numericQ, Chop[value] =!= 0., value =!= 0],
-            Scan[
-              Function[rowSpec,
-                rowBlock[[rowSpec[[1]], term["VarColumn"]]] += rowSpec[[2]] value
-              ],
-              state["Rows"]
-            ];
+      spinProjectionGammaFactorMatrix @ Join[
+        If[desc[[1]] === None, {}, {desc[[1]]}],
+        MapThread[If[#1 === 1, GammaUDHold[#2], GammaDUHold[#2]] &, {desc[[2]], values}],
+        desc[[4]]
+      ]
+    ]
+  ];
+  scalarValue[factor_, stateSpins_, stateVectors_, dummy_, out_] := Switch[factor[[1]],
+    0,
+    If[vectorValue[factor[[2]], stateVectors, dummy] === vectorValue[factor[[3]], stateVectors, dummy], one, zero],
+    1,
+    If[spinValue[factor[[2]], stateSpins, out] === spinValue[factor[[3]], stateSpins, out], one, zero],
+    2,
+    With[
+      {
+        matrix = gammaMatrix[factor[[2]], stateVectors, dummy],
+        i = spinValue[factor[[3]], stateSpins, out],
+        j = spinValue[factor[[4]], stateSpins, out]
+      },
+      If[MatrixQ[matrix] && IntegerQ[i] && IntegerQ[j], matrix[[i, j]], $Failed]
+    ],
+    _,
+    $Failed
+  ];
+  outputVector[factor_, basisDim_, stateSpins_, stateVectors_, dummy_] := Switch[factor[[1]],
+    0,
+    With[{i = spinValue[factor[[2]], stateSpins, 1]},
+      If[IntegerQ[i], If[numericQ, N[UnitVector[basisDim, i]], UnitVector[basisDim, i]], $Failed]
+    ],
+    1,
+    With[
+      {
+        matrix = gammaMatrix[factor[[3]], stateVectors, dummy],
+        i = spinValue[factor[[4]], stateSpins, 1]
+      },
+      If[!MatrixQ[matrix] || !IntegerQ[i], $Failed, If[factor[[2]] === 1, matrix[[All, i]], matrix[[i, All]]]]
+    ],
+    _,
+    $Failed
+  ];
+  outputScalar[factor_, out_, stateSpins_, stateVectors_, dummy_] := Switch[factor[[1]],
+    0,
+    With[{i = spinValue[factor[[2]], stateSpins, out]},
+      If[IntegerQ[i], If[i == out, one, zero], $Failed]
+    ],
+    1,
+    With[
+      {
+        matrix = gammaMatrix[factor[[3]], stateVectors, dummy],
+        i = spinValue[factor[[4]], stateSpins, out]
+      },
+      If[!MatrixQ[matrix] || !IntegerQ[i], $Failed, If[factor[[2]] === 1, matrix[[out, i]], matrix[[i, out]]]]
+    ],
+    _,
+    $Failed
+  ];
+  loopDummy[k_Integer, body_] := Switch[k,
+    0, body[{}],
+    1, Do[body[{i1}], {i1, 10}],
+    2, Do[body[{i1, i2}], {i1, 10}, {i2, 10}],
+    3, Do[body[{i1, i2, i3}], {i1, 10}, {i2, 10}, {i3, 10}],
+    4, Do[body[{i1, i2, i3, i4}], {i1, 10}, {i2, 10}, {i3, 10}, {i4, 10}],
+    _, Module[{dummy = ConstantArray[1, k], done = False, pos},
+      While[!done,
+        body[dummy];
+        pos = k;
+        While[pos >= 1 && dummy[[pos]] == 10, dummy[[pos]] = 1; pos--];
+        If[pos == 0, done = True, dummy[[pos]]++]
+      ]
+    ]
+  ];
+  addTerm[term_] := Module[{kind, col, pref, scalars, dummyCount, prod, vec},
+    kind = term[[1]];
+    col = term[[2]];
+    pref = If[numericQ, term[[4]], term[[3]]];
+    scalars = term[[5]];
+    dummyCount = term[[If[kind == 0, 11, If[kind == 2, 8, 7]]]];
+    loopDummy[
+      dummyCount,
+      Function[dummy,
+        Which[
+          kind == 1,
+          Scan[
+            Function[state,
+              prod = pref;
+              Do[
+                prod *= scalarValue[scalar, state[[1]], state[[2]], dummy, 0];
+                If[prod === $Failed || If[numericQ, Chop[prod] == 0., prod === 0], Return[]],
+                {scalar, scalars}
+              ];
+              If[numericQ,
+                block[[All, col]] += prod state[[4]],
+                Scan[(block[[#[[1]], col]] += #[[2]] prod) &, state[[3]]]
+              ]
+            ],
+            term[[6]]
           ],
-          {state, term["OutputStates"]}
-        ],
-        Do[
-          If[If[numericQ, Norm[spinRow[[i]]] =!= 0., spinRow[[i]] =!= 0],
-            Scan[
-              Function[rowSpec,
-                rowBlock[[rowSpec[[1]], term["VarColumn"]]] += rowSpec[[2]] spinRow[[i]]
-              ],
-              term["OutputStates"][[i, "Rows"]]
+          kind == 0,
+          (
+            prod = pref;
+            Do[
+              prod *= scalarValue[scalar, term[[7]], term[[8]], dummy, 0];
+              If[prod === $Failed || If[numericQ, Chop[prod] == 0., prod === 0], Return[]],
+              {scalar, scalars}
             ];
-          ],
-          {i, Length[term["OutputStates"]]}
+            vec = outputVector[term[[6]], Length[term[[9]]], term[[7]], term[[8]], dummy];
+            If[vec === $Failed || If[numericQ, Norm[vec] == 0., !AnyTrue[vec, # =!= 0 &]], Return[]];
+            If[numericQ,
+              block[[All, col]] += prod Total[MapThread[#1 #2 &, {vec, term[[10]]}]],
+              Do[
+                If[vec[[i]] =!= 0, Scan[(block[[#[[1]], col]] += #[[2]] vec[[i]] prod) &, term[[9, i]]]],
+                {i, Length[vec]}
+              ]
+            ]
+          ),
+          kind == 2,
+          Do[
+            prod = pref;
+            Do[
+              prod *= scalarValue[scalar, term[[7, i, 1]], term[[7, i, 2]], dummy, i];
+              If[prod === $Failed || If[numericQ, Chop[prod] == 0., prod === 0], Return[]],
+              {scalar, scalars}
+            ];
+            prod *= outputScalar[term[[6]], i, term[[7, i, 1]], term[[7, i, 2]], dummy];
+            If[prod === $Failed || If[numericQ, Chop[prod] == 0., prod === 0], Continue[]];
+            If[numericQ,
+              block[[All, col]] += prod term[[7, i, 4]],
+              Scan[(block[[#[[1]], col]] += #[[2]] prod) &, term[[7, i, 3]]]
+            ],
+            {i, Length[term[[7]]]}
+          ]
         ]
       ]
-    ],
-    {term, model["Terms"]}
+    ]
   ];
-  If[numericQ, Chop[rowBlock], rowBlock]
+  Scan[addTerm, model["Terms"]];
+  If[numericQ, Chop[block], block]
 ];
 
 spinProjectionConcreteInputs::usage =
   "spinProjectionConcreteInputs[ops, assignment] substitutes one compiled probe assignment into sector inputs and bosonizes them.";
-spinProjectionConcreteInputs[ops_List, assignment_Association] := Module[{rules},
-  rules = Join[Normal[assignment["Vectors"]], Normal[assignment["Spins"]]];
-  Bosonize /@ (ops /. rules)
+spinProjectionConcreteInputs[model_Association, {freeSpins_List, freeVectors_List}] := Module[
+  {
+    spinRules,
+    vectorRules
+  },
+  spinRules = MapThread[
+    #1 -> spinProjectionSpinBasisState[#2][[#3]] &,
+    {model["FreeSpinSymbols"], model["FreeSpinChiralities"], freeSpins}
+  ];
+  vectorRules = Flatten @ MapThread[Thread[#1 -> #2] &, {model["FreeVectorGroups"], freeVectors}];
+  Bosonize /@ (model["Ops"] /. Join[vectorRules, spinRules])
 ];
 
 spinProjectionAssignmentIterator::usage =
   "spinProjectionAssignmentIterator[model, seed] returns a zero-argument function that lazily enumerates compiled probe assignments without replacement, or $Failed when the search space is too large.";
 spinProjectionAssignmentIterator[model_Association, seed_] := Module[
   {
-    template = model["Template"],
-    freeSpinSymbols,
-    freeVectorGroups,
-    domainSpecs,
-    spinChargeDomains,
-    fixedSymbols,
-    solvedSymbol,
-    fixedDomains,
-    solvedDomain,
     maxCount = spinProjectionCompiledCandidateLimit,
-    outputCharges,
+    spinDomains,
+    vectorDomains,
+    nextTuple,
     yielded = 0,
-    outputIndex,
-    next,
-    tupleIterator,
-    tuple,
+    outputCharges,
     solvedLookup,
-    tupleSeed
+    fixedTables,
+    tuple,
+    outputIndex = 1,
+    tupleIterator,
+    tupleSeed,
+    next
   },
   tupleSeed = If[Length[model["Vars"]] <= 2, None, seed];
-  freeSpinSymbols = SortBy[Intersection[template["SpinSymbols"], template["FreeSymbols"]], SymbolName];
-  freeVectorGroups = SortBy[template["FreeVectorGroups"], SymbolName @* First];
+  spinDomains = MapThread[
+    spinProjectionSeededOrder[Range[Length[spinProjectionSpinBasisState[#1]]], seed, #2] &,
+    {model["FreeSpinChiralities"], model["FreeSpinSymbols"]}
+  ];
+  vectorDomains = spinProjectionSeededOrder[Range[10], seed, #] & /@ model["FreeVectorGroups"];
   If[TrueQ[model["ChargeGuidedQ"]],
-    spinChargeDomains = Association @ Cases[
-      model["Ops"],
-      R[(S | St)[{sym_, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, _]] /; MemberQ[freeSpinSymbols, sym] :>
-        (sym -> spinProjectionSeededOrder[(Prepend[#, q] & /@ spinIterationValues[chirality]), seed, sym]),
-      Infinity
+    If[spinDomains === {}, Return[Function[{}, EndOfFile]]];
+    fixedTables = MapThread[spinProjectionSpinBasisChargeTable, {Most[model["FreeSpinChiralities"]], Most[model["FreeSpinPictures"]]}];
+    solvedLookup = AssociationThread[
+      spinProjectionSpinBasisChargeTable[Last[model["FreeSpinChiralities"]], Last[model["FreeSpinPictures"]]] ->
+        Range[Length[spinProjectionSpinBasisState[Last[model["FreeSpinChiralities"]]]]]
     ];
-    If[Length[spinChargeDomains] =!= Length[freeSpinSymbols] || Length[freeSpinSymbols] > 5, Return[$Failed]];
-    fixedSymbols = Most[freeSpinSymbols];
-    solvedSymbol = Last[freeSpinSymbols];
-    fixedDomains = Lookup[spinChargeDomains, fixedSymbols];
-    solvedDomain = Lookup[spinChargeDomains, solvedSymbol, {}];
-    solvedLookup = AssociationThread[solvedDomain -> (Rest /@ solvedDomain)];
     outputCharges = spinProjectionSeededOrder[model["OutputCharges"], seed, "outputCharges"];
-    outputIndex = 1;
-    tupleIterator = spinProjectionTupleIterator[fixedDomains, tupleSeed, {"chargeTuples", freeSpinSymbols}];
+    tupleIterator = spinProjectionTupleIterator[Most[spinDomains], tupleSeed, {"chargeTuples", model["FreeSpinSymbols"]}];
     tuple = tupleIterator[];
     next[] := Module[{outputCharge, currentTuple, required, solvedValue, rules},
       While[yielded < maxCount && tuple =!= EndOfFile,
@@ -1638,40 +1616,29 @@ spinProjectionAssignmentIterator[model_Association, seed_] := Module[
         While[outputIndex <= Length[outputCharges],
           outputCharge = outputCharges[[outputIndex]];
           outputIndex++;
-          required = outputCharge - Total[currentTuple];
+          required = outputCharge - Total[MapThread[#1[[#2]] &, {fixedTables, currentTuple}]];
           solvedValue = If[KeyExistsQ[solvedLookup, required], solvedLookup[required], Missing["NotFound"]];
           If[MissingQ[solvedValue], Continue[]];
           yielded++;
-          rules = If[
-            fixedSymbols === {},
-            {solvedSymbol -> solvedValue},
-            Join[Thread[fixedSymbols -> (Rest /@ currentTuple)], {solvedSymbol -> solvedValue}]
-          ];
-          Return[spinProjectionAssignmentData[rules]];
+          Return[{Developer`ToPackedArray[Join[currentTuple, {solvedValue}]], Developer`ToPackedArray[{}]}];
         ];
         tuple = tupleIterator[];
         outputIndex = 1;
       ];
       EndOfFile
     ];
-    Return[next];
+    Return[next]
   ];
-  domainSpecs = Join[
-    ({#, spinProjectionSeededOrder[Range[10], seed, #]} & /@ freeVectorGroups),
-    ({#, spinProjectionSeededOrder[spinIterationValues[Lookup[template["SpinChiralities"], #, "chiral"]], seed, #]} & /@ freeSpinSymbols)
-  ];
-  tupleIterator = spinProjectionTupleIterator[
-    If[domainSpecs === {}, {}, domainSpecs[[All, 2]]],
-    tupleSeed,
-    {"genericTuples", domainSpecs[[All, 1]]}
-  ];
-  next[] := Module[{rules},
+  nextTuple = spinProjectionTupleIterator[Join[spinDomains, vectorDomains], tupleSeed, {"genericTuples", model["FreeSpinSymbols"], model["FreeVectorGroups"]}];
+  next[] := Module[{tuple, spinCount = Length[spinDomains]},
     If[yielded >= maxCount, Return[EndOfFile]];
-    tuple = tupleIterator[];
+    tuple = nextTuple[];
     If[tuple === EndOfFile, Return[EndOfFile]];
     yielded++;
-    rules = spinProjectionTupleAssignmentRules[domainSpecs, tuple];
-    spinProjectionAssignmentData[rules]
+    {
+      Developer`ToPackedArray[Take[tuple, spinCount]],
+      Developer`ToPackedArray[Drop[tuple, spinCount]]
+    }
   ];
   next
 ];
@@ -1706,7 +1673,7 @@ spinProjectionExactBasisInsert[state_Association, rows_?MatrixQ] := Module[
       If[coeff =!= 0, row = row - coeff basisRows[[j]]],
       {j, Length[basisRows]}
     ];
-    pivotPos = FirstPosition[row, x_ /; x =!= 0, Missing["NoPivot"]];
+    pivotPos = FirstPosition[row, x_ /; x =!= 0, Missing["NoPivot"], {1}, Heads -> False];
     If[MissingQ[pivotPos], Continue[]];
     pivot = First[pivotPos];
     row = row/row[[pivot]];
@@ -1754,11 +1721,11 @@ solveCompiledSpinProjectionSector[model_Association, seed_] := solveCompiledSpin
   },
   If[model["Expr"] === 0, Return[<|"Expr" -> 0, "Attempts" -> 0|>]];
   If[model["Expr"] === 1, Return[<|"Expr" -> 1, "Attempts" -> 0|>]];
-  If[model["Vars"] === {}, Return[<|"Expr" -> model["Expr"], "Attempts" -> 0|>]];
-  useSelector = Length[model["Vars"]] > 2;
+  If[model["VarCount"] == 0, Return[<|"Expr" -> model["Expr"], "Attempts" -> 0|>]];
+  useSelector = model["SelectorRowCount"] > 0 && model["VarCount"] > 2;
   nextCandidate = spinProjectionAssignmentIterator[model, seed];
   If[nextCandidate === $Failed, Return[$Failed]];
-  While[Length[rows] < Length[model["Vars"]],
+  While[Length[rows] < model["VarCount"],
     candidate = nextCandidate[];
     If[candidate === EndOfFile, Break[]];
     If[useSelector,
@@ -1774,21 +1741,15 @@ solveCompiledSpinProjectionSector[model_Association, seed_] := solveCompiledSpin
     independentRows = exactInsert["AcceptedRows"];
     If[independentIndices === {}, Continue[]];
     exactBasis = exactInsert["Basis"];
-    If[useSelector,
-      selectorBasis = spinProjectionNumericBasisInsert[
-        selectorBasis,
-        selectorBlock[[independentIndices]],
-        spinProjectionCompiledSelectorTolerance
-      ]["Basis"]
-    ];
-    inputs = spinProjectionConcreteInputs[model["Ops"], candidate];
+    If[useSelector, selectorBasis = selectorInsert["Basis"]];
+    inputs = spinProjectionConcreteInputs[model, candidate];
     lhs = spinProjectionSectorEvaluation[model["Sector"], model["Weight"], inputs];
     lhsAssoc = spinProjectionOperatorAssociation[lhs];
     rows = Join[rows, independentRows];
     rhs = Join[rhs, Lookup[lhsAssoc, model["OutputKeys"][[#]], 0] & /@ independentIndices];
     attempts++;
   ];
-  If[Length[rows] < Length[model["Vars"]], Return[$Failed]];
+  If[Length[rows] < model["VarCount"], Return[$Failed]];
   solution = Thread[model["Vars"] -> LinearSolve[rows, rhs]];
   <|"Expr" -> (model["Expr"] /. solution), "Attempts" -> attempts|>
 ];
