@@ -1,0 +1,68 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Minimal LibraryLink OPE Checks\n\nExpected input interpretations:\n- `bc` means `OPE[R[b[0,z]], R[c[0,w]]]`\n- `cbc` means `OPE[R[c[0,z]], R[b[0,w], c[0,w]]]`\n\nRun cells top-to-bottom.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "root = \"/home/scheinpflug/LeanExperiment\";\nlibPath = FileNameJoin[{root, \"libLeanOPELink.so\"}];\nlibLoadPath = FileNameJoin[{$TemporaryDirectory, \"libLeanOPELink-\" <> IntegerString[Hash[AbsoluteTime[]]] <> \".so\"}];\nCopyFile[libPath, libLoadPath, OverwriteTarget -> True];\nleanOPECase = LibraryFunctionLoad[libLoadPath, \"leanOPECaseLL\", {\"UTF8String\"}, \"UTF8String\"];\n\"loaded\"",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "leanOPECase[\"bc\"]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "leanOPECase[\"cbc\"]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Benchmark n = 1..8 (LibraryLink)\n\nRuns the same benchmark input family through LibraryLink (no RunProcess).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "leanOPEBenchN = LibraryFunctionLoad[libLoadPath, \"leanOPEBenchNLL\", {\"UTF8String\"}, \"UTF8String\"];\n\"bench-loaded\"",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Table[leanOPEBenchN[ToString[n]], {n, 1, 8}]",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "kernelInfo": {
+   "name": "wolfram"
+  },
+  "language_info": {
+   "name": "Wolfram Language"
+  }
+ }
+}
