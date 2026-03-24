@@ -1,5 +1,8 @@
   ## Context and Symbol Rules (StringCode)
 
+  ### 0) Make sure symlinks are created
+  - Before the package is used for the first time, one must create symlinks via `make_symlinks.sh` script
+
   ### 1) Public vs shared-private symbols
   - `BeginPackage["Pkg`"]` creates package scope.
   - `sym::usage` documents symbols (both public and private helpers in this codebase).
