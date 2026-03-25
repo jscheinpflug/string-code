@@ -1037,7 +1037,7 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
         MapThread[If[#1 === GammaUDHold, GammaUDHold[#2[[2]]], GammaDUHold[#2[[2]]]] &, {Head /@ part["VectorLinks"], sources}],
         part["TailLinks"]
       ];
-      {part["CTag"], Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1], sources, part["TailLinks"], spinProjectionGammaFactorMatrix[links]},
+      {part["CTag"], Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1], sources, part["TailLinks"], SparseArray[spinProjectionGammaFactorMatrix[links]]},
       {part["CTag"], Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1], sources, part["TailLinks"], None}
     ]
   ];
@@ -1211,7 +1211,7 @@ spinProjectionSpinSourceValue[src_, freeSpins_List, stateSpins_List] := Switch[s
 spinProjectionConcreteGammaMatrix::usage =
   "spinProjectionConcreteGammaMatrix[desc, freeVectors, stateVectors, dummy] resolves one compiled exact gamma descriptor to a concrete 16x16 matrix.";
 spinProjectionConcreteGammaMatrix[desc_, freeVectors_List, stateVectors_List, dummy_List] := Module[{values},
-  If[desc[[5]] =!= None, Return[desc[[5]]]];
+  If[desc[[5]] =!= None, Return[Normal[desc[[5]]]]];
   values = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, dummy] & /@ desc[[3]];
   If[!AllTrue[values, IntegerQ], Return[$Failed]];
   spinProjectionGammaFactorMatrix @ Join[
@@ -1219,6 +1219,62 @@ spinProjectionConcreteGammaMatrix[desc_, freeVectors_List, stateVectors_List, du
     MapThread[If[#1 === 1, GammaUDHold[#2], GammaDUHold[#2]] &, {desc[[2]], values}],
     desc[[4]]
   ]
+];
+
+spinProjectionConcreteGammaSparseMatrix::usage =
+  "spinProjectionConcreteGammaSparseMatrix[desc, freeVectors, stateVectors, dummy] resolves one compiled exact gamma descriptor to a concrete sparse 16x16 matrix.";
+spinProjectionConcreteGammaSparseMatrix[desc_, freeVectors_List, stateVectors_List, dummy_List] := Module[{matrix},
+  matrix = If[desc[[5]] =!= None, desc[[5]], spinProjectionConcreteGammaMatrix[desc, freeVectors, stateVectors, dummy]];
+  If[matrix === $Failed, $Failed, If[Head[matrix] === SparseArray, matrix, SparseArray[matrix]]]
+];
+
+spinProjectionFactorOutputSpinSupport::usage =
+  "spinProjectionFactorOutputSpinSupport[factor, outputSpinSlot, freeSpins, freeVectors] returns All or the allowed output-spin basis indices for one compiled factor under one candidate assignment.";
+spinProjectionFactorOutputSpinSupport[factor_, outputSpinSlot_Integer?Positive, freeSpins_List, freeVectors_List] := Module[
+  {left = factor[[2]], right = factor[[3]], desc, matrix},
+  Switch[factor[[1]],
+    0, All,
+    1, Which[left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1, {freeSpins[[right[[2]]]]}, right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1, {freeSpins[[left[[2]]]]}, True, All],
+    2,
+    desc = factor[[4]];
+    If[!AllTrue[desc[[3]], MemberQ[{1, 4}, First[#]] &], Return[All]];
+    matrix = spinProjectionConcreteGammaSparseMatrix[desc, freeVectors, {}, {}];
+    If[matrix === $Failed, Return[All]];
+    Which[
+      left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1, Flatten[Position[Normal[Unitize[matrix[[All, freeSpins[[right[[2]]]]]]]], 1]],
+      right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1, Flatten[Position[Normal[Unitize[matrix[[freeSpins[[left[[2]]]], All]]]], 1]],
+      True, All
+    ],
+    _, All
+  ]
+];
+
+spinProjectionFamilyOutputSpinDomain::usage =
+  "spinProjectionFamilyOutputSpinDomain[family, candidate, seed, includeTerms] returns Automatic or the seeded subset of output-spin basis states allowed by concrete factor supports, and optionally the active term buckets.";
+spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVectors_List}, seed_, includeTerms_: False] := Module[
+  {fullDomain, seededDomain, familySupport = {}, termBuckets = <|0 -> {}|>, support, result},
+  If[Length[family["SpinSymbols"]] =!= 1, Return[If[TrueQ[includeTerms], {Automatic, termBuckets}, Automatic]]];
+  fullDomain = Range[Length[spinProjectionSpinBasisState[First[family["SpinChiralities"]]]]];
+  seededDomain = spinProjectionSeededOrder[fullDomain, seed, First[family["SpinSymbols"]]];
+  Scan[
+    Function[term,
+      support = With[
+        {supports = Select[spinProjectionFactorOutputSpinSupport[#, 1, freeSpins, freeVectors] & /@ term[[3]], ListQ]},
+        If[supports === {}, fullDomain, Intersection @@ supports]
+      ];
+      If[support =!= {},
+        If[support === fullDomain,
+          familySupport = fullDomain;
+          termBuckets[0] = Append[termBuckets[0], term],
+          familySupport = Union[familySupport, support];
+          Scan[Function[idx, termBuckets[idx] = Append[Lookup[termBuckets, idx, {}], term]], support]
+        ]
+      ]
+    ],
+    family["Terms"]
+  ];
+  result = If[familySupport === {} || familySupport === fullDomain, Automatic, Select[seededDomain, MemberQ[familySupport, #] &]];
+  If[TrueQ[includeTerms], {result, termBuckets}, result]
 ];
 
 spinProjectionScalarFactorValue::usage =
@@ -1241,10 +1297,10 @@ spinProjectionScalarFactorValue[factor_, freeSpins_List, freeVectors_List, state
       0
     ],
     2,
-    matrix = spinProjectionConcreteGammaMatrix[factor[[4]], freeVectors, stateVectors, dummy];
+    matrix = spinProjectionConcreteGammaSparseMatrix[factor[[4]], freeVectors, stateVectors, dummy];
     left = spinProjectionSpinSourceValue[factor[[2]], freeSpins, stateSpins];
     right = spinProjectionSpinSourceValue[factor[[3]], freeSpins, stateSpins];
-    If[MatrixQ[matrix] && IntegerQ[left] && IntegerQ[right], matrix[[left, right]], $Failed],
+    If[matrix =!= $Failed && IntegerQ[left] && IntegerQ[right], matrix[[left, right]], $Failed],
     _,
     $Failed
   ]
@@ -1271,11 +1327,15 @@ spinProjectionTermValue[term_List, freeSpins_List, freeVectors_List, stateSpins_
 ];
 
 spinProjectionFamilyStateIterator::usage =
-  "spinProjectionFamilyStateIterator[family, seed] returns a lazy iterator over concrete output states for one compiled output family.";
-spinProjectionFamilyStateIterator[family_Association, seed_] := Module[{spinDomains, vectorDomains},
-  spinDomains = MapThread[
-    spinProjectionSeededOrder[Range[Length[spinProjectionSpinBasisState[#1]]], seed, #2] &,
-    {family["SpinChiralities"], family["SpinSymbols"]}
+  "spinProjectionFamilyStateIterator[family, seed, spinDomainOverride] returns a lazy iterator over concrete output states for one compiled output family, optionally restricting the unique output-spin domain.";
+spinProjectionFamilyStateIterator[family_Association, seed_, spinDomainOverride_: Automatic] := Module[{spinDomains, vectorDomains},
+  spinDomains = If[
+    Length[family["SpinSymbols"]] == 1 && ListQ[spinDomainOverride],
+    {spinDomainOverride},
+    MapThread[
+      spinProjectionSeededOrder[Range[Length[spinProjectionSpinBasisState[#1]]], seed, #2] &,
+      {family["SpinChiralities"], family["SpinSymbols"]}
+    ]
   ];
   vectorDomains = spinProjectionSeededOrder[Range[10], seed, #] & /@ family["VectorSymbols"];
   spinProjectionTupleIterator[Reverse@Join[spinDomains, vectorDomains], seed, {"outputStates", family["Template"]}]
@@ -1320,10 +1380,11 @@ spinProjectionExactBasisInsertRow[state_Association, rawRow_List] := Module[
 spinProjectionCandidateRows::usage =
   "spinProjectionCandidateRows[model, candidate, lhsAssoc, basis, seed] lazily scans concrete output states and returns only exact coefficient rows that increase rank.";
 spinProjectionCandidateRows[model_Association, candidate : {freeSpins_List, freeVectors_List}, lhsAssoc_Association, basis_Association, seed_] := Module[
-  {state = basis, rows = {}, rhs = {}, row, assoc, familyRows, insert, nextState, tuple, stateSpins, stateVectors},
+  {state = basis, rows = {}, rhs = {}, row, assoc, familyRows, insert, nextState, tuple, stateSpins, stateVectors, spinDomain, termBuckets},
   Do[
     familyRows = <||>;
-    nextState = spinProjectionFamilyStateIterator[family, seed];
+    {spinDomain, termBuckets} = If[Length[family["SpinSymbols"]] == 1, spinProjectionFamilyOutputSpinDomain[family, candidate, seed, True], {spinProjectionFamilyOutputSpinDomain[family, candidate, seed], <||>}];
+    nextState = spinProjectionFamilyStateIterator[family, seed, spinDomain];
     While[True,
       tuple = nextState[];
       If[tuple === EndOfFile, Break[]];
@@ -1337,7 +1398,7 @@ spinProjectionCandidateRows[model_Association, candidate : {freeSpins_List, free
             If[value === $Failed, row = $Failed, If[value =!= 0, row[[term[[1]]]] += value]]
           ]
         ],
-        family["Terms"]
+        If[Length[family["SpinSymbols"]] == 1, Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]], family["Terms"]]
       ];
       If[row === $Failed || !AnyTrue[row, # =!= 0 &], Continue[]];
       assoc = spinProjectionConcreteOutputAssociation[family, {stateSpins, stateVectors}];

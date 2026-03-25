@@ -600,6 +600,38 @@
    "executionSummary": {}
   },
   {
+   "kind": 2,
+   "value": "supportOPE20 = Private`getOutgoingOperatorsTensors[{R[exp\\[Phi]f[-1, z], \\[Psi][mu, 0, z]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0, 1234];\nsupportModel20 = Private`compileSpinProjectionSectorModel[\"Holo\", supportOPE20[\"holoOps\"], 1, supportOPE20[\"holoData\"]];\nsupportCandidate20 = {Developer`ToPackedArray[{1}], Developer`ToPackedArray[{1}]};\nsupportDomain20 = Private`spinProjectionFamilyOutputSpinDomain[First[supportModel20[\"Families\"]], supportCandidate20, 1234];\ntest20 = testReport[\"Test 20 (candidate spin domain pruning)\", ListQ[supportDomain20] && Length[supportDomain20] < 16 && AllTrue[supportDomain20, IntegerQ]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportFallbackFactor21 = {2, {2, 1}, {1, 1}, {None, {1}, {{2, 1}}, {}, None}};\nsupportFallback21 = Private`spinProjectionFactorOutputSpinSupport[supportFallbackFactor21, 1, Developer`ToPackedArray[{1}], Developer`ToPackedArray[{}]];\ntest21 = testReport[\"Test 21 (support fallback on unresolved vectors)\", supportFallback21 === All];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "actual22 = OPEProjected[1, 0][R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, w]], \"RandomSeed\" -> 1234];\nexpected22 = -(GammaAntisymmetricProductHold[{GammaUDHold[1]}, alpha, projectedSpinOutHoloIndex] projectedSpinOutHolo)/(Sqrt[2] (w - z));\ntest22 = testReport[\"Test 22 (concrete projected e^-phi psi with S)\", Simplify[actual22 - expected22] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportOps23 = {R[S[{a1, \"chiral\"}, -1/2, {}, 0, z1]], R[S[{a2, \"chiral\"}, -1/2, {}, 0, z2]], R[S[{a3, \"chiral\"}, -1/2, {}, 0, z3]], R[S[{a4, \"chiral\"}, -1/2, {}, 0, z4]], R[S[{a5, \"chiral\"}, -1/2, {}, 0, z5]]};\nsupportOPE23 = Private`getOutgoingOperatorsTensors[supportOps23, 0, 0, 1234];\nsupportModel23 = Private`compileSpinProjectionSectorModel[\"Holo\", supportOPE23[\"holoOps\"], 0, supportOPE23[\"holoData\"]];\nsupportFamily23 = First[supportModel23[\"Families\"]];\nsupportNext23 = Private`spinProjectionAssignmentIterator[supportModel23, 1234];\nsupportCandidate23 = supportNext23[];\nsupportDomain23 = Private`spinProjectionFamilyOutputSpinDomain[supportFamily23, supportCandidate23, 1234];\nsupportTermSupports23 = With[{lists = Select[Private`spinProjectionFactorOutputSpinSupport[#, 1, supportCandidate23[[1]], supportCandidate23[[2]]] & /@ #[[3]], ListQ]}, If[lists === {}, Range[16], Intersection @@ lists]] & /@ supportFamily23[\"Terms\"];\ntest23 = testReport[\"Test 23 (5-spin singleton term supports)\", Sort[supportDomain23] === Sort[DeleteDuplicates[Flatten[supportTermSupports23]]] && AllTrue[supportTermSupports23, ListQ[#] && Length[#] == 1 &]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
