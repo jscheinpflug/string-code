@@ -632,6 +632,30 @@
    "executionSummary": {}
   },
   {
+   "kind": 2,
+   "value": "supportNext24a = Private`spinProjectionAssignmentIterator[supportModel23, 1234];\nsupportNext24b = Private`spinProjectionAssignmentIterator[supportModel23, 1234];\nsupportNext24c = Private`spinProjectionAssignmentIterator[supportModel23, 5678];\nsupportCandidates24a = Table[supportNext24a[], {8}];\nsupportCandidates24b = Table[supportNext24b[], {8}];\nsupportCandidates24c = Table[supportNext24c[], {8}];\ntest24 = testReport[\"Test 24 (support iterator is unique and seed-reproducible)\", DuplicateFreeQ[supportCandidates24a] && supportCandidates24a === supportCandidates24b && supportCandidates24a =!= supportCandidates24c];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportNext25 = Private`spinProjectionAssignmentIterator[supportModel20, 1234];\nsupportCandidate25 = supportNext25[];\ntest25 = testReport[\"Test 25 (support iterator handles free vectors)\", ListQ[supportCandidate25] && Length[supportCandidate25] == 2 && Length[supportCandidate25[[1]]] == 1 && Length[supportCandidate25[[2]]] == 1 && AllTrue[Join[supportCandidate25[[1]], supportCandidate25[[2]]], IntegerQ]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test26 = testReport[\"Test 26 (compiled model dropped charge-guided search fields)\", FreeQ[Keys[supportModel23], Alternatives[\"ChargeGuidedQ\", \"FreeSpinPictures\", \"OutputCharges\"]]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",

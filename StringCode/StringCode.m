@@ -19,6 +19,7 @@ Switch[theoryValue,
     "StringCode`BasisGeneration`TypeII`",
     "StringCode`Operators`TypeII`",
     "StringCode`OPE`TypeII`",
+    "StringCode`Correlators`TypeII`",
     "StringCode`Brackets`TypeII`",
     "StringCode`TeXConversion`TypeII`"},
 "Bosonic", userContext = {
@@ -30,6 +31,7 @@ Switch[theoryValue,
     "StringCode`BasisGeneration`Bosonic`",
     "StringCode`Operators`Bosonic`",
     "StringCode`OPE`Bosonic`",
+    "StringCode`Correlators`Bosonic`",
     "StringCode`Brackets`Bosonic`",
     "StringCode`TeXConversion`Bosonic`"},
 _, Print["There is no such theory"]];
@@ -41,6 +43,7 @@ Switch[theoryValue,
 AppendTo[userContext, "StringCode`Operators`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; 
 AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`Correlators`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
@@ -48,7 +51,8 @@ AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Operators`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; 
-AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`Bosonic`FlatSpace`"],
+AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`Bosonic`FlatSpace`"];
+AppendTo[userContext, "StringCode`Correlators`Bosonic`FlatSpace`"],
 _, Print["No such CFT for theory ", theoryValue]
 ],
 "MinimalModel", If[theoryValue == "Bosonic", AppendTo[userContext, "StringCode`Symbols`Bosonic`MinimalModel`"];
@@ -80,6 +84,7 @@ Needs["StringCode`Wick`"];
 Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`Operators`"];
 Needs["StringCode`OPE`"];
+Needs["StringCode`Correlators`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`TeXConversion`"];
 

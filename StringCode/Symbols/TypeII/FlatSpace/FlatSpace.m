@@ -70,26 +70,50 @@ der::usage = "Symbol for a derivative";
 CGamma::usage =
   "CGamma[mu] returns the exact 16x16 chiral-chiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
 
+CGammaSparse::usage =
+  "CGammaSparse[mu] returns the exact 16x16 sparse chiral-chiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
+
 CIGamma::usage =
   "CIGamma[mu] returns the exact 16x16 antichiral-antichiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
+
+CIGammaSparse::usage =
+  "CIGammaSparse[mu] returns the exact 16x16 sparse antichiral-antichiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
 
 GammaUD::usage =
   "GammaUD[mu] returns the exact 16x16 mixed-chirality gamma matrix mapping chiral to antichiral spinors in the canonical TypeII flat-space basis.";
 
+GammaUDSparse::usage =
+  "GammaUDSparse[mu] returns the exact 16x16 sparse mixed-chirality gamma matrix mapping chiral to antichiral spinors in the canonical TypeII flat-space basis.";
+
 GammaDU::usage =
   "GammaDU[mu] returns the exact 16x16 mixed-chirality gamma matrix mapping antichiral to chiral spinors in the canonical TypeII flat-space basis.";
+
+GammaDUSparse::usage =
+  "GammaDUSparse[mu] returns the exact 16x16 sparse mixed-chirality gamma matrix mapping antichiral to chiral spinors in the canonical TypeII flat-space basis.";
 
 CUD::usage =
   "CUD is the exact 16x16 chiral-antichiral spinor pairing matrix in the canonical TypeII flat-space basis.";
 
+CUDSparse::usage =
+  "CUDSparse is the exact 16x16 sparse chiral-antichiral spinor pairing matrix in the canonical TypeII flat-space basis.";
+
 CDU::usage =
   "CDU is the exact 16x16 antichiral-chiral spinor pairing matrix in the canonical TypeII flat-space basis.";
+
+CDUSparse::usage =
+  "CDUSparse is the exact 16x16 sparse antichiral-chiral spinor pairing matrix in the canonical TypeII flat-space basis.";
 
 Gamma11UU::usage =
   "Gamma11UU is the exact 16x16 chiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
+Gamma11UUSparse::usage =
+  "Gamma11UUSparse is the exact 16x16 sparse chiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
+
 Gamma11DD::usage =
   "Gamma11DD is the exact 16x16 antichiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
+
+Gamma11DDSparse::usage =
+  "Gamma11DDSparse is the exact 16x16 sparse antichiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
 GammaAntisymmetricProductHold::usage =
   "GammaAntisymmetricProductHold[{link1,...}, alpha, beta] denotes an inert antisymmetrized gamma tensor structure between spinor endpoints; when needed, CUDHold/CDUHold appears as the first list element.";
@@ -606,18 +630,17 @@ Bosonize[0] := 0;
 Bosonize[a_ + b_] := Bosonize[a] + Bosonize[b];
 Bosonize[c_ a_] := c Bosonize[a] /; isScalarFactorQ[c];
 Bosonize[a_ /; isScalarFactorQ[a]] := a;
+Bosonize[Ra_ /; RTest[Ra]] := R @@ (Bosonize /@ (List @@ Ra));
 
 
 Bosonize[dH[i_, n_, z_]] := dH[i, n, z];
 Bosonize[dHt[i_, n_, zbar_]] := dHt[i, n, zbar];
 Bosonize[expH[charges_, z_]] := expH[charges, z];
 Bosonize[expHt[charges_, zbar_]] := expHt[charges, zbar];
-Bosonize[d\[Phi][n_Integer?NonNegative, z_]] := dH[1, n, z];
-Bosonize[d\[Phi]t[n_Integer?NonNegative, zbar_]] := dHt[1, n, zbar];
-Bosonize[exp\[Phi]b[q_?NumericQ, z_]] := expH[{q, 0, 0, 0, 0, 0}, z];
-Bosonize[exp\[Phi]f[q_?NumericQ, z_]] := expH[{q, 0, 0, 0, 0, 0}, z];
-Bosonize[exp\[Phi]tb[q_?NumericQ, zbar_]] := expHt[{q, 0, 0, 0, 0, 0}, zbar];
-Bosonize[exp\[Phi]tf[q_?NumericQ, zbar_]] := expHt[{q, 0, 0, 0, 0, 0}, zbar];
+Bosonize[field_ /; (SymbolName[Head[field]] === "dϕ" && MatchQ[field[[1]], _Integer?NonNegative])] := dH[1, field[[1]], field[[2]]];
+Bosonize[field_ /; (SymbolName[Head[field]] === "dϕt" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
+Bosonize[field_ /; (MemberQ[{"expϕb", "expϕf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+Bosonize[field_ /; (MemberQ[{"expϕtb", "expϕtf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
 
 
 (* Ramond ground states become a single six-charge exponential: the picture
@@ -661,6 +684,9 @@ Bosonize[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
 
 Bosonize[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] :=
   Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
+
+
+Bosonize[field_ /; isField[Head[field]]] := field;
 
 
 (* ::Subsection:: *)

@@ -1,0 +1,135 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII Correlator Theory-Level Tests\n\nSuperghost correlator checks for the `\\[Eta]`-`\\[Xi]` system.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = testReport[\"Test 1 (eta-xi correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta][0,z]]\"], ToExpression[\"R[\\\\[Xi][0,w]]\"]] - Wick[ToExpression[\"\\\\[Eta][0,z]\"], ToExpression[\"\\\\[Xi][0,w]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = testReport[\"Test 2 (etat-xit correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta]t[0,zb]]\"], ToExpression[\"R[\\\\[Xi]t[0,wb]]\"]] - Wick[ToExpression[\"\\\\[Eta]t[0,zb]\"], ToExpression[\"\\\\[Xi]t[0,wb]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = testReport[\"Test 3 (eta derivative correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta][1,z]]\"], ToExpression[\"R[\\\\[Xi][0,w]]\"]] - Wick[ToExpression[\"\\\\[Eta][1,z]\"], ToExpression[\"\\\\[Xi][0,w]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = testReport[\"Test 4 (eta-eta correlator vanishes)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta][0,z]]\"], ToExpression[\"R[\\\\[Eta][0,w]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = testReport[\"Test 5 (xi-xi correlator vanishes)\", Simplify[Corr[ToExpression[\"R[\\\\[Xi][0,z]]\"], ToExpression[\"R[\\\\[Xi][0,w]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = testReport[\"Test 6 (eta-xi with xi at Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta][0,z]]\"], ToExpression[\"R[\\\\[Xi][0,Infinity]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = testReport[\"Test 7 (eta-xi with eta at Infinity diverges)\", Corr[ToExpression[\"R[\\\\[Eta][0,Infinity]]\"], ToExpression[\"R[\\\\[Xi][0,z]]\"]] === Infinity];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = testReport[\"Test 8 (etat-xit with xit at Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Eta]t[0,zb]]\"], ToExpression[\"R[\\\\[Xi]t[0,Infinity]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = testReport[\"Test 9 (etat-xit with etat at Infinity diverges)\", Corr[ToExpression[\"R[\\\\[Eta]t[0,Infinity]]\"], ToExpression[\"R[\\\\[Xi]t[0,zb]]\"]] === Infinity];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = testReport[\"Test 10 (xi at Infinity on the left vanishes)\", Simplify[Corr[ToExpression[\"R[\\\\[Xi][0,Infinity]]\"], ToExpression[\"R[\\\\[Eta][0,z]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = testReport[\"Test 11 (xit at Infinity on the left vanishes)\", Simplify[Corr[ToExpression[\"R[\\\\[Xi]t[0,Infinity]]\"], ToExpression[\"R[\\\\[Eta]t[0,zb]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

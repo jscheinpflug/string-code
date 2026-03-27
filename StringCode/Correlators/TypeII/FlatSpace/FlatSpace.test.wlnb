@@ -1,0 +1,287 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace Correlator Tests\n\nBackground-charge, `dX`, and free-fermion correlator checks.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = testReport[\"Test 1 (TypeII H-charge saturation)\", Vev[ToExpression[\"R[expH[{-2,0,0,0,0,0},0]]\"]] === 1];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = testReport[\"Test 2 (wrong H charge vanishes)\", Vev[ToExpression[\"R[expH[{-1,0,0,0,0,0},0]]\"]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = testReport[\"Test 3 (dX-dX correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[dX[mu,0,z]]\"], ToExpression[\"R[dX[nu,0,w]]\"]] - Wick[ToExpression[\"dX[mu,0,z]\"], ToExpression[\"dX[nu,0,w]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = testReport[\"Test 4 (dXt-dXt correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[dXt[mu,0,zb]]\"], ToExpression[\"R[dXt[nu,0,wb]]\"]] - Wick[ToExpression[\"dXt[mu,0,zb]\"], ToExpression[\"dXt[nu,0,wb]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = testReport[\"Test 5 (expPhi correlator)\", Simplify[Corr[ToExpression[\"R[exp\\\\[Phi]f[-1,z1]]\"], ToExpression[\"R[exp\\\\[Phi]f[-1,z2]]\"]] - 1/(z1 - z2)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = testReport[\"Test 6 (psi correlator matches Wick)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi][mu,0,z]]\"], ToExpression[\"R[\\\\[Psi][nu,0,w]]\"]] - Wick[ToExpression[\"\\\\[Psi][mu,0,z]\"], ToExpression[\"\\\\[Psi][nu,0,w]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = testReport[\"Test 7 (psi four-point Wick expansion)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi][mu,0,z1]]\"], ToExpression[\"R[\\\\[Psi][nu,0,z2]]\"], ToExpression[\"R[\\\\[Psi][rho,0,z3]]\"], ToExpression[\"R[\\\\[Psi][sigma,0,z4]]\"]] - (Wick[ToExpression[\"\\\\[Psi][mu,0,z1]\"], ToExpression[\"\\\\[Psi][nu,0,z2]\"]] Wick[ToExpression[\"\\\\[Psi][rho,0,z3]\"], ToExpression[\"\\\\[Psi][sigma,0,z4]\"]] - Wick[ToExpression[\"\\\\[Psi][mu,0,z1]\"], ToExpression[\"\\\\[Psi][rho,0,z3]\"]] Wick[ToExpression[\"\\\\[Psi][nu,0,z2]\"], ToExpression[\"\\\\[Psi][sigma,0,z4]\"]] + Wick[ToExpression[\"\\\\[Psi][mu,0,z1]\"], ToExpression[\"\\\\[Psi][sigma,0,z4]\"]] Wick[ToExpression[\"\\\\[Psi][nu,0,z2]\"], ToExpression[\"\\\\[Psi][rho,0,z3]\"]])] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = testReport[\"Test 8 (mixed free and symbolic sectors factorize)\", Simplify[Corr[ToExpression[\"R[c[0,z1], S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, zs]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,z3]]\"]] - (z1 - z2) (z1 - z3) (z2 - z3) Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, zs]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = testReport[\"Test 9 (dX correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[dX[mu,0,z]]\"], ToExpression[\"R[dX[nu,0,Infinity]]\"]] + (\\[Alpha]p \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = testReport[\"Test 10 (dX correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[dX[mu,0,Infinity]]\"], ToExpression[\"R[dX[nu,0,z]]\"]] + (\\[Alpha]p \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = testReport[\"Test 11 (dXt correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[dXt[mu,0,zb]]\"], ToExpression[\"R[dXt[nu,0,Infinity]]\"]] + (\\[Alpha]p \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = testReport[\"Test 12 (dXt correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[dXt[mu,0,Infinity]]\"], ToExpression[\"R[dXt[nu,0,zb]]\"]] + (\\[Alpha]p \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test13 = testReport[\"Test 13 (psi correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi][mu,0,z]]\"], ToExpression[\"R[\\\\[Psi][nu,0,Infinity]]\"]] - \\[Delta][mu, nu]/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test14 = testReport[\"Test 14 (psi correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi][mu,0,Infinity]]\"], ToExpression[\"R[\\\\[Psi][nu,0,z]]\"]] + \\[Delta][mu, nu]/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test15 = testReport[\"Test 15 (psit correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi]t[mu,0,zb]]\"], ToExpression[\"R[\\\\[Psi]t[nu,0,Infinity]]\"]] - \\[Delta][mu, nu]/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test16 = testReport[\"Test 16 (psit correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[\\\\[Psi]t[mu,0,Infinity]]\"], ToExpression[\"R[\\\\[Psi]t[nu,0,zb]]\"]] + \\[Delta][mu, nu]/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test17 = testReport[\"Test 17 (expPhi correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[exp\\\\[Phi]f[-1,z]]\"], ToExpression[\"R[exp\\\\[Phi]f[-1,Infinity]]\"]] + 1] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test18 = testReport[\"Test 18 (expPhi correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[exp\\\\[Phi]f[-1,Infinity]]\"], ToExpression[\"R[exp\\\\[Phi]f[-1,z]]\"]] - 1] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test19 = testReport[\"Test 19 (expPhit correlator with right Infinity)\", Simplify[Corr[ToExpression[\"R[exp\\\\[Phi]tf[-1,zb]]\"], ToExpression[\"R[exp\\\\[Phi]tf[-1,Infinity]]\"]] + 1] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test20 = testReport[\"Test 20 (expPhit correlator with left Infinity)\", Simplify[Corr[ToExpression[\"R[exp\\\\[Phi]tf[-1,Infinity]]\"], ToExpression[\"R[exp\\\\[Phi]tf[-1,zb]]\"]] - 1] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test21 = testReport[\"Test 21 (mixed c-psi operator at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2], \\\\[Psi][mu,0,z2]]\"], ToExpression[\"R[c[0,Infinity], \\\\[Psi][nu,0,Infinity]]\"]] - ((z1 - z2) \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test22 = testReport[\"Test 22 (mixed c-expPhi operator at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z], exp\\\\[Phi]f[-1,z]]\"], ToExpression[\"R[c[0,w]]\"], ToExpression[\"R[c[0,Infinity], exp\\\\[Phi]f[-1,Infinity]]\"]] - (w - z)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test23 = testReport[\"Test 23 (mixed ct-expPhit operator at Infinity)\", Simplify[Corr[ToExpression[\"R[ct[0,zb], exp\\\\[Phi]tf[-1,zb]]\"], ToExpression[\"R[ct[0,wb]]\"], ToExpression[\"R[ct[0,Infinity], exp\\\\[Phi]tf[-1,Infinity]]\"]] - (wb - zb)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test24 = testReport[\"Test 24 (full NS operator at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z], \\\\[Psi][mu,0,z], exp\\\\[Phi]f[-1,z]]\"], ToExpression[\"R[c[0,w]]\"], ToExpression[\"R[c[0,Infinity], \\\\[Psi][nu,0,Infinity], exp\\\\[Phi]f[-1,Infinity]]\"]] - ((z - w) \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test25 = testReport[\"Test 25 (full antiholomorphic NS operator at Infinity)\", Simplify[Corr[ToExpression[\"R[ct[0,zb], \\\\[Psi]t[mu,0,zb], exp\\\\[Phi]tf[-1,zb]]\"], ToExpression[\"R[ct[0,wb]]\"], ToExpression[\"R[ct[0,Infinity], \\\\[Psi]t[nu,0,Infinity], exp\\\\[Phi]tf[-1,Infinity]]\"]] - ((zb - wb) \\[Delta][mu, nu])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test26 = testReport[\"Test 26 (symbolic S sector still factorizes with ghost at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z1], S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,Infinity]]\"]] - (z1 - z2) Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z1]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test27 = testReport[\"Test 27 (dXt-expX correlator)\", Simplify[Corr[ToExpression[\"R[dXt[mu,0,zb]]\"], ToExpression[\"R[expX[k,w,wb]]\"]] - (I \\[Alpha]p k[mu] R[expX[k,0,0]])/(2 (wb - zb))] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test28 = testReport[\"Test 28 (mixed c-expX operator with ghost at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z1], expX[k,z1,zb1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,Infinity]]\"]] - (z1 - z2) R[expX[k,0,0]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test29 = testReport[\"Test 29 (mixed c-dX and c-expX with ghost at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z1], dX[mu,0,z1]]\"], ToExpression[\"R[c[0,z2], expX[k,z2,zb2]]\"], ToExpression[\"R[c[0,Infinity]]\"]] + (I \\[Alpha]p k[mu] R[expX[k,0,0]])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test30 = testReport[\"Test 30 (mixed ct-dXt and ct-expX with ghost at Infinity)\", Simplify[Corr[ToExpression[\"R[ct[0,zb1], dXt[mu,0,zb1]]\"], ToExpression[\"R[ct[0,zb2], expX[k,z2,zb2]]\"], ToExpression[\"R[ct[0,Infinity]]\"]] + (I \\[Alpha]p k[mu] R[expX[k,0,0]])/2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

@@ -1,0 +1,143 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Bosonic Correlator Theory-Level Tests\n\nShared correlator checks for the universal bc sector.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test1 = testReport[\"Test 1 (bc top-form VEV)\", Vev[ToExpression[\"R[c[0,0], c[1,0], c[2,0]]\"]] === -2];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test2 = testReport[\"Test 2 (wrong bc degree vanishes)\", Vev[ToExpression[\"R[c[0,0], c[1,0]]\"]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test3 = testReport[\"Test 3 (holomorphic c correlator)\", Simplify[Corr[ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,z3]]\"]] - (z1 - z2) (z1 - z3) (z2 - z3)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test4 = testReport[\"Test 4 (antiholomorphic c correlator)\", Simplify[Corr[ToExpression[\"R[ct[0,zb1]]\"], ToExpression[\"R[ct[0,zb2]]\"], ToExpression[\"R[ct[0,zb3]]\"]] - (zb1 - zb2) (zb1 - zb3) (zb2 - zb3)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test5 = testReport[\"Test 5 (c correlator at Infinity)\", Simplify[Corr[ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,Infinity]]\"]] - (z1 - z2)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test6 = testReport[\"Test 6 (left Infinity c correlator)\", Simplify[Corr[ToExpression[\"R[c[0,Infinity]]\"], ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2]]\"]] - (z1 - z2)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test7 = testReport[\"Test 7 (middle Infinity c correlator)\", Simplify[Corr[ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,Infinity]]\"], ToExpression[\"R[c[0,z2]]\"]] - (z2 - z1)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test8 = testReport[\"Test 8 (right Infinity ct correlator)\", Simplify[Corr[ToExpression[\"R[ct[0,zb1]]\"], ToExpression[\"R[ct[0,zb2]]\"], ToExpression[\"R[ct[0,Infinity]]\"]] - (zb1 - zb2)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test9 = testReport[\"Test 9 (left Infinity ct correlator)\", Simplify[Corr[ToExpression[\"R[ct[0,Infinity]]\"], ToExpression[\"R[ct[0,zb1]]\"], ToExpression[\"R[ct[0,zb2]]\"]] - (zb1 - zb2)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test10 = testReport[\"Test 10 (middle Infinity ct correlator)\", Simplify[Corr[ToExpression[\"R[ct[0,zb1]]\"], ToExpression[\"R[ct[0,Infinity]]\"], ToExpression[\"R[ct[0,zb2]]\"]] - (zb2 - zb1)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test11 = testReport[\"Test 11 (MultiOp convenience path)\", Simplify[Corr[ToExpression[\"MultiOp[R[c[0,z1]], R[c[0,z2]], R[c[0,z3]]]\"]] - Corr[ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,z3]]\"]]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test12 = testReport[\"Test 12 (Corr[] and scalar linearity)\", Corr[] === 1 && Simplify[Corr[2 ToExpression[\"R[c[0,z1]]\"], ToExpression[\"R[c[0,z2]]\"], ToExpression[\"R[c[0,z3]]\"]] - 2 (z1 - z2) (z1 - z3) (z2 - z3)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Summary",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

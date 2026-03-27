@@ -209,6 +209,9 @@ Gamma11DDSparse = -gammaSparseIdentityMatrix[gammaSpinorDimension];
 Gamma11DD = denseGammaMatrixFromSparse[Gamma11DDSparse];
 
 
+Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCache.m"}]];
+
+
 (* ::Section:: *)
 (*End*)
 
