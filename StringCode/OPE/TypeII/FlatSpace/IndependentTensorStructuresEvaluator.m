@@ -169,7 +169,14 @@ gammaFactorMatrixAssociation[parts_Association, primeData_Association] := Module
     primeData["Identity"],
     tailMatrices
   ];
-  vectorHeads = parts["VectorLinks"];
+  vectorHeads = If[
+    parts["CTag"] === None,
+    parts["VectorLinks"],
+    parts["VectorLinks"] /. {
+      GammaUDHold[mu_Integer] :> GammaDUHold[mu],
+      GammaDUHold[mu_Integer] :> GammaUDHold[mu]
+    }
+  ];
   subsets = allBasisSubsets[Length[vectorHeads]];
   assoc = Association @ Table[
     With[
@@ -177,7 +184,11 @@ gammaFactorMatrixAssociation[parts_Association, primeData_Association] := Module
         antiMatrix = antisymmetrizedVectorMatrix[vectorHeads, subset, primeData]
       },
       If[antiMatrix === $Failed, Return[$Failed]];
-      subset -> matrixProductMod[cMatrix, matrixProductMod[antiMatrix, tailMatrix, primeData["Prime"]], primeData["Prime"]]
+      subset -> If[
+        parts["CTag"] === None,
+        matrixProductMod[cMatrix, matrixProductMod[antiMatrix, tailMatrix, primeData["Prime"]], primeData["Prime"]],
+        matrixProductMod[antiMatrix, matrixProductMod[cMatrix, tailMatrix, primeData["Prime"]], primeData["Prime"]]
+      ]
     ],
     {subset, subsets}
   ];

@@ -379,6 +379,10 @@ getOutgoingOperatorsTensors[ops_List, wH_, wA_, seed_: Automatic] := getOutgoing
   |>
 ];
 
+spinProjectionCompiledSeed::usage =
+  "spinProjectionCompiledSeed is the canonical deterministic seed used by the compiled supported spin-field solver.";
+spinProjectionCompiledSeed = 1234;
+
 spinProjectedCoefficient::usage = "spinProjectedCoefficient[i] is an internal placeholder for one unresolved spin-field OPE coefficient.";
 
 attachSpinProjectionCoefficients::usage =
@@ -488,7 +492,7 @@ spinProjectionAntisymmetrizedMatrix[vectorLinks_List] := spinProjectionAntisymme
 spinProjectionGammaFactorMatrix::usage =
   "spinProjectionGammaFactorMatrix[links] returns the exact matrix represented by one concrete GammaAntisymmetricProductHold link list.";
 spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] = Module[
-  {cached, cTag, coreLinks, vectorLinks, tailLinks, pairingMatrix},
+  {cached, cTag, coreLinks, vectorLinks, tailLinks, pairingMatrix, baseMatrix},
   cached = gammaProductCacheLookupFromLinks[links];
   If[cached =!= $Failed, Return[cached]];
   If[links === {},
@@ -504,14 +508,17 @@ spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[l
   coreLinks = If[cTag === None, links, Rest[links]];
   vectorLinks = Select[coreLinks, gammaVectorLinkQ];
   tailLinks = Select[coreLinks, !gammaVectorLinkQ[#] &];
-  Fold[
-    Dot,
-    If[cTag === None, IdentityMatrix[Length[CUD]], spinProjectionGammaLinkMatrix[cTag]],
-    Join[
-      {spinProjectionAntisymmetrizedMatrix[vectorLinks]},
-      spinProjectionGammaLinkMatrix /@ tailLinks
-    ]
-  ]
+  baseMatrix = If[
+    cTag === None,
+    spinProjectionAntisymmetrizedMatrix[vectorLinks],
+    spinProjectionAntisymmetrizedMatrix[
+      vectorLinks /. {
+        GammaUDHold[mu_Integer] :> GammaDUHold[mu],
+        GammaDUHold[mu_Integer] :> GammaUDHold[mu]
+      }
+    ] . spinProjectionGammaLinkMatrix[cTag]
+  ];
+  Fold[Dot, baseMatrix, spinProjectionGammaLinkMatrix /@ tailLinks]
 ];
 
 spinProjectionGammaFactorValue::usage =
@@ -1882,7 +1889,7 @@ solveSpinProjectionSectors[template_Association, wH_, wA_, hExpr_, hVars_List, a
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ]), opts___Rule] := Module[
   {o, hExpr, aExpr, hVars, aVars, n, seed, template, solved, buildSectorProjection},
-  seed = Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic];
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
   o = getOutgoingOperatorsTensors[{Ra}, wH, wA, seed];
   solved = solveCompiledSpinProjectionSectors[o["holoOps"], o["antiOps"], wH, wA, o["holoData"], o["antiData"], seed];
   If[solved === $Failed,
