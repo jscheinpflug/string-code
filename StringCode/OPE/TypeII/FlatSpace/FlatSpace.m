@@ -951,7 +951,7 @@ spinProjectionSectorTemplate[ops_List, expr_] := Module[
 
 spinProjectionSeededOrder::usage =
   "spinProjectionSeededOrder[list, seed, tag] deterministically orders a finite list using the probe seed and one local tag.";
-spinProjectionSeededOrder[list_List, Automatic, _] := list;
+spinProjectionSeededOrder[list_List, Automatic, tag_] := spinProjectionSeededOrder[list, 0, tag];
 spinProjectionSeededOrder[list_List, seed_, tag_] := list[[Ordering[Hash[{seed, tag, #}] & /@ list]]];
 
 spinProjectionOutputSymbolData::usage =

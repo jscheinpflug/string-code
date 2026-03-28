@@ -33,16 +33,31 @@ maskPositions::usage = "maskPositions[mask, length] returns the 1-based position
 maskPositions[mask_Integer?NonNegative, length_Integer?NonNegative] := Select[Range[length], BitGet[mask, # - 1] == 1 &];
 
 modularImaginaryUnit::usage = "modularImaginaryUnit[prime] returns a square root of -1 modulo prime.";
-modularImaginaryUnit[prime_Integer] := PowerMod[-1, Quotient[prime - 1, 4], prime];
+modularImaginaryUnit[prime_Integer] := Module[{imag},
+  If[Mod[prime, 4] =!= 1, Return[$Failed]];
+  imag = PowerMod[PrimitiveRoot[prime], Quotient[prime - 1, 4], prime];
+  If[Mod[imag^2, prime] === prime - 1, imag, $Failed]
+];
 
 modularReduceExact::usage = "modularReduceExact[expr, prime, imag] reduces an exact matrix or scalar expression modulo prime.";
 modularReduceExact[expr_, prime_Integer, imag_Integer] := Mod[expr /. Complex[a_, b_] :> (a + imag b) /. I -> imag, prime];
 
+primeEvaluationCacheTag::usage = "primeEvaluationCacheTag[primeData] returns the cache tag that identifies one modular gamma realization.";
+primeEvaluationCacheTag[primeData_Association] := Lookup[
+  primeData,
+  "CacheTag",
+  {primeData["Prime"], Lookup[primeData, "ImaginaryUnit", Missing["ImaginaryUnit"]]}
+];
+
+Clear[primeEvaluationData];
 primeEvaluationData::usage = "primeEvaluationData[prime] precomputes the modular gamma data needed by the selector evaluator.";
 primeEvaluationData[prime_Integer] := primeEvaluationData[prime] = Module[{imag = modularImaginaryUnit[prime]},
+  If[!IntegerQ[imag], Return[$Failed]];
   (* All downstream arithmetic is modular; reduce matrices once per prime and reuse aggressively. *)
   <|
     "Prime" -> prime,
+    "ImaginaryUnit" -> imag,
+    "CacheTag" -> {prime, imag},
     "Identity" -> IdentityMatrix[16],
     "GammaUD" -> Table[modularReduceExact[GammaUD[mu], prime, imag], {mu, 1, 10}],
     "GammaDU" -> Table[modularReduceExact[GammaDU[mu], prime, imag], {mu, 1, 10}],
@@ -85,7 +100,7 @@ antisymmetrizedVectorMatrixState[headTypes_List, 0, {}, primeData_Association] :
 antisymmetrizedVectorMatrixState[headTypes_List, headMask_Integer?NonNegative, basisSubset_List, primeData_Association] := Module[
   {key, cached, remainingHeads, rank, invRank, sumMatrix, pos, headPos, headMatrix, restMatrix},
   If[Length[basisSubset] =!= bitCount[headMask], Return[$Failed]];
-  key = {primeData["Prime"], headTypes, headMask, basisSubset};
+  key = {primeEvaluationCacheTag[primeData], headTypes, headMask, basisSubset};
   cached = associationLookup[antisymmetrizedVectorMatrixCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   remainingHeads = maskPositions[headMask, Length[headTypes]];
@@ -118,21 +133,34 @@ antisymmetrizedVectorMatrix[vectorHeads_List, basisSubset_List, primeData_Associ
 gammaFactorMatrixAssociationCache::usage = "gammaFactorMatrixAssociationCache memoizes basis-subset matrix associations for parsed gamma factors.";
 gammaFactorMatrixAssociationCache = <||>;
 
-gammaFactorMatrixAssociationKey::usage = "gammaFactorMatrixAssociationKey[parts, prime] builds the cache key for basis-subset gamma matrices.";
-gammaFactorMatrixAssociationKey[parts_Association, prime_Integer] := {
-  prime,
+gammaFactorMatrixAssociationKey::usage = "gammaFactorMatrixAssociationKey[parts, primeData] builds the cache key for basis-subset gamma matrices.";
+gammaFactorMatrixAssociationKey[parts_Association, primeData_Association] := {
+  primeEvaluationCacheTag[primeData],
   parts["CTag"],
   Head /@ parts["VectorLinks"],
   Head /@ parts["TailLinks"]
 };
 
+gammaFactorBaseMatrix::usage =
+  "gammaFactorBaseMatrix[parts, primeData] returns the leftmost matrix factor for one parsed gamma family, including empty-link pairings.";
+gammaFactorBaseMatrix[parts_Association, primeData_Association] := Module[{pair},
+  If[parts["CTag"] =!= None, Return[gammaLinkMatrix[parts["CTag"], None, primeData]]];
+  If[parts["VectorLinks"] =!= {} || parts["TailLinks"] =!= {}, Return[primeData["Identity"]]];
+  pair = Lookup[parts, "SpinorChiralities", {}];
+  Switch[pair,
+    {"chiral", "antichiral"}, primeData["CUD"],
+    {"antichiral", "chiral"}, primeData["CDU"],
+    _, primeData["Identity"]
+  ]
+];
+
 gammaFactorMatrixAssociation::usage = "gammaFactorMatrixAssociation[parts, primeData] returns the basis-subset matrix table for one parsed gamma factor.";
 gammaFactorMatrixAssociation[parts_Association, primeData_Association] := Module[
   {key, cached, cMatrix, tailMatrices, tailMatrix, vectorHeads, subsets, assoc},
-  key = gammaFactorMatrixAssociationKey[parts, primeData["Prime"]];
+  key = gammaFactorMatrixAssociationKey[parts, primeData];
   cached = associationLookup[gammaFactorMatrixAssociationCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
-  cMatrix = If[parts["CTag"] === None, primeData["Identity"], gammaLinkMatrix[parts["CTag"], None, primeData]];
+  cMatrix = gammaFactorBaseMatrix[parts, primeData];
   If[cMatrix === $Failed, Return[$Failed]];
   tailMatrices = gammaLinkMatrix[#, None, primeData] & /@ parts["TailLinks"];
   If[AnyTrue[tailMatrices, # === $Failed &], Return[$Failed]];
@@ -177,7 +205,7 @@ highRankComplementDataCache = <||>;
 highRankComplementData::usage = "highRankComplementData[parts, primeData] returns the low-rank complement family and subset factors for one high-rank gamma factor.";
 highRankComplementData[parts_Association, primeData_Association] := Module[
   {key, cached, lowParts, highAssoc, lowAssoc, factors},
-  key = gammaFactorMatrixAssociationKey[parts, primeData["Prime"]];
+  key = gammaFactorMatrixAssociationKey[parts, primeData];
   cached = associationLookup[highRankComplementDataCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   lowParts = complementLowRankParts[parts];
@@ -199,8 +227,8 @@ highRankComplementData[parts_Association, primeData_Association] := Module[
 gammaFactorCoefficientAssociationCache::usage = "gammaFactorCoefficientAssociationCache memoizes alternating-form coefficients for parsed gamma factors and probe spinors.";
 gammaFactorCoefficientAssociationCache = <||>;
 
-gammaFactorCoefficientAssociationKey::usage = "gammaFactorCoefficientAssociationKey[parts, spin1, spin2, prime] builds the cache key for one factor coefficient association.";
-gammaFactorCoefficientAssociationKey[parts_Association, spin1_List, spin2_List, prime_Integer] := {gammaFactorMatrixAssociationKey[parts, prime], spin1, spin2};
+gammaFactorCoefficientAssociationKey::usage = "gammaFactorCoefficientAssociationKey[parts, spin1, spin2, primeData] builds the cache key for one factor coefficient association.";
+gammaFactorCoefficientAssociationKey[parts_Association, spin1_List, spin2_List, primeData_Association] := {gammaFactorMatrixAssociationKey[parts, primeData], spin1, spin2};
 
 gammaFactorMatrixCoefficientAssociation::usage = "gammaFactorMatrixCoefficientAssociation[matrixAssoc, spin1, spin2, prime] contracts one cached gamma-matrix association with a probe spinor pair.";
 gammaFactorMatrixCoefficientAssociation[matrixAssoc_Association, spin1_List, spin2_List, prime_Integer] := Association @ Select[
@@ -214,7 +242,7 @@ gammaFactorCoefficientAssociation[parts_Association, probe_Association, primeDat
   spin1 = Lookup[probe["SpinorComponents"], parts["Spinors"][[1]], Missing["Unassigned"]];
   spin2 = Lookup[probe["SpinorComponents"], parts["Spinors"][[2]], Missing["Unassigned"]];
   If[!VectorQ[spin1, IntegerQ] || !VectorQ[spin2, IntegerQ], Return[$Failed]];
-  key = gammaFactorCoefficientAssociationKey[parts, spin1, spin2, prime];
+  key = gammaFactorCoefficientAssociationKey[parts, spin1, spin2, primeData];
   cached = associationLookup[gammaFactorCoefficientAssociationCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   cached = If[
@@ -410,7 +438,7 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List,
   blocks = factorBlocks;
   If[blocks === $Failed || Total[Length /@ blocks] =!= Length[reduced["DummySymbols"]], Return[$Failed]];
   (* Entry cache is keyed by block arities plus reduced alternating-form coefficients, not symbol identities. *)
-  entryKey = {primeData["Prime"], Length /@ blocks, coefficientAssociationKey[reduced["Coefficients"]]};
+  entryKey = {primeEvaluationCacheTag[primeData], Length /@ blocks, coefficientAssociationKey[reduced["Coefficients"]]};
   entries = associationLookup[factorBlockTensorEntryCache, entryKey, Missing["NotFound"]];
   If[entries === Missing["NotFound"],
     entries = blockTensorFromReducedCoefficients[reduced["Coefficients"], blocks, primeData["Prime"]]["Entries"];
@@ -422,7 +450,7 @@ factorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List,
 cachedFactorBlockTensor::usage = "cachedFactorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData] memoizes sparse block tensors across selector probes.";
 cachedFactorBlockTensor[candidate_Association, factorIndex_Integer, factorBlocks_List, probe_Association, primeData_Association] := Module[
   {key, cached},
-  key = {primeData["Prime"], probeCacheKey[probe], factorIndex, candidate["Key"]};
+  key = {primeEvaluationCacheTag[primeData], probeCacheKey[probe], factorIndex, candidate["Key"]};
   cached = associationLookup[factorBlockTensorProbeCache, key, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   cached = factorBlockTensor[candidate, factorIndex, factorBlocks, probe, primeData];
