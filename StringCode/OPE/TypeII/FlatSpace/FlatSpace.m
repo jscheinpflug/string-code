@@ -1057,7 +1057,7 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     ]
   ];
   compileTerm[tensor_, stateSpins_, stateSpinChiralities_, stateVectors_] := Module[
-    {factors, tensorFactors, scalarFactor, parsedTensor, indexSymbols, dummySymbols, dummyVectors, parts, normalized, shape},
+    {factors, tensorFactors, scalarFactor, parsedTensor, indexSymbols, dummySymbols, dummyVectors, parts, normalized, kernelData},
     pieceColumn++;
     factors = If[Head[tensor] === Times, List @@ tensor, {tensor}];
     tensorFactors = Select[factors, candidateFactorQ];
@@ -1082,18 +1082,16 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     If[MemberQ[parts, $Failed], Return[$Failed]];
     normalized = spinProjectionNormalizeCompiledTermParts[parts];
     If[normalized === $Failed, Return[$Failed]];
-    shape = spinProjectionGammaShapeData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]];
-    If[shape === $Failed, Return[$Failed]];
+    kernelData = spinProjectionGammaKernelData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]];
+    If[kernelData === $Failed, Return[$Failed]];
     <|
       "Column" -> pieceColumn,
-      "ScalarFactor" -> scalarFactor normalized["ScalarFactor"],
+      "ScalarFactor" -> scalarFactor normalized["ScalarFactor"] kernelData["ScalarFactor"],
       "Parts" -> parts,
       "DummyCount" -> Length[dummySymbols],
       "SpinEqualities" -> normalized["SpinEqualities"],
       "VectorEqualities" -> normalized["VectorEqualities"],
-      "GammaShapeKey" -> shape["Key"],
-      "GammaShapeSpinSlots" -> shape["SpinSlots"],
-      "GammaShapeVectorSlots" -> shape["VectorSlots"]
+      "GammaKernelRefs" -> kernelData["KernelRefs"]
     |>
   ];
   compileFamily[{op_, tensors_}] := Module[{outputData, stateSpins, stateSpinChiralities, stateVectors, terms},
@@ -1176,23 +1174,29 @@ spinProjectionTupleIterator[domains_List, seed_: Automatic, tag_: None] := Modul
   ]
 ];
 
-spinProjectionLoopDummyVectors::usage =
-  "spinProjectionLoopDummyVectors[k, body] iterates over k dummy vector slots in 1..10 without materializing tuples.";
-spinProjectionLoopDummyVectors[k_Integer?NonNegative, body_] := Switch[k,
-  0, body[{}],
-  1, Do[body[{i1}], {i1, 10}],
-  2, Do[body[{i1, i2}], {i1, 10}, {i2, 10}],
-  3, Do[body[{i1, i2, i3}], {i1, 10}, {i2, 10}, {i3, 10}],
-  4, Do[body[{i1, i2, i3, i4}], {i1, 10}, {i2, 10}, {i3, 10}, {i4, 10}],
-  _, Module[{dummy = ConstantArray[1, k], done = False, pos},
-    While[!done,
-      body[dummy];
-      pos = k;
-      While[pos >= 1 && dummy[[pos]] == 10, dummy[[pos]] = 1; pos--];
-      If[pos == 0, done = True, dummy[[pos]]++]
-    ]
-  ]
+spinProjectionAllBasisSubsets::usage =
+  "spinProjectionAllBasisSubsets[rank] returns all increasing basis subsets of Range[10] with the given rank.";
+spinProjectionAllBasisSubsets[0] := {{}};
+spinProjectionAllBasisSubsets[rank_Integer?Positive] := spinProjectionAllBasisSubsets[rank] = Subsets[Range[10], {rank}];
+
+spinProjectionDisjointBlockBasisTuples::usage =
+  "spinProjectionDisjointBlockBasisTuples[blockSizes] returns ordered tuples of pairwise-disjoint increasing basis subsets with the requested ranks.";
+spinProjectionDisjointBlockBasisTuples[{}] := {{}};
+spinProjectionDisjointBlockBasisTuples[blockSizes_List] := spinProjectionDisjointBlockBasisTuples[blockSizes] = Module[{recurse},
+  recurse[{}, _] := {{}};
+  recurse[{size_, rest___}, remaining_List] := Flatten[
+    Table[
+      Prepend[#, subset] & /@ recurse[{rest}, Complement[remaining, subset]],
+      {subset, Subsets[remaining, {size}]}
+    ],
+    1
+  ];
+  recurse[blockSizes, Range[10]]
 ];
+
+spinProjectionAssociationLookup::usage =
+  "spinProjectionAssociationLookup[assoc, key, default] looks up an association value while supporting list-valued keys.";
+spinProjectionAssociationLookup[assoc_Association, key_, default_] := If[KeyExistsQ[assoc, key], assoc[key], default];
 
 spinProjectionNormalizeCompiledTermParts::usage =
   "spinProjectionNormalizeCompiledTermParts[parts] strips vector deltas into a scalar zero/nonzero factor, spin equalities, vector equalities, and normalized gamma factors for one compiled term.";
@@ -1277,62 +1281,211 @@ spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
   |>
 ];
 
-spinProjectionGammaShapeRegistry::usage =
-  "spinProjectionGammaShapeRegistry memoizes normalized gamma-shape metadata shared across compiled RHS terms.";
-spinProjectionGammaShapeRegistry = <||>;
+spinProjectionGammaKernelRegistry::usage =
+  "spinProjectionGammaKernelRegistry memoizes structural metadata for normalized exact gamma kernels shared across compiled RHS terms.";
+spinProjectionGammaKernelRegistry = <||>;
 
-spinProjectionGammaShapeSliceCache::usage =
-  "spinProjectionGammaShapeSliceCache memoizes exact concrete vector slices of normalized gamma shapes on first runtime use.";
-spinProjectionGammaShapeSliceCache = <||>;
+spinProjectionGammaKernelSliceCache::usage =
+  "spinProjectionGammaKernelSliceCache memoizes exact concrete vector slices of registered gamma kernels on first runtime use.";
+spinProjectionGammaKernelSliceCache = <||>;
 
-spinProjectionGammaShapeData::usage =
-  "spinProjectionGammaShapeData[gammaParts] canonicalizes normalized gamma factors, registers the shared shape metadata, and returns the runtime spin/vector slot binding.";
-spinProjectionGammaShapeData[gammaParts_List] := Module[
+spinProjectionGammaKernelComponents::usage =
+  "spinProjectionGammaKernelComponents[gammaParts] partitions normalized gamma factors into independent dummy-sharing kernel components.";
+spinProjectionGammaKernelComponents[gammaParts_List] := Module[
+  {factorDummySources, sourceFactors = <||>, neighbors, remaining, start, queue, current, components = {}},
+  If[gammaParts === {}, Return[{}]];
+  factorDummySources = DeleteDuplicates @ Cases[#[[4, 3]], src_ /; First[src] === 3] & /@ gammaParts;
+  Do[
+    Scan[
+      Function[src, sourceFactors[src] = Append[spinProjectionAssociationLookup[sourceFactors, src, {}], i]],
+      factorDummySources[[i]]
+    ],
+    {i, Length[gammaParts]}
+  ];
+  neighbors = AssociationThread[Range[Length[gammaParts]] -> ConstantArray[{}, Length[gammaParts]]];
+  Scan[
+    Function[factors,
+      If[Length[factors] > 1,
+        Scan[
+          Function[i, neighbors[i] = Union[neighbors[i], DeleteCases[factors, i]]],
+          factors
+        ]
+      ]
+    ],
+    Values[sourceFactors]
+  ];
+  remaining = Range[Length[gammaParts]];
+  While[remaining =!= {},
+    start = First[remaining];
+    queue = {start};
+    current = {};
+    While[queue =!= {},
+      start = First[queue];
+      queue = Rest[queue];
+      If[!MemberQ[remaining, start], Continue[]];
+      remaining = DeleteCases[remaining, start];
+      AppendTo[current, gammaParts[[start]]];
+      queue = Join[queue, Lookup[neighbors, start, {}]]
+    ];
+    AppendTo[components, current]
+  ];
+  components
+];
+
+spinProjectionGammaKernelJoinPlan::usage =
+  "spinProjectionGammaKernelJoinPlan[factors] precomputes how one kernel's factor rule lists are joined over shared spin slots.";
+spinProjectionGammaKernelJoinPlan[factors_List] := Module[
+  {currentPos = <||>},
+  Map[
+    Function[factor,
+      Module[{slots = factor["SpinSlots"], commonSlots, extraSlots},
+        commonSlots = Select[slots, KeyExistsQ[currentPos, #] &];
+        extraSlots = Select[slots, !KeyExistsQ[currentPos, #] &];
+        Scan[Function[slot, currentPos[slot] = 1 + Length[currentPos]], extraSlots];
+        <|
+          "CommonCurrentPos" -> Lookup[currentPos, commonSlots],
+          "LocalCommonPos" -> Flatten[Position[slots, #] & /@ commonSlots],
+          "ExtraSlots" -> extraSlots,
+          "LocalExtraPos" -> Flatten[Position[slots, #] & /@ extraSlots]
+        |>
+      ]
+    ],
+    factors
+  ]
+];
+
+spinProjectionRegisterGammaKernelComponent::usage =
+  "spinProjectionRegisterGammaKernelComponent[component] registers one normalized gamma-kernel component and returns its runtime lookup reference.";
+spinProjectionRegisterGammaKernelComponent[component_List] := Module[
   {
     spinSlots = {},
     vectorSlots = {},
-    dummySlots = {},
     spinPos = <||>,
     vectorPos = <||>,
-    dummyPos = <||>,
     localSpin,
     localVector,
+    dummyOrder,
+    dummyOccurrences = <||>,
+    blockMembers = <||>,
+    blockMemberships,
+    blocks,
+    blockIds = <||>,
+    blockOffsets = <||>,
+    blockSizes,
     factors,
+    storedFactors,
     key
   },
   localSpin[src_] := If[KeyExistsQ[spinPos, src], spinPos[src], AppendTo[spinSlots, src]; spinPos[src] = Length[spinSlots]];
-  localVector[src_] := Switch[
-    src[[1]],
-    4, {4, src[[2]]},
-    3,
-    If[KeyExistsQ[dummyPos, src],
-      {3, dummyPos[src]},
-      AppendTo[dummySlots, src];
-      dummyPos[src] = Length[dummySlots];
-      {3, dummyPos[src]}
+  localVector[src_] := If[KeyExistsQ[vectorPos, src], vectorPos[src], AppendTo[vectorSlots, src]; vectorPos[src] = Length[vectorSlots]];
+  dummyOrder = DeleteDuplicates @ Flatten[Cases[component, {2, _, _, desc_} :> Select[desc[[3]], First[#] === 3 &], 1], 1];
+  Do[
+    With[{sources = Select[component[[factorIndex, 4, 3]], First[#] === 3 &]},
+      If[Length[sources] =!= Length[DeleteDuplicates[sources]], Return[<|"ScalarFactor" -> 0, "KernelRef" -> None|>]];
+      Scan[
+        Function[src, dummyOccurrences[src] = Append[spinProjectionAssociationLookup[dummyOccurrences, src, {}], factorIndex]],
+        DeleteDuplicates[sources]
+      ]
     ],
-    _,
-    If[KeyExistsQ[vectorPos, src],
-      {0, vectorPos[src]},
-      AppendTo[vectorSlots, src];
-      vectorPos[src] = Length[vectorSlots];
-      {0, vectorPos[src]}
-    ]
+    {factorIndex, Length[component]}
   ];
-  factors = gammaParts /. {2, left_, right_, desc_} :>
-    {
-      localSpin[left],
-      localSpin[right],
-      {desc[[1]], desc[[2]], localVector /@ desc[[3]], desc[[4]]}
-    };
-  key = factors;
-  If[!KeyExistsQ[spinProjectionGammaShapeRegistry, key],
+  blockMemberships = DeleteDuplicates[spinProjectionAssociationLookup[dummyOccurrences, #, {}] & /@ dummyOrder];
+  Scan[
+    Function[membership, blockMembers[membership] = {}],
+    blockMemberships
+  ];
+  Scan[
+    Function[src, blockMembers[dummyOccurrences[src]] = Append[blockMembers[dummyOccurrences[src]], src]],
+    dummyOrder
+  ];
+  blocks = spinProjectionAssociationLookup[blockMembers, #, {}] & /@ blockMemberships;
+  blockSizes = Length /@ blocks;
+  If[AnyTrue[blockSizes, # > 10 &], Return[<|"ScalarFactor" -> 0, "KernelRef" -> None|>]];
+  Scan[
+    Function[index,
+      Scan[
+        Function[pos,
+          blockIds[blocks[[index, pos]]] = index;
+          blockOffsets[blocks[[index, pos]]] = pos
+        ],
+        Range[Length[blocks[[index]]]]
+      ]
+    ],
+    Range[Length[blocks]]
+  ];
+  factors = Map[
+    Function[factor,
+      Module[{desc = factor[[4]], factorBlocks, factorBlockPos},
+        factorBlocks = DeleteDuplicates[blockIds /@ Select[desc[[3]], First[#] === 3 &]];
+        factorBlockPos = AssociationThread[factorBlocks -> Range[Length[factorBlocks]]];
+        <|
+          "SpinSlots" -> DeleteDuplicates[{localSpin[factor[[2]]], localSpin[factor[[3]]]}],
+          "Blocks" -> factorBlocks,
+          "BlockSizes" -> (blockSizes[[#]] & /@ factorBlocks),
+          "Desc" -> {
+            desc[[1]],
+            desc[[2]],
+            Map[
+              Switch[#[[1]],
+                4, {2, #[[2]]},
+                3, {1, factorBlockPos[blockIds[#]], blockOffsets[#]},
+                _, {0, localVector[#]}
+              ] &,
+              desc[[3]]
+            ],
+            desc[[4]]
+          },
+          "KeyData" -> {
+            localSpin[factor[[2]]],
+            localSpin[factor[[3]]],
+            {
+              desc[[1]],
+              desc[[2]],
+              Map[
+                Switch[#[[1]],
+                  4, {2, #[[2]]},
+                  3, {1, blockIds[#], blockOffsets[#]},
+                  _, {0, localVector[#]}
+                ] &,
+                desc[[3]]
+              ],
+              desc[[4]]
+            }
+          }
+        |>
+      ]
+    ],
+    component
+  ];
+  storedFactors = Map[KeyDrop[#, {"KeyData"}] &, factors];
+  key = {blockSizes, factors[[All, "KeyData"]]};
+  If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key],
     AssociateTo[
-      spinProjectionGammaShapeRegistry,
-      key -> <|"Factors" -> factors, "DummyCount" -> Length[dummySlots]|>
+      spinProjectionGammaKernelRegistry,
+      key -> <|
+        "BlockSizes" -> blockSizes,
+        "BlockTuples" -> spinProjectionDisjointBlockBasisTuples[blockSizes],
+        "SpinSlotCount" -> Length[spinSlots],
+        "Factors" -> storedFactors,
+        "JoinPlan" -> spinProjectionGammaKernelJoinPlan[storedFactors]
+      |>
     ]
   ];
-  <|"Key" -> key, "SpinSlots" -> spinSlots, "VectorSlots" -> vectorSlots|>
+  <|"ScalarFactor" -> 1, "KernelRef" -> <|"Key" -> key, "SpinSlots" -> spinSlots, "VectorSlots" -> vectorSlots|>|>
+];
+
+spinProjectionGammaKernelData::usage =
+  "spinProjectionGammaKernelData[gammaParts] registers the normalized gamma kernels needed by one compiled term and returns the runtime lookup references.";
+spinProjectionGammaKernelData[gammaParts_List] := Module[{components, refs = {}, result},
+  components = spinProjectionGammaKernelComponents[gammaParts];
+  Do[
+    result = spinProjectionRegisterGammaKernelComponent[component];
+    If[result === $Failed, Return[$Failed]];
+    If[result["ScalarFactor"] === 0, Return[<|"ScalarFactor" -> 0, "KernelRefs" -> {}|>]];
+    If[result["KernelRef"] =!= None, AppendTo[refs, result["KernelRef"]]],
+    {component, components}
+  ];
+  <|"ScalarFactor" -> 1, "KernelRefs" -> refs|>
 ];
 
 spinProjectionVectorSourceValue::usage =
@@ -1434,19 +1587,19 @@ spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVe
   If[TrueQ[includeTerms], {result, termBuckets}, result]
 ];
 
-spinProjectionGammaShapeVectorValue::usage =
-  "spinProjectionGammaShapeVectorValue[src, vectorTuple, dummy] resolves one localized gamma-shape source to a concrete vector index.";
-spinProjectionGammaShapeVectorValue[src_, vectorTuple_List, dummy_List] := Switch[src[[1]],
-  0, vectorTuple[[src[[2]]]],
-  3, dummy[[src[[2]]]],
-  4, src[[2]],
+spinProjectionGammaKernelVectorValue::usage =
+  "spinProjectionGammaKernelVectorValue[spec, vectorTuple, blockTuple] resolves one localized kernel slot specification to a concrete vector index.";
+spinProjectionGammaKernelVectorValue[spec_, vectorTuple_List, blockTuple_List] := Switch[spec[[1]],
+  0, vectorTuple[[spec[[2]]]],
+  1, blockTuple[[spec[[2]], spec[[3]]]],
+  2, spec[[2]],
   _, $Failed
 ];
 
-spinProjectionGammaShapeEntryRules::usage =
-  "spinProjectionGammaShapeEntryRules[desc, vectorTuple, dummy] resolves one localized gamma descriptor to its exact nonzero matrix-entry rules.";
-spinProjectionGammaShapeEntryRules[desc_, vectorTuple_List, dummy_List] := Module[{values},
-  values = spinProjectionGammaShapeVectorValue[#, vectorTuple, dummy] & /@ desc[[3]];
+spinProjectionGammaKernelEntryRules::usage =
+  "spinProjectionGammaKernelEntryRules[desc, vectorTuple, blockTuple] resolves one localized gamma descriptor to its exact nonzero matrix-entry rules.";
+spinProjectionGammaKernelEntryRules[desc_, vectorTuple_List, blockTuple_List] := Module[{values},
+  values = spinProjectionGammaKernelVectorValue[#, vectorTuple, blockTuple] & /@ desc[[3]];
   If[!AllTrue[values, IntegerQ], Return[$Failed]];
   spinProjectionConcreteGammaEntryRules[
     {desc[[1]], desc[[2]], ({4, #} & /@ values), desc[[4]], None},
@@ -1456,79 +1609,162 @@ spinProjectionGammaShapeEntryRules[desc_, vectorTuple_List, dummy_List] := Modul
   ]
 ];
 
-spinProjectionCompileGammaShapeSlice::usage =
-  "spinProjectionCompileGammaShapeSlice[shape, vectorTuple] compiles one exact concrete vector slice of a normalized gamma shape.";
-spinProjectionCompileGammaShapeSlice[shape_Association, vectorTuple_List] := Module[
-  {mergeEntries, factorEntries, addDummyContribution, result = <||>, failed = False},
-  If[shape["Factors"] === {}, Return[<|{} -> 1|>]];
-  mergeEntries[{leftSlots_List, leftEntries_List}, {rightSlots_List, rightEntries_List}] := Module[
-    {leftPos, rightPos, common, commonLeftPos, commonRightPos, extraRightPos},
-    If[leftEntries === {} || rightEntries === {}, Return[{Join[leftSlots, Select[rightSlots, !MemberQ[leftSlots, #] &]], {}}]];
-    leftPos = AssociationThread[leftSlots -> Range[Length[leftSlots]]];
-    rightPos = AssociationThread[rightSlots -> Range[Length[rightSlots]]];
-    common = Select[rightSlots, KeyExistsQ[leftPos, #] &];
-    commonLeftPos = Lookup[leftPos, common];
-    commonRightPos = Lookup[rightPos, common];
-    extraRightPos = Lookup[rightPos, Select[rightSlots, !KeyExistsQ[leftPos, #] &]];
-    {
-      Join[leftSlots, Select[rightSlots, !KeyExistsQ[leftPos, #] &]],
-      Replace[
-        Last @ Reap[
-          Do[
-            If[
-              common === {} || leftEntry[[1, commonLeftPos]] === rightEntry[[1, commonRightPos]],
-              Sow[{Join[leftEntry[[1]], rightEntry[[1, extraRightPos]]], leftEntry[[2]] rightEntry[[2]]}]
-            ],
-            {leftEntry, leftEntries},
-            {rightEntry, rightEntries}
-          ]
-        ],
-        {{} -> {}, {items_List} :> Normal @ KeyValueMap[List, Select[Merge[Rule @@@ items, Total], # =!= 0 &]]}
-      ]
-    }
-  ];
-  factorEntries[factor_, dummy_List] := Module[{rules},
-    rules = spinProjectionGammaShapeEntryRules[factor[[3]], vectorTuple, dummy];
-    If[rules === $Failed, Return[$Failed]];
-    If[
-      factor[[1]] === factor[[2]],
-      {{factor[[1]]}, Cases[rules, {{i_Integer, j_Integer}, value_} /; i === j :> {{i}, value}]},
-      {{factor[[1]], factor[[2]]}, rules}
-    ]
-  ];
-  addDummyContribution[dummy_List] := Module[{relation = {{}, {{{}, 1}}}, nextRelation},
-    Do[
-      nextRelation = factorEntries[factor, dummy];
-      If[nextRelation === $Failed, failed = True; Return[]];
-      relation = mergeEntries[relation, nextRelation];
-      If[relation[[2]] === {}, Return[]],
-      {factor, shape["Factors"]}
-    ];
-    Scan[
-      Function[entry,
-        AssociateTo[
-          result,
-          entry[[1]] -> (If[KeyExistsQ[result, entry[[1]]], result[entry[[1]]], 0] + entry[[2]])
-        ]
-      ],
-      relation[[2]]
-    ]
-  ];
-  spinProjectionLoopDummyVectors[shape["DummyCount"], addDummyContribution];
-  If[failed, $Failed, Select[result, # =!= 0 &]]
+spinProjectionMergeValueAssociations::usage =
+  "spinProjectionMergeValueAssociations[left, right] adds two sparse coefficient associations with list-valued keys.";
+spinProjectionMergeValueAssociations[left_Association, right_Association] := If[
+  left === <||>,
+  right,
+  If[right === <||>, left, Select[Merge[{left, right}, Total], # =!= 0 &]]
 ];
 
-spinProjectionGammaShapeSlice::usage =
-  "spinProjectionGammaShapeSlice[key, vectorTuple] returns the exact cached slice for one normalized gamma shape, compiling it on first use.";
-spinProjectionGammaShapeSlice[key_, vectorTuple_List] := Module[{shape, cache, slice},
-  If[!KeyExistsQ[spinProjectionGammaShapeRegistry, key], Return[$Failed]];
-  cache = If[KeyExistsQ[spinProjectionGammaShapeSliceCache, key], spinProjectionGammaShapeSliceCache[key], <||>];
+spinProjectionGammaKernelFactorRules::usage =
+  "spinProjectionGammaKernelFactorRules[factor, vectorTuple, blockTuple] returns the local sparse spin-tuple rule list for one concrete factor instance.";
+spinProjectionGammaKernelFactorRules[factor_Association, vectorTuple_List, blockTuple_List] := Module[{rules},
+  rules = spinProjectionGammaKernelEntryRules[factor["Desc"], vectorTuple, blockTuple];
+  If[rules === $Failed, Return[$Failed]];
+  If[
+    Length[factor["SpinSlots"]] === 1,
+    Cases[rules, {{i_Integer, j_Integer}, value_} /; i === j :> {{i}, value}],
+    Cases[rules, {{i_Integer, j_Integer}, value_} :> {{i, j}, value}]
+  ]
+];
+
+spinProjectionGammaKernelDecodeSpinKey::usage =
+  "spinProjectionGammaKernelDecodeSpinKey[key, slotCount] decodes one packed base-16 spin key back to a 1-based spin tuple.";
+spinProjectionGammaKernelDecodeSpinKey[key_Integer?Positive, slotCount_Integer?NonNegative] := Module[
+  {tuple = ConstantArray[1, slotCount], q = key - 1},
+  Do[
+    tuple[[pos]] = Mod[q, 16] + 1;
+    q = Quotient[q, 16],
+    {pos, 1, slotCount}
+  ];
+  tuple
+];
+
+spinProjectionGammaKernelEncodeSpinTuple::usage =
+  "spinProjectionGammaKernelEncodeSpinTuple[tuple] packs a 1-based local spin tuple into the base-16 key used during kernel compilation.";
+spinProjectionGammaKernelEncodeSpinTuple[tuple_List] := If[
+  tuple === {},
+  1,
+  1 + Total[(tuple - 1) 16^Range[0, Length[tuple] - 1]]
+];
+
+spinProjectionGammaKernelProjectSpinKey::usage =
+  "spinProjectionGammaKernelProjectSpinKey[key, positions] projects one packed base-16 spin key onto a compact key over the requested slot positions.";
+spinProjectionGammaKernelProjectSpinKey[key_Integer?Positive, positions_List] := Module[{q = key - 1},
+  If[
+    positions === {},
+    1,
+    1 + Sum[Mod[Quotient[q, 16^(positions[[idx]] - 1)], 16] 16^(idx - 1), {idx, Length[positions]}]
+  ]
+];
+
+spinProjectionGammaKernelPreparedRules::usage =
+  "spinProjectionGammaKernelPreparedRules[joinPlan, ruleLists, slotCount] prepares one block assignment's factor rules for the iterative spin-slot join.";
+spinProjectionGammaKernelPreparedRules[joinPlan_List, ruleLists_List, slotCount_Integer?NonNegative] := Module[
+  {weights = 16^Range[0, slotCount - 1]},
+  MapThread[
+    Function[{step, rules},
+      GroupBy[
+        Map[
+          Function[entry,
+            spinProjectionGammaKernelEncodeSpinTuple[entry[[1, step["LocalCommonPos"]]]] -> {
+              Total[(entry[[1, step["LocalExtraPos"]]] - 1) weights[[step["ExtraSlots"]]]],
+              entry[[2]]
+            }
+          ],
+          rules
+        ],
+        First -> Last
+      ]
+    ],
+    {joinPlan, ruleLists}
+  ]
+];
+
+spinProjectionGammaKernelJoinBlockRules::usage =
+  "spinProjectionGammaKernelJoinBlockRules[joinPlan, ruleLists, slotCount] joins one concrete block assignment's factor rule lists into sparse packed spin-key rules.";
+spinProjectionGammaKernelJoinBlockRules[joinPlan_List, ruleLists_List, slotCount_Integer?NonNegative] := Module[
+  {preparedRules, entries = {1 -> 1}, step, entryGroups, commonKeys, rules},
+  preparedRules = spinProjectionGammaKernelPreparedRules[joinPlan, ruleLists, slotCount];
+  Do[
+    step = joinPlan[[idx]];
+    If[step["CommonCurrentPos"] === {},
+      rules = spinProjectionAssociationLookup[preparedRules[[idx]], 1, {}];
+      entries = If[
+        entries === {} || rules === {},
+        {},
+        Thread[
+          Flatten[Outer[Plus, entries[[All, 1]], rules[[All, 1]]], 1] ->
+            Flatten[Outer[Times, entries[[All, 2]], rules[[All, 2]]], 1]
+        ]
+      ];
+      Continue[];
+    ];
+    entryGroups = If[
+      entries === {},
+      <||>,
+      GroupBy[entries, spinProjectionGammaKernelProjectSpinKey[First[#], step["CommonCurrentPos"]] &]
+    ];
+    commonKeys = Intersection[Keys[entryGroups], Keys[preparedRules[[idx]]]];
+    entries = Replace[
+      Last @ Reap[
+        Do[
+          Do[
+            Sow[(entry[[1]] + rule[[1]]) -> entry[[2]] rule[[2]]],
+            {entry, entryGroups[commonKey]},
+            {rule, preparedRules[[idx]][commonKey]}
+          ],
+          {commonKey, commonKeys}
+        ]
+      ],
+      {{} -> {}, {items_List} :> items}
+    ],
+    {idx, Length[preparedRules]}
+  ];
+  entries
+];
+
+spinProjectionCompileGammaKernelSlice::usage =
+  "spinProjectionCompileGammaKernelSlice[kernel, vectorTuple] compiles one exact concrete vector slice of a registered gamma kernel.";
+spinProjectionCompileGammaKernelSlice[kernel_Association, vectorTuple_List] := Module[{items, ruleLists, blockEntries},
+  If[kernel["Factors"] === {}, Return[<|{} -> 1|>]];
+  items = Catch[
+    Replace[
+      Last @ Reap[
+        Do[
+          ruleLists = spinProjectionGammaKernelFactorRules[#, vectorTuple, blockTuple] & /@ kernel["Factors"];
+          If[MemberQ[ruleLists, $Failed], Throw[$Failed, "KernelFailure"]];
+          blockEntries = spinProjectionGammaKernelJoinBlockRules[kernel["JoinPlan"], ruleLists, kernel["SpinSlotCount"]];
+          Scan[Sow, blockEntries],
+          {blockTuple, kernel["BlockTuples"]}
+        ]
+      ],
+      {{} -> {}, {values_List} :> values}
+    ],
+    "KernelFailure"
+  ];
+  If[items === $Failed, Return[$Failed]];
+  Select[
+    Association @ KeyValueMap[
+      spinProjectionGammaKernelDecodeSpinKey[#1, kernel["SpinSlotCount"]] -> #2 &,
+      If[items === {}, <||>, Select[Merge[items, Total], # =!= 0 &]]
+    ],
+    # =!= 0 &
+  ]
+];
+
+spinProjectionGammaKernelSlice::usage =
+  "spinProjectionGammaKernelSlice[key, vectorTuple] returns the exact cached slice for one registered gamma kernel, compiling it on first use.";
+spinProjectionGammaKernelSlice[key_, vectorTuple_List] := Module[{kernel, cache, slice},
+  If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key], Return[$Failed]];
+  cache = spinProjectionAssociationLookup[spinProjectionGammaKernelSliceCache, key, <||>];
   If[KeyExistsQ[cache, vectorTuple], Return[cache[vectorTuple]]];
-  shape = spinProjectionGammaShapeRegistry[key];
-  slice = spinProjectionCompileGammaShapeSlice[shape, vectorTuple];
+  kernel = spinProjectionGammaKernelRegistry[key];
+  slice = spinProjectionCompileGammaKernelSlice[kernel, vectorTuple];
   If[slice === $Failed, Return[$Failed]];
   AssociateTo[cache, vectorTuple -> slice];
-  AssociateTo[spinProjectionGammaShapeSliceCache, key -> cache];
+  AssociateTo[spinProjectionGammaKernelSliceCache, key -> cache];
   slice
 ];
 
@@ -1540,19 +1776,25 @@ spinProjectionEqualitiesHoldQ[equalities_List, valueFn_] := AllTrue[
 ];
 
 spinProjectionTermValue::usage =
-  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term through normalized equalities and the lazy gamma-shape slice cache.";
+  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term through normalized equalities and the lazy gamma-kernel slice cache.";
 spinProjectionTermValue[term_Association, freeSpins_List, freeVectors_List, stateSpins_List, stateVectors_List] := Module[
-  {vectorTuple, spinTuple, slice},
+  {kernelValue = 1, vectorTuple, spinTuple, slice},
   If[term["ScalarFactor"] === 0, Return[0]];
   If[!spinProjectionEqualitiesHoldQ[term["SpinEqualities"], spinProjectionSpinSourceValue[#, freeSpins, stateSpins] &], Return[0]];
   If[!spinProjectionEqualitiesHoldQ[term["VectorEqualities"], spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] &], Return[0]];
-  vectorTuple = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] & /@ term["GammaShapeVectorSlots"];
-  If[!AllTrue[vectorTuple, IntegerQ], Return[$Failed]];
-  slice = spinProjectionGammaShapeSlice[term["GammaShapeKey"], vectorTuple];
-  If[slice === $Failed, Return[$Failed]];
-  spinTuple = spinProjectionSpinSourceValue[#, freeSpins, stateSpins] & /@ term["GammaShapeSpinSlots"];
-  If[!AllTrue[spinTuple, IntegerQ], Return[$Failed]];
-  term["ScalarFactor"] If[KeyExistsQ[slice, spinTuple], slice[spinTuple], 0]
+  Do[
+    vectorTuple = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] & /@ ref["VectorSlots"];
+    If[!AllTrue[vectorTuple, IntegerQ], Return[$Failed]];
+    slice = spinProjectionGammaKernelSlice[ref["Key"], vectorTuple];
+    If[slice === $Failed, Return[$Failed]];
+    spinTuple = spinProjectionSpinSourceValue[#, freeSpins, stateSpins] & /@ ref["SpinSlots"];
+    If[!AllTrue[spinTuple, IntegerQ], Return[$Failed]];
+    kernelValue *= spinProjectionAssociationLookup[slice, spinTuple, 0];
+    If[kernelValue === 0, Return[0]],
+    {ref, term["GammaKernelRefs"]}
+  ];
+  If[kernelValue === $Failed, Return[$Failed]];
+  term["ScalarFactor"] kernelValue
 ];
 
 spinProjectionFamilyStateIterator::usage =
