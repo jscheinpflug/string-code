@@ -1057,7 +1057,7 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     ]
   ];
   compileTerm[tensor_, stateSpins_, stateSpinChiralities_, stateVectors_] := Module[
-    {factors, tensorFactors, scalarFactor, parsedTensor, indexSymbols, dummySymbols, dummyVectors, parts},
+    {factors, tensorFactors, scalarFactor, parsedTensor, indexSymbols, dummySymbols, dummyVectors, parts, normalized, shape},
     pieceColumn++;
     factors = If[Head[tensor] === Times, List @@ tensor, {tensor}];
     tensorFactors = Select[factors, candidateFactorQ];
@@ -1080,7 +1080,21 @@ compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, 
     dummyVectors = AssociationThread[dummySymbols -> Range[Length[dummySymbols]]];
     parts = scalarDesc[#, stateSpins, stateSpinChiralities, stateVectors, dummyVectors] & /@ parsedTensor["FactorParts"];
     If[MemberQ[parts, $Failed], Return[$Failed]];
-    {pieceColumn, scalarFactor, parts, Length[dummySymbols]}
+    normalized = spinProjectionNormalizeCompiledTermParts[parts];
+    If[normalized === $Failed, Return[$Failed]];
+    shape = spinProjectionGammaShapeData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]];
+    If[shape === $Failed, Return[$Failed]];
+    <|
+      "Column" -> pieceColumn,
+      "ScalarFactor" -> scalarFactor normalized["ScalarFactor"],
+      "Parts" -> parts,
+      "DummyCount" -> Length[dummySymbols],
+      "SpinEqualities" -> normalized["SpinEqualities"],
+      "VectorEqualities" -> normalized["VectorEqualities"],
+      "GammaShapeKey" -> shape["Key"],
+      "GammaShapeSpinSlots" -> shape["SpinSlots"],
+      "GammaShapeVectorSlots" -> shape["VectorSlots"]
+    |>
   ];
   compileFamily[{op_, tensors_}] := Module[{outputData, stateSpins, stateSpinChiralities, stateVectors, terms},
     outputData = spinProjectionOutputSymbolData[op];
@@ -1180,6 +1194,147 @@ spinProjectionLoopDummyVectors[k_Integer?NonNegative, body_] := Switch[k,
   ]
 ];
 
+spinProjectionNormalizeCompiledTermParts::usage =
+  "spinProjectionNormalizeCompiledTermParts[parts] strips vector deltas into a scalar zero/nonzero factor, spin equalities, vector equalities, and normalized gamma factors for one compiled term.";
+spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
+  {
+    canonicalPair,
+    deltaParts,
+    spinEqualities,
+    gammaParts,
+    vectorSources,
+    parents = <||>,
+    find,
+    join,
+    roots,
+    classes,
+    members,
+    concreteMembers,
+    exposedMembers,
+    representative,
+    rules = <||>,
+    vectorEqualities = {},
+    normalizedGammaParts
+  },
+  canonicalPair[pair_List] := SortBy[pair, {First[#], Last[#]} &];
+  deltaParts = Cases[parts, {0, _, _}];
+  spinEqualities = DeleteDuplicates @ (canonicalPair /@ Cases[parts, {1, left_, right_} :> {left, right}]);
+  gammaParts = Cases[parts, {2, _, _, _}];
+  vectorSources = DeleteDuplicates @ Join[
+    Flatten[Cases[deltaParts, {0, left_, right_} :> {left, right}], 1],
+    Flatten[Cases[gammaParts, {2, _, _, desc_} :> desc[[3]], 1], 1]
+  ];
+  Scan[Function[src, parents[src] = src], vectorSources];
+  find[src_] := parents[src] = If[parents[src] === src, src, find[parents[src]]];
+  join[left_, right_] := Module[{leftRoot = find[left], rightRoot = find[right]},
+    If[leftRoot =!= rightRoot, parents[rightRoot] = leftRoot]
+  ];
+  Scan[Function[factor, join[factor[[2]], factor[[3]]]], deltaParts];
+  roots = DeleteDuplicates[find /@ vectorSources];
+  classes = DeleteDuplicates @ Map[
+    Function[root, DeleteDuplicates @ Select[vectorSources, find[#] === root &]],
+    roots
+  ];
+  If[
+    AnyTrue[
+      classes,
+      Function[currentMembers, Length[DeleteDuplicates[Last /@ Select[currentMembers, #[[1]] === 4 &]]] > 1]
+    ],
+    Return[<|"ScalarFactor" -> 0, "SpinEqualities" -> spinEqualities, "VectorEqualities" -> {}, "GammaParts" -> {}|>]
+  ];
+  Scan[
+    Function[currentMembers,
+      members = currentMembers;
+    concreteMembers = DeleteDuplicates @ Select[members, #[[1]] === 4 &];
+    exposedMembers = SortBy[DeleteDuplicates @ Select[members, MemberQ[{1, 2}, #[[1]]] &], {First[#], Last[#]} &];
+    representative = Which[
+      concreteMembers =!= {}, First[concreteMembers],
+      exposedMembers =!= {}, First[exposedMembers],
+      True, First[Select[members, #[[1]] === 3 &]]
+    ];
+    Scan[Function[src, rules[src] = representative], members];
+    If[MatchQ[representative, {1 | 2 | 4, _Integer}],
+      vectorEqualities = Join[
+        vectorEqualities,
+        canonicalPair /@ ({#, representative} & /@ DeleteCases[exposedMembers, representative])
+      ]
+    ]
+    ],
+    classes
+  ];
+  normalizedGammaParts = gammaParts /. {2, left_, right_, desc_} :>
+    {
+      2,
+      left,
+      right,
+      {desc[[1]], desc[[2]], (If[KeyExistsQ[rules, #], rules[#], #] & /@ desc[[3]]), desc[[4]], None}
+    };
+  <|
+    "ScalarFactor" -> 1,
+    "SpinEqualities" -> spinEqualities,
+    "VectorEqualities" -> DeleteDuplicates[vectorEqualities],
+    "GammaParts" -> normalizedGammaParts
+  |>
+];
+
+spinProjectionGammaShapeRegistry::usage =
+  "spinProjectionGammaShapeRegistry memoizes normalized gamma-shape metadata shared across compiled RHS terms.";
+spinProjectionGammaShapeRegistry = <||>;
+
+spinProjectionGammaShapeSliceCache::usage =
+  "spinProjectionGammaShapeSliceCache memoizes exact concrete vector slices of normalized gamma shapes on first runtime use.";
+spinProjectionGammaShapeSliceCache = <||>;
+
+spinProjectionGammaShapeData::usage =
+  "spinProjectionGammaShapeData[gammaParts] canonicalizes normalized gamma factors, registers the shared shape metadata, and returns the runtime spin/vector slot binding.";
+spinProjectionGammaShapeData[gammaParts_List] := Module[
+  {
+    spinSlots = {},
+    vectorSlots = {},
+    dummySlots = {},
+    spinPos = <||>,
+    vectorPos = <||>,
+    dummyPos = <||>,
+    localSpin,
+    localVector,
+    factors,
+    key
+  },
+  localSpin[src_] := If[KeyExistsQ[spinPos, src], spinPos[src], AppendTo[spinSlots, src]; spinPos[src] = Length[spinSlots]];
+  localVector[src_] := Switch[
+    src[[1]],
+    4, {4, src[[2]]},
+    3,
+    If[KeyExistsQ[dummyPos, src],
+      {3, dummyPos[src]},
+      AppendTo[dummySlots, src];
+      dummyPos[src] = Length[dummySlots];
+      {3, dummyPos[src]}
+    ],
+    _,
+    If[KeyExistsQ[vectorPos, src],
+      {0, vectorPos[src]},
+      AppendTo[vectorSlots, src];
+      vectorPos[src] = Length[vectorSlots];
+      {0, vectorPos[src]}
+    ]
+  ];
+  factors = gammaParts /. {2, left_, right_, desc_} :>
+    {
+      localSpin[left],
+      localSpin[right],
+      {desc[[1]], desc[[2]], localVector /@ desc[[3]], desc[[4]]}
+    };
+  key = factors;
+  If[!KeyExistsQ[spinProjectionGammaShapeRegistry, key],
+    AssociateTo[
+      spinProjectionGammaShapeRegistry,
+      key -> <|"Factors" -> factors, "DummyCount" -> Length[dummySlots]|>
+    ]
+  ];
+  <|"Key" -> key, "SpinSlots" -> spinSlots, "VectorSlots" -> vectorSlots|>
+];
+
 spinProjectionVectorSourceValue::usage =
   "spinProjectionVectorSourceValue[src, freeVectors, stateVectors, dummy] resolves one compiled vector source to a concrete vector index.";
 spinProjectionVectorSourceValue[src_, freeVectors_List, stateVectors_List, dummy_List] := Switch[src[[1]],
@@ -1212,12 +1367,22 @@ spinProjectionConcreteGammaSparseMatrix[desc_, freeVectors_List, stateVectors_Li
   matrix
 ];
 
-spinProjectionConcreteGammaEntryValue::usage =
-  "spinProjectionConcreteGammaEntryValue[desc, left, right, freeVectors, stateVectors, dummy] resolves one compiled gamma entry.";
-spinProjectionConcreteGammaEntryValue[desc_, left_Integer, right_Integer, freeVectors_List, stateVectors_List, dummy_List] := Module[
-  {matrix},
+spinProjectionConcreteGammaEntryRulesCache::usage =
+  "spinProjectionConcreteGammaEntryRulesCache memoizes nonzero entry rules for concrete compiled gamma matrices.";
+spinProjectionConcreteGammaEntryRulesCache = <||>;
+
+spinProjectionConcreteGammaEntryRules::usage =
+  "spinProjectionConcreteGammaEntryRules[desc, freeVectors, stateVectors, dummy] returns the nonzero {row,col}->value rules for one concrete compiled gamma matrix.";
+spinProjectionConcreteGammaEntryRules[desc_, freeVectors_List, stateVectors_List, dummy_List] := Module[{values, key, matrix, rules},
+  values = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, dummy] & /@ desc[[3]];
+  If[!AllTrue[values, IntegerQ], Return[$Failed]];
+  key = {desc[[1]], desc[[2]], values, desc[[4]]};
+  If[KeyExistsQ[spinProjectionConcreteGammaEntryRulesCache, key], Return[spinProjectionConcreteGammaEntryRulesCache[key]]];
   matrix = spinProjectionConcreteGammaSparseMatrix[desc, freeVectors, stateVectors, dummy];
-  If[matrix =!= $Failed, matrix[[left, right]], $Failed]
+  If[matrix === $Failed, Return[$Failed]];
+  rules = Cases[Most[ArrayRules[SparseArray[matrix]]], Rule[{i_Integer, j_Integer}, value_] /; value =!= 0 :> {{i, j}, value}];
+  AssociateTo[spinProjectionConcreteGammaEntryRulesCache, key -> rules];
+  rules
 ];
 
 spinProjectionFactorOutputSpinSupport::usage =
@@ -1251,7 +1416,7 @@ spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVe
   Scan[
     Function[term,
       support = With[
-        {supports = Select[spinProjectionFactorOutputSpinSupport[#, 1, freeSpins, freeVectors] & /@ term[[3]], ListQ]},
+        {supports = Select[spinProjectionFactorOutputSpinSupport[#, 1, freeSpins, freeVectors] & /@ term["Parts"], ListQ]},
         If[supports === {}, fullDomain, Intersection @@ supports]
       ];
       If[support =!= {},
@@ -1269,56 +1434,125 @@ spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVe
   If[TrueQ[includeTerms], {result, termBuckets}, result]
 ];
 
-spinProjectionScalarFactorValue::usage =
-  "spinProjectionScalarFactorValue[factor, freeSpins, freeVectors, stateSpins, stateVectors, dummy] evaluates one compiled exact tensor factor.";
-spinProjectionScalarFactorValue[factor_, freeSpins_List, freeVectors_List, stateSpins_List, stateVectors_List, dummy_List] := Module[
-  {left, right},
-  Switch[factor[[1]],
-    0,
-    If[
-      spinProjectionVectorSourceValue[factor[[2]], freeVectors, stateVectors, dummy] ===
-        spinProjectionVectorSourceValue[factor[[3]], freeVectors, stateVectors, dummy],
-      1,
-      0
-    ],
-    1,
-    If[
-      spinProjectionSpinSourceValue[factor[[2]], freeSpins, stateSpins] ===
-        spinProjectionSpinSourceValue[factor[[3]], freeSpins, stateSpins],
-      1,
-      0
-    ],
-    2,
-    left = spinProjectionSpinSourceValue[factor[[2]], freeSpins, stateSpins];
-    right = spinProjectionSpinSourceValue[factor[[3]], freeSpins, stateSpins];
-    If[IntegerQ[left] && IntegerQ[right], spinProjectionConcreteGammaEntryValue[factor[[4]], left, right, freeVectors, stateVectors, dummy], $Failed],
-    _,
-    $Failed
+spinProjectionGammaShapeVectorValue::usage =
+  "spinProjectionGammaShapeVectorValue[src, vectorTuple, dummy] resolves one localized gamma-shape source to a concrete vector index.";
+spinProjectionGammaShapeVectorValue[src_, vectorTuple_List, dummy_List] := Switch[src[[1]],
+  0, vectorTuple[[src[[2]]]],
+  3, dummy[[src[[2]]]],
+  4, src[[2]],
+  _, $Failed
+];
+
+spinProjectionGammaShapeEntryRules::usage =
+  "spinProjectionGammaShapeEntryRules[desc, vectorTuple, dummy] resolves one localized gamma descriptor to its exact nonzero matrix-entry rules.";
+spinProjectionGammaShapeEntryRules[desc_, vectorTuple_List, dummy_List] := Module[{values},
+  values = spinProjectionGammaShapeVectorValue[#, vectorTuple, dummy] & /@ desc[[3]];
+  If[!AllTrue[values, IntegerQ], Return[$Failed]];
+  spinProjectionConcreteGammaEntryRules[
+    {desc[[1]], desc[[2]], ({4, #} & /@ values), desc[[4]], None},
+    {},
+    {},
+    {}
   ]
 ];
 
-spinProjectionTermValue::usage =
-  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term at a concrete probe and output state.";
-spinProjectionTermValue[term_List, freeSpins_List, freeVectors_List, stateSpins_List, stateVectors_List] := Module[
-  {total = 0, failed = False, coeff, value, factors, groups, multiplier},
-  factors = Select[term[[3]], !FreeQ[#, {3, _Integer}, Infinity] &];
-  groups = Cases[factors, {2, _, _, desc_} /; Length[desc[[3]]] > 1 && AllTrue[desc[[3]], MatchQ[{3, _Integer}] &] && DuplicateFreeQ[desc[[3]]] :> Last /@ desc[[3]]];
-  multiplier = Which[factors === {} || Length[groups] =!= Length[factors] || DeleteDuplicates[groups] =!= {Range[term[[4]]]}, 1, OddQ[Length[factors]], 0, True, Factorial[term[[4]]]];
-  If[multiplier === 0, Return[0]];
-  With[{body = Function[dummy,
-    coeff = 1;
-    Do[
-      value = spinProjectionScalarFactorValue[factor, freeSpins, freeVectors, stateSpins, stateVectors, dummy];
-      If[value === $Failed, failed = True; Return[]];
-      If[value === 0, coeff = 0; Return[]];
-      coeff *= value,
-      {factor, term[[3]]}
-    ];
-    total += coeff
-  ]},
-    If[multiplier === 1, spinProjectionLoopDummyVectors[term[[4]], body], Scan[body, Subsets[Range[10], {term[[4]]}]]]
+spinProjectionCompileGammaShapeSlice::usage =
+  "spinProjectionCompileGammaShapeSlice[shape, vectorTuple] compiles one exact concrete vector slice of a normalized gamma shape.";
+spinProjectionCompileGammaShapeSlice[shape_Association, vectorTuple_List] := Module[
+  {mergeEntries, factorEntries, addDummyContribution, result = <||>, failed = False},
+  If[shape["Factors"] === {}, Return[<|{} -> 1|>]];
+  mergeEntries[{leftSlots_List, leftEntries_List}, {rightSlots_List, rightEntries_List}] := Module[
+    {leftPos, rightPos, common, commonLeftPos, commonRightPos, extraRightPos},
+    If[leftEntries === {} || rightEntries === {}, Return[{Join[leftSlots, Select[rightSlots, !MemberQ[leftSlots, #] &]], {}}]];
+    leftPos = AssociationThread[leftSlots -> Range[Length[leftSlots]]];
+    rightPos = AssociationThread[rightSlots -> Range[Length[rightSlots]]];
+    common = Select[rightSlots, KeyExistsQ[leftPos, #] &];
+    commonLeftPos = Lookup[leftPos, common];
+    commonRightPos = Lookup[rightPos, common];
+    extraRightPos = Lookup[rightPos, Select[rightSlots, !KeyExistsQ[leftPos, #] &]];
+    {
+      Join[leftSlots, Select[rightSlots, !KeyExistsQ[leftPos, #] &]],
+      Replace[
+        Last @ Reap[
+          Do[
+            If[
+              common === {} || leftEntry[[1, commonLeftPos]] === rightEntry[[1, commonRightPos]],
+              Sow[{Join[leftEntry[[1]], rightEntry[[1, extraRightPos]]], leftEntry[[2]] rightEntry[[2]]}]
+            ],
+            {leftEntry, leftEntries},
+            {rightEntry, rightEntries}
+          ]
+        ],
+        {{} -> {}, {items_List} :> Normal @ KeyValueMap[List, Select[Merge[Rule @@@ items, Total], # =!= 0 &]]}
+      ]
+    }
   ];
-  If[failed, $Failed, term[[2]] multiplier total]
+  factorEntries[factor_, dummy_List] := Module[{rules},
+    rules = spinProjectionGammaShapeEntryRules[factor[[3]], vectorTuple, dummy];
+    If[rules === $Failed, Return[$Failed]];
+    If[
+      factor[[1]] === factor[[2]],
+      {{factor[[1]]}, Cases[rules, {{i_Integer, j_Integer}, value_} /; i === j :> {{i}, value}]},
+      {{factor[[1]], factor[[2]]}, rules}
+    ]
+  ];
+  addDummyContribution[dummy_List] := Module[{relation = {{}, {{{}, 1}}}, nextRelation},
+    Do[
+      nextRelation = factorEntries[factor, dummy];
+      If[nextRelation === $Failed, failed = True; Return[]];
+      relation = mergeEntries[relation, nextRelation];
+      If[relation[[2]] === {}, Return[]],
+      {factor, shape["Factors"]}
+    ];
+    Scan[
+      Function[entry,
+        AssociateTo[
+          result,
+          entry[[1]] -> (If[KeyExistsQ[result, entry[[1]]], result[entry[[1]]], 0] + entry[[2]])
+        ]
+      ],
+      relation[[2]]
+    ]
+  ];
+  spinProjectionLoopDummyVectors[shape["DummyCount"], addDummyContribution];
+  If[failed, $Failed, Select[result, # =!= 0 &]]
+];
+
+spinProjectionGammaShapeSlice::usage =
+  "spinProjectionGammaShapeSlice[key, vectorTuple] returns the exact cached slice for one normalized gamma shape, compiling it on first use.";
+spinProjectionGammaShapeSlice[key_, vectorTuple_List] := Module[{shape, cache, slice},
+  If[!KeyExistsQ[spinProjectionGammaShapeRegistry, key], Return[$Failed]];
+  cache = If[KeyExistsQ[spinProjectionGammaShapeSliceCache, key], spinProjectionGammaShapeSliceCache[key], <||>];
+  If[KeyExistsQ[cache, vectorTuple], Return[cache[vectorTuple]]];
+  shape = spinProjectionGammaShapeRegistry[key];
+  slice = spinProjectionCompileGammaShapeSlice[shape, vectorTuple];
+  If[slice === $Failed, Return[$Failed]];
+  AssociateTo[cache, vectorTuple -> slice];
+  AssociateTo[spinProjectionGammaShapeSliceCache, key -> cache];
+  slice
+];
+
+spinProjectionEqualitiesHoldQ::usage =
+  "spinProjectionEqualitiesHoldQ[equalities, valueFn] returns True when every equality pair resolves to the same concrete value.";
+spinProjectionEqualitiesHoldQ[equalities_List, valueFn_] := AllTrue[
+  equalities,
+  With[{left = valueFn[#[[1]]], right = valueFn[#[[2]]]}, IntegerQ[left] && IntegerQ[right] && left === right] &
+];
+
+spinProjectionTermValue::usage =
+  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term through normalized equalities and the lazy gamma-shape slice cache.";
+spinProjectionTermValue[term_Association, freeSpins_List, freeVectors_List, stateSpins_List, stateVectors_List] := Module[
+  {vectorTuple, spinTuple, slice},
+  If[term["ScalarFactor"] === 0, Return[0]];
+  If[!spinProjectionEqualitiesHoldQ[term["SpinEqualities"], spinProjectionSpinSourceValue[#, freeSpins, stateSpins] &], Return[0]];
+  If[!spinProjectionEqualitiesHoldQ[term["VectorEqualities"], spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] &], Return[0]];
+  vectorTuple = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] & /@ term["GammaShapeVectorSlots"];
+  If[!AllTrue[vectorTuple, IntegerQ], Return[$Failed]];
+  slice = spinProjectionGammaShapeSlice[term["GammaShapeKey"], vectorTuple];
+  If[slice === $Failed, Return[$Failed]];
+  spinTuple = spinProjectionSpinSourceValue[#, freeSpins, stateSpins] & /@ term["GammaShapeSpinSlots"];
+  If[!AllTrue[spinTuple, IntegerQ], Return[$Failed]];
+  term["ScalarFactor"] If[KeyExistsQ[slice, spinTuple], slice[spinTuple], 0]
 ];
 
 spinProjectionFamilyStateIterator::usage =
@@ -1387,7 +1621,7 @@ spinProjectionCandidateRows[model_Association, candidate : {freeSpins_List, free
       Scan[
         Function[term,
           With[{value = spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors]},
-            If[value === $Failed, row = $Failed, If[value =!= 0, row[[term[[1]]]] += value]]
+            If[value === $Failed, row = $Failed, If[value =!= 0, row[[term["Column"]]] += value]]
           ]
         ],
         If[Length[family["SpinSymbols"]] == 1, Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]], family["Terms"]]
@@ -1453,14 +1687,14 @@ spinProjectionProbeTermPool[model_Association] := Flatten[
 
 spinProjectionWitnessAssignment::usage =
   "spinProjectionWitnessAssignment[model, family, term, seed, serial] returns one support-driven witness assignment for a compiled term, or $Failed.";
-spinProjectionWitnessAssignment[model_Association, family_Association, term_List, seed_, serial_Integer?Positive] := Module[
+spinProjectionWitnessAssignment[model_Association, family_Association, term_Association, seed_, serial_Integer?Positive] := Module[
   {
     assignment = {
       ConstantArray[None, Length[model["FreeSpinSymbols"]]],
       ConstantArray[None, Length[model["FreeVectorGroups"]]],
       ConstantArray[None, Length[family["SpinSymbols"]]],
       ConstantArray[None, Length[family["VectorSymbols"]]],
-      ConstantArray[None, term[[4]]]
+      ConstantArray[None, term["DummyCount"]]
     },
     freeSpinDomains,
     stateSpinDomains,
@@ -1478,7 +1712,7 @@ spinProjectionWitnessAssignment[model_Association, family_Association, term_List
   ];
   freeVectorDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"freeVector", #}] & /@ model["FreeVectorGroups"];
   stateVectorDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"stateVector", #}] & /@ family["VectorSymbols"];
-  dummyDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"dummyVector", #}] & /@ Range[term[[4]]];
+  dummyDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"dummyVector", #}] & /@ Range[term["DummyCount"]];
   With[
     {
       spinValue = Function[{src, state}, Switch[src[[1]], 1, state[[1, src[[2]]]], 2, state[[3, src[[2]]]], _, $Failed]],
@@ -1566,7 +1800,7 @@ spinProjectionWitnessAssignment[model_Association, family_Association, term_List
         ]
       ];
       search[state_] := Catch[Module[{choices, active, best, result},
-        choices = MapIndexed[{First[#2], factorChoices[#1, state, First[#2]]} &, term[[3]]];
+        choices = MapIndexed[{First[#2], factorChoices[#1, state, First[#2]]} &, term["Parts"]];
         If[AnyTrue[choices, Last[#] === $Failed &], Return[$Failed]];
         active = Select[choices, ListQ[Last[#]] &];
         If[active === {}, Return[fillFree[state]]];
