@@ -868,8 +868,8 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
   singleStep[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
     projectScaledContourContributionAtOrigin[
       projectScaledExpressionAtHoloPower,
-      OPE[Bosonize[R[\[Psi][spinMode[[1]], 0, parameter zMode]]], currentState],
-      spinMode[[2]] - 1/2,
+      OPE[Bosonize[R[\[Psi][spinDescendantModeVectorIndex[spinMode], 0, parameter zMode]]], currentState],
+      spinDescendantModeExcitationLevel[spinMode] - 1/2,
       parameter,
       zMode
     ]
@@ -880,8 +880,8 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
      taken. *)
   pairStep[currentState_, pair_] := Module[
     {zMode1 = Unique["zMode"], zMode2 = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
-    outerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[2, 1]], 0, parameter zMode1]];
-    innerTerms = bosonizedSingleFieldTerms[\[Psi][pair[[1, 1]], 0, parameter delta zMode2]];
+    outerTerms = bosonizedSingleFieldTerms[\[Psi][spinDescendantModeVectorIndex[pair[[2]]], 0, parameter zMode1]];
+    innerTerms = bosonizedSingleFieldTerms[\[Psi][spinDescendantModeVectorIndex[pair[[1]]], 0, parameter delta zMode2]];
     Expand @ Simplify @ Total @ Flatten @ Table[
       outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
         projectScaledExpressionAtHoloPower,
@@ -890,12 +890,12 @@ bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Mod
           projectScaledContourContributionAtOrigin[
             projectScaledExpressionAtHoloPower,
             OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
-            pair[[1, 2]] - 1/2,
+            spinDescendantModeExcitationLevel[pair[[1]]] - 1/2,
             delta,
             zMode2
           ]
         ],
-        pair[[1, 2]] + pair[[2, 2]] - 1,
+        Total[spinDescendantModeExcitationLevel /@ pair] - 1,
         parameter,
         zMode1
       ],
@@ -926,16 +926,16 @@ bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] :=
   singleStep[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
     projectScaledContourContributionAtOrigin[
       projectScaledExpressionAtAntiHoloPower,
-      OPE[Bosonize[R[\[Psi]t[spinMode[[1]], 0, parameter zbarMode]]], currentState],
-      spinMode[[2]] - 1/2,
+      OPE[Bosonize[R[\[Psi]t[spinDescendantModeVectorIndex[spinMode], 0, parameter zbarMode]]], currentState],
+      spinDescendantModeExcitationLevel[spinMode] - 1/2,
       parameter,
       zbarMode
     ]
   ];
   pairStep[currentState_, pair_] := Module[
     {zbarMode1 = Unique["zbarMode"], zbarMode2 = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
-    outerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[2, 1]], 0, parameter zbarMode1]];
-    innerTerms = bosonizedSingleFieldTerms[\[Psi]t[pair[[1, 1]], 0, parameter delta zbarMode2]];
+    outerTerms = bosonizedSingleFieldTerms[\[Psi]t[spinDescendantModeVectorIndex[pair[[2]]], 0, parameter zbarMode1]];
+    innerTerms = bosonizedSingleFieldTerms[\[Psi]t[spinDescendantModeVectorIndex[pair[[1]]], 0, parameter delta zbarMode2]];
     Expand @ Simplify @ Total @ Flatten @ Table[
       outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
         projectScaledExpressionAtAntiHoloPower,
@@ -944,12 +944,12 @@ bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] :=
           projectScaledContourContributionAtOrigin[
             projectScaledExpressionAtAntiHoloPower,
             OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
-            pair[[1, 2]] - 1/2,
+            spinDescendantModeExcitationLevel[pair[[1]]] - 1/2,
             delta,
             zbarMode2
           ]
         ],
-        pair[[1, 2]] + pair[[2, 2]] - 1,
+        Total[spinDescendantModeExcitationLevel /@ pair] - 1,
         parameter,
         zbarMode1
       ],
@@ -1057,9 +1057,9 @@ psiModeToOperatorField[mode[\[Psi][_], modeNumber_], z_] := Module[{mu},
 ];
 
 psiModeToSpinMode::usage =
-  "Converts one Ramond psi mode to a spin-field mode-pair entry.";
+  "Converts one Ramond psi mode to a spin-field mode-pair entry using the actual nonpositive Ramond mode number.";
 psiModeToSpinMode[mode[\[Psi][_], modeNumber_Integer]] := Module[{mu},
-  {mu, -modeNumber}
+  {mu, modeNumber}
 ];
 
 integerPictureGroundField::usage =

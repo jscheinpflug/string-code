@@ -552,12 +552,7 @@ DefineField[S,
   "WeightHolo" -> Function[
     field,
     5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] +
-      Total[
-        Join[
-          Cases[field[[3]], {_, mode_?NumericQ} :> mode],
-          Cases[field[[3]], {mode_?NumericQ, _} :> mode]
-        ]
-      ]
+      Total[spinModeWeightContribution /@ field[[3]]]
   ],
   "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])],
@@ -579,20 +574,68 @@ DefineField[St,
   "WeightAntiHolo" -> Function[
     field,
     5/8 - field[[2]] (field[[2]] + 2)/2 + field[[4]] +
-      Total[
-        Join[
-          Cases[field[[3]], {_, mode_?NumericQ} :> mode],
-          Cases[field[[3]], {mode_?NumericQ, _} :> mode]
-        ]
-      ]
+      Total[spinModeWeightContribution /@ field[[3]]]
   ],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> Function[field, spinAlphaChiralitySign[field[[1, 2]]] (-1)^(field[[2]] + 1/2 + Length[field[[3]]])]
 ];
 
-canonicalizeSpinModes[modes_List] := Module[{ordering, sortedModes},
-  ordering = Ordering[modes];
-  sortedModes = modes[[ordering]];
+spinModeIndexLikeQ::usage =
+  "spinModeIndexLikeQ[idx] is True when idx can serve as a spin-mode vector label.";
+spinModeIndexLikeQ[idx_] := !NumericQ[idx] || MatchQ[idx, _Integer?Positive];
+
+spinModeWeightContribution::usage =
+  "spinModeWeightContribution[spinMode] returns the conformal-weight contribution carried by one spin-mode tuple.";
+spinModeWeightContribution[{idx_ /; spinModeIndexLikeQ[idx], modding_Integer?NonPositive}] := -modding;
+spinModeWeightContribution[{modding_Integer?NonPositive, idx_ /; spinModeIndexLikeQ[idx]}] := -modding;
+spinModeWeightContribution[{_, mode_?NumericQ}] := mode;
+spinModeWeightContribution[{mode_?NumericQ, _}] := mode;
+
+spinModeCanonicalRepresentative::usage =
+  "spinModeCanonicalRepresentative[spinMode] canonicalizes negative-integer descendant modding to the index-first form {idx, r}.";
+spinModeCanonicalRepresentative[{idx_ /; spinModeIndexLikeQ[idx], modding_Integer?NonPositive}] := {idx, modding};
+spinModeCanonicalRepresentative[{modding_Integer?NonPositive, idx_ /; spinModeIndexLikeQ[idx]}] := {idx, modding};
+spinModeCanonicalRepresentative[spinMode_] := spinMode;
+
+spinModeOrderingKey::usage =
+  "spinModeOrderingKey[spinMode] returns the canonical ordering key used to sort spin-mode lists.";
+spinModeOrderingKey[spinMode_] := Module[{canonicalSpinMode = spinModeCanonicalRepresentative[spinMode]},
+  Replace[
+    canonicalSpinMode,
+    {
+      {idx_ /; spinModeIndexLikeQ[idx], modding_Integer?NonPositive} :> {idx, -modding},
+      _ :> canonicalSpinMode
+    }
+  ]
+];
+
+spinDescendantModeData::usage =
+  "spinDescendantModeData[spinMode] returns {idx, r} for one bosonizable descendant spin mode with nonpositive integer modding, or $Failed.";
+spinDescendantModeData[{idx_Integer?Positive, modding_Integer?NonPositive}] := {idx, modding};
+spinDescendantModeData[{modding_Integer?NonPositive, idx_Integer?Positive}] := {idx, modding};
+spinDescendantModeData[spinMode_] := $Failed;
+
+spinDescendantModeQ::usage =
+  "spinDescendantModeQ[spinMode, maxIndex] is True when spinMode is a bosonizable descendant mode with index in 1..maxIndex.";
+spinDescendantModeQ[spinMode_, maxIndex_Integer?Positive] := MatchQ[
+  spinDescendantModeData[spinMode],
+  {idx_Integer /; 1 <= idx <= maxIndex, _Integer?NonPositive}
+];
+
+spinDescendantModeVectorIndex::usage =
+  "spinDescendantModeVectorIndex[spinMode] returns the vector index carried by one bosonizable descendant spin mode.";
+spinDescendantModeVectorIndex[spinMode_] := First[spinDescendantModeData[spinMode]] /; spinDescendantModeData[spinMode] =!= $Failed;
+
+spinDescendantModeExcitationLevel::usage =
+  "spinDescendantModeExcitationLevel[spinMode] returns the positive excitation level -r of one bosonizable descendant spin mode.";
+spinDescendantModeExcitationLevel[spinMode_] := -Last[spinDescendantModeData[spinMode]] /; spinDescendantModeData[spinMode] =!= $Failed;
+
+canonicalizeSpinModes::usage =
+  "canonicalizeSpinModes[modes] canonicalizes descendant negative-modding tuples and sorts spin modes with the fermionic permutation sign.";
+canonicalizeSpinModes[modes_List] := Module[{canonicalModes, ordering, sortedModes},
+  canonicalModes = spinModeCanonicalRepresentative /@ modes;
+  ordering = Ordering[spinModeOrderingKey /@ canonicalModes];
+  sortedModes = canonicalModes[[ordering]];
   If[DuplicateFreeQ[sortedModes],
     {Signature[ordering], sortedModes},
     {0, sortedModes}
@@ -613,14 +656,14 @@ S[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, z_] := 
     0,
     canonicalized[[1]] S[{alpha, chirality}, q, canonicalized[[2]], der, z]
   ]
-] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
+] /; With[{canonicalized = canonicalizeSpinModes[modes]}, canonicalized[[1]] == 0 || modes =!= canonicalized[[2]]];
 
 St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_] := Module[{canonicalized = canonicalizeSpinModes[modes]},
   If[canonicalized[[1]] == 0,
     0,
     canonicalized[[1]] St[{alpha, chirality}, q, canonicalized[[2]], der, zbar]
   ]
-] /; (!DuplicateFreeQ[modes] || !OrderedQ[modes]);
+] /; With[{canonicalized = canonicalizeSpinModes[modes]}, canonicalized[[1]] == 0 || modes =!= canonicalized[[2]]];
 
 
 Bosonize[0] := 0;
@@ -663,7 +706,7 @@ Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_
     spinVectorQ[spinVec] &&
     spinVectorChiralityQ[spinVec, chirality] &&
     Length[DownValues[bosonizeSpinModesHolo]] > 0 &&
-    AllTrue[modes, MatchQ[#, {mu_Integer /; 1 <= mu <= Length[vectors], n_Integer?NonNegative}] &];
+    AllTrue[modes, spinDescendantModeQ[#, Length[vectors]] &];
 
 
 Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, zbar_]]] :=
@@ -672,7 +715,7 @@ Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q
     spinVectorQ[spinVec] &&
     spinVectorChiralityQ[spinVec, chirality] &&
     Length[DownValues[bosonizeSpinModesAntiHolo]] > 0 &&
-    AllTrue[modes, MatchQ[#, {mu_Integer /; 1 <= mu <= Length[vectors], n_Integer?NonNegative}] &];
+    AllTrue[modes, spinDescendantModeQ[#, Length[vectors]] &];
 
 
 (* The fermion bosonization is stored in the vector-charge basis and then
