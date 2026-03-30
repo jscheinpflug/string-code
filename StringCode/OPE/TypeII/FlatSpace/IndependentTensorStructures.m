@@ -7,7 +7,6 @@
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresEvaluator`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 
@@ -23,8 +22,8 @@ findIndependentTensorStructures::badarg =
   "Arguments are not in a supported form for independent tensor-structure selection.";
 findIndependentTensorStructures::badtarget =
   "\"TargetRank\" must be Automatic or a nonnegative integer; received `1`.";
-findIndependentTensorStructures::badprime =
-  "\"ModulusPrimes\" must be a non-empty list of primes congruent to 1 mod 4; received `1`.";
+findIndependentTensorStructures::badopt =
+  "Unsupported option `1` supplied to findIndependentTensorStructures.";
 findIndependentTensorStructures::toomanyout =
   "Outgoing input may contain at most one spinor index for automatic target-rank computation.";
 findIndependentTensorStructures::targetunmet =
@@ -32,7 +31,6 @@ findIndependentTensorStructures::targetunmet =
 
 Options[findIndependentTensorStructures] = {
   "TargetRank" -> Automatic,
-  "ModulusPrimes" -> {32009, 32057, 32089},
   "ProbeCount" -> 5,
   "VerificationProbeCount" -> 3,
   "RandomSeed" -> Automatic,
@@ -51,22 +49,27 @@ validTargetRankOptionQ[Automatic] := True;
 validTargetRankOptionQ[target_Integer?NonNegative] := True;
 validTargetRankOptionQ[_] := False;
 
-validPrimeListQ::usage = "validPrimeListQ[primes] checks that primes is a non-empty list of primes congruent to 1 mod 4.";
-validPrimeListQ[primes_List] := primes =!= {} && AllTrue[primes, IntegerQ[#] && PrimeQ[#] && Mod[#, 4] == 1 &];
-validPrimeListQ[_] := False;
-
 parseSelectorOptions::usage = "parseSelectorOptions[opts] validates selector options and returns an option association or $Failed.";
-parseSelectorOptions[opts_List] := Module[{assoc, targetRank, primes},
+parseSelectorOptions[opts_List] := Module[{assoc, targetRank, invalidOptions},
+  invalidOptions = Complement[First /@ opts, First /@ Options[findIndependentTensorStructures]];
+  If[invalidOptions =!= {}, Message[findIndependentTensorStructures::badopt, First[invalidOptions]]; Return[$Failed]];
   assoc = Association[Join[Options[findIndependentTensorStructures], opts]];
   targetRank = Lookup[assoc, "TargetRank", Automatic];
-  primes = Lookup[assoc, "ModulusPrimes", {32009, 32057, 32089}];
   If[!validTargetRankOptionQ[targetRank], Message[findIndependentTensorStructures::badtarget, targetRank]; Return[$Failed]];
-  If[!validPrimeListQ[primes], Message[findIndependentTensorStructures::badprime, primes]; Return[$Failed]];
   assoc
 ];
 
-normalizeCandidateInput::usage = "normalizeCandidateInput[candidates] flattens grouped candidate input by one level when appropriate.";
-normalizeCandidateInput[candidates_List] := If[candidates === {} || !AllTrue[candidates, ListQ], candidates, Flatten[candidates, 1]];
+normalizeCandidateInput::usage =
+  "normalizeCandidateInput[candidates] normalizes selector input to a list of candidate groups, preserving generator-provided abstract grouping.";
+normalizeCandidateInput[candidates_List] := Which[
+  candidates === {}, {},
+  AllTrue[candidates, ListQ], Select[candidates, # =!= {} &],
+  True, {candidates}
+];
+
+candidateInputCount::usage =
+  "candidateInputCount[candidates] returns the flat candidate count represented by grouped or ungrouped selector input.";
+candidateInputCount[candidates_List] := Total[Length /@ normalizeCandidateInput[candidates]];
 
 selectorResult::usage = "selectorResult[basis, targetRank, visitedCandidates, optsAssoc] formats the selector return value according to ReturnStatistics.";
 selectorResult[basis_List, targetRank_, visitedCandidates_Integer?NonNegative, optsAssoc_Association] := If[
@@ -114,18 +117,13 @@ automaticAssociationTargetRank[data_Association] := Module[{nChiral, nAnti},
   countSinglets[nChiral, nAnti, Length[data["ExternalVectors"]]]
 ];
 
-scanParsedOrFail::usage = "scanParsedOrFail[candidates, targetRank, optsAssoc] runs the parsed-list selector and emits badarg on parse failure.";
-scanParsedOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanCandidateList[candidates, targetRank, optsAssoc]},
-  If[result === $Failed, Message[findIndependentTensorStructures::badarg]; $Failed, result]
-];
-
-scanRawOrFail::usage = "scanRawOrFail[candidates, targetRank, optsAssoc] runs the raw-list lazy selector and emits badarg on parse failure.";
-scanRawOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanRawCandidateList[candidates, targetRank, optsAssoc]},
+scanCandidatesOrFail::usage = "scanCandidatesOrFail[candidates, targetRank, optsAssoc] runs the exact selector and emits badarg on compile failure.";
+scanCandidatesOrFail[candidates_List, targetRank_, optsAssoc_Association] := Module[{result = scanCandidateList[candidates, targetRank, optsAssoc]},
   If[result === $Failed, Message[findIndependentTensorStructures::badarg]; $Failed, result]
 ];
 
 findIndependentTensorStructures[incoming_Association, outgoing_Association, opts___Rule] := Module[
-  {optsAssoc, searchData, targetRank, candidates, scanResult},
+  {optsAssoc, searchData, targetRank, candidates, candidateCount, scanResult},
   optsAssoc = parseSelectorOptions[{opts}];
   If[optsAssoc === $Failed, Return[$Failed]];
   searchData = associationSelectionData[incoming, outgoing];
@@ -133,9 +131,14 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
   targetRank = Lookup[optsAssoc, "TargetRank", Automatic];
   targetRank = If[targetRank === Automatic, automaticAssociationTargetRank[searchData], targetRank];
   If[targetRank === 0, Return[selectorResult[{}, 0, 0, optsAssoc]]];
-  (* Association mode owns generation; selector runs on concrete candidates with lazy parsing. *)
+  (* Association mode preserves generator grouping so the selector can compile and scan abstract families lazily. *)
   candidates = normalizeCandidateInput @ generateTensorStructures[searchData["Incoming"], searchData["Outgoing"]];
-  scanResult = scanRawOrFail[candidates, targetRank, optsAssoc];
+  candidateCount = candidateInputCount[candidates];
+  If[targetRank > candidateCount,
+    Message[findIndependentTensorStructures::targetunmet, targetRank, candidateCount];
+    Return[$Failed];
+  ];
+  scanResult = scanCandidatesOrFail[candidates, targetRank, optsAssoc];
   If[scanResult === $Failed, Return[$Failed]];
   If[Length[scanResult["Basis"]] < targetRank,
     Message[findIndependentTensorStructures::targetunmet, targetRank, Length[scanResult["Basis"]]];
@@ -145,22 +148,23 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
 ];
 
 findIndependentTensorStructures[candidates_List, opts___Rule] := Module[
-  {optsAssoc, normalizedCandidates, targetRank, scanResult},
+  {optsAssoc, normalizedCandidates, targetRank, candidateCount, scanResult},
   optsAssoc = parseSelectorOptions[{opts}];
   If[optsAssoc === $Failed, Return[$Failed]];
   normalizedCandidates = normalizeCandidateInput[candidates];
+  candidateCount = candidateInputCount[normalizedCandidates];
   targetRank = Lookup[optsAssoc, "TargetRank", Automatic];
   If[normalizedCandidates === {},
     targetRank = Replace[targetRank, Automatic -> 0];
     If[targetRank =!= 0, Message[findIndependentTensorStructures::targetunmet, targetRank, 0]; Return[$Failed]];
     Return[selectorResult[{}, 0, 0, optsAssoc]];
   ];
-  (* List mode is the direct selector API for precomputed/custom candidate orderings. *)
-  scanResult = If[
-    AllTrue[normalizedCandidates, MatchQ[#, _Association] &],
-    scanParsedOrFail[normalizedCandidates, targetRank, optsAssoc],
-    scanRawOrFail[normalizedCandidates, targetRank, optsAssoc]
+  If[targetRank =!= Automatic && targetRank > candidateCount,
+    Message[findIndependentTensorStructures::targetunmet, targetRank, candidateCount];
+    Return[$Failed];
   ];
+  (* List mode accepts flat or grouped candidates and scans them lazily in the supplied flat order. *)
+  scanResult = scanCandidatesOrFail[normalizedCandidates, targetRank, optsAssoc];
   If[scanResult === $Failed, Return[$Failed]];
   If[targetRank =!= Automatic && Length[scanResult["Basis"]] < targetRank,
     Message[findIndependentTensorStructures::targetunmet, targetRank, Length[scanResult["Basis"]]];
