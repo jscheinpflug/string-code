@@ -859,110 +859,76 @@ projectScaledContourContributionAtOrigin::usage =
 projectScaledContourContributionAtOrigin[projector_, scaledExpr_, targetPower_, parameter_, coord_] :=
   Expand @ Simplify[projector[scaledExpr, targetPower, parameter] /. coord -> 1];
 
+spinDescendantSeedPicture::usage =
+  "spinDescendantSeedPicture[q, modes] returns the shifted Ramond ground-state picture used to collapse a list of excited spin-field contours locally.";
+spinDescendantSeedPicture[q_, modes_List] := q + Length[modes];
+
+spinDescendantGeneratorHolo::usage =
+  "spinDescendantGeneratorHolo[spinMode, coord] builds the bosonized holomorphic GSO-projected descendant generator e^{-phi} psi at coord.";
+spinDescendantGeneratorHolo[spinMode_, coord_] :=
+  Bosonize[R[exp\[Phi]f[-1, coord], \[Psi][spinDescendantModeVectorIndex[spinMode], 0, coord]]];
+
+spinDescendantGeneratorAntiHolo::usage =
+  "spinDescendantGeneratorAntiHolo[spinMode, coord] builds the bosonized antiholomorphic GSO-projected descendant generator e^{-phit} psit at coord.";
+spinDescendantGeneratorAntiHolo[spinMode_, coord_] :=
+  Bosonize[R[exp\[Phi]tf[-1, coord], \[Psi]t[spinDescendantModeVectorIndex[spinMode], 0, coord]]];
+
+spinDescendantContourPower::usage =
+  "spinDescendantContourPower[spinMode] returns the contour-extraction power for one excited spin-field mode under the e^{-phi} psi local collapse rule.";
+spinDescendantContourPower[spinMode_] := spinDescendantModeExcitationLevel[spinMode];
+
+applySpinDescendantModeHolo::usage =
+  "applySpinDescendantModeHolo[currentState, spinMode] applies one holomorphic excited-spin contour step using the bosonized e^{-phi} psi generator.";
+applySpinDescendantModeHolo[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
+  projectScaledContourContributionAtOrigin[
+    projectScaledExpressionAtHoloPower,
+    OPE[spinDescendantGeneratorHolo[spinMode, parameter zMode], currentState],
+    spinDescendantContourPower[spinMode],
+    parameter,
+    zMode
+  ]
+];
+
+applySpinDescendantModeAntiHolo::usage =
+  "applySpinDescendantModeAntiHolo[currentState, spinMode] applies one antiholomorphic excited-spin contour step using the bosonized e^{-phit} psit generator.";
+applySpinDescendantModeAntiHolo[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
+  projectScaledContourContributionAtOrigin[
+    projectScaledExpressionAtAntiHoloPower,
+    OPE[spinDescendantGeneratorAntiHolo[spinMode, parameter zbarMode], currentState],
+    spinDescendantContourPower[spinMode],
+    parameter,
+    zbarMode
+  ]
+];
+
+restoreBosonizedSpinStateHolo::usage =
+  "restoreBosonizedSpinStateHolo[expr, coord] restores one locally collapsed holomorphic excited-spin state from the origin to coord.";
+restoreBosonizedSpinStateHolo[expr_, coord_] :=
+  Expand[(expr /. R[a___] :> Times[a]) /. {dH[i_, n_, 0] :> dH[i, n, coord], expH[charges_, 0] :> expH[charges, coord]}];
+
+restoreBosonizedSpinStateAntiHolo::usage =
+  "restoreBosonizedSpinStateAntiHolo[expr, coord] restores one locally collapsed antiholomorphic excited-spin state from the origin to coord.";
+restoreBosonizedSpinStateAntiHolo[expr_, coord_] :=
+  Expand[(expr /. R[a___] :> Times[a]) /. {dHt[i_, n_, 0] :> dHt[i, n, coord], expHt[charges_, 0] :> expHt[charges, coord]}];
+
 bosonizeSpinModesHolo::usage =
-  "Bosonizes a holomorphic excited Ramond spin field by bilocal psi-pair contour blocks with single-mode leftovers.";
+  "Bosonizes a holomorphic excited Ramond spin field by sequential local contour collapse with the bosonized e^{-phi} psi generator.";
 bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
-  {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
-  (* A lone mode is extracted directly from the projected OPE of psi with the
-     current bosonized Ramond state. *)
-  singleStep[currentState_, spinMode_] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
-    projectScaledContourContributionAtOrigin[
-      projectScaledExpressionAtHoloPower,
-      OPE[Bosonize[R[\[Psi][spinDescendantModeVectorIndex[spinMode], 0, parameter zMode]]], currentState],
-      spinDescendantModeExcitationLevel[spinMode] - 1/2,
-      parameter,
-      zMode
-    ]
-  ];
-  (* Even-sector descendants are applied in bilocal pairs. Splitting each psi
-     bosonization term into scalar and field pieces keeps coefficients outside
-     the nested OPEs and lets expH factors merge only after both contours are
-     taken. *)
-  pairStep[currentState_, pair_] := Module[
-    {zMode1 = Unique["zMode"], zMode2 = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
-    outerTerms = bosonizedSingleFieldTerms[\[Psi][spinDescendantModeVectorIndex[pair[[2]]], 0, parameter zMode1]];
-    innerTerms = bosonizedSingleFieldTerms[\[Psi][spinDescendantModeVectorIndex[pair[[1]]], 0, parameter delta zMode2]];
-    Expand @ Simplify @ Total @ Flatten @ Table[
-      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
-        projectScaledExpressionAtHoloPower,
-        OPE[
-          If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
-          projectScaledContourContributionAtOrigin[
-            projectScaledExpressionAtHoloPower,
-            OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
-            spinDescendantModeExcitationLevel[pair[[1]]] - 1/2,
-            delta,
-            zMode2
-          ]
-        ],
-        Total[spinDescendantModeExcitationLevel /@ pair] - 1,
-        parameter,
-        zMode1
-      ],
-      {outerTerm, outerTerms},
-      {innerTerm, innerTerms}
-    ]
-  ];
-  (* Start from the Ramond ground state at the origin. Odd GSO ground states
-     need one single-mode step first so the remaining descendants can be
-     processed by the even-sector pair rule. *)
-  state = Bosonize[R[S[{spinVec, chirality}, q, {}, 0, 0]]];
-  If[GSOParity[S[{spinVec, chirality}, q, {}, 0, 0]] === -1 && remainingModes =!= {}, state = singleStep[state, First[remainingModes]]; remainingModes = Rest[remainingModes]];
-  pairedModeCount = 2 Floor[Length[remainingModes]/2];
-  If[pairedModeCount > 0, state = Fold[pairStep, state, Partition[Take[remainingModes, pairedModeCount], 2, 2]]];
-  If[OddQ[Length[remainingModes]], state = singleStep[state, Last[remainingModes]]];
-  (* The contour algebra was normalized to coordinate 0 during extraction; only
-     after all residues are taken do we restore the requested external
-     insertion point. *)
-  Expand[(state /. R[a___] :> Times[a]) /. {dH[i_, n_, 0] :> dH[i, n, coord], expH[charges_, 0] :> expH[charges, coord]}]
+  {state, seedPicture},
+  seedPicture = spinDescendantSeedPicture[q, modes];
+  state = Bosonize[R[S[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
+  state = Fold[applySpinDescendantModeHolo, state, modes];
+  restoreBosonizedSpinStateHolo[state, coord]
 ];
 
 bosonizeSpinModesAntiHolo::usage =
-  "Bosonizes an antiholomorphic excited Ramond spin field by bilocal psit-pair contour blocks with single-mode leftovers.";
-(* Antiholomorphic descendant bosonization follows the same contour algorithm
-   as the holomorphic case, with psit/dHt/expHt replacing psi/dH/expH. *)
+  "Bosonizes an antiholomorphic excited Ramond spin field by sequential local contour collapse with the bosonized e^{-phit} psit generator.";
 bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
-  {state, remainingModes = modes, pairedModeCount, singleStep, pairStep},
-  singleStep[currentState_, spinMode_] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
-    projectScaledContourContributionAtOrigin[
-      projectScaledExpressionAtAntiHoloPower,
-      OPE[Bosonize[R[\[Psi]t[spinDescendantModeVectorIndex[spinMode], 0, parameter zbarMode]]], currentState],
-      spinDescendantModeExcitationLevel[spinMode] - 1/2,
-      parameter,
-      zbarMode
-    ]
-  ];
-  pairStep[currentState_, pair_] := Module[
-    {zbarMode1 = Unique["zbarMode"], zbarMode2 = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"], delta = Unique["\[Delta]Mode"], outerTerms, innerTerms},
-    outerTerms = bosonizedSingleFieldTerms[\[Psi]t[spinDescendantModeVectorIndex[pair[[2]]], 0, parameter zbarMode1]];
-    innerTerms = bosonizedSingleFieldTerms[\[Psi]t[spinDescendantModeVectorIndex[pair[[1]]], 0, parameter delta zbarMode2]];
-    Expand @ Simplify @ Total @ Flatten @ Table[
-      outerTerm["coefficient"] innerTerm["coefficient"] projectScaledContourContributionAtOrigin[
-        projectScaledExpressionAtAntiHoloPower,
-        OPE[
-          If[outerTerm["fields"] === {}, 1, R @@ outerTerm["fields"]],
-          projectScaledContourContributionAtOrigin[
-            projectScaledExpressionAtAntiHoloPower,
-            OPE[If[innerTerm["fields"] === {}, 1, R @@ innerTerm["fields"]], currentState],
-            spinDescendantModeExcitationLevel[pair[[1]]] - 1/2,
-            delta,
-            zbarMode2
-          ]
-        ],
-        Total[spinDescendantModeExcitationLevel /@ pair] - 1,
-        parameter,
-        zbarMode1
-      ],
-      {outerTerm, outerTerms},
-      {innerTerm, innerTerms}
-    ]
-  ];
-  state = Bosonize[R[St[{spinVec, chirality}, q, {}, 0, 0]]];
-  If[GSOParity[St[{spinVec, chirality}, q, {}, 0, 0]] === -1 && remainingModes =!= {}, state = singleStep[state, First[remainingModes]]; remainingModes = Rest[remainingModes]];
-  pairedModeCount = 2 Floor[Length[remainingModes]/2];
-  If[pairedModeCount > 0, state = Fold[pairStep, state, Partition[Take[remainingModes, pairedModeCount], 2, 2]]];
-  If[OddQ[Length[remainingModes]], state = singleStep[state, Last[remainingModes]]];
-  Expand[(state /. R[a___] :> Times[a]) /. {dHt[i_, n_, 0] :> dHt[i, n, coord], expHt[charges_, 0] :> expHt[charges, coord]}]
+  {state, seedPicture},
+  seedPicture = spinDescendantSeedPicture[q, modes];
+  state = Bosonize[R[St[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
+  state = Fold[applySpinDescendantModeAntiHolo, state, modes];
+  restoreBosonizedSpinStateAntiHolo[state, coord]
 ];
 
 modeExtractionPower::usage =

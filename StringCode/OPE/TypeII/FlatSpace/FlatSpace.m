@@ -324,6 +324,58 @@ combineChiral[a_, b_] := Which[
   True, R[a, b]
 ];
 
+spinProjectionOutgoingSpinFieldSymbols::usage =
+  "spinProjectionOutgoingSpinFieldSymbols[term] returns symbolic spin indices carried by outgoing spin fields in one public projected-OPE term.";
+spinProjectionOutgoingSpinFieldSymbols[term_] :=
+  DeleteDuplicates @ Cases[
+    term,
+    (S | St)[{idx_Symbol, ("chiral" | "antichiral")}, __] :> idx,
+    Infinity
+  ];
+
+spinProjectionIdentityGammaFactorPeer::usage =
+  "spinProjectionIdentityGammaFactorPeer[factor, outIdx] returns the non-outgoing endpoint of a zero-link gamma factor involving outIdx, or Missing otherwise.";
+spinProjectionIdentityGammaFactorPeer[GammaAntisymmetricProductHold[{}, left_Symbol, right_Symbol], outIdx_Symbol] := Which[
+  left === outIdx && right =!= outIdx, right,
+  right === outIdx && left =!= outIdx, left,
+  True, Missing["NotIdentityPeer"]
+];
+spinProjectionIdentityGammaFactorPeer[_, _] := Missing["NotIdentityPeer"];
+
+spinProjectionAbsorbOutgoingSpinGammaTerm::usage =
+  "spinProjectionAbsorbOutgoingSpinGammaTerm[term] absorbs zero-link gamma identity factors into outgoing spin-field indices when one endpoint is the outgoing symbol.";
+spinProjectionAbsorbOutgoingSpinGammaTerm[term_] := Module[
+  {factors, outgoing, rules = {}, drop = {}, matches, peer},
+  factors = If[Head[term] === Times, List @@ term, {term}];
+  outgoing = spinProjectionOutgoingSpinFieldSymbols[term];
+  Scan[
+    Function[outIdx,
+      matches = Cases[
+        factors,
+        fac_GammaAntisymmetricProductHold /; !MissingQ[spinProjectionIdentityGammaFactorPeer[fac, outIdx]] :> fac
+      ];
+      If[Length[matches] == 1,
+        peer = spinProjectionIdentityGammaFactorPeer[First[matches], outIdx];
+        AppendTo[rules, outIdx -> peer];
+        AppendTo[drop, First[matches]];
+      ]
+    ],
+    outgoing
+  ];
+  If[rules === {} || drop === {}, Return[term]];
+  factors = DeleteCases[factors, Alternatives @@ DeleteDuplicates[drop]];
+  factors = (# /. DeleteDuplicates[rules]) & /@ factors;
+  If[factors === {}, 1, Times @@ factors]
+];
+
+spinProjectionAbsorbOutgoingSpinGammaFactors::usage =
+  "spinProjectionAbsorbOutgoingSpinGammaFactors[expr] simplifies public projected-OPE results by absorbing outgoing zero-link gamma identity factors into the outgoing spin-field indices.";
+spinProjectionAbsorbOutgoingSpinGammaFactors[expr_] := Module[{expanded, terms},
+  expanded = Expand[expr];
+  terms = If[Head[expanded] === Plus, List @@ expanded, {expanded}];
+  Total[spinProjectionAbsorbOutgoingSpinGammaTerm /@ terms]
+];
+
 spinProjectionSectorSpec::usage =
   "spinProjectionSectorSpec[sector] returns the metadata used by one chiral spin-field projection sector.";
 spinProjectionSectorSpec["Holo"] := <|
@@ -1768,7 +1820,9 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
     ],
     {sector, {"Holo", "Anti"}}
   ];
-  o["sign"] combineChiral[solved["Holo"], solved["Anti"]]
+  spinProjectionAbsorbOutgoingSpinGammaFactors[
+    o["sign"] combineChiral[solved["Holo"], solved["Anti"]]
+  ]
 ];
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldQ])] := Module[

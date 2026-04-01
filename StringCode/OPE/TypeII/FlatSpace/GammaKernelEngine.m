@@ -45,9 +45,29 @@ spinProjectionAntisymmetrizedMatrix[vectorLinks_List] := spinProjectionAntisymme
   ]
 ];
 
-spinProjectionGammaFactorMatrix::usage =
-  "spinProjectionGammaFactorMatrix[links] returns the exact matrix represented by one concrete GammaAntisymmetricProductHold link list.";
-spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] = Module[
+spinProjectionFlipVectorLinkDirections::usage =
+  "spinProjectionFlipVectorLinkDirections[links] swaps GammaUDHold and GammaDUHold on every explicit vector link.";
+spinProjectionFlipVectorLinkDirections[links_List] := links /. {
+  GammaUDHold[mu_Integer] :> GammaDUHold[mu],
+  GammaDUHold[mu_Integer] :> GammaUDHold[mu]
+};
+
+spinProjectionOddMixedNoCTagLinksQ::usage =
+  "spinProjectionOddMixedNoCTagLinksQ[links] is True exactly for odd-rank mixed chains with no leading C tag.";
+spinProjectionOddMixedNoCTagLinksQ[links_List] := Module[{cTag, coreLinks, vectorLinks, chiralities},
+  If[links === {}, Return[False]];
+  cTag = If[MatchQ[First[links], CUDHold | CDUHold], First[links], None];
+  If[cTag =!= None, Return[False]];
+  coreLinks = links;
+  vectorLinks = Select[coreLinks, gammaVectorLinkQ];
+  If[vectorLinks === {} || EvenQ[Length[vectorLinks]], Return[False]];
+  chiralities = gammaProductSpinorChiralities[links];
+  chiralities[[1]] =!= chiralities[[2]]
+];
+
+spinProjectionGammaFactorMatrixRaw::usage =
+  "spinProjectionGammaFactorMatrixRaw[links] returns the stored matrix represented by one concrete GammaAntisymmetricProductHold link list before odd mixed-chain convention adjustments.";
+spinProjectionGammaFactorMatrixRaw[links_List] := Module[
   {cached, cTag, coreLinks, vectorLinks, tailLinks, pairingMatrix, baseMatrix},
   cached = gammaProductCacheLookupFromLinks[links];
   If[cached =!= $Failed, Return[cached]];
@@ -68,13 +88,18 @@ spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[l
     cTag === None,
     spinProjectionAntisymmetrizedMatrix[vectorLinks],
     spinProjectionAntisymmetrizedMatrix[
-      vectorLinks /. {
-        GammaUDHold[mu_Integer] :> GammaDUHold[mu],
-        GammaDUHold[mu_Integer] :> GammaUDHold[mu]
-      }
+      spinProjectionFlipVectorLinkDirections[vectorLinks]
     ] . spinProjectionGammaLinkMatrix[cTag]
   ];
   Fold[Dot, baseMatrix, spinProjectionGammaLinkMatrix /@ tailLinks]
+];
+
+spinProjectionGammaFactorMatrix::usage =
+  "spinProjectionGammaFactorMatrix[links] returns the exact matrix represented by one concrete GammaAntisymmetricProductHold link list.";
+spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] = If[
+  spinProjectionOddMixedNoCTagLinksQ[links],
+  Transpose[spinProjectionGammaFactorMatrixRaw[spinProjectionFlipVectorLinkDirections[links]]],
+  spinProjectionGammaFactorMatrixRaw[links]
 ];
 
 spinProjectionDisjointBlockBasisTuples::usage =

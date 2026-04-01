@@ -119,8 +119,8 @@ outgoingEmittedForm::usage =
   "outgoingEmittedForm[pairForm, outChirality] maps outgoing-pair chirality class to emitted gamma head.";
 outgoingEmittedForm[GammaFormUU, "chiral"] := GammaFormUD;
 outgoingEmittedForm[GammaFormDD, "antichiral"] := GammaFormUD;
-outgoingEmittedForm[GammaFormUD, "chiral"] := GammaFormDD;
-outgoingEmittedForm[GammaFormUD, "antichiral"] := GammaFormUU;
+outgoingEmittedForm[GammaFormUD, "chiral"] := GammaFormUU;
+outgoingEmittedForm[GammaFormUD, "antichiral"] := GammaFormDD;
 outgoingEmittedForm[_, _] := $Failed;
 
 buildSlotBlueprint::usage =
@@ -460,6 +460,27 @@ slotSpinorChiralities[GammaFormUU] := {"chiral", "chiral"};
 slotSpinorChiralities[GammaFormDD] := {"antichiral", "antichiral"};
 slotSpinorChiralities[GammaFormUD] := {"chiral", "antichiral"};
 
+slotEndpointChiralities::usage =
+  "slotEndpointChiralities[slot] returns the actual ordered endpoint chiralities carried by one emitted slot.";
+slotEndpointChiralities[{emitBaseForm_, _, hasOutgoing_, pairForm_}] := Module[{},
+  Which[
+    TrueQ[hasOutgoing] && pairForm === GammaFormUD && emitBaseForm === GammaFormUU,
+      {"chiral", "antichiral"},
+    TrueQ[hasOutgoing] && pairForm === GammaFormUD && emitBaseForm === GammaFormDD,
+      {"antichiral", "chiral"},
+    True,
+      slotSpinorChiralities[pairForm]
+  ]
+];
+slotEndpointChiralities[_] := $Failed;
+
+sameChiralitySlotQ::usage =
+  "sameChiralitySlotQ[slot] is True exactly when the emitted slot carries two endpoints of the same chirality.";
+sameChiralitySlotQ[slot_List] := Module[{chirPair = slotEndpointChiralities[slot]},
+  ListQ[chirPair] && Length[chirPair] == 2 && SameQ @@ chirPair
+];
+sameChiralitySlotQ[_] := False;
+
 chiralityAssignmentUnits::usage =
   "chiralityAssignmentUnits[openPositions] groups chirality-specific open legs into ordered single/pair assignment units.";
 chiralityAssignmentUnits[openPositions_List] := Module[
@@ -552,7 +573,7 @@ canonicalizeSpinPlacementForSlots::usage =
   "canonicalizeSpinPlacementForSlots[slots, placement] sorts same-chirality slot spinor pairs deterministically.";
 canonicalizeSpinPlacementForSlots[slots_List, placement_List] := Module[{out = placement, i, pair},
   For[i = 1, i <= Length[slots], i++,
-    If[MemberQ[{GammaFormUU, GammaFormDD}, slots[[i, 1]]],
+    If[sameChiralitySlotQ[slots[[i]]],
       pair = SortBy[out[[i]], symbolSortKey];
       out[[i]] = pair;
     ];
@@ -570,8 +591,7 @@ spinorPlacements[slots_List, inSpinors_List, outSpinor_] := Module[
   },
   basePlacement = ConstantArray[{None, None}, k];
   Do[
-    form = slots[[slot, 4]];
-    chirPair = slotSpinorChiralities[form];
+    chirPair = slotEndpointChiralities[slots[[slot]]];
     Do[
       AppendTo[openPos, <|"id" -> 2 (slot - 1) + leg, "slot" -> slot, "leg" -> leg, "chirality" -> chirPair[[leg]]|>],
       {leg, 2}
@@ -582,7 +602,7 @@ spinorPlacements[slots_List, inSpinors_List, outSpinor_] := Module[
   If[outSpinor =!= None,
     outgoingPos = FirstPosition[slots, {_, _, True, _}, Missing["NotFound"]];
     If[outgoingPos === Missing["NotFound"], Return[{}]];
-    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 4]]];
+    chirPair = slotEndpointChiralities[slots[[outgoingPos[[1]]]]];
     outgoingLeg = FirstPosition[chirPair, outSpinor[[2]], Missing["NotFound"]];
     If[outgoingLeg === Missing["NotFound"], Return[{}]];
     basePlacement[[outgoingPos[[1]], outgoingLeg[[1]]]] = outSpinor[[1]];
@@ -622,13 +642,12 @@ firstSpinorPlacement::usage =
   "firstSpinorPlacement[slots, inSpinors, outSpinor] builds one deterministic valid spinor assignment.";
 firstSpinorPlacement[slots_List, inSpinors_List, outSpinor_] := Module[
   {
-    k = Length[slots], placement, openPos = {}, slot, form, chirPair, leg,
+    k = Length[slots], placement, openPos = {}, slot, chirPair, leg,
     outgoingPos, outgoingLeg, incomingChiral, incomingAnti, openChiral, openAnti, i
   },
   placement = ConstantArray[{None, None}, k];
   Do[
-    form = slots[[slot, 4]];
-    chirPair = slotSpinorChiralities[form];
+    chirPair = slotEndpointChiralities[slots[[slot]]];
     Do[
       AppendTo[openPos, <|"id" -> 2 (slot - 1) + leg, "slot" -> slot, "leg" -> leg, "chirality" -> chirPair[[leg]]|>],
       {leg, 2}
@@ -639,7 +658,7 @@ firstSpinorPlacement[slots_List, inSpinors_List, outSpinor_] := Module[
   If[outSpinor =!= None,
     outgoingPos = FirstPosition[slots, {_, _, True, _}, Missing["NotFound"]];
     If[outgoingPos === Missing["NotFound"], Return[$Failed]];
-    chirPair = slotSpinorChiralities[slots[[outgoingPos[[1]], 4]]];
+    chirPair = slotEndpointChiralities[slots[[outgoingPos[[1]]]]];
     outgoingLeg = FirstPosition[chirPair, outSpinor[[2]], Missing["NotFound"]];
     If[outgoingLeg === Missing["NotFound"], Return[$Failed]];
     placement[[outgoingPos[[1]], outgoingLeg[[1]]]] = outSpinor[[1]];

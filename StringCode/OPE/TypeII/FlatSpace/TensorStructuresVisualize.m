@@ -116,7 +116,7 @@ isGammaFactorVisualQ::usage =
 isGammaFactorVisualQ[factor_] := AssociationQ[gammaProductPartsVisual[factor]];
 
 deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported \\[Delta][mu, nu] vector-contraction factors.";
-deltaFactorVisualQ[factor_] := Head[factor] === \[Delta] && Length[factor] == 2;
+deltaFactorVisualQ[factor_] := SymbolName[Head[factor]] === SymbolName[\[Delta]] && Length[factor] == 2;
 
 isTensorFactorVisualQ::usage = "isTensorFactorVisualQ[factor] is True for supported gamma or delta tensor factors.";
 isTensorFactorVisualQ[factor_] := isGammaFactorVisualQ[factor] || deltaFactorVisualQ[factor];
