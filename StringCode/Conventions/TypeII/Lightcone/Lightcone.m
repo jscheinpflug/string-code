@@ -55,18 +55,18 @@ Gghost[z_] := -2 R[c[0, z], exp\[Phi]f[-1, z], \[Xi][2, z]] + 2 R[c[0, z], d\[Ph
 
 Tmatter[z_] :=
   (* Bosonic: 2 η[p,m] since ∂X commute *)
-  -1/\[Alpha]p (2 \[Eta][p, m] R[dX[p, 0, z], dX[m, 0, z]] + R[dX[iT, 0, z], dX[iT, 0, z]]) +
+  -1/\[Alpha]p (2 \[Eta]LC[p, m] R[dX[p, 0, z], dX[m, 0, z]] + R[dX[iT, 0, z], dX[iT, 0, z]]) +
   (* Fermionic: 3 separate terms *)
-  (\[Eta][p, m] R[\[Psi][p, 0, z], \[Psi][m, 1, z]] +
-   \[Eta][m, p] R[\[Psi][m, 0, z], \[Psi][p, 1, z]] +
+  (\[Eta]LC[p, m] R[\[Psi][p, 0, z], \[Psi][m, 1, z]] +
+   \[Eta]LC[m, p] R[\[Psi][m, 0, z], \[Psi][p, 1, z]] +
    R[\[Psi][iT, 0, z], \[Psi][iT, 1, z]]);
 
 (* G_matter = -1/√αp η^μν ψ_μ ∂X_ν *)
 (* Symbolic version: iT is a dummy transverse index with implicit Einstein summation *)
 Gmatter[z_] :=
   -1/Sqrt[\[Alpha]p] (
-    \[Eta][p, m] R[\[Psi][p, 0, z], dX[m, 0, z]] +
-    \[Eta][m, p] R[\[Psi][m, 0, z], dX[p, 0, z]] +
+    \[Eta]LC[p, m] R[\[Psi][p, 0, z], dX[m, 0, z]] +
+    \[Eta]LC[m, p] R[\[Psi][m, 0, z], dX[p, 0, z]] +
     R[\[Psi][iT, 0, z], dX[iT, 0, z]]
   );
 
@@ -98,17 +98,17 @@ Gghostbar[z_] := -2 R[ct[0, z], exp\[Phi]tf[-1, z], \[Xi]t[2, z]] + 2 R[ct[0, z]
 (* Symbolic version: iT is a dummy transverse index with implicit Einstein summation *)
 Tmatterbar[z_] :=
   (* Bosonic: 2 η[p,m] since ∂̄X commute *)
-  -1/\[Alpha]p (2 \[Eta][p, m] R[dXt[p, 0, z], dXt[m, 0, z]] + R[dXt[iT, 0, z], dXt[iT, 0, z]]) +
+  -1/\[Alpha]p (2 \[Eta]LC[p, m] R[dXt[p, 0, z], dXt[m, 0, z]] + R[dXt[iT, 0, z], dXt[iT, 0, z]]) +
   (* Fermionic: 3 separate terms *)
-  (\[Eta][p, m] R[\[Psi]t[p, 0, z], \[Psi]t[m, 1, z]] +
-   \[Eta][m, p] R[\[Psi]t[m, 0, z], \[Psi]t[p, 1, z]] +
+  (\[Eta]LC[p, m] R[\[Psi]t[p, 0, z], \[Psi]t[m, 1, z]] +
+   \[Eta]LC[m, p] R[\[Psi]t[m, 0, z], \[Psi]t[p, 1, z]] +
    R[\[Psi]t[iT, 0, z], \[Psi]t[iT, 1, z]]);
 
 (* Symbolic version: iT is a dummy transverse index with implicit Einstein summation *)
 Gmatterbar[z_] :=
   -1/Sqrt[\[Alpha]p] (
-    \[Eta][p, m] R[\[Psi]t[p, 0, z], dXt[m, 0, z]] +
-    \[Eta][m, p] R[\[Psi]t[m, 0, z], dXt[p, 0, z]] +
+    \[Eta]LC[p, m] R[\[Psi]t[p, 0, z], dXt[m, 0, z]] +
+    \[Eta]LC[m, p] R[\[Psi]t[m, 0, z], dXt[p, 0, z]] +
     R[\[Psi]t[iT, 0, z], dXt[iT, 0, z]]
   );
 

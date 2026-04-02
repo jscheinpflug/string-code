@@ -23,13 +23,13 @@ m::usage = "Minus lightcone index (-)";
 iT::usage = "Dummy transverse index for implicit Einstein summation in Tmatter, Gmatter, etc.";
 
 
-\[Eta]::usage = "Lightcone metric tensor: \[Eta][p,m] = \[Eta][m,p] = -1, \[Eta][p,p] = \[Eta][m,m] = 0, \[Eta][i,j] = \[Delta]T[i,j] for transverse";
+\[Eta]LC::usage = "Lightcone metric tensor: \[Eta]LC[p,m] = \[Eta]LC[m,p] = -1, \[Eta]LC[p,p] = \[Eta]LC[m,m] = 0, \[Eta]LC[i,j] = \[Delta]T[i,j] for transverse";
 
 
 \[Delta]T::usage = "Transverse Kronecker delta for indices i,j = 1..8";
 
 
-ContractLightcone::usage = "Evaluates lightcone metric contractions: \[Eta][p,m] -> -1, etc.";
+ContractLightcone::usage = "Evaluates lightcone metric contractions: \[Eta]LC[p,m] -> -1, etc.";
 
 
 ContractDeltaT::usage = "Contracts transverse delta tensors with expressions";
@@ -91,17 +91,17 @@ validLightconeVectorIndexQ[idx_] := lightconeIndexQ[idx] || transverseIndexQ[idx
 
 lightconeContractRules::usage = "lightconeContractRules contains replacement rules for evaluating lightcone metric components";
 lightconeContractRules = {
-  \[Eta][p, m] -> -1,
-  \[Eta][m, p] -> -1,
-  \[Eta][p, p] -> 0,
-  \[Eta][m, m] -> 0,
+  \[Eta]LC[p, m] -> -1,
+  \[Eta]LC[m, p] -> -1,
+  \[Eta]LC[p, p] -> 0,
+  \[Eta]LC[m, m] -> 0,
   (* Mixed lightcone-transverse vanishes *)
-  \[Eta][p, i_] /; transverseIndexQ[i] -> 0,
-  \[Eta][m, i_] /; transverseIndexQ[i] -> 0,
-  \[Eta][i_, p] /; transverseIndexQ[i] -> 0,
-  \[Eta][i_, m] /; transverseIndexQ[i] -> 0,
+  \[Eta]LC[p, i_] /; transverseIndexQ[i] -> 0,
+  \[Eta]LC[m, i_] /; transverseIndexQ[i] -> 0,
+  \[Eta]LC[i_, p] /; transverseIndexQ[i] -> 0,
+  \[Eta]LC[i_, m] /; transverseIndexQ[i] -> 0,
   (* Transverse-transverse uses delta *)
-  \[Eta][i_, j_] /; transverseIndexQ[i] && transverseIndexQ[j] :> \[Delta]T[i, j]
+  \[Eta]LC[i_, j_] /; transverseIndexQ[i] && transverseIndexQ[j] :> \[Delta]T[i, j]
 };
 
 

@@ -14,10 +14,10 @@ Unlike FlatSpace which uses a single index `μ = 1..10` with Kronecker delta `δ
 
 | Indices | η value |
 |---------|---------|
-| η[p, m] = η[m, p] | -1 |
-| η[p, p] = η[m, m] | 0 |
-| η[p, i] = η[m, i] | 0 |
-| η[i, j] (transverse) | δT[i, j] |
+| ηLC[p, m] = ηLC[m, p] | -1 |
+| ηLC[p, p] = ηLC[m, m] | 0 |
+| ηLC[p, i] = ηLC[m, i] | 0 |
+| ηLC[i, j] (transverse) | δT[i, j] |
 
 ## Initialization
 
@@ -72,14 +72,14 @@ Contractions produce metric factors that stay symbolic until explicitly contract
 
 ```mathematica
 (* Lightcone contractions give η factors *)
-Wick[ψ[p, 0, z], ψ[m, 0, w]]  (* → η[p,m]/(z-w) *)
-Wick[ψ[p, 0, z], ψ[p, 0, w]]  (* → 0, since η[p,p] = 0 *)
+Wick[ψ[p, 0, z], ψ[m, 0, w]]  (* → ηLC[p,m]/(z-w) *)
+Wick[ψ[p, 0, z], ψ[p, 0, w]]  (* → 0, since ηLC[p,p] = 0 *)
 
 (* Transverse contractions give δT factors *)
 Wick[ψ[i, 0, z], ψ[j, 0, w]]  (* → δT[i,j]/(z-w) *)
 
 (* To evaluate metric components *)
-ContractLightcone[expr]  (* η[p,m] → -1, etc. *)
+ContractLightcone[expr]  (* ηLC[p,m] → -1, etc. *)
 ContractDeltaT[expr]     (* δT[i,i] → 8 for traces *)
 ```
 
@@ -92,15 +92,15 @@ The `TypeII-Lightcone` conventions define matter currents using the dummy index 
 (* Bosonic: factor of 2 since ∂X commute *)
 (* Fermionic: 3 separate terms since ψ don't commute *)
 Tmatter[z] =
-  -1/αp (2 η[p,m] R[dX[p,0,z], dX[m,0,z]] + R[dX[iT,0,z], dX[iT,0,z]]) +
-  (η[p,m] R[ψ[p,0,z], ψ[m,1,z]] + 
-   η[m,p] R[ψ[m,0,z], ψ[p,1,z]] + 
+  -1/αp (2 ηLC[p,m] R[dX[p,0,z], dX[m,0,z]] + R[dX[iT,0,z], dX[iT,0,z]]) +
+  (ηLC[p,m] R[ψ[p,0,z], ψ[m,1,z]] + 
+   ηLC[m,p] R[ψ[m,0,z], ψ[p,1,z]] + 
    R[ψ[iT,0,z], ψ[iT,1,z]])
 
 (* G_matter with symbolic transverse sum *)
 Gmatter[z] =
-  -1/√αp (η[p,m] R[ψ[p,0,z], dX[m,0,z]] + 
-          η[m,p] R[ψ[m,0,z], dX[p,0,z]] + 
+  -1/√αp (ηLC[p,m] R[ψ[p,0,z], dX[m,0,z]] + 
+          ηLC[m,p] R[ψ[m,0,z], dX[p,0,z]] + 
           R[ψ[iT,0,z], dX[iT,0,z]])
 ```
 
