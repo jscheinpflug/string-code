@@ -7,6 +7,7 @@
 BeginPackage["StringCode`Symbols`TypeII`FlatSpace`"]
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"]
+Needs["StringCode`Conventions`TypeII`"]
 
 
 (* ::Section:: *)
@@ -666,41 +667,60 @@ St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, zbar_]
 ] /; With[{canonicalized = canonicalizeSpinModes[modes]}, canonicalized[[1]] == 0 || modes =!= canonicalized[[2]]];
 
 
-Bosonize[0] := 0;
-(* Bosonize is linear on sums and scalar multiples so larger expressions can be
-   pushed down to single-field rules before the normal-ordering layer rebuilds
-   mixed products. *)
-Bosonize[a_ + b_] := Bosonize[a] + Bosonize[b];
-Bosonize[c_ a_] := c Bosonize[a] /; isScalarFactorQ[c];
-Bosonize[a_ /; isScalarFactorQ[a]] := a;
-Bosonize[Ra_ /; RTest[Ra]] := R @@ (Bosonize /@ (List @@ Ra));
+bosonizationStateNormalization::usage =
+  "bosonizationStateNormalization[expr] returns the convention-dependent normalization multiplier attached to one bosonized TypeII Hilbert-space state.";
+bosonizationStateNormalization[0] := 0;
+bosonizationStateNormalization[a_ + b_] := bosonizationStateNormalization[a] + bosonizationStateNormalization[b];
+bosonizationStateNormalization[c_ a_] := c bosonizationStateNormalization[a] /; isScalarFactorQ[c];
+bosonizationStateNormalization[a_ /; isScalarFactorQ[a]] := a;
+bosonizationStateNormalization[Ra_ /; RTest[Ra]] := Times @@ (bosonizationFieldNormalization /@ (List @@ Ra));
+bosonizationStateNormalization[field_ /; isField[Head[field]]] := bosonizationFieldNormalization[field];
+bosonizationStateNormalization[_] := 1;
+
+bosonizationFieldNormalization::usage =
+  "bosonizationFieldNormalization[field] returns the convention-dependent normalization multiplier attached to one TypeII field before bosonization.";
+bosonizationFieldNormalization[\[Psi][_, _, _]] := psiBosonizationScale[];
+bosonizationFieldNormalization[\[Psi]t[_, _, _]] := psiBosonizationScale[];
+bosonizationFieldNormalization[HoldPattern[S[{_, chirality_}, _, modes_List, _, _]]] /; MemberQ[{"chiral", "antichiral"}, chirality] :=
+  spinBosonizationScale[chirality] psiBosonizationScale[]^Length[modes];
+bosonizationFieldNormalization[HoldPattern[St[{_, chirality_}, _, modes_List, _, _]]] /; MemberQ[{"chiral", "antichiral"}, chirality] :=
+  spinBosonizationScale[chirality] psiBosonizationScale[]^Length[modes];
+bosonizationFieldNormalization[_] := 1;
+
+bosonizeStateRaw::usage =
+  "bosonizeStateRaw[expr] rewrites supported TypeII flat-space fermion and spin fields into the convention-independent H-boson basis before any convention-dependent Hilbert-space normalization is applied.";
+bosonizeStateRaw[0] := 0;
+bosonizeStateRaw[a_ + b_] := bosonizeStateRaw[a] + bosonizeStateRaw[b];
+bosonizeStateRaw[c_ a_] := c bosonizeStateRaw[a] /; isScalarFactorQ[c];
+bosonizeStateRaw[a_ /; isScalarFactorQ[a]] := a;
+bosonizeStateRaw[Ra_ /; RTest[Ra]] := R @@ (bosonizeStateRaw /@ (List @@ Ra));
 
 
-Bosonize[dH[i_, n_, z_]] := dH[i, n, z];
-Bosonize[dHt[i_, n_, zbar_]] := dHt[i, n, zbar];
-Bosonize[expH[charges_, z_]] := expH[charges, z];
-Bosonize[expHt[charges_, zbar_]] := expHt[charges, zbar];
-Bosonize[field_ /; (SymbolName[Head[field]] === "dϕ" && MatchQ[field[[1]], _Integer?NonNegative])] := dH[1, field[[1]], field[[2]]];
-Bosonize[field_ /; (SymbolName[Head[field]] === "dϕt" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
-Bosonize[field_ /; (MemberQ[{"expϕb", "expϕf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
-Bosonize[field_ /; (MemberQ[{"expϕtb", "expϕtf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+bosonizeStateRaw[dH[i_, n_, z_]] := dH[i, n, z];
+bosonizeStateRaw[dHt[i_, n_, zbar_]] := dHt[i, n, zbar];
+bosonizeStateRaw[expH[charges_, z_]] := expH[charges, z];
+bosonizeStateRaw[expHt[charges_, zbar_]] := expHt[charges, zbar];
+bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕ" && MatchQ[field[[1]], _Integer?NonNegative])] := dH[1, field[[1]], field[[2]]];
+bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕt" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
+bosonizeStateRaw[field_ /; (MemberQ[{"expϕb", "expϕf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+bosonizeStateRaw[field_ /; (MemberQ[{"expϕtb", "expϕtf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
 
 
 (* Ramond ground states become a single six-charge exponential: the picture
    charge q occupies the first slot and the SO(10) spin weight fills the last
    five entries. *)
-Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, z_]]] :=
+bosonizeStateRaw[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, z_]]] :=
   expH[Join[{q}, spinVec], z] /; (spinVectorQ[spinVec] && spinVectorChiralityQ[spinVec, chirality]);
 
 
-Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, zbar_]]] :=
+bosonizeStateRaw[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, {}, 0, zbar_]]] :=
   expHt[Join[{q}, spinVec], zbar] /; (spinVectorQ[spinVec] && spinVectorChiralityQ[spinVec, chirality]);
 
 
 (* Excited spin fields are delegated to the contour-based helpers from
    BasisGeneration once those helpers have been loaded and every mode label is
    concrete. If those prerequisites are missing, Bosonize stays unevaluated. *)
-Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, z_]]] :=
+bosonizeStateRaw[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, z_]]] :=
   bosonizeSpinModesHolo[{spinVec, chirality}, q, modes, z] /;
     modes =!= {} &&
     spinVectorQ[spinVec] &&
@@ -709,7 +729,7 @@ Bosonize[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_
     AllTrue[modes, spinDescendantModeQ[#, Length[vectors]] &];
 
 
-Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, zbar_]]] :=
+bosonizeStateRaw[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, 0, zbar_]]] :=
   bosonizeSpinModesAntiHolo[{spinVec, chirality}, q, modes, zbar] /;
     modes =!= {} &&
     spinVectorQ[spinVec] &&
@@ -721,15 +741,26 @@ Bosonize[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q
 (* The fermion bosonization is stored in the vector-charge basis and then
    rotated back to the spacetime mu-basis with the fixed notebook-derived
    change-of-basis matrix. *)
-Bosonize[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
+bosonizeStateRaw[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
   Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
 
 
-Bosonize[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] :=
+bosonizeStateRaw[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] :=
   Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
 
 
-Bosonize[field_ /; isField[Head[field]]] := field;
+bosonizeStateRaw[field_ /; isField[Head[field]]] := field;
+
+
+Bosonize[0] := 0;
+(* Bosonize is linear on sums and scalar multiples so larger expressions can be
+   pushed down to single-field rules before the normal-ordering layer rebuilds
+   mixed products. *)
+Bosonize[a_ + b_] := Bosonize[a] + Bosonize[b];
+Bosonize[c_ a_] := c Bosonize[a] /; isScalarFactorQ[c];
+Bosonize[a_ /; isScalarFactorQ[a]] := a;
+Bosonize[Ra_ /; RTest[Ra]] := bosonizationStateNormalization[Ra] bosonizeStateRaw[Ra];
+Bosonize[field_ /; isField[Head[field]]] := bosonizationStateNormalization[field] bosonizeStateRaw[field];
 
 
 (* ::Subsection:: *)

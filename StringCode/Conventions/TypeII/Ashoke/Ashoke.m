@@ -12,6 +12,7 @@ Needs["StringCode`Conventions`TypeII`"];
 Begin["Private`"]
 \[Alpha]pValue = 1;
 fermionToBosonWickRatio = -1/2;
+psiSCoefficient = I/2;
 
 \[Beta]ghost[z_]:=R[\[Xi][1,z],exp\[Phi]f[-1,z]];
 
