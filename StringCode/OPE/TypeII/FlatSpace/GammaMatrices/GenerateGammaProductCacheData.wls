@@ -41,7 +41,7 @@ gammaProductCacheAntisymmetrizedMatrix[vectorLinks_List] := gammaProductCacheAnt
 gammaProductCacheBuildMatrix[{None, start_Integer}, inds_List] :=
   gammaProductCacheAntisymmetrizedMatrix[gammaProductCacheLinks[{None, start}, inds]];
 gammaProductCacheBuildMatrix[{cTag_, start_Integer}, inds_List] /; cTag =!= None :=
-  gammaProductCacheAntisymmetrizedMatrix[gammaProductCacheLinks[{None, 3 - start}, inds]] . gammaProductCacheLinkMatrix[cTag];
+  gammaProductCacheLinkMatrix[cTag] . gammaProductCacheAntisymmetrizedMatrix[gammaProductCacheLinks[{None, start}, inds]];
 
 gammaProductCacheData = Table[
   gammaProductCacheBuildMatrix[family, #] & /@ Subsets[Range[gammaVectorDimension], {rank}],

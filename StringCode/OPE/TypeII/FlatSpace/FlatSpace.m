@@ -15,13 +15,13 @@ Needs["StringCode`OPE`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
 Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaKernelEngine`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`TensorStructuresVisualize`"];
 
 
 (* ::Section:: *)

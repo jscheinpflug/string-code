@@ -4,10 +4,10 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaKernelEngine`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
 
 
 (* ::Section:: *)
@@ -66,7 +66,7 @@ spinProjectionOddMixedNoCTagLinksQ[links_List] := Module[{cTag, coreLinks, vecto
 ];
 
 spinProjectionGammaFactorMatrixRaw::usage =
-  "spinProjectionGammaFactorMatrixRaw[links] returns the stored matrix represented by one concrete GammaAntisymmetricProductHold link list before odd mixed-chain convention adjustments.";
+  "spinProjectionGammaFactorMatrixRaw[links] returns the stored matrix represented by one concrete GammaAntisymmetricProductHold link list.";
 spinProjectionGammaFactorMatrixRaw[links_List] := Module[
   {cached, cTag, coreLinks, vectorLinks, tailLinks, pairingMatrix, baseMatrix},
   cached = gammaProductCacheLookupFromLinks[links];
@@ -87,20 +87,15 @@ spinProjectionGammaFactorMatrixRaw[links_List] := Module[
   baseMatrix = If[
     cTag === None,
     spinProjectionAntisymmetrizedMatrix[vectorLinks],
-    spinProjectionAntisymmetrizedMatrix[
-      spinProjectionFlipVectorLinkDirections[vectorLinks]
-    ] . spinProjectionGammaLinkMatrix[cTag]
+    spinProjectionGammaLinkMatrix[cTag] . spinProjectionAntisymmetrizedMatrix[vectorLinks]
   ];
   Fold[Dot, baseMatrix, spinProjectionGammaLinkMatrix /@ tailLinks]
 ];
 
 spinProjectionGammaFactorMatrix::usage =
   "spinProjectionGammaFactorMatrix[links] returns the exact matrix represented by one concrete GammaAntisymmetricProductHold link list.";
-spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] = If[
-  spinProjectionOddMixedNoCTagLinksQ[links],
-  Transpose[spinProjectionGammaFactorMatrixRaw[spinProjectionFlipVectorLinkDirections[links]]],
-  spinProjectionGammaFactorMatrixRaw[links]
-];
+spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] =
+  spinProjectionGammaFactorMatrixRaw[links];
 
 spinProjectionDisjointBlockBasisTuples::usage =
   "spinProjectionDisjointBlockBasisTuples[blockSizes] returns ordered tuples of pairwise-disjoint increasing basis subsets with the requested ranks.";

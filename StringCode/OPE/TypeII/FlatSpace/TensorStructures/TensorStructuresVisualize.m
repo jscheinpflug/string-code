@@ -4,7 +4,7 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructuresVisualize`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`TensorStructuresVisualize`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 

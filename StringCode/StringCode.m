@@ -44,10 +44,10 @@ AppendTo[userContext, "StringCode`Operators`TypeII`FlatSpace`"]; AppendTo[userCo
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; 
 AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`Correlators`TypeII`FlatSpace`"];
-AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
-AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
-AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"],
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Operators`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; 

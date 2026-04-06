@@ -4,7 +4,7 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 

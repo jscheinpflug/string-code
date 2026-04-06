@@ -4,10 +4,10 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaKernelEngine`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
 
 
 (* ::Section:: *)
@@ -110,15 +110,15 @@ selectorCanonicalFamilySymbols[orderedParts_List] := Module[
   <|
     "SpinRules" -> AssociationThread[
       spinSymbols,
-      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`selectorSpin" <> ToString[i]], {i, Length[spinSymbols]}]
+      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`selectorSpin" <> ToString[i]], {i, Length[spinSymbols]}]
     ],
     "VectorRules" -> AssociationThread[
       externalVectors,
-      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`selectorVector" <> ToString[i]], {i, Length[externalVectors]}]
+      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`selectorVector" <> ToString[i]], {i, Length[externalVectors]}]
     ],
     "DummyRules" -> AssociationThread[
       dummyVectors,
-      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`selectorDummy" <> ToString[i]], {i, Length[dummyVectors]}]
+      Table[Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`selectorDummy" <> ToString[i]], {i, Length[dummyVectors]}]
     ]
   |>
 ];

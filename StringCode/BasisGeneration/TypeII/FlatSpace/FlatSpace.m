@@ -110,9 +110,9 @@ pictureChirality[picture_Integer] := None;
 pictureChirality[{picture_ /; halfIntegerQ[picture], chirality_ /; validChiralityQ[chirality]}] :=
   chirality;
 
-(* Valid weight: non-negative, half-integer allowed *)
-validWeightQ::usage = "Tests whether a conformal weight is nonnegative and integer or half-integer.";
-validWeightQ[weight_] := NumericQ[weight] && weight >= 0 && IntegerQ[2 weight];
+(* Valid weight: integer or half-integer allowed, including negative picture-dressed ground states. *)
+validWeightQ::usage = "Tests whether a conformal weight is integer or half-integer, allowing negative picture-dressed ground-state weights.";
+validWeightQ[weight_] := NumericQ[weight] && IntegerQ[2 weight];
 
 (* Conformal weight of the picture-q ground state |q⟩.
    NS sector (integer q): h = -q(q+2)/2

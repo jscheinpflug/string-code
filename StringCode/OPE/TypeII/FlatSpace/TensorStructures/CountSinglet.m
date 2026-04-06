@@ -4,7 +4,7 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
 
 
 (* ::Section:: *)

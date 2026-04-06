@@ -4,10 +4,10 @@
 (*Init*)
 
 
-BeginPackage["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructures`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`CountSinglet`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`GammaProductGrammar`"];
-Needs["StringCode`OPE`TypeII`FlatSpace`IndependentTensorStructuresSelector`"];
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 
 
