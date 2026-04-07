@@ -217,7 +217,7 @@ generateSpinFieldOPEData[
   gsoParity = inputGSOParityString[ops];
 
   basisOps = basisGeneratorFn[targetWeight, totalPicture,
-    "GSOParity" -> gsoParity, "OutputRepresentation" -> "Operators"];
+    "GSOParity" -> gsoParity, "OutputRepresentation" -> "Operators", "FermionOnly" -> True];
   If[basisOps === {}, Return[{}]];
 
   DeleteCases[

@@ -452,6 +452,14 @@
   },
   {
    "kind": 2,
+   "value": "support14b = Private`getOutgoingOperatorsTensors[{R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z]], R[S[{beta, \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0, 1234];\nsupport14bOps = If[support14b[\"holoData\"] === {}, {}, support14b[\"holoData\"][[All, 1]]];\ntest14b = testReport[\"Test 14b (spin projection basis omits dX insertions)\", support14bOps =!= {} && AllTrue[support14bOps, FreeQ[#, dX[__], Infinity] &]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
    "value": "expected15 = -(GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[projectedNSOutAntiIndex]}, alpha, beta] projectedNSOutAnti)/(Sqrt[2] (wb - zb));\nactual15 = OPEProjected[0, 1][R[St[{alpha, \"chiral\"}, -1/2, {}, 0, zb]], R[St[{beta, \"chiral\"}, -1/2, {}, 0, wb]], \"RandomSeed\" -> 1234];\ntest15 = testReport[\"Test 15 (projected St-St to e^-phit psit)\", Simplify[actual15 - expected15] === 0];",
    "languageId": "wolfram",
    "outputs": [

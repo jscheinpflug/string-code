@@ -527,10 +527,15 @@ derGroundStateHolo::usage =
 derGroundStateAntiHolo::usage =
   "Marks derivatives acting on a Ramond antiholomorphic charged ground state inside matter-mode output.";
 
-(* Generate all matter (ψ + ∂X) configurations at target weight.
-   In the Ramond sector this also tracks derivatives of the charged ground state. *)
-generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
-  generateMatterModeConfigs[targetWeight, picture] = Module[
+matterModeCompletions::usage =
+  "Returns all dX-completion choices for fixed ψ and ground-derivative modes under the FermionOnly setting.";
+matterModeCompletions[groundDerivativeModes_List, psiModes_List, remainingDXWeight_, True] :=
+  If[remainingDXWeight == 0, {Join[groundDerivativeModes, psiModes]}, {}];
+matterModeCompletions[groundDerivativeModes_List, psiModes_List, remainingDXWeight_Integer?NonNegative, False] :=
+  Join[groundDerivativeModes, #, psiModes] & /@ generateDXModeConfigs[remainingDXWeight];
+
+generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ, fermionOnly_?BooleanQ] :=
+  generateMatterModeConfigs[targetWeight, picture, fermionOnly] = Module[
     {groundDerivativeWeights},
     If[targetWeight < 0 || !IntegerQ[2 targetWeight],
       Return[{}]
@@ -549,7 +554,7 @@ generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
             Function[{psiModes, psiWeight},
               With[{remainingDXWeight = targetWeight - groundDerivativeWeight - psiWeight},
                 If[remainingDXWeight >= 0 && IntegerQ[remainingDXWeight],
-                  Join[groundDerivativeModes, #, psiModes] & /@ generateDXModeConfigs[remainingDXWeight],
+                  matterModeCompletions[groundDerivativeModes, psiModes, remainingDXWeight, fermionOnly],
                   {}
                 ]
               ]
@@ -563,34 +568,48 @@ generateMatterModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
     ]
   ];
 
-generateMatterModeConfigs[_, _] := {};
+generateMatterModeConfigs[_, _, _] := {};
+
+parseMatterBasisOptionsFromList::usage =
+  "Parses GSOParity and FermionOnly options for TypeII matter-basis generators.";
+parseMatterBasisOptionsFromList[optionList_List] := Module[{GSOParitySelection, fermionOnly},
+  If[optionList =!= {} && !OptionQ[optionList],
+    Return[$Failed]
+  ];
+  GSOParitySelection = parseGSOParityOptionFromList[optionList];
+  fermionOnly = readBooleanOption[optionList, "FermionOnly", False];
+  If[GSOParitySelection === $Failed || fermionOnly === $Failed,
+    $Failed,
+    {GSOParitySelection, fermionOnly}
+  ]
+];
 
 generateBasisMatterHoloForPictureSpecWithSelection::usage =
   "Generates a matter-only holomorphic basis for one picture spec and one GSO selector.";
 generateBasisMatterHoloForPictureSpecWithSelection[
   weight_?validWeightQ,
   picture_?validPictureSpecQ,
-  GSOParitySelection_String
+  GSOParitySelection_String,
+  fermionOnly_?BooleanQ
 ] :=
-  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, GSOParitySelection] = Module[
-    {groundWeight, remainingWeight, matterModeConfigs, filteredMatterModes},
+  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, GSOParitySelection, fermionOnly] = Module[
+    {groundWeight, remainingWeight, matterModeConfigs},
     groundWeight = groundStateWeight[picture];
     remainingWeight = weight - groundWeight;
     If[remainingWeight < 0 || !IntegerQ[2 remainingWeight],
       Return[{}]
     ];
-    matterModeConfigs = generateMatterModeConfigs[remainingWeight, picture];
+    matterModeConfigs = generateMatterModeConfigs[remainingWeight, picture, fermionOnly];
     If[matterModeConfigs === {},
       Return[{}]
     ];
-    filteredMatterModes = DeleteDuplicates[canonicalizeLorentzIndicesModes /@ matterModeConfigs];
-    filteredMatterModes = Select[
-      filteredMatterModes,
+    matterModeConfigs = Select[
+      DeleteDuplicates[canonicalizeLorentzIndicesModes /@ matterModeConfigs],
       GSOParitySelectionMatchesQ[GSOParityOfConfig[#, picture], GSOParitySelection] &
     ];
-    If[filteredMatterModes === {},
+    If[matterModeConfigs === {},
       {},
-      {picture, filteredMatterModes}
+      {picture, matterModeConfigs}
     ]
   ];
 
@@ -602,12 +621,12 @@ generateBasisMatterHoloForPictureSpec[
   weight_?validWeightQ,
   picture_?validPictureSpecQ,
   opts___
-] := Module[{GSOParitySelection},
-  GSOParitySelection = parseGSOParityOption[opts];
-  If[GSOParitySelection === $Failed,
+] := Module[{parsedOptions},
+  parsedOptions = parseMatterBasisOptionsFromList[Flatten[{opts}]];
+  If[parsedOptions === $Failed,
     Return[{}]
   ];
-  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, GSOParitySelection]
+  generateBasisMatterHoloForPictureSpecWithSelection[weight, picture, parsedOptions[[1]], parsedOptions[[2]]]
 ];
 
 generateBasisMatterHoloForPictureSpec[___] := {};
@@ -1759,7 +1778,8 @@ enumerateMatterAtRemainingWeight[
     generateBasisMatterHoloForPictureSpecWithSelection[
       groundWeight + remainingMatterWeight,
       picture,
-      requiredMatterSelection
+      requiredMatterSelection,
+      False
     ];
   If[matterBasis === {},
     Return[{}]
@@ -2042,7 +2062,7 @@ generateBasisMatterModeGroups[
 generateBasisMatterModeGroups[___] := {};
 
 generateBasisMatterHolo::usage =
-  "Generates holomorphic matter-only TypeII mode states grouped with their picture ground-state label.";
+  "Generates holomorphic matter-only TypeII mode states grouped with their picture ground-state label. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dX insertions.";
 generateBasisMatterHolo[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
@@ -2052,7 +2072,7 @@ generateBasisMatterHolo[
 generateBasisMatterHolo[___] := {};
 
 generateBasisMatterAntiHolo::usage =
-  "Generates antiholomorphic matter-only TypeII mode states grouped with their picture ground-state label.";
+  "Generates antiholomorphic matter-only TypeII mode states grouped with their picture ground-state label. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dXt insertions.";
 antiMatterGroupFromHolo::usage =
   "Converts one grouped holomorphic matter-mode entry to antiholomorphic modes.";
 antiMatterGroupFromHolo[group : {picture_?validPictureSpecQ, matterModeLists_List}] :=
@@ -2091,7 +2111,7 @@ generateMatterOPEFromGroups[groupedModes_, convertGroupFunction_, opts___] := Mo
 ];
 
 generateBasisMatterHoloOPE::usage =
-  "Generates holomorphic matter-only TypeII OPE-basis operators.";
+  "Generates holomorphic matter-only TypeII OPE-basis operators. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dX insertions.";
 generateBasisMatterHoloOPE[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
@@ -2105,7 +2125,7 @@ generateBasisMatterHoloOPE[
 generateBasisMatterHoloOPE[___] := {};
 
 generateBasisMatterAntiHoloOPE::usage =
-  "Generates antiholomorphic matter-only TypeII OPE-basis operators.";
+  "Generates antiholomorphic matter-only TypeII OPE-basis operators. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dXt insertions.";
 generateBasisMatterAntiHoloOPE[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
