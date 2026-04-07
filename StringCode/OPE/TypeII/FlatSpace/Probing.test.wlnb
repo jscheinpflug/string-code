@@ -1,0 +1,127 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace Projection Probing\n\nConcrete bosonized probe harness for sampled `OPEProjected[...]` checks.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[Not[TrueQ[cond]], allTestsPassed = False];\n  cond\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "spinProbeBasis[chirality_String] := Private`spinProjectionSpinBasisState[chirality];\n\nprobeConcreteGammaFactorValue[factor_GammaAntisymmetricProductHold] := Module[\n  {value, links, spinors, concreteChiralities, indices, matrix},\n  value = Private`spinProjectionGammaFactorValue[factor];\n  If[UnsameQ[Head[value], GammaAntisymmetricProductHold], Return[value]];\n  links = factor[[1]];\n  spinors = {factor[[2]], factor[[3]]};\n  concreteChiralities = Private`spinProjectionConcreteSpinChirality /@ spinors;\n  If[AllTrue[concreteChiralities, StringQ] && SameQ @@ concreteChiralities,\n    indices = MapThread[Private`spinProjectionSpinorBasisIndex, {spinors, concreteChiralities}];\n    If[AllTrue[indices, IntegerQ],\n      matrix = Private`spinProjectionGammaFactorMatrix[links];\n      If[MatrixQ[matrix] || Head[matrix] === SparseArray,\n        Return[matrix[[indices[[1]], indices[[2]]]]]\n      ]\n    ]\n  ];\n  factor\n];\nprobeConcreteGammaFactorValue[x_] := x;\n\nprobeEvaluateTensorScalars[expr_] := Expand[expr /. {\n  factor_GammaAntisymmetricProductHold :> probeConcreteGammaFactorValue[factor],\n  factor_ /; Head[factor] === \\[Delta] && Length[factor] == 2 :> KroneckerDelta[factor[[1]], factor[[2]]]\n}];\n\nprobeOutputOperatorData[expr_] := DeleteDuplicates @ Cases[\n  expr,\n  R[(head : (S | St))[{idx_Symbol, chir_}, pic_, modes_, lvl_, z_]] :>\n    <|\"Head\" -> head, \"Index\" -> idx, \"Chirality\" -> chir, \"Picture\" -> pic, \"Modes\" -> modes, \"Level\" -> lvl, \"z\" -> z|>,\n  Infinity\n];\n\nprobeOutputCandidates[expr_, inputSpinSym_Symbol] := Module[{ops, fresh, reused},\n  ops = probeOutputOperatorData[expr];\n  fresh = Select[ops, UnsameQ[#[\"Index\"], inputSpinSym] &];\n  reused = Select[ops, SameQ[#[\"Index\"], inputSpinSym] &];\n  DeleteDuplicates@Join[fresh, reused]\n];\n\nprobeEvaluateConcreteProjectedRHS[rhs_, rules_List, outputData_Association, outputState_] := Module[{expr},\n  expr = Quiet[Bosonize[rhs /. rules /. outputData[\"Index\"] -> outputState], S::alpha];\n  probeEvaluateTensorScalars[expr]\n];\n\nprobeProjectedOPECase[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  {inputSpinSymbol_Symbol, inputSpinChirality_String},\n  inputBuilder_Function\n] := Module[\n  {\n    inputBasis,\n    inputIndex,\n    inputState,\n    vectorValues,\n    lhsInputs,\n    lhsExpr,\n    lhsAssoc,\n    witness,\n    rhsExpr,\n    rhsAssoc,\n    key,\n    lhsCoeff,\n    rhsCoeff\n  },\n  inputBasis = spinProbeBasis[inputSpinChirality];\n  inputIndex = RandomInteger[{1, Length[inputBasis]}];\n  inputState = inputBasis[[inputIndex]];\n  vectorValues = RandomSample[Range[10], Length[inputVectorSymbols]];\n  lhsInputs = Bosonize /@ inputBuilder[vectorValues, inputState];\n  lhsExpr = Private`spinProjectionSectorEvaluation[sector, weight, lhsInputs] // Expand;\n  lhsAssoc = Private`spinProjectionOperatorAssociation[lhsExpr];\n  witness = Catch[\n    Do[\n      Module[{outputBasis = spinProbeBasis[outputData[\"Chirality\"]], localExpr, localAssoc},\n        Do[\n          localExpr = probeEvaluateConcreteProjectedRHS[\n            rhs,\n            Join[Thread[inputVectorSymbols -> vectorValues], {inputSpinSymbol -> inputState}],\n            outputData,\n            outputBasis[[b]]\n          ];\n          localAssoc = Private`spinProjectionOperatorAssociation[localExpr];\n          If[\n            UnsameQ[localExpr, 0] &&\n            UnsameQ[localAssoc, <||>] &&\n            FreeQ[localExpr, GammaAntisymmetricProductHold | $Failed],\n            Throw[\n              <|\n                \"OutputData\" -> outputData,\n                \"OutputIndex\" -> b,\n                \"OutputState\" -> outputBasis[[b]],\n                \"RHSExpr\" -> localExpr,\n                \"RHSAssoc\" -> localAssoc\n              |>,\n              \"ProbeWitness\"\n            ]\n          ],\n          {b, Length[outputBasis]}\n        ]\n      ],\n      {outputData, probeOutputCandidates[rhs, inputSpinSymbol]}\n    ],\n    \"ProbeWitness\"\n  ];\n  If[Not[AssociationQ[witness]],\n    Return[\n      <|\n        \"Status\" -> \"NoWitness\",\n        \"InputIndex\" -> inputIndex,\n        \"InputState\" -> inputState,\n        \"VectorValues\" -> vectorValues,\n        \"LHSExpr\" -> lhsExpr\n      |>\n    ]\n  ];\n  rhsExpr = witness[\"RHSExpr\"];\n  rhsAssoc = witness[\"RHSAssoc\"];\n  key = First[Keys[rhsAssoc]];\n  lhsCoeff = Lookup[lhsAssoc, key, 0] // Simplify;\n  rhsCoeff = Lookup[rhsAssoc, key, 0] // Simplify;\n  <|\n    \"Status\" -> If[TrueQ[Simplify[lhsCoeff == rhsCoeff]], \"Matched\", \"Mismatch\"],\n    \"MatchQ\" -> TrueQ[Simplify[lhsCoeff == rhsCoeff]],\n    \"InputIndex\" -> inputIndex,\n    \"InputState\" -> inputState,\n    \"VectorValues\" -> vectorValues,\n    \"OutputIndex\" -> witness[\"OutputIndex\"],\n    \"OutputState\" -> witness[\"OutputState\"],\n    \"OutputData\" -> witness[\"OutputData\"],\n    \"OperatorKey\" -> key,\n    \"LHSCoeff\" -> lhsCoeff,\n    \"RHSCoeff\" -> rhsCoeff\n  |>\n];\n\nprobeProjectedOPESamples[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  inputSpinSpec : {(_Symbol), (_String)},\n  inputBuilder_Function,\n  sampleCount_Integer : 3,\n  attemptBudget_Integer : 20,\n  seed_ : Automatic\n] := BlockRandom[\n  If[UnsameQ[seed, Automatic], SeedRandom[seed]];\n  Module[{samples = {}, attempts = 0, sample},\n    While[Length[samples] < sampleCount && attempts < attemptBudget,\n      attempts++;\n      sample = probeProjectedOPECase[sector, weight, rhs, inputVectorSymbols, inputSpinSpec, inputBuilder];\n      If[UnsameQ[sample[\"Status\"], \"NoWitness\"], AppendTo[samples, sample]]\n    ];\n    <|\n      \"RequestedSamples\" -> sampleCount,\n      \"Attempts\" -> attempts,\n      \"Samples\" -> samples,\n      \"EnoughSamplesQ\" -> Length[samples] >= sampleCount,\n      \"AllMatchedQ\" -> AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &],\n      \"PassQ\" -> (Length[samples] >= sampleCount && AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &])\n    |>\n  ]\n];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Sample Probe\n\nTargeted check for `OPEProjected[2, 0][R[S[{a1, \\\"antichiral\\\"}, -1/2, {{mu,-1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]]`.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample1 = probeProjectedOPESamples[\n  \"Holo\",\n  2,\n  OPEProjected[2, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]],\n  {mu, nu},\n  {a1, \"antichiral\"},\n  Function[{vecs, spin}, {\n    R[S[{spin, \"antichiral\"}, -1/2, {{vecs[[1]], -1}}, 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]]\n  }],\n  3,\n  40,\n  20260407\n];\n\ntest1 = testReport[\"Probe Test 1 (target sample produced 3 concrete probes)\", probeSample1[\"EnoughSamplesQ\"]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample1",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample2 = probeProjectedOPESamples[\n  \"Holo\",\n  1,\n  OPEProjected[1, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]],\n  {mu, nu},\n  {a1, \"antichiral\"},\n  Function[{vecs, spin}, {\n    R[S[{spin, \"antichiral\"}, -1/2, {{vecs[[1]], -1}}, 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]]\n  }],\n  3,\n  40,\n  20260408\n];\n\ntest2 = testReport[\"Probe Test 2 (target sample at projection [1,0] produced 3 concrete probes)\", probeSample2[\"EnoughSamplesQ\"]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample2",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Verified Spin-Field Samples\n\nConcrete bosonized checks for the repaired `psi-psi-S` and `psi-psi-psi-S` projected OPEs.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample3 = probeProjectedOPESamples[\n  \"Holo\",\n  0,\n  OPEProjected[0, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]]],\n  {mu, nu},\n  {alpha, \"chiral\"},\n  Function[{vecs, spin}, {\n    R[exp\\[Phi]f[-1, z1], \\[Psi][vecs[[1]], 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]],\n    R[S[{spin, \"chiral\"}, -1/2, {}, 0, z3]]\n  }],\n  3,\n  40,\n  20260409\n];\n\ntest3 = testReport[\"Probe Test 3 (psi-psi-S concrete probes all match)\", probeSample3[\"PassQ\"]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample3",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample4 = probeProjectedOPESamples[\n  \"Holo\",\n  -2,\n  OPEProjected[-2, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[exp\\[Phi]f[-1, z3], \\[Psi][rho, 0, z3]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z4]]],\n  {mu, nu, rho},\n  {alpha, \"chiral\"},\n  Function[{vecs, spin}, {\n    R[exp\\[Phi]f[-1, z1], \\[Psi][vecs[[1]], 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]],\n    R[exp\\[Phi]f[-1, z3], \\[Psi][vecs[[3]], 0, z3]],\n    R[S[{spin, \"chiral\"}, -1/2, {}, 0, z4]]\n  }],\n  3,\n  40,\n  20260410\n];\n\ntest4 = testReport[\"Probe Test 4 (psi-psi-psi-S concrete probes all match)\", probeSample4[\"PassQ\"]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "probeSample4",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "allTestsPassed",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  }
+ ],
+ "metadata": {
+  "version": "1.0.0"
+ }
+}

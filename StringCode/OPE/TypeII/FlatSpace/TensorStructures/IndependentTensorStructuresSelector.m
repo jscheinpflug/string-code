@@ -154,8 +154,32 @@ selectorCanonicalFamilyData[parsed_Association] := Module[
 selectorCandidateParseData::usage =
   "selectorCandidateParseData[expr] parses one tensor-structure candidate without compiling gamma kernels, returning the data needed for lazy exact selection.";
 selectorCandidateParseData[data_Association] /; selectorParsedCandidateQ[data] := data;
-selectorCandidateParseData[candidate_Association] := If[KeyExistsQ[candidate, "Expression"], selectorCandidateParseData[candidate["Expression"]], $Failed];
-selectorCandidateParseData[expr_] := Module[
+selectorCandidateParseData[candidate_Association, spinorHints_: <||>] := If[
+  KeyExistsQ[candidate, "Expression"],
+  selectorCandidateParseData[candidate["Expression"], spinorHints],
+  $Failed
+];
+
+selectorApplySpinorChiralityHints::usage =
+  "selectorApplySpinorChiralityHints[parsed, spinorHints] rewrites ambiguous zero-link gamma metadata using known external spinor chiralities.";
+selectorApplySpinorChiralityHints[parsed_Association, spinorHints_Association] := Module[{parts},
+  If[spinorHints === <||>, Return[parsed]];
+  parts = parsed["FactorParts"] /. part_Association /; Lookup[part, "Kind", None] === "Gamma" &&
+      Lookup[part, "CTag", None] === None &&
+      Lookup[part, "VectorLinks", {}] === {} &&
+      Lookup[part, "TailLinks", {}] === {} &&
+      AllTrue[Lookup[part, "Spinors", {}], Head[#] === Symbol && KeyExistsQ[spinorHints, #] &] :>
+    Join[part, <|"SpinorChiralities" -> (Lookup[spinorHints, #] & /@ part["Spinors"])|>];
+  Join[
+    parsed,
+    <|
+      "FactorParts" -> parts,
+      "SpinorChiralities" -> candidateSpinorChiralities[parts]
+    |>
+  ]
+];
+
+selectorCandidateParseData[expr_, spinorHints_: <||>] := Module[
   {
     factors,
     tensorFactors,
@@ -174,6 +198,7 @@ selectorCandidateParseData[expr_] := Module[
   If[!selectorScalarFactorQ[scalarFactor], Return[$Failed]];
   parsed = If[tensorFactors === {}, parseCandidate[1], parseCandidate[Times @@ tensorFactors]];
   If[parsed === $Failed, Return[$Failed]];
+  parsed = selectorApplySpinorChiralityHints[parsed, spinorHints];
   factorSymbols = DeleteDuplicates @ Select[
     Join[
       Flatten[Lookup[parsed["FactorParts"], "VectorSymbols", {}]],
@@ -201,14 +226,14 @@ selectorCandidateParseData[expr_] := Module[
 
 selectorParseCandidates::usage =
   "selectorParseCandidates[candidates] parses one explicit candidate list without compiling gamma kernels.";
-selectorParseCandidates[candidates_List] := Module[{parsed},
-  parsed = selectorCandidateParseData /@ candidates;
+selectorParseCandidates[candidates_List, spinorHints_: <||>] := Module[{parsed},
+  parsed = selectorCandidateParseData[#, spinorHints] & /@ candidates;
   If[MemberQ[parsed, $Failed], $Failed, parsed]
 ];
 
 selectorCandidates::usage =
   "selectorCandidates[candidates] parses one explicit candidate list into reusable selector data.";
-selectorCandidates[candidates_List] := selectorParseCandidates[candidates];
+selectorCandidates[candidates_List, spinorHints_: <||>] := selectorParseCandidates[candidates, spinorHints];
 
 selectorSpinorMap::usage =
   "selectorSpinorMap[candidates] returns the merged spinor chirality assignment carried by one parsed selector candidate list.";
@@ -227,8 +252,8 @@ selectorSpinorMapFromParsed[candidates_List] := selectorSpinorMap[candidates];
 
 automaticCandidateTargetRank::usage =
   "automaticCandidateTargetRank[candidates] infers an exact singlet-count upper bound from candidate spinor chiralities and external vectors.";
-automaticCandidateTargetRank[candidates_List] := Module[{parsed, chiralityMap, nVectors, counts, flipped},
-  parsed = selectorCandidates[candidates];
+automaticCandidateTargetRank[candidates_List, spinorHints_: <||>] := Module[{parsed, chiralityMap, nVectors, counts, flipped},
+  parsed = selectorCandidates[candidates, spinorHints];
   If[parsed === $Failed || parsed === {}, Return[0]];
   chiralityMap = selectorSpinorMap[parsed];
   nVectors = Length[DeleteDuplicates[Flatten[parsed[[All, "VectorSymbols"]], 1]]];
@@ -510,10 +535,10 @@ selectorAnnotateParsedCandidateGroups[groups_List] := Module[{position = 0},
 
 selectorParsedCandidateGroups::usage =
   "selectorParsedCandidateGroups[candidates] normalizes flat or grouped selector input to parsed candidate groups with stable flat-order positions.";
-selectorParsedCandidateGroups[candidates_List] := Module[{rawGroups, parsedGroups},
+selectorParsedCandidateGroups[candidates_List, spinorHints_: <||>] := Module[{rawGroups, parsedGroups},
   If[candidates === {}, Return[{}]];
   rawGroups = If[selectorGroupedCandidateInputQ[candidates], Select[candidates, # =!= {} &], List /@ candidates];
-  parsedGroups = selectorParseCandidates /@ rawGroups;
+  parsedGroups = selectorParseCandidates[#, spinorHints] & /@ rawGroups;
   If[MemberQ[parsedGroups, $Failed], Return[$Failed]];
   selectorAnnotateParsedCandidateGroups[parsedGroups]
 ];
@@ -662,8 +687,9 @@ scanParsedCandidatesWithRuntime[candidates_List, runtime_Association, targetRank
 scanCandidateList::usage =
   "scanCandidateList[candidates, targetRank, optsAssoc] scans a candidate list in order and returns the verified exact basis and visit count.";
 scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
-  {parsedGroups, parsedFlat, effectiveTarget, runtime, scanResult, verifyResult, visited = 0, positionToExpression},
-  parsedGroups = selectorParsedCandidateGroups[candidates];
+  {parsedGroups, parsedFlat, effectiveTarget, runtime, scanResult, verifyResult, visited = 0, positionToExpression, spinorHints},
+  spinorHints = Lookup[optsAssoc, "SpinorChiralityHints", <||>];
+  parsedGroups = selectorParsedCandidateGroups[candidates, spinorHints];
   If[parsedGroups === $Failed, Return[$Failed]];
   parsedFlat = Flatten[parsedGroups, 1];
   effectiveTarget = If[targetRank === Automatic, automaticParsedCandidateTargetRank[parsedFlat], targetRank];

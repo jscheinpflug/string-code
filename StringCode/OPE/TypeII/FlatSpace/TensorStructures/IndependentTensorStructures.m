@@ -128,6 +128,13 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
   If[optsAssoc === $Failed, Return[$Failed]];
   searchData = associationSelectionData[incoming, outgoing];
   If[searchData === $Failed, Return[$Failed]];
+  AssociateTo[
+    optsAssoc,
+    "SpinorChiralityHints" -> AssociationThread[
+      Join[searchData["Incoming"]["spinor"][[All, 1]], If[searchData["OutSpinor"] === None, {}, {searchData["OutSpinor"][[1]]}]],
+      Join[searchData["Incoming"]["spinor"][[All, 2]], If[searchData["OutSpinor"] === None, {}, {searchData["OutSpinor"][[2]]}]]
+    ]
+  ];
   targetRank = Lookup[optsAssoc, "TargetRank", Automatic];
   targetRank = If[targetRank === Automatic, automaticAssociationTargetRank[searchData], targetRank];
   If[targetRank === 0, Return[selectorResult[{}, 0, 0, optsAssoc]]];

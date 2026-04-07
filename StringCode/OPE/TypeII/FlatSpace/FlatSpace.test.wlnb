@@ -16,8 +16,8 @@
    "metadata": {},
    "executionSummary": {
     "timing": {
-     "startTime": 1775442455429,
-     "endTime": 1775442456873
+     "startTime": 1775582751549,
+     "endTime": 1775582753312
     },
     "executionOrder": 1,
     "success": true
@@ -29,14 +29,7 @@
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1775442456873,
-     "endTime": 1775442456998
-    },
-    "executionOrder": 3,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 1,
@@ -969,6 +962,62 @@
    "executionSummary": {}
   },
   {
+   "kind": 2,
+   "value": "supportPairs33a = Private`spinProjectionCommonVectorConstraintPairs[c1 \\[Delta][mu, nu] + c2 f[mu, nu], {mu, nu}];\ntest33a = testReport[\"Test 33a (mixed free-vector equality stays term-local)\", supportPairs33a === {}];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportPairs33b = Private`spinProjectionCommonVectorConstraintPairs[c1 \\[Delta][mu, nu] + c2 f[mu], {mu, nu}];\ntest33b = testReport[\"Test 33b (missing co-occurrence does not veto equality)\", supportPairs33b === {{mu, nu}}];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportPairs33c = Private`spinProjectionCommonVectorConstraintPairs[c1 \\[Delta][mu, nu] \\[Delta][nu, rho] + c2 \\[Delta][mu, rho], {mu, nu, rho}];\ntest33c = testReport[\"Test 33c (transitive free-vector equalities close per term)\", supportPairs33c === {{mu, nu}, {mu, rho}, {nu, rho}}];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "supportOPE33 = Private`getOutgoingOperatorsTensors[{R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]]}, 0, 0, 1234];\nsupportModel33 = Private`compileSpinProjectionSectorModel[\"Holo\", supportOPE33[\"holoOps\"], 0, supportOPE33[\"holoData\"]];\ntest33d = testReport[\"Test 33d (psi-psi-S keeps free vectors independent)\", supportModel33[\"FreeVectorGroups\"] === {{mu}, {nu}}];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "actual34 = OPEProjected[0, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]], \"RandomSeed\" -> 1234];\nprojectedPsiPsiSpinOut34 = First @ Cases[actual34, S[{idx_, \"chiral\"}, -5/2, {}, 0, 0] :> idx, Infinity];\nexpected34 = ((-I/4) GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, alpha, projectedPsiPsiSpinOut34] R[S[{projectedPsiPsiSpinOut34, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z2) (z1 - z3) (z2 - z3)) + (I z1 R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]] \\[Delta][mu, nu])/(4 (z1 - z2)^2 (z1 - z3) (z2 - z3)) + (I z2 R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]] \\[Delta][mu, nu])/(4 (z1 - z2)^2 (z1 - z3) (z2 - z3)) - (I z3 R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]] \\[Delta][mu, nu])/(2 (z1 - z2)^2 (z1 - z3) (z2 - z3));\ntest34 = testReport[\"Test 34 (projected psi-psi-S exact structures)\", Simplify[actual34 - expected34] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "actual35 = OPEProjected[-2, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[exp\\[Phi]f[-1, z3], \\[Psi][rho, 0, z3]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z4]], \"RandomSeed\" -> 1234];\nprojectedPsiPsiPsiSpinOut35 = First @ Cases[actual35, S[{idx_, \"antichiral\"}, -7/2, {}, 0, 0] :> idx, Infinity];\nexpected35 = (3 GammaAntisymmetricProductHold[{GammaDUHold[mu], GammaUDHold[nu], GammaDUHold[rho]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]])/(8 (z1 - z2) (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) + (z1 GammaAntisymmetricProductHold[{GammaDUHold[rho]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, nu])/(8 (z1 - z2)^2 (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) + (z2 GammaAntisymmetricProductHold[{GammaDUHold[rho]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, nu])/(8 (z1 - z2)^2 (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) - (z4 GammaAntisymmetricProductHold[{GammaDUHold[rho]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, nu])/(4 (z1 - z2)^2 (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) - (z1 GammaAntisymmetricProductHold[{GammaDUHold[nu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, rho])/(8 (z1 - z2) (z1 - z3)^2 (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) - (z3 GammaAntisymmetricProductHold[{GammaDUHold[nu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, rho])/(8 (z1 - z2) (z1 - z3)^2 (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) + (z4 GammaAntisymmetricProductHold[{GammaDUHold[nu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][mu, rho])/(4 (z1 - z2) (z1 - z3)^2 (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4)) + (z2 GammaAntisymmetricProductHold[{GammaDUHold[mu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][nu, rho])/(8 (z1 - z2) (z1 - z3) (z2 - z3)^2 (z1 - z4) (z2 - z4) (z3 - z4)) + (z3 GammaAntisymmetricProductHold[{GammaDUHold[mu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][nu, rho])/(8 (z1 - z2) (z1 - z3) (z2 - z3)^2 (z1 - z4) (z2 - z4) (z3 - z4)) - (z4 GammaAntisymmetricProductHold[{GammaDUHold[mu]}, projectedPsiPsiPsiSpinOut35, alpha] R[S[{projectedPsiPsiPsiSpinOut35, \"antichiral\"}, -7/2, {}, 0, 0]] \\[Delta][nu, rho])/(4 (z1 - z2) (z1 - z3) (z2 - z3)^2 (z1 - z4) (z2 - z4) (z3 - z4));\ntest35 = testReport[\"Test 35 (projected psi-psi-psi-S exact structures)\", Simplify[actual35 - expected35] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "actual36 = OPEProjected[0, 0][R[S[{a1, \"chiral\"}, -1/2, {}, 0, z1]], R[S[{a2, \"chiral\"}, -1/2, {}, 0, z2]], R[S[{a3, \"chiral\"}, -1/2, {}, 0, z3]], R[S[{a4, \"chiral\"}, -1/2, {}, 0, z4]], R[S[{a5, \"chiral\"}, -1/2, {}, 0, z5]]];\nexpected36 = ((-1/2*I)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a2, a4]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a3, a5]*R[S[{a1, \"chiral\"}, -5/2, {}, 0, 0]])/((z2 - z3)*(z3 - z4)*(z2 - z5)*(z4 - z5)*(-z1 + z5)) + ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a2, a3]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a4, a5]*R[S[{a1, \"chiral\"}, -5/2, {}, 0, 0]])/((z2 - z4)*(-z3 + z4)*(z2 - z5)*(z3 - z5)*(-z1 + z5)) + ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a4]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a3, a5]*R[S[{a2, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z3)*(z3 - z4)*(z1 - z5)*(z4 - z5)*(-z2 + z5)) - ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a3]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a4, a5]*R[S[{a2, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z4)*(-z3 + z4)*(z1 - z5)*(z3 - z5)*(-z2 + z5)) - ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a4]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a2, a5]*R[S[{a3, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z2)*(z2 - z4)*(z1 - z5)*(z4 - z5)*(-z3 + z5)) + ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a2]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a4, a5]*R[S[{a3, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z4)*(-z2 + z4)*(z1 - z5)*(z2 - z5)*(-z3 + z5)) + ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a3]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a2, a5]*R[S[{a4, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z2)*(z2 - z3)*(z1 - z5)*(z3 - z5)*(-z4 + z5)) - ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a2]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a3, a5]*R[S[{a4, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z3)*(-z2 + z3)*(z1 - z5)*(z2 - z5)*(-z4 + z5)) - ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a3]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a2, a4]*R[S[{a5, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z2)*(z2 - z3)*(z1 - z4)*(z3 - z4)*(z4 - z5)) + ((I/2)*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a1, a2]*GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[ν1]}, a3, a4]*R[S[{a5, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z3)*(-z2 + z3)*(z1 - z4)*(z2 - z4)*(z4 - z5));\ntest36 = testReport[\"Test 36 (projected S-S-S-S-S exact reference)\", Simplify[actual36 - expected36] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
@@ -1018,15 +1067,22 @@
        "mime": "text/plain"
       }
      ],
-     "id": "5bcadeec-0fb1-4f2c-80b6-e3ee59239a48",
+     "id": "ec2b58ae-4944-4fe9-90c0-fc18e7e11b1d",
      "metadata": {
-      "cellLabel": "Out[138]= ",
+      "cellLabel": "Out[7]= ",
       "isBoxData": false
      }
     }
    ],
    "metadata": {},
-   "executionSummary": {}
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568650303,
+     "endTime": 1775568652488
+    },
+    "executionOrder": 7,
+    "success": true
+   }
   },
   {
    "kind": 2,
@@ -1044,15 +1100,22 @@
        "mime": "text/plain"
       }
      ],
-     "id": "8bf320c7-1252-4814-bec3-87a8ced170aa",
+     "id": "fd00b9cb-2af4-49ad-bff3-efc672dc63b7",
      "metadata": {
-      "cellLabel": "Out[139]= ",
+      "cellLabel": "Out[8]= ",
       "isBoxData": false
      }
     }
    ],
    "metadata": {},
-   "executionSummary": {}
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568655478,
+     "endTime": 1775568676558
+    },
+    "executionOrder": 8,
+    "success": true
+   }
   },
   {
    "kind": 2,
@@ -1078,14 +1141,7 @@
     }
    ],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1775442487309,
-     "endTime": 1775442487537
-    },
-    "executionOrder": 7,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 2,
@@ -1111,14 +1167,7 @@
     }
    ],
    "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1775442488559,
-     "endTime": 1775442488788
-    },
-    "executionOrder": 8,
-    "success": true
-   }
+   "executionSummary": {}
   },
   {
    "kind": 2,
@@ -1206,23 +1255,195 @@
     {
      "items": [
       {
-       "data": "<div class=\"wexpr\"><wrow><w></w><wrow><w></w><w>-</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><w>z1</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac></wrow><w>-</w><wfrac><w><wrow><w></w><w>2</w><w></w><w>𝕚</w><w></w><w>z2</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></w></w></wfrac></wrow></div>",
+       "data": "<div class=\"wexpr\"><wrow><w></w><wrow><w></w><w>-</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>a1</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>1</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>12</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac></wrow><w>+</w><wfrac><w><wrow><w></w><w>z2</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>a1</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>1</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>3</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>a1</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z2</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>a1</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>2</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>1</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>12</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><w>z2</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>1</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>3</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z2</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><w>dϕ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac></wrow></div>",
        "mime": "x-application/wolfram-language-html"
       },
       {
-       "data": "((-1/4*I)*z1*R[dϕ[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]]*δ[mu, nu])/(z1 - z2)^2 - ((2*I)*z2*R[dϕ[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]]*δ[mu, nu])/(z1 - z2)^2",
+       "data": "-1/12*(z1*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, a1, α1]*R[S[{α1, \"antichiral\"}, -3/2, {}, 1, 0]])/(Sqrt[2]*(z1 - z2)^2) + (z2*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, a1, α1]*R[S[{α1, \"antichiral\"}, -3/2, {}, 1, 0]])/(3*Sqrt[2]*(z1 - z2)^2) + (z1*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, a1, α1]*R[dϕ[0, 0], S[{α1, \"antichiral\"}, -3/2, {}, 0, 0]])/(8*Sqrt[2]*(z1 - z2)^2) - (z2*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, a1, α1]*R[dϕ[0, 0], S[{α1, \"antichiral\"}, -3/2, {}, 0, 0]])/(2*Sqrt[2]*(z1 - z2)^2) + (z1*R[S[{a1, \"antichiral\"}, -3/2, {}, 1, 0]]*δ[mu, nu])/(12*Sqrt[2]*(z1 - z2)^2) + (Sqrt[2]*z2*R[S[{a1, \"antichiral\"}, -3/2, {}, 1, 0]]*δ[mu, nu])/(3*(z1 - z2)^2) - (z1*R[dϕ[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]]*δ[mu, nu])/(8*Sqrt[2]*(z1 - z2)^2) - (z2*R[dϕ[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]]*δ[mu, nu])/(Sqrt[2]*(z1 - z2)^2)",
        "mime": "text/plain"
       }
      ],
-     "id": "d75e9262-a824-4a21-823c-93502b865163",
+     "id": "1272162e-2a8e-4138-af18-4a19f2fc6fb5",
      "metadata": {
-      "cellLabel": "Out[144]= ",
+      "cellLabel": "Out[3]= ",
       "isBoxData": false
      }
     }
    ],
    "metadata": {},
-   "executionSummary": {}
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568448567,
+     "endTime": 1775568463361
+    },
+    "executionOrder": 3,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "OPEProjected[0, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]],R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]]]",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wrow><w></w><wrow><w></w><w>-</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>alpha</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac></wrow><w>+</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><w>z1</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>alpha</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><w>z2</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>alpha</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><w>z3</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>alpha</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>2</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac></wrow></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "((-1/4*I)*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, alpha, α1]*R[S[{α1, \"chiral\"}, -5/2, {}, 0, 0]])/((z1 - z2)*(z1 - z3)*(z2 - z3)) + ((I/4)*z1*R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]]*δ[mu, nu])/((z1 - z2)^2*(z1 - z3)*(z2 - z3)) + ((I/4)*z2*R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]]*δ[mu, nu])/((z1 - z2)^2*(z1 - z3)*(z2 - z3)) - ((I/2)*z3*R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]]*δ[mu, nu])/((z1 - z2)^2*(z1 - z3)*(z2 - z3))",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "6af54635-1dbc-4d60-87b3-550f450db3a1",
+     "metadata": {
+      "cellLabel": "Out[4]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568577136,
+     "endTime": 1775568577518
+    },
+    "executionOrder": 4,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "OPEProjected[-2, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]],R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]],R[exp\\[Phi]f[-1, z3], \\[Psi][rho, 0, z3]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z4]]]",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wrow><w></w><wfrac><w><wrow><w></w><w>3</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z2</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z4</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z1</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z3</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z4</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z2</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>nu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>z3</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>nu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac><w>-</w><wfrac><w><wrow><w></w><w>z4</w><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>nu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z3</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac></wrow></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "(3*GammaAntisymmetricProductHold[{GammaDUHold[mu], GammaUDHold[nu], GammaDUHold[rho]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]])/(8*(z1 - z2)*(z1 - z3)*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) + (z1*GammaAntisymmetricProductHold[{GammaDUHold[rho]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, nu])/(8*(z1 - z2)^2*(z1 - z3)*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) + (z2*GammaAntisymmetricProductHold[{GammaDUHold[rho]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, nu])/(8*(z1 - z2)^2*(z1 - z3)*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) - (z4*GammaAntisymmetricProductHold[{GammaDUHold[rho]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, nu])/(4*(z1 - z2)^2*(z1 - z3)*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) - (z1*GammaAntisymmetricProductHold[{GammaDUHold[nu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, rho])/(8*(z1 - z2)*(z1 - z3)^2*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) - (z3*GammaAntisymmetricProductHold[{GammaDUHold[nu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, rho])/(8*(z1 - z2)*(z1 - z3)^2*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) + (z4*GammaAntisymmetricProductHold[{GammaDUHold[nu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[mu, rho])/(4*(z1 - z2)*(z1 - z3)^2*(z2 - z3)*(z1 - z4)*(z2 - z4)*(z3 - z4)) + (z2*GammaAntisymmetricProductHold[{GammaDUHold[mu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[nu, rho])/(8*(z1 - z2)*(z1 - z3)*(z2 - z3)^2*(z1 - z4)*(z2 - z4)*(z3 - z4)) + (z3*GammaAntisymmetricProductHold[{GammaDUHold[mu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[nu, rho])/(8*(z1 - z2)*(z1 - z3)*(z2 - z3)^2*(z1 - z4)*(z2 - z4)*(z3 - z4)) - (z4*GammaAntisymmetricProductHold[{GammaDUHold[mu]}, α1, alpha]*R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*δ[nu, rho])/(4*(z1 - z2)*(z1 - z3)*(z2 - z3)^2*(z1 - z4)*(z2 - z4)*(z3 - z4))",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "285ea52b-21e0-45ec-8b9d-a239898bba96",
+     "metadata": {
+      "cellLabel": "Out[5]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568606803,
+     "endTime": 1775568608376
+    },
+    "executionOrder": 5,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "OPEProjected[0, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]],R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]]]//FullSimplify",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wrow><w></w><w>-</w><wfrac><w><wrow><w></w><w>𝕚</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>alpha</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow><w>-</w><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>+</w><w>z2</w><w>-</w><wrow><w></w><w>2</w><w></w><w>z3</w></wrow></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>alpha</w><w>,</w><w>chiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>5</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></wrow><wb>)</wb></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac></wrow></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "((-1/4*I)*((z1 - z2)*GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, alpha, α1]*R[S[{α1, \"chiral\"}, -5/2, {}, 0, 0]] - (z1 + z2 - 2*z3)*R[S[{alpha, \"chiral\"}, -5/2, {}, 0, 0]]*δ[mu, nu]))/((z1 - z2)^2*(z1 - z3)*(z2 - z3))",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "ccb7e3fb-d9d4-4730-8160-efa3948bfb6f",
+     "metadata": {
+      "cellLabel": "Out[9]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568769112,
+     "endTime": 1775568769591
+    },
+    "executionOrder": 9,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "OPEProjected[-2, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]],R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]],R[exp\\[Phi]f[-1, z3], \\[Psi][rho, 0, z3]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z4]]]//FullSimplify",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wfrac><w><wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>7</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><w>3</w><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow></wrow><w>+</w><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>+</w><w>z2</w><w>-</w><wrow><w></w><w>2</w><w></w><w>z4</w></wrow></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>rho</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow><w>+</w><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><w>-</w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>+</w><w>z3</w><w>-</w><wrow><w></w><w>2</w><w></w><w>z4</w></wrow></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow><wb>)</wb></wrow></wrow><w>+</w><wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>+</w><w>z3</w><w>-</w><wrow><w></w><w>2</w><w></w><w>z4</w></wrow></wrow><wb>)</wb></wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><wb>}</wb></wrow><w>,</w><w>α1</w><w>,</w><w>alpha</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>nu</w><w>,</w><w>rho</w></wrow><wb>]</wb></wrow></wrow></wrow></wrow><wb>)</wb></wrow></wrow></wrow><wb>)</wb></wrow></wrow></w><w><w></w><w><wrow><w></w><w>8</w><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z2</w><w>-</w><w>z3</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><w>-</w><w>z2</w></wrow><w>+</w><w>z4</w></wrow><wb>)</wb></wrow><w></w><wrow><w></w><wb>(</wb><wrow><w></w><wrow><w></w><w>-</w><w>z3</w></wrow><w>+</w><w>z4</w></wrow><wb>)</wb></wrow></wrow></w></w></wfrac></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "(R[S[{α1, \"antichiral\"}, -7/2, {}, 0, 0]]*(3*(z1 - z2)*(z1 - z3)*(z2 - z3)*GammaAntisymmetricProductHold[{GammaDUHold[mu], GammaUDHold[nu], GammaDUHold[rho]}, α1, alpha] + (z1 - z3)*(z2 - z3)*(z1 + z2 - 2*z4)*GammaAntisymmetricProductHold[{GammaDUHold[rho]}, α1, alpha]*δ[mu, nu] + (z1 - z2)*(-((z2 - z3)*(z1 + z3 - 2*z4)*GammaAntisymmetricProductHold[{GammaDUHold[nu]}, α1, alpha]*δ[mu, rho]) + (z1 - z3)*(z2 + z3 - 2*z4)*GammaAntisymmetricProductHold[{GammaDUHold[mu]}, α1, alpha]*δ[nu, rho])))/(8*(z1 - z2)^2*(z1 - z3)^2*(z2 - z3)^2*(z1 - z4)*(-z2 + z4)*(-z3 + z4))",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "0cc263d7-d2b1-4ad9-b745-4f042d6272d3",
+     "metadata": {
+      "cellLabel": "Out[10]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775568827720,
+     "endTime": 1775568829408
+    },
+    "executionOrder": 10,
+    "success": true
+   }
+  },
+  {
+   "kind": 2,
+   "value": "OPEProjected[1, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu,-1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]]",
+   "languageId": "wolfram",
+   "outputs": [
+    {
+     "items": [
+      {
+       "data": "<div class=\"wexpr\"><wrow><w></w><wfrac><w><wrow><w></w><wrow><w></w><w>GammaAntisymmetricProductHold</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><wrow><w></w><w>GammaUDHold</w><wrow><w></w><wb>[</wb><w>mu</w><wb>]</wb></wrow></wrow><w>,</w><wrow><w></w><w>GammaDUHold</w><wrow><w></w><wb>[</wb><w>nu</w><wb>]</wb></wrow></wrow></wrow><wb>}</wb></wrow><w>,</w><w>a1</w><w>,</w><w>α1</w></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>α1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac><w>+</w><wfrac><w><wrow><w></w><w>3</w><w></w><wrow><w></w><w>R</w><wrow><w></w><wb>[</wb><wrow><w></w><w>S</w><wrow><w></w><wb>[</wb><wrow><w></w><wrow><w></w><wb>{</wb><wrow><w></w><w>a1</w><w>,</w><w>antichiral</w></wrow><wb>}</wb></wrow><w>,</w><wrow><w></w><w>-</w><wfrac class=\"script\"><w><w>3</w></w><w><w></w><w><w>2</w></w></w></wfrac></wrow><w>,</w><wrow><w></w><wb>{</wb><wb>}</wb></wrow><w>,</w><w>0</w><w>,</w><w>0</w></wrow><wb>]</wb></wrow></wrow><wb>]</wb></wrow></wrow><w></w><wrow><w></w><w>δ</w><wrow><w></w><wb>[</wb><wrow><w></w><w>mu</w><w>,</w><w>nu</w></wrow><wb>]</wb></wrow></wrow></wrow></w><w><w></w><w><wrow><w></w><w>4</w><w></w><wsqrt><w><w>\\</w></w><w></w><w><w>2</w></w></wsqrt><w></w><wsup><w></w><wrow><w></w><wb>(</wb><wrow><w></w><w>z1</w><w>-</w><w>z2</w></wrow><wb>)</wb></wrow><w><w>2</w></w></wsup></wrow></w></w></wfrac></wrow></div>",
+       "mime": "x-application/wolfram-language-html"
+      },
+      {
+       "data": "(GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu]}, a1, α1]*R[S[{α1, \"antichiral\"}, -3/2, {}, 0, 0]])/(4*Sqrt[2]*(z1 - z2)^2) + (3*R[S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]]*δ[mu, nu])/(4*Sqrt[2]*(z1 - z2)^2)",
+       "mime": "text/plain"
+      }
+     ],
+     "id": "a54370e6-16db-4d28-aeea-c692bf7fe7a6",
+     "metadata": {
+      "cellLabel": "Out[11]= ",
+      "isBoxData": false
+     }
+    }
+   ],
+   "metadata": {},
+   "executionSummary": {
+    "timing": {
+     "startTime": 1775572539061,
+     "endTime": 1775572540172
+    },
+    "executionOrder": 11,
+    "success": true
+   }
   }
  ],
  "metadata": {

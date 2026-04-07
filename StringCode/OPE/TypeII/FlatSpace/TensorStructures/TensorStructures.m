@@ -309,6 +309,11 @@ initialChainIndex[GammaFormDD] := "D";
 initialChainIndex[GammaFormUD] := "U";
 initialChainIndex[_] := "U";
 
+emittedChainStartIndex::usage =
+  "emittedChainStartIndex[emitBaseForm, pairForm, hasOutgoing] returns the base chain start index for one emitted slot.";
+emittedChainStartIndex[GammaFormUD, GammaFormDD, True] := "D";
+emittedChainStartIndex[emitBaseForm_, _, _] := initialChainIndex[emitBaseForm];
+
 flipChainIndex::usage = "flipChainIndex[idx] toggles chain index type between \"U\" and \"D\".";
 flipChainIndex["U"] := "D";
 flipChainIndex["D"] := "U";
@@ -481,6 +486,11 @@ sameChiralitySlotQ[slot_List] := Module[{chirPair = slotEndpointChiralities[slot
 ];
 sameChiralitySlotQ[_] := False;
 
+preserveOutgoingSpinOrderQ::usage =
+  "preserveOutgoingSpinOrderQ[slot] is True when one outgoing same-chirality slot must keep its emitted leg order.";
+preserveOutgoingSpinOrderQ[{_, _, True, GammaFormDD}] := True;
+preserveOutgoingSpinOrderQ[_] := False;
+
 chiralityAssignmentUnits::usage =
   "chiralityAssignmentUnits[openPositions] groups chirality-specific open legs into ordered single/pair assignment units.";
 chiralityAssignmentUnits[openPositions_List] := Module[
@@ -573,7 +583,7 @@ canonicalizeSpinPlacementForSlots::usage =
   "canonicalizeSpinPlacementForSlots[slots, placement] sorts same-chirality slot spinor pairs deterministically.";
 canonicalizeSpinPlacementForSlots[slots_List, placement_List] := Module[{out = placement, i, pair},
   For[i = 1, i <= Length[slots], i++,
-    If[sameChiralitySlotQ[slots[[i]]],
+    If[sameChiralitySlotQ[slots[[i]]] && !preserveOutgoingSpinOrderQ[slots[[i]]],
       pair = SortBy[out[[i]], symbolSortKey];
       out[[i]] = pair;
     ];
@@ -787,10 +797,10 @@ gammaProductCTag[hasOutgoing_, pairForm_] := Which[
 
 gammaChainStartIndex::usage =
   "gammaChainStartIndex[emitBaseForm, cTag] returns the chain start index after optional C insertion.";
-gammaChainStartIndex[emitBaseForm_, None] := initialChainIndex[emitBaseForm];
-gammaChainStartIndex[emitBaseForm_, cTag_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
-  flipChainIndex[initialChainIndex[emitBaseForm]];
-gammaChainStartIndex[emitBaseForm_, _] := initialChainIndex[emitBaseForm];
+gammaChainStartIndex[emitBaseForm_, pairForm_, hasOutgoing_, None] := emittedChainStartIndex[emitBaseForm, pairForm, hasOutgoing];
+gammaChainStartIndex[emitBaseForm_, pairForm_, hasOutgoing_, cTag_] /; MemberQ[{CUDHold, CDUHold}, cTag] :=
+  flipChainIndex[emittedChainStartIndex[emitBaseForm, pairForm, hasOutgoing]];
+gammaChainStartIndex[emitBaseForm_, pairForm_, hasOutgoing_, _] := emittedChainStartIndex[emitBaseForm, pairForm, hasOutgoing];
 
 gammaAntisymmetricProductFromParts::usage =
   "gammaAntisymmetricProductFromParts[cTag, links, spinor1, spinor2] emits GammaAntisymmetricProductHold[linksWithOptionalCTag, spinor1, spinor2].";
@@ -806,7 +816,7 @@ buildGammaAntisymmetricProduct[
 ] := Module[
   {cTag, startIndex, links, lastIndexType, tailHead},
   cTag = gammaProductCTag[hasOutgoing, pairForm];
-  startIndex = gammaChainStartIndex[emitBaseForm, cTag];
+  startIndex = gammaChainStartIndex[emitBaseForm, pairForm, hasOutgoing, cTag];
   {links, lastIndexType} = buildGammaLinks[startIndex, vectorIndices];
   If[TrueQ[includeGamma11],
     tailHead = gamma11TailHeadForIndex[lastIndexType];
@@ -913,10 +923,10 @@ slotSpinPairForKey[slot_List, spinPair_List, spinRank_Association] := Module[{r1
   r1 = Lookup[spinRank, spinPair[[1]], Infinity];
   r2 = Lookup[spinRank, spinPair[[2]], Infinity];
   If[
-  MemberQ[{GammaFormUU, GammaFormDD}, slot[[4]]],
-  If[r1 <= r2, {r1, r2}, {r2, r1}],
-  {r1, r2}
-]
+    MemberQ[{GammaFormUU, GammaFormDD}, slot[[4]]] && !preserveOutgoingSpinOrderQ[slot],
+    If[r1 <= r2, {r1, r2}, {r2, r1}],
+    {r1, r2}
+  ]
 ];
 
 slotPlacementKey::usage =
