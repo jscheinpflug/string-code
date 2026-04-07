@@ -88,6 +88,7 @@ bosonizedTermSpec::usage = "bosonizedTermSpec[expr] parses one bosonized single-
 bosonizedTermSpec[expr_] := Module[
   {factors, scalarFactors, fieldFactors, expFactors, charge, chirality, coord},
   factors = If[Head[expr] === Times, List @@ expr, {expr}];
+  factors = Flatten[If[SymbolName[Head[#]] === "R", List @@ #, {#}] & /@ factors];
   scalarFactors = Select[factors, isScalarFactorQ];
   fieldFactors = Select[factors, Not @* isScalarFactorQ];
   expFactors = Select[fieldFactors, bosonizedExponentialFieldQ];

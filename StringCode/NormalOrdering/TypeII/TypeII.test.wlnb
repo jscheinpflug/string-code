@@ -409,6 +409,14 @@
    "executionSummary": {}
   },
   {
+   "kind": 2,
+   "value": "bosonizedSpinDerivativeOracleHolo[spinSpec_, q_, modes_List, der_, coord_] := Expand[Private`bosonizedStateDerivative[Bosonize[S[spinSpec, q, modes, 0, coord]], der, dH, expH] /. ra_ /; SymbolName[Head[ra]] === \"R\" :> R @@ (List @@ ra)];\ntest42 = Simplify[Bosonize[R[S[sPlus, -1/2, {}, 1, z]]] - bosonizedSpinDerivativeOracleHolo[sPlus, -1/2, {}, 1, z]] === 0 && Simplify[Bosonize[R[S[sPlus, -1/2, {{1, -1}}, 1, z]]] - bosonizedSpinDerivativeOracleHolo[sPlus, -1/2, {{1, -1}}, 1, z]] === 0;\nPrint[\"Test 42 (Bosonize[R[S derivative-slot]]] matches the differentiated bosonized state): \", If[test42, \"PASSED\", \"FAILED\"]];\ntest42",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
@@ -418,7 +426,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32, test33, test34, test35, test36, test37, test38, test39, test40, test41];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32, test33, test34, test35, test36, test37, test38, test39, test40, test41, test42];\nPrint[\"Overall result: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

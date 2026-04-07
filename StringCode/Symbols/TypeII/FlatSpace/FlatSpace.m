@@ -286,6 +286,61 @@ bosonizedExponentialDerivative[
 ] /; charge6Q[charges];
 
 
+bosonizedProductDerivative::usage = "bosonizedProductDerivative[expr, derivativeHead, exponentialHead] takes one same-sector derivative of a bosonized same-point product written with ordinary Times.";
+bosonizedProductDerivative[0, derivativeHead_Symbol, exponentialHead_Symbol] := 0;
+bosonizedProductDerivative[a_ + b_, derivativeHead_Symbol, exponentialHead_Symbol] :=
+  bosonizedProductDerivative[a, derivativeHead, exponentialHead] +
+    bosonizedProductDerivative[b, derivativeHead, exponentialHead];
+bosonizedProductDerivative[c_ a_, derivativeHead_Symbol, exponentialHead_Symbol] :=
+  c bosonizedProductDerivative[a, derivativeHead, exponentialHead] /; isScalarFactorQ[c];
+bosonizedProductDerivative[a_ /; isScalarFactorQ[a], derivativeHead_Symbol, exponentialHead_Symbol] := 0;
+bosonizedProductDerivative[expr_Times, derivativeHead_Symbol, exponentialHead_Symbol] := Module[{factors = List @@ expr},
+  Total@Table[
+    bosonizedProductDerivative[factors[[i]], derivativeHead, exponentialHead] Times @@ Drop[factors, {i}],
+    {i, 1, Length[factors]}
+  ]
+];
+bosonizedProductDerivative[field_, derivativeHead_Symbol, exponentialHead_Symbol] :=
+  derivativeHead[field[[1]], field[[2]] + 1, field[[3]]] /;
+    Head[field] === derivativeHead && Length[field] == 3;
+bosonizedProductDerivative[field_, derivativeHead_Symbol, exponentialHead_Symbol] :=
+  bosonizedExponentialDerivative[field[[1]], 1, field[[2]], derivativeHead, exponentialHead] /;
+    Head[field] === exponentialHead && Length[field] == 2 && charge6Q[field[[1]]];
+bosonizedProductDerivative[field_, derivativeHead_Symbol, exponentialHead_Symbol] := 0;
+
+
+restoreBosonizedProducts::usage = "restoreBosonizedProducts[expr] rewrites products of same-point bosonized fields back into R wrappers term by term.";
+restoreBosonizedProducts[0] := 0;
+restoreBosonizedProducts[a_ + b_] := restoreBosonizedProducts[a] + restoreBosonizedProducts[b];
+restoreBosonizedProducts[c_ a_] := c restoreBosonizedProducts[a] /; isScalarFactorQ[c];
+restoreBosonizedProducts[a_ /; isScalarFactorQ[a]] := a;
+restoreBosonizedProducts[expr_Times] := Module[{factors, scalarFactors, fieldFactors},
+  factors = List @@ expr;
+  scalarFactors = Select[factors, isScalarFactorQ];
+  fieldFactors = Select[factors, Not @* isScalarFactorQ];
+  Times @@ scalarFactors Switch[Length[fieldFactors], 0, 1, 1, First[fieldFactors], _, R @@ fieldFactors]
+];
+restoreBosonizedProducts[field_] := field;
+
+
+bosonizedStateDerivative::usage = "bosonizedStateDerivative[expr, order, derivativeHead, exponentialHead] takes repeated same-sector derivatives of a bosonized spin-state expression.";
+bosonizedStateDerivative[expr_, 0, derivativeHead_Symbol, exponentialHead_Symbol] := expr;
+bosonizedStateDerivative[expr_, order_Integer?Positive, derivativeHead_Symbol, exponentialHead_Symbol] :=
+  restoreBosonizedProducts @ Nest[
+    Expand @ bosonizedProductDerivative[#, derivativeHead, exponentialHead] &,
+    expr /. ra_ /; RTest[ra] :> Times @@ (List @@ ra),
+    order
+  ];
+
+
+bosonizedSpinDerivative::usage = "bosonizedSpinDerivative[field, order, derivativeHead, exponentialHead] bosonizes field with derivative label stripped and then acts order same-sector derivatives on the bosonized result.";
+bosonizedSpinDerivative[field_, order_Integer?Positive, derivativeHead_Symbol, exponentialHead_Symbol] := Module[{base},
+  base = Bosonize[field];
+  If[!FreeQ[base, _Bosonize | _S | _St], Return[$Failed]];
+  bosonizedStateDerivative[base, order, derivativeHead, exponentialHead]
+];
+
+
 bosonizedPsiBasisComponent::usage = "bosonizedPsiBasisComponent[a, n, coord, derivativeHead, exponentialHead] returns the nth derivative bosonization of the ath vector-basis fermion component.";
 bosonizedPsiBasisComponent[a_Integer, n_Integer?NonNegative, coord_, derivativeHead_Symbol, exponentialHead_Symbol] :=
   bosonizedExponentialDerivative[Join[{0}, vectors[[a]]], n, coord, derivativeHead, exponentialHead] /; 1 <= a <= Length[vectors];
@@ -704,6 +759,24 @@ bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕ" && MatchQ[field[[1
 bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕt" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
 bosonizeStateRaw[field_ /; (MemberQ[{"expϕb", "expϕf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
 bosonizeStateRaw[field_ /; (MemberQ[{"expϕtb", "expϕtf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+
+
+bosonizeStateRaw[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, der_Integer?Positive, z_]]] := Module[{result},
+  result = bosonizedSpinDerivative[S[{spinVec, chirality}, q, modes, 0, z], der, dH, expH];
+  If[result === $Failed, S[{spinVec, chirality}, q, modes, der, z], result]
+] /;
+  spinVectorQ[spinVec] &&
+  spinVectorChiralityQ[spinVec, chirality] &&
+  AllTrue[modes, spinDescendantModeQ[#, Length[vectors]] &];
+
+
+bosonizeStateRaw[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, der_Integer?Positive, zbar_]]] := Module[{result},
+  result = bosonizedSpinDerivative[St[{spinVec, chirality}, q, modes, 0, zbar], der, dHt, expHt];
+  If[result === $Failed, St[{spinVec, chirality}, q, modes, der, zbar], result]
+] /;
+  spinVectorQ[spinVec] &&
+  spinVectorChiralityQ[spinVec, chirality] &&
+  AllTrue[modes, spinDescendantModeQ[#, Length[vectors]] &];
 
 
 (* Ramond ground states become a single six-charge exponential: the picture

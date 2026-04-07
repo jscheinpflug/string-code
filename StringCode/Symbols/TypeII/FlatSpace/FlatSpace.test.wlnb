@@ -1129,7 +1129,7 @@
   },
   {
    "kind": 2,
-   "value": "expectedMu21 = (-I R[expH[{-1/2, 1/2, 3/2, 1/2, 1/2, 1/2}, z]])/Sqrt[2] + R[dH[1, 0, z], expH[{-1/2, 1/2, -1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2] + R[dH[3, 0, z], expH[{-1/2, 1/2, -1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\nexpectedMulti121 = R[expH[{-1/2, -1/2, 3/2, 1/2, 1/2, 1/2}, z]]/2 - (I R[dH[1, 0, z], expH[{-1/2, -1/2, -1/2, 1/2, 1/2, 1/2}, z]])/2 - (I R[dH[3, 0, z], expH[{-1/2, -1/2, -1/2, 1/2, 1/2, 1/2}, z]])/2;\nexpectedMulti112 = R[dH[1, 0, z], expH[{-1/2, -3/2, 1/2, 1/2, 1/2, 1/2}, z]]/2 + (I R[dH[1, 1, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 + R[dH[2, 0, z], expH[{-1/2, -3/2, 1/2, 1/2, 1/2, 1/2}, z]]/2 - (I R[dH[2, 1, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 - (I R[dH[1, 0, z], dH[1, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 + (I R[dH[1, 0, z], dH[2, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/2 - (I R[dH[2, 0, z], dH[2, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4;\ntest29 = Simplify[Bosonize[S[sPlus, -1/2, {{2, -1}}, 0, z]] - expectedMu21] === 0 && Simplify[Bosonize[S[sPlus, -1/2, {{1, -1}, {2, -1}}, 0, z]] - expectedMulti121] === 0 && Simplify[Bosonize[S[sPlus, -1/2, {{1, -1}, {1, -2}}, 0, z]] - expectedMulti112] === 0 && Head[Bosonize[S[sPlus, -1/2, {{1, -1}}, 1, z]]] === S;\nPrint[\"Test 29 (negative-modding index-first convention, exact multimode descendants, and der guard): \", If[test29, \"PASSED\", \"FAILED\"]];\ntest29",
+   "value": "expectedMu21 = (-I R[expH[{-1/2, 1/2, 3/2, 1/2, 1/2, 1/2}, z]])/Sqrt[2] + R[dH[1, 0, z], expH[{-1/2, 1/2, -1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2] + R[dH[3, 0, z], expH[{-1/2, 1/2, -1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\nexpectedMulti121 = R[expH[{-1/2, -1/2, 3/2, 1/2, 1/2, 1/2}, z]]/2 - (I R[dH[1, 0, z], expH[{-1/2, -1/2, -1/2, 1/2, 1/2, 1/2}, z]])/2 - (I R[dH[3, 0, z], expH[{-1/2, -1/2, -1/2, 1/2, 1/2, 1/2}, z]])/2;\nexpectedMulti112 = R[dH[1, 0, z], expH[{-1/2, -3/2, 1/2, 1/2, 1/2, 1/2}, z]]/2 + (I R[dH[1, 1, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 + R[dH[2, 0, z], expH[{-1/2, -3/2, 1/2, 1/2, 1/2, 1/2}, z]]/2 - (I R[dH[2, 1, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 - (I R[dH[1, 0, z], dH[1, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4 + (I R[dH[1, 0, z], dH[2, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/2 - (I R[dH[2, 0, z], dH[2, 0, z], expH[{-1/2, 1/2, 1/2, 1/2, 1/2, 1/2}, z]])/4;\ntest29 = Simplify[Bosonize[S[sPlus, -1/2, {{2, -1}}, 0, z]] - expectedMu21] === 0 && Simplify[Bosonize[S[sPlus, -1/2, {{1, -1}, {2, -1}}, 0, z]] - expectedMulti121] === 0 && Simplify[Bosonize[S[sPlus, -1/2, {{1, -1}, {1, -2}}, 0, z]] - expectedMulti112] === 0;\nPrint[\"Test 29 (negative-modding index-first convention and exact multimode descendants): \", If[test29, \"PASSED\", \"FAILED\"]];\ntest29",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -1152,6 +1152,14 @@
    "executionSummary": {}
   },
   {
+   "kind": 2,
+   "value": "bosonizedSpinDerivativeOracleHolo[spinSpec_, q_, modes_List, der_, coord_] := Private`bosonizedStateDerivative[Bosonize[S[spinSpec, q, modes, 0, coord]], der, dH, expH];\nbosonizedSpinDerivativeOracleAnti[spinSpec_, q_, modes_List, der_, coord_] := Private`bosonizedStateDerivative[Bosonize[St[spinSpec, q, modes, 0, coord]], der, dHt, expHt];\ntest32 = Simplify[Bosonize[S[sPlus, -1/2, {}, 1, z]] - bosonizedSpinDerivativeOracleHolo[sPlus, -1/2, {}, 1, z]] === 0 && Simplify[Bosonize[St[sPlus, -1/2, {}, 1, zb]] - bosonizedSpinDerivativeOracleAnti[sPlus, -1/2, {}, 1, zb]] === 0 && Simplify[Bosonize[S[sPlus, -1/2, {{1, -1}}, 1, z]] - bosonizedSpinDerivativeOracleHolo[sPlus, -1/2, {{1, -1}}, 1, z]] === 0 && Simplify[Bosonize[St[sPlus, -1/2, {{1, -1}}, 1, zb]] - bosonizedSpinDerivativeOracleAnti[sPlus, -1/2, {{1, -1}}, 1, zb]] === 0 && Head[Bosonize[S[sPlus, -1/2, {{mu, -1}}, 1, z]]] === S;\nPrint[\"Test 32 (derivative-slot bosonization follows bosonized spin states): \", If[test32, \"PASSED\", \"FAILED\"]];\ntest32",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
    "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
@@ -1161,7 +1169,7 @@
   },
   {
    "kind": 2,
-   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31];\nPrint[\"TypeII FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
+   "value": "allTests = And[test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16, test17, test18, test19, test20, test21, test22, test23, test24, test25, test26, test27, test28, test29, test30, test31, test32];\nPrint[\"TypeII FlatSpace symbol test block: \", If[allTests, \"ALL PASSED\", \"SOME FAILED\"]];\nallTests",
    "languageId": "wolfram",
    "outputs": [
     {

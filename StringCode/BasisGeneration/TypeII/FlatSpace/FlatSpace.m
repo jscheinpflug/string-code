@@ -866,12 +866,12 @@ spinDescendantSeedPicture[q_, modes_List] := q + Length[modes];
 spinDescendantGeneratorHolo::usage =
   "spinDescendantGeneratorHolo[spinMode, coord] builds the bosonized holomorphic GSO-projected descendant generator e^{-phi} psi at coord.";
 spinDescendantGeneratorHolo[spinMode_, coord_] :=
-  bosonizeStateRaw[R[exp\[Phi]f[-1, coord], \[Psi][spinDescendantModeVectorIndex[spinMode], 0, coord]]];
+  Bosonize[R[exp\[Phi]f[-1, coord], \[Psi][spinDescendantModeVectorIndex[spinMode], 0, coord]]];
 
 spinDescendantGeneratorAntiHolo::usage =
   "spinDescendantGeneratorAntiHolo[spinMode, coord] builds the bosonized antiholomorphic GSO-projected descendant generator e^{-phit} psit at coord.";
 spinDescendantGeneratorAntiHolo[spinMode_, coord_] :=
-  bosonizeStateRaw[R[exp\[Phi]tf[-1, coord], \[Psi]t[spinDescendantModeVectorIndex[spinMode], 0, coord]]];
+  Bosonize[R[exp\[Phi]tf[-1, coord], \[Psi]t[spinDescendantModeVectorIndex[spinMode], 0, coord]]];
 
 spinDescendantContourPower::usage =
   "spinDescendantContourPower[spinMode] returns the contour-extraction power for one excited spin-field mode under the e^{-phi} psi local collapse rule.";
@@ -916,7 +916,7 @@ bosonizeSpinModesHolo::usage =
 bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, seedPicture},
   seedPicture = spinDescendantSeedPicture[q, modes];
-  state = bosonizeStateRaw[R[S[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
+  state = Bosonize[R[S[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
   state = Fold[applySpinDescendantModeHolo, state, modes];
   restoreBosonizedSpinStateHolo[state, coord]
 ];
@@ -926,7 +926,7 @@ bosonizeSpinModesAntiHolo::usage =
 bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
   {state, seedPicture},
   seedPicture = spinDescendantSeedPicture[q, modes];
-  state = bosonizeStateRaw[R[St[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
+  state = Bosonize[R[St[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
   state = Fold[applySpinDescendantModeAntiHolo, state, modes];
   restoreBosonizedSpinStateAntiHolo[state, coord]
 ];
