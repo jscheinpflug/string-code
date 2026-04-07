@@ -643,6 +643,64 @@ spinProjectionVectorConstraintPairs[obj_, freeVectors_List] := DeleteDuplicates[
   ]
 ];
 
+spinProjectionExpandedTerms::usage =
+  "spinProjectionExpandedTerms[obj] expands one expression or expression list into additive terms, dropping trivial zero terms.";
+spinProjectionExpandedTerms[obj_] := DeleteCases[
+  Flatten @ Replace[
+    Expand /@ Flatten[{obj}],
+    expr_ :> If[expr === 0, {}, If[Head[expr] === Plus, List @@ expr, {expr}]],
+    {1}
+  ],
+  0
+];
+
+spinProjectionTermVectorConstraintData::usage =
+  "spinProjectionTermVectorConstraintData[term, freeVectors] returns the free vectors present in one additive term together with the full equality closure implied by explicit deltas in that term.";
+spinProjectionTermVectorConstraintData[term_, freeVectors_List] := Module[
+  {present, groups},
+  present = SortBy[
+    Intersection[
+      freeVectors,
+      DeleteDuplicates @ Cases[
+        HoldComplete[term],
+        sym_Symbol /; MemberQ[freeVectors, sym] :> sym,
+        Infinity
+      ]
+    ],
+    SymbolName
+  ];
+  groups = spinProjectionConnectedSymbolGroups[
+    present,
+    spinProjectionVectorConstraintPairs[term, present]
+  ];
+  <|
+    "Present" -> present,
+    "Pairs" -> DeleteDuplicates[Sort /@ Flatten[Subsets[#, {2}] & /@ groups, 1]]
+  |>
+];
+
+spinProjectionCommonVectorConstraintPairs::usage =
+  "spinProjectionCommonVectorConstraintPairs[obj, freeVectors] returns the free-vector equality pairs that hold in every additive term where both symbols co-occur.";
+spinProjectionCommonVectorConstraintPairs[obj_, freeVectors_List] := Module[
+  {sortedVectors, termData},
+  sortedVectors = SortBy[DeleteDuplicates[freeVectors], SymbolName];
+  If[Length[sortedVectors] < 2, Return[{}]];
+  termData = spinProjectionTermVectorConstraintData[#, sortedVectors] & /@ spinProjectionExpandedTerms[obj];
+  DeleteDuplicates @ Select[
+    Subsets[sortedVectors, {2}],
+    Function[pair,
+      Module[{cooccurringTerms},
+        cooccurringTerms = Select[
+          termData,
+          Function[term, And @@ (MemberQ[term["Present"], #] & /@ pair)]
+        ];
+        cooccurringTerms =!= {} &&
+          AllTrue[cooccurringTerms, MemberQ[#["Pairs"], pair] &]
+      ]
+    ]
+  ]
+];
+
 spinProjectionMaxAttempts::usage = "Maximum number of randomized probes used to solve one spin-field projected OPE.";
 spinProjectionMaxAttempts = 40;
 
@@ -684,10 +742,11 @@ spinRandomizationTemplate[holoOps_List, antiOps_List, hExpr_, aExpr_] := Module[
     (Lookup[countsInput, #, 0] + Lookup[countsRHS, #, 0] > 1) &&
       !MemberQ[free, #] &
   ];
-  freeVectorSymbols = Intersection[vec, free];
+  freeVectorSymbols = SortBy[Intersection[vec, free], SymbolName];
+  (* Only equalities common to all co-occurring RHS terms should constrain probes globally; mixed equalities stay term-local. *)
   freeVectorGroups = spinProjectionConnectedSymbolGroups[
     freeVectorSymbols,
-    spinProjectionVectorConstraintPairs[{hExpr, aExpr}, freeVectorSymbols]
+    spinProjectionCommonVectorConstraintPairs[{hExpr, aExpr}, freeVectorSymbols]
   ];
   <|
     "HoloOps" -> holoOps,
@@ -946,10 +1005,11 @@ spinProjectionSectorTemplate[ops_List, expr_] := Module[
     (Lookup[countsInput, #, 0] + Lookup[countsRHS, #, 0] > 1) &&
       !MemberQ[free, #] &
   ];
-  freeVectorSymbols = Intersection[vec, free];
+  freeVectorSymbols = SortBy[Intersection[vec, free], SymbolName];
+  (* Only equalities common to all co-occurring RHS terms should constrain probes globally; mixed equalities stay term-local. *)
   freeVectorGroups = spinProjectionConnectedSymbolGroups[
     freeVectorSymbols,
-    spinProjectionVectorConstraintPairs[expr, freeVectorSymbols]
+    spinProjectionCommonVectorConstraintPairs[expr, freeVectorSymbols]
   ];
   <|
     "Ops" -> ops,
