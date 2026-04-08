@@ -29,13 +29,24 @@ gammaProductCacheLinkMatrix[CDUHold] := CDUSparse;
 gammaProductCacheLinkMatrix[GammaUDHold[mu_Integer]] /; 1 <= mu <= gammaVectorDimension := GammaUDSparse[mu];
 gammaProductCacheLinkMatrix[GammaDUHold[mu_Integer]] /; 1 <= mu <= gammaVectorDimension := GammaDUSparse[mu];
 
+gammaProductCacheAntisymmetrizedMatrixFromPattern[{}, {}] := SparseArray[Band[{1, 1}] -> 1, {gammaSpinorDimension, gammaSpinorDimension}];
+gammaProductCacheAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
+  gammaProductCacheAntisymmetrizedMatrixFromPattern[linkHeads, inds] = Module[
+    {rank = Length[inds]},
+    1/rank Sum[
+      (-1)^(pos - 1) gammaProductCacheLinkMatrix[linkHeads[[1]][inds[[pos]]]] .
+        gammaProductCacheAntisymmetrizedMatrixFromPattern[Rest[linkHeads], Delete[inds, pos]],
+      {pos, 1, rank}
+    ]
+  ];
+
 gammaProductCacheAntisymmetrizedMatrix[{}] := SparseArray[Band[{1, 1}] -> 1, {gammaSpinorDimension, gammaSpinorDimension}];
 gammaProductCacheAntisymmetrizedMatrix[vectorLinks_List] := gammaProductCacheAntisymmetrizedMatrix[vectorLinks] = Module[
-  {rank = Length[vectorLinks]},
-  1/rank Sum[
-    (-1)^(pos - 1) gammaProductCacheLinkMatrix[vectorLinks[[pos]]] . gammaProductCacheAntisymmetrizedMatrix[Delete[vectorLinks, pos]],
-    {pos, 1, rank}
-  ]
+  {linkHeads, inds},
+  linkHeads = Head /@ vectorLinks;
+  inds = vectorLinks /. {GammaUDHold[mu_Integer] :> mu, GammaDUHold[mu_Integer] :> mu};
+  If[!AllTrue[linkHeads, MemberQ[{GammaUDHold, GammaDUHold}, #] &] || !AllTrue[inds, IntegerQ], Return[$Failed]];
+  gammaProductCacheAntisymmetrizedMatrixFromPattern[linkHeads, inds]
 ];
 
 gammaProductCacheBuildMatrix[{None, start_Integer}, inds_List] :=

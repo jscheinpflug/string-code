@@ -1312,6 +1312,67 @@ spinProjectionFamilyOutputAssociations[template_, spinSymbols_List, spinChiralit
   Association @ Reap[While[True, tuple = nextState[]; If[tuple === EndOfFile, Break[]]; tuple = Reverse[tuple]; Sow[tuple -> spinProjectionOperatorAssociation @ Bosonize[template /. Join[Thread[vectorSymbols -> Drop[tuple, spinCount]], MapThread[#1 -> spinProjectionSpinBasisState[#2][[#3]] &, {spinSymbols, spinChiralities, Take[tuple, spinCount]}]]]]]][[2, 1]]
 ];
 
+spinProjectionFamilyStateRow::usage =
+  "spinProjectionFamilyStateRow[model, family, candidate, stateSpins, stateVectors, terms] evaluates one compiled family on one concrete output state and returns the exact coefficient row, 0, or $Failed.";
+spinProjectionFamilyStateRow[
+  model_Association,
+  family_Association,
+  {freeSpins_List, freeVectors_List},
+  stateSpins_List,
+  stateVectors_List,
+  terms_List : Automatic
+] := Module[{row = ConstantArray[0, model["VarCount"]], localTerms, value},
+  localTerms = Replace[terms, Automatic :> family["Terms"]];
+  Scan[
+    Function[term,
+      value = spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors];
+      If[value === $Failed,
+        row = $Failed,
+        If[value =!= 0, row[[term["Column"]]] += value]
+      ]
+    ],
+    localTerms
+  ];
+  Which[
+    row === $Failed, $Failed,
+    !AnyTrue[row, # =!= 0 &], 0,
+    True, row
+  ]
+];
+
+spinProjectionExhaustiveFamilyRows::usage =
+  "spinProjectionExhaustiveFamilyRows[model, family, candidate] exhaustively evaluates every concrete output state for one compiled family without support pruning and returns raw state rows plus aggregated operator rows.";
+spinProjectionExhaustiveFamilyRows[
+  model_Association,
+  family_Association,
+  candidate : {freeSpins_List, freeVectors_List}
+] := Module[
+  {nextState, tuple, stateSpins, stateVectors, row, assoc, stateRows = <||>, familyRows = <||>},
+  nextState = spinProjectionFamilyStateIterator[family, None];
+  While[True,
+    tuple = nextState[];
+    If[tuple === EndOfFile, Break[]];
+    tuple = Reverse[tuple];
+    stateSpins = Developer`ToPackedArray[Take[tuple, Length[family["SpinSymbols"]]]];
+    stateVectors = Developer`ToPackedArray[Drop[tuple, Length[family["SpinSymbols"]]]];
+    row = spinProjectionFamilyStateRow[model, family, candidate, stateSpins, stateVectors];
+    If[row === 0, Continue[]];
+    AssociateTo[stateRows, tuple -> row];
+    If[row === $Failed, Continue[]];
+    assoc = Lookup[family["OutputAssociations"], tuple, <||>];
+    Scan[
+      Function[pair,
+        familyRows[pair[[1]]] = Lookup[familyRows, pair[[1]], ConstantArray[0, model["VarCount"]]] + pair[[2]] row
+      ],
+      Normal[assoc]
+    ];
+  ];
+  <|
+    "StateRows" -> stateRows,
+    "FamilyRows" -> SortBy[Normal[familyRows], First]
+  |>
+];
+
 spinProjectionExactBasisInsertRow::usage =
   "spinProjectionExactBasisInsertRow[state, row] inserts one exact coefficient row into the reduced exact row basis.";
 spinProjectionExactBasisInsertRow[state_Association, rawRow_List] := Module[
@@ -1338,6 +1399,89 @@ spinProjectionExactBasisInsertRow[state_Association, rawRow_List] := Module[
   }
 ];
 
+spinProjectionCandidateRowsTrace::usage =
+  "spinProjectionCandidateRowsTrace[model, candidate, basis, seed] mirrors spinProjectionCandidateRows and returns detailed support, visited-state, and accepted-row diagnostics for each compiled family.";
+spinProjectionCandidateRowsTrace[model_Association, candidate : {freeSpins_List, freeVectors_List}, basis_Association, seed_] := Module[
+  {
+    state = basis,
+    rows = {},
+    keys = {},
+    row,
+    assoc,
+    familyRows,
+    insert,
+    nextState,
+    tuple,
+    stateSpins,
+    stateVectors,
+    spinDomain,
+    termBuckets,
+    traces = {},
+    visitedTuples,
+    nonzeroStateRows,
+    bucketColumns
+  },
+  Do[
+    familyRows = <||>;
+    visitedTuples = {};
+    nonzeroStateRows = <||>;
+    {spinDomain, termBuckets} = If[Length[family["SpinSymbols"]] == 1, spinProjectionFamilyOutputSpinDomain[family, candidate, seed, True], {spinProjectionFamilyOutputSpinDomain[family, candidate, seed], <||>}];
+    nextState = spinProjectionFamilyStateIterator[family, seed, spinDomain];
+    While[True,
+      tuple = nextState[];
+      If[tuple === EndOfFile, Break[]];
+      tuple = Reverse[tuple];
+      AppendTo[visitedTuples, tuple];
+      stateSpins = Developer`ToPackedArray[Take[tuple, Length[family["SpinSymbols"]]]];
+      stateVectors = Developer`ToPackedArray[Drop[tuple, Length[family["SpinSymbols"]]]];
+      row = spinProjectionFamilyStateRow[
+        model,
+        family,
+        candidate,
+        stateSpins,
+        stateVectors,
+        If[Length[family["SpinSymbols"]] == 1, Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]], family["Terms"]]
+      ];
+      If[row === 0, Continue[]];
+      AssociateTo[nonzeroStateRows, tuple -> row];
+      If[row === $Failed, Continue[]];
+      assoc = Lookup[family["OutputAssociations"], tuple, <||>];
+      Scan[
+        Function[pair,
+          familyRows[pair[[1]]] = Lookup[familyRows, pair[[1]], ConstantArray[0, model["VarCount"]]] + pair[[2]] row
+        ],
+        Normal[assoc]
+      ];
+    ];
+    Scan[
+      Function[pair,
+        insert = spinProjectionExactBasisInsertRow[state, pair[[2]]];
+        If[insert[[2]],
+          state = insert[[1]];
+          AppendTo[rows, pair[[2]]];
+          AppendTo[keys, pair[[1]]]
+        ]
+      ],
+      SortBy[Normal[familyRows], First]
+    ];
+    bucketColumns = Association @ KeyValueMap[#1 -> (Lookup[#, "Column"] & /@ #2) &, termBuckets];
+    AppendTo[
+      traces,
+      <|
+        "Template" -> family["Template"],
+        "SpinDomain" -> spinDomain,
+        "BucketColumns" -> bucketColumns,
+        "VisitedTuples" -> visitedTuples,
+        "NonzeroStateRows" -> nonzeroStateRows,
+        "FamilyRows" -> SortBy[Normal[familyRows], First]
+      |>
+    ];
+    If[Length[state["Pivots"]] >= model["VarCount"], Break[]],
+    {family, model["Families"]}
+  ];
+  <|"Basis" -> state, "Rows" -> rows, "Keys" -> keys, "Families" -> traces|>
+];
+
 spinProjectionCandidateRows::usage =
   "spinProjectionCandidateRows[model, candidate, basis, seed] lazily scans concrete output states and returns only exact coefficient rows that increase rank.";
 spinProjectionCandidateRows[model_Association, candidate : {freeSpins_List, freeVectors_List}, basis_Association, seed_] := Module[
@@ -1352,13 +1496,12 @@ spinProjectionCandidateRows[model_Association, candidate : {freeSpins_List, free
       tuple = Reverse[tuple];
       stateSpins = Developer`ToPackedArray[Take[tuple, Length[family["SpinSymbols"]]]];
       stateVectors = Developer`ToPackedArray[Drop[tuple, Length[family["SpinSymbols"]]]];
-      row = ConstantArray[0, model["VarCount"]];
-      Scan[
-        Function[term,
-          With[{value = spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors]},
-            If[value === $Failed, row = $Failed, If[value =!= 0, row[[term["Column"]]] += value]]
-          ]
-        ],
+      row = spinProjectionFamilyStateRow[
+        model,
+        family,
+        candidate,
+        stateSpins,
+        stateVectors,
         If[Length[family["SpinSymbols"]] == 1, Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]], family["Terms"]]
       ];
       If[row === $Failed || !AnyTrue[row, # =!= 0 &], Continue[]];

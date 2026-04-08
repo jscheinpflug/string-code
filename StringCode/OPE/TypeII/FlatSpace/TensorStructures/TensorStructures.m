@@ -488,6 +488,7 @@ sameChiralitySlotQ[_] := False;
 
 preserveOutgoingSpinOrderQ::usage =
   "preserveOutgoingSpinOrderQ[slot] is True when one outgoing same-chirality slot must keep its emitted leg order.";
+preserveOutgoingSpinOrderQ[{_, _, True, GammaFormUU}] := True;
 preserveOutgoingSpinOrderQ[{_, _, True, GammaFormDD}] := True;
 preserveOutgoingSpinOrderQ[_] := False;
 

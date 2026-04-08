@@ -34,15 +34,40 @@ spinProjectionGammaLinkMatrix[Gamma11UUHold[]] := Gamma11UUSparse;
 spinProjectionGammaLinkMatrix[Gamma11DDHold[]] := Gamma11DDSparse;
 spinProjectionGammaLinkMatrix[_] := $Failed;
 
+spinProjectionGammaVectorLinkHead::usage =
+  "spinProjectionGammaVectorLinkHead[link] returns the GammaUDHold/GammaDUHold head for one concrete vector link.";
+spinProjectionGammaVectorLinkHead[GammaUDHold[_Integer]] := GammaUDHold;
+spinProjectionGammaVectorLinkHead[GammaDUHold[_Integer]] := GammaDUHold;
+spinProjectionGammaVectorLinkHead[_] := $Failed;
+
+spinProjectionGammaVectorLinkIndex::usage =
+  "spinProjectionGammaVectorLinkIndex[link] returns the concrete vector index carried by one GammaUDHold/GammaDUHold link.";
+spinProjectionGammaVectorLinkIndex[GammaUDHold[mu_Integer]] := mu;
+spinProjectionGammaVectorLinkIndex[GammaDUHold[mu_Integer]] := mu;
+spinProjectionGammaVectorLinkIndex[_] := $Failed;
+
+spinProjectionAntisymmetrizedMatrixFromPattern::usage =
+  "spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds] antisymmetrizes the vector labels while preserving the ordered U/D head pattern.";
+spinProjectionAntisymmetrizedMatrixFromPattern[{}, {}] :=
+  SparseArray[Band[{1, 1}] -> 1, {Length[CUDSparse], Length[CUDSparse]}];
+spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
+  spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds] = Module[{rank = Length[inds]},
+    1/rank Sum[
+      (-1)^(pos - 1) spinProjectionGammaLinkMatrix[linkHeads[[1]][inds[[pos]]]] .
+        spinProjectionAntisymmetrizedMatrixFromPattern[Rest[linkHeads], Delete[inds, pos]],
+      {pos, 1, rank}
+    ]
+  ];
+
 spinProjectionAntisymmetrizedMatrix::usage =
   "spinProjectionAntisymmetrizedMatrix[vectorLinks] returns the exact antisymmetrized gamma matrix for one concrete vector-link list.";
 spinProjectionAntisymmetrizedMatrix[{}] := SparseArray[Band[{1, 1}] -> 1, {Length[CUDSparse], Length[CUDSparse]}];
 spinProjectionAntisymmetrizedMatrix[vectorLinks_List] := spinProjectionAntisymmetrizedMatrix[vectorLinks] = Module[
-  {rank = Length[vectorLinks]},
-  1/rank Sum[
-    (-1)^(pos - 1) spinProjectionGammaLinkMatrix[vectorLinks[[pos]]] . spinProjectionAntisymmetrizedMatrix[Delete[vectorLinks, pos]],
-    {pos, 1, rank}
-  ]
+  {linkHeads, inds},
+  linkHeads = spinProjectionGammaVectorLinkHead /@ vectorLinks;
+  inds = spinProjectionGammaVectorLinkIndex /@ vectorLinks;
+  If[MemberQ[linkHeads, $Failed] || MemberQ[inds, $Failed], Return[$Failed]];
+  spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds]
 ];
 
 spinProjectionFlipVectorLinkDirections::usage =
@@ -934,16 +959,25 @@ spinProjectionGammaKernelPairMatrixCache::usage =
   "spinProjectionGammaKernelPairMatrixCache memoizes shared paired-kernel matrices by structural key and concrete exposed-vector tuple.";
 spinProjectionGammaKernelPairMatrixCache = <||>;
 
+spinProjectionGammaKernelMatrixEntryVector::usage =
+  "spinProjectionGammaKernelMatrixEntryVector[matrix] flattens a concrete factor matrix in the same {row,col} entry order used by spinProjectionGammaKernelEncodeSpinTuple[{row,col}].";
+spinProjectionGammaKernelMatrixEntryVector[matrix_] := Flatten[Transpose[Normal[matrix]]];
+
 spinProjectionCompileGammaKernelPairMatrix::usage =
-  "spinProjectionCompileGammaKernelPairMatrix[key, kernel, vectorTuple] builds one shared paired K-matrix by summing sparse Kronecker products of the cached local factor matrices over the antisymmetric dummy-index sum.";
+  "spinProjectionCompileGammaKernelPairMatrix[key, kernel, vectorTuple] builds one shared paired K-matrix by summing outer products of cached factor-entry vectors over the antisymmetric dummy-index sum.";
 spinProjectionCompileGammaKernelPairMatrix[key_, kernel_Association, vectorTuple_List] := Module[
-  {leftFactor, rightFactor, leftMatrices, rightMatrices},
-  leftFactor = kernel["Factors"][[1]];
-  rightFactor = kernel["Factors"][[2]];
+  {leftMatrices, rightMatrices},
   leftMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 1, vectorTuple];
   rightMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 2, vectorTuple];
   If[leftMatrices === $Failed || rightMatrices === $Failed, Return[$Failed]];
-  Total[MapThread[KroneckerProduct, {leftMatrices, rightMatrices}]]
+  Total @ MapThread[
+    Outer[
+      Times,
+      spinProjectionGammaKernelMatrixEntryVector[#1],
+      spinProjectionGammaKernelMatrixEntryVector[#2]
+    ] &,
+    {leftMatrices, rightMatrices}
+  ]
 ];
 
 spinProjectionGammaKernelPairMatrix::usage =
@@ -963,8 +997,9 @@ spinProjectionGammaKernelPairMatrix[key_, vectorTuple_List] := Module[
 ];
 
 spinProjectionGammaKernelBoundaryVector::usage =
-  "spinProjectionGammaKernelBoundaryVector[spinVectors] flattens one ordered list of boundary spin vectors into the dense basis vector used by paired K-matrix contractions.";
+  "spinProjectionGammaKernelBoundaryVector[spinVectors] flattens one ordered list of boundary spin vectors into the dense entry-order basis used by paired K-matrix contractions.";
 spinProjectionGammaKernelBoundaryVector[{vec_}] := vec;
+spinProjectionGammaKernelBoundaryVector[{left_, right_}] := Flatten[Transpose[Outer[Times, left, right]]];
 spinProjectionGammaKernelBoundaryVector[spinVectors_List] := Flatten[KroneckerProduct @@ spinVectors];
 
 spinProjectionGammaKernelProbeValue::usage =
