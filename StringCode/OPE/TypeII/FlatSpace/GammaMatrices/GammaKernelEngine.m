@@ -24,6 +24,18 @@ spinProjectionSpinBasisState::usage =
   "spinProjectionSpinBasisState[chirality] returns the ordered explicit spin basis used by the compiled exact gamma engine.";
 spinProjectionSpinBasisState[chirality_String] := spinProjectionSpinBasisState[chirality] = spinIterationValues[chirality];
 
+spinProjectionConcreteSpinBasisIndex::usage =
+  "spinProjectionConcreteSpinBasisIndex[spin] returns the canonical 1-based spin-basis index for one concrete spin source, accepting either an index or an explicit chiral/antichiral basis vector.";
+spinProjectionConcreteSpinBasisIndex[spin_Integer?Positive] := spin;
+spinProjectionConcreteSpinBasisIndex[spin_List] := Module[{chiralIndex, antichiralIndex},
+  chiralIndex = FirstPosition[spinProjectionSpinBasisState["chiral"], spin, Missing["NotFound"], {1}, Heads -> False];
+  If[chiralIndex =!= Missing["NotFound"], Return[First[chiralIndex]]];
+  antichiralIndex = FirstPosition[spinProjectionSpinBasisState["antichiral"], spin, Missing["NotFound"], {1}, Heads -> False];
+  If[antichiralIndex =!= Missing["NotFound"], Return[First[antichiralIndex]]];
+  $Failed
+];
+spinProjectionConcreteSpinBasisIndex[_] := $Failed;
+
 spinProjectionGammaLinkMatrix::usage =
   "spinProjectionGammaLinkMatrix[link] returns the exact 16x16 matrix associated with one concrete gamma-chain link.";
 spinProjectionGammaLinkMatrix[CUDHold] := CUDSparse;
@@ -482,7 +494,7 @@ spinProjectionSpinSourceValue::usage =
   "spinProjectionSpinSourceValue[src, freeSpins, stateSpins] resolves one compiled spin source to a concrete 1-based spin basis index.";
 spinProjectionSpinSourceValue[src_, freeSpins_List, stateSpins_List] := Switch[src[[1]],
   1, freeSpins[[src[[2]]]],
-  2, stateSpins[[src[[2]]]],
+  2, spinProjectionConcreteSpinBasisIndex[stateSpins[[src[[2]]]]],
   _, $Failed
 ];
 

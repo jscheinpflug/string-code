@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# TypeII FlatSpace Projection Probing\n\nConcrete bosonized probe harness for sampled `OPEProjected[...]` checks.",
+   "value": "# TypeII FlatSpace internal probes\n\nInternal artifact/solver contract checks for projected spin-field OPE.",
    "languageId": "markdown",
    "outputs": [],
    "metadata": {},
@@ -10,7 +10,7 @@
   },
   {
    "kind": 2,
-   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];",
+   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Xi\", \"bracket\" -> \"Flat\"|>];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`SpinProjection`TestSupport`\"];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -26,23 +26,7 @@
   },
   {
    "kind": 2,
-   "value": "spinProbeBasis[chirality_String] := Private`spinProjectionSpinBasisState[chirality];\n\nprobeConcreteGammaFactorValue[factor_GammaAntisymmetricProductHold] := Module[\n  {value, links, spinors, concreteChiralities, indices, matrix},\n  value = Private`spinProjectionGammaFactorValue[factor];\n  If[UnsameQ[Head[value], GammaAntisymmetricProductHold], Return[value]];\n  links = factor[[1]];\n  spinors = {factor[[2]], factor[[3]]};\n  concreteChiralities = Private`spinProjectionConcreteSpinChirality /@ spinors;\n  If[AllTrue[concreteChiralities, StringQ] && SameQ @@ concreteChiralities,\n    indices = MapThread[Private`spinProjectionSpinorBasisIndex, {spinors, concreteChiralities}];\n    If[AllTrue[indices, IntegerQ],\n      matrix = Private`spinProjectionGammaFactorMatrix[links];\n      If[MatrixQ[matrix] || Head[matrix] === SparseArray,\n        Return[matrix[[indices[[1]], indices[[2]]]]]\n      ]\n    ]\n  ];\n  factor\n];\nprobeConcreteGammaFactorValue[x_] := x;\n\nprobeEvaluateTensorScalars[expr_] := Expand[expr /. {\n  factor_GammaAntisymmetricProductHold :> probeConcreteGammaFactorValue[factor],\n  factor_ /; Head[factor] === \\[Delta] && Length[factor] == 2 :> KroneckerDelta[factor[[1]], factor[[2]]]\n}];\n\nprobeOutputOperatorData[expr_] := DeleteDuplicates @ Cases[\n  expr,\n  R[(head : (S | St))[{idx_Symbol, chir_}, pic_, modes_, lvl_, z_]] :>\n    <|\"Head\" -> head, \"Index\" -> idx, \"Chirality\" -> chir, \"Picture\" -> pic, \"Modes\" -> modes, \"Level\" -> lvl, \"z\" -> z|>,\n  Infinity\n];\n\nprobeOutputCandidates[expr_, inputSpinSyms_List] := Module[{ops, fresh, reused},\n  ops = probeOutputOperatorData[expr];\n  fresh = Select[ops, FreeQ[inputSpinSyms, #[\"Index\"]] &];\n  reused = Select[ops, MemberQ[inputSpinSyms, #[\"Index\"]] &];\n  DeleteDuplicates@Join[fresh, reused]\n];\nprobeOutputCandidates[expr_, inputSpinSym_Symbol] := probeOutputCandidates[expr, {inputSpinSym}];\n\nprobeEvaluateConcreteProjectedRHS[rhs_, rules_List, outputData_Association, outputState_] := Module[{expr},\n  expr = Quiet[Bosonize[rhs /. rules /. outputData[\"Index\"] -> outputState], S::alpha];\n  probeEvaluateTensorScalars[expr]\n];\n\nprobeProjectedOPESampleResult[lhsAssoc_Association, witness_Association, inputAssoc_Association, vectorValues_List] := Module[\n  {rhsAssoc, key, lhsCoeff, rhsCoeff},\n  rhsAssoc = witness[\"RHSAssoc\"];\n  key = First[Keys[rhsAssoc]];\n  lhsCoeff = Lookup[lhsAssoc, key, 0] // Simplify;\n  rhsCoeff = Lookup[rhsAssoc, key, 0] // Simplify;\n  <|\n    \"Status\" -> If[TrueQ[Simplify[lhsCoeff == rhsCoeff]], \"Matched\", \"Mismatch\"],\n    \"MatchQ\" -> TrueQ[Simplify[lhsCoeff == rhsCoeff]],\n    \"InputStates\" -> inputAssoc,\n    \"VectorValues\" -> vectorValues,\n    \"OutputIndex\" -> witness[\"OutputIndex\"],\n    \"OutputState\" -> witness[\"OutputState\"],\n    \"OutputData\" -> witness[\"OutputData\"],\n    \"OperatorKey\" -> key,\n    \"LHSCoeff\" -> lhsCoeff,\n    \"RHSCoeff\" -> rhsCoeff\n  |>\n];\n\nprobeProjectedOPECase[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  {inputSpinSymbol_Symbol, inputSpinChirality_String},\n  inputBuilder_Function\n] := Module[\n  {\n    inputBasis,\n    inputIndex,\n    inputState,\n    vectorValues,\n    lhsInputs,\n    lhsExpr,\n    lhsAssoc,\n    witness,\n    inputRules\n  },\n  inputBasis = spinProbeBasis[inputSpinChirality];\n  inputIndex = RandomInteger[{1, Length[inputBasis]}];\n  inputState = inputBasis[[inputIndex]];\n  vectorValues = RandomSample[Range[10], Length[inputVectorSymbols]];\n  lhsInputs = Bosonize /@ inputBuilder[vectorValues, inputState];\n  lhsExpr = Private`spinProjectionSectorEvaluation[sector, weight, lhsInputs] // Expand;\n  lhsAssoc = Private`spinProjectionOperatorAssociation[lhsExpr];\n  inputRules = Join[Thread[inputVectorSymbols -> vectorValues], {inputSpinSymbol -> inputState}];\n  witness = Catch[\n    Do[\n      Module[{outputBasis = spinProbeBasis[outputData[\"Chirality\"]], localExpr, localAssoc},\n        Do[\n          localExpr = probeEvaluateConcreteProjectedRHS[rhs, inputRules, outputData, outputBasis[[b]]];\n          localAssoc = Private`spinProjectionOperatorAssociation[localExpr];\n          If[\n            UnsameQ[localExpr, 0] &&\n            UnsameQ[localAssoc, <||>] &&\n            FreeQ[localExpr, GammaAntisymmetricProductHold | $Failed],\n            Throw[\n              <|\n                \"OutputData\" -> outputData,\n                \"OutputIndex\" -> b,\n                \"OutputState\" -> outputBasis[[b]],\n                \"RHSAssoc\" -> localAssoc\n              |>,\n              \"ProbeWitness\"\n            ]\n          ],\n          {b, Length[outputBasis]}\n        ]\n      ],\n      {outputData, probeOutputCandidates[rhs, inputSpinSymbol]}\n    ],\n    \"ProbeWitness\"\n  ];\n  If[Not[AssociationQ[witness]],\n    Return[\n      <|\n        \"Status\" -> \"NoWitness\",\n        \"InputStates\" -> <|inputSpinSymbol -> inputState|>,\n        \"VectorValues\" -> vectorValues,\n        \"LHSExpr\" -> lhsExpr\n      |>\n    ]\n  ];\n  probeProjectedOPESampleResult[lhsAssoc, witness, <|inputSpinSymbol -> inputState|>, vectorValues]\n];\n\nprobeProjectedMultiSpinOPECase[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  inputSpinSpecs_List,\n  inputBuilder_Function\n] := Module[\n  {\n    inputStates,\n    vectorValues,\n    lhsInputs,\n    lhsExpr,\n    lhsAssoc,\n    inputRules,\n    inputAssoc,\n    witness\n  },\n  inputStates = Association @ Map[\n    Function[spec,\n      spec[[1]] -> RandomChoice[spinProbeBasis[spec[[2]]]]\n    ],\n    inputSpinSpecs\n  ];\n  vectorValues = RandomSample[Range[10], Length[inputVectorSymbols]];\n  lhsInputs = Bosonize /@ inputBuilder[vectorValues, inputStates];\n  lhsExpr = Private`spinProjectionSectorEvaluation[sector, weight, lhsInputs] // Expand;\n  lhsAssoc = Private`spinProjectionOperatorAssociation[lhsExpr];\n  inputAssoc = KeySort[inputStates];\n  inputRules = Join[Thread[inputVectorSymbols -> vectorValues], Normal[inputAssoc]];\n  witness = Catch[\n    Do[\n      Module[{outputBasis = spinProbeBasis[outputData[\"Chirality\"]], localExpr, localAssoc},\n        Do[\n          localExpr = probeEvaluateConcreteProjectedRHS[rhs, inputRules, outputData, outputBasis[[b]]];\n          localAssoc = Private`spinProjectionOperatorAssociation[localExpr];\n          If[\n            UnsameQ[localExpr, 0] &&\n            UnsameQ[localAssoc, <||>] &&\n            FreeQ[localExpr, GammaAntisymmetricProductHold | $Failed],\n            Throw[\n              <|\n                \"OutputData\" -> outputData,\n                \"OutputIndex\" -> b,\n                \"OutputState\" -> outputBasis[[b]],\n                \"RHSAssoc\" -> localAssoc\n              |>,\n              \"ProbeWitness\"\n            ]\n          ],\n          {b, Length[outputBasis]}\n        ]\n      ],\n      {outputData, probeOutputCandidates[rhs, Keys[inputAssoc]]}\n    ],\n    \"ProbeWitness\"\n  ];\n  If[Not[AssociationQ[witness]],\n    Return[\n      <|\n        \"Status\" -> \"NoWitness\",\n        \"InputStates\" -> inputAssoc,\n        \"VectorValues\" -> vectorValues,\n        \"LHSExpr\" -> lhsExpr\n      |>\n    ]\n  ];\n  probeProjectedOPESampleResult[lhsAssoc, witness, inputAssoc, vectorValues]\n];\n\nprobeProjectedOPESamples[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  inputSpinSpec : {(_Symbol), (_String)},\n  inputBuilder_Function,\n  sampleCount_Integer : 3,\n  attemptBudget_Integer : 20,\n  seed_ : Automatic\n] := BlockRandom[\n  If[UnsameQ[seed, Automatic], SeedRandom[seed]];\n  Module[{samples = {}, attempts = 0, sample},\n    While[Length[samples] < sampleCount && attempts < attemptBudget,\n      attempts++;\n      sample = probeProjectedOPECase[sector, weight, rhs, inputVectorSymbols, inputSpinSpec, inputBuilder];\n      If[UnsameQ[sample[\"Status\"], \"NoWitness\"], AppendTo[samples, sample]]\n    ];\n    <|\n      \"RequestedSamples\" -> sampleCount,\n      \"Attempts\" -> attempts,\n      \"Samples\" -> samples,\n      \"EnoughSamplesQ\" -> Length[samples] >= sampleCount,\n      \"AllMatchedQ\" -> AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &],\n      \"PassQ\" -> (Length[samples] >= sampleCount && AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &])\n    |>\n  ]\n];\n\nprobeProjectedMultiSpinOPESamples[\n  sector_,\n  weight_,\n  rhs_,\n  inputVectorSymbols_List,\n  inputSpinSpecs_List,\n  inputBuilder_Function,\n  sampleCount_Integer : 3,\n  attemptBudget_Integer : 20,\n  seed_ : Automatic\n] := BlockRandom[\n  If[UnsameQ[seed, Automatic], SeedRandom[seed]];\n  Module[{samples = {}, attempts = 0, sample},\n    While[Length[samples] < sampleCount && attempts < attemptBudget,\n      attempts++;\n      sample = probeProjectedMultiSpinOPECase[sector, weight, rhs, inputVectorSymbols, inputSpinSpecs, inputBuilder];\n      If[UnsameQ[sample[\"Status\"], \"NoWitness\"], AppendTo[samples, sample]]\n    ];\n    <|\n      \"RequestedSamples\" -> sampleCount,\n      \"Attempts\" -> attempts,\n      \"Samples\" -> samples,\n      \"EnoughSamplesQ\" -> Length[samples] >= sampleCount,\n      \"AllMatchedQ\" -> AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &],\n      \"PassQ\" -> (Length[samples] >= sampleCount && AllTrue[samples, TrueQ[Lookup[#, \"MatchQ\", False]] &])\n    |>\n  ]\n];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 1,
-   "value": "## Sample Probe\n\nTargeted check for `OPEProjected[2, 0][R[S[{a1, \\\"antichiral\\\"}, -1/2, {{mu,-1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]]`.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample1 = probeProjectedOPESamples[\n  \"Holo\",\n  2,\n  OPEProjected[2, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]],\n  {mu, nu},\n  {a1, \"antichiral\"},\n  Function[{vecs, spin}, {\n    R[S[{spin, \"antichiral\"}, -1/2, {{vecs[[1]], -1}}, 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]]\n  }],\n  8,\n  160,\n  20260407\n];\n\ntest1 = testReport[\"Probe Test 1 (excited-spin [2,0] concrete probes all match)\", probeSample1[\"PassQ\"]];",
+   "value": "spinProbeBasis[chirality_String] := Private`spinProjectionSpinBasisState[chirality];\n\nprobeSpinIndex[spin_List] := Module[{pos},\n  pos = FirstPosition[spinProbeBasis[\"chiral\"], spin, Missing[\"NotFound\"], {1}, Heads -> False];\n  If[pos =!= Missing[\"NotFound\"], Return[First[pos]]];\n  pos = FirstPosition[spinProbeBasis[\"antichiral\"], spin, Missing[\"NotFound\"], {1}, Heads -> False];\n  If[pos =!= Missing[\"NotFound\"], Return[First[pos]]];\n  $Failed\n];\nprobeSpinIndex[x_] := x;\n\nprobeEvaluateTensorScalars = Private`spinProjectionEvaluateTensorScalars0;\nprobeEvaluateSummedTensorScalars = Private`spinProjectionEvaluateSummedTensorScalars0;",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -50,7 +34,7 @@
   },
   {
    "kind": 2,
-   "value": "probeSample1",
+   "value": "mixedGammaRegression1 = Module[{actual, expected},\n  actual = Normal @ Private`spinProjectionGammaFactorMatrix[{GammaDUHold[4], GammaUDHold[7]}];\n  expected = Normal @ (1/2 (GammaDUSparse[4].GammaUDSparse[7] - GammaDUSparse[7].GammaUDSparse[4]));\n  AllTrue[Flatten[Simplify[actual - expected]], PossibleZeroQ]\n];\n\nmixedGammaRegression2 = Module[{actual, expected},\n  actual = Normal @ Private`spinProjectionGammaFactorMatrix[{GammaUDHold[4], GammaDUHold[7]}];\n  expected = Normal @ (1/2 (GammaUDSparse[4].GammaDUSparse[7] - GammaUDSparse[7].GammaDUSparse[4]));\n  AllTrue[Flatten[Simplify[actual - expected]], PossibleZeroQ]\n];\n\ntest1 = testReport[\n  \"Probe Test 1 (mixed rank-2 gamma antisymmetrization keeps U/D pattern)\",\n  mixedGammaRegression1 && mixedGammaRegression2\n];\n\nprobeTrace1 = Module[{ops, artifacts, artifact, candidate, lhsAssoc, trace},\n  ops = {\n    R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]\n  };\n  artifacts = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Compile`buildProjectedArtifacts[ops, 1, 0, 1234];\n  artifact = artifacts[\"Holo\"];\n  candidate = {Developer`ToPackedArray[{10}], Developer`ToPackedArray[{4, 7}]};\n  lhsAssoc = Private`spinProjectionOperatorAssociation @ Expand @ Private`spinProjectionSectorEvaluation[\n    \"Holo\",\n    1,\n    Bosonize /@ {\n      R[S[{{1/2, -1/2, 1/2, -1/2, -1/2}, \"antichiral\"}, -1/2, {{4, -1}}, 0, z1]],\n      R[exp\\[Phi]f[-1, z2], \\[Psi][7, 0, z2]]\n    }\n  ];\n  trace = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Solve`traceSectorArtifact[artifact, candidate, 1234];\n  <|\n    \"LHSAssoc\" -> lhsAssoc,\n    \"Trace\" -> trace[\"Trace\"],\n    \"Exhaustive\" -> trace[\"Exhaustive\"]\n  |>\n];\n\ntest2 = testReport[\n  \"Probe Test 2 ([1,0] solver trace diagnostics run)\",\n  AssociationQ[probeTrace1] &&\n    AssociationQ[probeTrace1[\"LHSAssoc\"]] &&\n    AssociationQ[probeTrace1[\"Trace\"]] &&\n    AssociationQ[probeTrace1[\"Exhaustive\"]] &&\n    Length[probeTrace1[\"Trace\", \"Families\"]] == 1\n];\n\ntest3 = testReport[\n  \"Probe Test 3 ([1,0] bad sample yields nonzero compiled rows)\",\n  probeTrace1[\"Trace\", \"Families\"][[1, \"NonzeroStateRows\"]] =!= <||> &&\n    probeTrace1[\"Exhaustive\", \"StateRows\"] =!= <||>\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -58,7 +42,7 @@
   },
   {
    "kind": 2,
-   "value": "probeSample2 = probeProjectedOPESamples[\n  \"Holo\",\n  1,\n  OPEProjected[1, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]],\n  {mu, nu},\n  {a1, \"antichiral\"},\n  Function[{vecs, spin}, {\n    R[S[{spin, \"antichiral\"}, -1/2, {{vecs[[1]], -1}}, 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]]\n  }],\n  8,\n  160,\n  20260408\n];\n\ntest2 = testReport[\"Probe Test 2 (excited-spin [1,0] concrete probes all match)\", probeSample2[\"PassQ\"]];",
+   "value": "fiveSpinOps = {\n  R[S[{a1, \"chiral\"}, -1/2, {}, 0, z1]],\n  R[S[{a2, \"chiral\"}, -1/2, {}, 0, z2]],\n  R[S[{a3, \"chiral\"}, -1/2, {}, 0, z3]],\n  R[S[{a4, \"chiral\"}, -1/2, {}, 0, z4]],\n  R[S[{a5, \"chiral\"}, -1/2, {}, 0, z5]]\n};\n\nfiveSpinArtifacts = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Compile`buildProjectedArtifacts[fiveSpinOps, 0, 0, 1234];\nfiveSpinArtifact = fiveSpinArtifacts[\"Holo\"];\nfiveSpinSolveData = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Solve`solveSectorArtifact[fiveSpinArtifact, 1234];\nfiveSpinSolveDataAlt = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Solve`solveSectorArtifact[fiveSpinArtifact, 4321];\n\nfiveSpinTermWitnesses = {\n  <|\"Name\" -> \"W1\", \"FreeSpins\" -> {13, 1, 15, 6, 5}, \"StateSpins\" -> {{1/2, -1/2, 1/2, 1/2, -1/2}}, \"Key\" -> R[expH[{-5/2, 1/2, -1/2, 1/2, 1/2, -1/2}, 0]]|>,\n  <|\"Name\" -> \"W2\", \"FreeSpins\" -> {3, 12, 9, 6, 11}, \"StateSpins\" -> {{1/2, -1/2, 1/2, -1/2, 1/2}}, \"Key\" -> R[expH[{-5/2, 1/2, -1/2, 1/2, -1/2, 1/2}, 0]]|>,\n  <|\"Name\" -> \"W3\", \"FreeSpins\" -> {15, 13, 1, 2, 6}, \"StateSpins\" -> {{1/2, 1/2, 1/2, -1/2, -1/2}}, \"Key\" -> R[expH[{-5/2, 1/2, 1/2, 1/2, -1/2, -1/2}, 0]]|>\n};\n\nfiveSpinTermFaithfulness = spinProjectionColumnFaithfulnessCheck[fiveSpinArtifact, fiveSpinTermWitnesses];\n\nfiveSpinTermColumns = Lookup[Flatten[fiveSpinArtifact[\"Families\"][[All, \"Terms\"]], 1], \"Column\", {}];\nfiveSpinSemantic = Private`spinProjectionSemanticCaseCheck0[fiveSpinOps, 0, 0, 1234];\n\ntest9a = testReport[\"Probe Test 9a (five-spin symbolic columns match compiled columns on three fixed witnesses)\", AllTrue[fiveSpinTermFaithfulness, TrueQ[Lookup[#, \"MatchQ\", False]] &]];\n\ntest9b = testReport[\n  \"Probe Test 9b (five-spin artifact contract)\",\n  fiveSpinArtifact[\"Mode\"] === \"SpinProjection\" &&\n    fiveSpinArtifact[\"VarCount\"] === Length[fiveSpinArtifact[\"Columns\"]] &&\n    fiveSpinTermColumns =!= {} &&\n    Min[fiveSpinTermColumns] >= 1 &&\n    Max[fiveSpinTermColumns] <= fiveSpinArtifact[\"VarCount\"]\n];\n\ntest9 = testReport[\n  \"Probe Test 9 (five-spin compiled search reaches full rank)\",\n  TrueQ[fiveSpinSolveData[\"CompleteQ\"]] &&\n    fiveSpinSolveData[\"Pivots\"] === Range[fiveSpinArtifact[\"VarCount\"]]\n];\n\ntest13 = testReport[\n  \"Probe Test 13 (solveSectorArtifact result contract)\",\n  AssociationQ[fiveSpinSolveData] &&\n    KeyExistsQ[fiveSpinSolveData, \"CoeffVector\"] &&\n    KeyExistsQ[fiveSpinSolveData, \"Pivots\"] &&\n    KeyExistsQ[fiveSpinSolveData, \"VisitedCandidates\"] &&\n    KeyExistsQ[fiveSpinSolveData, \"AcceptedCandidates\"] &&\n    KeyExistsQ[fiveSpinSolveData, \"AcceptedRows\"]\n];\n\ntest13b = testReport[\n  \"Probe Test 13b (seed-invariance for artifact solve)\",\n  fiveSpinSolveData[\"Pivots\"] === fiveSpinSolveDataAlt[\"Pivots\"] &&\n    And @@ MapThread[TrueQ[Simplify[#1 == #2]] &, {fiveSpinSolveData[\"CoeffVector\"], fiveSpinSolveDataAlt[\"CoeffVector\"]}]\n];\n\ntest13c = testReport[\n  \"Probe Test 13c (five-spin semantic reconstruction)\",\n  TrueQ[Lookup[fiveSpinSemantic, \"CompleteQ\", False]]\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -66,103 +50,7 @@
   },
   {
    "kind": 2,
-   "value": "probeSample2",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 1,
-   "value": "## Verified Spin-Field Samples\n\nConcrete bosonized checks for the repaired `psi-psi-S` and `psi-psi-psi-S` projected OPEs.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample3 = probeProjectedOPESamples[\n  \"Holo\",\n  0,\n  OPEProjected[0, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z3]]],\n  {mu, nu},\n  {alpha, \"chiral\"},\n  Function[{vecs, spin}, {\n    R[exp\\[Phi]f[-1, z1], \\[Psi][vecs[[1]], 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]],\n    R[S[{spin, \"chiral\"}, -1/2, {}, 0, z3]]\n  }],\n  3,\n  40,\n  20260409\n];\n\ntest3 = testReport[\"Probe Test 3 (psi-psi-S concrete probes all match)\", probeSample3[\"PassQ\"]];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample3",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample4 = probeProjectedOPESamples[\n  \"Holo\",\n  -2,\n  OPEProjected[-2, 0][R[exp\\[Phi]f[-1, z1], \\[Psi][mu, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], R[exp\\[Phi]f[-1, z3], \\[Psi][rho, 0, z3]], R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z4]]],\n  {mu, nu, rho},\n  {alpha, \"chiral\"},\n  Function[{vecs, spin}, {\n    R[exp\\[Phi]f[-1, z1], \\[Psi][vecs[[1]], 0, z1]],\n    R[exp\\[Phi]f[-1, z2], \\[Psi][vecs[[2]], 0, z2]],\n    R[exp\\[Phi]f[-1, z3], \\[Psi][vecs[[3]], 0, z3]],\n    R[S[{spin, \"chiral\"}, -1/2, {}, 0, z4]]\n  }],\n  3,\n  40,\n  20260410\n];\n\ntest4 = testReport[\"Probe Test 4 (psi-psi-psi-S concrete probes all match)\", probeSample4[\"PassQ\"]];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample4",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 1,
-   "value": "## [1,0] Solver Trace\n\nDeterministic compiled-row diagnostics for the known `[1,0]` excited-spin-field probe sample.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeTrace1 = Module[{o, model, family, candidate, lhsAssoc},\n  o = Private`getOutgoingOperatorsTensors[\n    {\n      R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]],\n      R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]\n    },\n    1,\n    0,\n    1234\n  ];\n  model = Private`compileSpinProjectionSectorModel[\"Holo\", o[\"holoOps\"], 1, o[\"holoData\"]];\n  family = First[model[\"Families\"]];\n  candidate = {Developer`ToPackedArray[{10}], Developer`ToPackedArray[{4, 7}]};\n  lhsAssoc = Private`spinProjectionOperatorAssociation @ Expand @ Private`spinProjectionSectorEvaluation[\n    \"Holo\",\n    1,\n    Bosonize /@ {\n      R[S[{{1/2, -1/2, 1/2, -1/2, -1/2}, \"antichiral\"}, -1/2, {{4, -1}}, 0, z1]],\n      R[exp\\[Phi]f[-1, z2], \\[Psi][7, 0, z2]]\n    }\n  ];\n  <|\n    \"LHSAssoc\" -> lhsAssoc,\n    \"Trace\" -> Private`spinProjectionCandidateRowsTrace[model, candidate, <|\"Rows\" -> {}, \"Pivots\" -> {}|>, 1234],\n    \"Exhaustive\" -> Private`spinProjectionExhaustiveFamilyRows[model, family, candidate]\n  |>\n];\n\ntest5 = testReport[\n  \"Probe Test 5 ([1,0] solver trace diagnostics run)\",\n  AssociationQ[probeTrace1] &&\n    AssociationQ[probeTrace1[\"LHSAssoc\"]] &&\n    AssociationQ[probeTrace1[\"Trace\"]] &&\n    AssociationQ[probeTrace1[\"Exhaustive\"]] &&\n    Length[probeTrace1[\"Trace\", \"Families\"]] == 1\n];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 1,
-   "value": "## Mixed Gamma Regression\n\nDeterministic checks for the corrected mixed `DU/UD` and `UD/DU` antisymmetrized gamma semantics, plus the fixed `[1,0]` bad sample.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "mixedGammaRegression1 = Module[{actual, expected},\n  actual = Normal @ Private`spinProjectionGammaFactorMatrix[{GammaDUHold[4], GammaUDHold[7]}];\n  expected = Normal @ (1/2 (GammaDUSparse[4].GammaUDSparse[7] - GammaDUSparse[7].GammaUDSparse[4]));\n  AllTrue[Flatten[Simplify[actual - expected]], PossibleZeroQ]\n];\n\nmixedGammaRegression2 = Module[{actual, expected},\n  actual = Normal @ Private`spinProjectionGammaFactorMatrix[{GammaUDHold[4], GammaDUHold[7]}];\n  expected = Normal @ (1/2 (GammaUDSparse[4].GammaDUSparse[7] - GammaUDSparse[7].GammaDUSparse[4]));\n  AllTrue[Flatten[Simplify[actual - expected]], PossibleZeroQ]\n];\n\nprobeFixed1 = Module[{rhs, assoc, outputData, outputState, key},\n  rhs = OPEProjected[1, 0][R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]], \"RandomSeed\" -> 1234];\n  outputData = <|\"Head\" -> S, \"Index\" -> α1, \"Chirality\" -> \"antichiral\", \"Picture\" -> -3/2, \"Modes\" -> {}, \"Level\" -> 0, \"z\" -> 0|>;\n  outputState = {1/2, 1/2, 1/2, 1/2, -1/2};\n  key = R[expH[{-3/2, 1/2, 1/2, 1/2, 1/2, -1/2}, 0]];\n  assoc = Private`spinProjectionOperatorAssociation @ probeEvaluateConcreteProjectedRHS[\n    rhs,\n    {mu -> 4, nu -> 7, a1 -> {1/2, -1/2, 1/2, -1/2, -1/2}},\n    outputData,\n    outputState\n  ];\n  <|\"RHS\" -> rhs, \"Assoc\" -> assoc, \"Coeff\" -> Lookup[assoc, key, 0]|>\n];\n\ntest6 = testReport[\n  \"Probe Test 6 (mixed rank-2 gamma antisymmetrization keeps U/D pattern)\",\n  mixedGammaRegression1 && mixedGammaRegression2\n];\n\ntest7 = testReport[\n  \"Probe Test 7 ([1,0] fixed bad sample now reproduces missing coefficient)\",\n  Simplify[probeFixed1[\"Coeff\"] - 1/(2 (z1 - z2)^2)] === 0\n];\n\ntest8 = testReport[\n  \"Probe Test 8 ([1,0] bad sample now yields nonzero compiled rows)\",\n  probeTrace1[\"Trace\", \"Families\"][[1, \"NonzeroStateRows\"]] =!= <||> &&\n    probeTrace1[\"Exhaustive\", \"StateRows\"] =!= <||>\n];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 1,
-   "value": "## Five-Spin Samples\n\nConcrete bosonized checks for the projected `S-S-S-S-S` OPE with random external spinor states.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample5 = probeProjectedMultiSpinOPESamples[\n  \"Holo\",\n  0,\n  OPEProjected[0, 0][\n    R[S[{a1, \"chiral\"}, -1/2, {}, 0, z1]],\n    R[S[{a2, \"chiral\"}, -1/2, {}, 0, z2]],\n    R[S[{a3, \"chiral\"}, -1/2, {}, 0, z3]],\n    R[S[{a4, \"chiral\"}, -1/2, {}, 0, z4]],\n    R[S[{a5, \"chiral\"}, -1/2, {}, 0, z5]],\n    \"RandomSeed\" -> 1234\n  ],\n  {},\n  {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}},\n  Function[{vecs, spins}, {\n    R[S[{spins[a1], \"chiral\"}, -1/2, {}, 0, z1]],\n    R[S[{spins[a2], \"chiral\"}, -1/2, {}, 0, z2]],\n    R[S[{spins[a3], \"chiral\"}, -1/2, {}, 0, z3]],\n    R[S[{spins[a4], \"chiral\"}, -1/2, {}, 0, z4]],\n    R[S[{spins[a5], \"chiral\"}, -1/2, {}, 0, z5]]\n  }],\n  5,\n  120,\n  20260411\n];\n\ntest9 = testReport[\"Probe Test 9 (five-spin concrete probes all match)\", probeSample5[\"PassQ\"]];",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "probeSample5",
+   "value": "supportOps17 = {\n  R[exp\\[Phi]f[-1, z], \\[Psi][mu, 0, z]],\n  R[S[{alpha, \"chiral\"}, -1/2, {}, 0, w]]\n};\nsupportArtifact17 = StringCode`OPE`TypeII`FlatSpace`SpinProjection`Compile`buildProjectedArtifacts[supportOps17, 1, 0, 1234][\"Holo\"];\nsupportFamily17 = First[supportArtifact17[\"Families\"]];\nsupportNext17 = Private`spinProjectionAssignmentIterator[supportArtifact17, 1234];\nsupportCandidate17 = supportNext17[];\nsupportDomain17 = Private`spinProjectionFamilyOutputSpinDomain[supportFamily17, supportCandidate17, 1234];\n\ntest17 = testReport[\n  \"Probe Test 17 (candidate spin domain pruning)\",\n  ListQ[supportDomain17] && Length[supportDomain17] < 16 && AllTrue[supportDomain17, IntegerQ]\n];\n\nsupportFamily18 = First[fiveSpinArtifact[\"Families\"]];\nsupportNext18 = Private`spinProjectionAssignmentIterator[fiveSpinArtifact, 1234];\nsupportCandidate18 = supportNext18[];\nsupportDomain18 = Private`spinProjectionFamilyOutputSpinDomain[supportFamily18, supportCandidate18, 1234];\nsupportTermSupports18 = With[\n  {lists = Select[Private`spinProjectionFactorOutputSpinSupport[#, 1, supportCandidate18[[1]], supportCandidate18[[2]]] & /@ #[\"Parts\"], ListQ]},\n  If[lists === {}, Range[16], Intersection @@ lists]\n] & /@ supportFamily18[\"Terms\"];\nsupportSingletonSupports18 = Select[supportTermSupports18, Length[#] == 1 &];\n\ntest18 = testReport[\n  \"Probe Test 18 (five-spin singleton term supports)\",\n  supportDomain18 === Automatic &&\n    supportSingletonSupports18 =!= {} &&\n    Sort[DeleteDuplicates[Flatten[supportSingletonSupports18]]] === Sort[supportCandidate18[[1]]]\n];\n\niteratorNextA = Private`spinProjectionAssignmentIterator[fiveSpinArtifact, 1234];\niteratorSeqA = Table[iteratorNextA[], {3}];\niteratorNextB = Private`spinProjectionAssignmentIterator[fiveSpinArtifact, 1234];\niteratorSeqB = Table[iteratorNextB[], {3}];\niteratorNextC = Private`spinProjectionAssignmentIterator[fiveSpinArtifact, 4321];\niteratorSeqC = Table[iteratorNextC[], {3}];\n\ntest19 = testReport[\n  \"Probe Test 19 (support iterator deterministic and unique)\",\n  iteratorSeqA === iteratorSeqB && DuplicateFreeQ[iteratorSeqA] && iteratorSeqA =!= iteratorSeqC\n];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

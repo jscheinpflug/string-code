@@ -1,0 +1,1148 @@
+(* ::Package:: *)
+
+BeginPackage["StringCode`OPE`TypeII`FlatSpace`SpinProjection`Compile`"];
+Needs["StringCode`Symbols`"];
+Needs["StringCode`Symbols`TypeII`"];
+Needs["StringCode`Symbols`TypeII`FlatSpace`"];
+Needs["StringCode`NormalOrdering`"];
+Needs["StringCode`NormalOrdering`TypeII`"];
+Needs["StringCode`Operators`"];
+Needs["StringCode`OPE`"];
+Needs["StringCode`BasisGeneration`"];
+Needs["StringCode`BasisGeneration`TypeII`"];
+Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"];
+
+buildProjectedArtifacts::usage =
+  "buildProjectedArtifacts[ops, wH, wA, seed] builds and caches the projected spin-sector artifacts for both chiral sectors.";
+
+buildSectorArtifact::usage =
+  "buildSectorArtifact[sector, ops, targetWeight, seed] builds one cached chiral sector artifact in ClosedForm or SpinProjection mode.";
+
+familyOutputAssociation::usage =
+  "familyOutputAssociation[family, tuple] lazily returns the operator association for one concrete family output tuple.";
+
+
+Begin["Private`"];
+
+spinProjectionArtifactCache0::usage =
+  "spinProjectionArtifactCache0 memoizes complete projected sector artifacts keyed by sector, canonicalized ops, target weight, and source hash.";
+spinProjectionArtifactCache0 = <||>;
+
+spinProjectionFamilyOutputTemplateCache0::usage =
+  "spinProjectionFamilyOutputTemplateCache0 stores family output templates keyed for lazy tuple projection.";
+spinProjectionFamilyOutputTemplateCache0 = <||>;
+
+spinProjectionSourceHash0::usage =
+  "spinProjectionSourceHash0[] returns the source-stability hash used in projected artifact cache keys.";
+spinProjectionSourceHash0[] := spinProjectionSourceHash0[] = Hash[
+  {
+    DownValues[spinProjectionCanonicalizeOps],
+    DownValues[spinProjectionSectorData],
+    DownValues[compileSpinProjectionSectorModel],
+    DownValues[spinProjectionNormalizeCompiledTermParts],
+    DownValues[spinProjectionGammaKernelData]
+  },
+  "SHA256"
+];
+
+spinProjectionArtifactCacheLookup0::usage =
+  "spinProjectionArtifactCacheLookup0[key] looks up one projected sector artifact cache entry.";
+spinProjectionArtifactCacheLookup0[key_] := If[
+  KeyExistsQ[spinProjectionArtifactCache0, key],
+  spinProjectionArtifactCache0[key],
+  Missing["NotAvailable"]
+];
+
+spinProjectionArtifactCacheStore0::usage =
+  "spinProjectionArtifactCacheStore0[key, artifact] stores one projected sector artifact cache entry and returns the stored artifact.";
+spinProjectionArtifactCacheStore0[key_, artifact_] := (spinProjectionArtifactCache0[key] = artifact);
+
+spinProjectionCanonicalOps0::usage =
+  "spinProjectionCanonicalOps0[ops] returns the canonicalized operator list used in sector artifact cache keys.";
+spinProjectionCanonicalOps0[ops_List] := If[ops === {}, {}, spinProjectionCanonicalizeOps[ops]["Ops"]];
+
+spinProjectionOverallSign0::usage =
+  "spinProjectionOverallSign0[ops] returns the holomorphic/antiholomorphic factorization sign for a list of R-operators.";
+spinProjectionOverallSign0[ops_List] := Module[{localLists},
+  localLists = List @@ # & /@ ops;
+  If[
+    Flatten[localLists] === {},
+    1,
+    factorizationSign[Flatten[localLists], isHolomorphic, isAntiHolomorphic]
+  ]
+];
+
+spinProjectionSectorOps0::usage =
+  "spinProjectionSectorOps0[ops, spec] extracts one chiral sector's split operator list from full input operators.";
+spinProjectionSectorOps0[ops_List, spec_Association] := Module[{localLists, splitLists},
+  localLists = List @@ # & /@ ops;
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ localLists;
+  Select[R @@@ (splitLists[[All, spec["SplitIndex"]]]), RTest]
+];
+
+closedFormSectorQ0::usage =
+  "closedFormSectorQ0[sectorOps] is True exactly for sectors that need no spin-projection solve.";
+closedFormSectorQ0[sectorOps_List] := sectorOps === {};
+
+pictureContributionHolo::usage =
+  "Returns the picture number contribution of a holomorphic field (S or expϕf/expϕb).";
+pictureContributionHolo[field_] := Switch[
+  SymbolName[Head[field]],
+  "S", field[[2]],
+  "expϕf" | "expϕb", field[[1]],
+  _, 0
+];
+
+pictureContributionAntiHolo::usage =
+  "Returns the picture number contribution of an antiholomorphic field (St or expϕtf/expϕtb).";
+pictureContributionAntiHolo[field_] := Switch[
+  SymbolName[Head[field]],
+  "St", field[[2]],
+  "expϕtf" | "expϕtb", field[[1]],
+  _, 0
+];
+
+totalInputPicture::usage =
+  "totalInputPicture[ops, contributionFn] computes total picture number from a list of R-operators.";
+totalInputPicture[ops_List, contributionFn_] :=
+  Total[contributionFn /@ Flatten[List @@ # & /@ Select[ops, RTest]]];
+
+mergeRepresentations::usage =
+  "mergeRepresentations[reps] merges representation associations into one combined association.";
+mergeRepresentations[reps_List] := <|
+  "vector" -> Flatten[#["vector"] & /@ reps],
+  "spinor" -> Flatten[#["spinor"] & /@ reps, 1]
+|>;
+
+spinProjectionPlaceholderSymbol::usage =
+  "spinProjectionPlaceholderSymbol[kind, n] returns a deterministic shared-private placeholder symbol for abstract tensor bases.";
+spinProjectionPlaceholderSymbol["Vector", n_Integer?Positive] := Symbol["Private`spinProjV" <> ToString[n]];
+spinProjectionPlaceholderSymbol["Spinor", n_Integer?Positive] := Symbol["Private`spinProjS" <> ToString[n]];
+
+normalizeMatterRepresentationLabel::usage =
+  "normalizeMatterRepresentationLabel[label, kind, counter] returns {abstractSymbol, optionalEvaluationRule, nextCounter}.";
+normalizeMatterRepresentationLabel[label_, kind_String, counter_Integer?NonNegative] := Module[{nextCounter, placeholder},
+  If[SymbolQ[label], Return[{label, Nothing, counter}]];
+  nextCounter = counter + 1;
+  placeholder = spinProjectionPlaceholderSymbol[kind, nextCounter];
+  {placeholder, placeholder -> label, nextCounter}
+];
+
+spinModeVectorIndices::usage =
+  "spinModeVectorIndices[modes] extracts vector labels carried by spin-field oscillator modes.";
+spinModeVectorIndices[modes_List] := Join[
+  Cases[modes, {n_?NumericQ, idx_ /; !NumericQ[idx]} :> idx],
+  Cases[modes, {idx_ /; !NumericQ[idx], n_?NumericQ} :> idx]
+];
+
+spinProjectionVectorMatterHeads::usage =
+  "spinProjectionVectorMatterHeads[psiHead] returns vector-carrying matter heads used in one spin-field projection sector.";
+spinProjectionVectorMatterHeads[ψ] := {ψ, dX};
+spinProjectionVectorMatterHeads[ψt] := {ψt, dXt};
+spinProjectionVectorMatterHeads[head_] := {head};
+
+extractMatterRepresentationData::usage =
+  "extractMatterRepresentationData[Ra, psiHead, spinHead, counters] returns abstract representations, concrete evaluation rules, and updated placeholder counters.";
+extractMatterRepresentationData[
+  Ra_ /; RTest[Ra],
+  psiHead_,
+  spinHead_,
+  counters_Association
+] := Module[
+  {
+    fields = List @@ Ra,
+    vectors = {},
+    spinors = {},
+    rules = {},
+    vectorCounter = Lookup[counters, "Vector", 0],
+    spinCounter = Lookup[counters, "Spinor", 0],
+    vectorHeads = spinProjectionVectorMatterHeads[psiHead],
+    normalized,
+    modeIndices
+  },
+  Scan[
+    Function[field,
+      Which[
+        MemberQ[vectorHeads, Head[field]],
+          normalized = normalizeMatterRepresentationLabel[field[[1]], "Vector", vectorCounter];
+          vectors = Append[vectors, normalized[[1]]];
+          If[normalized[[2]] =!= Nothing, rules = Append[rules, normalized[[2]]]];
+          vectorCounter = normalized[[3]],
+        Head[field] === spinHead,
+          normalized = normalizeMatterRepresentationLabel[field[[1, 1]], "Spinor", spinCounter];
+          spinors = Append[spinors, {normalized[[1]], field[[1, 2]]}];
+          If[normalized[[2]] =!= Nothing, rules = Append[rules, normalized[[2]]]];
+          spinCounter = normalized[[3]];
+          modeIndices = spinModeVectorIndices[field[[3]]];
+          Scan[
+            Function[idx,
+              normalized = normalizeMatterRepresentationLabel[idx, "Vector", vectorCounter];
+              vectors = Append[vectors, normalized[[1]]];
+              If[normalized[[2]] =!= Nothing, rules = Append[rules, normalized[[2]]]];
+              vectorCounter = normalized[[3]];
+            ],
+            modeIndices
+          ],
+        True, Null
+      ]
+    ],
+    fields
+  ];
+  <|
+    "Representations" -> <|"vector" -> vectors, "spinor" -> spinors|>,
+    "EvaluationRules" -> DeleteCases[rules, Nothing],
+    "Counters" -> <|"Vector" -> vectorCounter, "Spinor" -> spinCounter|>
+  |>
+];
+
+extractMatterRepresentationDataList::usage =
+  "extractMatterRepresentationDataList[ops, psiHead, spinHead] merges abstract representation data across one operator list.";
+extractMatterRepresentationDataList[ops_List, psiHead_, spinHead_] := Module[
+  {counters = <|"Vector" -> 0, "Spinor" -> 0|>, reps = {}, rules = {}, data},
+  Scan[
+    Function[op,
+      data = extractMatterRepresentationData[op, psiHead, spinHead, counters];
+      reps = Append[reps, data["Representations"]];
+      rules = Join[rules, data["EvaluationRules"]];
+      counters = data["Counters"];
+    ],
+    ops
+  ];
+  <|
+    "Representations" -> mergeRepresentations[reps],
+    "EvaluationRules" -> rules,
+    "Counters" -> counters
+  |>
+];
+
+inputGSOParityString::usage =
+  "inputGSOParityString[ops] computes the product of GSO parities of input R-operators and returns \"Even\" or \"Odd\".";
+inputGSOParityString[ops_List] := Module[{parity},
+  parity = Times @@ (GSOParity /@ ops);
+  If[parity === 1, "Even", "Odd"]
+];
+
+spinProjectionTargetRank::usage =
+  "spinProjectionTargetRank[incoming, outgoing] returns the exact singlet-count target rank used by spin-field selection.";
+spinProjectionTargetRank[incoming_Association, outgoing_Association] := Module[
+  {nChiral, nAnti, outSpinor},
+  nChiral = Count[incoming["spinor"][[All, 2]], "chiral"];
+  nAnti = Count[incoming["spinor"][[All, 2]], "antichiral"];
+  outSpinor = Lookup[outgoing, "spinor", {}];
+  If[outSpinor =!= {},
+    If[outSpinor[[1, 2]] === "chiral", nAnti++, nChiral++]
+  ];
+  countSinglets[nChiral, nAnti, Length[Lookup[incoming, "vector", {}]] + Length[Lookup[outgoing, "vector", {}]]]
+];
+
+generateSpinFieldOPEData::usage =
+  "generateSpinFieldOPEData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] builds {operator, tensorStructures} pairs for one chiral sector.";
+generateSpinFieldOPEData[
+  ops_List,
+  targetWeight_,
+  basisGeneratorFn_,
+  psiHead_, spinHead_,
+  pictureContributionFn_,
+  seed_ : Automatic
+] := Module[
+  {incomingData, incomingReps, totalPicture, gsoParity, basisOps, outgoingData, tensorStructures, targetRank},
+
+  incomingData = extractMatterRepresentationDataList[ops, psiHead, spinHead];
+  incomingReps = incomingData["Representations"];
+
+  totalPicture = totalInputPicture[ops, pictureContributionFn];
+  gsoParity = inputGSOParityString[ops];
+
+  basisOps = basisGeneratorFn[
+    targetWeight,
+    totalPicture,
+    "GSOParity" -> gsoParity,
+    "OutputRepresentation" -> "Operators",
+    "FermionOnly" -> True
+  ];
+  If[basisOps === {}, Return[{}]];
+
+  DeleteCases[
+    Function[op,
+      outgoingData = extractMatterRepresentationData[op, psiHead, spinHead, incomingData["Counters"]];
+      targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
+      tensorStructures = findIndependentTensorStructures[
+        incomingReps,
+        outgoingData["Representations"],
+        "TargetRank" -> targetRank,
+        "RandomSeed" -> seed
+      ];
+      If[tensorStructures === $Failed || tensorStructures === {},
+        Nothing,
+        {op, tensorStructures /. Join[incomingData["EvaluationRules"], outgoingData["EvaluationRules"]]}
+      ]
+    ] /@ basisOps,
+    Nothing
+  ]
+];
+
+spinProjectionCanonicalizeOps::usage =
+  "spinProjectionCanonicalizeOps[ops] replaces free symbolic vector/spin labels by deterministic placeholders and returns canonical ops plus inverse rules.";
+spinProjectionCanonicalizeOps[ops_List] := Module[
+  {typed, vectorSymbols, spinSymbols, canonicalRules, inverseRules},
+  typed = spinTypedIndices[ops];
+  vectorSymbols = SortBy[DeleteDuplicates[First /@ Select[typed, Last[#] === "v" &]], SymbolName];
+  spinSymbols = Complement[
+    SortBy[DeleteDuplicates[First /@ Select[typed, Last[#] === "s" &]], SymbolName],
+    vectorSymbols
+  ];
+  canonicalRules = Join[
+    Thread[vectorSymbols -> (spinProjectionPlaceholderSymbol["Vector", #] & /@ Range[Length[vectorSymbols]])],
+    Thread[spinSymbols -> (spinProjectionPlaceholderSymbol["Spinor", #] & /@ Range[Length[spinSymbols]])]
+  ];
+  inverseRules = Reverse /@ canonicalRules;
+  <|
+    "Ops" -> (ops /. canonicalRules),
+    "InverseRules" -> inverseRules
+  |>
+];
+
+spinProjectionCanonicalSectorData::usage =
+  "spinProjectionCanonicalSectorData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] memoizes canonicalized sector-family tensor data.";
+spinProjectionCanonicalSectorData[
+  ops_List,
+  targetWeight_,
+  basisGeneratorFn_,
+  psiHead_,
+  spinHead_,
+  pictureContributionFn_,
+  seed_
+] := spinProjectionCanonicalSectorData[
+  ops,
+  targetWeight,
+  basisGeneratorFn,
+  psiHead,
+  spinHead,
+  pictureContributionFn,
+  seed
+] = generateSpinFieldOPEData[
+  ops,
+  targetWeight,
+  basisGeneratorFn,
+  psiHead,
+  spinHead,
+  pictureContributionFn,
+  seed
+];
+
+spinProjectionSectorData::usage =
+  "spinProjectionSectorData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] reuses canonicalized sector-family tensor data and reinstates the actual external labels.";
+spinProjectionSectorData[
+  ops_List,
+  targetWeight_,
+  basisGeneratorFn_,
+  psiHead_,
+  spinHead_,
+  pictureContributionFn_,
+  seed_
+] := Module[{canonical},
+  canonical = spinProjectionCanonicalizeOps[ops];
+  spinProjectionCanonicalSectorData[
+    canonical["Ops"],
+    targetWeight,
+    basisGeneratorFn,
+    psiHead,
+    spinHead,
+    pictureContributionFn,
+    seed
+  ] /. canonical["InverseRules"]
+];
+
+spinProjectionSectorSpec::usage =
+  "spinProjectionSectorSpec[sector] returns the metadata used by one chiral spin-field projection sector.";
+spinProjectionSectorSpec["Holo"] := <|
+  "SplitIndex" -> 1,
+  "OpsKey" -> "holoOps",
+  "DataKey" -> "holoData",
+  "ProbeInputsKey" -> "HoloInputs",
+  "ProbeExprKey" -> "HoloExpr",
+  "FailureLabel" -> "holomorphic",
+  "BasisGenerator" -> generateBasisMatterHoloOPE,
+  "PsiHead" -> ψ,
+  "SpinHead" -> S,
+  "PictureContribution" -> pictureContributionHolo,
+  "Weight" -> totalWeightHolo,
+  "Project" -> projectHolo,
+  "ScaleSymbol" -> \[Epsilon]Holo
+|>;
+spinProjectionSectorSpec["Anti"] := <|
+  "SplitIndex" -> 2,
+  "OpsKey" -> "antiOps",
+  "DataKey" -> "antiData",
+  "ProbeInputsKey" -> "AntiInputs",
+  "ProbeExprKey" -> "AntiExpr",
+  "FailureLabel" -> "antiholomorphic",
+  "BasisGenerator" -> generateBasisMatterAntiHoloOPE,
+  "PsiHead" -> ψt,
+  "SpinHead" -> St,
+  "PictureContribution" -> pictureContributionAntiHolo,
+  "Weight" -> totalWeightAntiHolo,
+  "Project" -> projectAntiHolo,
+  "ScaleSymbol" -> \[Epsilon]AntiHolo
+|>;
+
+spinProjectionConnectedSymbolGroups::usage =
+  "spinProjectionConnectedSymbolGroups[symbols, edges] returns connected symbol groups, including singleton groups for isolated symbols.";
+spinProjectionConnectedSymbolGroups[symbols_List, edges_List] := Module[
+  {remaining = DeleteDuplicates[symbols], groups = {}, group, frontier, neighbors},
+  neighbors[current_List] := DeleteDuplicates @ Flatten[
+    Cases[edges, {a_, b_} /; MemberQ[current, a] :> b] ~Join~
+    Cases[edges, {a_, b_} /; MemberQ[current, b] :> a]
+  ];
+  While[remaining =!= {},
+    group = {First[remaining]};
+    frontier = group;
+    While[frontier =!= {},
+      frontier = Complement[neighbors[frontier], group];
+      group = Join[group, frontier];
+    ];
+    groups = Append[groups, group];
+    remaining = Complement[remaining, group];
+  ];
+  groups
+];
+
+spinProjectionVectorConstraintPairs::usage =
+  "spinProjectionVectorConstraintPairs[obj, freeVectors] extracts free-vector equality pairs implied by explicit delta tensors.";
+spinProjectionVectorConstraintPairs[obj_, freeVectors_List] := DeleteDuplicates[
+  Sort /@ Cases[
+    HoldComplete[obj],
+    factor_ /; Head[factor] === \[Delta] && Length[factor] == 2 &&
+      MemberQ[freeVectors, factor[[1]]] && MemberQ[freeVectors, factor[[2]]] :>
+        {factor[[1]], factor[[2]]},
+    Infinity
+  ]
+];
+
+spinProjectionExpandedTerms::usage =
+  "spinProjectionExpandedTerms[obj] expands one expression or expression list into additive terms, dropping trivial zero terms.";
+spinProjectionExpandedTerms[obj_] := DeleteCases[
+  Flatten @ Replace[
+    Expand /@ Flatten[{obj}],
+    expr_ :> If[expr === 0, {}, If[Head[expr] === Plus, List @@ expr, {expr}]],
+    {1}
+  ],
+  0
+];
+
+spinProjectionTermVectorConstraintData::usage =
+  "spinProjectionTermVectorConstraintData[term, freeVectors] returns the free vectors present in one additive term together with the full equality closure implied by explicit deltas in that term.";
+spinProjectionTermVectorConstraintData[term_, freeVectors_List] := Module[
+  {present, groups},
+  present = SortBy[
+    Intersection[
+      freeVectors,
+      DeleteDuplicates @ Cases[
+        HoldComplete[term],
+        sym_Symbol /; MemberQ[freeVectors, sym] :> sym,
+        Infinity
+      ]
+    ],
+    SymbolName
+  ];
+  groups = spinProjectionConnectedSymbolGroups[
+    present,
+    spinProjectionVectorConstraintPairs[term, present]
+  ];
+  <|
+    "Present" -> present,
+    "Pairs" -> DeleteDuplicates[Sort /@ Flatten[Subsets[#, {2}] & /@ groups, 1]]
+  |>
+];
+
+spinProjectionCommonVectorConstraintPairs::usage =
+  "spinProjectionCommonVectorConstraintPairs[obj, freeVectors] returns the free-vector equality pairs that hold in every additive term where both symbols co-occur.";
+spinProjectionCommonVectorConstraintPairs[obj_, freeVectors_List] := Module[
+  {sortedVectors, termData},
+  sortedVectors = SortBy[DeleteDuplicates[freeVectors], SymbolName];
+  If[Length[sortedVectors] < 2, Return[{}]];
+  termData = spinProjectionTermVectorConstraintData[#, sortedVectors] & /@ spinProjectionExpandedTerms[obj];
+  DeleteDuplicates @ Select[
+    Subsets[sortedVectors, {2}],
+    Function[pair,
+      Module[{cooccurringTerms},
+        cooccurringTerms = Select[
+          termData,
+          Function[term, And @@ (MemberQ[term["Present"], #] & /@ pair)]
+        ];
+        cooccurringTerms =!= {} &&
+          AllTrue[cooccurringTerms, MemberQ[#["Pairs"], pair] &]
+      ]
+    ]
+  ]
+];
+
+spinProjectionSectorTemplate::usage =
+  "spinProjectionSectorTemplate[ops, expr] collects free/dummy vector and spin symbols for one chiral spin-projection sector.";
+spinProjectionSectorTemplate[ops_List, expr_] := Module[
+  {
+    typedInputs,
+    typedRHS,
+    typed,
+    countsInput,
+    countsRHS,
+    vec,
+    spi,
+    allSymbols,
+    free,
+    dum,
+    spinChiralities,
+    freeVectorSymbols,
+    freeVectorGroups
+  },
+  typedInputs = spinTypedIndices[ops];
+  typedRHS = spinTypedIndices[expr];
+  typed = Join[typedInputs, typedRHS];
+  countsInput = Counts[First /@ typedInputs];
+  countsRHS = Counts[First /@ typedRHS];
+  spinChiralities = spinSymbolChiralities[{ops, expr}];
+  vec = DeleteDuplicates[First /@ Select[typed, Last[#] === "v" &]];
+  spi = Complement[DeleteDuplicates[First /@ Select[typed, Last[#] === "s" &]], vec];
+  allSymbols = DeleteDuplicates@Join[vec, spi];
+  free = Select[
+    allSymbols,
+    (Lookup[countsInput, #, 0] > 0 && Lookup[countsRHS, #, 0] > 0) ||
+      (Lookup[countsInput, #, 0] + Lookup[countsRHS, #, 0] == 1) &
+  ];
+  dum = Select[
+    allSymbols,
+    (Lookup[countsInput, #, 0] + Lookup[countsRHS, #, 0] > 1) &&
+      !MemberQ[free, #] &
+  ];
+  freeVectorSymbols = SortBy[Intersection[vec, free], SymbolName];
+  (* Only equalities common to all co-occurring RHS terms should constrain probes globally; mixed equalities stay term-local. *)
+  freeVectorGroups = spinProjectionConnectedSymbolGroups[
+    freeVectorSymbols,
+    spinProjectionCommonVectorConstraintPairs[expr, freeVectorSymbols]
+  ];
+  <|
+    "Ops" -> ops,
+    "Expr" -> expr,
+    "VectorSymbols" -> vec,
+    "SpinSymbols" -> spi,
+    "FreeSymbols" -> free,
+    "DummySymbols" -> dum,
+    "FreeVectorGroups" -> freeVectorGroups,
+    "SpinChiralities" -> spinChiralities
+  |>
+];
+
+spinSymbolChiralities::usage = "spinSymbolChiralities[obj] collects the intended chirality for symbolic spinor indices appearing in spin fields and gamma products.";
+spinSymbolChiralities[obj_] := Module[{fieldPairs, gammaTriples, gammaPairs},
+  fieldPairs = Cases[
+    obj,
+    (S | St)[{idx_Symbol, chirality : ("chiral" | "antichiral")}, __] :> (idx -> chirality),
+    Infinity
+  ];
+  gammaTriples = Cases[obj, GammaAntisymmetricProductHold[links_List, s1_, s2_] :> {links, s1, s2}, Infinity];
+  gammaPairs = Flatten[
+    Function[{triple},
+      Module[{pair = gammaProductSpinorChiralities[triple[[1]]]},
+        Join[
+          Cases[{triple[[2]]}, idx_Symbol :> (idx -> pair[[1]])],
+          Cases[{triple[[3]]}, idx_Symbol :> (idx -> pair[[2]])]
+        ]
+      ]
+    ] /@ gammaTriples,
+    1
+  ];
+  Association[DeleteDuplicatesBy[Join[fieldPairs, gammaPairs], First]]
+];
+
+symbolIndexQ::usage = "symbolIndexQ[x] checks whether x is a symbolic index placeholder rather than a numeric value.";
+symbolIndexQ[x_] := Head[x] === Symbol;
+
+spinTypedIndices::usage =
+  "spinTypedIndices[obj] collects symbolic vector/spinor placeholders from spin-field OPE inputs or ansatz expressions.";
+spinTypedIndices[obj_] := Join[
+  Cases[obj, (ψ | ψt | dX | dXt)[μ_, __] /; symbolIndexQ[μ] :> {μ, "v"}, Infinity],
+  Cases[obj, (S | St)[{α_, ("chiral" | "antichiral")}, __] /; symbolIndexQ[α] :> {α, "s"}, Infinity],
+  Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
+    ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; symbolIndexQ[ν]} :> ν]),
+    ({#, "v"} & /@ Cases[m, {ν_ /; symbolIndexQ[ν], _?NumericQ} :> ν])], Infinity], 1],
+  Flatten[Cases[obj, GammaAntisymmetricProductHold[links_List, s1_, s2_] :>
+    Join[
+      ({#, "v"} & /@ Select[Flatten[gammaLinkVectorIndices /@ links], symbolIndexQ]),
+      ({#, "s"} & /@ Select[{s1, s2}, symbolIndexQ])
+    ], Infinity], 1]
+];
+
+buildProjectedArtifacts::usage =
+  "buildProjectedArtifacts[ops, wH, wA, seed] builds and caches the projected spin-sector artifacts for both chiral sectors.";
+buildProjectedArtifacts[ops_List, wH_, wA_, seed_] := <|
+  "Sign" -> spinProjectionOverallSign0[ops],
+  "Holo" -> buildSectorArtifact["Holo", ops, wH, seed],
+  "Anti" -> buildSectorArtifact["Anti", ops, wA, seed]
+|>;
+
+buildSectorArtifact::usage =
+  "buildSectorArtifact[sector, ops, targetWeight, seed] builds one cached chiral sector artifact in ClosedForm or SpinProjection mode.";
+buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] := Module[
+  {spec, sectorOps, cacheKey, cached, data, artifact},
+  If[targetWeight === None, Return[None]];
+  spec = spinProjectionSectorSpec[sector];
+  sectorOps = spinProjectionSectorOps0[ops, spec];
+  cacheKey = {sector, spinProjectionCanonicalOps0[sectorOps], targetWeight, seed, spinProjectionSourceHash0[]};
+  cached = spinProjectionArtifactCacheLookup0[cacheKey];
+  If[cached =!= Missing["NotAvailable"], Return[cached]];
+  If[closedFormSectorQ0[sectorOps],
+    artifact = buildClosedFormSectorArtifact0[sector, sectorOps, targetWeight, {}];
+    Return[spinProjectionArtifactCacheStore0[cacheKey, artifact]]
+  ];
+  data = spinProjectionSectorData[
+    sectorOps,
+    targetWeight,
+    spec["BasisGenerator"],
+    spec["PsiHead"],
+    spec["SpinHead"],
+    spec["PictureContribution"],
+    seed
+  ];
+  artifact = If[
+    data === {},
+    buildFailedSpinSectorArtifact0[sector, sectorOps, targetWeight, "NoCandidates"],
+    buildSpinSectorArtifact0[sector, sectorOps, targetWeight, data]
+  ];
+  spinProjectionArtifactCacheStore0[cacheKey, artifact]
+];
+
+buildClosedFormSectorArtifact0::usage =
+  "buildClosedFormSectorArtifact0[sector, sectorOps, targetWeight, data] builds a direct-expression artifact for sectors that bypass compiled solving.";
+buildClosedFormSectorArtifact0[sector_, sectorOps_List, targetWeight_, data_List] := Module[{expr},
+  expr = Which[
+    sectorOps === {}, If[targetWeight === 0, 1, 0],
+    data === {}, 0,
+    True, 0
+  ];
+  <|
+    "Mode" -> "ClosedForm",
+    "Sector" -> sector,
+    "Ops" -> sectorOps,
+    "Weight" -> targetWeight,
+    "TargetWeight" -> targetWeight,
+    "Expr" -> expr,
+    "Vars" -> {},
+    "VarCount" -> 0,
+    "Columns" -> {},
+    "Families" -> {},
+    "FreeSpinSymbols" -> {},
+    "FreeSpinChiralities" -> {},
+    "FreeVectorGroups" -> {}
+  |>
+];
+
+buildFailedSpinSectorArtifact0::usage =
+  "buildFailedSpinSectorArtifact0[sector, sectorOps, targetWeight, reason] builds an explicit failed spin-projection artifact.";
+buildFailedSpinSectorArtifact0[sector_, sectorOps_List, targetWeight_, reason_String] := <|
+  "Mode" -> "SpinProjectionFailure",
+  "Reason" -> reason,
+  "Sector" -> sector,
+  "Ops" -> sectorOps,
+  "Weight" -> targetWeight,
+  "TargetWeight" -> targetWeight,
+  "Expr" -> 0,
+  "Vars" -> {},
+  "VarCount" -> 0,
+  "Columns" -> {},
+  "Families" -> {},
+  "FreeSpinSymbols" -> {},
+  "FreeSpinChiralities" -> {},
+  "FreeVectorGroups" -> {}
+|>;
+
+spinProjectionRegisterFamilyOutputTemplate0::usage =
+  "spinProjectionRegisterFamilyOutputTemplate0[template, spinSymbols, spinChiralities, vectorSymbols] stores one family template for lazy tuple projection and returns its key.";
+spinProjectionRegisterFamilyOutputTemplate0[template_, spinSymbols_List, spinChiralities_List, vectorSymbols_List] := Module[{key},
+  key = HoldComplete[template, spinSymbols, spinChiralities, vectorSymbols];
+  If[!KeyExistsQ[spinProjectionFamilyOutputTemplateCache0, key],
+    spinProjectionFamilyOutputTemplateCache0[key] = <|
+      "Template" -> template,
+      "SpinSymbols" -> spinSymbols,
+      "SpinChiralities" -> spinChiralities,
+      "VectorSymbols" -> vectorSymbols
+    |>
+  ];
+  key
+];
+
+buildSpinSectorArtifact0::usage =
+  "buildSpinSectorArtifact0[sector, sectorOps, targetWeight, data] compiles one spin-projection sector into the shared artifact contract with lazy family output lookup.";
+buildSpinSectorArtifact0[sector_, sectorOps_List, targetWeight_, data_List] := Module[
+  {model, columns, families, expr},
+  model = compileSpinProjectionSectorModel[sector, sectorOps, targetWeight, data];
+  If[model === $Failed, Return[None]];
+  columns = model["Columns"];
+  families = model["Families"];
+  expr = model["Expr"];
+  <|
+    "Mode" -> "SpinProjection",
+    "Sector" -> sector,
+    "Ops" -> model["Ops"],
+    "Weight" -> model["Weight"],
+    "TargetWeight" -> model["TargetWeight"],
+    "Expr" -> expr,
+    "Vars" -> model["Vars"],
+    "VarCount" -> model["VarCount"],
+    "Columns" -> columns,
+    "Families" -> families,
+    "FreeSpinSymbols" -> model["FreeSpinSymbols"],
+    "FreeSpinChiralities" -> model["FreeSpinChiralities"],
+    "FreeVectorGroups" -> model["FreeVectorGroups"]
+  |>
+];
+
+projectSingleFamilyOutputTuple0::usage =
+  "projectSingleFamilyOutputTuple0[key, tuple] projects one family output template on one concrete output tuple.";
+projectSingleFamilyOutputTuple0[key_, tuple_List] := Module[
+  {templateData, spinCount, vectorCount, spinTuple, vectorTuple, spinRules, vectorRules},
+  If[!KeyExistsQ[spinProjectionFamilyOutputTemplateCache0, key], Return[0]];
+  templateData = spinProjectionFamilyOutputTemplateCache0[key];
+  spinCount = Length[templateData["SpinSymbols"]];
+  vectorCount = Length[templateData["VectorSymbols"]];
+  If[Length[tuple] =!= spinCount + vectorCount, Return[0]];
+  spinTuple = Take[tuple, spinCount];
+  vectorTuple = Drop[tuple, spinCount];
+  If[
+    !AllTrue[
+      MapThread[
+        IntegerQ[#3] && 1 <= #3 <= Length[spinProjectionSpinBasisState[#2]] &,
+        {templateData["SpinSymbols"], templateData["SpinChiralities"], spinTuple}
+      ],
+      TrueQ
+    ],
+    Return[0]
+  ];
+  spinRules = MapThread[
+    #1 -> spinProjectionSpinBasisState[#2][[#3]] &,
+    {templateData["SpinSymbols"], templateData["SpinChiralities"], spinTuple}
+  ];
+  vectorRules = Thread[templateData["VectorSymbols"] -> vectorTuple];
+  Bosonize[templateData["Template"] /. Join[vectorRules, spinRules]]
+];
+
+familyOutputAssociation0::usage =
+  "familyOutputAssociation0[key, tuple] memoizes one tuple-specific output operator association.";
+familyOutputAssociation0[key_, tuple_List] := familyOutputAssociation0[key, tuple] = Module[{expr},
+  expr = projectSingleFamilyOutputTuple0[key, tuple];
+  spinProjectionOperatorAssociation[expr]
+];
+
+familyOutputAssociation::usage =
+  "familyOutputAssociation[family, tuple] lazily returns the operator association for one concrete family output tuple.";
+familyOutputAssociation[family_Association, tuple_List] := Module[{key},
+  key = Lookup[family, "OutputAssociationKey", Missing["NotAvailable"]];
+  If[key === Missing["NotAvailable"], Return[<||>]];
+  familyOutputAssociation0[key, tuple]
+];
+
+spinProjectionArtifactData0::usage =
+  "spinProjectionArtifactData0[artifact] reconstructs legacy {operator, tensors} sector data from one spin-projection artifact.";
+spinProjectionArtifactData0[artifact_] := Which[
+  artifact === None, {},
+  Lookup[artifact, "Mode", None] =!= "SpinProjection", {},
+  True,
+    Module[{familyColumns},
+      familyColumns = GroupBy[artifact["Columns"], #["FamilyIndex"] &];
+      Table[
+        {
+          artifact["Families"][[i, "Template"]],
+          Lookup[
+            SortBy[Lookup[familyColumns, i, {}], #["CandidateIndex"] &],
+            "TensorExpr",
+            {}
+          ]
+        },
+        {i, Length[artifact["Families"]]}
+      ]
+    ]
+];
+
+
+(* legacy compile core migrated from LegacyCore.m *)
+
+spinProjectionSeededOrder::usage =
+  "spinProjectionSeededOrder[list, seed, tag] deterministically orders a finite list using the probe seed and one local tag.";
+spinProjectionSeededOrder[list_List, Automatic, tag_] := spinProjectionSeededOrder[list, 0, tag];
+spinProjectionSeededOrder[list_List, seed_, tag_] := list[[Ordering[Hash[{seed, tag, #}] & /@ list]]];
+
+spinProjectionOutputSymbolData::usage =
+  "spinProjectionOutputSymbolData[op] returns the unresolved vector/spin slots for one compiled output operator template.";
+spinProjectionOutputSymbolData[op_ /; RTest[op]] := Module[
+  {typed, vectorSymbols, spinSymbols, spinChiralities},
+  If[Cases[op, (dX | dXt)[__], Infinity] =!= {}, Return[$Failed]];
+  typed = DeleteDuplicatesBy[spinTypedIndices[op], First];
+  vectorSymbols = SortBy[First /@ Select[typed, Last[#] === "v" &], SymbolName];
+  spinSymbols = SortBy[First /@ Select[typed, Last[#] === "s" &], SymbolName];
+  spinChiralities = spinSymbolChiralities[op];
+  If[AnyTrue[spinSymbols, !KeyExistsQ[spinChiralities, #] &], Return[$Failed]];
+  <|
+    "VectorSymbols" -> vectorSymbols,
+    "SpinSymbols" -> spinSymbols,
+    "SpinChiralities" -> Lookup[spinChiralities, spinSymbols]
+  |>
+];
+spinProjectionOutputSymbolData[_] := $Failed;
+
+spinProjectionBuildCompileContext0::usage =
+  "spinProjectionBuildCompileContext0[ops, templateExpr] builds reusable compile context metadata for one sector model.";
+spinProjectionBuildCompileContext0[ops_List, templateExpr_] := Module[
+  {
+    template,
+    freeSpinSymbols,
+    freeSpinChiralities,
+    freeVectorGroups
+  },
+  template = spinProjectionSectorTemplate[ops, templateExpr];
+  freeSpinSymbols = SortBy[Intersection[template["SpinSymbols"], template["FreeSymbols"]], SymbolName];
+  freeSpinChiralities = Lookup[template["SpinChiralities"], freeSpinSymbols];
+  freeVectorGroups = SortBy[template["FreeVectorGroups"], SymbolName @* First];
+  <|
+    "Template" -> template,
+    "FreeSpinSymbols" -> freeSpinSymbols,
+    "FreeSpinChiralities" -> freeSpinChiralities,
+    "FreeSpinChirality" -> AssociationThread[freeSpinSymbols -> freeSpinChiralities],
+    "FreeSpinSlot" -> AssociationThread[freeSpinSymbols -> Range[Length[freeSpinSymbols]]],
+    "FreeVectorGroups" -> freeVectorGroups,
+    "FreeVectorSlot" -> Association @ Flatten[MapIndexed[Thread[#1 -> First[#2]] &, freeVectorGroups], 1]
+  |>
+];
+
+spinProjectionVectorSource0::usage =
+  "spinProjectionVectorSource0[sym, stateVectors, dummyVectors, context] maps one vector symbol to its compiled vector source descriptor.";
+spinProjectionVectorSource0[sym_, stateVectors_Association, dummyVectors_Association, context_Association] := Which[
+  IntegerQ[sym], {4, sym},
+  KeyExistsQ[context["FreeVectorSlot"], sym], {1, context["FreeVectorSlot"][sym]},
+  KeyExistsQ[stateVectors, sym], {2, stateVectors[sym]},
+  KeyExistsQ[dummyVectors, sym], {3, dummyVectors[sym]},
+  True, $Failed
+];
+
+spinProjectionSpinSource0::usage =
+  "spinProjectionSpinSource0[sym, stateSpins, context] maps one spin symbol to its compiled spin source descriptor.";
+spinProjectionSpinSource0[sym_, stateSpins_Association, context_Association] := Which[
+  KeyExistsQ[context["FreeSpinSlot"], sym], {1, context["FreeSpinSlot"][sym]},
+  KeyExistsQ[stateSpins, sym], {2, stateSpins[sym]},
+  True, $Failed
+];
+
+spinProjectionMatrixDesc0::usage =
+  "spinProjectionMatrixDesc0[part, stateVectors, dummyVectors, context] builds one compiled gamma-matrix descriptor for one parsed factor part.";
+spinProjectionMatrixDesc0[
+  part_Association,
+  stateVectors_Association,
+  dummyVectors_Association,
+  context_Association
+] := Module[{sources, links},
+  sources = spinProjectionVectorSource0[#, stateVectors, dummyVectors, context] & /@ part["VectorSymbols"];
+  If[MemberQ[sources, $Failed], Return[$Failed]];
+  If[AllTrue[sources, First[#] === 4 &],
+    links = Join[
+      If[part["CTag"] === None, {}, {part["CTag"]}],
+      MapThread[If[#1 === GammaUDHold, GammaUDHold[#2[[2]]], GammaDUHold[#2[[2]]]] &, {Head /@ part["VectorLinks"], sources}],
+      part["TailLinks"]
+    ];
+    {
+      part["CTag"],
+      Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+      sources,
+      part["TailLinks"],
+      spinProjectionGammaFactorMatrix[links]
+    },
+    {
+      part["CTag"],
+      Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+      sources,
+      part["TailLinks"],
+      None
+    }
+  ]
+];
+
+spinProjectionScalarDesc0::usage =
+  "spinProjectionScalarDesc0[part, stateSpins, stateSpinChiralities, stateVectors, dummyVectors, context] builds one compiled scalar descriptor for one parsed factor part.";
+spinProjectionScalarDesc0[
+  part_Association,
+  stateSpins_Association,
+  stateSpinChiralities_Association,
+  stateVectors_Association,
+  dummyVectors_Association,
+  context_Association
+] := Module[{left, right, matrix, pairChiralities, spinChirality},
+  spinChirality[sym_] := Lookup[stateSpinChiralities, sym, Lookup[context["FreeSpinChirality"], sym, Missing["Unknown"]]];
+  Switch[part["Kind"],
+    "Delta",
+    {
+      0,
+      spinProjectionVectorSource0[part["VectorSymbols"][[1]], stateVectors, dummyVectors, context],
+      spinProjectionVectorSource0[part["VectorSymbols"][[2]], stateVectors, dummyVectors, context]
+    },
+    "Gamma",
+    left = spinProjectionSpinSource0[part["Spinors"][[1]], stateSpins, context];
+    right = spinProjectionSpinSource0[part["Spinors"][[2]], stateSpins, context];
+    If[MemberQ[{left, right}, $Failed], Return[$Failed]];
+    pairChiralities = spinChirality /@ part["Spinors"];
+    If[
+      part["VectorLinks"] === {} &&
+        part["CTag"] === None &&
+        part["TailLinks"] === {} &&
+        AllTrue[pairChiralities, StringQ] &&
+        SameQ @@ pairChiralities,
+      {1, left, right},
+      matrix = spinProjectionMatrixDesc0[part, stateVectors, dummyVectors, context];
+      If[matrix === $Failed, $Failed, {2, left, right, matrix}]
+    ],
+    _,
+    $Failed
+  ]
+];
+
+spinProjectionCompileTensorTerm0::usage =
+  "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex] compiles one tensor candidate into one term record and returns the next column index.";
+spinProjectionCompileTensorTerm0[
+  tensor_,
+  stateSpins_Association,
+  stateSpinChiralities_Association,
+  stateVectors_Association,
+  context_Association,
+  columnIndex_Integer?NonNegative
+] := Module[
+  {
+    nextColumn = columnIndex + 1,
+    factors,
+    tensorFactors,
+    scalarFactor,
+    parsedTensor,
+    indexSymbols,
+    dummySymbols,
+    dummyVectors,
+    parts,
+    normalized,
+    kernelData
+  },
+  factors = If[Head[tensor] === Times, List @@ tensor, {tensor}];
+  tensorFactors = Select[factors, candidateFactorQ];
+  scalarFactor = Times @@ Select[factors, !candidateFactorQ[#] &];
+  indexSymbols = DeleteDuplicates[First /@ spinTypedIndices[tensor]];
+  If[indexSymbols =!= {} && !FreeQ[scalarFactor, Alternatives @@ indexSymbols], Return[$Failed]];
+  parsedTensor = If[tensorFactors === {}, parseCandidate[1], parseCandidate[Times @@ tensorFactors]];
+  If[parsedTensor === $Failed, Return[$Failed]];
+  dummySymbols = SortBy[
+    Complement[
+      DeleteDuplicates @ Select[
+        Flatten[Lookup[parsedTensor["FactorParts"], "VectorSymbols", {}]],
+        Head[#] === Symbol &
+      ],
+      Keys[stateVectors],
+      Keys[context["FreeVectorSlot"]]
+    ],
+    SymbolName
+  ];
+  dummyVectors = AssociationThread[dummySymbols -> Range[Length[dummySymbols]]];
+  parts = spinProjectionScalarDesc0[
+    #,
+    stateSpins,
+    stateSpinChiralities,
+    stateVectors,
+    dummyVectors,
+    context
+  ] & /@ parsedTensor["FactorParts"];
+  If[MemberQ[parts, $Failed], Return[$Failed]];
+  normalized = spinProjectionNormalizeCompiledTermParts[parts];
+  If[normalized === $Failed, Return[$Failed]];
+  kernelData = spinProjectionGammaKernelData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]];
+  If[kernelData === $Failed, Return[$Failed]];
+  <|
+    "NextColumn" -> nextColumn,
+    "Term" -> <|
+      "Column" -> nextColumn,
+      "ScalarFactor" -> scalarFactor normalized["ScalarFactor"] kernelData["ScalarFactor"],
+      "Parts" -> parts,
+      "DummyCount" -> Length[dummySymbols],
+      "SpinEqualities" -> normalized["SpinEqualities"],
+      "VectorEqualities" -> normalized["VectorEqualities"],
+      "GammaKernelRefs" -> kernelData["KernelRefs"]
+    |>
+  |>
+];
+
+spinProjectionCompileFamily0::usage =
+  "spinProjectionCompileFamily0[{op, tensors}, familyIndex, context, columnIndex] compiles one output family and returns family data, family columns, and the next column index.";
+spinProjectionCompileFamily0[
+  {op_, tensors_},
+  familyIndex_Integer?Positive,
+  context_Association,
+  columnIndex_Integer?NonNegative
+] := Module[
+  {
+    outputData,
+    stateSpins,
+    stateSpinChiralities,
+    stateVectors,
+    nextColumn = columnIndex,
+    outputAssociationKey,
+    reaped,
+    terms,
+    columns,
+    compileResult,
+    term,
+    tensor,
+    repExpr
+  },
+  outputData = spinProjectionOutputSymbolData[op];
+  If[outputData === $Failed, Return[$Failed]];
+  stateSpins = AssociationThread[outputData["SpinSymbols"] -> Range[Length[outputData["SpinSymbols"]]]];
+  stateSpinChiralities = AssociationThread[outputData["SpinSymbols"] -> outputData["SpinChiralities"]];
+  stateVectors = AssociationThread[outputData["VectorSymbols"] -> Range[Length[outputData["VectorSymbols"]]]];
+  reaped = Reap[
+    Do[
+      tensor = tensors[[candidateIndex]];
+      compileResult = spinProjectionCompileTensorTerm0[
+        tensor,
+        stateSpins,
+        stateSpinChiralities,
+        stateVectors,
+        context,
+        nextColumn
+      ];
+      If[compileResult === $Failed, Return[$Failed]];
+      nextColumn = compileResult["NextColumn"];
+      term = compileResult["Term"];
+      repExpr = tensor op;
+      Sow[
+        <|
+          "Index" -> term["Column"],
+          "RepresentativeExpr" -> repExpr,
+          "TensorExpr" -> tensor,
+          "FamilyIndex" -> familyIndex,
+          "CandidateIndex" -> candidateIndex
+        |>,
+        "Columns"
+      ];
+      Sow[
+        Join[term, <|"RepresentativeExpr" -> repExpr, "TensorExpr" -> tensor|>],
+        "Terms"
+      ],
+      {candidateIndex, Length[tensors]}
+    ],
+    _,
+    Rule
+  ];
+  If[reaped === $Failed, Return[$Failed]];
+  terms = Lookup[Association[reaped[[2]]], "Terms", {}];
+  columns = Lookup[Association[reaped[[2]]], "Columns", {}];
+  outputAssociationKey = spinProjectionRegisterFamilyOutputTemplate0[
+    op,
+    outputData["SpinSymbols"],
+    outputData["SpinChiralities"],
+    outputData["VectorSymbols"]
+  ];
+  <|
+    "Family" -> <|
+      "Template" -> op,
+      "SpinSymbols" -> outputData["SpinSymbols"],
+      "SpinChiralities" -> outputData["SpinChiralities"],
+      "VectorSymbols" -> outputData["VectorSymbols"],
+      "OutputAssociationKey" -> outputAssociationKey,
+      "Terms" -> terms
+    |>,
+    "Columns" -> columns,
+    "NextColumn" -> nextColumn
+  |>
+];
+
+compileSpinProjectionSectorModel::usage =
+  "compileSpinProjectionSectorModel[sector, ops, weight, data] builds the direct numeric RHS model for one supported chiral sector straight from outgoing tensor data.";
+compileSpinProjectionSectorModel[sector : ("Holo" | "Anti"), ops_List, weight_, data_List] := Module[
+  {
+    templateExpr,
+    context,
+    columns = {},
+    vars,
+    expr,
+    families,
+    pieceColumn = 0,
+    familyResult
+  },
+  If[
+    ops === {},
+    Return[
+      <|
+        "Sector" -> sector,
+        "Ops" -> ops,
+        "Weight" -> weight,
+        "TargetWeight" -> weight,
+        "Expr" -> If[weight === 0, 1, 0],
+        "Vars" -> {},
+        "VarCount" -> 0,
+        "Columns" -> {},
+        "Families" -> {},
+        "FreeSpinSymbols" -> {},
+        "FreeSpinChiralities" -> {},
+        "FreeVectorGroups" -> {}
+      |>
+    ]
+  ];
+  If[
+    data === {},
+    Return[
+      <|
+        "Sector" -> sector,
+        "Ops" -> ops,
+        "Weight" -> weight,
+        "TargetWeight" -> weight,
+        "Expr" -> 0,
+        "Vars" -> {},
+        "VarCount" -> 0,
+        "Columns" -> {},
+        "Families" -> {},
+        "FreeSpinSymbols" -> {},
+        "FreeSpinChiralities" -> {},
+        "FreeVectorGroups" -> {}
+      |>
+    ]
+  ];
+  templateExpr = Total @ Flatten[Function[pair, (# pair[[1]]) & /@ pair[[2]]] /@ data];
+  context = spinProjectionBuildCompileContext0[ops, templateExpr];
+  families = Table[
+    familyResult = spinProjectionCompileFamily0[data[[familyIndex]], familyIndex, context, pieceColumn];
+    If[familyResult === $Failed, Return[$Failed]];
+    pieceColumn = familyResult["NextColumn"];
+    columns = Join[columns, familyResult["Columns"]];
+    familyResult["Family"],
+    {familyIndex, Length[data]}
+  ];
+  columns = SortBy[columns, #["Index"] &];
+  vars = spinProjectedCoefficient /@ Range[Length[columns]];
+  columns = Map[Append[#, "Var" -> spinProjectedCoefficient[#["Index"]]] &, columns];
+  expr = If[
+    columns === {},
+    0,
+    Total[(#["Var"] #["RepresentativeExpr"]) & /@ columns]
+  ];
+  <|
+    "Sector" -> sector,
+    "Ops" -> ops,
+    "Weight" -> weight,
+    "TargetWeight" -> None,
+    "Expr" -> expr,
+    "Vars" -> vars,
+    "VarCount" -> Length[vars],
+    "Columns" -> columns,
+    "Families" -> families,
+    "FreeSpinSymbols" -> context["FreeSpinSymbols"],
+    "FreeSpinChiralities" -> context["FreeSpinChiralities"],
+    "FreeVectorGroups" -> context["FreeVectorGroups"]
+  |>
+];
+
+End[];
+
+
+EndPackage[];
