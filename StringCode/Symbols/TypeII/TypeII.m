@@ -83,6 +83,8 @@ DefineField[d\[Phi],
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {d\[Phi], exp\[Phi]b, exp\[Phi]f},
+  "WeightHolo" -> Function[field, 1 + field[[1]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -98,6 +100,8 @@ DefineField[d\[Phi]t,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {d\[Phi]t, exp\[Phi]tb, exp\[Phi]tf},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 1 + field[[1]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -113,6 +117,8 @@ DefineField[\[Xi],
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Eta]},
+  "WeightHolo" -> Function[field, field[[1]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -128,6 +134,8 @@ DefineField[\[Xi]t,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Eta]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, field[[1]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -143,6 +151,8 @@ DefineField[\[Eta],
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Xi]},
+  "WeightHolo" -> Function[field, 1 + field[[1]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -158,6 +168,8 @@ DefineField[\[Eta]t,
   "Factorizable" -> False,
   "RegularFermion" -> True,
   "PairsWith" -> {\[Xi]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 1 + field[[1]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -173,6 +185,8 @@ DefineField[\[Beta],
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {\[Gamma]},
+  "WeightHolo" -> Function[field, 3/2 + field[[1]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> -1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -188,6 +202,8 @@ DefineField[\[Beta]t,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {\[Gamma]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, 3/2 + field[[1]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> -1
 ];
@@ -203,6 +219,8 @@ DefineField[\[Gamma],
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {\[Beta]},
+  "WeightHolo" -> Function[field, -1/2 + field[[1]]],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> -1,
   "GSOParityAntiHolo" -> 1
 ];
@@ -218,6 +236,8 @@ DefineField[\[Gamma]t,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {\[Beta]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, -1/2 + field[[1]]],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> -1
 ];
@@ -233,6 +253,8 @@ DefineField[exp\[Phi]b,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {exp\[Phi]b, exp\[Phi]f, d\[Phi]},
+  "WeightHolo" -> Function[field, (-1/2)*(field[[1]])*(field[[1]]+2)],
+  "WeightAntiHolo" -> 0,
   "GSOParityHolo" -> Function[field, (-1)^(field[[1]])],
   "GSOParityAntiHolo" -> 1
 ];
@@ -248,6 +270,8 @@ DefineField[exp\[Phi]tb,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {exp\[Phi]tb, exp\[Phi]tf, d\[Phi]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, (-1/2)*(field[[1]])*(field[[1]]+2)],
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> Function[field, (-1)^(field[[1]])]
 ];
@@ -263,6 +287,8 @@ DefineField[exp\[Phi]f,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {exp\[Phi]f, exp\[Phi]b, d\[Phi]},
+  "WeightHolo" -> Function[field, (-1/2)*(field[[1]])*(field[[1]]+2)],
+  "WeightAntiHolo" -> 0,
   "ExpPhiFermionFamily" -> "Holo",
   "GSOParityHolo" -> Function[field, (-1)^(field[[1]])],
   "GSOParityAntiHolo" -> 1
@@ -279,6 +305,8 @@ DefineField[exp\[Phi]tf,
   "Factorizable" -> False,
   "RegularFermion" -> False,
   "PairsWith" -> {exp\[Phi]tf, exp\[Phi]tb, d\[Phi]t},
+  "WeightHolo" -> 0,
+  "WeightAntiHolo" -> Function[field, (-1/2)*(field[[1]])*(field[[1]]+2)],
   "ExpPhiFermionFamily" -> "AntiHolo",
   "GSOParityHolo" -> 1,
   "GSOParityAntiHolo" -> Function[field, (-1)^(field[[1]])]
