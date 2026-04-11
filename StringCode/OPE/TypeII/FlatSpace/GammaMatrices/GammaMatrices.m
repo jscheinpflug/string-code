@@ -31,6 +31,12 @@ validGammaIndexQ[mu_Integer] := 1 <= mu <= gammaVectorDimension;
 validGammaIndexQ[_] := False;
 
 
+validGammaSpinorIndexQ::usage =
+  "validGammaSpinorIndexQ[alpha] checks whether alpha is a valid canonical flat-space spinor basis index between 1 and 16.";
+validGammaSpinorIndexQ[alpha_Integer] := 1 <= alpha <= gammaSpinorDimension;
+validGammaSpinorIndexQ[_] := False;
+
+
 sparseGammaMatrixFromRules::usage =
   "sparseGammaMatrixFromRules[rules] converts a sparse 16x16 rule list into an exact SparseArray matrix.";
 sparseGammaMatrixFromRules[rules_List] := SparseArray[rules, {gammaSpinorDimension, gammaSpinorDimension}];
@@ -181,6 +187,82 @@ Gamma11DD = denseGammaMatrixFromSparse[Gamma11DDSparse];
 
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCache.m"}]];
+
+gammaProductLinkMatrix::usage =
+  "gammaProductLinkMatrix[link] returns the exact 16x16 sparse matrix associated with one concrete gamma-link factor.";
+gammaProductLinkMatrix[CUDHold] := CUDSparse;
+gammaProductLinkMatrix[CDUHold] := CDUSparse;
+gammaProductLinkMatrix[GammaUDHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaUDSparse[mu];
+gammaProductLinkMatrix[GammaDUHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaDUSparse[mu];
+gammaProductLinkMatrix[Gamma11UUHold[]] := Gamma11UUSparse;
+gammaProductLinkMatrix[Gamma11DDHold[]] := Gamma11DDSparse;
+gammaProductLinkMatrix[_] := $Failed;
+
+gammaProductAntisymmetrizedMatrixFromPattern::usage =
+  "gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds] antisymmetrizes vector labels while preserving the ordered U/D head pattern.";
+gammaProductAntisymmetrizedMatrixFromPattern[{}, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
+  gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds] = Module[{rank = Length[inds]},
+    1/rank Sum[
+      (-1)^(pos - 1) gammaProductLinkMatrix[linkHeads[[1]][inds[[pos]]]] .
+        gammaProductAntisymmetrizedMatrixFromPattern[Rest[linkHeads], Delete[inds, pos]],
+      {pos, 1, rank}
+    ]
+  ];
+
+gammaProductAntisymmetrizedMatrix::usage =
+  "gammaProductAntisymmetrizedMatrix[vectorLinks] returns the exact sparse antisymmetrized gamma matrix for one concrete vector-link list.";
+gammaProductAntisymmetrizedMatrix[{}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrix[vectorLinks_List] := gammaProductAntisymmetrizedMatrix[vectorLinks] = Module[
+  {linkHeads, inds},
+  linkHeads = Replace[
+    vectorLinks,
+    {GammaUDHold[_Integer] :> GammaUDHold, GammaDUHold[_Integer] :> GammaDUHold, _ :> $Failed},
+    1
+  ];
+  inds = Replace[
+    vectorLinks,
+    {GammaUDHold[mu_Integer] :> mu, GammaDUHold[mu_Integer] :> mu, _ :> $Failed},
+    1
+  ];
+  If[MemberQ[linkHeads, $Failed] || MemberQ[inds, $Failed], Return[$Failed]];
+  gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds]
+];
+
+gammaProductFactorMatrixRaw::usage =
+  "gammaProductFactorMatrixRaw[links] returns the exact sparse matrix represented by one concrete GammaAntisymmetricProductHold link list.";
+gammaProductFactorMatrixRaw[links_List] := Module[
+  {cached, cTag, coreLinks, vectorLinks, tailLinks, baseMatrix, cMatrix, tailMatrices},
+  cached = gammaProductCacheLookupFromLinks[links];
+  If[cached =!= $Failed, Return[cached]];
+  cTag = If[links =!= {} && MatchQ[First[links], CUDHold | CDUHold], First[links], None];
+  coreLinks = If[cTag === None, links, Rest[links]];
+  vectorLinks = Select[coreLinks, MatchQ[#, GammaUDHold[_] | GammaDUHold[_]] &];
+  tailLinks = Select[coreLinks, !MatchQ[#, GammaUDHold[_] | GammaDUHold[_]] &];
+  baseMatrix = gammaProductAntisymmetrizedMatrix[vectorLinks];
+  If[baseMatrix === $Failed, Return[$Failed]];
+  If[cTag =!= None,
+    cMatrix = gammaProductLinkMatrix[cTag];
+    If[cMatrix === $Failed, Return[$Failed]];
+    baseMatrix = cMatrix . baseMatrix;
+  ];
+  tailMatrices = gammaProductLinkMatrix /@ tailLinks;
+  If[MemberQ[tailMatrices, $Failed], Return[$Failed]];
+  Fold[Dot, baseMatrix, tailMatrices]
+];
+
+gammaProductFactorMatrix::usage =
+  "gammaProductFactorMatrix[links] returns the memoized exact sparse matrix represented by one concrete GammaAntisymmetricProductHold link list.";
+gammaProductFactorMatrix[links_List] := gammaProductFactorMatrix[links] =
+  gammaProductFactorMatrixRaw[links];
+
+GammaAntisymmetricProduct[links_List] /; Head[gammaProductFactorMatrix[links]] === SparseArray :=
+  GammaAntisymmetricProduct[links] = denseGammaMatrixFromSparse[gammaProductFactorMatrix[links]];
+
+GammaAntisymmetricProduct[links_List, alpha_Integer, beta_Integer] /;
+    validGammaSpinorIndexQ[alpha] && validGammaSpinorIndexQ[beta] &&
+      Head[gammaProductFactorMatrix[links]] === SparseArray :=
+  gammaProductFactorMatrix[links][[alpha, beta]];
 
 
 (* ::Section:: *)

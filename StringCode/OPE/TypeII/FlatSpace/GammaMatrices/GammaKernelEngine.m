@@ -38,13 +38,7 @@ spinProjectionConcreteSpinBasisIndex[_] := $Failed;
 
 spinProjectionGammaLinkMatrix::usage =
   "spinProjectionGammaLinkMatrix[link] returns the exact 16x16 matrix associated with one concrete gamma-chain link.";
-spinProjectionGammaLinkMatrix[CUDHold] := CUDSparse;
-spinProjectionGammaLinkMatrix[CDUHold] := CDUSparse;
-spinProjectionGammaLinkMatrix[GammaUDHold[mu_Integer]] /; 1 <= mu <= 10 := GammaUDSparse[mu];
-spinProjectionGammaLinkMatrix[GammaDUHold[mu_Integer]] /; 1 <= mu <= 10 := GammaDUSparse[mu];
-spinProjectionGammaLinkMatrix[Gamma11UUHold[]] := Gamma11UUSparse;
-spinProjectionGammaLinkMatrix[Gamma11DDHold[]] := Gamma11DDSparse;
-spinProjectionGammaLinkMatrix[_] := $Failed;
+spinProjectionGammaLinkMatrix[link_] := gammaProductLinkMatrix[link];
 
 spinProjectionGammaVectorLinkHead::usage =
   "spinProjectionGammaVectorLinkHead[link] returns the GammaUDHold/GammaDUHold head for one concrete vector link.";
@@ -60,27 +54,14 @@ spinProjectionGammaVectorLinkIndex[_] := $Failed;
 
 spinProjectionAntisymmetrizedMatrixFromPattern::usage =
   "spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds] antisymmetrizes the vector labels while preserving the ordered U/D head pattern.";
-spinProjectionAntisymmetrizedMatrixFromPattern[{}, {}] :=
-  SparseArray[Band[{1, 1}] -> 1, {Length[CUDSparse], Length[CUDSparse]}];
+spinProjectionAntisymmetrizedMatrixFromPattern[{}, {}] := gammaProductAntisymmetrizedMatrixFromPattern[{}, {}];
 spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
-  spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds] = Module[{rank = Length[inds]},
-    1/rank Sum[
-      (-1)^(pos - 1) spinProjectionGammaLinkMatrix[linkHeads[[1]][inds[[pos]]]] .
-        spinProjectionAntisymmetrizedMatrixFromPattern[Rest[linkHeads], Delete[inds, pos]],
-      {pos, 1, rank}
-    ]
-  ];
+  gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds];
 
 spinProjectionAntisymmetrizedMatrix::usage =
   "spinProjectionAntisymmetrizedMatrix[vectorLinks] returns the exact antisymmetrized gamma matrix for one concrete vector-link list.";
-spinProjectionAntisymmetrizedMatrix[{}] := SparseArray[Band[{1, 1}] -> 1, {Length[CUDSparse], Length[CUDSparse]}];
-spinProjectionAntisymmetrizedMatrix[vectorLinks_List] := spinProjectionAntisymmetrizedMatrix[vectorLinks] = Module[
-  {linkHeads, inds},
-  linkHeads = spinProjectionGammaVectorLinkHead /@ vectorLinks;
-  inds = spinProjectionGammaVectorLinkIndex /@ vectorLinks;
-  If[MemberQ[linkHeads, $Failed] || MemberQ[inds, $Failed], Return[$Failed]];
-  spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds]
-];
+spinProjectionAntisymmetrizedMatrix[vectorLinks_List] := spinProjectionAntisymmetrizedMatrix[vectorLinks] =
+  gammaProductAntisymmetrizedMatrix[vectorLinks];
 
 spinProjectionFlipVectorLinkDirections::usage =
   "spinProjectionFlipVectorLinkDirections[links] swaps GammaUDHold and GammaDUHold on every explicit vector link.";
@@ -104,29 +85,14 @@ spinProjectionOddMixedNoCTagLinksQ[links_List] := Module[{cTag, coreLinks, vecto
 
 spinProjectionGammaFactorMatrixRaw::usage =
   "spinProjectionGammaFactorMatrixRaw[links] returns the stored matrix represented by one concrete GammaAntisymmetricProductHold link list.";
-spinProjectionGammaFactorMatrixRaw[links_List] := Module[
-  {cached, cTag, coreLinks, vectorLinks, tailLinks, pairingMatrix, baseMatrix},
-  cached = gammaProductCacheLookupFromLinks[links];
-  If[cached =!= $Failed, Return[cached]];
-  If[links === {},
-    pairingMatrix = Switch[
-      gammaProductSpinorChiralities[links],
-      {"chiral", "antichiral"}, CUDSparse,
-      {"antichiral", "chiral"}, CDUSparse,
-      _, SparseArray[Band[{1, 1}] -> 1, {Length[CUDSparse], Length[CUDSparse]}]
-    ];
-    Return[pairingMatrix];
-  ];
-  cTag = If[MatchQ[First[links], CUDHold | CDUHold], First[links], None];
-  coreLinks = If[cTag === None, links, Rest[links]];
-  vectorLinks = Select[coreLinks, gammaVectorLinkQ];
-  tailLinks = Select[coreLinks, !gammaVectorLinkQ[#] &];
-  baseMatrix = If[
-    cTag === None,
-    spinProjectionAntisymmetrizedMatrix[vectorLinks],
-    spinProjectionGammaLinkMatrix[cTag] . spinProjectionAntisymmetrizedMatrix[vectorLinks]
-  ];
-  Fold[Dot, baseMatrix, spinProjectionGammaLinkMatrix /@ tailLinks]
+spinProjectionGammaFactorMatrixRaw[links_List] := Module[{matrix = gammaProductFactorMatrixRaw[links]},
+  If[links =!= {}, Return[matrix]];
+  Switch[
+    gammaProductSpinorChiralities[links],
+    {"chiral", "antichiral"}, CUDSparse,
+    {"antichiral", "chiral"}, CDUSparse,
+    _, matrix
+  ]
 ];
 
 spinProjectionGammaFactorMatrix::usage =

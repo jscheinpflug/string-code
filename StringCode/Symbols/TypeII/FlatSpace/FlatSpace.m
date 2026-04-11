@@ -116,6 +116,9 @@ Gamma11DD::usage =
 Gamma11DDSparse::usage =
   "Gamma11DDSparse is the exact 16x16 sparse antichiral Weyl-block of the SO(10) chirality operator in the canonical TypeII flat-space basis.";
 
+GammaAntisymmetricProduct::usage =
+  "GammaAntisymmetricProduct[{link1,...}] returns the exact 16x16 matrix represented by one concrete antisymmetrized gamma-link list, and GammaAntisymmetricProduct[{link1,...}, alpha, beta] returns one exact matrix element.";
+
 GammaAntisymmetricProductHold::usage =
   "GammaAntisymmetricProductHold[{link1,...}, alpha, beta] denotes an inert antisymmetrized gamma tensor structure between spinor endpoints; when needed, CUDHold/CDUHold appears as the first list element.";
 
