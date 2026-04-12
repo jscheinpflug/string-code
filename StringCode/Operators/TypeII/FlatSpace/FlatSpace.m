@@ -73,6 +73,22 @@ placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tf[q_, zbar_]]:= exp\[Phi]t
 placeOp[coordinateHol_, coordinateAntiHol_][exp\[Phi]tb[q_, zbar_]]:= exp\[Phi]tb[q, coordinateAntiHol[zbar]];
 
 
+(* ::Subsubsection:: *)
+(*Superconformal ghosts*)
+
+
+placeOp[coordinateHol_, coordinateAntiHol_][\[Xi][n_, z_]]:= \[Xi][n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Xi]t[n_, zbar_]]:= \[Xi]t[n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Eta][n_, z_]]:= \[Eta][n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Eta]t[n_, zbar_]]:= \[Eta]t[n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Beta][n_, z_]]:= \[Beta][n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Beta]t[n_, zbar_]]:= \[Beta]t[n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Gamma][n_, z_]]:= \[Gamma][n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][\[Gamma]t[n_, zbar_]]:= \[Gamma]t[n, coordinateAntiHol[zbar]];
+placeOp[coordinateHol_, coordinateAntiHol_][d\[Phi][n_, z_]]:= d\[Phi][n, coordinateHol[z]];
+placeOp[coordinateHol_, coordinateAntiHol_][d\[Phi]t[n_, zbar_]]:= d\[Phi]t[n, coordinateAntiHol[zbar]];
+
+
 (* ::Section:: *)
 (*End*)
 
