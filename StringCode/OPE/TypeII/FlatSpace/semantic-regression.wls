@@ -22,6 +22,15 @@ semanticCases = {
     "wA" -> 0
   |>,
   <|
+    "Case" -> "projected excited antichiral spin with e^-phi psi [2,0]",
+    "Ops" -> {
+      R[S[{a1, "antichiral"}, -1/2, {{mu, -1}}, 0, z1]],
+      R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]]
+    },
+    "wH" -> 2,
+    "wA" -> 0
+  |>,
+  <|
     "Case" -> "projected S-S-S",
     "Ops" -> {
       R[S[{alpha, "chiral"}, -1/2, {}, 0, u]],

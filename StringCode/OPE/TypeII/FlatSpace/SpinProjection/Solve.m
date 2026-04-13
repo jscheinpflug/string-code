@@ -185,45 +185,77 @@ spinProjectionFamilyTupleAssociation0::usage =
   "spinProjectionFamilyTupleAssociation0[family, tuple] resolves one family output tuple through the lazy output-association key.";
 spinProjectionFamilyTupleAssociation0[family_Association, tuple_List] := familyOutputAssociation[family, tuple];
 
+spinProjectionMergeKeyRowAssociations0::usage =
+  "spinProjectionMergeKeyRowAssociations0[left, right, varCount] merges exact key->row associations, summing row vectors for shared output keys.";
+spinProjectionMergeKeyRowAssociations0[left_Association, right_Association, varCount_Integer?NonNegative] := Module[{merged = left},
+  KeyValueMap[
+    Function[{key, row},
+      merged[key] = Lookup[merged, key, ConstantArray[0, varCount]] + row
+    ],
+    right
+  ];
+  merged
+];
+
 spinProjectionArtifactCandidateRows0::usage =
-  "spinProjectionArtifactCandidateRows0[artifact, candidate, basis, seed] scans concrete family states and returns only rank-increasing exact rows.";
+  "spinProjectionArtifactCandidateRows0[artifact, candidate, basis, seed] scans concrete family states, aggregates shared output keys across families, and returns only rank-increasing exact rows.";
 spinProjectionArtifactCandidateRows0[
   artifact_Association,
   candidate : {freeSpins_List, freeVectors_List},
   basis_Association,
   seed_
 ] := Module[
-  {state = basis, row, assoc, familyRows, insert, nextState, tuple, stateSpins, stateVectors, spinDomain, termBuckets, terms, reaped, collected},
+  {
+    state = basis,
+    row,
+    assoc,
+    familyRows,
+    candidateRows = <||>,
+    insert,
+    nextState,
+    tuple,
+    stateSpins,
+    stateVectors,
+    spinDomain,
+    termBuckets,
+    terms,
+    reaped,
+    collected
+  },
   reaped = Reap[
-    Do[
-      familyRows = <||>;
-      {spinDomain, termBuckets} = If[
-        Length[family["SpinSymbols"]] == 1,
-        spinProjectionFamilyOutputSpinDomain[family, candidate, seed, True],
-        {spinProjectionFamilyOutputSpinDomain[family, candidate, seed], <||>}
-      ];
-      nextState = spinProjectionFamilyStateIterator[family, seed, spinDomain];
-      While[True,
-        tuple = nextState[];
-        If[tuple === EndOfFile, Break[]];
-        tuple = Reverse[tuple];
-        stateSpins = Developer`ToPackedArray[Take[tuple, Length[family["SpinSymbols"]]]];
-        stateVectors = Developer`ToPackedArray[Drop[tuple, Length[family["SpinSymbols"]]]];
-        terms = If[
+    (
+      Do[
+        familyRows = <||>;
+        {spinDomain, termBuckets} = If[
           Length[family["SpinSymbols"]] == 1,
-          Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]],
-          family["Terms"]
+          spinProjectionFamilyOutputSpinDomain[family, candidate, seed, True],
+          {spinProjectionFamilyOutputSpinDomain[family, candidate, seed], <||>}
         ];
-        row = spinProjectionFamilyStateRow[artifact, family, candidate, stateSpins, stateVectors, terms];
-        If[row === $Failed || !AnyTrue[row, # =!= 0 &], Continue[]];
-        assoc = spinProjectionFamilyTupleAssociation0[family, tuple];
-        Scan[
-          Function[pair,
-            familyRows[pair[[1]]] =
-              Lookup[familyRows, pair[[1]], ConstantArray[0, artifact["VarCount"]]] + pair[[2]] row
-          ],
-          Normal[assoc]
+        nextState = spinProjectionFamilyStateIterator[family, seed, spinDomain];
+        While[True,
+          tuple = nextState[];
+          If[tuple === EndOfFile, Break[]];
+          tuple = Reverse[tuple];
+          stateSpins = Developer`ToPackedArray[Take[tuple, Length[family["SpinSymbols"]]]];
+          stateVectors = Developer`ToPackedArray[Drop[tuple, Length[family["SpinSymbols"]]]];
+          terms = If[
+            Length[family["SpinSymbols"]] == 1,
+            Join[Lookup[termBuckets, 0, {}], Lookup[termBuckets, stateSpins[[1]], {}]],
+            family["Terms"]
+          ];
+          row = spinProjectionFamilyStateRow[artifact, family, candidate, stateSpins, stateVectors, terms];
+          If[row === $Failed || !AnyTrue[row, # =!= 0 &], Continue[]];
+          assoc = spinProjectionFamilyTupleAssociation0[family, tuple];
+          Scan[
+            Function[pair,
+              familyRows[pair[[1]]] =
+                Lookup[familyRows, pair[[1]], ConstantArray[0, artifact["VarCount"]]] + pair[[2]] row
+            ],
+            Normal[assoc]
+          ];
         ];
+        candidateRows = spinProjectionMergeKeyRowAssociations0[candidateRows, familyRows, artifact["VarCount"]],
+        {family, artifact["Families"]}
       ];
       Scan[
         Function[pair,
@@ -234,11 +266,9 @@ spinProjectionArtifactCandidateRows0[
             Sow[pair[[1]], "Keys"]
           ]
         ],
-        SortBy[Normal[familyRows], First]
-      ];
-      If[Length[state["Pivots"]] >= artifact["VarCount"], Break[]],
-      {family, artifact["Families"]}
-    ],
+        SortBy[Normal[candidateRows], First]
+      ]
+    ),
     _,
     Rule
   ];
@@ -320,7 +350,7 @@ spinProjectionArtifactExhaustiveFamilyRows0[
 ];
 
 spinProjectionArtifactCandidateRowsTrace0::usage =
-  "spinProjectionArtifactCandidateRowsTrace0[artifact, candidate, basis, seed] mirrors artifact row selection with per-family diagnostics.";
+  "spinProjectionArtifactCandidateRowsTrace0[artifact, candidate, basis, seed] mirrors artifact row selection with per-family diagnostics and candidate-level aggregated key rows.";
 spinProjectionArtifactCandidateRowsTrace0[
   artifact_Association,
   candidate : {freeSpins_List, freeVectors_List},
@@ -332,6 +362,7 @@ spinProjectionArtifactCandidateRowsTrace0[
     row,
     assoc,
     familyRows,
+    candidateRows = <||>,
     insert,
     nextState,
     tuple,
@@ -391,17 +422,7 @@ spinProjectionArtifactCandidateRowsTrace0[
         Rule
       ];
       visitedTuples = Lookup[Association[familyVisitedReap[[2]]], "VisitedTuples", {}];
-      Scan[
-        Function[pair,
-          insert = spinProjectionExactBasisInsertRow[state, pair[[2]]];
-          If[insert[[2]],
-            state = insert[[1]];
-            Sow[pair[[2]], "Rows"];
-            Sow[pair[[1]], "Keys"]
-          ]
-        ],
-        SortBy[Normal[familyRows], First]
-      ];
+      candidateRows = spinProjectionMergeKeyRowAssociations0[candidateRows, familyRows, artifact["VarCount"]];
       bucketColumns = Association @ KeyValueMap[#1 -> (Lookup[#, "Column"] & /@ #2) &, termBuckets];
       Sow[
         <|
@@ -414,8 +435,19 @@ spinProjectionArtifactCandidateRowsTrace0[
         |>,
         "Families"
       ];
-      If[Length[state["Pivots"]] >= artifact["VarCount"], Break[]],
+      ,
       {family, artifact["Families"]}
+    ];
+    Scan[
+      Function[pair,
+        insert = spinProjectionExactBasisInsertRow[state, pair[[2]]];
+        If[insert[[2]],
+          state = insert[[1]];
+          Sow[pair[[2]], "Rows"];
+          Sow[pair[[1]], "Keys"]
+        ]
+      ],
+      SortBy[Normal[candidateRows], First]
     ],
     _,
     Rule
@@ -425,6 +457,7 @@ spinProjectionArtifactCandidateRowsTrace0[
     "Basis" -> state,
     "Rows" -> Lookup[collected, "Rows", {}],
     "Keys" -> Lookup[collected, "Keys", {}],
+    "AggregatedRows" -> SortBy[Normal[candidateRows], First],
     "Families" -> Lookup[collected, "Families", {}]
   |>
 ];

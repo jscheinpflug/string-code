@@ -791,6 +791,52 @@ spinProjectionFamilyKeyRow0[
   summedRow
 ];
 
+spinProjectionArtifactKeyRowCache0::usage =
+  "spinProjectionArtifactKeyRowCache0 memoizes exact compiled artifact/key witness rows summed across all families.";
+spinProjectionArtifactKeyRowCache0 = <||>;
+
+spinProjectionArtifactKeyRowCacheKey0::usage =
+  "spinProjectionArtifactKeyRowCacheKey0[artifact, candidate, key, seed] returns the memoization key used by spinProjectionArtifactKeyRow0.";
+spinProjectionArtifactKeyRowCacheKey0[
+  artifact_Association,
+  candidate : {freeSpins_List, freeVectors_List},
+  key_,
+  seed_
+] := HoldComplete[
+  Lookup[artifact, "Sector", None],
+  Lookup[artifact, "Weight", None],
+  Lookup[artifact, "TargetWeight", None],
+  Lookup[artifact, "Ops", {}],
+  spinProjectionCandidateKey0[candidate],
+  key,
+  seed
+];
+
+spinProjectionArtifactKeyRow0::usage =
+  "spinProjectionArtifactKeyRow0[artifact, candidate, key, seed] returns one exact compiled coefficient row summed over all families and tuples that contribute to one output key.";
+spinProjectionArtifactKeyRow0[
+  artifact_Association,
+  candidate : {freeSpins_List, freeVectors_List},
+  key_,
+  seed_
+] := Module[{cacheKey, varCount, summedRow},
+  cacheKey = spinProjectionArtifactKeyRowCacheKey0[artifact, candidate, key, seed];
+  If[KeyExistsQ[spinProjectionArtifactKeyRowCache0, cacheKey],
+    Return[spinProjectionArtifactKeyRowCache0[cacheKey]]
+  ];
+  varCount = Lookup[artifact, "VarCount", 0];
+  summedRow = If[
+    Lookup[artifact, "Families", {}] === {},
+    ConstantArray[0, varCount],
+    Total @ Table[
+      spinProjectionFamilyKeyRow0[artifact, familyIndex, candidate, key, seed],
+      {familyIndex, Length[artifact["Families"]]}
+    ]
+  ];
+  spinProjectionArtifactKeyRowCache0[cacheKey] = summedRow;
+  summedRow
+];
+
 spinProjectionColumnWitnessCoeff0::usage =
   "spinProjectionColumnWitnessCoeff0[artifact, column, family, witness] evaluates one symbolic column coefficient on one concrete witness.";
 spinProjectionColumnWitnessCoeff0[
@@ -904,16 +950,15 @@ spinProjectionRHSCoeffForWitness0[
   artifact_Association,
   solveResult_Association,
   witness_Association
-] := Module[{coordRules, familyKeyRow},
+] := Module[{coordRules, artifactKeyRow},
   coordRules = Lookup[witness, "CoordinateRules", {}];
-  familyKeyRow = spinProjectionFamilyKeyRow0[
+  artifactKeyRow = spinProjectionArtifactKeyRow0[
     artifact,
-    witness["FamilyIndex"],
     witness["Candidate"],
     witness["Key"],
     Lookup[witness, "Seed", 1234]
   ];
-  spinProjectionEvaluateSummedTensorScalars0[(familyKeyRow . solveResult["CoeffVector"]) /. coordRules]
+  spinProjectionEvaluateSummedTensorScalars0[(artifactKeyRow . solveResult["CoeffVector"]) /. coordRules]
 ];
 
 spinProjectionSemanticWitnessCheck0::usage =
@@ -922,20 +967,19 @@ spinProjectionSemanticWitnessCheck0[
   artifact_Association,
   solveResult_Association,
   witness_Association
-] := Module[{lhsAssoc, lhsCoeff, familyKeyRow, rhsCoeff, matchQ},
+] := Module[{lhsAssoc, lhsCoeff, artifactKeyRow, rhsCoeff, matchQ},
   lhsAssoc = spinProjectionLHSAssociationForCandidate0[artifact, witness["Candidate"]];
   lhsCoeff = spinProjectionEvaluateSummedTensorScalars0[
     Lookup[lhsAssoc, witness["Key"], 0] /. Lookup[witness, "CoordinateRules", {}]
   ];
-  familyKeyRow = spinProjectionFamilyKeyRow0[
+  artifactKeyRow = spinProjectionArtifactKeyRow0[
     artifact,
-    witness["FamilyIndex"],
     witness["Candidate"],
     witness["Key"],
     Lookup[witness, "Seed", 1234]
   ];
   rhsCoeff = spinProjectionEvaluateSummedTensorScalars0[
-    (familyKeyRow . solveResult["CoeffVector"]) /. Lookup[witness, "CoordinateRules", {}]
+    (artifactKeyRow . solveResult["CoeffVector"]) /. Lookup[witness, "CoordinateRules", {}]
   ];
   matchQ = TrueQ[Simplify[lhsCoeff == rhsCoeff]];
   <|
@@ -1118,6 +1162,7 @@ spinProjectionSemanticCaseCheck0[ops_List, wH_, wA_, seed_, opts : OptionsPatter
   {artifacts, sectors, solveCompleteQ, coverageCompleteQ, allWitnessesMatchQ, witnessCount, coveredColumns},
   spinProjectionLHSAssociationCache0 = <||>;
   spinProjectionFamilyKeyRowCache0 = <||>;
+  spinProjectionArtifactKeyRowCache0 = <||>;
   artifacts = buildProjectedArtifacts[ops, wH, wA, seed];
   sectors = <|
     "Holo" -> spinProjectionSemanticSectorCheck0[
