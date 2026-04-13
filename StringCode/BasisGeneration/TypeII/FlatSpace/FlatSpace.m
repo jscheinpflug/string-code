@@ -1265,17 +1265,19 @@ groundDerivativeOPEFactorLists[weight_Integer?Positive, derivativeHead_Symbol, c
   (derivativeHead[# - 1, coord] & /@ #) & /@ IntegerPartitions[weight];
 
 matterOPEOperatorsFromHoloModeList::usage =
-  "Builds matter OPE-basis operators from one holomorphic matter mode list.";
+  "Builds matter OPE-basis operators from one holomorphic matter mode list, optionally suppressing explicit spin-field derivatives in favor of d\[Phi]-times-spin terms.";
 matterOPEOperatorsFromHoloModeList[
   pictureSpec_?validPictureSpecQ,
   modeList_List,
   z_: 0,
-  canonicalizeIndices_: True
+  canonicalizeIndices_: True,
+  spinFieldDerivatives_: True
 ] := Module[
-  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes, totalGroundDerivative},
+  {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes, totalGroundDerivative, phiWeights},
   {bcModes, superghostModes, dXModes, psiModes, groundDerivativeModes} =
     modeListSplitForHoloConversion[modeList];
   totalGroundDerivative = groundDerivativeOrderFromModes[groundDerivativeModes];
+  phiWeights = If[TrueQ[spinFieldDerivatives], Range[0, totalGroundDerivative], {totalGroundDerivative}];
   DeleteDuplicates @ DeleteCases[
     Flatten[
       Table[
@@ -1299,7 +1301,7 @@ matterOPEOperatorsFromHoloModeList[
             ] & /@ groundDerivativeOPEFactorLists[phiWeight, d\[Phi], z]
           ]
         ],
-        {phiWeight, 0, totalGroundDerivative}
+        {phiWeight, phiWeights}
       ],
       1
     ],
@@ -1308,15 +1310,16 @@ matterOPEOperatorsFromHoloModeList[
 ];
 
 matterOPEOperatorsFromAntiModeList::usage =
-  "Builds matter OPE-basis operators from one antiholomorphic matter mode list.";
+  "Builds matter OPE-basis operators from one antiholomorphic matter mode list, optionally suppressing explicit spin-field derivatives in favor of d\[Phi]t-times-spin terms.";
 matterOPEOperatorsFromAntiModeList[
   pictureSpec_?validPictureSpecQ,
   modeList_List,
   zbar_: 0,
-  canonicalizeIndices_: True
+  canonicalizeIndices_: True,
+  spinFieldDerivatives_: True
 ] := Module[{holoModes, holoOperators},
   holoModes = holoModeFromAntiMode /@ modeList;
-  holoOperators = matterOPEOperatorsFromHoloModeList[pictureSpec, holoModes, zbar, False];
+  holoOperators = matterOPEOperatorsFromHoloModeList[pictureSpec, holoModes, zbar, False, spinFieldDerivatives];
   canonicalizeOperatorIndicesQ[canonicalizeIndices, antiOperatorFromHolo[#]] & /@ holoOperators
 ];
 
@@ -1325,11 +1328,12 @@ convertMatterGroupToOperators::usage =
 convertMatterGroupToOperators[
   group : {picture_?validPictureSpecQ, matterModeLists_List},
   modeListConverter_,
-  canonicalizeIndices_
+  canonicalizeIndices_,
+  spinFieldDerivatives_
 ] := Module[
   {operators},
   operators = Flatten[
-    modeListConverter[picture, #, 0, canonicalizeIndices] & /@ matterModeLists,
+    modeListConverter[picture, #, 0, canonicalizeIndices, spinFieldDerivatives] & /@ matterModeLists,
     1
   ];
   {picture, DeleteDuplicates[operators]}
@@ -1337,15 +1341,17 @@ convertMatterGroupToOperators[
 
 convertMatterGroupToOperatorsHolo[
   group : {picture_?validPictureSpecQ, matterModeLists_List},
-  canonicalizeIndices_
-] := convertMatterGroupToOperators[group, matterOPEOperatorsFromHoloModeList, canonicalizeIndices];
+  canonicalizeIndices_,
+  spinFieldDerivatives_
+] := convertMatterGroupToOperators[group, matterOPEOperatorsFromHoloModeList, canonicalizeIndices, spinFieldDerivatives];
 
 convertMatterGroupToOperatorsAnti::usage =
   "Converts one antiholomorphic matter-mode group {picture, modeLists} to OPE-basis operators.";
 convertMatterGroupToOperatorsAnti[
   group : {picture_?validPictureSpecQ, matterModeLists_List},
-  canonicalizeIndices_
-] := convertMatterGroupToOperators[group, matterOPEOperatorsFromAntiModeList, canonicalizeIndices];
+  canonicalizeIndices_,
+  spinFieldDerivatives_
+] := convertMatterGroupToOperators[group, matterOPEOperatorsFromAntiModeList, canonicalizeIndices, spinFieldDerivatives];
 
 groupedResultToList::usage =
   "Normalizes grouped results to a list of groups using a single-group pattern.";
@@ -2121,28 +2127,36 @@ generateBasisMatterAntiHolo[
 
 generateBasisMatterAntiHolo[___] := {};
 
+readSpinFieldDerivativesOption::usage =
+  "Reads option \"SpinFieldDerivatives\" and validates it as a boolean.";
+readSpinFieldDerivativesOption[optionList_List, default_] :=
+  readBooleanOption[optionList, "SpinFieldDerivatives", default];
+
 generateMatterOPEFromGroups::usage =
-  "Converts grouped matter-mode results to deduplicated OPE-basis operators after parsing canonicalization options.";
+  "Converts grouped matter-mode results to deduplicated OPE-basis operators after parsing canonicalization and spin-derivative options.";
 generateMatterOPEFromGroups[groupedModes_, convertGroupFunction_, opts___] := Module[
-  {optionList, canonicalizeIndices},
+  {optionList, canonicalizeIndices, spinFieldDerivatives},
   optionList = Flatten[{opts}];
   If[!OptionQ[optionList],
     Return[{}]
   ];
   canonicalizeIndices = readCanonicalizeIndicesOption[optionList, True];
-  If[canonicalizeIndices === $Failed,
+  spinFieldDerivatives = readSpinFieldDerivativesOption[optionList, True];
+  If[canonicalizeIndices === $Failed || spinFieldDerivatives === $Failed,
     Return[{}]
   ];
   convertGroupedResultToOperators[
     groupedModes,
     {_?validPictureSpecQ, _List},
-    convertGroupFunction,
+    Function[{group, canonicalize},
+      convertGroupFunction[group, canonicalize, spinFieldDerivatives]
+    ],
     canonicalizeIndices
   ]
 ];
 
 generateBasisMatterHoloOPE::usage =
-  "Generates holomorphic matter-only TypeII OPE-basis operators. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dX insertions.";
+  "Generates holomorphic matter-only TypeII OPE-basis operators. Options \"FermionOnly\" -> True|False (default False) and \"SpinFieldDerivatives\" -> True|False (default True) suppress free-boson dX insertions and control whether explicit derivatives of spin fields S appear separately from d\[Phi]-times-spin terms.";
 generateBasisMatterHoloOPE[
   weight_?validWeightQ,
   picture_?validPictureInputQ,
@@ -2156,7 +2170,7 @@ generateBasisMatterHoloOPE[
 generateBasisMatterHoloOPE[___] := {};
 
 generateBasisMatterAntiHoloOPE::usage =
-  "Generates antiholomorphic matter-only TypeII OPE-basis operators. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dXt insertions.";
+  "Generates antiholomorphic matter-only TypeII OPE-basis operators. Options \"FermionOnly\" -> True|False (default False) and \"SpinFieldDerivatives\" -> True|False (default True) suppress free-boson dXt insertions and control whether explicit derivatives of spin fields St appear separately from d\[Phi]t-times-spin terms.";
 generateBasisMatterAntiHoloOPE[
   weight_?validWeightQ,
   picture_?validPictureInputQ,

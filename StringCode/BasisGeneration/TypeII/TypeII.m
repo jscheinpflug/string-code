@@ -32,10 +32,10 @@ generateBasisMatterAntiHolo::usage =
   "generateBasisMatterAntiHolo[weight, picture, opts] generates antiholomorphic TypeII matter-only mode states grouped by picture. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dXt insertions.";
 
 generateBasisMatterHoloOPE::usage =
-  "generateBasisMatterHoloOPE[weight, picture, opts] generates holomorphic TypeII matter-only OPE-basis operators. Options \"CanonicalizeIndices\" -> True|False (default True) and \"FermionOnly\" -> True|False (default False) control operator-index canonicalization and suppression of free-boson dX insertions.";
+  "generateBasisMatterHoloOPE[weight, picture, opts] generates holomorphic TypeII matter-only OPE-basis operators. Options \"CanonicalizeIndices\" -> True|False (default True), \"FermionOnly\" -> True|False (default False), and \"SpinFieldDerivatives\" -> True|False (default True) control operator-index canonicalization, suppression of free-boson dX insertions, and whether explicit spin-field derivatives are kept separately from d\[Phi]-times-spin terms.";
 
 generateBasisMatterAntiHoloOPE::usage =
-  "generateBasisMatterAntiHoloOPE[weight, picture, opts] generates antiholomorphic TypeII matter-only OPE-basis operators. Options \"CanonicalizeIndices\" -> True|False (default True) and \"FermionOnly\" -> True|False (default False) control operator-index canonicalization and suppression of free-boson dXt insertions.";
+  "generateBasisMatterAntiHoloOPE[weight, picture, opts] generates antiholomorphic TypeII matter-only OPE-basis operators. Options \"CanonicalizeIndices\" -> True|False (default True), \"FermionOnly\" -> True|False (default False), and \"SpinFieldDerivatives\" -> True|False (default True) control operator-index canonicalization, suppression of free-boson dXt insertions, and whether explicit spin-field derivatives are kept separately from d\[Phi]t-times-spin terms.";
 
 generateBasis::usage =
   "generateBasis[weight, ghostNumber, {pictureHolo, pictureAntiHolo}, opts] generates grouped TypeII closed-string basis states. Option \"OutputRepresentation\" -> \"Operators\" (default) or \"Modes\" controls output form. Option \"CanonicalizeIndices\" -> True|False (default True) controls operator-index canonicalization. Option \"B0MinusProjected\" -> True|False (default False) is supported only for operator output.";

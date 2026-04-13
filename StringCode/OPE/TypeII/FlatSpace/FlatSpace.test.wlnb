@@ -445,7 +445,7 @@
   },
   {
    "kind": 2,
-   "value": "support14b = Private`getOutgoingOperatorsTensors[{R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z]], R[S[{beta, \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0, 1234];\nsupport14bOps = If[support14b[\"holoData\"] === {}, {}, support14b[\"holoData\"][[All, 1]]];\ntest14b = testReport[\"Test 14b (spin projection basis omits dX insertions)\", support14bOps =!= {} && AllTrue[support14bOps, FreeQ[#, dX[__], Infinity] &]];",
+   "value": "support14b = Private`getOutgoingOperatorsTensors[{R[S[{alpha, \"chiral\"}, -1/2, {}, 0, z]], R[S[{beta, \"chiral\"}, -1/2, {}, 0, w]]}, 1, 0, 1234];\nsupport14bOps = If[support14b[\"holoData\"] === {}, {}, support14b[\"holoData\"][[All, 1]]];\nsupport14c = Private`getOutgoingOperatorsTensors[{R[S[{a1, \"antichiral\"}, -1/2, {{mu, -1}}, 0, z1]], R[exp\\[Phi]f[-1, z2], \\[Psi][nu, 0, z2]]}, 2, 0, 1234];\nsupport14cOps = If[support14c[\"holoData\"] === {}, {}, support14c[\"holoData\"][[All, 1]]];\nsupport14cNoSpinDerQ = FreeQ[support14cOps, S[{_Symbol, \"antichiral\"}, -3/2, {}, 1, 0], Infinity];\nsupport14cHasPhiSpinQ = Count[support14cOps, R[d\\[Phi][0, 0], S[{_Symbol, \"antichiral\"}, -3/2, {}, 0, 0]]] == 1;\ntest14b = testReport[\"Test 14b (spin projection basis omits dX and explicit spin derivatives but keeps dphi-spin terms)\", support14bOps =!= {} && AllTrue[support14bOps, FreeQ[#, dX[__], Infinity] &] && Length[support14cOps] == 2 && support14cNoSpinDerQ && support14cHasPhiSpinQ];",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

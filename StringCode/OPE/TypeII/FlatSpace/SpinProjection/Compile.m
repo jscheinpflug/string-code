@@ -38,6 +38,7 @@ spinProjectionSourceHash0::usage =
   "spinProjectionSourceHash0[] returns the source-stability hash used in projected artifact cache keys.";
 spinProjectionSourceHash0[] := spinProjectionSourceHash0[] = Hash[
   {
+    DownValues[generateSpinFieldOPEData],
     DownValues[spinProjectionCanonicalizeOps],
     DownValues[spinProjectionSectorData],
     DownValues[compileSpinProjectionSectorModel],
@@ -260,7 +261,8 @@ generateSpinFieldOPEData[
     totalPicture,
     "GSOParity" -> gsoParity,
     "OutputRepresentation" -> "Operators",
-    "FermionOnly" -> True
+    "FermionOnly" -> True,
+    "SpinFieldDerivatives" -> False
   ];
   If[basisOps === {}, Return[{}]];
 
