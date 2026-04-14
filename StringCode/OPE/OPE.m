@@ -239,6 +239,26 @@ combineChiral[a_, b_] := Which[
 (*Projected OPE API*)
 
 
+containsScalarTerm::usage = "Checks if an OPE result contains any terms without R (scalar terms).";
+containsScalarTerm[expr_] := Module[{num = Numerator[Together[expr]], expanded},
+  If[num === 0, False,
+    expanded = Expand[num];
+    If[Head[expanded] === Plus,
+      AnyTrue[List @@ expanded, FreeQ[#, R] &],
+      FreeQ[expanded, R]
+    ]
+  ]
+];
+
+minWeightFromOPE::usage = "Computes the minimum weight from an OPE result by extracting R operators and checking for scalar terms.";
+minWeightFromOPE[opeResult_, weightFn_] := Module[{extractedRs, weights},
+  extractedRs = Cases[opeResult, _R, {0, Infinity}];
+  weights = weightFn /@ extractedRs;
+  If[containsScalarTerm[opeResult], AppendTo[weights, 0]];
+  If[weights === {}, 0, Min[weights]]
+];
+
+
 OPEProjected[wH_, wA_][a___, 0, b___] := 0;
 OPEProjected[wH_, wA_][a___, x_ + y_, b___] := OPEProjected[wH, wA][a, x, b] + OPEProjected[wH, wA][a, y, b];
 OPEProjected[wH_, wA_][a___, c_ x_, b___] := c OPEProjected[wH, wA][a, x, b] /; (!containsFieldQ[c]);
@@ -249,7 +269,7 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
     holoOps, antiOps, restHoloOps, restAntiOps,
     insertionWeightHolo, insertionWeightAntiHolo, targetWeightHolo, targetWeightAntiHolo,
     \[Epsilon]Holo, \[Epsilon]AntiHolo, projectedCollHolo, projectedRestHolo, projectedCollAntiHolo, projectedRestAntiHolo,
-    tableHolo, tableAntiHolo, holoProjected, antiHoloProjected
+    tableHolo, tableAntiHolo, holoProjected, antiHoloProjected, opeCollResultHolo, opeRestResultHolo, opeCollResultAnti, opeRestResultAnti, minCollWeightHolo, minRestWeightHolo, minWeightHolo, minCollWeightAntiHolo, minRestWeightAntiHolo, minWeightAntiHolo
   },
 
   insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
@@ -280,15 +300,29 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
   restAntiOps = Select[R @@@ (restSplitLists[[All, 2]]), RTest];
 
   (* Holomorphic sector *)
-  projectedCollHolo[i_] := projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps], targetWeightHolo - i, \[Epsilon]Holo];
-  projectedRestHolo[i_] := If[restHoloOps === {}, If[i == 0, 1, 0], projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ restHoloOps], i, \[Epsilon]Holo]];
-  tableHolo = Table[multiplyFactors[projectedCollHolo[i], projectedRestHolo[i]], {i, insertionWeightHolo, targetWeightHolo}];
+  (* Compute OPE for each sector *)
+  opeCollResultHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps];
+  opeRestResultHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ restHoloOps];
+  (* Compute minimum weight by extracting Rs and checking for scalar terms *)
+  minCollWeightHolo = minWeightFromOPE[opeCollResultHolo, totalWeightHolo];
+  minRestWeightHolo = If[restHoloOps === {}, 0, minWeightFromOPE[opeRestResultHolo, totalWeightHolo]];
+  minWeightHolo = minCollWeightHolo + minRestWeightHolo;
+  projectedCollHolo[i_] := projectHolo[opeCollResultHolo, targetWeightHolo - i, \[Epsilon]Holo];
+  projectedRestHolo[i_] := If[restHoloOps === {}, If[i == 0, 1, 0], projectHolo[opeRestResultHolo, i, \[Epsilon]Holo]];
+  tableHolo = Table[multiplyFactors[projectedCollHolo[i], projectedRestHolo[i]], {i, minWeightHolo, targetWeightHolo}];
   holoProjected = Total[tableHolo];
 
-  (* Antiholomorphic sector *)
-  projectedCollAntiHolo[j_] := projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps], targetWeightAntiHolo - j, \[Epsilon]AntiHolo];
-  projectedRestAntiHolo[j_] := If[restAntiOps === {}, If[j == 0, 1, 0], projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ restAntiOps], j, \[Epsilon]AntiHolo]];
-  tableAntiHolo = Table[multiplyFactors[projectedCollAntiHolo[j], projectedRestAntiHolo[j]], {j, insertionWeightAntiHolo, targetWeightAntiHolo}];
+  (* AntiHolomorphic sector *)
+  (* Compute OPE for each sector *)
+  opeCollResultAnti = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
+  opeRestResultAnti = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ restAntiOps];
+  (* Compute minimum weight by extracting Rs and checking for scalar terms *)
+  minCollWeightAntiHolo = minWeightFromOPE[opeCollResultAnti, totalWeightAntiHolo];
+  minRestWeightAntiHolo = If[restAntiOps === {}, 0, minWeightFromOPE[opeRestResultAnti, totalWeightAntiHolo]];
+  minWeightAntiHolo = minCollWeightAntiHolo + minRestWeightAntiHolo;
+  projectedCollAntiHolo[i_] := projectAntiHolo[opeCollResultAnti, targetWeightAntiHolo - i, \[Epsilon]AntiHolo];
+  projectedRestAntiHolo[i_] := If[restAntiOps === {}, If[i == 0, 1, 0], projectAntiHolo[opeRestResultAnti, i, \[Epsilon]AntiHolo]];
+  tableAntiHolo = Table[multiplyFactors[projectedCollAntiHolo[i], projectedRestAntiHolo[i]], {i, minWeightAntiHolo, targetWeightAntiHolo}];
   antiHoloProjected = Total[tableAntiHolo];
 
   sign signRest combineChiral[holoProjected, antiHoloProjected]
@@ -299,15 +333,22 @@ OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OP
 OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
 
 OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
-  {collPieces, collR, restR, insertionWeightHolo, targetWeightHolo, \[Epsilon]Holo, projectedCollHolo, projectedRestHolo, table},
+  {collPieces, collR, restR, insertionWeightHolo, targetWeightHolo, \[Epsilon]Holo, opeCollResult, opeRestResult, minCollWeightHolo, minRestWeightHolo, minWeightHolo, projectedCollHolo, projectedRestHolo, table},
   insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
   targetWeightHolo = wH - insertionWeightHolo;
   collPieces = splitCollapsable /@ {Ra};
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
-  projectedCollHolo[i_] := projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR], targetWeightHolo - i, \[Epsilon]Holo];
-  projectedRestHolo[i_] := If[restR === {}, If[i == 0, 1, 0], projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ restR], i, \[Epsilon]Holo]];
-  table = Table[multiplyFactors[projectedCollHolo[i], projectedRestHolo[i]], {i, insertionWeightHolo, targetWeightHolo}];
+  (* Compute OPE for each sector *)
+  opeCollResult = opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR];
+  opeRestResult = opeOfRList[rescaleR[\[Epsilon]Holo] /@ restR];
+  (* Compute minimum weight by extracting Rs and checking for scalar terms *)
+  minCollWeightHolo = minWeightFromOPE[opeCollResult, totalWeightHolo];
+  minRestWeightHolo = If[restR === {}, 0, minWeightFromOPE[opeRestResult, totalWeightHolo]];
+  minWeightHolo = minCollWeightHolo + minRestWeightHolo;
+  projectedCollHolo[i_] := projectHolo[opeCollResult, targetWeightHolo - i, \[Epsilon]Holo];
+  projectedRestHolo[i_] := If[restR === {}, If[i == 0, 1, 0], projectHolo[opeRestResult, i, \[Epsilon]Holo]];
+  table = Table[multiplyFactors[projectedCollHolo[i], projectedRestHolo[i]], {i, minWeightHolo, targetWeightHolo}];
   Total[table]
 ];
 
@@ -317,15 +358,22 @@ OPEProjectedAntiHolo[wA_][a___, x_ + y_, b___] := OPEProjectedAntiHolo[wA][a, x,
 OPEProjectedAntiHolo[wA_][a___, c_ x_, b___] := c OPEProjectedAntiHolo[wA][a, x, b] /; (!containsFieldQ[c]);
 
 OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
-  {collPieces, collR, restR, insertionWeightAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo, projectedCollAntiHolo, projectedRestAntiHolo, table},
+  {collPieces, collR, restR, insertionWeightAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo, opeCollResult, opeRestResult, minCollWeightAntiHolo, minRestWeightAntiHolo, minWeightAntiHolo, projectedCollAntiHolo, projectedRestAntiHolo, table},
   insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
   targetWeightAntiHolo = wA - insertionWeightAntiHolo;
   collPieces = splitCollapsable /@ {Ra};
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
-  projectedCollAntiHolo[i_] := projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR], targetWeightAntiHolo - i, \[Epsilon]AntiHolo];
-  projectedRestAntiHolo[i_] := If[restR === {}, If[i == 0, 1, 0], projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ restR], i, \[Epsilon]AntiHolo]];
-  table = Table[multiplyFactors[projectedCollAntiHolo[i], projectedRestAntiHolo[i]], {i, insertionWeightAntiHolo, targetWeightAntiHolo}];
+  (* Compute OPE for each sector *)
+  opeCollResult = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR];
+  opeRestResult = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ restR];
+  (* Compute minimum weight by extracting Rs and checking for scalar terms *)
+  minCollWeightAntiHolo = minWeightFromOPE[opeCollResult, totalWeightAntiHolo];
+  minRestWeightAntiHolo = If[restR === {}, 0, minWeightFromOPE[opeRestResult, totalWeightAntiHolo]];
+  minWeightAntiHolo = minCollWeightAntiHolo + minRestWeightAntiHolo;
+  projectedCollAntiHolo[i_] := projectAntiHolo[opeCollResult, targetWeightAntiHolo - i, \[Epsilon]AntiHolo];
+  projectedRestAntiHolo[i_] := If[restR === {}, If[i == 0, 1, 0], projectAntiHolo[opeRestResult, i, \[Epsilon]AntiHolo]];
+  table = Table[multiplyFactors[projectedCollAntiHolo[i], projectedRestAntiHolo[i]], {i, minWeightAntiHolo, targetWeightAntiHolo}];
   Total[table]
 ];
 
