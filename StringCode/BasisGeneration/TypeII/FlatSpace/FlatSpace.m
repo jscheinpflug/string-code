@@ -898,44 +898,45 @@ spinDescendantGroundWeight[picture_?halfIntegerQ, chirality_?validChiralityQ] :=
   groundStateWeight[{picture, chirality}];
 
 spinDescendantContourPower::usage =
-  "spinDescendantContourPower[spinMode, pictureBefore, chirality] returns the contour-projection power for one excited spin-field mode under local e^{-phi} psi collapse, accounting for shifted-picture ground-state weight.";
+  "spinDescendantContourPower[spinMode, pictureBefore, chirality] returns the scaled-projection power for one excited spin-field mode under local e^{-phi} psi collapse.";
 spinDescendantContourPower[spinMode_, pictureBefore_?halfIntegerQ, chirality_?validChiralityQ] := Module[
-  {excitationLevel, bosonizedFieldWeight, shiftedGroundWeight},
-  excitationLevel = spinDescendantModeExcitationLevel[spinMode];
-  bosonizedFieldWeight = spinDescendantGroundWeight[pictureBefore - 1, chirality] + excitationLevel;
+  {bosonizedFieldWeight, shiftedGroundWeight},
+  bosonizedFieldWeight =
+    spinDescendantGroundWeight[pictureBefore - 1, chirality] +
+    spinDescendantModeExcitationLevel[spinMode];
   shiftedGroundWeight = spinDescendantGroundWeight[pictureBefore, chirality];
-  excitationLevel + bosonizedFieldWeight - shiftedGroundWeight - 2
+  bosonizedFieldWeight - shiftedGroundWeight - 1
 ];
 
 applySpinDescendantModeHolo::usage =
-  "applySpinDescendantModeHolo[currentState, spinMode, currentPicture, chirality] applies one holomorphic excited-spin contour step at a specified pre-action picture.";
+  "applySpinDescendantModeHolo[currentState, spinMode, pictureBefore, chirality] applies one holomorphic excited-spin contour step in the sequential local-collapse pipeline.";
 applySpinDescendantModeHolo[
   currentState_,
   spinMode_,
-  currentPicture_?halfIntegerQ,
+  pictureBefore_?halfIntegerQ,
   chirality_?validChiralityQ
 ] := Module[{zMode = Unique["zMode"], parameter = Unique["\[Epsilon]Mode"]},
   projectScaledContourContributionAtOrigin[
     projectScaledExpressionAtHoloPower,
     OPE[spinDescendantGeneratorHolo[spinMode, parameter zMode], currentState],
-    spinDescendantContourPower[spinMode, currentPicture, chirality],
+    spinDescendantContourPower[spinMode, pictureBefore, chirality],
     parameter,
     zMode
   ]
 ];
 
 applySpinDescendantModeAntiHolo::usage =
-  "applySpinDescendantModeAntiHolo[currentState, spinMode, currentPicture, chirality] applies one antiholomorphic excited-spin contour step at a specified pre-action picture.";
+  "applySpinDescendantModeAntiHolo[currentState, spinMode, pictureBefore, chirality] applies one antiholomorphic excited-spin contour step in the sequential local-collapse pipeline.";
 applySpinDescendantModeAntiHolo[
   currentState_,
   spinMode_,
-  currentPicture_?halfIntegerQ,
+  pictureBefore_?halfIntegerQ,
   chirality_?validChiralityQ
 ] := Module[{zbarMode = Unique["zbarMode"], parameter = Unique["\[Epsilon]Mode"]},
   projectScaledContourContributionAtOrigin[
     projectScaledExpressionAtAntiHoloPower,
     OPE[spinDescendantGeneratorAntiHolo[spinMode, parameter zbarMode], currentState],
-    spinDescendantContourPower[spinMode, currentPicture, chirality],
+    spinDescendantContourPower[spinMode, pictureBefore, chirality],
     parameter,
     zbarMode
   ]
@@ -951,33 +952,42 @@ restoreBosonizedSpinStateAntiHolo::usage =
 restoreBosonizedSpinStateAntiHolo[expr_, coord_] :=
   Expand[(expr /. R[a___] :> Times[a]) /. {dHt[i_, n_, 0] :> dHt[i, n, coord], expHt[charges_, 0] :> expHt[charges, coord]}];
 
+antisymmetrizeModeApplication::usage =
+  "antisymmetrizeModeApplication[applyFn, state, modes, pictures, chirality] antisymmetrizes sequential mode application over all permutations with 1/n! normalization.";
+antisymmetrizeModeApplication[applyFn_, state_, modes_List, pictures_List, chirality_] := Module[
+  {n = Length[modes], indexPerms},
+  If[n <= 1,
+    Fold[applyFn[#1, #2[[1]], #2[[2]], chirality] &, state, Transpose[{modes, pictures}]],
+    indexPerms = Permutations[Range[n]];
+    (1/n!) Total[
+      Signature[#] Fold[
+        applyFn[#1, #2[[1]], #2[[2]], chirality] &,
+        state,
+        Transpose[{modes[[#]], pictures}]
+      ] & /@ indexPerms
+    ]
+  ]
+];
+
 bosonizeSpinModesHolo::usage =
   "Bosonizes a holomorphic excited Ramond spin field by sequential local contour collapse with the bosonized e^{-phi} psi generator.";
 bosonizeSpinModesHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
-  {state, seedPicture, modeData},
+  {state, seedPicture, pictures},
   seedPicture = spinDescendantSeedPicture[q, modes];
   state = Bosonize[R[S[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
-  modeData = Transpose[{modes, seedPicture - Range[0, Length[modes] - 1]}];
-  state = Fold[
-    applySpinDescendantModeHolo[#1, #2[[1]], #2[[2]], chirality] &,
-    state,
-    modeData
-  ];
+  pictures = seedPicture - Range[0, Length[modes] - 1];
+  state = antisymmetrizeModeApplication[applySpinDescendantModeHolo, state, modes, pictures, chirality];
   restoreBosonizedSpinStateHolo[state, coord]
 ];
 
 bosonizeSpinModesAntiHolo::usage =
   "Bosonizes an antiholomorphic excited Ramond spin field by sequential local contour collapse with the bosonized e^{-phit} psit generator.";
 bosonizeSpinModesAntiHolo[{spinVec_List, chirality_}, q_, modes_List, coord_] := Module[
-  {state, seedPicture, modeData},
+  {state, seedPicture, pictures},
   seedPicture = spinDescendantSeedPicture[q, modes];
   state = Bosonize[R[St[{spinVec, chirality}, seedPicture, {}, 0, 0]]];
-  modeData = Transpose[{modes, seedPicture - Range[0, Length[modes] - 1]}];
-  state = Fold[
-    applySpinDescendantModeAntiHolo[#1, #2[[1]], #2[[2]], chirality] &,
-    state,
-    modeData
-  ];
+  pictures = seedPicture - Range[0, Length[modes] - 1];
+  state = antisymmetrizeModeApplication[applySpinDescendantModeAntiHolo, state, modes, pictures, chirality];
   restoreBosonizedSpinStateAntiHolo[state, coord]
 ];
 

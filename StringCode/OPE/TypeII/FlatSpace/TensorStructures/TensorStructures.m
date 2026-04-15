@@ -31,8 +31,14 @@ generateTensorStructures::badarg =
   "Both incoming and outgoing arguments must be Association objects.";
 generateTensorStructures::badvec =
   "\"vector\" entries must be lists of symbols.";
+generateTensorStructures::badantisym =
+  "\"AntisymmetricVectorGroups\" must be a list of pairwise-disjoint symbolic vector groups drawn from the incoming/outgoing vector labels.";
 
-Options[generateTensorStructures] = {"MaxK" -> 5, "RepresentativesOnly" -> False};
+Options[generateTensorStructures] = {
+  "MaxK" -> 5,
+  "RepresentativesOnly" -> False,
+  "AntisymmetricVectorGroups" -> {}
+};
 
 
 (* ::Section:: *)
@@ -59,6 +65,27 @@ parseRepresentativesOnlyOption::usage = "parseRepresentativesOnlyOption[opts] ex
 parseRepresentativesOnlyOption[opts_List] := Module[{flag},
   flag = Lookup[Association[Join[Options[generateTensorStructures], opts]], "RepresentativesOnly", False];
   TrueQ[flag]
+];
+
+parseAntisymmetricVectorGroupsOption::usage =
+  "parseAntisymmetricVectorGroupsOption[opts, vectorIndices] validates and canonicalizes antisymmetric external-vector groups.";
+parseAntisymmetricVectorGroupsOption[opts_List, vectorIndices_List] := Module[
+  {groups, normalized, validVectors},
+  groups = Lookup[Association[Join[Options[generateTensorStructures], opts]], "AntisymmetricVectorGroups", {}];
+  validVectors = DeleteDuplicates[vectorIndices];
+  If[!ListQ[groups],
+    Message[generateTensorStructures::badantisym];
+    Return[$Failed];
+  ];
+  normalized = SortBy[DeleteDuplicates[#], symbolSortKey] & /@ groups;
+  If[
+    !AllTrue[normalized, ListQ[#] && Length[#] > 1 && AllTrue[#, SymbolQ] &] ||
+      !AllTrue[normalized, SubsetQ[validVectors, #] &] ||
+      !DuplicateFreeQ[Flatten[normalized]],
+    Message[generateTensorStructures::badantisym];
+    Return[$Failed];
+  ];
+  SortBy[normalized, symbolSortKey[First[#]] &]
 ];
 
 normalizeIndexAssociation::usage = "normalizeIndexAssociation[data] ensures keys \"vector\" and \"spinor\" exist with list defaults.";
@@ -716,18 +743,36 @@ vectorPairings[vectorIndices_List] := Module[{first, rest},
   ]
 ];
 
+antisymmetricVectorGroupLookup::usage =
+  "antisymmetricVectorGroupLookup[groups] maps each antisymmetrized vector label to its group number.";
+antisymmetricVectorGroupLookup[groups_List] := Association @ Flatten[
+  MapIndexed[Thread[#1 -> First[#2]] &, groups],
+  1
+];
+
+validAntisymmetricDeltaPairingQ::usage =
+  "validAntisymmetricDeltaPairingQ[pairs, groupLookup] is False when a delta pairing contracts two labels from the same antisymmetric block.";
+validAntisymmetricDeltaPairingQ[pairs_List, groupLookup_Association] := AllTrue[
+  pairs,
+  Module[{left = Lookup[groupLookup, #[[1]], None], right = Lookup[groupLookup, #[[2]], None]},
+    left === None || right === None || left =!= right
+  ] &
+];
+
 vectorPlacements::usage =
   "vectorPlacements[externalCounts, vectorIndices] distributes named external vectors among slots and leftover \\[Delta] pairings.";
-vectorPlacements[externalCounts_List, vectorIndices_List] := Module[
-  {k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, recurse},
+vectorPlacements[externalCounts_List, vectorIndices_List, antisymmetricVectorGroups_List : {}] := Module[
+  {k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, recurse, groupLookup, pairings},
   leftoverCount = n - Total[externalCounts];
   If[leftoverCount < 0 || OddQ[leftoverCount], Return[{}]];
+  groupLookup = antisymmetricVectorGroupLookup[antisymmetricVectorGroups];
   recurse[pos_, rem_, remLeftover_, slotAcc_, leftoverAcc_] := Module[{slot, out = {}},
     If[pos > n,
+      pairings = Select[vectorPairings[leftoverAcc], validAntisymmetricDeltaPairingQ[#, groupLookup] &];
       Return[
         If[
           remLeftover == 0 && And @@ Thread[rem == 0],
-          (<|"SlotVectors" -> slotAcc, "DeltaPairs" -> #|> &) /@ vectorPairings[leftoverAcc],
+          (<|"SlotVectors" -> slotAcc, "DeltaPairs" -> #|> &) /@ pairings,
           {}
         ]
       ]
@@ -756,10 +801,14 @@ vectorPlacements[externalCounts_List, vectorIndices_List] := Module[
 
 firstVectorPlacement::usage =
   "firstVectorPlacement[externalCounts, vectorIndices] builds one deterministic slot-plus-\\[Delta] vector assignment.";
-firstVectorPlacement[externalCounts_List, vectorIndices_List] := Module[
-  {k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, slotVectors, cursor = 1, i, takeCount, leftovers, pairings},
+firstVectorPlacement[externalCounts_List, vectorIndices_List, antisymmetricVectorGroups_List : {}] := Module[
+  {
+    k = Length[externalCounts], n = Length[vectorIndices], leftoverCount, slotVectors, cursor = 1, i,
+    takeCount, leftovers, pairings, groupLookup
+  },
   leftoverCount = n - Total[externalCounts];
   If[leftoverCount < 0 || OddQ[leftoverCount], Return[$Failed]];
+  groupLookup = antisymmetricVectorGroupLookup[antisymmetricVectorGroups];
   slotVectors = ConstantArray[{}, k];
   For[i = 1, i <= k, i++,
     takeCount = externalCounts[[i]];
@@ -769,7 +818,7 @@ firstVectorPlacement[externalCounts_List, vectorIndices_List] := Module[
     ];
   ];
   leftovers = If[cursor > n, {}, Take[vectorIndices, {cursor, n}]];
-  pairings = vectorPairings[leftovers];
+  pairings = Select[vectorPairings[leftovers], validAntisymmetricDeltaPairingQ[#, groupLookup] &];
   If[pairings === {}, Return[$Failed]];
   <|"SlotVectors" -> slotVectors, "DeltaPairs" -> First[pairings]|>
 ];
@@ -891,7 +940,10 @@ spinorPlacementCacheKey[slots_List, outSpinor_] := Module[{forms, outgoing},
 
 vectorPlacementCacheKey::usage =
   "vectorPlacementCacheKey[externalCounts] builds a cache key for vector placement enumeration.";
-vectorPlacementCacheKey[externalCounts_List] := externalCounts;
+vectorPlacementCacheKey[externalCounts_List, antisymmetricVectorGroups_List : {}] := {
+  externalCounts,
+  antisymmetricVectorGroups
+};
 
 abstractAutomorphisms::usage =
   "abstractAutomorphisms[slots, extCounts, cMatrix] lists slot permutations that preserve the abstract structure exactly.";
@@ -937,40 +989,97 @@ slotPlacementKey[slot_List, spinPair_List, vecs_List, spinRank_Association, vecR
   Lookup[vecRank, #, Infinity] & /@ vecs
 };
 
+listPermutationSignature::usage =
+  "listPermutationSignature[source, target] returns the permutation signature carrying source to target.";
+listPermutationSignature[source_List, target_List] := Signature[Flatten[Position[source, #] & /@ target]];
+
+antisymmetricRelabelings::usage =
+  "antisymmetricRelabelings[groups] enumerates all antisymmetric-block relabelings together with their fermionic signs.";
+antisymmetricRelabelings[groups_List] := Module[{groupChoices, choices},
+  If[groups === {}, Return[{<|"Rules" -> {}, "Sign" -> 1|>}]];
+  groupChoices = Map[
+    Function[group,
+      Map[
+        <|"Rules" -> Thread[group -> #], "Sign" -> listPermutationSignature[group, #]|> &,
+        Permutations[group]
+      ]
+    ],
+    groups
+  ];
+  choices = Tuples[groupChoices];
+  Map[
+    <|
+      "Rules" -> Flatten[#[[All, "Rules"]], 1],
+      "Sign" -> Times @@ #[[All, "Sign"]]
+    |>&,
+    choices
+  ]
+];
+
 placementOrbitKey::usage =
   "placementOrbitKey[slots, spinPlacement, vecPlacement, automorphisms] canonicalizes a placement under slot automorphisms.";
 placementOrbitKey[
-  slots_List, spinPlacement_List, vecPlacement_List, automorphisms_List,
-  spinRank_Association, vecRank_Association
+  slots_List, spinPlacement_List, vecPlacement_Association, automorphisms_List,
+  spinRank_Association, vecRank_Association, antisymmetricVectorGroups_List : {}
 ] := Module[
-  {slotKeys, orbitKeys},
-  slotKeys = Table[
-    slotPlacementKey[slots[[i]], spinPlacement[[i]], vecPlacement[[i]], spinRank, vecRank],
-    {i, Length[slots]}
+  {signsByKey = <||>, relabelings, relabeling, slotKeys, deltaKey, keyData, key},
+  relabelings = antisymmetricRelabelings[antisymmetricVectorGroups];
+  Do[
+    relabeling = relabelings[[i]];
+    slotKeys = Table[
+      slotPlacementKey[
+        slots[[j]],
+        spinPlacement[[j]],
+        Replace[vecPlacement["SlotVectors"][[j]], relabeling["Rules"], {1}],
+        spinRank,
+        vecRank
+      ],
+      {j, Length[slots]}
+    ];
+    deltaKey = deltaPairingKey[Replace[vecPlacement["DeltaPairs"], relabeling["Rules"], {2}]];
+    Do[
+      keyData = {slotKeys[[automorphisms[[j]]]], deltaKey};
+      key = ToString[InputForm[keyData]];
+      AssociateTo[
+        signsByKey,
+        key -> Union[Append[Lookup[signsByKey, key, {}], relabeling["Sign"]]]
+      ],
+      {j, Length[automorphisms]}
+    ],
+    {i, Length[relabelings]}
   ];
-  orbitKeys = slotKeys[[#]] & /@ automorphisms;
-  First @ SortBy[orbitKeys, Identity]
+  key = First @ Sort[Keys[signsByKey]];
+  If[Length[Lookup[signsByKey, key, {}]] > 1, 0, key]
+];
+
+deltaPairingKey::usage = "deltaPairingKey[pairs] returns a deterministic key for one list of \\[Delta] pairings.";
+deltaPairingKey[pairs_List] := SortBy[
+  ({symbolSortKey[#[[1]]], symbolSortKey[#[[2]]]} &) /@ (canonicalizeVectorPair /@ pairs),
+  Identity
 ];
 
 uniquePlacementPairs::usage =
   "uniquePlacementPairs[slots, spins, vecs, automorphisms] keeps one representative spin/vector-placement pair per automorphism orbit.";
-deltaPairingKey::usage = "deltaPairingKey[pairs] returns a deterministic key for one list of \\[Delta] pairings.";
-deltaPairingKey[pairs_List] := ({symbolSortKey[#[[1]]], symbolSortKey[#[[2]]]} &) /@ pairs;
-
 uniquePlacementPairs[
   slots_List, spins_List, vecs_List, automorphisms_List,
-  spinRank_Association, vecRank_Association
+  spinRank_Association, vecRank_Association, antisymmetricVectorGroups_List : {}
 ] := Module[
   {seen = <||>, harvested, i, j, key},
   harvested = Reap[
     For[i = 1, i <= Length[spins], i++,
       For[j = 1, j <= Length[vecs], j++,
-        key = {
-          placementOrbitKey[slots, spins[[i]], vecs[[j, "SlotVectors"]], automorphisms, spinRank, vecRank],
-          deltaPairingKey[vecs[[j, "DeltaPairs"]]]
-        };
+        key = placementOrbitKey[
+          slots,
+          spins[[i]],
+          vecs[[j]],
+          automorphisms,
+          spinRank,
+          vecRank,
+          antisymmetricVectorGroups
+        ];
+        If[key === 0, Continue[]];
         If[!KeyExistsQ[seen, key],
-          seen[key] = True;
+          AssociateTo[seen, key -> True];
           Sow[{spins[[i]], vecs[[j]], key}]
         ];
       ];
@@ -990,7 +1099,8 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
     abstract, slots, extCounts, cMatrix, spins, vecs, representativesOnly,
     oneSpin, oneVec, builtGroup, spinPlacementCache = <||>, vectorPlacementCache = <||>,
     spinKey, vecKey, firstSpinCache = <||>, firstVecCache = <||>,
-    autoCache = <||>, autoKey, automorphisms, pairs, spinRank, vecRank
+    autoCache = <||>, autoKey, automorphisms, pairs, spinRank, vecRank,
+    antisymmetricVectorGroups
   },
   If[!(AssociationQ[incoming] && AssociationQ[outgoing]),
     Message[generateTensorStructures::badarg];
@@ -1041,6 +1151,8 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
 
   outSpinor = If[outSpin === {}, None, First[outSpin]];
   extVectors = Join[inVec, outVec];
+  antisymmetricVectorGroups = parseAntisymmetricVectorGroupsOption[{opts}, extVectors];
+  If[antisymmetricVectorGroups === $Failed, Return[{}]];
   spinRank = AssociationThread[inSpin[[All, 1]] -> Range[Length[inSpin]]];
   If[outSpinor =!= None, spinRank[outSpinor[[1]]] = 0];
   vecRank = AssociationThread[extVectors -> Range[Length[extVectors]]];
@@ -1056,9 +1168,9 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         firstSpinCache[spinKey] = firstSpinorPlacement[slots, inSpin, outSpinor]
       ];
       oneSpin = firstSpinCache[spinKey];
-      vecKey = vectorPlacementCacheKey[extCounts];
+      vecKey = vectorPlacementCacheKey[extCounts, antisymmetricVectorGroups];
       If[!KeyExistsQ[firstVecCache, vecKey],
-        firstVecCache[vecKey] = firstVectorPlacement[extCounts, extVectors]
+        firstVecCache[vecKey] = firstVectorPlacement[extCounts, extVectors, antisymmetricVectorGroups]
       ];
       oneVec = firstVecCache[vecKey];
       builtGroup = If[oneSpin === $Failed || oneVec === $Failed, {}, {buildConcreteStructure[slots, cMatrix, oneSpin, oneVec]}];
@@ -1068,9 +1180,9 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         spinPlacementCache[spinKey] = spinorPlacements[slots, inSpin, outSpinor]
       ];
       spins = spinPlacementCache[spinKey];
-      vecKey = vectorPlacementCacheKey[extCounts];
+      vecKey = vectorPlacementCacheKey[extCounts, antisymmetricVectorGroups];
       If[!KeyExistsQ[vectorPlacementCache, vecKey],
-        vectorPlacementCache[vecKey] = vectorPlacements[extCounts, extVectors]
+        vectorPlacementCache[vecKey] = vectorPlacements[extCounts, extVectors, antisymmetricVectorGroups]
       ];
       vecs = vectorPlacementCache[vecKey];
       autoKey = {slots, extCounts, cMatrix};
@@ -1078,7 +1190,15 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         autoCache[autoKey] = abstractAutomorphisms[slots, extCounts, cMatrix]
       ];
       automorphisms = autoCache[autoKey];
-      pairs = uniquePlacementPairs[slots, spins, vecs, automorphisms, spinRank, vecRank];
+      pairs = uniquePlacementPairs[
+        slots,
+        spins,
+        vecs,
+        automorphisms,
+        spinRank,
+        vecRank,
+        antisymmetricVectorGroups
+      ];
       AppendTo[
         groups,
         Table[

@@ -34,7 +34,8 @@ Options[findIndependentTensorStructures] = {
   "ProbeCount" -> 5,
   "VerificationProbeCount" -> 3,
   "RandomSeed" -> Automatic,
-  "ReturnStatistics" -> False
+  "ReturnStatistics" -> False,
+  "AntisymmetricVectorGroups" -> {}
 };
 
 
@@ -123,7 +124,7 @@ scanCandidatesOrFail[candidates_List, targetRank_, optsAssoc_Association] := Mod
 ];
 
 findIndependentTensorStructures[incoming_Association, outgoing_Association, opts___Rule] := Module[
-  {optsAssoc, searchData, targetRank, candidates, candidateCount, scanResult},
+  {optsAssoc, searchData, targetRank, candidates, candidateCount, scanResult, generatorOpts},
   optsAssoc = parseSelectorOptions[{opts}];
   If[optsAssoc === $Failed, Return[$Failed]];
   searchData = associationSelectionData[incoming, outgoing];
@@ -139,7 +140,12 @@ findIndependentTensorStructures[incoming_Association, outgoing_Association, opts
   targetRank = If[targetRank === Automatic, automaticAssociationTargetRank[searchData], targetRank];
   If[targetRank === 0, Return[selectorResult[{}, 0, 0, optsAssoc]]];
   (* Association mode preserves generator grouping so the selector can compile and scan abstract families lazily. *)
-  candidates = normalizeCandidateInput @ generateTensorStructures[searchData["Incoming"], searchData["Outgoing"]];
+  generatorOpts = FilterRules[{opts}, Options[generateTensorStructures]];
+  candidates = normalizeCandidateInput @ generateTensorStructures[
+    searchData["Incoming"],
+    searchData["Outgoing"],
+    Sequence @@ generatorOpts
+  ];
   candidateCount = candidateInputCount[candidates];
   If[targetRank > candidateCount,
     Message[findIndependentTensorStructures::targetunmet, targetRank, candidateCount];

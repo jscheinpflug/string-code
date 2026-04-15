@@ -12,6 +12,7 @@ Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`BasisGeneration`TypeII`"];
 Needs["StringCode`BasisGeneration`TypeII`FlatSpace`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"];
 
 buildProjectedArtifacts::usage =
@@ -138,6 +139,25 @@ spinModeVectorIndices[modes_List] := Join[
   Cases[modes, {idx_ /; !NumericQ[idx], n_?NumericQ} :> idx]
 ];
 
+spinProjectionSymbolicSpinModeData::usage =
+  "spinProjectionSymbolicSpinModeData[mode] returns {vectorIndex, excitationLevel} for one symbolic spin-field vector mode, or $Failed otherwise.";
+spinProjectionSymbolicSpinModeData[{idx_Symbol, mode_Integer?NonPositive}] := {idx, -mode};
+spinProjectionSymbolicSpinModeData[{mode_Integer?NonPositive, idx_Symbol}] := {idx, -mode};
+spinProjectionSymbolicSpinModeData[_] := $Failed;
+
+outgoingAntisymmetricVectorGroups::usage =
+  "outgoingAntisymmetricVectorGroups[op, spinHead] extracts equal-level outgoing spin-mode vector blocks that must be antisymmetrized.";
+outgoingAntisymmetricVectorGroups[op_ /; RTest[op], spinHead_] := Module[
+  {spinField, symbolicModes},
+  spinField = SelectFirst[List @@ op, Head[#] === spinHead &, Missing["NoSpinField"]];
+  If[spinField === Missing["NoSpinField"], Return[{}]];
+  symbolicModes = DeleteCases[spinProjectionSymbolicSpinModeData /@ spinField[[3]], $Failed];
+  SortBy[
+    SortBy[#, SymbolName] & /@ Select[Values @ GroupBy[symbolicModes, Last -> First], Length[#] > 1 &],
+    SymbolName[First[#]] &
+  ]
+];
+
 spinProjectionVectorMatterHeads::usage =
   "spinProjectionVectorMatterHeads[psiHead] returns vector-carrying matter heads used in one spin-field projection sector.";
 spinProjectionVectorMatterHeads[ψ] := {ψ, dX};
@@ -248,7 +268,10 @@ generateSpinFieldOPEData[
   pictureContributionFn_,
   seed_ : Automatic
 ] := Module[
-  {incomingData, incomingReps, totalPicture, gsoParity, basisOps, outgoingData, tensorStructures, targetRank},
+  {
+    incomingData, incomingReps, totalPicture, gsoParity, basisOps, outgoingData,
+    tensorStructures, targetRank, antisymmetricVectorGroups, tensorCandidates
+  },
 
   incomingData = extractMatterRepresentationDataList[ops, psiHead, spinHead];
   incomingReps = incomingData["Representations"];
@@ -269,12 +292,29 @@ generateSpinFieldOPEData[
   DeleteCases[
     Function[op,
       outgoingData = extractMatterRepresentationData[op, psiHead, spinHead, incomingData["Counters"]];
-      targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
-      tensorStructures = findIndependentTensorStructures[
-        incomingReps,
-        outgoingData["Representations"],
-        "TargetRank" -> targetRank,
-        "RandomSeed" -> seed
+      antisymmetricVectorGroups =
+        outgoingAntisymmetricVectorGroups[op, spinHead] /. (Reverse /@ outgoingData["EvaluationRules"]);
+      If[antisymmetricVectorGroups === {},
+        targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
+        tensorStructures = findIndependentTensorStructures[
+          incomingReps,
+          outgoingData["Representations"],
+          "TargetRank" -> targetRank,
+          "RandomSeed" -> seed
+        ],
+        tensorCandidates = generateTensorStructures[
+          incomingReps,
+          outgoingData["Representations"],
+          "AntisymmetricVectorGroups" -> antisymmetricVectorGroups
+        ];
+        targetRank = Total[Length /@ tensorCandidates];
+        tensorStructures = findIndependentTensorStructures[
+          incomingReps,
+          outgoingData["Representations"],
+          "TargetRank" -> targetRank,
+          "RandomSeed" -> seed,
+          "AntisymmetricVectorGroups" -> antisymmetricVectorGroups
+        ]
       ];
       If[tensorStructures === $Failed || tensorStructures === {},
         Nothing,

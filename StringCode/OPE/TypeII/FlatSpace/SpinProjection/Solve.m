@@ -739,21 +739,49 @@ spinProjectionFamilyStateRow[
 
 spinProjectionExactBasisInsertRow::usage =
   "spinProjectionExactBasisInsertRow[state, row] inserts one exact coefficient row into the reduced exact row basis.";
+spinProjectionExactScalarNormalize0::usage =
+  "spinProjectionExactScalarNormalize0[x] normalizes one exact scalar entry, using a cheap numeric screen and exact Together fallback to collapse algebraic zeros.";
+spinProjectionExactScalarNormalize0[x_] := Module[
+  {xn = Quiet[N[x, 50], N::meprec], y},
+  Which[
+    x === 0, 0,
+    NumberQ[xn] && Abs[xn] > 10^-30, x,
+    True,
+    y = Together[x];
+    If[y === 0, 0, y]
+  ]
+];
+
+spinProjectionExactRowNormalize0::usage =
+  "spinProjectionExactRowNormalize0[row] applies exact scalar normalization entrywise to one exact coefficient row.";
+spinProjectionExactRowNormalize0[row_List] := spinProjectionExactScalarNormalize0 /@ row;
+
 spinProjectionExactBasisInsertRow[state_Association, rawRow_List] := Module[
-  {basisRows = state["Rows"], pivots = state["Pivots"], row = rawRow, coeff, pivotPos, pivot, insertPos},
+  {
+    basisRows = state["Rows"],
+    pivots = state["Pivots"],
+    row = spinProjectionExactRowNormalize0[rawRow],
+    coeff,
+    pivotPos,
+    pivot,
+    pivotEntry,
+    insertPos
+  },
   If[!AnyTrue[row, # =!= 0 &], Return[{state, False}]];
   Do[
-    coeff = row[[pivots[[j]]]];
-    If[coeff =!= 0, row = row - coeff basisRows[[j]]],
+    coeff = spinProjectionExactScalarNormalize0[row[[pivots[[j]]]]];
+    If[coeff =!= 0, row = spinProjectionExactRowNormalize0[row - coeff basisRows[[j]]]],
     {j, Length[basisRows]}
   ];
   pivotPos = FirstPosition[row, x_ /; x =!= 0, Missing["NoPivot"], {1}, Heads -> False];
   If[MissingQ[pivotPos], Return[{state, False}]];
   pivot = First[pivotPos];
-  row = row/row[[pivot]];
+  pivotEntry = spinProjectionExactScalarNormalize0[row[[pivot]]];
+  If[pivotEntry === 0, Return[{state, False}]];
+  row = spinProjectionExactRowNormalize0[row/pivotEntry];
   Do[
-    coeff = basisRows[[j, pivot]];
-    If[coeff =!= 0, basisRows[[j]] = basisRows[[j]] - coeff row],
+    coeff = spinProjectionExactScalarNormalize0[basisRows[[j, pivot]]];
+    If[coeff =!= 0, basisRows[[j]] = spinProjectionExactRowNormalize0[basisRows[[j]] - coeff row]],
     {j, Length[basisRows]}
   ];
   insertPos = 1 + Count[pivots, _?(# < pivot &)];
