@@ -28,25 +28,18 @@ familyOutputAssociation::usage =
 Begin["Private`"];
 
 spinProjectionArtifactCache0::usage =
-  "spinProjectionArtifactCache0 memoizes complete projected sector artifacts keyed by sector, canonicalized ops, target weight, and source hash.";
+  "spinProjectionArtifactCache0 memoizes complete projected sector artifacts keyed by sector, canonicalized ops, target weight, and seed.";
 spinProjectionArtifactCache0 = <||>;
 
 spinProjectionFamilyOutputTemplateCache0::usage =
   "spinProjectionFamilyOutputTemplateCache0 stores family output templates keyed for lazy tuple projection.";
 spinProjectionFamilyOutputTemplateCache0 = <||>;
 
-spinProjectionSourceHash0::usage =
-  "spinProjectionSourceHash0[] returns the source-stability hash used in projected artifact cache keys.";
-spinProjectionSourceHash0[] := spinProjectionSourceHash0[] = Hash[
-  {
-    DownValues[generateSpinFieldOPEData],
-    DownValues[spinProjectionCanonicalizeOps],
-    DownValues[spinProjectionSectorData],
-    DownValues[compileSpinProjectionSectorModel],
-    DownValues[spinProjectionNormalizeCompiledTermParts],
-    DownValues[spinProjectionGammaKernelData]
-  },
-  "SHA256"
+clearSpinProjectionCaches0::usage =
+  "clearSpinProjectionCaches0[] clears in-kernel spin-projection caches after live code edits.";
+clearSpinProjectionCaches0[] := Module[{},
+  spinProjectionArtifactCache0 = <||>;
+  spinProjectionFamilyOutputTemplateCache0 = <||>
 ];
 
 spinProjectionArtifactCacheLookup0::usage =
@@ -631,7 +624,7 @@ buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] 
   If[targetWeight === None, Return[None]];
   spec = spinProjectionSectorSpec[sector];
   sectorOps = spinProjectionSectorOps0[ops, spec];
-  cacheKey = {sector, spinProjectionCanonicalOps0[sectorOps], targetWeight, seed, spinProjectionSourceHash0[]};
+  cacheKey = {sector, spinProjectionCanonicalOps0[sectorOps], targetWeight, seed};
   cached = spinProjectionArtifactCacheLookup0[cacheKey];
   If[cached =!= Missing["NotAvailable"], Return[cached]];
   If[closedFormSectorQ0[sectorOps],
