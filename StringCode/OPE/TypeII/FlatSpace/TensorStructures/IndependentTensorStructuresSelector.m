@@ -21,6 +21,12 @@ selectorParsedCandidateQ::usage =
 selectorParsedCandidateQ[data_Association] := And @@ (KeyExistsQ[data, #] & /@ {"Expression", "Key", "ScalarFactor", "Parsed", "SpinSymbols", "SpinChiralities", "VectorSymbols", "FamilyData"});
 selectorParsedCandidateQ[_] := False;
 
+selectorParsedCandidateAnnotatedQ0::usage =
+  "selectorParsedCandidateAnnotatedQ0[data] is True when one parsed selector candidate already carries stable flat-order and group-position annotations.";
+selectorParsedCandidateAnnotatedQ0[data_Association] :=
+  selectorParsedCandidateQ[data] && And @@ (KeyExistsQ[data, #] & /@ {"Position", "GroupIndex", "GroupMemberIndex"});
+selectorParsedCandidateAnnotatedQ0[_] := False;
+
 selectorScalarFactorQ::usage =
   "selectorScalarFactorQ[expr] is True when expr contains only scalar prefactors and no raw tensor-structure heads that must be parsed explicitly.";
 selectorScalarFactorQ[expr_] := FreeQ[
@@ -297,10 +303,14 @@ selectorProbeChoices::usage =
   "selectorProbeChoices[] returns the small exact component values used in deterministic dense selector probes.";
 selectorProbeChoices[] := {-2 - I, -2 + I, -1 - I, -1 + I, 1 - I, 1 + I, 2 - I, 2 + I, -3, 3};
 
-selectorProbeAssignment::usage =
-  "selectorProbeAssignment[spinorSymbols, externalVectors, baseSeed, probeIndex] builds one deterministic exact dense probe.";
-selectorProbeAssignment[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer?Positive] := BlockRandom[
-  SeedRandom[Hash[{Replace[baseSeed, Automatic -> 0], probeIndex, spinorSymbols, externalVectors, "exactProbe"}]];
+selectorKSparseProbeChoices::usage =
+  "selectorKSparseProbeChoices[] returns the integer-only component values used in deterministic k-sparse selector probes.";
+selectorKSparseProbeChoices[] := {-2, -1, 1, 2};
+
+buildDeterministicDenseProbe::usage =
+  "buildDeterministicDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex, salt] builds one deterministic dense probe stream distinguished by salt.";
+buildDeterministicDenseProbe[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer?Positive, salt_String] := BlockRandom[
+  SeedRandom[Hash[{Replace[baseSeed, Automatic -> 0], probeIndex, spinorSymbols, externalVectors, salt}]];
   <|
     "SpinorComponents" -> AssociationThread[
       spinorSymbols,
@@ -313,10 +323,74 @@ selectorProbeAssignment[spinorSymbols_List, externalVectors_List, baseSeed_, pro
   |>
 ];
 
+buildDenseProbe::usage =
+  "buildDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex] builds one deterministic dense selector probe in the default dense stream.";
+buildDenseProbe[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer?Positive] :=
+  buildDeterministicDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex, "selectorDenseProbe"];
+
+buildWideDenseProbe::usage =
+  "buildWideDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex] builds one deterministic dense selector probe in the fallback dense stream.";
+buildWideDenseProbe[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer?Positive] :=
+  buildDeterministicDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex, "selectorWideDenseProbe"];
+
+buildKSparseSpinVector::usage =
+  "buildKSparseSpinVector[kValue] builds one exact 16-component spin vector with exactly kValue nonzero entries, capped at 16.";
+buildKSparseSpinVector[kValue_Integer?Positive] := Module[{effectiveK, positions, values, vec},
+  effectiveK = Min[kValue, 16];
+  vec = ConstantArray[0, 16];
+  positions = RandomSample[Range[16], effectiveK];
+  values = RandomChoice[selectorKSparseProbeChoices[], effectiveK];
+  vec[[positions]] = values;
+  vec
+];
+
+buildKSparseProbe::usage =
+  "buildKSparseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex, kValue] builds one deterministic sparse-first selector probe.";
+buildKSparseProbe[spinorSymbols_List, externalVectors_List, baseSeed_, probeIndex_Integer?Positive, kValue_Integer?Positive] := BlockRandom[
+  SeedRandom[Hash[{Replace[baseSeed, Automatic -> 0], probeIndex, spinorSymbols, externalVectors, "selectorKSparseProbe"}]];
+  <|
+    "SpinorComponents" -> AssociationThread[
+      spinorSymbols,
+      Table[buildKSparseSpinVector[kValue], {Length[spinorSymbols]}]
+    ],
+    "VectorComponents" -> AssociationThread[
+      externalVectors,
+      Table[RandomChoice[selectorProbeChoices[], 10], {Length[externalVectors]}]
+    ]
+  |>
+];
+
+selectorProbeAssignment::usage =
+  "selectorProbeAssignment[spinorSymbols, externalVectors, baseSeed, probeIndex, kValue, prefixCount, denseCount] builds one deterministic selector probe from the sparse-first schedule.";
+selectorProbeAssignment[
+  spinorSymbols_List,
+  externalVectors_List,
+  baseSeed_,
+  probeIndex_Integer?Positive,
+  kValue_Integer?Positive,
+  prefixCount_Integer?NonNegative,
+  denseCount_Integer?NonNegative
+] := Which[
+  probeIndex <= prefixCount,
+  buildKSparseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex, kValue],
+  probeIndex <= prefixCount + denseCount,
+  buildDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex],
+  True,
+  buildWideDenseProbe[spinorSymbols, externalVectors, baseSeed, probeIndex]
+];
+
 buildProbeBank::usage =
-  "buildProbeBank[spinorSymbols, externalVectors, count, seed] builds a deterministic list of exact dense probes.";
-buildProbeBank[spinorSymbols_List, externalVectors_List, count_Integer?NonNegative, seed_] := Table[
-  selectorProbeAssignment[spinorSymbols, externalVectors, seed, i],
+  "buildProbeBank[spinorSymbols, externalVectors, count, seed, kValue, prefixCount, denseCount] builds a deterministic list of scheduled selector probes.";
+buildProbeBank[
+  spinorSymbols_List,
+  externalVectors_List,
+  count_Integer?NonNegative,
+  seed_,
+  kValue_Integer?Positive : 4,
+  prefixCount_Integer?NonNegative : 0,
+  denseCount_Integer?NonNegative : 50
+] := Table[
+  selectorProbeAssignment[spinorSymbols, externalVectors, seed, i, kValue, prefixCount, denseCount],
   {i, 1, count}
 ];
 
@@ -357,16 +431,33 @@ incrementalPivotInsert[state_Association, row_List] := Module[
 selectionRuntimeFromMetadata::usage =
   "selectionRuntimeFromMetadata[candidateMetadataList, optsAssoc, targetRank] initializes exact selector runtime state from metadata only.";
 selectionRuntimeFromMetadata[candidateMetadataList_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
-  {spinorMap, spinorSymbols, vectorSymbols, probeCount, verificationCount, seed},
+  {
+    spinorMap,
+    spinorSymbols,
+    spinorSymbolIndex,
+    vectorSymbols,
+    probeCount,
+    verificationCount,
+    seed,
+    sparseProbeKValue,
+    sparseProbePrefixCount,
+    denseFallbackProbeCount
+  },
   spinorMap = If[candidateMetadataList === {}, <||>, Merge[Lookup[candidateMetadataList, "SpinorChiralities", <||>], First]];
   spinorSymbols = SortBy[Keys[spinorMap], SymbolName];
+  spinorSymbolIndex = AssociationThread[spinorSymbols -> Range[Length[spinorSymbols]]];
   vectorSymbols = If[candidateMetadataList === {}, {}, SortBy[DeleteDuplicates[Flatten[Lookup[candidateMetadataList, "ExternalVectors", {}], 1]], SymbolName]];
   probeCount = Max[Lookup[optsAssoc, "ProbeCount", 5], targetRank];
   verificationCount = Max[0, Lookup[optsAssoc, "VerificationProbeCount", 3]];
   seed = Lookup[optsAssoc, "RandomSeed", Automatic];
+  sparseProbeKValue = Lookup[optsAssoc, "SparseProbeKValue", 4];
+  sparseProbePrefixCount = Replace[Lookup[optsAssoc, "SparseProbePrefixCount", Automatic], Automatic -> (3 targetRank + 20)];
+  denseFallbackProbeCount = Replace[Lookup[optsAssoc, "DenseFallbackProbeCount", 50], Automatic -> 50];
   <|
     "SpinorSymbols" -> spinorSymbols,
+    "SpinorSymbolIndex" -> spinorSymbolIndex,
     "SpinorChiralities" -> spinorMap,
+    "SpinorBanksByIndex" -> ConstantArray[{}, Length[spinorSymbols]],
     "VectorSymbols" -> vectorSymbols,
     "BaseSeed" -> seed,
     "Assignments" -> {},
@@ -375,6 +466,9 @@ selectionRuntimeFromMetadata[candidateMetadataList_List, optsAssoc_Association, 
     "GroupRecords" -> <||>,
     "GroupProbeCache" -> <||>,
     "TargetRank" -> targetRank,
+    "SparseProbeKValue" -> sparseProbeKValue,
+    "SparseProbePrefixCount" -> sparseProbePrefixCount,
+    "DenseFallbackProbeCount" -> denseFallbackProbeCount,
     "InitialBankSize" -> probeCount,
     "ExtensionBankSize" -> Max[1, verificationCount],
     "VerificationBankSize" -> verificationCount
@@ -428,10 +522,33 @@ selectorCandidateActualSpinSymbols[candidate_Association, compiled_Association, 
   1
 ];
 
+selectorGroupBatchEligibleQ0::usage =
+  "selectorGroupBatchEligibleQ0[groupRecord] is True when one shared-kernel selector group can extend signatures through the batched pair-matrix probe path.";
+selectorGroupBatchEligibleQ0[groupRecord_Association] :=
+  Lookup[groupRecord, "Mode", None] === "SharedKernelGroup" && TrueQ[Lookup[groupRecord, "BatchEligible", False]];
+selectorGroupBatchEligibleQ0[_] := False;
+
 selectorGroupSharedKernelRecord::usage =
-  "selectorGroupSharedKernelRecord[group] builds one selector group record for lazy group-probe reuse when every member shares the same compiled family kernel layout.";
-selectorGroupSharedKernelRecord[group_List] := Module[
-  {familyKeys, compiled, groupVectorSymbols, vectorTuples, memberRecords},
+  "selectorGroupSharedKernelRecord[group, spinorSymbolIndex] builds one selector group record for lazy group-probe reuse when every member shares the same compiled family kernel layout.";
+selectorGroupSharedKernelRecord[group_List, spinorSymbolIndex_Association] := Module[
+  {
+    familyKeys,
+    compiled,
+    groupVectorSymbols,
+    vectorTuples,
+    memberKeys,
+    memberPositions,
+    memberScalars,
+    memberSpinSymbolsByRef,
+    uniqueSpinSymbolsByRef,
+    uniqueSpinSlotIndicesByRef,
+    spinPatternIndexByRef,
+    memberPatternIndices,
+    memberRecords,
+    refModes,
+    pairFactorSlotIndicesByRef,
+    batchEligible
+  },
   familyKeys = DeleteDuplicates[group[[All, "FamilyData", "Parsed", "Key"]]];
   If[Length[familyKeys] =!= 1, Return[<|"Mode" -> "PerCandidate"|>]];
   compiled = spinProjectionSelectorCompiledFamilyData[group[[1, "FamilyData", "Parsed"]]];
@@ -445,30 +562,82 @@ selectorGroupSharedKernelRecord[group_List] := Module[
   If[SortBy[groupVectorSymbols, SymbolName] =!= SortBy[compiled["VectorSymbols"], SymbolName], Return[<|"Mode" -> "PerCandidate"|>]];
   vectorTuples = selectorCandidateActualVectorSources[group[[1]], compiled, #] & /@ compiled["GammaKernelRefs"];
   If[!FreeQ[vectorTuples, Missing["Unassigned"], Infinity], Return[<|"Mode" -> "PerCandidate"|>]];
-  memberRecords = Map[
-    Function[candidate,
-      <|
-        "Position" -> candidate["Position"],
-        "ScalarFactor" -> candidate["ScalarFactor"],
-        "SpinSymbolsByRef" -> (selectorCandidateActualSpinSymbols[candidate, compiled, #] & /@ compiled["GammaKernelRefs"])
-      |>
-    ],
+  memberKeys = group[[All, "Key"]];
+  memberPositions = group[[All, "Position"]];
+  memberScalars = group[[All, "ScalarFactor"]];
+  memberSpinSymbolsByRef = Map[
+    Function[candidate, selectorCandidateActualSpinSymbols[candidate, compiled, #] & /@ compiled["GammaKernelRefs"]],
     group
   ];
-  If[!FreeQ[memberRecords, Missing["Unassigned"], Infinity], Return[<|"Mode" -> "PerCandidate"|>]];
+  If[!FreeQ[memberSpinSymbolsByRef, Missing["Unassigned"], Infinity], Return[<|"Mode" -> "PerCandidate"|>]];
+  uniqueSpinSymbolsByRef = Table[
+    DeleteDuplicates[memberSpinSymbolsByRef[[All, refIndex]]],
+    {refIndex, Length[compiled["GammaKernelRefs"]]}
+  ];
+  uniqueSpinSlotIndicesByRef = Map[Lookup[spinorSymbolIndex, #, Missing["Unassigned"]] &, uniqueSpinSymbolsByRef, {2}];
+  If[!FreeQ[uniqueSpinSlotIndicesByRef, Missing["Unassigned"], Infinity], Return[<|"Mode" -> "PerCandidate"|>]];
+  spinPatternIndexByRef = AssociationThread[candidateCacheKey /@ #, Range[Length[#]]] & /@ uniqueSpinSymbolsByRef;
+  memberPatternIndices = Map[
+    Function[spinSymbolsByRef,
+      Table[
+        Lookup[spinPatternIndexByRef[[refIndex]], candidateCacheKey[spinSymbolsByRef[[refIndex]]], Missing["Unassigned"]],
+        {refIndex, Length[spinSymbolsByRef]}
+      ]
+    ],
+    memberSpinSymbolsByRef
+  ];
+  If[!FreeQ[memberPatternIndices, Missing["Unassigned"], Infinity], Return[<|"Mode" -> "PerCandidate"|>]];
+  refModes = Map[
+    Module[{kernel},
+      kernel = spinProjectionGammaKernelRegistry[# ["Key"]];
+      Which[
+        spinProjectionGammaKernelPairMatrixQ[kernel], "paired2x2",
+        Length[kernel["Factors"]] === 1 && Length[kernel["Factors"][[1, "SpinSlots"]]] === 2, "singleFactor2",
+        True, "fallback"
+      ]
+    ]&,
+    compiled["GammaKernelRefs"]
+  ];
+  pairFactorSlotIndicesByRef = Map[
+    Module[{kernel},
+      kernel = spinProjectionGammaKernelRegistry[# ["Key"]];
+      If[spinProjectionGammaKernelPairMatrixQ[kernel], kernel["Factors"][[All, "SpinSlots"]], {}]
+    ]&,
+    compiled["GammaKernelRefs"]
+  ];
+  memberRecords = MapThread[
+    <|
+      "Key" -> #1,
+      "Position" -> #2,
+      "ScalarFactor" -> #3,
+      "SpinSymbolsByRef" -> #4,
+      "PatternIndicesByRef" -> #5
+    |>&,
+    {memberKeys, memberPositions, memberScalars, memberSpinSymbolsByRef, memberPatternIndices}
+  ];
+  batchEligible = True;
   <|
     "Mode" -> "SharedKernelGroup",
+    "BatchEligible" -> batchEligible,
     "Compiled" -> compiled,
     "VectorTuples" -> vectorTuples,
+    "MemberKeys" -> memberKeys,
+    "MemberPositions" -> memberPositions,
+    "MemberScalars" -> memberScalars,
+    "MemberPatternIndices" -> memberPatternIndices,
+    "UniqueSpinSymbolsByRef" -> uniqueSpinSymbolsByRef,
+    "UniqueSpinSlotIndicesByRef" -> uniqueSpinSlotIndicesByRef,
+    "RefModes" -> refModes,
+    "PairFactorSlotIndicesByRef" -> pairFactorSlotIndicesByRef,
     "Members" -> memberRecords
   |>
 ];
 
 selectorGroupRecords::usage =
-  "selectorGroupRecords[groups] builds the reusable group records used by the selector runtime.";
-selectorGroupRecords[groups_List] := AssociationThread[
+  "selectorGroupRecords[groups, spinorSymbolIndex] builds the reusable group records used by the selector runtime.";
+selectorGroupRecords[groups_List, spinorSymbolIndex_Association] := AssociationThread[
   Range[Length[groups]],
-  selectorGroupSharedKernelRecord /@ groups
+  selectorGroupSharedKernelRecord[#, spinorSymbolIndex] & /@ groups
 ];
 
 selectionRuntimeWithParsedGroups::usage =
@@ -476,28 +645,44 @@ selectionRuntimeWithParsedGroups::usage =
 selectionRuntimeWithParsedGroups[groups_List, optsAssoc_Association, targetRank_Integer?NonNegative] := Module[
   {runtime},
   runtime = selectionRuntimeFromParsedCandidates[Flatten[groups, 1], optsAssoc, targetRank];
-  AssociateTo[runtime, "GroupRecords" -> selectorGroupRecords[groups]];
+  AssociateTo[runtime, "GroupRecords" -> selectorGroupRecords[groups, runtime["SpinorSymbolIndex"]]];
   runtime
 ];
 
 selectorAssignmentAt::usage =
-  "selectorAssignmentAt[runtime, assignmentIndex] returns one deterministic exact dense probe from the runtime bank.";
+  "selectorAssignmentAt[runtime, assignmentIndex] returns one deterministic selector probe from the runtime bank.";
 selectorAssignmentAt[runtime_Association, assignmentIndex_Integer?Positive] := selectorProbeAssignment[
   runtime["SpinorSymbols"],
   runtime["VectorSymbols"],
   runtime["BaseSeed"],
-  assignmentIndex
+  assignmentIndex,
+  runtime["SparseProbeKValue"],
+  runtime["SparseProbePrefixCount"],
+  runtime["DenseFallbackProbeCount"]
 ];
 
 extendAssignmentBank::usage =
   "extendAssignmentBank[runtime, count] appends count more exact dense probes to the runtime bank.";
-extendAssignmentBank[runtime_Association, count_Integer?NonNegative] := Module[{nextRuntime = runtime, newCount},
+extendAssignmentBank[runtime_Association, count_Integer?NonNegative] := Module[
+  {nextRuntime = runtime, newCount, newAssignments, spinorSymbols, newSpinorBanks},
   newCount = runtime["AssignmentCount"] + count;
   If[newCount <= runtime["AssignmentCount"], Return[nextRuntime]];
+  newAssignments = Table[selectorAssignmentAt[runtime, i], {i, runtime["AssignmentCount"] + 1, newCount}];
+  spinorSymbols = runtime["SpinorSymbols"];
+  newSpinorBanks = MapThread[
+    Function[{bank, symbol},
+      Join[
+        bank,
+        Map[Lookup[Lookup[#, "SpinorComponents", <||>], symbol, Missing["Unassigned"]] &, newAssignments]
+      ]
+    ],
+    {runtime["SpinorBanksByIndex"], spinorSymbols}
+  ];
   AssociateTo[
     nextRuntime,
     <|
-      "Assignments" -> Join[runtime["Assignments"], Table[selectorAssignmentAt[runtime, i], {i, runtime["AssignmentCount"] + 1, newCount}]],
+      "Assignments" -> Join[runtime["Assignments"], newAssignments],
+      "SpinorBanksByIndex" -> newSpinorBanks,
       "AssignmentCount" -> newCount
     |>
   ];
@@ -543,6 +728,20 @@ selectorParsedCandidateGroups[candidates_List, spinorHints_: <||>] := Module[{ra
   selectorAnnotateParsedCandidateGroups[parsedGroups]
 ];
 
+selectorNormalizedParsedCandidateGroups0::usage =
+  "selectorNormalizedParsedCandidateGroups0[candidates, spinorHints] reuses parsed selector groups when possible and only reparses raw input when needed.";
+selectorNormalizedParsedCandidateGroups0[candidates_List, spinorHints_: <||>] := Module[{rawGroups, flattened, parsedGroups},
+  If[candidates === {}, Return[{}]];
+  rawGroups = If[selectorGroupedCandidateInputQ[candidates], Select[candidates, # =!= {} &], List /@ candidates];
+  flattened = Flatten[rawGroups, 1];
+  If[flattened === {}, Return[{}]];
+  If[AllTrue[flattened, selectorParsedCandidateAnnotatedQ0], Return[rawGroups]];
+  If[AllTrue[flattened, selectorParsedCandidateQ], Return[selectorAnnotateParsedCandidateGroups[rawGroups]]];
+  parsedGroups = selectorParseCandidates[#, spinorHints] & /@ rawGroups;
+  If[MemberQ[parsedGroups, $Failed], Return[$Failed]];
+  selectorAnnotateParsedCandidateGroups[parsedGroups]
+];
+
 selectorCanonicalProbeAssignment::usage =
   "selectorCanonicalProbeAssignment[candidate, assignment] remaps one actual dense probe to the canonical representative family symbols of a parsed selector candidate.";
 selectorCanonicalProbeAssignment[candidate_Association, assignment_Association] := Module[
@@ -578,9 +777,9 @@ evaluateParsedCandidateAtProbe[candidate_Association, assignment_Association] :=
   candidate["ScalarFactor"] value
 ];
 
-selectorGroupProbeValues::usage =
-  "selectorGroupProbeValues[groupRecord, assignment] evaluates one reusable selector group record on one dense probe and returns all member values.";
-selectorGroupProbeValues[groupRecord_Association, assignment_Association] := Module[
+selectorGroupProbeValuesReference0::usage =
+  "selectorGroupProbeValuesReference0[groupRecord, assignment] is the scalar per-probe shared-kernel reference path used for parity tests and non-batched group evaluation.";
+selectorGroupProbeValuesReference0[groupRecord_Association, assignment_Association] := Module[
   {compiled, refCache = <||>, refValue, memberValues},
   If[groupRecord["Mode"] =!= "SharedKernelGroup", Return[$Failed]];
   compiled = groupRecord["Compiled"];
@@ -616,19 +815,155 @@ selectorGroupProbeValues[groupRecord_Association, assignment_Association] := Mod
   memberValues
 ];
 
+selectorGroupProbeValues::usage =
+  "selectorGroupProbeValues[groupRecord, assignment] evaluates one reusable selector group record on one dense probe and returns all member values.";
+selectorGroupProbeValues[groupRecord_Association, assignment_Association] := selectorGroupProbeValuesReference0[groupRecord, assignment];
+
+selectorBoundaryRowsFromBanks0::usage =
+  "selectorBoundaryRowsFromBanks0[spinorBanksByIndex, slotIndices, assignmentIndices] builds exact boundary rows directly from the runtime spinor banks for one local slot layout.";
+selectorBoundaryRowsFromBanks0[spinorBanksByIndex_List, slotIndices_List, assignmentIndices_List] := Map[
+  Function[assignmentIndex,
+    spinProjectionGammaKernelBoundaryVector[spinorBanksByIndex[[#, assignmentIndex]] & /@ slotIndices]
+  ],
+  assignmentIndices
+];
+
+selectorSharedGroupRefPatternValues0::usage =
+  "selectorSharedGroupRefPatternValues0[groupRecord, runtime, assignmentIndices, refIndex] returns batched exact probe values for every unique spin-pattern used by one shared-kernel ref across an assignment suffix.";
+selectorSharedGroupRefPatternValues0[groupRecord_Association, runtime_Association, assignmentIndices_List, refIndex_Integer?Positive] := Module[
+  {
+    compiled,
+    kernelKey,
+    vectorTuple,
+    kernel,
+    mode,
+    pairSlotIndices,
+    assignments,
+    valuesByPattern,
+    spinVectorsBatch,
+    spinSlotIndices,
+    leftBoundaryRows,
+    rightBoundaryRows,
+    boundaryRows
+  },
+  compiled = groupRecord["Compiled"];
+  kernelKey = compiled["GammaKernelRefs"][[refIndex, "Key"]];
+  vectorTuple = groupRecord["VectorTuples"][[refIndex]];
+  kernel = spinProjectionGammaKernelRegistry[kernelKey];
+  mode = groupRecord["RefModes"][[refIndex]];
+  pairSlotIndices = groupRecord["PairFactorSlotIndicesByRef"][[refIndex]];
+  assignments = runtime["Assignments"][[assignmentIndices]];
+  valuesByPattern = Table[
+    Module[{spinSymbols},
+      spinSymbols = groupRecord["UniqueSpinSymbolsByRef"][[refIndex, patternIndex]];
+      spinSlotIndices = groupRecord["UniqueSpinSlotIndicesByRef"][[refIndex, patternIndex]];
+      Switch[mode,
+        "paired2x2",
+        leftBoundaryRows = selectorBoundaryRowsFromBanks0[
+          runtime["SpinorBanksByIndex"],
+          spinSlotIndices[[pairSlotIndices[[1]]]],
+          assignmentIndices
+        ];
+        rightBoundaryRows = selectorBoundaryRowsFromBanks0[
+          runtime["SpinorBanksByIndex"],
+          spinSlotIndices[[pairSlotIndices[[2]]]],
+          assignmentIndices
+        ];
+        spinProjectionGammaKernelSelectorPairValues0[kernelKey, vectorTuple, leftBoundaryRows, rightBoundaryRows],
+        "singleFactor2",
+        boundaryRows = selectorBoundaryRowsFromBanks0[runtime["SpinorBanksByIndex"], spinSlotIndices, assignmentIndices];
+        spinProjectionGammaKernelSelectorSingleFactorValues0[kernelKey, vectorTuple, boundaryRows],
+        _,
+        spinVectorsBatch = Lookup[Lookup[#, "SpinorComponents", <||>], spinSymbols, Missing["Unassigned"]] & /@ assignments;
+        If[
+          AnyTrue[
+            spinVectorsBatch,
+            !ListQ[#] || AnyTrue[#, MatchQ[Missing[__]]] || !AllTrue[#, VectorQ[#, spinProjectionSelectorExactScalarQ] &] &
+          ],
+          $Failed,
+          If[
+            spinProjectionGammaKernelPairMatrixQ[kernel],
+            spinProjectionGammaKernelProbeValuesBatch0[kernelKey, vectorTuple, spinVectorsBatch],
+            spinProjectionGammaKernelProbeValue[kernelKey, vectorTuple, #] & /@ spinVectorsBatch
+          ]
+        ]
+      ]
+    ],
+    {patternIndex, Length[groupRecord["UniqueSpinSymbolsByRef"][[refIndex]]]}
+  ];
+  If[MemberQ[valuesByPattern, $Failed], Return[$Failed]];
+  valuesByPattern
+];
+
+selectorGroupSignatureBlock0::usage =
+  "selectorGroupSignatureBlock0[groupRecord, runtime, assignmentIndices] computes one full member-by-probe signature block for a batch-eligible shared selector group over a contiguous assignment suffix.";
+selectorGroupSignatureBlock0[groupRecord_Association, runtime_Association, assignmentIndices_List] := Module[
+  {compiled, assignmentCount, refPatternValues, memberValueVectors},
+  If[!selectorGroupBatchEligibleQ0[groupRecord], Return[$Failed]];
+  compiled = groupRecord["Compiled"];
+  assignmentCount = Length[assignmentIndices];
+  refPatternValues = Table[
+    selectorSharedGroupRefPatternValues0[groupRecord, runtime, assignmentIndices, refIndex],
+    {refIndex, Length[compiled["GammaKernelRefs"]]}
+  ];
+  If[MemberQ[refPatternValues, $Failed], Return[$Failed]];
+  memberValueVectors = Table[
+    Module[{valueVector},
+      valueVector = ConstantArray[compiled["ScalarFactor"] groupRecord["MemberScalars"][[memberIndex]], assignmentCount];
+      Do[
+        valueVector = valueVector * refPatternValues[[refIndex, groupRecord["MemberPatternIndices"][[memberIndex, refIndex]]]],
+        {refIndex, Length[compiled["GammaKernelRefs"]]}
+      ];
+      valueVector
+    ],
+    {memberIndex, Length[groupRecord["MemberPositions"]]}
+  ];
+  AssociationThread[groupRecord["MemberPositions"], memberValueVectors]
+];
+
 ensureGroupProbeValues::usage =
   "ensureGroupProbeValues[groupIndex, assignmentIndex, runtime] fills one selector group/probe cache entry lazily when a shared-kernel group is first touched.";
 ensureGroupProbeValues[groupIndex_Integer?Positive, assignmentIndex_Integer?Positive, runtime_Association] := Module[
-  {groupRecord, groupCache, memberValues, nextRuntime = runtime},
+  {groupRecord, memberValues, nextRuntime = runtime},
   If[!KeyExistsQ[nextRuntime["GroupRecords"], groupIndex], Return[nextRuntime]];
   groupRecord = nextRuntime["GroupRecords"][groupIndex];
-  If[groupRecord["Mode"] =!= "SharedKernelGroup", Return[nextRuntime]];
-  groupCache = spinProjectionAssociationLookup[nextRuntime["GroupProbeCache"], groupIndex, <||>];
-  If[KeyExistsQ[groupCache, assignmentIndex], Return[nextRuntime]];
-  memberValues = selectorGroupProbeValues[groupRecord, nextRuntime["Assignments"][[assignmentIndex]]];
+  If[groupRecord["Mode"] =!= "SharedKernelGroup" || selectorGroupBatchEligibleQ0[groupRecord], Return[nextRuntime]];
+  If[KeyExistsQ[Lookup[nextRuntime["GroupProbeCache"], groupIndex, <||>], assignmentIndex], Return[nextRuntime]];
+  memberValues = selectorGroupProbeValuesReference0[groupRecord, nextRuntime["Assignments"][[assignmentIndex]]];
   If[memberValues === $Failed, Return[$Failed]];
-  AssociateTo[groupCache, assignmentIndex -> memberValues];
-  AssociateTo[nextRuntime, "GroupProbeCache" -> Join[nextRuntime["GroupProbeCache"], <|groupIndex -> groupCache|>]];
+  If[!KeyExistsQ[nextRuntime["GroupProbeCache"], groupIndex], nextRuntime["GroupProbeCache", groupIndex] = <||>];
+  nextRuntime["GroupProbeCache", groupIndex, assignmentIndex] = memberValues;
+  nextRuntime
+];
+
+extendSharedGroupSignatureCache0::usage =
+  "extendSharedGroupSignatureCache0[groupIndex, runtime, startAssignmentIndex, endAssignmentIndex] appends one shared-kernel signature block to every member cache entry in a batch-eligible selector group.";
+extendSharedGroupSignatureCache0[
+  groupIndex_Integer?Positive,
+  runtime_Association,
+  startAssignmentIndex_Integer?Positive,
+  endAssignmentIndex_Integer?Positive
+] := Module[
+  {groupRecord, nextRuntime = runtime, existingLengths, startIndex, assignments, signatureBlock, memberKey, position, values, existing},
+  If[!KeyExistsQ[nextRuntime["GroupRecords"], groupIndex], Return[$Failed]];
+  groupRecord = nextRuntime["GroupRecords"][groupIndex];
+  If[!selectorGroupBatchEligibleQ0[groupRecord], Return[$Failed]];
+  existingLengths = DeleteDuplicates[Length /@ Lookup[nextRuntime["SignatureCache"], groupRecord["MemberKeys"], {}]];
+  If[Length[existingLengths] =!= 1, Return[$Failed]];
+  startIndex = Max[startAssignmentIndex, existingLengths[[1]] + 1];
+  If[startIndex > endAssignmentIndex, Return[nextRuntime]];
+  assignments = Range[startIndex, endAssignmentIndex];
+  signatureBlock = selectorGroupSignatureBlock0[groupRecord, nextRuntime, assignments];
+  If[signatureBlock === $Failed, Return[$Failed]];
+  Do[
+    memberKey = groupRecord["MemberKeys"][[memberIndex]];
+    position = groupRecord["MemberPositions"][[memberIndex]];
+    values = Lookup[signatureBlock, position, $Failed];
+    If[values === $Failed, Return[$Failed]];
+    existing = Lookup[nextRuntime["SignatureCache"], memberKey, {}];
+    nextRuntime["SignatureCache", memberKey] = Join[existing, values],
+    {memberIndex, Length[groupRecord["MemberKeys"]]}
+  ];
   nextRuntime
 ];
 
@@ -639,6 +974,14 @@ ensureCandidateSignature[candidate_Association, runtime_Association] := Module[
   existing = Lookup[nextRuntime["SignatureCache"], candidate["Key"], {}];
   If[Length[existing] >= nextRuntime["AssignmentCount"], Return[nextRuntime]];
   groupIndex = Lookup[candidate, "GroupIndex", Missing["NoGroup"]];
+  If[
+    IntegerQ[groupIndex] &&
+    KeyExistsQ[nextRuntime["GroupRecords"], groupIndex] &&
+    selectorGroupBatchEligibleQ0[nextRuntime["GroupRecords"][groupIndex]],
+    nextRuntime = extendSharedGroupSignatureCache0[groupIndex, nextRuntime, Length[existing] + 1, nextRuntime["AssignmentCount"]];
+    If[nextRuntime === $Failed || Length[Lookup[nextRuntime["SignatureCache"], candidate["Key"], {}]] < nextRuntime["AssignmentCount"], Return[$Failed]];
+    Return[nextRuntime];
+  ];
   values = existing;
   Do[
     If[
@@ -647,24 +990,51 @@ ensureCandidateSignature[candidate_Association, runtime_Association] := Module[
       nextRuntime["GroupRecords"][groupIndex, "Mode"] === "SharedKernelGroup",
       nextRuntime = ensureGroupProbeValues[groupIndex, i, nextRuntime];
       If[nextRuntime === $Failed, Return[$Failed]];
-      probeValues = spinProjectionAssociationLookup[
-        spinProjectionAssociationLookup[nextRuntime["GroupProbeCache"], groupIndex, <||>],
-        i,
-        <||>
-      ];
+      probeValues = Lookup[Lookup[nextRuntime["GroupProbeCache"], groupIndex, <||>], i, <||>];
       value = Lookup[probeValues, candidate["Position"], $Failed],
       value = evaluateParsedCandidateAtProbe[candidate, nextRuntime["Assignments"][[i]]]
     ];
     values = Append[values, value],
     {i, Length[existing] + 1, nextRuntime["AssignmentCount"]}
   ];
-  AssociateTo[nextRuntime, "SignatureCache" -> Join[nextRuntime["SignatureCache"], <|candidate["Key"] -> values|>]];
+  nextRuntime["SignatureCache", candidate["Key"]] = values;
   nextRuntime
 ];
 
 candidateSignature::usage =
   "candidateSignature[candidate, runtime] returns the exact signature vector for one parsed candidate on the current dense probe bank.";
 candidateSignature[candidate_Association, runtime_Association] := Lookup[runtime["SignatureCache"], candidate["Key"], {}];
+
+selectorReduceSharedGroupAgainstState0::usage =
+  "selectorReduceSharedGroupAgainstState0[groupRecord, runtime, state, acceptedCount, targetRank] reduces one batch-eligible shared selector group against the current exact pivot state and returns only the rank-increasing member positions.";
+selectorReduceSharedGroupAgainstState0[
+  groupRecord_Association,
+  runtime_Association,
+  state_Association,
+  acceptedCount_Integer?NonNegative,
+  targetRank_Integer?NonNegative
+] := Module[
+  {signatureBlock, nextState = state, acceptedPositions = {}, visitedPosition = 0, position, insertion},
+  If[!selectorGroupBatchEligibleQ0[groupRecord], Return[$Failed]];
+  signatureBlock = selectorGroupSignatureBlock0[groupRecord, runtime, Range[runtime["AssignmentCount"]]];
+  If[signatureBlock === $Failed, Return[$Failed]];
+  Do[
+    If[acceptedCount + Length[acceptedPositions] >= targetRank, Break[]];
+    position = groupRecord["MemberPositions"][[memberIndex]];
+    visitedPosition = position;
+    insertion = incrementalPivotInsert[nextState, Lookup[signatureBlock, position, {$Failed}]];
+    If[TrueQ[insertion["RankIncreased"]],
+      nextState = insertion["State"];
+      AppendTo[acceptedPositions, position]
+    ],
+    {memberIndex, Length[groupRecord["MemberPositions"]]}
+  ];
+  <|
+    "State" -> nextState,
+    "AcceptedPositions" -> acceptedPositions,
+    "VisitedPosition" -> visitedPosition
+  |>
+];
 
 scanParsedCandidatesWithRuntime::usage =
   "scanParsedCandidatesWithRuntime[candidates, runtime, targetRank] scans parsed candidates in flat input order on the current exact dense probe bank.";
@@ -684,21 +1054,78 @@ scanParsedCandidatesWithRuntime[candidates_List, runtime_Association, targetRank
   <|"Runtime" -> nextRuntime, "AcceptedPositions" -> accepted, "VisitedCandidates" -> visited|>
 ];
 
+scanParsedCandidateGroupsWithRuntime::usage =
+  "scanParsedCandidateGroupsWithRuntime[groups, runtime, targetRank] scans parsed selector groups in flat input order, reducing batch-eligible shared groups from one exact signature block.";
+scanParsedCandidateGroupsWithRuntime[groups_List, runtime_Association, targetRank_Integer?NonNegative] := Module[
+  {
+    nextRuntime = runtime,
+    state = initialPivotState[],
+    accepted = {},
+    visited = 0,
+    groupIndex,
+    group,
+    groupRecord,
+    reduction,
+    candidate,
+    insertion,
+    signature
+  },
+  For[groupIndex = 1, groupIndex <= Length[groups] && Length[accepted] < targetRank, groupIndex++,
+    group = groups[[groupIndex]];
+    If[group === {}, Continue[]];
+    groupRecord = Lookup[nextRuntime["GroupRecords"], groupIndex, Missing["NotFound"]];
+    If[AssociationQ[groupRecord] && selectorGroupBatchEligibleQ0[groupRecord],
+      reduction = selectorReduceSharedGroupAgainstState0[groupRecord, nextRuntime, state, Length[accepted], targetRank];
+      If[reduction === $Failed, Return[$Failed]];
+      state = reduction["State"];
+      accepted = Join[accepted, reduction["AcceptedPositions"]];
+      visited = Max[visited, Lookup[reduction, "VisitedPosition", 0]];
+      Continue[];
+    ];
+    Do[
+      If[Length[accepted] >= targetRank, Break[]];
+      visited = candidate["Position"];
+      nextRuntime = ensureCandidateSignature[candidate, nextRuntime];
+      signature = candidateSignature[candidate, nextRuntime];
+      If[nextRuntime === $Failed || AnyTrue[signature, # === $Failed &], Return[$Failed]];
+      insertion = incrementalPivotInsert[state, signature];
+      If[TrueQ[insertion["RankIncreased"]],
+        state = insertion["State"];
+        AppendTo[accepted, candidate["Position"]]
+      ],
+      {candidate, group}
+    ];
+  ];
+  <|"Runtime" -> nextRuntime, "AcceptedPositions" -> accepted, "VisitedCandidates" -> visited|>
+];
+
 scanCandidateList::usage =
   "scanCandidateList[candidates, targetRank, optsAssoc] scans a candidate list in order and returns the verified exact basis and visit count.";
 scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module[
-  {parsedGroups, parsedFlat, effectiveTarget, runtime, scanResult, verifyResult, visited = 0, positionToExpression, spinorHints},
+  {
+    parsedGroups,
+    parsedFlat,
+    effectiveTarget,
+    runtime,
+    scanResult,
+    verifyResult,
+    visited = 0,
+    positionToExpression,
+    positionToCandidate,
+    spinorHints
+  },
   spinorHints = Lookup[optsAssoc, "SpinorChiralityHints", <||>];
-  parsedGroups = selectorParsedCandidateGroups[candidates, spinorHints];
+  parsedGroups = selectorNormalizedParsedCandidateGroups0[candidates, spinorHints];
   If[parsedGroups === $Failed, Return[$Failed]];
   parsedFlat = Flatten[parsedGroups, 1];
   effectiveTarget = If[targetRank === Automatic, automaticParsedCandidateTargetRank[parsedFlat], targetRank];
-  If[effectiveTarget <= 0, Return[<|"Basis" -> {}, "TargetRank" -> 0, "VisitedCandidates" -> 0|>]];
+  If[effectiveTarget <= 0, Return[<|"Basis" -> {}, "AcceptedCandidates" -> {}, "TargetRank" -> 0, "VisitedCandidates" -> 0|>]];
   runtime = selectionRuntimeWithParsedGroups[parsedGroups, optsAssoc, effectiveTarget];
   runtime = extendAssignmentBank[runtime, runtime["InitialBankSize"]];
-  positionToExpression = Association[Map[#["Position"] -> #["Expression"] &, parsedFlat]];
+  positionToExpression = Association[Map[# ["Position"] -> # ["Expression"] &, parsedFlat]];
+  positionToCandidate = Association[Map[# ["Position"] -> # &, parsedFlat]];
   While[True,
-    scanResult = scanParsedCandidatesWithRuntime[parsedFlat, runtime, effectiveTarget];
+    scanResult = scanParsedCandidateGroupsWithRuntime[parsedGroups, runtime, effectiveTarget];
     If[scanResult === $Failed, Return[$Failed]];
     runtime = scanResult["Runtime"];
     visited = Max[visited, scanResult["VisitedCandidates"]];
@@ -708,7 +1135,7 @@ scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module
     ];
     If[runtime["VerificationBankSize"] === 0, Break[]];
     runtime = extendAssignmentBank[runtime, runtime["VerificationBankSize"]];
-    verifyResult = scanParsedCandidatesWithRuntime[parsedFlat, runtime, effectiveTarget];
+    verifyResult = scanParsedCandidateGroupsWithRuntime[parsedGroups, runtime, effectiveTarget];
     If[verifyResult === $Failed, Return[$Failed]];
     runtime = verifyResult["Runtime"];
     visited = Max[visited, verifyResult["VisitedCandidates"]];
@@ -716,6 +1143,7 @@ scanCandidateList[candidates_List, targetRank_, optsAssoc_Association] := Module
   ];
   <|
     "Basis" -> Lookup[positionToExpression, scanResult["AcceptedPositions"]],
+    "AcceptedCandidates" -> Lookup[positionToCandidate, scanResult["AcceptedPositions"]],
     "TargetRank" -> effectiveTarget,
     "VisitedCandidates" -> visited
   |>

@@ -4,9 +4,11 @@ BeginPackage["StringCode`"]
 
 
 InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with a given set of conventions";
+FlushKernelCache::usage = "FlushKernelCache[] flushes the persistent TypeII flat-space gamma-kernel cache when that subsystem is loaded and otherwise returns Null";
 
 
 Begin["Private`"];
+StringCode`FlushKernelCache[] := Null;
 InitStringCode[options_] := 
 Module[{userContext={}, theoryValue = options["theory"], CFTValue = options["CFT"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
 Switch[theoryValue,

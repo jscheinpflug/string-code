@@ -1,325 +1,333 @@
 {
- "cells": [
-  {
-   "kind": 1,
-   "value": "# TypeII FlatSpace GammaMatrices Tests\n\nExact algebraic checks for the frozen gamma-matrix and spinor-pairing data.",
-   "languageId": "markdown",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`GammaMatrices`\"];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`\"];\n",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773006936397,
-     "endTime": 1773006936822
-    },
-    "executionOrder": 1,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nzero16 = ConstantArray[0, {16, 16}];\nGamma32[mu_Integer] := ArrayFlatten[{{zero16, GammaUD[mu]}, {GammaDU[mu], zero16}}] /; 1 <= mu <= 10;\ngamma11Dirac = -I Fold[Dot, IdentityMatrix[32], Table[Gamma32[mu], {mu, 1, 10}]];\n\nCGammaList = Table[CGamma[mu], {mu, 1, 10}];\nCIGammaList = Table[CIGamma[mu], {mu, 1, 10}];\ngammaUDList = Table[GammaUD[mu], {mu, 1, 10}];\ngammaDUList = Table[GammaDU[mu], {mu, 1, 10}];\ngamma32List = Table[Gamma32[mu], {mu, 1, 10}];\nCGammaSparseList = Table[CGammaSparse[mu], {mu, 1, 10}];\nCIGammaSparseList = Table[CIGammaSparse[mu], {mu, 1, 10}];\ngammaUDSparseList = Table[GammaUDSparse[mu], {mu, 1, 10}];\ngammaDUSparseList = Table[GammaDUSparse[mu], {mu, 1, 10}];\ngammaCachedProductMatrix = ToExpression[\"Private`gammaCachedProductMatrix\"];\ngammaProductCacheFamilies = ToExpression[\"Private`gammaProductCacheFamilies\"];\ngammaProductCacheLinks = ToExpression[\"Private`gammaProductCacheLinks\"];\nspinProjectionGammaFactorMatrix = ToExpression[\"Private`spinProjectionGammaFactorMatrix\"];\n\nslowGammaLinkMatrix[CUDHold] := CUDSparse;\nslowGammaLinkMatrix[CDUHold] := CDUSparse;\nslowGammaLinkMatrix[GammaUDHold[mu_Integer]] /; 1 <= mu <= 10 := GammaUDSparse[mu];\nslowGammaLinkMatrix[GammaDUHold[mu_Integer]] /; 1 <= mu <= 10 := GammaDUSparse[mu];\nslowGammaAntisymmetrizedMatrix[{}] := SparseArray[Band[{1, 1}] -> 1, {16, 16}];\nslowGammaAntisymmetrizedMatrix[vectorLinks_List] := slowGammaAntisymmetrizedMatrix[vectorLinks] = Module[\n  {rank = Length[vectorLinks]},\n  1/rank Sum[\n    (-1)^(pos - 1) slowGammaLinkMatrix[vectorLinks[[pos]]] . slowGammaAntisymmetrizedMatrix[Delete[vectorLinks, pos]],\n    {pos, 1, rank}\n  ]\n];\nslowGammaFactorMatrix[links_List] := Module[{cTag = None, vectorLinks = links},\n  If[MatchQ[links, {CUDHold}], Return[CUDSparse]];\n  If[MatchQ[links, {CDUHold}], Return[CDUSparse]];\n  If[links === {}, Return[SparseArray[Band[{1, 1}] -> 1, {16, 16}]]];\n  If[MatchQ[First[links], CUDHold | CDUHold], cTag = First[links]; vectorLinks = Rest[links]];\n  If[cTag === None, Return[slowGammaAntisymmetrizedMatrix[vectorLinks]]];\n  slowGammaLinkMatrix[cTag] . slowGammaAntisymmetrizedMatrix[vectorLinks]\n];\ncachePermutationLinks[family_, inds_List] := Module[{cTag = family[[1]], start = family[[2]], heads},\n  heads = Replace[Table[If[OddQ[pos], start, 3 - start], {pos, Length[inds]}], {1 -> GammaUDHold, 2 -> GammaDUHold}, 1];\n  Join[If[cTag === None, {}, {cTag}], MapThread[#1[#2] &, {heads, #}]] & /@ Permutations[inds]\n];\n\ntest1 = testReport[\n  \"Test 1 (matrix dimensions)\",\n  Dimensions[CUD] === {16, 16} &&\n  Dimensions[CDU] === {16, 16} &&\n  Dimensions[Gamma11UU] === {16, 16} &&\n  Dimensions[Gamma11DD] === {16, 16} &&\n  Dimensions[gamma11Dirac] === {32, 32} &&\n  And @@ (Dimensions[#] === {16, 16} & /@ Join[CGammaList, CIGammaList, gammaUDList, gammaDUList]) &&\n  And @@ (Dimensions[#] === {32, 32} & /@ gamma32List)\n];\n\ntest2 = testReport[\n  \"Test 2 (pairing identities)\",\n  TrueQ[Simplify[CDU == -Transpose[CUD]]] &&\n  TrueQ[Simplify[CUD . CDU == IdentityMatrix[16]]] &&\n  TrueQ[Simplify[CDU . CUD == IdentityMatrix[16]]]\n];\n\ntest3 = testReport[\n  \"Test 3 (same-chirality symmetry)\",\n  And @@ Table[TrueQ[Simplify[Transpose[CGamma[mu]] == CGamma[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[Transpose[CIGamma[mu]] == CIGamma[mu]]], {mu, 1, 10}]\n];\n\ntest4 = testReport[\n  \"Test 4 (chiral sign relations)\",\n  And @@ Table[TrueQ[Simplify[CIGamma[mu] == If[mu <= 5, CGamma[mu], -CGamma[mu]]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaDU[mu] == If[mu <= 5, -GammaUD[mu], GammaUD[mu]]]], {mu, 1, 10}]\n];\n\ntest5 = testReport[\n  \"Test 5 (relations with C)\",\n  And @@ Table[TrueQ[Simplify[CGamma[mu] == CUD . GammaDU[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[CIGamma[mu] == CDU . GammaUD[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaDU[mu] == Inverse[CUD] . CGamma[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaUD[mu] == Inverse[CDU] . CIGamma[mu]]], {mu, 1, 10}]\n];\n\ntest6 = testReport[\n  \"Test 6 (Gamma11 blocks match Dirac construction)\",\n  TrueQ[Simplify[gamma11Dirac == ArrayFlatten[{{Gamma11UU, zero16}, {zero16, Gamma11DD}}]]]\n];\n\ntest7 = testReport[\n  \"Test 7 (Gamma11 Weyl eigenvalues)\",\n  TrueQ[Simplify[Gamma11UU == IdentityMatrix[16]]] &&\n  TrueQ[Simplify[Gamma11DD == -IdentityMatrix[16]]]\n];\n\ntest8 = testReport[\n  \"Test 8 (Gamma11 squares to one)\",\n  TrueQ[Simplify[gamma11Dirac . gamma11Dirac == IdentityMatrix[32]]]\n];\n\ntest9 = testReport[\n  \"Test 9 (Gamma11 anticommutes with Gamma32)\",\n  And @@ Table[\n    TrueQ[Simplify[gamma11Dirac . Gamma32[mu] + Gamma32[mu] . gamma11Dirac == ConstantArray[0, {32, 32}]]],\n    {mu, 1, 10}\n  ]\n];\n\ntest10 = testReport[\n  \"Test 10 (mixed transpose relation)\",\n  And @@ Table[TrueQ[Simplify[Transpose[GammaUD[mu]] == If[mu <= 5, -GammaDU[mu], GammaDU[mu]]]], {mu, 1, 10}]\n];\n\ntest11 = testReport[\n  \"Test 11 (Gamma11 flips mixed chirality)\",\n  And @@ Table[TrueQ[Simplify[Gamma11UU . GammaUD[mu] + GammaUD[mu] . Gamma11DD == ConstantArray[0, {16, 16}]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[Gamma11DD . GammaDU[mu] + GammaDU[mu] . Gamma11UU == ConstantArray[0, {16, 16}]]], {mu, 1, 10}]\n];\n\ntest12 = testReport[\n  \"Test 12 (Clifford UD.DU)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[GammaUD[mu] . GammaDU[nu] + GammaUD[nu] . GammaDU[mu] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest13 = testReport[\n  \"Test 13 (Clifford DU.UD)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[GammaDU[mu] . GammaUD[nu] + GammaDU[nu] . GammaUD[mu] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest14 = testReport[\n  \"Test 14 (sparse accessor heads)\",\n  Head[CUDSparse] === SparseArray &&\n  Head[CDUSparse] === SparseArray &&\n  Head[Gamma11UUSparse] === SparseArray &&\n  Head[Gamma11DDSparse] === SparseArray &&\n  And @@ (Head[#] === SparseArray & /@ Join[CGammaSparseList, CIGammaSparseList, gammaUDSparseList, gammaDUSparseList])\n];\n\ntest15 = testReport[\n  \"Test 15 (sparse accessors match dense)\",\n  And @@ Table[Normal[CGammaSparse[mu]] === CGamma[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[CIGammaSparse[mu]] === CIGamma[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[GammaUDSparse[mu]] === GammaUD[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[GammaDUSparse[mu]] === GammaDU[mu], {mu, 1, 10}] &&\n  Normal[CUDSparse] === CUD &&\n  Normal[CDUSparse] === CDU &&\n  Normal[Gamma11UUSparse] === Gamma11UU &&\n  Normal[Gamma11DDSparse] === Gamma11DD\n];\n\ntest16 = testReport[\n  \"Test 16 (sparse Clifford UD.DU)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[Normal[GammaUDSparse[mu] . GammaDUSparse[nu] + GammaUDSparse[nu] . GammaDUSparse[mu]] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest17 = testReport[\n  \"Test 17 (loaded cache matches uncached builder)\",\n  And @@ Flatten@Table[\n    Normal[gammaCachedProductMatrix[family, inds]] === Normal[slowGammaFactorMatrix[gammaProductCacheLinks[family, inds]]],\n    {family, gammaProductCacheFamilies},\n    {rank, 0, 10},\n    {inds, Subsets[Range[10], {rank}]}\n  ]\n];\n\ntest18 = testReport[\n  \"Test 18 (repeated cached indices vanish)\",\n  And @@ Flatten@Table[\n    gammaCachedProductMatrix[family, inds] === SparseArray[{}, {16, 16}],\n    {family, gammaProductCacheFamilies},\n    {inds, {{1, 1}, {1, 1, 2}, {3, 4, 3}, {5, 5, 5, 7}}}\n  ]\n];\n\ntest19 = testReport[\n  \"Test 19 (cache-backed permutation normalization)\",\n  And @@ Flatten@Table[\n    And @@ (Normal[spinProjectionGammaFactorMatrix[#]] === Normal[slowGammaFactorMatrix[#]] & /@ cachePermutationLinks[family, inds]),\n    {family, gammaProductCacheFamilies},\n    {inds, {{1, 3}, {1, 3, 5}}}\n  ]\n];\n\nallTestsPassed",
-   "languageId": "wolfram",
-   "outputs": [
+  "cells": [
     {
-     "items": [
-      {
-       "data": "<pre>Test 1 (matrix dimensions): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 1 (matrix dimensions): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "d9c14aea-5d1d-40a9-b937-cb18e237962d",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
+      "kind": 1,
+      "value": "# TypeII FlatSpace GammaMatrices Tests\n\nExact algebraic checks for the frozen gamma-matrix and spinor-pairing data.",
+      "languageId": "markdown",
+      "outputs": [],
+      "metadata": {},
+      "executionSummary": {}
     },
     {
-     "items": [
-      {
-       "data": "<pre>Test 2 (pairing identities): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 2 (pairing identities): PASSED\\n\"",
-       "mime": "text/plain"
+      "kind": 2,
+      "value": "Needs[\"StringCode`\"];\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`GammaMatrices`\"];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`\"];\n",
+      "languageId": "wolfram",
+      "outputs": [],
+      "metadata": {},
+      "executionSummary": {
+        "timing": {
+          "startTime": 1773006936397,
+          "endTime": 1773006936822
+        },
+        "executionOrder": 1,
+        "success": true
       }
-     ],
-     "id": "eceb6ce5-8c41-4169-99c0-bd79a3da6882",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
     },
     {
-     "items": [
-      {
-       "data": "<pre>Test 3 (same-chirality symmetry): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 3 (same-chirality symmetry): PASSED\\n\"",
-       "mime": "text/plain"
+      "kind": 2,
+      "value": "allTestsPassed = True;\n\ntestReport[name_, cond_] := Module[{},\n  Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]];\n  If[!TrueQ[cond], allTestsPassed = False];\n  cond\n];\n\nzero16 = ConstantArray[0, {16, 16}];\nGamma32[mu_Integer] := ArrayFlatten[{{zero16, GammaUD[mu]}, {GammaDU[mu], zero16}}] /; 1 <= mu <= 10;\ngamma11Dirac = -I Fold[Dot, IdentityMatrix[32], Table[Gamma32[mu], {mu, 1, 10}]];\n\nCGammaList = Table[CGamma[mu], {mu, 1, 10}];\nCIGammaList = Table[CIGamma[mu], {mu, 1, 10}];\ngammaUDList = Table[GammaUD[mu], {mu, 1, 10}];\ngammaDUList = Table[GammaDU[mu], {mu, 1, 10}];\ngamma32List = Table[Gamma32[mu], {mu, 1, 10}];\nCGammaSparseList = Table[CGammaSparse[mu], {mu, 1, 10}];\nCIGammaSparseList = Table[CIGammaSparse[mu], {mu, 1, 10}];\ngammaUDSparseList = Table[GammaUDSparse[mu], {mu, 1, 10}];\ngammaDUSparseList = Table[GammaDUSparse[mu], {mu, 1, 10}];\ngammaCachedProductMatrix = ToExpression[\"Private`gammaCachedProductMatrix\"];\ngammaProductCacheFamilies = ToExpression[\"Private`gammaProductCacheFamilies\"];\ngammaProductCacheLinks = ToExpression[\"Private`gammaProductCacheLinks\"];\nspinProjectionGammaFactorMatrix = ToExpression[\"Private`spinProjectionGammaFactorMatrix\"];\n\nslowGammaLinkMatrix[CUDHold] := CUDSparse;\nslowGammaLinkMatrix[CDUHold] := CDUSparse;\nslowGammaLinkMatrix[GammaUDHold[mu_Integer]] /; 1 <= mu <= 10 := GammaUDSparse[mu];\nslowGammaLinkMatrix[GammaDUHold[mu_Integer]] /; 1 <= mu <= 10 := GammaDUSparse[mu];\nslowGammaAntisymmetrizedMatrix[{}] := SparseArray[Band[{1, 1}] -> 1, {16, 16}];\nslowGammaAntisymmetrizedMatrix[vectorLinks_List] := slowGammaAntisymmetrizedMatrix[vectorLinks] = Module[\n  {rank = Length[vectorLinks]},\n  1/rank Sum[\n    (-1)^(pos - 1) slowGammaLinkMatrix[vectorLinks[[pos]]] . slowGammaAntisymmetrizedMatrix[Delete[vectorLinks, pos]],\n    {pos, 1, rank}\n  ]\n];\nslowGammaFactorMatrix[links_List] := Module[{cTag = None, vectorLinks = links},\n  If[MatchQ[links, {CUDHold}], Return[CUDSparse]];\n  If[MatchQ[links, {CDUHold}], Return[CDUSparse]];\n  If[links === {}, Return[SparseArray[Band[{1, 1}] -> 1, {16, 16}]]];\n  If[MatchQ[First[links], CUDHold | CDUHold], cTag = First[links]; vectorLinks = Rest[links]];\n  If[cTag === None, Return[slowGammaAntisymmetrizedMatrix[vectorLinks]]];\n  slowGammaLinkMatrix[cTag] . slowGammaAntisymmetrizedMatrix[vectorLinks]\n];\ncachePermutationLinks[family_, inds_List] := Module[{cTag = family[[1]], start = family[[2]], heads},\n  heads = Replace[Table[If[OddQ[pos], start, 3 - start], {pos, Length[inds]}], {1 -> GammaUDHold, 2 -> GammaDUHold}, 1];\n  Join[If[cTag === None, {}, {cTag}], MapThread[#1[#2] &, {heads, #}]] & /@ Permutations[inds]\n];\n\ntest1 = testReport[\n  \"Test 1 (matrix dimensions)\",\n  Dimensions[CUD] === {16, 16} &&\n  Dimensions[CDU] === {16, 16} &&\n  Dimensions[Gamma11UU] === {16, 16} &&\n  Dimensions[Gamma11DD] === {16, 16} &&\n  Dimensions[gamma11Dirac] === {32, 32} &&\n  And @@ (Dimensions[#] === {16, 16} & /@ Join[CGammaList, CIGammaList, gammaUDList, gammaDUList]) &&\n  And @@ (Dimensions[#] === {32, 32} & /@ gamma32List)\n];\n\ntest2 = testReport[\n  \"Test 2 (pairing identities)\",\n  TrueQ[Simplify[CDU == -Transpose[CUD]]] &&\n  TrueQ[Simplify[CUD . CDU == IdentityMatrix[16]]] &&\n  TrueQ[Simplify[CDU . CUD == IdentityMatrix[16]]]\n];\n\ntest3 = testReport[\n  \"Test 3 (same-chirality symmetry)\",\n  And @@ Table[TrueQ[Simplify[Transpose[CGamma[mu]] == CGamma[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[Transpose[CIGamma[mu]] == CIGamma[mu]]], {mu, 1, 10}]\n];\n\ntest4 = testReport[\n  \"Test 4 (chiral sign relations)\",\n  And @@ Table[TrueQ[Simplify[CIGamma[mu] == If[mu <= 5, CGamma[mu], -CGamma[mu]]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaDU[mu] == If[mu <= 5, -GammaUD[mu], GammaUD[mu]]]], {mu, 1, 10}]\n];\n\ntest5 = testReport[\n  \"Test 5 (relations with C)\",\n  And @@ Table[TrueQ[Simplify[CGamma[mu] == CUD . GammaDU[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[CIGamma[mu] == CDU . GammaUD[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaDU[mu] == Inverse[CUD] . CGamma[mu]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[GammaUD[mu] == Inverse[CDU] . CIGamma[mu]]], {mu, 1, 10}]\n];\n\ntest6 = testReport[\n  \"Test 6 (Gamma11 blocks match Dirac construction)\",\n  TrueQ[Simplify[gamma11Dirac == ArrayFlatten[{{Gamma11UU, zero16}, {zero16, Gamma11DD}}]]]\n];\n\ntest7 = testReport[\n  \"Test 7 (Gamma11 Weyl eigenvalues)\",\n  TrueQ[Simplify[Gamma11UU == IdentityMatrix[16]]] &&\n  TrueQ[Simplify[Gamma11DD == -IdentityMatrix[16]]]\n];\n\ntest8 = testReport[\n  \"Test 8 (Gamma11 squares to one)\",\n  TrueQ[Simplify[gamma11Dirac . gamma11Dirac == IdentityMatrix[32]]]\n];\n\ntest9 = testReport[\n  \"Test 9 (Gamma11 anticommutes with Gamma32)\",\n  And @@ Table[\n    TrueQ[Simplify[gamma11Dirac . Gamma32[mu] + Gamma32[mu] . gamma11Dirac == ConstantArray[0, {32, 32}]]],\n    {mu, 1, 10}\n  ]\n];\n\ntest10 = testReport[\n  \"Test 10 (mixed transpose relation)\",\n  And @@ Table[TrueQ[Simplify[Transpose[GammaUD[mu]] == If[mu <= 5, -GammaDU[mu], GammaDU[mu]]]], {mu, 1, 10}]\n];\n\ntest11 = testReport[\n  \"Test 11 (Gamma11 flips mixed chirality)\",\n  And @@ Table[TrueQ[Simplify[Gamma11UU . GammaUD[mu] + GammaUD[mu] . Gamma11DD == ConstantArray[0, {16, 16}]]], {mu, 1, 10}] &&\n  And @@ Table[TrueQ[Simplify[Gamma11DD . GammaDU[mu] + GammaDU[mu] . Gamma11UU == ConstantArray[0, {16, 16}]]], {mu, 1, 10}]\n];\n\ntest12 = testReport[\n  \"Test 12 (Clifford UD.DU)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[GammaUD[mu] . GammaDU[nu] + GammaUD[nu] . GammaDU[mu] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest13 = testReport[\n  \"Test 13 (Clifford DU.UD)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[GammaDU[mu] . GammaUD[nu] + GammaDU[nu] . GammaUD[mu] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest14 = testReport[\n  \"Test 14 (sparse accessor heads)\",\n  Head[CUDSparse] === SparseArray &&\n  Head[CDUSparse] === SparseArray &&\n  Head[Gamma11UUSparse] === SparseArray &&\n  Head[Gamma11DDSparse] === SparseArray &&\n  And @@ (Head[#] === SparseArray & /@ Join[CGammaSparseList, CIGammaSparseList, gammaUDSparseList, gammaDUSparseList])\n];\n\ntest15 = testReport[\n  \"Test 15 (sparse accessors match dense)\",\n  And @@ Table[Normal[CGammaSparse[mu]] === CGamma[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[CIGammaSparse[mu]] === CIGamma[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[GammaUDSparse[mu]] === GammaUD[mu], {mu, 1, 10}] &&\n  And @@ Table[Normal[GammaDUSparse[mu]] === GammaDU[mu], {mu, 1, 10}] &&\n  Normal[CUDSparse] === CUD &&\n  Normal[CDUSparse] === CDU &&\n  Normal[Gamma11UUSparse] === Gamma11UU &&\n  Normal[Gamma11DDSparse] === Gamma11DD\n];\n\ntest16 = testReport[\n  \"Test 16 (sparse Clifford UD.DU)\",\n  And @@ Flatten@Table[\n    TrueQ[Simplify[Normal[GammaUDSparse[mu] . GammaDUSparse[nu] + GammaUDSparse[nu] . GammaDUSparse[mu]] == 2 KroneckerDelta[mu, nu] IdentityMatrix[16]]],\n    {mu, 1, 10},\n    {nu, 1, 10}\n  ]\n];\n\ntest17 = testReport[\n  \"Test 17 (loaded cache matches uncached builder)\",\n  And @@ Flatten@Table[\n    Normal[gammaCachedProductMatrix[family, inds]] === Normal[slowGammaFactorMatrix[gammaProductCacheLinks[family, inds]]],\n    {family, gammaProductCacheFamilies},\n    {rank, 0, 10},\n    {inds, Subsets[Range[10], {rank}]}\n  ]\n];\n\ntest18 = testReport[\n  \"Test 18 (repeated cached indices vanish)\",\n  And @@ Flatten@Table[\n    gammaCachedProductMatrix[family, inds] === SparseArray[{}, {16, 16}],\n    {family, gammaProductCacheFamilies},\n    {inds, {{1, 1}, {1, 1, 2}, {3, 4, 3}, {5, 5, 5, 7}}}\n  ]\n];\n\ntest19 = testReport[\n  \"Test 19 (cache-backed permutation normalization)\",\n  And @@ Flatten@Table[\n    And @@ (Normal[spinProjectionGammaFactorMatrix[#]] === Normal[slowGammaFactorMatrix[#]] & /@ cachePermutationLinks[family, inds]),\n    {family, gammaProductCacheFamilies},\n    {inds, {{1, 3}, {1, 3, 5}}}\n  ]\n];\n\nallTestsPassed",
+      "languageId": "wolfram",
+      "outputs": [
+        {
+          "items": [
+            {
+              "data": "<pre>Test 1 (matrix dimensions): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 1 (matrix dimensions): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "d9c14aea-5d1d-40a9-b937-cb18e237962d",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 2 (pairing identities): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 2 (pairing identities): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "eceb6ce5-8c41-4169-99c0-bd79a3da6882",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 3 (same-chirality symmetry): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 3 (same-chirality symmetry): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "cd422f80-3ce6-4494-a176-2b31a6338ba7",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 4 (chiral sign relations): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 4 (chiral sign relations): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "f3ea4cbb-d033-4fdd-84f4-7ad0a94236b3",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 5 (relations with C): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 5 (relations with C): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "bc79c788-5407-4f4e-bb73-83d6ae929949",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 6 (Gamma11 blocks match Dirac construction): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 6 (Gamma11 blocks match Dirac construction): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "56a589d6-6884-44b3-b8a0-6416a8c0a4c7",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 7 (Gamma11 Weyl eigenvalues): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 7 (Gamma11 Weyl eigenvalues): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "d5f6e51f-9455-44d2-ad03-dfd453c64c71",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 8 (Gamma11 squares to one): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 8 (Gamma11 squares to one): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "7068d72a-6a6a-4c89-bd2d-31fb92b92716",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 9 (Gamma11 anticommutes with Gamma32): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 9 (Gamma11 anticommutes with Gamma32): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "9942face-b7c6-4591-8dd5-14f1da40ebfe",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 10 (mixed transpose relation): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 10 (mixed transpose relation): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "a703e56e-0117-4e42-9e9e-5f29f33625e2",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 11 (Gamma11 flips mixed chirality): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 11 (Gamma11 flips mixed chirality): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "fa778d26-885a-449f-af2f-621aa170e83e",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 12 (Clifford UD.DU): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 12 (Clifford UD.DU): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "e02a1676-5ae7-46be-a5ed-7ec3401c4727",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<pre>Test 13 (Clifford DU.UD): PASSED\n</pre>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "\"Test 13 (Clifford DU.UD): PASSED\\n\"",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "8ca26b7d-c364-4951-a78e-37b2638a871e",
+          "metadata": {
+            "cellLabel": "",
+            "isBoxData": false
+          }
+        },
+        {
+          "items": [
+            {
+              "data": "<div class=\"wexpr\"><w>True</w></div>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "True",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "28f1bf18-a40a-4337-afe5-11520faac936",
+          "metadata": {
+            "cellLabel": "Out[27]= ",
+            "isBoxData": false
+          }
+        }
+      ],
+      "metadata": {},
+      "executionSummary": {
+        "timing": {
+          "startTime": 1773006936822,
+          "endTime": 1773006938893
+        },
+        "executionOrder": 4,
+        "success": true
       }
-     ],
-     "id": "cd422f80-3ce6-4494-a176-2b31a6338ba7",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
     },
     {
-     "items": [
-      {
-       "data": "<pre>Test 4 (chiral sign relations): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 4 (chiral sign relations): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "f3ea4cbb-d033-4fdd-84f4-7ad0a94236b3",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
+      "kind": 2,
+      "value": "test20 = testReport[\n  \"Test 20 (GammaAntisymmetricProduct empty)\",\n  GammaAntisymmetricProduct[{}] === IdentityMatrix[16]\n];\n\ntest21 = testReport[\n  \"Test 21 (GammaAntisymmetricProduct CUD)\",\n  GammaAntisymmetricProduct[{CUDHold}] === CUD\n];\n\ntest22 = testReport[\n  \"Test 22 (GammaAntisymmetricProduct CDU)\",\n  GammaAntisymmetricProduct[{CDUHold}] === CDU\n];\n\ntest23 = testReport[\n  \"Test 23 (GammaAntisymmetricProduct CUD.GammaDU)\",\n  GammaAntisymmetricProduct[{CUDHold, GammaDUHold[4]}] === CUD . GammaDU[4]\n];\n\ntest24 = testReport[\n  \"Test 24 (GammaAntisymmetricProduct rank-2)\",\n  GammaAntisymmetricProduct[{GammaDUHold[4], GammaUDHold[7]}] ===\n    1/2 (GammaDU[4] . GammaUD[7] - GammaDU[7] . GammaUD[4])\n];\n\nrank3Expected = 1/3 (\n  GammaDU[2] . (1/2 (GammaUD[5] . GammaDU[8] - GammaUD[8] . GammaDU[5])) -\n  GammaDU[5] . (1/2 (GammaUD[2] . GammaDU[8] - GammaUD[8] . GammaDU[2])) +\n  GammaDU[8] . (1/2 (GammaUD[2] . GammaDU[5] - GammaUD[5] . GammaDU[2]))\n);\n\ntest25 = testReport[\n  \"Test 25 (GammaAntisymmetricProduct rank-3)\",\n  GammaAntisymmetricProduct[{GammaDUHold[2], GammaUDHold[5], GammaDUHold[8]}] === rank3Expected\n];\n\ntest26 = testReport[\n  \"Test 26 (GammaAntisymmetricProduct scalar element API)\",\n  GammaAntisymmetricProduct[{GammaUDHold[1], GammaDUHold[2]}, 16, 9] ===\n    GammaAntisymmetricProduct[{GammaUDHold[1], GammaDUHold[2]}][[16, 9]]\n];\n\ntest27 = testReport[\n  \"Test 27 (GammaAntisymmetricProduct empty scalar element)\",\n  GammaAntisymmetricProduct[{}, 16, 16] === 1 && GammaAntisymmetricProduct[{}, 16, 9] === 0\n];\n\nallTestsPassed",
+      "languageId": "wolfram",
+      "outputs": [],
+      "metadata": {},
+      "executionSummary": {}
     },
     {
-     "items": [
-      {
-       "data": "<pre>Test 5 (relations with C): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 5 (relations with C): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "bc79c788-5407-4f4e-bb73-83d6ae929949",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
+      "kind": 2,
+      "value": "Needs[\"StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`\"];\n\nsharedFiveSpinSparseBasis = findIndependentTensorStructures[\n  <|\"vector\" -> {}, \"spinor\" -> {{a1, \"chiral\"}, {a2, \"chiral\"}, {a3, \"chiral\"}, {a4, \"chiral\"}, {a5, \"chiral\"}}|>,\n  <|\"vector\" -> {}, \"spinor\" -> {{b1, \"chiral\"}}|>,\n  \"TargetRank\" -> Automatic,\n  \"RandomSeed\" -> 1234,\n  \"ReturnSparseBasis\" -> True\n];\nsharedFiveSpinRecord = First[sharedFiveSpinSparseBasis];\nsharedFiveSpinPairRef = SelectFirst[\n  sharedFiveSpinRecord[\"SelectorFamilyCache\", \"GammaKernelRefs\"],\n  Private`spinProjectionGammaKernelPairMatrixQ[Private`spinProjectionGammaKernelRegistry[# [\"Key\"]]] &,\n  Missing[\"NotFound\"]\n];\nsharedFiveSpinPairKey = sharedFiveSpinPairRef[\"Key\"];\nsharedFiveSpinPairKernel = Private`spinProjectionGammaKernelRegistry[sharedFiveSpinPairKey];\nPrivate`spinProjectionGammaKernelPairMatrixCache = <||>;\nPrivate`spinProjectionPersistentGammaKernelCacheDirty = False;\nsharedFiveSpinPairActual = Private`spinProjectionGammaKernelPairMatrix[sharedFiveSpinPairKey, {}];\nsharedFiveSpinPairExpected = Private`spinProjectionCompileGammaKernelPairMatrixReferenceDense0[\n  sharedFiveSpinPairKey,\n  sharedFiveSpinPairKernel,\n  {}\n];\nPrivate`spinProjectionGammaKernelProbeCache = <||>;\nsharedFiveSpinProbeBatch = Table[\n  Table[UnitVector[16, Mod[i + j - 2, 16] + 1], {j, sharedFiveSpinPairKernel[\"SpinSlotCount\"]}],\n  {i, 1, 3}\n];\nsharedFiveSpinProbeBatchValues = Private`spinProjectionGammaKernelProbeValuesBatch0[\n  sharedFiveSpinPairKey,\n  {},\n  sharedFiveSpinProbeBatch\n];\nsharedFiveSpinProbeScalarValues = Private`spinProjectionGammaKernelProbeValue[sharedFiveSpinPairKey, {}, #] & /@ sharedFiveSpinProbeBatch;\nsharedFiveSpinFlushResult = StringCode`FlushKernelCache[];\n\ntest28 = testReport[\n  \"Test 28 (shared pair-matrix sparse builder matches dense reference)\",\n  sharedFiveSpinPairRef =!= Missing[\"NotFound\"] &&\n    sharedFiveSpinPairActual === sharedFiveSpinPairExpected\n];\n\ntest29 = testReport[\n  \"Test 29 (shared pair-matrix cache write marks persistent cache dirty)\",\n  TrueQ[Private`spinProjectionPersistentGammaKernelCacheDirty]\n];\n\ntest30 = testReport[\n  \"Test 30 (FlushKernelCache public hook is callable)\",\n  MatchQ[sharedFiveSpinFlushResult, Null | $Failed]\n];\n\ntest31 = testReport[\n  \"Test 31 (batched shared-kernel probe helper matches scalar probe values)\",\n  sharedFiveSpinProbeBatchValues === sharedFiveSpinProbeScalarValues\n];\nsharedSelfContractTensor = <|\n  \"Blocks\" -> {{d3, d4}, {d3, d4}},\n  \"Entries\" -> <|{1, 1} -> 3, {1, 2} -> 5, {2, 1} -> 7, {2, 2} -> 11|>\n|>;\nsharedSelfContractedTensor = Private`spinProjectionSelectorSelfContractBlockTensor[sharedSelfContractTensor, 1, 2];\nsharedReducerNetwork = {\n  <|\"Blocks\" -> {{d1}, {d2}}, \"Entries\" -> <|{1, 1} -> 2, {2, 2} -> 3|>|>,\n  <|\"Blocks\" -> {{d1}, {d3, d4}}, \"Entries\" -> <|{1, 1} -> 5, {2, 2} -> 7|>|>,\n  <|\"Blocks\" -> {{d2}, {d3, d4}}, \"Entries\" -> <|{1, 1} -> 11, {2, 2} -> 13|>|>\n};\nsharedReducerValue = Private`spinProjectionSelectorReduceBlockTensorNetwork[sharedReducerNetwork];\n\ntest32 = testReport[\n  \"Test 32 (block-tensor self-contraction keeps only diagonal block labels)\",\n  sharedSelfContractedTensor === <|\"Blocks\" -> {}, \"Entries\" -> <|{} -> 14|>|>\n];\n\ntest33 = testReport[\n  \"Test 33 (block-tensor reducer self-contracts final repeated block)\",\n  sharedReducerValue === 383\n];\nsharedCanonicalFamily = {CUDHold, 2};\nsharedCanonicalRank = 3;\nsharedCanonicalIndices = Subsets[Range[10], {sharedCanonicalRank}];\nsharedCanonicalRows = Private`spinProjectionGammaKernelCanonicalFamilyRowOperator0[sharedCanonicalFamily, sharedCanonicalRank];\nsharedFiveSpinPairRows = Private`spinProjectionGammaKernelFactorRowOperator0[sharedFiveSpinPairKey, 1, {}];\nsharedFiveSpinPairMatrixVector = Private`spinProjectionGammaKernelFactorMatrixVector[sharedFiveSpinPairKey, 1, {}];\nsharedNonPairRef = SelectFirst[\n  sharedFiveSpinRecord[\"SelectorFamilyCache\", \"GammaKernelRefs\"],\n  !Private`spinProjectionGammaKernelPairMatrixQ[Private`spinProjectionGammaKernelRegistry[# [\"Key\"]]] &,\n  Missing[\"NotFound\"]\n];\nsharedNonPairKey = If[AssociationQ[sharedNonPairRef], sharedNonPairRef[\"Key\"], Missing[\"NotFound\"]];\nsharedNonPairRowOperator = If[sharedNonPairKey === Missing[\"NotFound\"], Missing[\"NotFound\"], Private`spinProjectionGammaKernelFactorRowOperator0[sharedNonPairKey, 1, {}]];\nsharedNonPairMatrixVector = If[sharedNonPairKey === Missing[\"NotFound\"], Missing[\"NotFound\"], Private`spinProjectionGammaKernelFactorMatrixVector[sharedNonPairKey, 1, {}]];\n\ntest34 = testReport[\n  \"Test 34 (sparse gamma entry row matches dense encoding)\",\n  And @@ Flatten@Table[\n    Normal[Private`spinProjectionGammaKernelMatrixEntrySparseRow[gammaCachedProductMatrix[family, inds]]] ===\n      Flatten[Transpose[Normal[gammaCachedProductMatrix[family, inds]]]],\n    {family, gammaProductCacheFamilies},\n    {inds, {{}, {1}, {1, 3}, {1, 3, 5}}}\n  ]\n];\n\ntest35 = testReport[\n  \"Test 35 (canonical gamma row operator matches cached family rows)\",\n  And @@ MapThread[\n    Normal[sharedCanonicalRows[[#2]]] ===\n      Private`spinProjectionGammaKernelMatrixEntryVector[gammaCachedProductMatrix[sharedCanonicalFamily, #1]] &,\n    {sharedCanonicalIndices, Range[Length[sharedCanonicalIndices]]}\n  ]\n];\n\ntest36 = testReport[\n  \"Test 36 (canonical factor row operator matches factor matrix vectors)\",\n  And @@ MapThread[\n    Normal[sharedFiveSpinPairRows[[#2]]] === Private`spinProjectionGammaKernelMatrixEntryVector[#1] &,\n    {sharedFiveSpinPairMatrixVector, Range[Length[sharedFiveSpinPairMatrixVector]]}\n  ]\n];\n\ntest37 = testReport[\n  \"Test 37 (generic two-spinor row operator matches factor matrix vectors)\",\n  sharedNonPairRef =!= Missing[\"NotFound\"] &&\n    And @@ MapThread[\n      Normal[sharedNonPairRowOperator[[#2]]] === Private`spinProjectionGammaKernelMatrixEntryVector[#1] &,\n      {sharedNonPairMatrixVector, Range[Length[sharedNonPairMatrixVector]]}\n    ]\n];\n",
+      "languageId": "wolfram",
+      "outputs": [],
+      "metadata": {},
+      "executionSummary": {}
     },
     {
-     "items": [
-      {
-       "data": "<pre>Test 6 (Gamma11 blocks match Dirac construction): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 6 (Gamma11 blocks match Dirac construction): PASSED\\n\"",
-       "mime": "text/plain"
+      "kind": 2,
+      "value": "allTestsPassed",
+      "languageId": "wolfram",
+      "outputs": [
+        {
+          "items": [
+            {
+              "data": "<div class=\"wexpr\"><w>True</w></div>",
+              "mime": "x-application/wolfram-language-html"
+            },
+            {
+              "data": "True",
+              "mime": "text/plain"
+            }
+          ],
+          "id": "0364c6b0-349f-4432-838e-79c9a7cd536a",
+          "metadata": {
+            "cellLabel": "Out[28]= ",
+            "isBoxData": false
+          }
+        }
+      ],
+      "metadata": {},
+      "executionSummary": {
+        "timing": {
+          "startTime": 1773006938893,
+          "endTime": 1773006939023
+        },
+        "executionOrder": 28,
+        "success": true
       }
-     ],
-     "id": "56a589d6-6884-44b3-b8a0-6416a8c0a4c7",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 7 (Gamma11 Weyl eigenvalues): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 7 (Gamma11 Weyl eigenvalues): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "d5f6e51f-9455-44d2-ad03-dfd453c64c71",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 8 (Gamma11 squares to one): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 8 (Gamma11 squares to one): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "7068d72a-6a6a-4c89-bd2d-31fb92b92716",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 9 (Gamma11 anticommutes with Gamma32): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 9 (Gamma11 anticommutes with Gamma32): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "9942face-b7c6-4591-8dd5-14f1da40ebfe",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 10 (mixed transpose relation): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 10 (mixed transpose relation): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "a703e56e-0117-4e42-9e9e-5f29f33625e2",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 11 (Gamma11 flips mixed chirality): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 11 (Gamma11 flips mixed chirality): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "fa778d26-885a-449f-af2f-621aa170e83e",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 12 (Clifford UD.DU): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 12 (Clifford UD.DU): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "e02a1676-5ae7-46be-a5ed-7ec3401c4727",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<pre>Test 13 (Clifford DU.UD): PASSED\n</pre>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "\"Test 13 (Clifford DU.UD): PASSED\\n\"",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "8ca26b7d-c364-4951-a78e-37b2638a871e",
-     "metadata": {
-      "cellLabel": "",
-      "isBoxData": false
-     }
-    },
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "28f1bf18-a40a-4337-afe5-11520faac936",
-     "metadata": {
-      "cellLabel": "Out[27]= ",
-      "isBoxData": false
-     }
     }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773006936822,
-     "endTime": 1773006938893
-    },
-    "executionOrder": 4,
-    "success": true
-   }
-  },
-  {
-   "kind": 2,
-   "value": "test20 = testReport[\n  \"Test 20 (GammaAntisymmetricProduct empty)\",\n  GammaAntisymmetricProduct[{}] === IdentityMatrix[16]\n];\n\ntest21 = testReport[\n  \"Test 21 (GammaAntisymmetricProduct CUD)\",\n  GammaAntisymmetricProduct[{CUDHold}] === CUD\n];\n\ntest22 = testReport[\n  \"Test 22 (GammaAntisymmetricProduct CDU)\",\n  GammaAntisymmetricProduct[{CDUHold}] === CDU\n];\n\ntest23 = testReport[\n  \"Test 23 (GammaAntisymmetricProduct CUD.GammaDU)\",\n  GammaAntisymmetricProduct[{CUDHold, GammaDUHold[4]}] === CUD . GammaDU[4]\n];\n\ntest24 = testReport[\n  \"Test 24 (GammaAntisymmetricProduct rank-2)\",\n  GammaAntisymmetricProduct[{GammaDUHold[4], GammaUDHold[7]}] ===\n    1/2 (GammaDU[4] . GammaUD[7] - GammaDU[7] . GammaUD[4])\n];\n\nrank3Expected = 1/3 (\n  GammaDU[2] . (1/2 (GammaUD[5] . GammaDU[8] - GammaUD[8] . GammaDU[5])) -\n  GammaDU[5] . (1/2 (GammaUD[2] . GammaDU[8] - GammaUD[8] . GammaDU[2])) +\n  GammaDU[8] . (1/2 (GammaUD[2] . GammaDU[5] - GammaUD[5] . GammaDU[2]))\n);\n\ntest25 = testReport[\n  \"Test 25 (GammaAntisymmetricProduct rank-3)\",\n  GammaAntisymmetricProduct[{GammaDUHold[2], GammaUDHold[5], GammaDUHold[8]}] === rank3Expected\n];\n\ntest26 = testReport[\n  \"Test 26 (GammaAntisymmetricProduct scalar element API)\",\n  GammaAntisymmetricProduct[{GammaUDHold[1], GammaDUHold[2]}, 16, 9] ===\n    GammaAntisymmetricProduct[{GammaUDHold[1], GammaDUHold[2]}][[16, 9]]\n];\n\ntest27 = testReport[\n  \"Test 27 (GammaAntisymmetricProduct empty scalar element)\",\n  GammaAntisymmetricProduct[{}, 16, 16] === 1 && GammaAntisymmetricProduct[{}, 16, 9] === 0\n];\n\nallTestsPassed",
-   "languageId": "wolfram",
-   "outputs": [],
-   "metadata": {},
-   "executionSummary": {}
-  },
-  {
-   "kind": 2,
-   "value": "allTestsPassed",
-   "languageId": "wolfram",
-   "outputs": [
-    {
-     "items": [
-      {
-       "data": "<div class=\"wexpr\"><w>True</w></div>",
-       "mime": "x-application/wolfram-language-html"
-      },
-      {
-       "data": "True",
-       "mime": "text/plain"
-      }
-     ],
-     "id": "0364c6b0-349f-4432-838e-79c9a7cd536a",
-     "metadata": {
-      "cellLabel": "Out[28]= ",
-      "isBoxData": false
-     }
-    }
-   ],
-   "metadata": {},
-   "executionSummary": {
-    "timing": {
-     "startTime": 1773006938893,
-     "endTime": 1773006939023
-    },
-    "executionOrder": 28,
-    "success": true
-   }
+  ],
+  "metadata": {
+    "version": "1.0.0"
   }
- ],
- "metadata": {
-  "version": "1.0.0"
- }
 }

@@ -35,6 +35,10 @@ spinProjectionFamilyOutputTemplateCache0::usage =
   "spinProjectionFamilyOutputTemplateCache0 stores family output templates keyed for lazy tuple projection.";
 spinProjectionFamilyOutputTemplateCache0 = <||>;
 
+spinProjectionEnableSelectorSparseBasisPassthrough::usage =
+  "spinProjectionEnableSelectorSparseBasisPassthrough gates selector sparse-basis passthrough into the RHS compile until scalar-output benchmarks justify enabling it.";
+spinProjectionEnableSelectorSparseBasisPassthrough = False;
+
 clearSpinProjectionCaches0::usage =
   "clearSpinProjectionCaches0[] clears in-kernel spin-projection caches after live code edits.";
 clearSpinProjectionCaches0[] := Module[{},
@@ -251,6 +255,52 @@ spinProjectionTargetRank[incoming_Association, outgoing_Association] := Module[
   countSinglets[nChiral, nAnti, Length[Lookup[incoming, "vector", {}]] + Length[Lookup[outgoing, "vector", {}]]]
 ];
 
+spinProjectionSparseBasisRecordQ::usage =
+  "spinProjectionSparseBasisRecordQ[tensor] is True exactly for sparse-basis selector records carrying Expr, relabel maps, and selector family cache data.";
+spinProjectionSparseBasisRecordQ[tensor_] :=
+  AssociationQ[tensor] &&
+  KeyExistsQ[tensor, "Expr"] &&
+  KeyExistsQ[tensor, "CanonicalToActualSpin"] &&
+  KeyExistsQ[tensor, "CanonicalToActualVector"] &&
+  KeyExistsQ[tensor, "SelectorFamilyCache"];
+
+spinProjectionTensorExpr0::usage =
+  "spinProjectionTensorExpr0[tensor] returns the raw tensor expression regardless of whether the input is a sparse-basis record or a plain expression.";
+spinProjectionTensorExpr0[tensor_] := If[spinProjectionSparseBasisRecordQ[tensor], tensor["Expr"], tensor];
+
+spinProjectionRelabelSparseBasisRecord0::usage =
+  "spinProjectionRelabelSparseBasisRecord0[record, rules] relabels only Expr and actual-symbol maps of one sparse-basis record, leaving SelectorFamilyCache untouched.";
+spinProjectionRelabelSparseBasisRecord0[record_Association, rules_List] := Module[{relabelValue},
+  relabelValue[value_] := Replace[value, rules, {0, Infinity}];
+  Join[
+    record,
+    <|
+      "Expr" -> (record["Expr"] /. rules),
+      "CanonicalToActualSpin" -> Association @ KeyValueMap[#1 -> relabelValue[#2] &, record["CanonicalToActualSpin"]],
+      "CanonicalToActualVector" -> Association @ KeyValueMap[#1 -> relabelValue[#2] &, record["CanonicalToActualVector"]]
+    |>
+  ]
+];
+
+spinProjectionRelabelTensorStructure0::usage =
+  "spinProjectionRelabelTensorStructure0[tensor, rules] relabels one tensor structure while preserving cached selector-family data inside sparse-basis records.";
+spinProjectionRelabelTensorStructure0[tensor_, rules_List] := If[
+  spinProjectionSparseBasisRecordQ[tensor],
+  spinProjectionRelabelSparseBasisRecord0[tensor, rules],
+  tensor /. rules
+];
+
+spinProjectionRelabelTensorStructureList0::usage =
+  "spinProjectionRelabelTensorStructureList0[tensors, rules] relabels a tensor-structure list with sparse-basis record awareness.";
+spinProjectionRelabelTensorStructureList0[tensors_List, rules_List] := spinProjectionRelabelTensorStructure0[#, rules] & /@ tensors;
+
+spinProjectionRelabelSectorFamily0::usage =
+  "spinProjectionRelabelSectorFamily0[{op, tensors}, rules] reinstates actual external labels for one cached canonical sector family without mutating selector caches.";
+spinProjectionRelabelSectorFamily0[{op_, tensors_}, rules_List] := {
+  op /. rules,
+  spinProjectionRelabelTensorStructureList0[tensors, rules]
+};
+
 generateSpinFieldOPEData::usage =
   "generateSpinFieldOPEData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] builds {operator, tensorStructures} pairs for one chiral sector.";
 generateSpinFieldOPEData[
@@ -293,7 +343,8 @@ generateSpinFieldOPEData[
           incomingReps,
           outgoingData["Representations"],
           "TargetRank" -> targetRank,
-          "RandomSeed" -> seed
+          "RandomSeed" -> seed,
+          "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
         ],
         tensorCandidates = generateTensorStructures[
           incomingReps,
@@ -306,12 +357,19 @@ generateSpinFieldOPEData[
           outgoingData["Representations"],
           "TargetRank" -> targetRank,
           "RandomSeed" -> seed,
-          "AntisymmetricVectorGroups" -> antisymmetricVectorGroups
+          "AntisymmetricVectorGroups" -> antisymmetricVectorGroups,
+          "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
         ]
       ];
       If[tensorStructures === $Failed || tensorStructures === {},
         Nothing,
-        {op, tensorStructures /. Join[incomingData["EvaluationRules"], outgoingData["EvaluationRules"]]}
+        {
+          op,
+          spinProjectionRelabelTensorStructureList0[
+            tensorStructures,
+            Join[incomingData["EvaluationRules"], outgoingData["EvaluationRules"]]
+          ]
+        }
       ]
     ] /@ basisOps,
     Nothing
@@ -379,7 +437,7 @@ spinProjectionSectorData[
   seed_
 ] := Module[{canonical},
   canonical = spinProjectionCanonicalizeOps[ops];
-  spinProjectionCanonicalSectorData[
+  spinProjectionRelabelSectorFamily0[#, canonical["InverseRules"]] & /@ spinProjectionCanonicalSectorData[
     canonical["Ops"],
     targetWeight,
     basisGeneratorFn,
@@ -387,7 +445,7 @@ spinProjectionSectorData[
     spinHead,
     pictureContributionFn,
     seed
-  ] /. canonical["InverseRules"]
+  ]
 ];
 
 spinProjectionSectorSpec::usage =
@@ -619,7 +677,7 @@ buildProjectedArtifacts[ops_List, wH_, wA_, seed_] := <|
 
 buildSectorArtifact::usage =
   "buildSectorArtifact[sector, ops, targetWeight, seed] builds one cached chiral sector artifact in ClosedForm or SpinProjection mode.";
-buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] := Module[
+buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] := withPersistentCacheBoundary @ Module[
   {spec, sectorOps, cacheKey, cached, data, artifact},
   If[targetWeight === None, Return[None]];
   spec = spinProjectionSectorSpec[sector];
@@ -938,6 +996,60 @@ spinProjectionScalarDesc0[
   ]
 ];
 
+spinProjectionSelectorSparseBasisFastPathQ0::usage =
+  "spinProjectionSelectorSparseBasisFastPathQ0[tensor, stateSpins, stateVectors] is True exactly when a sparse-basis tensor can reuse selector gamma-kernel refs in scalar-output RHS compile.";
+spinProjectionSelectorSparseBasisFastPathQ0[tensor_, stateSpins_Association, stateVectors_Association] :=
+  spinProjectionSparseBasisRecordQ[tensor] &&
+  Keys[stateSpins] === {} &&
+  Keys[stateVectors] === {} &&
+  Lookup[tensor["SelectorFamilyCache"], "Mode", None] === "sharedKernel";
+
+spinProjectionSelectorCachedSpinSource0::usage =
+  "spinProjectionSelectorCachedSpinSource0[slot, selectorCache, record, context] remaps one selector cached free-spin slot into the compiled RHS free-spin slot namespace.";
+spinProjectionSelectorCachedSpinSource0[slot_, selectorCache_Association, record_Association, context_Association] := Switch[slot[[1]],
+  1,
+  spinProjectionSpinSource0[
+    Lookup[record["CanonicalToActualSpin"], selectorCache["SpinSymbols"][[slot[[2]]]], Missing["Unassigned"]],
+    <||>,
+    context
+  ],
+  _,
+  $Failed
+];
+
+spinProjectionSelectorCachedVectorSource0::usage =
+  "spinProjectionSelectorCachedVectorSource0[slot, selectorCache, record, context] remaps one selector cached free-vector slot into the compiled RHS free-vector slot namespace.";
+spinProjectionSelectorCachedVectorSource0[slot_, selectorCache_Association, record_Association, context_Association] := Switch[slot[[1]],
+  1,
+  spinProjectionVectorSource0[
+    Lookup[record["CanonicalToActualVector"], selectorCache["VectorSymbols"][[slot[[2]]]], Missing["Unassigned"]],
+    <||>,
+    <||>,
+    context
+  ],
+  4,
+  slot,
+  _,
+  $Failed
+];
+
+spinProjectionSelectorCachedGammaKernelRefs0::usage =
+  "spinProjectionSelectorCachedGammaKernelRefs0[record, context] remaps selector cached gamma-kernel refs onto compiled RHS free-slot descriptors.";
+spinProjectionSelectorCachedGammaKernelRefs0[record_Association, context_Association] := Module[{selectorCache, refs},
+  selectorCache = record["SelectorFamilyCache"];
+  refs = Map[
+    Function[ref,
+      <|
+        "Key" -> ref["Key"],
+        "SpinSlots" -> (spinProjectionSelectorCachedSpinSource0[#, selectorCache, record, context] & /@ ref["SpinSlots"]),
+        "VectorSlots" -> (spinProjectionSelectorCachedVectorSource0[#, selectorCache, record, context] & /@ ref["VectorSlots"])
+      |>
+    ],
+    selectorCache["GammaKernelRefs"]
+  ];
+  If[MemberQ[refs, _?(MemberQ[#, $Failed, Infinity] &)], $Failed, refs]
+];
+
 spinProjectionCompileTensorTerm0::usage =
   "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex] compiles one tensor candidate into one term record and returns the next column index.";
 spinProjectionCompileTensorTerm0[
@@ -950,6 +1062,7 @@ spinProjectionCompileTensorTerm0[
 ] := Module[
   {
     nextColumn = columnIndex + 1,
+    tensorExpr,
     factors,
     tensorFactors,
     scalarFactor,
@@ -961,10 +1074,11 @@ spinProjectionCompileTensorTerm0[
     normalized,
     kernelData
   },
-  factors = If[Head[tensor] === Times, List @@ tensor, {tensor}];
+  tensorExpr = spinProjectionTensorExpr0[tensor];
+  factors = If[Head[tensorExpr] === Times, List @@ tensorExpr, {tensorExpr}];
   tensorFactors = Select[factors, candidateFactorQ];
   scalarFactor = Times @@ Select[factors, !candidateFactorQ[#] &];
-  indexSymbols = DeleteDuplicates[First /@ spinTypedIndices[tensor]];
+  indexSymbols = DeleteDuplicates[First /@ spinTypedIndices[tensorExpr]];
   If[indexSymbols =!= {} && !FreeQ[scalarFactor, Alternatives @@ indexSymbols], Return[$Failed]];
   parsedTensor = If[tensorFactors === {}, parseCandidate[1], parseCandidate[Times @@ tensorFactors]];
   If[parsedTensor === $Failed, Return[$Failed]];
@@ -991,7 +1105,20 @@ spinProjectionCompileTensorTerm0[
   If[MemberQ[parts, $Failed], Return[$Failed]];
   normalized = spinProjectionNormalizeCompiledTermParts[parts];
   If[normalized === $Failed, Return[$Failed]];
-  kernelData = spinProjectionGammaKernelData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]];
+  kernelData = If[
+    spinProjectionSelectorSparseBasisFastPathQ0[tensor, stateSpins, stateVectors],
+    Module[{refs},
+      refs = spinProjectionSelectorCachedGammaKernelRefs0[tensor, context];
+      If[refs === $Failed,
+        $Failed,
+        <|
+          "ScalarFactor" -> tensor["SelectorFamilyCache", "ScalarFactor"],
+          "KernelRefs" -> refs
+        |>
+      ]
+    ],
+    spinProjectionGammaKernelData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]]
+  ];
   If[kernelData === $Failed, Return[$Failed]];
   <|
     "NextColumn" -> nextColumn,
@@ -1028,6 +1155,7 @@ spinProjectionCompileFamily0[
     compileResult,
     term,
     tensor,
+    tensorExpr,
     repExpr
   },
   outputData = spinProjectionOutputSymbolData[op];
@@ -1038,6 +1166,7 @@ spinProjectionCompileFamily0[
   reaped = Reap[
     Do[
       tensor = tensors[[candidateIndex]];
+      tensorExpr = spinProjectionTensorExpr0[tensor];
       compileResult = spinProjectionCompileTensorTerm0[
         tensor,
         stateSpins,
@@ -1049,19 +1178,19 @@ spinProjectionCompileFamily0[
       If[compileResult === $Failed, Return[$Failed]];
       nextColumn = compileResult["NextColumn"];
       term = compileResult["Term"];
-      repExpr = tensor op;
+      repExpr = tensorExpr op;
       Sow[
         <|
           "Index" -> term["Column"],
           "RepresentativeExpr" -> repExpr,
-          "TensorExpr" -> tensor,
+          "TensorExpr" -> tensorExpr,
           "FamilyIndex" -> familyIndex,
           "CandidateIndex" -> candidateIndex
-        |>,
+        |> ,
         "Columns"
       ];
       Sow[
-        Join[term, <|"RepresentativeExpr" -> repExpr, "TensorExpr" -> tensor|>],
+        Join[term, <|"RepresentativeExpr" -> repExpr, "TensorExpr" -> tensorExpr|>],
         "Terms"
       ],
       {candidateIndex, Length[tensors]}

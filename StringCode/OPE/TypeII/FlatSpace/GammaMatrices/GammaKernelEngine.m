@@ -119,6 +119,99 @@ spinProjectionAssociationLookup::usage =
   "spinProjectionAssociationLookup[assoc, key, default] looks up an association value while supporting list-valued keys.";
 spinProjectionAssociationLookup[assoc_Association, key_, default_] := If[KeyExistsQ[assoc, key], assoc[key], default];
 
+persistentCacheSourceFiles::usage =
+  "persistentCacheSourceFiles[] returns the source files whose hashes version the persistent TypeII flat-space gamma-kernel cache.";
+persistentCacheSourceFiles[] := persistentCacheSourceFiles[] = Module[{rootDir},
+  rootDir = DirectoryName[DirectoryName[FindFile["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"]]];
+  FileNameJoin[{rootDir, #}] & /@ {
+    "GammaMatrices/GammaMatrices.m",
+    "GammaMatrices/GammaKernelEngine.m",
+    "GammaMatrices/SpinFieldConventionData.m",
+    "TensorStructures/IndependentTensorStructures.m",
+    "TensorStructures/IndependentTensorStructuresSelector.m",
+    "SpinProjection/Compile.m"
+  }
+];
+
+persistentCacheSourceHash::usage =
+  "persistentCacheSourceHash[] returns the deterministic source hash used in the persistent gamma-kernel cache filename.";
+persistentCacheSourceHash[] := persistentCacheSourceHash[] = IntegerString[
+  Hash[FileHash[#, "SHA256"] & /@ persistentCacheSourceFiles[], "SHA256"],
+  36
+];
+
+persistentGammaKernelCacheFile::usage =
+  "persistentGammaKernelCacheFile[] returns the on-disk mx file used for the persistent TypeII flat-space gamma-kernel cache.";
+persistentGammaKernelCacheFile[] := persistentGammaKernelCacheFile[] = FileNameJoin[
+  {
+    $UserBaseDirectory,
+    "ApplicationData",
+    "StringCode",
+    "TypeIIFlatSpaceGammaKernelCache-" <> persistentCacheSourceHash[] <> ".mx"
+  }
+];
+
+spinProjectionPersistentGammaKernelCacheLoaded::usage =
+  "spinProjectionPersistentGammaKernelCacheLoaded tracks whether the persistent gamma-kernel cache has been loaded in this kernel session.";
+spinProjectionPersistentGammaKernelCacheLoaded = False;
+
+spinProjectionPersistentGammaKernelCacheDirty::usage =
+  "spinProjectionPersistentGammaKernelCacheDirty is True exactly when the persistent gamma-kernel cache needs to be flushed to disk.";
+spinProjectionPersistentGammaKernelCacheDirty = False;
+
+spinProjectionPersistentGammaKernelCacheBoundaryDepth::usage =
+  "spinProjectionPersistentGammaKernelCacheBoundaryDepth counts nested persistent-cache flush boundaries.";
+spinProjectionPersistentGammaKernelCacheBoundaryDepth = 0;
+
+loadPersistentGammaKernelCache0::usage =
+  "loadPersistentGammaKernelCache0[] loads the persistent gamma-kernel cache once per kernel session if the current source hash matches.";
+loadPersistentGammaKernelCache0[] := Module[{file},
+  If[TrueQ[spinProjectionPersistentGammaKernelCacheLoaded], Return[Null]];
+  spinProjectionPersistentGammaKernelCacheLoaded = True;
+  file = persistentGammaKernelCacheFile[];
+  If[FileExistsQ[file], Quiet[Check[Get[file], Null]]];
+  Null
+];
+
+markPersistentGammaKernelCacheDirty0::usage =
+  "markPersistentGammaKernelCacheDirty0[] marks the persistent gamma-kernel cache as dirty after a new persisted entry is created.";
+markPersistentGammaKernelCacheDirty0[] := (spinProjectionPersistentGammaKernelCacheDirty = True);
+
+flushPersistentCacheIfDirty::usage =
+  "flushPersistentCacheIfDirty[] writes the persistent gamma-kernel cache to disk when new persisted entries were created.";
+flushPersistentCacheIfDirty[] := Module[{file, dir, success = True},
+  loadPersistentGammaKernelCache0[];
+  If[!TrueQ[spinProjectionPersistentGammaKernelCacheDirty], Return[Null]];
+  file = persistentGammaKernelCacheFile[];
+  dir = DirectoryName[file];
+  If[!DirectoryQ[dir],
+    success = Quiet[Check[(CreateDirectory[dir, CreateIntermediateDirectories -> True]; True), False]];
+    If[!TrueQ[success], Return[Null]];
+  ];
+  success = Quiet[Check[(DumpSave[file, {spinProjectionGammaKernelRegistry, spinProjectionGammaKernelPairMatrixCache}]; True), False]];
+  If[TrueQ[success], spinProjectionPersistentGammaKernelCacheDirty = False];
+  If[TrueQ[success], Null, $Failed]
+];
+
+withPersistentCacheBoundary::usage =
+  "withPersistentCacheBoundary[expr] evaluates expr inside one nested persistent-cache flush boundary and flushes the cache only when the outermost boundary exits.";
+withPersistentCacheBoundary[expr_] := Module[{},
+  loadPersistentGammaKernelCache0[];
+  Internal`WithLocalSettings[
+    spinProjectionPersistentGammaKernelCacheBoundaryDepth++,
+    expr,
+    spinProjectionPersistentGammaKernelCacheBoundaryDepth = Max[0, spinProjectionPersistentGammaKernelCacheBoundaryDepth - 1];
+    If[spinProjectionPersistentGammaKernelCacheBoundaryDepth === 0, flushPersistentCacheIfDirty[]]
+  ]
+];
+
+flushPersistentGammaKernelCache0::usage =
+  "flushPersistentGammaKernelCache0[] flushes the persistent gamma-kernel cache on demand.";
+flushPersistentGammaKernelCache0[] := Module[{},
+  loadPersistentGammaKernelCache0[];
+  flushPersistentCacheIfDirty[]
+];
+
 spinProjectionNormalizeCompiledTermParts::usage =
   "spinProjectionNormalizeCompiledTermParts[parts] strips vector deltas into a scalar zero/nonzero factor, spin equalities, vector equalities, and normalized gamma factors for one compiled term.";
 spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
@@ -418,16 +511,14 @@ spinProjectionRegisterGammaKernelComponent[component_List] := Module[
   storedFactors = Map[KeyDrop[#, {"KeyData"}] &, factors];
   key = {blockSizes, factors[[All, "KeyData"]]};
   If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key],
-    AssociateTo[
-      spinProjectionGammaKernelRegistry,
-      key -> <|
-        "BlockSizes" -> blockSizes,
-        "BlockTuples" -> spinProjectionDisjointBlockBasisTuples[blockSizes],
-        "SpinSlotCount" -> Length[spinSlots],
-        "Factors" -> storedFactors,
-        "JoinPlan" -> spinProjectionGammaKernelJoinPlan[storedFactors]
-      |>
-    ]
+    spinProjectionGammaKernelRegistry[key] = <|
+      "BlockSizes" -> blockSizes,
+      "BlockTuples" -> spinProjectionDisjointBlockBasisTuples[blockSizes],
+      "SpinSlotCount" -> Length[spinSlots],
+      "Factors" -> storedFactors,
+      "JoinPlan" -> spinProjectionGammaKernelJoinPlan[storedFactors]
+    |>;
+    markPersistentGammaKernelCacheDirty0[]
   ];
   <|"ScalarFactor" -> 1, "KernelRef" -> <|"Key" -> key, "SpinSlots" -> spinSlots, "VectorSlots" -> vectorSlots|>|>
 ];
@@ -729,6 +820,14 @@ spinProjectionGammaKernelFactorLocalMatrixTableCache::usage =
   "spinProjectionGammaKernelFactorLocalMatrixTableCache memoizes concrete local factor matrices over local dummy-block tuples.";
 spinProjectionGammaKernelFactorLocalMatrixTableCache = <||>;
 
+spinProjectionGammaKernelCanonicalFamilyRowOperatorCache::usage =
+  "spinProjectionGammaKernelCanonicalFamilyRowOperatorCache memoizes canonical sparse row operators built directly from cached alternating gamma-product families.";
+spinProjectionGammaKernelCanonicalFamilyRowOperatorCache = <||>;
+
+spinProjectionGammaKernelLocalizedFactorRowOperatorCache::usage =
+  "spinProjectionGammaKernelLocalizedFactorRowOperatorCache memoizes localized sparse row operators for concrete two-spinor gamma factors.";
+spinProjectionGammaKernelLocalizedFactorRowOperatorCache = <||>;
+
 spinProjectionGammaKernelFactorLocalizedKey::usage =
   "spinProjectionGammaKernelFactorLocalizedKey[factor, vectorTuple] returns a concrete local factor descriptor key independent of the surrounding kernel's global block numbering.";
 spinProjectionGammaKernelFactorLocalizedKey[factor_Association, vectorTuple_List] := Module[
@@ -825,6 +924,23 @@ spinProjectionGammaKernelFactorLocalMatrixTable[factor_Association, vectorTuple_
   matrices
 ];
 
+spinProjectionGammaKernelStackSparseRows0::usage =
+  "spinProjectionGammaKernelStackSparseRows0[rowVectors] stacks sparse row vectors of equal length into one sparse matrix without densifying them.";
+spinProjectionGammaKernelStackSparseRows0[rowVectors_List] := Module[{rules, rowLength},
+  If[rowVectors === {}, Return[SparseArray[{}, {0, 0}]]];
+  rowLength = First[Dimensions[SparseArray[First[rowVectors]]]];
+  rules = Flatten[
+    MapIndexed[
+      Function[{rowVector, idx},
+        ({idx[[1]], #[[1, 1]]} -> #[[2]]) & /@ Most[ArrayRules[SparseArray[rowVector]]]
+      ],
+      rowVectors
+    ],
+    1
+  ];
+  SparseArray[rules, {Length[rowVectors], rowLength}]
+];
+
 spinProjectionGammaKernelFactorMatrixVector::usage =
   "spinProjectionGammaKernelFactorMatrixVector[key, factorIndex, vectorTuple] returns the cached factor matrices over every global block tuple for paired shared-kernel compilation.";
 spinProjectionGammaKernelFactorMatrixVector[key_, factorIndex_Integer?Positive, vectorTuple_List] := Module[
@@ -845,6 +961,94 @@ spinProjectionGammaKernelFactorMatrixVector[key_, factorIndex_Integer?Positive, 
   AssociateTo[cache, factorIndex -> vectorCache];
   AssociateTo[spinProjectionGammaKernelFactorMatrixVectorCache, key -> cache];
   vectorCache[vectorTuple]
+];
+
+spinProjectionGammaKernelMatrixEntrySparseRow::usage =
+  "spinProjectionGammaKernelMatrixEntrySparseRow[matrix] encodes one sparse factor matrix into the column-major boundary-entry basis without calling Normal.";
+spinProjectionGammaKernelMatrixEntrySparseRow[matrix_] := Module[{rules, dim = gammaSpinorDimension},
+  rules = Most[ArrayRules[SparseArray[matrix]]];
+  SparseArray[
+    ({#[[1, 1]] + dim (#[[1, 2]] - 1)} -> #[[2]]) & /@ rules,
+    {dim^2}
+  ]
+];
+
+spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0::usage =
+  "spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey] returns {family, rank, sign} when one localized factor key is a canonical single-block alternating gamma family, and $Failed otherwise.";
+spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey_List] := Module[
+  {cTag, dirs, localizedSpecs, tailLinks, blockSizes, rank, positions, start, family},
+  {cTag, dirs, localizedSpecs, tailLinks, blockSizes} = factorKey;
+  rank = Length[dirs];
+  If[tailLinks =!= {} || Length[blockSizes] =!= 1 || blockSizes[[1]] =!= rank, Return[$Failed]];
+  If[!AllTrue[localizedSpecs, MatchQ[#, {1, 1, _Integer}] &], Return[$Failed]];
+  positions = localizedSpecs[[All, 3]];
+  If[Sort[positions] =!= Range[rank], Return[$Failed]];
+  If[rank === 0, Return[$Failed]];
+  start = First[dirs];
+  If[dirs =!= Table[If[OddQ[pos], start, 3 - start], {pos, rank}], Return[$Failed]];
+  family = {cTag, start};
+  If[!MemberQ[gammaProductCacheFamilies, family], Return[$Failed]];
+  {family, rank, If[rank > 1, Signature[positions], 1]}
+];
+
+spinProjectionGammaKernelCanonicalFamilyRowOperator0::usage =
+  "spinProjectionGammaKernelCanonicalFamilyRowOperator0[family, rank] builds one sparse row operator directly from the cached canonical gamma-product family.";
+spinProjectionGammaKernelCanonicalFamilyRowOperator0[family : {_, _Integer}, rank_Integer?NonNegative] := Module[
+  {cacheKey = {family, rank}, cache, rows},
+  cache = spinProjectionAssociationLookup[
+    spinProjectionGammaKernelCanonicalFamilyRowOperatorCache,
+    cacheKey,
+    Missing["NotFound"]
+  ];
+  If[cache =!= Missing["NotFound"], Return[cache]];
+  rows = spinProjectionGammaKernelMatrixEntrySparseRow[gammaCachedProductMatrix[family, #]] & /@
+    Subsets[Range[gammaVectorDimension], {rank}];
+  cache = spinProjectionGammaKernelStackSparseRows0[rows];
+  spinProjectionGammaKernelCanonicalFamilyRowOperatorCache[cacheKey] = cache;
+  cache
+];
+
+spinProjectionGammaKernelLocalizedFactorRowOperator0::usage =
+  "spinProjectionGammaKernelLocalizedFactorRowOperator0[factorKey] returns the sparse local row operator for one localized two-spinor factor key.";
+spinProjectionGammaKernelLocalizedFactorRowOperator0[factorKey_List] := Module[
+  {cache, canonicalData, localTuples, rows},
+  cache = spinProjectionAssociationLookup[
+    spinProjectionGammaKernelLocalizedFactorRowOperatorCache,
+    factorKey,
+    Missing["NotFound"]
+  ];
+  If[cache =!= Missing["NotFound"], Return[cache]];
+  canonicalData = spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey];
+  If[canonicalData =!= $Failed,
+    cache = canonicalData[[3]] spinProjectionGammaKernelCanonicalFamilyRowOperator0[canonicalData[[1]], canonicalData[[2]]];
+    spinProjectionGammaKernelLocalizedFactorRowOperatorCache[factorKey] = cache;
+    Return[cache];
+  ];
+  localTuples = spinProjectionDisjointBlockBasisTuples[factorKey[[5]]];
+  rows = spinProjectionGammaKernelMatrixEntrySparseRow[
+      spinProjectionGammaKernelFactorLocalizedMatrix[factorKey, #]
+    ] & /@ localTuples;
+  If[MemberQ[rows, $Failed], Return[$Failed]];
+  cache = spinProjectionGammaKernelStackSparseRows0[rows];
+  spinProjectionGammaKernelLocalizedFactorRowOperatorCache[factorKey] = cache;
+  cache
+];
+
+spinProjectionGammaKernelFactorRowOperator0::usage =
+  "spinProjectionGammaKernelFactorRowOperator0[key, factorIndex, vectorTuple] returns the sparse row operator over global block tuples for one two-spinor factor.";
+spinProjectionGammaKernelFactorRowOperator0[key_, factorIndex_Integer?Positive, vectorTuple_List] := Module[
+  {kernel, factor, factorKey, localRows, localTuples, localIndex},
+  If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key], Return[$Failed]];
+  kernel = spinProjectionGammaKernelRegistry[key];
+  factor = kernel["Factors"][[factorIndex]];
+  If[Length[factor["SpinSlots"]] =!= 2, Return[$Failed]];
+  factorKey = spinProjectionGammaKernelFactorLocalizedKey[factor, vectorTuple];
+  If[factorKey === $Failed, Return[$Failed]];
+  localRows = spinProjectionGammaKernelLocalizedFactorRowOperator0[factorKey];
+  If[localRows === $Failed, Return[$Failed]];
+  localTuples = spinProjectionDisjointBlockBasisTuples[factor["BlockSizes"]];
+  localIndex = AssociationThread[localTuples -> Range[Length[localTuples]]];
+  localRows[[Lookup[localIndex, kernel["BlockTuples"][[All, factor["Blocks"]]]]]]
 ];
 
 spinProjectionCompileGammaKernelEntry::usage =
@@ -896,13 +1100,26 @@ spinProjectionGammaKernelFactorProbeVectorCache = <||>;
 spinProjectionGammaKernelFactorProbeVector::usage =
   "spinProjectionGammaKernelFactorProbeVector[key, factorIndex, vectorTuple, localSpinVectors] contracts one shared factor against dense selector spin vectors and returns its value vector over global block tuples.";
 spinProjectionGammaKernelFactorProbeVector[key_, factorIndex_Integer?Positive, vectorTuple_List, localSpinVectors_List] := Module[
-  {cache, factorCache, vectorCache, kernel, factor, tuples, result, tuple, weight, valueVector},
+  {cache, factorCache, vectorCache, kernel, factor, rowOperator, boundaryVector, tuples, result, tuple, weight, valueVector},
   cache = spinProjectionAssociationLookup[spinProjectionGammaKernelFactorProbeVectorCache, key, <||>];
   factorCache = spinProjectionAssociationLookup[cache, factorIndex, <||>];
   vectorCache = spinProjectionAssociationLookup[factorCache, vectorTuple, <||>];
   If[KeyExistsQ[vectorCache, localSpinVectors], Return[vectorCache[localSpinVectors]]];
   kernel = spinProjectionGammaKernelRegistry[key];
   factor = kernel["Factors"][[factorIndex]];
+  If[Length[localSpinVectors] === 2,
+    rowOperator = spinProjectionGammaKernelFactorRowOperator0[key, factorIndex, vectorTuple];
+    If[rowOperator =!= $Failed,
+      boundaryVector = spinProjectionGammaKernelBoundaryVector[localSpinVectors];
+      If[!VectorQ[boundaryVector, spinProjectionSelectorExactScalarQ], Return[$Failed]];
+      result = Normal[rowOperator . SparseArray[boundaryVector]];
+      vectorCache[localSpinVectors] = result;
+      factorCache[vectorTuple] = vectorCache;
+      cache[factorIndex] = factorCache;
+      spinProjectionGammaKernelFactorProbeVectorCache[key] = cache;
+      Return[result];
+    ];
+  ];
   tuples = spinProjectionGammaKernelLocalSpinTuples[Length[localSpinVectors]];
   result = ConstantArray[0, Length[kernel["BlockTuples"]]];
   Do[
@@ -913,10 +1130,10 @@ spinProjectionGammaKernelFactorProbeVector[key_, factorIndex_Integer?Positive, v
     result += weight valueVector,
     {tuple, tuples}
   ];
-  AssociateTo[vectorCache, localSpinVectors -> result];
-  AssociateTo[factorCache, vectorTuple -> vectorCache];
-  AssociateTo[cache, factorIndex -> factorCache];
-  AssociateTo[spinProjectionGammaKernelFactorProbeVectorCache, key -> cache];
+  vectorCache[localSpinVectors] = result;
+  factorCache[vectorTuple] = vectorCache;
+  cache[factorIndex] = factorCache;
+  spinProjectionGammaKernelFactorProbeVectorCache[key] = cache;
   result
 ];
 
@@ -939,11 +1156,11 @@ spinProjectionGammaKernelPairMatrixCache = <||>;
 
 spinProjectionGammaKernelMatrixEntryVector::usage =
   "spinProjectionGammaKernelMatrixEntryVector[matrix] flattens a concrete factor matrix in the same {row,col} entry order used by spinProjectionGammaKernelEncodeSpinTuple[{row,col}].";
-spinProjectionGammaKernelMatrixEntryVector[matrix_] := Flatten[Transpose[Normal[matrix]]];
+spinProjectionGammaKernelMatrixEntryVector[matrix_] := Normal[spinProjectionGammaKernelMatrixEntrySparseRow[matrix]];
 
-spinProjectionCompileGammaKernelPairMatrix::usage =
-  "spinProjectionCompileGammaKernelPairMatrix[key, kernel, vectorTuple] builds one shared paired K-matrix by summing outer products of cached factor-entry vectors over the antisymmetric dummy-index sum.";
-spinProjectionCompileGammaKernelPairMatrix[key_, kernel_Association, vectorTuple_List] := Module[
+spinProjectionCompileGammaKernelPairMatrixReferenceDense0::usage =
+  "spinProjectionCompileGammaKernelPairMatrixReferenceDense0[key, kernel, vectorTuple] is the frozen dense reference implementation for paired gamma-kernel matrix compilation.";
+spinProjectionCompileGammaKernelPairMatrixReferenceDense0[key_, kernel_Association, vectorTuple_List] := Module[
   {leftMatrices, rightMatrices},
   leftMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 1, vectorTuple];
   rightMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 2, vectorTuple];
@@ -958,6 +1175,37 @@ spinProjectionCompileGammaKernelPairMatrix[key_, kernel_Association, vectorTuple
   ]
 ];
 
+spinProjectionCompileGammaKernelPairMatrixSparseOuter::usage =
+  "spinProjectionCompileGammaKernelPairMatrixSparseOuter[left, right] builds one sparse outer-product contribution in the paired K-matrix entry basis.";
+spinProjectionCompileGammaKernelPairMatrixSparseOuter[left_, right_] := Module[{leftRules, rightRules},
+  leftRules = Most[ArrayRules[SparseArray[left]]];
+  rightRules = Most[ArrayRules[SparseArray[right]]];
+  SparseArray[
+    Flatten[
+      Table[
+        {
+          spinProjectionGammaKernelEncodeSpinTuple[leftEntry[[1]]],
+          spinProjectionGammaKernelEncodeSpinTuple[rightEntry[[1]]]
+        } -> leftEntry[[2]] rightEntry[[2]],
+        {leftEntry, leftRules},
+        {rightEntry, rightRules}
+      ],
+      1
+    ],
+    {256, 256}
+  ]
+];
+
+spinProjectionCompileGammaKernelPairMatrix::usage =
+  "spinProjectionCompileGammaKernelPairMatrix[key, kernel, vectorTuple] builds one shared paired K-matrix by summing sparse outer products of cached factor matrices over the antisymmetric dummy-index sum.";
+spinProjectionCompileGammaKernelPairMatrix[key_, kernel_Association, vectorTuple_List] := Module[
+  {leftRows, rightRows},
+  leftRows = spinProjectionGammaKernelFactorRowOperator0[key, 1, vectorTuple];
+  rightRows = spinProjectionGammaKernelFactorRowOperator0[key, 2, vectorTuple];
+  If[leftRows === $Failed || rightRows === $Failed, Return[$Failed]];
+  Normal[Transpose[leftRows] . rightRows]
+];
+
 spinProjectionGammaKernelPairMatrix::usage =
   "spinProjectionGammaKernelPairMatrix[key, vectorTuple] returns the cached paired K-matrix for one registered gamma kernel when that topology applies.";
 spinProjectionGammaKernelPairMatrix[key_, vectorTuple_List] := Module[
@@ -969,8 +1217,9 @@ spinProjectionGammaKernelPairMatrix[key_, vectorTuple_List] := Module[
   If[!spinProjectionGammaKernelPairMatrixQ[kernel], Return[$Failed]];
   matrix = spinProjectionCompileGammaKernelPairMatrix[key, kernel, vectorTuple];
   If[matrix === $Failed, Return[$Failed]];
-  AssociateTo[kernelCache, vectorTuple -> matrix];
-  AssociateTo[spinProjectionGammaKernelPairMatrixCache, key -> kernelCache];
+  kernelCache[vectorTuple] = matrix;
+  spinProjectionGammaKernelPairMatrixCache[key] = kernelCache;
+  markPersistentGammaKernelCacheDirty0[];
   matrix
 ];
 
@@ -979,6 +1228,91 @@ spinProjectionGammaKernelBoundaryVector::usage =
 spinProjectionGammaKernelBoundaryVector[{vec_}] := vec;
 spinProjectionGammaKernelBoundaryVector[{left_, right_}] := Flatten[Transpose[Outer[Times, left, right]]];
 spinProjectionGammaKernelBoundaryVector[spinVectors_List] := Flatten[KroneckerProduct @@ spinVectors];
+
+spinProjectionGammaKernelSelectorPairValues0::usage =
+  "spinProjectionGammaKernelSelectorPairValues0[key, vectorTuple, leftBoundaryRows, rightBoundaryRows] evaluates one selector batch directly against the cached paired K-matrix without probe-cache bookkeeping.";
+spinProjectionGammaKernelSelectorPairValues0[key_, vectorTuple_List, leftBoundaryRows_List, rightBoundaryRows_List] := Module[{pairMatrix},
+  If[leftBoundaryRows === {} || rightBoundaryRows === {}, Return[{}]];
+  pairMatrix = spinProjectionGammaKernelPairMatrix[key, vectorTuple];
+  If[pairMatrix === $Failed, Return[$Failed]];
+  Diagonal[SparseArray[leftBoundaryRows] . pairMatrix . Transpose[SparseArray[rightBoundaryRows]]]
+];
+
+spinProjectionGammaKernelSelectorSingleFactorValues0::usage =
+  "spinProjectionGammaKernelSelectorSingleFactorValues0[key, vectorTuple, boundaryRows] evaluates one selector batch directly against the cached two-spinor factor row operator without probe-cache bookkeeping.";
+spinProjectionGammaKernelSelectorSingleFactorValues0[key_, vectorTuple_List, boundaryRows_List] := Module[{rowOperator, values},
+  If[boundaryRows === {}, Return[{}]];
+  rowOperator = spinProjectionGammaKernelFactorRowOperator0[key, 1, vectorTuple];
+  If[rowOperator === $Failed, Return[$Failed]];
+  values = Total[rowOperator . Transpose[SparseArray[boundaryRows]], {1}];
+  If[Head[values] === SparseArray, Normal[values], values]
+];
+
+spinProjectionGammaKernelProbeValuesBatch0::usage =
+  "spinProjectionGammaKernelProbeValuesBatch0[key, vectorTuple, spinVectorsBatch] contracts one shared gamma kernel against a batch of dense selector spin-vector assignments, caching the scalar results entrywise.";
+spinProjectionGammaKernelProbeValuesBatch0[key_, vectorTuple_List, spinVectorsBatch_List] := Module[
+  {
+    kernelCache,
+    spinCache,
+    kernel,
+    values,
+    missingPositions,
+    missingBatch,
+    pairMatrix,
+    leftBoundaryVectors,
+    rightBoundaryVectors,
+    batchValues,
+    idx
+  },
+  If[spinVectorsBatch === {}, Return[{}]];
+  If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key], Return[$Failed]];
+  kernelCache = spinProjectionAssociationLookup[spinProjectionGammaKernelProbeCache, key, <||>];
+  spinCache = spinProjectionAssociationLookup[kernelCache, vectorTuple, <||>];
+  values = Table[
+    If[KeyExistsQ[spinCache, spinVectorsBatch[[i]]], spinCache[spinVectorsBatch[[i]]], Missing["NotCached"]],
+    {i, Length[spinVectorsBatch]}
+  ];
+  missingPositions = Flatten[Position[values, Missing["NotCached"], {1}, Heads -> False]];
+  If[missingPositions === {}, Return[values]];
+  kernel = spinProjectionGammaKernelRegistry[key];
+  missingBatch = spinVectorsBatch[[missingPositions]];
+  If[
+    !AllTrue[missingBatch, ListQ] ||
+    !AllTrue[missingBatch, Length[#] == kernel["SpinSlotCount"] &],
+    Return[$Failed]
+  ];
+  pairMatrix = spinProjectionGammaKernelPairMatrix[key, vectorTuple];
+  If[pairMatrix === $Failed || Length[kernel["Factors"]] =!= 2,
+    Do[
+      values[[idx]] = spinProjectionGammaKernelProbeValue[key, vectorTuple, spinVectorsBatch[[idx]]];
+      If[values[[idx]] === $Failed, Return[$Failed]],
+      {idx, missingPositions}
+    ];
+    Return[values];
+  ];
+  leftBoundaryVectors = spinProjectionGammaKernelBoundaryVector /@ Map[
+    Part[#, kernel["Factors"][[1, "SpinSlots"]]] &,
+    missingBatch
+  ];
+  rightBoundaryVectors = spinProjectionGammaKernelBoundaryVector /@ Map[
+    Part[#, kernel["Factors"][[2, "SpinSlots"]]] &,
+    missingBatch
+  ];
+  If[
+    !AllTrue[leftBoundaryVectors, VectorQ[#, spinProjectionSelectorExactScalarQ] &] ||
+    !AllTrue[rightBoundaryVectors, VectorQ[#, spinProjectionSelectorExactScalarQ] &],
+    Return[$Failed]
+  ];
+  batchValues = Diagonal[SparseArray[leftBoundaryVectors] . pairMatrix . Transpose[SparseArray[rightBoundaryVectors]]];
+  Do[
+    values[[missingPositions[[j]]]] = batchValues[[j]];
+    spinCache[spinVectorsBatch[[missingPositions[[j]]]]] = batchValues[[j]],
+    {j, Length[missingPositions]}
+  ];
+  kernelCache[vectorTuple] = spinCache;
+  spinProjectionGammaKernelProbeCache[key] = kernelCache;
+  values
+];
 
 spinProjectionGammaKernelProbeValue::usage =
   "spinProjectionGammaKernelProbeValue[key, vectorTuple, spinVectors] contracts one shared gamma kernel against dense selector spin vectors.";
@@ -1009,9 +1343,9 @@ spinProjectionGammaKernelProbeValue[key_, vectorTuple_List, spinVectors_List] :=
       pairMatrix .
       spinProjectionGammaKernelBoundaryVector[spinVectors[[kernel["Factors"][[2, "SpinSlots"]]]]]
   ];
-  AssociateTo[spinCache, spinVectors -> value];
-  AssociateTo[kernelCache, vectorTuple -> spinCache];
-  AssociateTo[spinProjectionGammaKernelProbeCache, key -> kernelCache];
+  spinCache[spinVectors] = value;
+  kernelCache[vectorTuple] = spinCache;
+  spinProjectionGammaKernelProbeCache[key] = kernelCache;
   value
 ];
 
@@ -1296,6 +1630,9 @@ spinProjectionSelectorCompiledFamilyData[candidate_Association] := Module[
   cached
 ];
 
+StringCode`FlushKernelCache[] := flushPersistentGammaKernelCache0[];
+loadPersistentGammaKernelCache0[];
+
 spinProjectionSelectorFamilyVectorSourceValue::usage =
   "spinProjectionSelectorFamilyVectorSourceValue[src, vectorTuple] resolves one canonical selector family vector source under a concrete exposed-vector assignment.";
 spinProjectionSelectorFamilyVectorSourceValue[src_, vectorTuple_List] := Switch[src[[1]],
@@ -1534,6 +1871,21 @@ spinProjectionSelectorContractBlockTensors[left_Association, leftPos_Integer?Pos
   <|"Blocks" -> Join[Delete[left["Blocks"], leftPos], Delete[right["Blocks"], rightPos]], "Entries" -> resultEntries|>
 ];
 
+spinProjectionSelectorSelfContractBlockTensor::usage =
+  "spinProjectionSelectorSelfContractBlockTensor[tensor, leftPos, rightPos] contracts one repeated dummy block inside a single sparse exact block tensor.";
+spinProjectionSelectorSelfContractBlockTensor[tensor_Association, leftPos_Integer?Positive, rightPos_Integer?Positive] := Module[
+  {deletePositions, resultRules, resultEntries},
+  If[leftPos === rightPos, Return[$Failed]];
+  If[tensor["Blocks"][[leftPos]] =!= tensor["Blocks"][[rightPos]], Return[$Failed]];
+  deletePositions = List /@ Sort[{leftPos, rightPos}];
+  resultRules = Cases[
+    Normal[tensor["Entries"]],
+    (key_ -> value_) /; key[[leftPos]] === key[[rightPos]] :> (Delete[key, deletePositions] -> value)
+  ];
+  resultEntries = If[resultRules === {}, <||>, Select[Merge[resultRules, Total], # =!= 0 &]];
+  <|"Blocks" -> Delete[tensor["Blocks"], deletePositions], "Entries" -> resultEntries|>
+];
+
 spinProjectionSelectorSharedBlockPair::usage =
   "spinProjectionSelectorSharedBlockPair[tensors] returns the first pair of tensors and block positions that share the same dummy block.";
 spinProjectionSelectorSharedBlockPair[tensors_List] := Module[{seen = <||>, i, p, block},
@@ -1559,13 +1911,19 @@ spinProjectionSelectorReduceBlockTensorNetwork[tensors_List] := Module[{work = t
       ];
     ];
     If[work === {}, Return[scalar]];
-    If[Length[work] == 1,
-      Return[If[work[[1, "Blocks"]] === {}, scalar spinProjectionSelectorScalarBlockTensorValue[work[[1]]], $Failed]]
-    ];
     pair = spinProjectionSelectorSharedBlockPair[work];
     If[pair === Missing["NoSharedBlock"], Return[$Failed]];
-    contracted = spinProjectionSelectorContractBlockTensors[work[[pair[[1]]]], pair[[2]], work[[pair[[3]]]], pair[[4]]];
-    work = Append[Delete[work, List /@ Sort[{pair[[1]], pair[[3]]}, Greater]], contracted];
+    contracted = If[
+      pair[[1]] === pair[[3]],
+      spinProjectionSelectorSelfContractBlockTensor[work[[pair[[1]]]], pair[[2]], pair[[4]]],
+      spinProjectionSelectorContractBlockTensors[work[[pair[[1]]]], pair[[2]], work[[pair[[3]]]], pair[[4]]]
+    ];
+    If[contracted === $Failed, Return[$Failed]];
+    work = If[
+      pair[[1]] === pair[[3]],
+      ReplacePart[work, pair[[1]] -> contracted],
+      Append[Delete[work, List /@ Sort[{pair[[1]], pair[[3]]}, Greater]], contracted]
+    ];
   ]
 ];
 

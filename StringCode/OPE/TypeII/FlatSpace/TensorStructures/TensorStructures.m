@@ -995,7 +995,7 @@ listPermutationSignature[source_List, target_List] := Signature[Flatten[Position
 
 antisymmetricRelabelings::usage =
   "antisymmetricRelabelings[groups] enumerates all antisymmetric-block relabelings together with their fermionic signs.";
-antisymmetricRelabelings[groups_List] := Module[{groupChoices, choices},
+antisymmetricRelabelings[groups_List] := antisymmetricRelabelings[groups] = Module[{groupChoices, choices},
   If[groups === {}, Return[{<|"Rules" -> {}, "Sign" -> 1|>}]];
   groupChoices = Map[
     Function[group,
