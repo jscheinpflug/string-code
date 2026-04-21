@@ -1050,6 +1050,62 @@ spinProjectionSelectorCachedGammaKernelRefs0[record_Association, context_Associa
   If[MemberQ[refs, _?(MemberQ[#, $Failed, Infinity] &)], $Failed, refs]
 ];
 
+spinProjectionOutputSpinSupportPartRecipe0::usage =
+  "spinProjectionOutputSpinSupportPartRecipe0[part, outputSpinSlot] compiles one scalar part into a solve-time output-spin support recipe or Nothing when the part is irrelevant.";
+spinProjectionOutputSpinSupportPartRecipe0[part_, outputSpinSlot_Integer?Positive] := Module[
+  {kind = part[[1]], left = part[[2]], right = part[[3]]},
+  Switch[kind,
+    0,
+    Nothing,
+    1,
+    Which[
+      left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1,
+        <|"Mode" -> "FreeSpinEquality", "FreeSpinSlot" -> right[[2]]|>,
+      right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1,
+        <|"Mode" -> "FreeSpinEquality", "FreeSpinSlot" -> left[[2]]|>,
+      left[[1]] === 2 && left[[2]] === outputSpinSlot,
+        <|"Mode" -> "Fallback"|>,
+      right[[1]] === 2 && right[[2]] === outputSpinSlot,
+        <|"Mode" -> "Fallback"|>,
+      True,
+        Nothing
+    ],
+    2,
+    Which[
+      left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1,
+        <|"Mode" -> "GammaColumnSupport", "FreeSpinSlot" -> right[[2]], "Desc" -> part[[4]]|>,
+      right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1,
+        <|"Mode" -> "GammaRowSupport", "FreeSpinSlot" -> left[[2]], "Desc" -> part[[4]]|>,
+      left[[1]] === 2 && left[[2]] === outputSpinSlot,
+        <|"Mode" -> "Fallback"|>,
+      right[[1]] === 2 && right[[2]] === outputSpinSlot,
+        <|"Mode" -> "Fallback"|>,
+      True,
+        Nothing
+    ],
+    _,
+    <|"Mode" -> "Fallback"|>
+  ]
+];
+
+spinProjectionOutputSpinSupportRecipe0::usage =
+  "spinProjectionOutputSpinSupportRecipe0[parts, outputSpinSlot] compiles the solve-time support recipe for one term in a one-output-spin family.";
+spinProjectionOutputSpinSupportRecipe0[parts_List, outputSpinSlot_Integer?Positive] := Module[{recipes},
+  recipes = DeleteCases[
+    spinProjectionOutputSpinSupportPartRecipe0[#, outputSpinSlot] & /@ parts,
+    Nothing
+  ];
+  If[
+    MemberQ[recipes, _Association?(Lookup[#, "Mode", None] === "Fallback" &)],
+    <|"Mode" -> "Fallback"|>,
+    Which[
+      recipes === {}, <|"Mode" -> "All"|>,
+      Length[recipes] == 1, First[recipes],
+      True, <|"Mode" -> "Intersection", "Parts" -> recipes|>
+    ]
+  ]
+];
+
 spinProjectionCompileTensorTerm0::usage =
   "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex] compiles one tensor candidate into one term record and returns the next column index.";
 spinProjectionCompileTensorTerm0[
@@ -1072,7 +1128,8 @@ spinProjectionCompileTensorTerm0[
     dummyVectors,
     parts,
     normalized,
-    kernelData
+    kernelData,
+    outputSpinSupportRecipe
   },
   tensorExpr = spinProjectionTensorExpr0[tensor];
   factors = If[Head[tensorExpr] === Times, List @@ tensorExpr, {tensorExpr}];
@@ -1105,6 +1162,11 @@ spinProjectionCompileTensorTerm0[
   If[MemberQ[parts, $Failed], Return[$Failed]];
   normalized = spinProjectionNormalizeCompiledTermParts[parts];
   If[normalized === $Failed, Return[$Failed]];
+  outputSpinSupportRecipe = If[
+    Length[stateSpins] == 1,
+    spinProjectionOutputSpinSupportRecipe0[parts, First[Values[stateSpins]]],
+    <|"Mode" -> "Fallback"|>
+  ];
   kernelData = If[
     spinProjectionSelectorSparseBasisFastPathQ0[tensor, stateSpins, stateVectors],
     Module[{refs},
@@ -1129,7 +1191,8 @@ spinProjectionCompileTensorTerm0[
       "DummyCount" -> Length[dummySymbols],
       "SpinEqualities" -> normalized["SpinEqualities"],
       "VectorEqualities" -> normalized["VectorEqualities"],
-      "GammaKernelRefs" -> kernelData["KernelRefs"]
+      "GammaKernelRefs" -> kernelData["KernelRefs"],
+      "OutputSpinSupportRecipe" -> outputSpinSupportRecipe
     |>
   |>
 ];
@@ -1214,6 +1277,9 @@ spinProjectionCompileFamily0[
       "SpinChiralities" -> outputData["SpinChiralities"],
       "VectorSymbols" -> outputData["VectorSymbols"],
       "OutputAssociationKey" -> outputAssociationKey,
+      "OutputSpinSupportFastPathQ" ->
+        Length[outputData["SpinSymbols"]] == 1 &&
+        AllTrue[terms, Lookup[Lookup[#, "OutputSpinSupportRecipe", <||>], "Mode", None] =!= "Fallback" &],
       "Terms" -> terms
     |>,
     "Columns" -> columns,

@@ -609,39 +609,110 @@ spinProjectionTupleIterator[domains_List, seed_: Automatic, tag_: None] := Modul
   ]
 ];
 
+spinProjectionConcreteGammaSpinSupportCache::usage =
+  "spinProjectionConcreteGammaSpinSupportCache memoizes exact output-spin support sets for compiled gamma descriptors at fixed free-spin values.";
+spinProjectionConcreteGammaSpinSupportCache = <||>;
+
+spinProjectionConcreteGammaSpinSupport0::usage =
+  "spinProjectionConcreteGammaSpinSupport0[desc, freeVectors, side, fixedSpin, fullDomain] returns the exact output-spin support list induced by one compiled gamma descriptor or fullDomain when unconstrained.";
+spinProjectionConcreteGammaSpinSupport0[
+  desc_,
+  freeVectors_List,
+  side : ("Column" | "Row"),
+  fixedSpin_Integer?Positive,
+  fullDomain_List
+] := Module[{key, sourceTypes, dummyCount, tuples, support},
+  key = {desc, freeVectors, side, fixedSpin};
+  If[KeyExistsQ[spinProjectionConcreteGammaSpinSupportCache, key], Return[spinProjectionConcreteGammaSpinSupportCache[key]]];
+  sourceTypes = First /@ desc[[3]];
+  If[MemberQ[sourceTypes, 2], Return[fullDomain]];
+  dummyCount = Replace[Max @ Join[{0}, Cases[desc[[3]], {3, idx_Integer} :> idx, Infinity]], _Missing -> 0];
+  If[dummyCount > 2, Return[fullDomain]];
+  tuples = If[dummyCount == 0, {{}}, Tuples[Range[10], dummyCount]];
+  support = Union @@ DeleteCases[
+    Module[{rules = spinProjectionConcreteGammaEntryRules[desc, freeVectors, {}, #]},
+      If[
+        rules === $Failed,
+        {},
+        Switch[side,
+          "Column",
+          Cases[rules, {{row_Integer, col_Integer}, _} /; col === fixedSpin :> row],
+          "Row",
+          Cases[rules, {{row_Integer, col_Integer}, _} /; row === fixedSpin :> col]
+        ]
+      ]
+    ] & /@ tuples,
+    {}
+  ];
+  spinProjectionConcreteGammaSpinSupportCache[key] = If[support === {} || support === fullDomain, fullDomain, support]
+];
+
+spinProjectionTermOutputSpinSupport0::usage =
+  "spinProjectionTermOutputSpinSupport0[term, freeSpins, freeVectors, fullDomain] evaluates one compiled term's cached output-spin support recipe, or returns $Failed when the recipe must fall back.";
+spinProjectionTermOutputSpinSupport0[term_Association, freeSpins_List, freeVectors_List, fullDomain_List] := Module[
+  {recipe = Lookup[term, "OutputSpinSupportRecipe", <|"Mode" -> "Fallback"|>], support},
+  Switch[Lookup[recipe, "Mode", None],
+    "All",
+    fullDomain,
+    "FreeSpinEquality",
+    {freeSpins[[recipe["FreeSpinSlot"]]]},
+    "GammaColumnSupport",
+    spinProjectionConcreteGammaSpinSupport0[
+      recipe["Desc"],
+      freeVectors,
+      "Column",
+      freeSpins[[recipe["FreeSpinSlot"]]],
+      fullDomain
+    ],
+    "GammaRowSupport",
+    spinProjectionConcreteGammaSpinSupport0[
+      recipe["Desc"],
+      freeVectors,
+      "Row",
+      freeSpins[[recipe["FreeSpinSlot"]]],
+      fullDomain
+    ],
+    "Intersection",
+    Module[{parts},
+      parts = spinProjectionTermOutputSpinSupport0[
+        <|"OutputSpinSupportRecipe" -> #|>,
+        freeSpins,
+        freeVectors,
+        fullDomain
+      ] & /@ recipe["Parts"];
+      If[MemberQ[parts, $Failed],
+        $Failed,
+        With[{lists = Select[parts, ListQ]}, If[lists === {}, fullDomain, Intersection @@ lists]]
+      ]
+    ],
+    _,
+    $Failed
+  ]
+];
+
 spinProjectionFactorOutputSpinSupport::usage =
   "spinProjectionFactorOutputSpinSupport[factor, outputSpinSlot, freeSpins, freeVectors] returns All or the allowed output-spin basis indices for one compiled factor under one candidate assignment.";
 spinProjectionFactorOutputSpinSupport[factor_, outputSpinSlot_Integer?Positive, freeSpins_List, freeVectors_List] := Module[
-  {left = factor[[2]], right = factor[[3]], desc, matrix, sourceTypes, dummyCount, tuples, matrixSupport, supports},
+  {left = factor[[2]], right = factor[[3]], desc, sourceTypes, dummyCount, support, fullDomain = Range[16]},
   Switch[factor[[1]],
     0, All,
     1, Which[left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1, {freeSpins[[right[[2]]]]}, right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1, {freeSpins[[left[[2]]]]}, True, All],
     2,
+    If[!(left[[1]] === 2 && left[[2]] === outputSpinSlot) && !(right[[1]] === 2 && right[[2]] === outputSpinSlot), Return[All]];
     desc = factor[[4]];
-    matrixSupport = Function[m,
-      Which[
-        left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1,
-          Flatten[Position[Normal[Unitize[m[[All, freeSpins[[right[[2]]]]]]]], 1]],
-        right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1,
-          Flatten[Position[Normal[Unitize[m[[freeSpins[[left[[2]]]], All]]]], 1]],
-        True,
-          Range[16]
-      ]
-    ];
     sourceTypes = First /@ desc[[3]];
     If[MemberQ[sourceTypes, 2], Return[All]];
     dummyCount = Replace[Max @ Join[{0}, Cases[desc[[3]], {3, idx_Integer} :> idx, Infinity]], _Missing -> 0];
     If[dummyCount > 2, Return[All]];
-    tuples = If[dummyCount == 0, {{}}, Tuples[Range[10], dummyCount]];
-    supports = DeleteCases[
-      Module[{m = spinProjectionConcreteGammaSparseMatrix[desc, freeVectors, {}, #]},
-        If[m === $Failed, {}, matrixSupport[m]]
-      ] & /@ tuples,
-      {}
+    support = Which[
+      left[[1]] === 2 && left[[2]] === outputSpinSlot && right[[1]] === 1,
+        spinProjectionConcreteGammaSpinSupport0[desc, freeVectors, "Column", freeSpins[[right[[2]]]], fullDomain],
+      right[[1]] === 2 && right[[2]] === outputSpinSlot && left[[1]] === 1,
+        spinProjectionConcreteGammaSpinSupport0[desc, freeVectors, "Row", freeSpins[[left[[2]]]], fullDomain],
+      True,
+        fullDomain
     ];
-    If[supports === {}, Return[All]];
-    supports = Union @@ supports;
-    If[supports === Range[16], All, supports],
+    If[support === fullDomain, All, support],
     _, All
   ]
 ];
@@ -655,28 +726,38 @@ spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVe
   seededDomain = spinProjectionSeededOrder[fullDomain, seed, First[family["SpinSymbols"]]];
   Scan[
     Function[term,
-      support = With[
-        {supports = Select[spinProjectionFactorOutputSpinSupport[#, 1, freeSpins, freeVectors] & /@ term["Parts"], ListQ]},
-        If[
-          supports === {},
+      support = If[
+        TrueQ[Lookup[family, "OutputSpinSupportFastPathQ", False]],
+        spinProjectionTermOutputSpinSupport0[term, freeSpins, freeVectors, fullDomain],
+        With[{recipeSupport = spinProjectionTermOutputSpinSupport0[term, freeSpins, freeVectors, fullDomain]},
           If[
-            Lookup[family, "VectorSymbols", {}] === {},
+            recipeSupport === $Failed,
             With[
-              {exact = Select[
-                fullDomain,
-                !TrueQ @ PossibleZeroQ @ spinProjectionTermValue[
-                  term,
-                  freeSpins,
-                  freeVectors,
-                  {#},
-                  {}
-                ] &
-              ]},
-              If[exact === {}, fullDomain, exact]
+              {supports = Select[spinProjectionFactorOutputSpinSupport[#, 1, freeSpins, freeVectors] & /@ term["Parts"], ListQ]},
+              If[
+                supports === {},
+                If[
+                  Lookup[family, "VectorSymbols", {}] === {},
+                  With[
+                    {exact = Select[
+                      fullDomain,
+                      !TrueQ @ PossibleZeroQ @ spinProjectionTermValue[
+                        term,
+                        freeSpins,
+                        freeVectors,
+                        {#},
+                        {}
+                      ] &
+                    ]},
+                    If[exact === {}, fullDomain, exact]
+                  ],
+                  fullDomain
+                ],
+                Intersection @@ supports
+              ]
             ],
-            fullDomain
-          ],
-          Intersection @@ supports
+            recipeSupport
+          ]
         ]
       ];
       If[support =!= {},

@@ -8,6 +8,8 @@ BeginPackage["StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
+Needs["StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructuresSelector`"];
 
 
 (* ::Section:: *)
@@ -37,7 +39,8 @@ generateTensorStructures::badantisym =
 Options[generateTensorStructures] = {
   "MaxK" -> 5,
   "RepresentativesOnly" -> False,
-  "AntisymmetricVectorGroups" -> {}
+  "AntisymmetricVectorGroups" -> {},
+  "ReturnSelectorCandidates" -> False
 };
 
 
@@ -64,6 +67,12 @@ parseMaxKOption[opts_List] := Module[{maxK},
 parseRepresentativesOnlyOption::usage = "parseRepresentativesOnlyOption[opts] extracts optional boolean RepresentativesOnly flag.";
 parseRepresentativesOnlyOption[opts_List] := Module[{flag},
   flag = Lookup[Association[Join[Options[generateTensorStructures], opts]], "RepresentativesOnly", False];
+  TrueQ[flag]
+];
+
+parseReturnSelectorCandidatesOption::usage = "parseReturnSelectorCandidatesOption[opts] extracts optional boolean ReturnSelectorCandidates flag for internal selector-ready generation.";
+parseReturnSelectorCandidatesOption[opts_List] := Module[{flag},
+  flag = Lookup[Association[Join[Options[generateTensorStructures], opts]], "ReturnSelectorCandidates", False];
   TrueQ[flag]
 ];
 
@@ -888,7 +897,10 @@ canonicalizeStructureExpression[expr_] := canonicalizeSameChiralityFactor[expr];
 
 deduplicateGroupStructures::usage =
   "deduplicateGroupStructures[group] canonicalizes and removes duplicates while preserving deterministic order.";
-deduplicateGroupStructures[group_List] := DeleteDuplicates[canonicalizeStructureExpression /@ group];
+deduplicateGroupStructures[group_List] := DeleteDuplicatesBy[
+  group,
+  canonicalizeStructureExpression @ If[AssociationQ[#] && KeyExistsQ[#, "Expression"], #["Expression"], #] &
+];
 
 buildConcreteStructure::usage =
   "buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement] builds one Times-product structure with gamma and optional \\[Delta] factors.";
@@ -928,6 +940,128 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
   ];
   deltaFactors = deltaFactorFromPair /@ deltaPairs;
   If[Join[gammaFactors, deltaFactors] === {}, 1, Times @@ Join[gammaFactors, deltaFactors]]
+];
+
+buildGammaFactorData0::usage =
+  "buildGammaFactorData0[emitBaseForm, pairForm, hasOutgoing, vectorIndices, spinor1, spinor2, includeGamma11] builds one generated gamma factor together with parsed selector parts.";
+buildGammaFactorData0[
+  emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
+] := Module[{cTag, startIndex, links, lastIndexType, tailHead, allLinks, vectorLinks},
+  cTag = gammaProductCTag[hasOutgoing, pairForm];
+  startIndex = gammaChainStartIndex[emitBaseForm, pairForm, hasOutgoing, cTag];
+  {links, lastIndexType} = buildGammaLinks[startIndex, vectorIndices];
+  If[TrueQ[includeGamma11],
+    tailHead = gamma11TailHeadForIndex[lastIndexType];
+    links = Append[links, tailHead[]];
+  ];
+  allLinks = Join[If[cTag === None, {}, {cTag}], links];
+  vectorLinks = Select[links, gammaVectorLinkQ];
+  <|
+    "Expression" -> gammaAntisymmetricProductFromParts[cTag, links, spinor1, spinor2],
+    "Parts" -> <|
+      "Kind" -> "Gamma",
+      "CTag" -> cTag,
+      "VectorLinks" -> vectorLinks,
+      "VectorSymbols" -> (gammaLinkIndexSelector /@ vectorLinks),
+      "TailLinks" -> Select[links, !gammaVectorLinkQ[#] &],
+      "Spinors" -> {spinor1, spinor2},
+      "SpinorChiralities" -> gammaProductSpinorChiralities[allLinks]
+    |>
+  |>
+];
+
+buildDeltaFactorData0::usage =
+  "buildDeltaFactorData0[pair] builds one generated delta factor together with parsed selector parts.";
+buildDeltaFactorData0[pair_List] := Module[{ordered},
+  ordered = canonicalizeVectorPair[pair];
+  <|
+    "Expression" -> \[Delta][ordered[[1]], ordered[[2]]],
+    "Parts" -> <|
+      "Kind" -> "Delta",
+      "VectorSymbols" -> ordered,
+      "Spinors" -> {},
+      "SpinorChiralities" -> {}
+    |>
+  |>
+];
+
+buildConcreteStructureData0::usage =
+  "buildConcreteStructureData0[slots, cMatrix, spinPlacement, extPlacement] builds one concrete generated structure together with parsed selector factor data.";
+buildConcreteStructureData0[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association] := Module[
+  {
+    k = Length[slots], slotVectorsOrig, deltaPairs, dummyTotal, dummies, cursor = 1,
+    i, j, count, pairDummies, gammaFactorData, deltaFactorData, factors, factorParts
+  },
+  slotVectorsOrig = Lookup[extPlacement, "SlotVectors", {}];
+  deltaPairs = Lookup[extPlacement, "DeltaPairs", {}];
+  dummyTotal = Total[upperTriangleValues[cMatrix]];
+  dummies = buildDummyIndexSymbols[dummyTotal];
+  For[i = 1, i <= k - 1, i++,
+    For[j = i + 1, j <= k, j++,
+      count = cMatrix[[i, j]];
+      If[count > 0,
+        pairDummies = Take[dummies, {cursor, cursor + count - 1}];
+        cursor += count;
+        slotVectorsOrig[[i]] = Join[slotVectorsOrig[[i]], pairDummies];
+        slotVectorsOrig[[j]] = Join[slotVectorsOrig[[j]], pairDummies];
+      ];
+    ];
+  ];
+  gammaFactorData = Table[
+    buildGammaFactorData0[
+      slots[[i, 1]],
+      slots[[i, 4]],
+      slots[[i, 3]],
+      slotVectorsOrig[[i]],
+      spinPlacement[[i, 1]],
+      spinPlacement[[i, 2]]
+    ],
+    {i, 1, k}
+  ];
+  deltaFactorData = buildDeltaFactorData0 /@ deltaPairs;
+  factors = Join[gammaFactorData[[All, "Expression"]], deltaFactorData[[All, "Expression"]]];
+  factorParts = Join[gammaFactorData[[All, "Parts"]], deltaFactorData[[All, "Parts"]]];
+  <|
+    "Expression" -> If[factors === {}, 1, Times @@ factors],
+    "Factors" -> factors,
+    "FactorParts" -> factorParts
+  |>
+];
+
+buildGeneratedSelectorCandidate0::usage =
+  "buildGeneratedSelectorCandidate0[data] builds one selector-ready parsed candidate record directly from generation-time factor data.";
+buildGeneratedSelectorCandidate0[data_Association] := Module[{parsed, familyData, spinSymbols},
+  parsed = <|
+    "Expression" -> data["Expression"],
+    "Key" -> candidateCacheKey[data["Expression"]],
+    "Factors" -> data["Factors"],
+    "FactorParts" -> data["FactorParts"],
+    "SpinorChiralities" -> candidateSpinorChiralities[data["FactorParts"]],
+    "ExternalVectors" -> candidateExternalVectors[data["FactorParts"]]
+  |>;
+  familyData = selectorCanonicalFamilyData[parsed];
+  If[familyData === $Failed, Return[$Failed]];
+  spinSymbols = SortBy[Keys[parsed["SpinorChiralities"]], SymbolName];
+  <|
+    "Expression" -> data["Expression"],
+    "Key" -> parsed["Key"],
+    "ScalarFactor" -> 1,
+    "Parsed" -> parsed,
+    "SpinSymbols" -> spinSymbols,
+    "SpinChiralities" -> Lookup[parsed["SpinorChiralities"], spinSymbols],
+    "VectorSymbols" -> SortBy[parsed["ExternalVectors"], SymbolName],
+    "FamilyData" -> familyData
+  |>
+];
+
+buildGeneratedCandidate0::usage =
+  "buildGeneratedCandidate0[slots, cMatrix, spinPlacement, extPlacement, returnSelectorCandidates] emits either a plain tensor-structure expression or a selector-ready parsed candidate record.";
+buildGeneratedCandidate0[
+  slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association, returnSelectorCandidates_
+] := Module[{data},
+  If[!TrueQ[returnSelectorCandidates], Return[buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement]]];
+  data = buildConcreteStructureData0[slots, cMatrix, spinPlacement, extPlacement];
+  buildGeneratedSelectorCandidate0[data]
 ];
 
 spinorPlacementCacheKey::usage =
@@ -1096,7 +1230,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
   {
     maxK, inNorm, outNorm, inVec, outVec, inSpin, outSpin, allIndexSymbols,
     totalSpinors, k, outSpinor, extVectors, abstractStructures, groups = {},
-    abstract, slots, extCounts, cMatrix, spins, vecs, representativesOnly,
+    abstract, slots, extCounts, cMatrix, spins, vecs, representativesOnly, returnSelectorCandidates,
     oneSpin, oneVec, builtGroup, spinPlacementCache = <||>, vectorPlacementCache = <||>,
     spinKey, vecKey, firstSpinCache = <||>, firstVecCache = <||>,
     autoCache = <||>, autoKey, automorphisms, pairs, spinRank, vecRank,
@@ -1109,6 +1243,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
 
   maxK = parseMaxKOption[{opts}];
   representativesOnly = parseRepresentativesOnlyOption[{opts}];
+  returnSelectorCandidates = parseReturnSelectorCandidatesOption[{opts}];
   inNorm = normalizeIndexAssociation[incoming];
   outNorm = normalizeIndexAssociation[outgoing];
 
@@ -1173,7 +1308,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         firstVecCache[vecKey] = firstVectorPlacement[extCounts, extVectors, antisymmetricVectorGroups]
       ];
       oneVec = firstVecCache[vecKey];
-      builtGroup = If[oneSpin === $Failed || oneVec === $Failed, {}, {buildConcreteStructure[slots, cMatrix, oneSpin, oneVec]}];
+      builtGroup = If[oneSpin === $Failed || oneVec === $Failed, {}, {buildGeneratedCandidate0[slots, cMatrix, oneSpin, oneVec, returnSelectorCandidates]}];
       AppendTo[groups, builtGroup],
       spinKey = spinorPlacementCacheKey[slots, outSpinor];
       If[!KeyExistsQ[spinPlacementCache, spinKey],
@@ -1201,9 +1336,12 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
       ];
       AppendTo[
         groups,
-        Table[
-          buildConcreteStructure[slots, cMatrix, pairs[[i, 1]], pairs[[i, 2]]],
-          {i, 1, Length[pairs]}
+        DeleteCases[
+          Table[
+            buildGeneratedCandidate0[slots, cMatrix, pairs[[i, 1]], pairs[[i, 2]], returnSelectorCandidates],
+            {i, 1, Length[pairs]}
+          ],
+          $Failed
         ]
       ]
     ],

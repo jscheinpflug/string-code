@@ -528,6 +528,26 @@ selectorGroupBatchEligibleQ0[groupRecord_Association] :=
   Lookup[groupRecord, "Mode", None] === "SharedKernelGroup" && TrueQ[Lookup[groupRecord, "BatchEligible", False]];
 selectorGroupBatchEligibleQ0[_] := False;
 
+selectorSiblingFamilyKey0::usage =
+  "selectorSiblingFamilyKey0[groupRecord inputs] builds the structural sibling-family key used to batch consecutive shared selector groups with the same member-pattern layout but different kernel keys.";
+selectorSiblingFamilyKey0[
+  memberPatternIndices_List,
+  memberScalars_List,
+  uniqueSpinSlotIndicesByRef_List,
+  refModes_List,
+  pairFactorSlotIndicesByRef_List,
+  vectorTuples_List
+] := {
+  memberPatternIndices,
+  memberScalars,
+  uniqueSpinSlotIndicesByRef,
+  refModes,
+  pairFactorSlotIndicesByRef,
+  vectorTuples,
+  Length[refModes],
+  Length /@ uniqueSpinSlotIndicesByRef
+};
+
 selectorGroupSharedKernelRecord::usage =
   "selectorGroupSharedKernelRecord[group, spinorSymbolIndex] builds one selector group record for lazy group-probe reuse when every member shares the same compiled family kernel layout.";
 selectorGroupSharedKernelRecord[group_List, spinorSymbolIndex_Association] := Module[
@@ -619,6 +639,14 @@ selectorGroupSharedKernelRecord[group_List, spinorSymbolIndex_Association] := Mo
   <|
     "Mode" -> "SharedKernelGroup",
     "BatchEligible" -> batchEligible,
+    "SiblingFamilyKey" -> selectorSiblingFamilyKey0[
+      memberPatternIndices,
+      memberScalars,
+      uniqueSpinSlotIndicesByRef,
+      refModes,
+      pairFactorSlotIndicesByRef,
+      vectorTuples
+    ],
     "Compiled" -> compiled,
     "VectorTuples" -> vectorTuples,
     "MemberKeys" -> memberKeys,
@@ -828,6 +856,119 @@ selectorBoundaryRowsFromBanks0[spinorBanksByIndex_List, slotIndices_List, assign
   assignmentIndices
 ];
 
+selectorBoundaryRowsCacheKey0::usage =
+  "selectorBoundaryRowsCacheKey0[mode, slotIndices] builds the local within-scan cache key for reusable selector boundary-row blocks.";
+selectorBoundaryRowsCacheKey0[mode_String, slotIndices_List] := {mode, slotIndices};
+
+selectorBoundaryRowsWithCache0::usage =
+  "selectorBoundaryRowsWithCache0[boundaryCache, runtime, assignmentIndices, mode, slotIndices] reuses one exact boundary-row block across sibling shared groups within a single selector scan.";
+selectorBoundaryRowsWithCache0[
+  boundaryCache_Association,
+  runtime_Association,
+  assignmentIndices_List,
+  mode_String,
+  slotIndices_List
+] := Module[{cacheKey, nextBoundaryCache = boundaryCache, boundaryRows},
+  cacheKey = selectorBoundaryRowsCacheKey0[mode, slotIndices];
+  If[KeyExistsQ[nextBoundaryCache, cacheKey],
+    Return[<|"BoundaryRows" -> nextBoundaryCache[cacheKey], "BoundaryCache" -> nextBoundaryCache|>]
+  ];
+  boundaryRows = selectorBoundaryRowsFromBanks0[runtime["SpinorBanksByIndex"], slotIndices, assignmentIndices];
+  nextBoundaryCache[cacheKey] = boundaryRows;
+  <|"BoundaryRows" -> boundaryRows, "BoundaryCache" -> nextBoundaryCache|>
+];
+
+selectorSharedGroupRefPatternValuesWithBoundaryCache0::usage =
+  "selectorSharedGroupRefPatternValuesWithBoundaryCache0[groupRecord, runtime, assignmentIndices, refIndex, boundaryCache] returns batched exact ref-pattern values while reusing boundary rows across sibling shared groups in one scan.";
+selectorSharedGroupRefPatternValuesWithBoundaryCache0[
+  groupRecord_Association,
+  runtime_Association,
+  assignmentIndices_List,
+  refIndex_Integer?Positive,
+  boundaryCache_Association
+] := Module[
+  {
+    compiled,
+    kernelKey,
+    vectorTuple,
+    kernel,
+    mode,
+    pairSlotIndices,
+    assignments,
+    valuesByPattern,
+    spinVectorsBatch,
+    spinSlotIndices,
+    leftBoundaryRows,
+    rightBoundaryRows,
+    boundaryRows,
+    nextBoundaryCache = boundaryCache,
+    cacheResult
+  },
+  compiled = groupRecord["Compiled"];
+  kernelKey = compiled["GammaKernelRefs"][[refIndex, "Key"]];
+  vectorTuple = groupRecord["VectorTuples"][[refIndex]];
+  kernel = spinProjectionGammaKernelRegistry[kernelKey];
+  mode = groupRecord["RefModes"][[refIndex]];
+  pairSlotIndices = groupRecord["PairFactorSlotIndicesByRef"][[refIndex]];
+  assignments = runtime["Assignments"][[assignmentIndices]];
+  valuesByPattern = Table[
+    Module[{spinSymbols},
+      spinSymbols = groupRecord["UniqueSpinSymbolsByRef"][[refIndex, patternIndex]];
+      spinSlotIndices = groupRecord["UniqueSpinSlotIndicesByRef"][[refIndex, patternIndex]];
+      Switch[mode,
+        "paired2x2",
+        cacheResult = selectorBoundaryRowsWithCache0[
+          nextBoundaryCache,
+          runtime,
+          assignmentIndices,
+          "paired2x2-left",
+          spinSlotIndices[[pairSlotIndices[[1]]]]
+        ];
+        nextBoundaryCache = cacheResult["BoundaryCache"];
+        leftBoundaryRows = cacheResult["BoundaryRows"];
+        cacheResult = selectorBoundaryRowsWithCache0[
+          nextBoundaryCache,
+          runtime,
+          assignmentIndices,
+          "paired2x2-right",
+          spinSlotIndices[[pairSlotIndices[[2]]]]
+        ];
+        nextBoundaryCache = cacheResult["BoundaryCache"];
+        rightBoundaryRows = cacheResult["BoundaryRows"];
+        spinProjectionGammaKernelSelectorPairValues0[kernelKey, vectorTuple, leftBoundaryRows, rightBoundaryRows],
+        "singleFactor2",
+        cacheResult = selectorBoundaryRowsWithCache0[
+          nextBoundaryCache,
+          runtime,
+          assignmentIndices,
+          "singleFactor2",
+          spinSlotIndices
+        ];
+        nextBoundaryCache = cacheResult["BoundaryCache"];
+        boundaryRows = cacheResult["BoundaryRows"];
+        spinProjectionGammaKernelSelectorSingleFactorValues0[kernelKey, vectorTuple, boundaryRows],
+        _,
+        spinVectorsBatch = Lookup[Lookup[#, "SpinorComponents", <||>], spinSymbols, Missing["Unassigned"]] & /@ assignments;
+        If[
+          AnyTrue[
+            spinVectorsBatch,
+            !ListQ[#] || AnyTrue[#, MatchQ[Missing[__]]] || !AllTrue[#, VectorQ[#, spinProjectionSelectorExactScalarQ] &] &
+          ],
+          $Failed,
+          If[
+            spinProjectionGammaKernelPairMatrixQ[kernel],
+            spinProjectionGammaKernelProbeValuesBatch0[kernelKey, vectorTuple, spinVectorsBatch],
+            spinProjectionGammaKernelProbeValue[kernelKey, vectorTuple, #] & /@ spinVectorsBatch
+          ]
+        ]
+      ]
+    ],
+    {patternIndex, Length[groupRecord["UniqueSpinSymbolsByRef"][[refIndex]]]}
+  ];
+  If[MemberQ[valuesByPattern, $Failed], Return[$Failed]];
+  <|"ValuesByPattern" -> valuesByPattern, "BoundaryCache" -> nextBoundaryCache|>
+];
+
 selectorSharedGroupRefPatternValues0::usage =
   "selectorSharedGroupRefPatternValues0[groupRecord, runtime, assignmentIndices, refIndex] returns batched exact probe values for every unique spin-pattern used by one shared-kernel ref across an assignment suffix.";
 selectorSharedGroupRefPatternValues0[groupRecord_Association, runtime_Association, assignmentIndices_List, refIndex_Integer?Positive] := Module[
@@ -895,18 +1036,25 @@ selectorSharedGroupRefPatternValues0[groupRecord_Association, runtime_Associatio
   valuesByPattern
 ];
 
-selectorGroupSignatureBlock0::usage =
-  "selectorGroupSignatureBlock0[groupRecord, runtime, assignmentIndices] computes one full member-by-probe signature block for a batch-eligible shared selector group over a contiguous assignment suffix.";
-selectorGroupSignatureBlock0[groupRecord_Association, runtime_Association, assignmentIndices_List] := Module[
-  {compiled, assignmentCount, refPatternValues, memberValueVectors},
+selectorGroupSignatureBlockWithBoundaryCache0::usage =
+  "selectorGroupSignatureBlockWithBoundaryCache0[groupRecord, runtime, assignmentIndices, boundaryCache] computes one full member-by-probe signature block while reusing boundary rows across sibling shared groups.";
+selectorGroupSignatureBlockWithBoundaryCache0[
+  groupRecord_Association,
+  runtime_Association,
+  assignmentIndices_List,
+  boundaryCache_Association
+] := Module[
+  {compiled, assignmentCount, refPatternValues, memberValueVectors, nextBoundaryCache = boundaryCache, refResult},
   If[!selectorGroupBatchEligibleQ0[groupRecord], Return[$Failed]];
   compiled = groupRecord["Compiled"];
   assignmentCount = Length[assignmentIndices];
   refPatternValues = Table[
-    selectorSharedGroupRefPatternValues0[groupRecord, runtime, assignmentIndices, refIndex],
+    refResult = selectorSharedGroupRefPatternValuesWithBoundaryCache0[groupRecord, runtime, assignmentIndices, refIndex, nextBoundaryCache];
+    If[refResult === $Failed, Return[$Failed]];
+    nextBoundaryCache = refResult["BoundaryCache"];
+    refResult["ValuesByPattern"],
     {refIndex, Length[compiled["GammaKernelRefs"]]}
   ];
-  If[MemberQ[refPatternValues, $Failed], Return[$Failed]];
   memberValueVectors = Table[
     Module[{valueVector},
       valueVector = ConstantArray[compiled["ScalarFactor"] groupRecord["MemberScalars"][[memberIndex]], assignmentCount];
@@ -918,7 +1066,15 @@ selectorGroupSignatureBlock0[groupRecord_Association, runtime_Association, assig
     ],
     {memberIndex, Length[groupRecord["MemberPositions"]]}
   ];
-  AssociationThread[groupRecord["MemberPositions"], memberValueVectors]
+  <|"SignatureBlock" -> AssociationThread[groupRecord["MemberPositions"], memberValueVectors], "BoundaryCache" -> nextBoundaryCache|>
+];
+
+selectorGroupSignatureBlock0::usage =
+  "selectorGroupSignatureBlock0[groupRecord, runtime, assignmentIndices] computes one full member-by-probe signature block for a batch-eligible shared selector group over a contiguous assignment suffix.";
+selectorGroupSignatureBlock0[groupRecord_Association, runtime_Association, assignmentIndices_List] := Module[{result},
+  result = selectorGroupSignatureBlockWithBoundaryCache0[groupRecord, runtime, assignmentIndices, <||>];
+  If[result === $Failed, Return[$Failed]];
+  result["SignatureBlock"]
 ];
 
 ensureGroupProbeValues::usage =
@@ -1005,19 +1161,31 @@ candidateSignature::usage =
   "candidateSignature[candidate, runtime] returns the exact signature vector for one parsed candidate on the current dense probe bank.";
 candidateSignature[candidate_Association, runtime_Association] := Lookup[runtime["SignatureCache"], candidate["Key"], {}];
 
-selectorReduceSharedGroupAgainstState0::usage =
-  "selectorReduceSharedGroupAgainstState0[groupRecord, runtime, state, acceptedCount, targetRank] reduces one batch-eligible shared selector group against the current exact pivot state and returns only the rank-increasing member positions.";
-selectorReduceSharedGroupAgainstState0[
+selectorReduceSharedGroupAgainstStateWithBoundaryCache0::usage =
+  "selectorReduceSharedGroupAgainstStateWithBoundaryCache0[groupRecord, runtime, state, acceptedCount, targetRank, boundaryCache] reduces one batch-eligible shared selector group while reusing sibling-family boundary rows.";
+selectorReduceSharedGroupAgainstStateWithBoundaryCache0[
   groupRecord_Association,
   runtime_Association,
   state_Association,
   acceptedCount_Integer?NonNegative,
-  targetRank_Integer?NonNegative
+  targetRank_Integer?NonNegative,
+  boundaryCache_Association
 ] := Module[
-  {signatureBlock, nextState = state, acceptedPositions = {}, visitedPosition = 0, position, insertion},
+  {
+    signatureResult,
+    signatureBlock,
+    nextState = state,
+    acceptedPositions = {},
+    visitedPosition = 0,
+    position,
+    insertion,
+    nextBoundaryCache = boundaryCache
+  },
   If[!selectorGroupBatchEligibleQ0[groupRecord], Return[$Failed]];
-  signatureBlock = selectorGroupSignatureBlock0[groupRecord, runtime, Range[runtime["AssignmentCount"]]];
-  If[signatureBlock === $Failed, Return[$Failed]];
+  signatureResult = selectorGroupSignatureBlockWithBoundaryCache0[groupRecord, runtime, Range[runtime["AssignmentCount"]], nextBoundaryCache];
+  If[signatureResult === $Failed, Return[$Failed]];
+  signatureBlock = signatureResult["SignatureBlock"];
+  nextBoundaryCache = signatureResult["BoundaryCache"];
   Do[
     If[acceptedCount + Length[acceptedPositions] >= targetRank, Break[]];
     position = groupRecord["MemberPositions"][[memberIndex]];
@@ -1028,6 +1196,64 @@ selectorReduceSharedGroupAgainstState0[
       AppendTo[acceptedPositions, position]
     ],
     {memberIndex, Length[groupRecord["MemberPositions"]]}
+  ];
+  <|
+    "State" -> nextState,
+    "AcceptedPositions" -> acceptedPositions,
+    "VisitedPosition" -> visitedPosition,
+    "BoundaryCache" -> nextBoundaryCache
+  |>
+];
+
+selectorReduceSharedGroupAgainstState0::usage =
+  "selectorReduceSharedGroupAgainstState0[groupRecord, runtime, state, acceptedCount, targetRank] reduces one batch-eligible shared selector group against the current exact pivot state and returns only the rank-increasing member positions.";
+selectorReduceSharedGroupAgainstState0[
+  groupRecord_Association,
+  runtime_Association,
+  state_Association,
+  acceptedCount_Integer?NonNegative,
+  targetRank_Integer?NonNegative
+] := selectorReduceSharedGroupAgainstStateWithBoundaryCache0[
+  groupRecord,
+  runtime,
+  state,
+  acceptedCount,
+  targetRank,
+  <||>
+];
+
+selectorReduceSharedSiblingGroupsAgainstState0::usage =
+  "selectorReduceSharedSiblingGroupsAgainstState0[groupRecords, runtime, state, acceptedCount, targetRank] reduces one consecutive sibling-family run of batch-eligible shared groups while sharing exact boundary rows across the run.";
+selectorReduceSharedSiblingGroupsAgainstState0[
+  groupRecords_List,
+  runtime_Association,
+  state_Association,
+  acceptedCount_Integer?NonNegative,
+  targetRank_Integer?NonNegative
+] := Module[
+  {
+    nextState = state,
+    acceptedPositions = {},
+    visitedPosition = 0,
+    nextBoundaryCache = <||>,
+    reduction
+  },
+  Do[
+    If[acceptedCount + Length[acceptedPositions] >= targetRank, Break[]];
+    reduction = selectorReduceSharedGroupAgainstStateWithBoundaryCache0[
+      groupRecord,
+      runtime,
+      nextState,
+      acceptedCount + Length[acceptedPositions],
+      targetRank,
+      nextBoundaryCache
+    ];
+    If[reduction === $Failed, Return[$Failed]];
+    nextState = reduction["State"];
+    acceptedPositions = Join[acceptedPositions, reduction["AcceptedPositions"]];
+    visitedPosition = Max[visitedPosition, reduction["VisitedPosition"]];
+    nextBoundaryCache = reduction["BoundaryCache"],
+    {groupRecord, groupRecords}
   ];
   <|
     "State" -> nextState,
@@ -1075,11 +1301,28 @@ scanParsedCandidateGroupsWithRuntime[groups_List, runtime_Association, targetRan
     If[group === {}, Continue[]];
     groupRecord = Lookup[nextRuntime["GroupRecords"], groupIndex, Missing["NotFound"]];
     If[AssociationQ[groupRecord] && selectorGroupBatchEligibleQ0[groupRecord],
-      reduction = selectorReduceSharedGroupAgainstState0[groupRecord, nextRuntime, state, Length[accepted], targetRank];
-      If[reduction === $Failed, Return[$Failed]];
-      state = reduction["State"];
-      accepted = Join[accepted, reduction["AcceptedPositions"]];
-      visited = Max[visited, Lookup[reduction, "VisitedPosition", 0]];
+      Module[{siblingKey, siblingRecords, siblingEnd, nextRecord},
+        siblingKey = Lookup[groupRecord, "SiblingFamilyKey", None];
+        siblingRecords = {groupRecord};
+        siblingEnd = groupIndex;
+        While[siblingEnd < Length[groups],
+          nextRecord = Lookup[nextRuntime["GroupRecords"], siblingEnd + 1, Missing["NotFound"]];
+          If[
+            !AssociationQ[nextRecord] ||
+            !selectorGroupBatchEligibleQ0[nextRecord] ||
+            Lookup[nextRecord, "SiblingFamilyKey", None] =!= siblingKey,
+            Break[]
+          ];
+          AppendTo[siblingRecords, nextRecord];
+          siblingEnd++;
+        ];
+        reduction = selectorReduceSharedSiblingGroupsAgainstState0[siblingRecords, nextRuntime, state, Length[accepted], targetRank];
+        If[reduction === $Failed, Return[$Failed]];
+        state = reduction["State"];
+        accepted = Join[accepted, reduction["AcceptedPositions"]];
+        visited = Max[visited, Lookup[reduction, "VisitedPosition", 0]];
+        groupIndex = siblingEnd;
+      ];
       Continue[];
     ];
     Do[

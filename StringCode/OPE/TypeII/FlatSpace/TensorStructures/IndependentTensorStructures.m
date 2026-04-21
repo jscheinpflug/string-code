@@ -281,7 +281,10 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
   templateData = associationCanonicalTemplateData[searchData, generatorOpts];
   generatorArgs = Join[
     templateData["GeneratorOptions"],
-    {"AntisymmetricVectorGroups" -> templateData["CanonicalGroups"]}
+    {
+      "AntisymmetricVectorGroups" -> templateData["CanonicalGroups"],
+      "ReturnSelectorCandidates" -> True
+    }
   ];
   spinorHints = associationCanonicalSpinorHints0[templateData];
   callerSymbolTuple = associationCallerSymbolTuple0[searchData];
@@ -296,7 +299,7 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
       templateData["Outgoing"],
       Sequence @@ generatorArgs
     ];
-    parsedCandidateGroups = selectorParsedCandidateGroups[groupedCandidates, spinorHints];
+    parsedCandidateGroups = selectorNormalizedParsedCandidateGroups0[groupedCandidates, spinorHints];
     If[parsedCandidateGroups === $Failed, Return[$Failed]];
     cachedTemplate = <|
       "GroupedCandidates" -> groupedCandidates,
@@ -306,7 +309,7 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
     AssociateTo[findIndependentTensorStructuresCanonicalTemplateCache, templateData["CacheKey"] -> cachedTemplate],
     If[!AssociationQ[cachedTemplate] || !KeyExistsQ[cachedTemplate, "ParsedCandidateGroups"],
       groupedCandidates = If[AssociationQ[cachedTemplate], cachedTemplate["GroupedCandidates"], cachedTemplate];
-      parsedCandidateGroups = selectorParsedCandidateGroups[groupedCandidates, spinorHints];
+      parsedCandidateGroups = selectorNormalizedParsedCandidateGroups0[groupedCandidates, spinorHints];
       If[parsedCandidateGroups === $Failed, Return[$Failed]];
       cachedTemplate = <|
         "GroupedCandidates" -> groupedCandidates,
