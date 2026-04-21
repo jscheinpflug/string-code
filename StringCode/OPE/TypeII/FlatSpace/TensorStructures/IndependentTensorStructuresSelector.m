@@ -843,10 +843,6 @@ selectorGroupProbeValuesReference0[groupRecord_Association, assignment_Associati
   memberValues
 ];
 
-selectorGroupProbeValues::usage =
-  "selectorGroupProbeValues[groupRecord, assignment] evaluates one reusable selector group record on one dense probe and returns all member values.";
-selectorGroupProbeValues[groupRecord_Association, assignment_Association] := selectorGroupProbeValuesReference0[groupRecord, assignment];
-
 selectorBoundaryRowsFromBanks0::usage =
   "selectorBoundaryRowsFromBanks0[spinorBanksByIndex, slotIndices, assignmentIndices] builds exact boundary rows directly from the runtime spinor banks for one local slot layout.";
 selectorBoundaryRowsFromBanks0[spinorBanksByIndex_List, slotIndices_List, assignmentIndices_List] := Map[
@@ -967,73 +963,6 @@ selectorSharedGroupRefPatternValuesWithBoundaryCache0[
   ];
   If[MemberQ[valuesByPattern, $Failed], Return[$Failed]];
   <|"ValuesByPattern" -> valuesByPattern, "BoundaryCache" -> nextBoundaryCache|>
-];
-
-selectorSharedGroupRefPatternValues0::usage =
-  "selectorSharedGroupRefPatternValues0[groupRecord, runtime, assignmentIndices, refIndex] returns batched exact probe values for every unique spin-pattern used by one shared-kernel ref across an assignment suffix.";
-selectorSharedGroupRefPatternValues0[groupRecord_Association, runtime_Association, assignmentIndices_List, refIndex_Integer?Positive] := Module[
-  {
-    compiled,
-    kernelKey,
-    vectorTuple,
-    kernel,
-    mode,
-    pairSlotIndices,
-    assignments,
-    valuesByPattern,
-    spinVectorsBatch,
-    spinSlotIndices,
-    leftBoundaryRows,
-    rightBoundaryRows,
-    boundaryRows
-  },
-  compiled = groupRecord["Compiled"];
-  kernelKey = compiled["GammaKernelRefs"][[refIndex, "Key"]];
-  vectorTuple = groupRecord["VectorTuples"][[refIndex]];
-  kernel = spinProjectionGammaKernelRegistry[kernelKey];
-  mode = groupRecord["RefModes"][[refIndex]];
-  pairSlotIndices = groupRecord["PairFactorSlotIndicesByRef"][[refIndex]];
-  assignments = runtime["Assignments"][[assignmentIndices]];
-  valuesByPattern = Table[
-    Module[{spinSymbols},
-      spinSymbols = groupRecord["UniqueSpinSymbolsByRef"][[refIndex, patternIndex]];
-      spinSlotIndices = groupRecord["UniqueSpinSlotIndicesByRef"][[refIndex, patternIndex]];
-      Switch[mode,
-        "paired2x2",
-        leftBoundaryRows = selectorBoundaryRowsFromBanks0[
-          runtime["SpinorBanksByIndex"],
-          spinSlotIndices[[pairSlotIndices[[1]]]],
-          assignmentIndices
-        ];
-        rightBoundaryRows = selectorBoundaryRowsFromBanks0[
-          runtime["SpinorBanksByIndex"],
-          spinSlotIndices[[pairSlotIndices[[2]]]],
-          assignmentIndices
-        ];
-        spinProjectionGammaKernelSelectorPairValues0[kernelKey, vectorTuple, leftBoundaryRows, rightBoundaryRows],
-        "singleFactor2",
-        boundaryRows = selectorBoundaryRowsFromBanks0[runtime["SpinorBanksByIndex"], spinSlotIndices, assignmentIndices];
-        spinProjectionGammaKernelSelectorSingleFactorValues0[kernelKey, vectorTuple, boundaryRows],
-        _,
-        spinVectorsBatch = Lookup[Lookup[#, "SpinorComponents", <||>], spinSymbols, Missing["Unassigned"]] & /@ assignments;
-        If[
-          AnyTrue[
-            spinVectorsBatch,
-            !ListQ[#] || AnyTrue[#, MatchQ[Missing[__]]] || !AllTrue[#, VectorQ[#, spinProjectionSelectorExactScalarQ] &] &
-          ],
-          $Failed,
-          If[
-            spinProjectionGammaKernelPairMatrixQ[kernel],
-            spinProjectionGammaKernelProbeValuesBatch0[kernelKey, vectorTuple, spinVectorsBatch],
-            spinProjectionGammaKernelProbeValue[kernelKey, vectorTuple, #] & /@ spinVectorsBatch
-          ]
-        ]
-      ]
-    ],
-    {patternIndex, Length[groupRecord["UniqueSpinSymbolsByRef"][[refIndex]]]}
-  ];
-  If[MemberQ[valuesByPattern, $Failed], Return[$Failed]];
-  valuesByPattern
 ];
 
 selectorGroupSignatureBlockWithBoundaryCache0::usage =
@@ -1205,23 +1134,6 @@ selectorReduceSharedGroupAgainstStateWithBoundaryCache0[
   |>
 ];
 
-selectorReduceSharedGroupAgainstState0::usage =
-  "selectorReduceSharedGroupAgainstState0[groupRecord, runtime, state, acceptedCount, targetRank] reduces one batch-eligible shared selector group against the current exact pivot state and returns only the rank-increasing member positions.";
-selectorReduceSharedGroupAgainstState0[
-  groupRecord_Association,
-  runtime_Association,
-  state_Association,
-  acceptedCount_Integer?NonNegative,
-  targetRank_Integer?NonNegative
-] := selectorReduceSharedGroupAgainstStateWithBoundaryCache0[
-  groupRecord,
-  runtime,
-  state,
-  acceptedCount,
-  targetRank,
-  <||>
-];
-
 selectorReduceSharedSiblingGroupsAgainstState0::usage =
   "selectorReduceSharedSiblingGroupsAgainstState0[groupRecords, runtime, state, acceptedCount, targetRank] reduces one consecutive sibling-family run of batch-eligible shared groups while sharing exact boundary rows across the run.";
 selectorReduceSharedSiblingGroupsAgainstState0[
@@ -1260,24 +1172,6 @@ selectorReduceSharedSiblingGroupsAgainstState0[
     "AcceptedPositions" -> acceptedPositions,
     "VisitedPosition" -> visitedPosition
   |>
-];
-
-scanParsedCandidatesWithRuntime::usage =
-  "scanParsedCandidatesWithRuntime[candidates, runtime, targetRank] scans parsed candidates in flat input order on the current exact dense probe bank.";
-scanParsedCandidatesWithRuntime[candidates_List, runtime_Association, targetRank_Integer?NonNegative] := Module[
-  {nextRuntime = runtime, state = initialPivotState[], accepted = {}, i, insertion, signature, visited = 0},
-  For[i = 1, i <= Length[candidates] && Length[accepted] < targetRank, i++,
-    visited = i;
-    nextRuntime = ensureCandidateSignature[candidates[[i]], nextRuntime];
-    signature = candidateSignature[candidates[[i]], nextRuntime];
-    If[AnyTrue[signature, # === $Failed &], Return[$Failed]];
-    insertion = incrementalPivotInsert[state, signature];
-    If[TrueQ[insertion["RankIncreased"]],
-      state = insertion["State"];
-      AppendTo[accepted, candidates[[i, "Position"]]]
-    ];
-  ];
-  <|"Runtime" -> nextRuntime, "AcceptedPositions" -> accepted, "VisitedCandidates" -> visited|>
 ];
 
 scanParsedCandidateGroupsWithRuntime::usage =

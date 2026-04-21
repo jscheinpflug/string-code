@@ -1308,7 +1308,11 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         firstVecCache[vecKey] = firstVectorPlacement[extCounts, extVectors, antisymmetricVectorGroups]
       ];
       oneVec = firstVecCache[vecKey];
-      builtGroup = If[oneSpin === $Failed || oneVec === $Failed, {}, {buildGeneratedCandidate0[slots, cMatrix, oneSpin, oneVec, returnSelectorCandidates]}];
+      builtGroup = If[
+        oneSpin === $Failed || oneVec === $Failed,
+        {},
+        DeleteCases[{buildGeneratedCandidate0[slots, cMatrix, oneSpin, oneVec, returnSelectorCandidates]}, $Failed]
+      ];
       AppendTo[groups, builtGroup],
       spinKey = spinorPlacementCacheKey[slots, outSpinor];
       If[!KeyExistsQ[spinPlacementCache, spinKey],

@@ -302,7 +302,6 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
     parsedCandidateGroups = selectorNormalizedParsedCandidateGroups0[groupedCandidates, spinorHints];
     If[parsedCandidateGroups === $Failed, Return[$Failed]];
     cachedTemplate = <|
-      "GroupedCandidates" -> groupedCandidates,
       "ParsedCandidateGroups" -> parsedCandidateGroups,
       "RelabeledParsedCandidateGroups" -> <||>
     |>;
@@ -312,24 +311,30 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
       parsedCandidateGroups = selectorNormalizedParsedCandidateGroups0[groupedCandidates, spinorHints];
       If[parsedCandidateGroups === $Failed, Return[$Failed]];
       cachedTemplate = <|
-        "GroupedCandidates" -> groupedCandidates,
         "ParsedCandidateGroups" -> parsedCandidateGroups,
         "RelabeledParsedCandidateGroups" -> <||>
       |>;
       AssociateTo[findIndependentTensorStructuresCanonicalTemplateCache, templateData["CacheKey"] -> cachedTemplate],
-      If[!KeyExistsQ[cachedTemplate, "RelabeledParsedCandidateGroups"],
+      If[
+        !KeyExistsQ[cachedTemplate, "RelabeledParsedCandidateGroups"] ||
+          !AssociationQ[cachedTemplate["RelabeledParsedCandidateGroups"]] ||
+          !SubsetQ[Keys[cachedTemplate["RelabeledParsedCandidateGroups"]], {"CallerSymbolTuple", "Groups"}],
         cachedTemplate = Join[cachedTemplate, <|"RelabeledParsedCandidateGroups" -> <||>|>];
         AssociateTo[findIndependentTensorStructuresCanonicalTemplateCache, templateData["CacheKey"] -> cachedTemplate]
       ]
     ]
   ];
   relabeledCache = cachedTemplate["RelabeledParsedCandidateGroups"];
-  If[!KeyExistsQ[relabeledCache, callerSymbolTuple],
-    relabeledCache[callerSymbolTuple] = associationRelabelParsedCandidateGroups0[cachedTemplate["ParsedCandidateGroups"], templateData["RelabelRules"]];
+  If[
+    Lookup[relabeledCache, "CallerSymbolTuple", Missing["NotAvailable"]] =!= callerSymbolTuple,
+    relabeledCache = <|
+      "CallerSymbolTuple" -> callerSymbolTuple,
+      "Groups" -> associationRelabelParsedCandidateGroups0[cachedTemplate["ParsedCandidateGroups"], templateData["RelabelRules"]]
+    |>;
     cachedTemplate["RelabeledParsedCandidateGroups"] = relabeledCache;
     AssociateTo[findIndependentTensorStructuresCanonicalTemplateCache, templateData["CacheKey"] -> cachedTemplate]
   ];
-  relabeledCache[callerSymbolTuple]
+  relabeledCache["Groups"]
 ];
 
 selectorSparseBasisRecord::usage =

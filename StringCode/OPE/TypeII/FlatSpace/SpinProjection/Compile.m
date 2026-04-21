@@ -43,7 +43,9 @@ clearSpinProjectionCaches0::usage =
   "clearSpinProjectionCaches0[] clears in-kernel spin-projection caches after live code edits.";
 clearSpinProjectionCaches0[] := Module[{},
   spinProjectionArtifactCache0 = <||>;
-  spinProjectionFamilyOutputTemplateCache0 = <||>
+  spinProjectionFamilyOutputTemplateCache0 = <||>;
+  If[NameQ["Private`spinProjectionConcreteGammaSpinSupportCache"], spinProjectionConcreteGammaSpinSupportCache = <||>];
+  If[NameQ["Private`findIndependentTensorStructuresCanonicalTemplateCache"], findIndependentTensorStructuresCanonicalTemplateCache = <||>]
 ];
 
 spinProjectionArtifactCacheLookup0::usage =
