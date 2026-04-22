@@ -35,6 +35,9 @@ ContractLightcone::usage = "Evaluates lightcone metric contractions: \[Eta]LC[p,
 ContractDeltaT::usage = "Contracts transverse delta tensors with expressions";
 
 
+ContractTransverseDelta::usage = "ContractTransverseDelta[f] contracts transverse delta indices, replacing \[Delta]T[\[Mu],\[Mu]1] g -> g /. {\[Mu]->\[Mu]1}";
+
+
 lightconeIndexQ::usage = "lightconeIndexQ[idx] returns True if idx is a lightcone index (p or m)";
 
 
@@ -117,6 +120,12 @@ deltaTContractRules[dim_:8] := {
 
 ContractDeltaT[expr_] := expr /. deltaTContractRules[];
 ContractDeltaT[expr_, dim_] := expr /. deltaTContractRules[dim];
+
+
+ContractTransverseDelta[f_] := f //. {
+  g_ \[Delta]T[\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ \[Delta]T[\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
+};
 
 
 (* ::Subsection:: *)
