@@ -243,7 +243,10 @@ OPEProjected[wH_, wA_][a___, 0, b___] := 0;
 OPEProjected[wH_, wA_][a___, x_ + y_, b___] := OPEProjected[wH, wA][a, x, b] + OPEProjected[wH, wA][a, y, b];
 OPEProjected[wH_, wA_][a___, c_ x_, b___] := c OPEProjected[wH, wA][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+(* Note: hasSpinFieldQ is defined in FlatSpace.m; check inline here to avoid load-order issues *)
+hasSpinFieldInRQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{"S", "St"}, SymbolName[Head[#]]] &];
+
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldInRQ])] := Module[
   {
     collPieces, collR, restR, collLists, splitLists, restLists, restSplitLists, sign, signRest,
     holoOps, antiOps, restHoloOps, restAntiOps,
