@@ -123,7 +123,7 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   {
     seed, collPieces, collR, restR,
     collLists, splitLists, sign, holoOps, antiOps,
-    restLists, restSplitLists, signRest,
+    restLists, restSplitLists, signRest, restHoloOps, restAntiOps,
     insertionWeightHolo, insertionWeightAntiHolo, targetWeightHolo, targetWeightAntiHolo,
     totalCollWeightHolo, totalCollWeightAntiHolo,
     \[Epsilon]Holo, \[Epsilon]AntiHolo,
@@ -156,12 +156,14 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
   antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
 
-  (* Split rest fields into holo/antiholo for sign computation *)
+  (* Split rest fields into holo/antiholo *)
   restLists = factorizeForChiralSplit /@ (List @@ # & /@ restR);
   restSplitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ restLists;
   signRest = If[Flatten[restLists] === {}, 1,
     factorizationSign[Flatten[restLists], isHolomorphic, isAntiHolomorphic]
   ];
+  restHoloOps = Select[R @@@ (restSplitLists[[All, 1]]), RTest];
+  restAntiOps = Select[R @@@ (restSplitLists[[All, 2]]), RTest];
 
   (* Holomorphic sector *)
   totalCollWeightHolo = Total[totalWeightHolo /@ holoOps];
@@ -170,11 +172,11 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
 
   (* Memoized spin solver for holomorphic rest fields *)
   memoRestHolo[restWt_] := memoRestHolo[restWt] = Module[{artifact},
-    If[restR === {},
+    If[restHoloOps === {},
       If[restWt == 0, 1, 0],
       If[restWt < 0,
         0,
-        artifact = buildSectorArtifact["Holo", restR, restWt, seed];
+        artifact = buildSectorArtifact["Holo", restHoloOps, restWt, seed];
         If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
           0,
           sectorExprFromArtifact0[artifact, seed]
@@ -197,9 +199,6 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   ];
   holoProjected = Total[tableHolo];
 
-  (* Early exit: if holomorphic sector is zero, result is zero *)
-  If[holoProjected === 0, Return[0]];
-
   (* Antiholomorphic sector *)
   totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ antiOps];
   opeCollResultAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
@@ -207,11 +206,11 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
 
   (* Memoized spin solver for antiholomorphic rest fields *)
   memoRestAntiHolo[restWt_] := memoRestAntiHolo[restWt] = Module[{artifact},
-    If[restR === {},
+    If[restAntiOps === {},
       If[restWt == 0, 1, 0],
       If[restWt < 0,
         0,
-        artifact = buildSectorArtifact["Anti", restR, restWt, seed];
+        artifact = buildSectorArtifact["Anti", restAntiOps, restWt, seed];
         If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
           0,
           sectorExprFromArtifact0[artifact, seed]
@@ -277,6 +276,122 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasColl
   ];
 
   sign combineChiral[projectedHolo, projectedAntiHolo]
+];
+
+(* OPEProjectedHolo for mixed collapsable + spin fields *)
+(* Handles holomorphic operators containing both ghosts (c, b) and spin fields (S) *)
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ] && AnyTrue[{Ra}, hasCollapsable]), opts___Rule] := Module[
+  {
+    seed, collPieces, collR, restR,
+    insertionWeightHolo, targetWeightHolo,
+    totalCollWeightHolo, \[Epsilon]Holo,
+    opeCollResultHolo, minCollWeightHolo,
+    memoRestHolo, validCollWeightsHolo,
+    tableHolo
+  },
+
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+
+  (* Compute target weight *)
+  insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
+  targetWeightHolo = (wH - insertionWeightHolo) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
+
+  (* Split operators into collapsable (ghosts) and rest (spin fields) *)
+  collPieces = splitCollapsable /@ {Ra};
+  collR = Select[collPieces[[All, 1]], # =!= 1 &];
+  restR = Select[collPieces[[All, 2]], # =!= 1 &];
+
+  (* Holomorphic collapsable OPE *)
+  totalCollWeightHolo = Total[totalWeightHolo /@ collR];
+  opeCollResultHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR];
+  minCollWeightHolo = totalCollWeightHolo + Exponent[opeCollResultHolo // Together, \[Epsilon]Holo, Min];
+
+  (* Memoized spin solver for rest fields *)
+  memoRestHolo[restWt_] := memoRestHolo[restWt] = Module[{artifact},
+    If[restR === {},
+      If[restWt == 0, 1, 0],
+      If[restWt < 0,
+        0,
+        artifact = buildSectorArtifact["Holo", restR, restWt, seed];
+        If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
+          0,
+          sectorExprFromArtifact0[artifact, seed]
+        ]
+      ]
+    ]
+  ];
+
+  (* Pre-filter valid collapsable weights *)
+  validCollWeightsHolo = Select[
+    Range[minCollWeightHolo, targetWeightHolo],
+    targetWeightHolo - # >= 0 &
+  ];
+
+  tableHolo = Table[
+    Module[{collRes = projectHolo[opeCollResultHolo, collWt - totalCollWeightHolo, \[Epsilon]Holo]},
+      If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[targetWeightHolo - collWt]]]
+    ],
+    {collWt, validCollWeightsHolo}
+  ];
+  Total[tableHolo]
+];
+
+(* OPEProjectedAntiHolo for mixed collapsable + spin fields *)
+(* Handles antiholomorphic operators containing both ghosts (ct, bt) and spin fields (St) *)
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ] && AnyTrue[{Ra}, hasCollapsable]), opts___Rule] := Module[
+  {
+    seed, collPieces, collR, restR,
+    insertionWeightAntiHolo, targetWeightAntiHolo,
+    totalCollWeightAntiHolo, \[Epsilon]AntiHolo,
+    opeCollResultAntiHolo, minCollWeightAntiHolo,
+    memoRestAntiHolo, validCollWeightsAntiHolo,
+    tableAntiHolo
+  },
+
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+
+  (* Compute target weight *)
+  insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
+  targetWeightAntiHolo = (wA - insertionWeightAntiHolo) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
+
+  (* Split operators into collapsable (ghosts) and rest (spin fields) *)
+  collPieces = splitCollapsable /@ {Ra};
+  collR = Select[collPieces[[All, 1]], # =!= 1 &];
+  restR = Select[collPieces[[All, 2]], # =!= 1 &];
+
+  (* Antiholomorphic collapsable OPE *)
+  totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ collR];
+  opeCollResultAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR];
+  minCollWeightAntiHolo = totalCollWeightAntiHolo + Exponent[opeCollResultAntiHolo // Together, \[Epsilon]AntiHolo, Min];
+
+  (* Memoized spin solver for rest fields *)
+  memoRestAntiHolo[restWt_] := memoRestAntiHolo[restWt] = Module[{artifact},
+    If[restR === {},
+      If[restWt == 0, 1, 0],
+      If[restWt < 0,
+        0,
+        artifact = buildSectorArtifact["Anti", restR, restWt, seed];
+        If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
+          0,
+          sectorExprFromArtifact0[artifact, seed]
+        ]
+      ]
+    ]
+  ];
+
+  (* Pre-filter valid collapsable weights *)
+  validCollWeightsAntiHolo = Select[
+    Range[minCollWeightAntiHolo, targetWeightAntiHolo],
+    targetWeightAntiHolo - # >= 0 &
+  ];
+
+  tableAntiHolo = Table[
+    Module[{collRes = projectAntiHolo[opeCollResultAntiHolo, collWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
+      If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[targetWeightAntiHolo - collWt]]]
+    ],
+    {collWt, validCollWeightsAntiHolo}
+  ];
+  Total[tableAntiHolo]
 ];
 
 

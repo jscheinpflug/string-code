@@ -318,7 +318,7 @@ OPEProjectedHolo[wH_][a___, 0, b___] := 0;
 OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OPEProjectedHolo[wH][a, y, b];
 OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldInRQ])] := Module[
   {collPieces, collR, restR, totalCollWeightHolo, insertionWeightHolo, targetWeightHolo, \[Epsilon]Holo, opeCollResult, opeRestResult, minCollWeightHolo, minRestWeightHolo, minWeightHolo, projectedCollHolo, projectedRestHolo, table},
   insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
   targetWeightHolo = (wH - insertionWeightHolo) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
@@ -344,7 +344,7 @@ OPEProjectedAntiHolo[wA_][a___, 0, b___] := 0;
 OPEProjectedAntiHolo[wA_][a___, x_ + y_, b___] := OPEProjectedAntiHolo[wA][a, x, b] + OPEProjectedAntiHolo[wA][a, y, b];
 OPEProjectedAntiHolo[wA_][a___, c_ x_, b___] := c OPEProjectedAntiHolo[wA][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldInRQ])] := Module[
   {collPieces, collR, restR, totalCollWeightAntiHolo, insertionWeightAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo, opeCollResult, opeRestResult, minCollWeightAntiHolo, minRestWeightAntiHolo, minWeightAntiHolo, projectedCollAntiHolo, projectedRestAntiHolo, table},
   insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
   targetWeightAntiHolo = (wA - insertionWeightAntiHolo) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;

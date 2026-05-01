@@ -98,7 +98,7 @@ result]
 
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
+BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:=
 Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
