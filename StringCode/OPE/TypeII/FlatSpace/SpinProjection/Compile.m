@@ -509,7 +509,7 @@ spinProjectionVectorConstraintPairs::usage =
 spinProjectionVectorConstraintPairs[obj_, freeVectors_List] := DeleteDuplicates[
   Sort /@ Cases[
     HoldComplete[obj],
-    factor_ /; Head[factor] === \[Delta] && Length[factor] == 2 &&
+    factor_ /; MemberQ[{\[Delta], EtaMetric}, Head[factor]] && Length[factor] == 2 &&
       MemberQ[freeVectors, factor[[1]]] && MemberQ[freeVectors, factor[[2]]] :>
         {factor[[1]], factor[[2]]},
     Infinity

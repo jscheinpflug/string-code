@@ -839,10 +839,10 @@ buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
   {i, 1, count}
 ];
 
-deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert \\[Delta] factor.";
+deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert flat-space metric factor (\\[Delta] in Euclidean mode, EtaMetric in Lorentzian mode).";
 deltaFactorFromPair[pair_List] := Module[{ordered},
   ordered = canonicalizeVectorPair[pair];
-  \[Delta][ordered[[1]], ordered[[2]]]
+  flatSpaceMetricTensor[ordered[[1]], ordered[[2]]]
 ];
 
 gammaProductCTag::usage =
@@ -971,13 +971,14 @@ buildGammaFactorData0[
 ];
 
 buildDeltaFactorData0::usage =
-  "buildDeltaFactorData0[pair] builds one generated delta factor together with parsed selector parts.";
+  "buildDeltaFactorData0[pair] builds one generated metric factor together with parsed selector parts.";
 buildDeltaFactorData0[pair_List] := Module[{ordered},
   ordered = canonicalizeVectorPair[pair];
   <|
-    "Expression" -> \[Delta][ordered[[1]], ordered[[2]]],
+    "Expression" -> flatSpaceMetricTensor[ordered[[1]], ordered[[2]]],
     "Parts" -> <|
       "Kind" -> "Delta",
+      "MetricHead" -> Head[flatSpaceMetricTensor[ordered[[1]], ordered[[2]]]],
       "VectorSymbols" -> ordered,
       "Spinors" -> {},
       "SpinorChiralities" -> {}

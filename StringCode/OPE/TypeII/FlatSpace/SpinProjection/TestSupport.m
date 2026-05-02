@@ -55,11 +55,11 @@ spinProjectionEvaluateTensorScalars0::usage =
   "spinProjectionEvaluateTensorScalars0[expr] evaluates concrete gamma factors and deltas in one tensor scalar expression.";
 spinProjectionEvaluateTensorScalars0[expr_] := Expand[expr /. {
   factor_ /; SymbolName[Head[factor]] === "GammaAntisymmetricProductHold" :> spinProjectionConcreteGammaFactorValue0[factor],
-  factor_ /; SymbolName[Head[factor]] === "\[Delta]" && Length[factor] == 2 :> KroneckerDelta[factor[[1]], factor[[2]]]
+  factor_ /; MemberQ[{"\[Delta]", "EtaMetric"}, SymbolName[Head[factor]]] && Length[factor] == 2 :> flatSpaceMetricScalar[factor[[1]], factor[[2]]]
 }];
 
 spinProjectionEvaluateSummedTensorScalars0::usage =
-  "spinProjectionEvaluateSummedTensorScalars0[expr] sums dummy vectors over 1..10 and evaluates remaining concrete tensor scalars.";
+  "spinProjectionEvaluateSummedTensorScalars0[expr] sums dummy vectors over the active vector-index domain and evaluates remaining concrete tensor scalars.";
 spinProjectionEvaluateSummedTensorScalars0[expr_] := Module[{dummySyms, summed},
   dummySyms = SortBy[
     DeleteDuplicates @ Cases[
@@ -69,7 +69,15 @@ spinProjectionEvaluateSummedTensorScalars0[expr_] := Module[{dummySyms, summed},
     ],
     SymbolName
   ];
-  summed = Expand @ Fold[Sum[#1, {#2, 1, 10}] &, expr, dummySyms];
+  summed = Expand @ Fold[
+    Function[{acc, dummy},
+      Module[{\[Mu]Iter},
+        Sum[acc /. dummy -> \[Mu]Iter, {\[Mu]Iter, flatSpaceVectorIndexDomain[]}]
+      ]
+    ],
+    expr,
+    dummySyms
+  ];
   spinProjectionEvaluateTensorScalars0[summed]
 ];
 

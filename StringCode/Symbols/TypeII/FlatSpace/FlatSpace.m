@@ -67,6 +67,7 @@ dot::usage = "Symbol for dot product";
 der::usage = "Symbol for a derivative";
 
 \[Delta]::usage = "Inert Kronecker delta tensor for flat-space vector-index contractions.";
+EtaMetric::usage = "Inert Lorentzian metric tensor for flat-space vector-index contractions.";
 
 CGamma::usage =
   "CGamma[mu] returns the exact 16x16 chiral-chiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
@@ -169,16 +170,45 @@ Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion a
 Begin["Private`"];
 
 
-flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns TypeII FlatSpace contraction rules for \\[Delta] tensors.";
-flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim};
+flatSpaceMetricTensorHead::usage =
+  "flatSpaceMetricTensorHead[] returns the active inert metric head in TypeII FlatSpace symbols (\\[Delta] or EtaMetric).";
+flatSpaceMetricTensorHead[] := If[currentSignature[] == "Lorentzian", EtaMetric, \[Delta]];
+
+flatSpaceMetricTensor::usage =
+  "flatSpaceMetricTensor[mu, nu] returns one active inert TypeII FlatSpace metric tensor factor.";
+flatSpaceMetricTensor[\[Mu]_, \[Nu]_] := flatSpaceMetricTensorHead[][\[Mu], \[Nu]];
+
+flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns TypeII FlatSpace contraction rules for the active metric head.";
+flatSpaceContractRules[dim_] := If[
+  currentSignature[] == "Lorentzian",
+  {EtaMetric[\[Mu]_, \[Mu]_] :> flatSpaceMetricTrace[], EtaMetric[\[Mu]_, \[Nu]_]^2 :> dim},
+  {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim}
+];
 
 Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
-Contract[f_] := Contract[f, 10];
+Contract[f_] := Contract[f, flatSpaceVectorDimension[]];
 
 ContractDelta[f_] := f //. {
   g_ \[Delta][\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
-  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
+  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ EtaMetric[\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ EtaMetric[\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
 };
+
+EtaMetric[\[Mu]_Integer, \[Nu]_Integer] := flatSpaceMetricScalar[\[Mu], \[Nu]];
+
+flatSpaceVectorIndexQ::usage = "flatSpaceVectorIndexQ[idx] is True exactly for active public vector indices in TypeII FlatSpace.";
+flatSpaceVectorIndexQ[idx_Integer] := MemberQ[flatSpaceVectorIndexDomain[], idx];
+flatSpaceVectorIndexQ[_] := False;
+
+flatSpacePsiBosonizationPhase::usage =
+  "flatSpacePsiBosonizationPhase[idx] returns the signature-dependent phase used for bosonized psi-components (timelike slot carries I in Lorentzian mode).";
+flatSpacePsiBosonizationPhase[idx_Integer] := If[
+  currentSignature[] == "Lorentzian" && idx == First[flatSpaceVectorIndexDomain[]],
+  I,
+  1
+];
+flatSpacePsiBosonizationPhase[_] := 1;
 
 GammaProductHold[args___] := GammaAntisymmetricProductHold[args];
 
@@ -818,11 +848,23 @@ bosonizeStateRaw[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichir
    rotated back to the spacetime mu-basis with the fixed notebook-derived
    change-of-basis matrix. *)
 bosonizeStateRaw[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
-  Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
+  Module[{slot = flatSpaceVectorIndexSlot[mu]},
+    If[slot === $Failed, Return[\[Psi][mu, n, z]]];
+    flatSpacePsiBosonizationPhase[mu] Sum[
+      basisChangeM[[slot, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH],
+      {a, 1, Length[vectors]}
+    ]
+  ] /; flatSpaceVectorIndexQ[mu];
 
 
 bosonizeStateRaw[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] :=
-  Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
+  Module[{slot = flatSpaceVectorIndexSlot[mu]},
+    If[slot === $Failed, Return[\[Psi]t[mu, n, zbar]]];
+    flatSpacePsiBosonizationPhase[mu] Sum[
+      basisChangeM[[slot, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt],
+      {a, 1, Length[vectors]}
+    ]
+  ] /; flatSpaceVectorIndexQ[mu];
 
 
 bosonizeStateRaw[field_ /; isField[Head[field]]] := field;

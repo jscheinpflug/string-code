@@ -5,6 +5,7 @@
 
 
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"];
+Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
@@ -112,7 +113,7 @@ spinProjectionDisjointBlockBasisTuples[blockSizes_List] := spinProjectionDisjoin
     ],
     1
   ];
-  recurse[blockSizes, Range[10]]
+  recurse[blockSizes, flatSpaceVectorIndexDomain[]]
 ];
 
 spinProjectionAssociationLookup::usage =
@@ -123,20 +124,36 @@ persistentCacheSourceFiles::usage =
   "persistentCacheSourceFiles[] returns the source files whose hashes version the persistent TypeII flat-space gamma-kernel cache.";
 persistentCacheSourceFiles[] := persistentCacheSourceFiles[] = Module[{rootDir},
   rootDir = DirectoryName[DirectoryName[FindFile["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"]]];
-  FileNameJoin[{rootDir, #}] & /@ {
+  Select[
+    Join[
+    FileNameJoin[{rootDir, #}] & /@ {
     "GammaMatrices/GammaMatrices.m",
     "GammaMatrices/GammaKernelEngine.m",
-    "GammaMatrices/SpinFieldConventionData.m",
+    "GammaMatrices/GammaProductCache.m",
     "TensorStructures/IndependentTensorStructures.m",
     "TensorStructures/IndependentTensorStructuresSelector.m",
     "SpinProjection/Compile.m"
-  }
+    },
+    {
+      gammaDataFileForSignature["SpinFieldConventionData.m"],
+      FileNameJoin[{rootDir, "GammaMatrices", "GammaProductCacheData.m"}],
+      FileNameJoin[
+        {
+          rootDir,
+          "GammaMatrices",
+          "GammaProductCacheData." <> If[currentSignature[] == "Lorentzian", "Lorentzian", "Euclidean"] <> ".m"
+        }
+      ]
+    }
+    ],
+    FileExistsQ
+  ]
 ];
 
 persistentCacheSourceHash::usage =
   "persistentCacheSourceHash[] returns the deterministic source hash used in the persistent gamma-kernel cache filename.";
 persistentCacheSourceHash[] := persistentCacheSourceHash[] = IntegerString[
-  Hash[FileHash[#, "SHA256"] & /@ persistentCacheSourceFiles[], "SHA256"],
+  Hash[{currentSignature[], FileHash[#, "SHA256"] & /@ persistentCacheSourceFiles[]}, "SHA256"],
   36
 ];
 
@@ -147,7 +164,7 @@ persistentGammaKernelCacheFile[] := persistentGammaKernelCacheFile[] = FileNameJ
     $UserBaseDirectory,
     "ApplicationData",
     "StringCode",
-    "TypeIIFlatSpaceGammaKernelCache-" <> persistentCacheSourceHash[] <> ".mx"
+    "TypeIIFlatSpaceGammaKernelCache-" <> ToLowerCase[currentSignature[]] <> "-" <> persistentCacheSourceHash[] <> ".mx"
   }
 ];
 
@@ -1350,9 +1367,9 @@ spinProjectionGammaKernelProbeValue[key_, vectorTuple_List, spinVectors_List] :=
 ];
 
 spinProjectionAllBasisSubsets::usage =
-  "spinProjectionAllBasisSubsets[rank] returns all increasing basis subsets of Range[10] with the requested rank.";
+  "spinProjectionAllBasisSubsets[rank] returns all increasing basis subsets of the active flat-space vector-index domain with the requested rank.";
 spinProjectionAllBasisSubsets[0] := {{}};
-spinProjectionAllBasisSubsets[rank_Integer?Positive] := spinProjectionAllBasisSubsets[rank] = Subsets[Range[10], {rank}];
+spinProjectionAllBasisSubsets[rank_Integer?Positive] := spinProjectionAllBasisSubsets[rank] = Subsets[flatSpaceVectorIndexDomain[], {rank}];
 
 spinProjectionOrderedAssociationRules::usage =
   "spinProjectionOrderedAssociationRules[assoc] returns deterministic association rules sorted by key.";
@@ -1446,11 +1463,19 @@ spinProjectionSelectorGammaFactorCoefficientAssociation[parts_Association, probe
 
 spinProjectionSelectorDeltaFactorValue::usage =
   "spinProjectionSelectorDeltaFactorValue[parts, probe] evaluates one parsed selector delta factor at an exact dense probe.";
+spinProjectionSelectorVectorInner0::usage =
+  "spinProjectionSelectorVectorInner0[vec1, vec2] evaluates the active-signature flat-space vector inner product for dense component lists ordered by flatSpaceVectorIndexDomain[].";
+spinProjectionSelectorVectorInner0[vec1_List, vec2_List] := Module[{domain = flatSpaceVectorIndexDomain[]},
+  Sum[
+    flatSpaceMetricScalar[domain[[slot]], domain[[slot]]] vec1[[slot]] vec2[[slot]],
+    {slot, 1, Length[domain]}
+  ]
+];
 spinProjectionSelectorDeltaFactorValue[parts_Association, probe_Association] := Module[{vec1, vec2},
   vec1 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[1]], Missing["Unassigned"]];
   vec2 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[2]], Missing["Unassigned"]];
   If[!VectorQ[vec1, spinProjectionSelectorExactScalarQ] || !VectorQ[vec2, spinProjectionSelectorExactScalarQ], Return[$Failed]];
-  vec1 . vec2
+  spinProjectionSelectorVectorInner0[vec1, vec2]
 ];
 
 spinProjectionSelectorFormCoefficientValue::usage =
@@ -1466,8 +1491,8 @@ spinProjectionSelectorApplyExternalVectorToCoefficients::usage =
 spinProjectionSelectorApplyExternalVectorToCoefficients[coefficients_Association, rank_Integer?Positive, pos_Integer?Positive, vector_List] := Association @ Select[
   Table[
     subset -> Sum[
-      vector[[basisIndex]] spinProjectionSelectorFormCoefficientValue[coefficients, Insert[subset, basisIndex, pos]],
-      {basisIndex, 1, 10}
+      vector[[flatSpaceVectorIndexSlot[basisIndex]]] spinProjectionSelectorFormCoefficientValue[coefficients, Insert[subset, basisIndex, pos]],
+      {basisIndex, flatSpaceVectorIndexDomain[]}
     ],
     {subset, spinProjectionAllBasisSubsets[rank - 1]}
   ],
@@ -1585,7 +1610,7 @@ spinProjectionSelectorCompiledFamilyData[candidate_Association] := Module[
       "Delta",
       sources = spinProjectionSelectorVectorSource[#, externalSlots, dummySlots] & /@ part["VectorSymbols"];
       If[MemberQ[sources, $Failed] || AnyTrue[sources, First[#] === 3 &], Return[$Failed]];
-      AppendTo[deltaFactors, sources],
+      AppendTo[deltaFactors, <|"Sources" -> sources, "MetricHead" -> Lookup[part, "MetricHead", \[Delta]]|>],
       "Gamma",
       matrix = spinProjectionSelectorMatrixDesc[part, externalSlots, dummySlots];
       If[matrix === $Failed, Return[$Failed]];
@@ -1663,20 +1688,22 @@ spinProjectionSelectorProbeSpinVectors[spinSources_List, spinSymbols_List, probe
 spinProjectionSelectorExternalVectorAssignments::usage =
   "spinProjectionSelectorExternalVectorAssignments[vectorCount] returns the concrete exposed-vector assignments summed over in canonical selector family evaluation.";
 spinProjectionSelectorExternalVectorAssignments[0] := {{}};
-spinProjectionSelectorExternalVectorAssignments[vectorCount_Integer?Positive] := Tuples[Range[10], vectorCount];
+spinProjectionSelectorExternalVectorAssignments[vectorCount_Integer?Positive] := Tuples[flatSpaceVectorIndexDomain[], vectorCount];
 
 spinProjectionSelectorExternalVectorWeight::usage =
   "spinProjectionSelectorExternalVectorWeight[compiled, vectorTuple, probe] returns the exact dense selector weight for one concrete exposed-vector assignment, including delta constraints.";
 spinProjectionSelectorExternalVectorWeight[compiled_Association, vectorTuple_List, probe_Association] := Module[
-  {vectorComponents, weight, left, right},
+  {vectorComponents, weight, left, right, deltaValue},
   vectorComponents = Lookup[Lookup[probe, "VectorComponents", <||>], compiled["VectorSymbols"], Missing["Unassigned"]];
   If[AnyTrue[vectorComponents, # === Missing["Unassigned"] &] || !AllTrue[vectorComponents, VectorQ[#, spinProjectionSelectorExactScalarQ] &], Return[$Failed]];
-  weight = If[vectorTuple === {}, 1, Times @@ MapThread[#1[[#2]] &, {vectorComponents, vectorTuple}]];
+  weight = If[vectorTuple === {}, 1, Times @@ MapThread[#1[[flatSpaceVectorIndexSlot[#2]]] &, {vectorComponents, vectorTuple}]];
   Do[
-    left = spinProjectionSelectorFamilyVectorSourceValue[delta[[1]], vectorTuple];
-    right = spinProjectionSelectorFamilyVectorSourceValue[delta[[2]], vectorTuple];
+    left = spinProjectionSelectorFamilyVectorSourceValue[delta["Sources"][[1]], vectorTuple];
+    right = spinProjectionSelectorFamilyVectorSourceValue[delta["Sources"][[2]], vectorTuple];
     If[!IntegerQ[left] || !IntegerQ[right], Return[$Failed]];
-    If[left =!= right, Return[0]],
+    deltaValue = flatSpaceMetricScalar[left, right];
+    If[deltaValue === 0, Return[0]];
+    weight *= deltaValue,
     {delta, compiled["DeltaFactors"]}
   ];
   weight

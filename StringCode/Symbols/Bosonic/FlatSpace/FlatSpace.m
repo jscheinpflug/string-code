@@ -44,6 +44,7 @@ dot::usage = "Symbol for dot product";
 der::usage = "Symbol for a derivative";
 
 \[Delta]::usage = "Inert Kronecker delta tensor for flat-space vector-index contractions.";
+EtaMetric::usage = "Inert Lorentzian metric tensor for flat-space vector-index contractions.";
 
 
 (* ::Section:: *)
@@ -53,16 +54,32 @@ der::usage = "Symbol for a derivative";
 Begin["Private`"];
 
 
-flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns bosonic FlatSpace contraction rules for \\[Delta] tensors.";
-flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim};
+flatSpaceMetricTensorHead::usage =
+  "flatSpaceMetricTensorHead[] returns the active inert metric head in bosonic FlatSpace symbols (\\[Delta] or EtaMetric).";
+flatSpaceMetricTensorHead[] := If[currentSignature[] == "Lorentzian", EtaMetric, \[Delta]];
+
+flatSpaceMetricTensor::usage =
+  "flatSpaceMetricTensor[mu, nu] returns one active inert bosonic FlatSpace metric tensor factor.";
+flatSpaceMetricTensor[\[Mu]_, \[Nu]_] := flatSpaceMetricTensorHead[][\[Mu], \[Nu]];
+
+flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns bosonic FlatSpace contraction rules for the active metric head.";
+flatSpaceContractRules[dim_] := If[
+  currentSignature[] == "Lorentzian",
+  {EtaMetric[\[Mu]_, \[Mu]_] :> flatSpaceMetricTrace[], EtaMetric[\[Mu]_, \[Nu]_]^2 :> dim},
+  {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim}
+];
 
 Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
-Contract[f_] := Contract[f, 10];
+Contract[f_] := Contract[f, flatSpaceVectorDimension[]];
 
 ContractDelta[f_] := f //. {
   g_ \[Delta][\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
-  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
+  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ EtaMetric[\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
+  g_ EtaMetric[\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
 };
+
+EtaMetric[\[Mu]_Integer, \[Nu]_Integer] := flatSpaceMetricScalar[\[Mu], \[Nu]];
 
 
 (* ::Subsection:: *)

@@ -31,7 +31,7 @@ visualizeTensorStructures::badgroups =
   "Expected a list of non-empty structure groups.";
 
 tensorStructureGraph::badexpr =
-  "Expected an expression built from GammaAntisymmetricProductHold and/or \\[Delta] factors, or scalar 1.";
+  "Expected an expression built from GammaAntisymmetricProductHold and/or \\[Delta]/EtaMetric factors, or scalar 1.";
 
 Options[tensorStructureGraph] = {
   "ImageSize" -> 500,
@@ -61,7 +61,7 @@ Begin["Private`"];
 
 isTensorHeadQ::usage = "isTensorHeadQ[head] is True if head is a supported tensor head in any context.";
 isTensorHeadQ[head_] := MemberQ[
-  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold", SymbolName[Unevaluated[\[Delta]]]},
+  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold", SymbolName[Unevaluated[\[Delta]]], "EtaMetric"},
   SymbolName[Unevaluated[head]]
 ];
 
@@ -115,8 +115,8 @@ isGammaFactorVisualQ::usage =
   "isGammaFactorVisualQ[factor] is True for supported GammaAntisymmetricProductHold[{links},a,b] forms with optional leading CUDHold/CDUHold in the links list.";
 isGammaFactorVisualQ[factor_] := AssociationQ[gammaProductPartsVisual[factor]];
 
-deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported \\[Delta][mu, nu] vector-contraction factors.";
-deltaFactorVisualQ[factor_] := SymbolName[Head[factor]] === SymbolName[\[Delta]] && Length[factor] == 2;
+deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported \\[Delta][mu, nu] or EtaMetric[mu, nu] vector-contraction factors.";
+deltaFactorVisualQ[factor_] := MemberQ[{SymbolName[Unevaluated[\[Delta]]], "EtaMetric"}, SymbolName[Head[factor]]] && Length[factor] == 2;
 
 isTensorFactorVisualQ::usage = "isTensorFactorVisualQ[factor] is True for supported gamma or delta tensor factors.";
 isTensorFactorVisualQ[factor_] := isGammaFactorVisualQ[factor] || deltaFactorVisualQ[factor];
@@ -140,7 +140,7 @@ gammaProductVectorIndicesVisual[factor_] /; isGammaFactorVisualQ[factor] :=
   Flatten[gammaLinkVectorIndexVisual /@ gammaProductLinksVisual[factor]];
 gammaProductVectorIndicesVisual[_] := {};
 
-deltaVectorIndicesVisual::usage = "deltaVectorIndicesVisual[factor] extracts the two vector indices from one \\[Delta] factor.";
+deltaVectorIndicesVisual::usage = "deltaVectorIndicesVisual[factor] extracts the two vector indices from one \\[Delta]/EtaMetric factor.";
 deltaVectorIndicesVisual[factor_] /; deltaFactorVisualQ[factor] := List @@ factor;
 deltaVectorIndicesVisual[_] := {};
 
@@ -190,7 +190,7 @@ factorData[factor_ /; isGammaFactorVisualQ[factor]] := <|
 |>;
 factorData[factor_ /; deltaFactorVisualQ[factor]] := <|
   "form" -> Head[factor],
-  "formName" -> SymbolName[Unevaluated[\[Delta]]],
+  "formName" -> SymbolName[Head[factor]],
   "kind" -> "delta",
   "cTag" -> None,
   "vectors" -> deltaVectorIndicesVisual[factor],

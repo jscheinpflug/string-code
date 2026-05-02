@@ -102,15 +102,15 @@ spinProjectionGammaFactorVector[factor_GammaAntisymmetricProductHold, sym_Symbol
 ];
 
 spinProjectionDeltaValue::usage =
-  "spinProjectionDeltaValue[factor] evaluates one concrete inert delta factor to 0 or 1 when both endpoints are explicit vector slots.";
-spinProjectionDeltaValue[factor_ /; Head[factor] === \[Delta] && Length[factor] == 2] := KroneckerDelta[factor[[1]], factor[[2]]];
+  "spinProjectionDeltaValue[factor] evaluates one concrete inert metric factor when both endpoints are explicit vector slots.";
+spinProjectionDeltaValue[factor_ /; MemberQ[{\[Delta], EtaMetric}, Head[factor]] && Length[factor] == 2] := flatSpaceMetricScalar[factor[[1]], factor[[2]]];
 spinProjectionDeltaValue[factor_] := factor;
 
 spinProjectionEvaluateTensorScalars::usage =
-  "spinProjectionEvaluateTensorScalars[expr] replaces concrete gamma/delta tensor factors by exact scalar values inside one randomized probe expression.";
+  "spinProjectionEvaluateTensorScalars[expr] replaces concrete gamma/metric tensor factors by exact scalar values inside one randomized probe expression.";
 spinProjectionEvaluateTensorScalars[expr_] := Expand[expr /. {
   factor_GammaAntisymmetricProductHold :> spinProjectionGammaFactorValue[factor],
-  factor_ /; Head[factor] === \[Delta] && Length[factor] == 2 :> spinProjectionDeltaValue[factor]
+  factor_ /; MemberQ[{\[Delta], EtaMetric}, Head[factor]] && Length[factor] == 2 :> spinProjectionDeltaValue[factor]
 }];
 
 spinProjectionOperatorAssociation::usage =
@@ -628,7 +628,7 @@ spinProjectionConcreteGammaSpinSupport0[
   If[MemberQ[sourceTypes, 2], Return[fullDomain]];
   dummyCount = Replace[Max @ Join[{0}, Cases[desc[[3]], {3, idx_Integer} :> idx, Infinity]], _Missing -> 0];
   If[dummyCount > 2, Return[fullDomain]];
-  tuples = If[dummyCount == 0, {{}}, Tuples[Range[10], dummyCount]];
+  tuples = If[dummyCount == 0, {{}}, Tuples[flatSpaceVectorIndexDomain[], dummyCount]];
   support = Union @@ DeleteCases[
     Module[{rules = spinProjectionConcreteGammaEntryRules[desc, freeVectors, {}, #]},
       If[
@@ -786,7 +786,7 @@ spinProjectionFamilyStateIterator[family_Association, seed_, spinDomainOverride_
       {family["SpinChiralities"], family["SpinSymbols"]}
     ]
   ];
-  vectorDomains = spinProjectionSeededOrder[Range[10], seed, #] & /@ family["VectorSymbols"];
+  vectorDomains = spinProjectionSeededOrder[flatSpaceVectorIndexDomain[], seed, #] & /@ family["VectorSymbols"];
   spinProjectionTupleIterator[Reverse@Join[spinDomains, vectorDomains], seed, {"outputStates", family["Template"]}]
 ];
 
@@ -919,9 +919,9 @@ spinProjectionWitnessAssignment[model_Association, family_Association, term_Asso
     spinProjectionSeededOrder[Range[Length[spinProjectionSpinBasisState[#1]]], {seed, serial}, {"stateSpin", #2}] &,
     {family["SpinChiralities"], family["SpinSymbols"]}
   ];
-  freeVectorDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"freeVector", #}] & /@ model["FreeVectorGroups"];
-  stateVectorDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"stateVector", #}] & /@ family["VectorSymbols"];
-  dummyDomains = spinProjectionSeededOrder[Range[10], {seed, serial}, {"dummyVector", #}] & /@ Range[term["DummyCount"]];
+  freeVectorDomains = spinProjectionSeededOrder[flatSpaceVectorIndexDomain[], {seed, serial}, {"freeVector", #}] & /@ model["FreeVectorGroups"];
+  stateVectorDomains = spinProjectionSeededOrder[flatSpaceVectorIndexDomain[], {seed, serial}, {"stateVector", #}] & /@ family["VectorSymbols"];
+  dummyDomains = spinProjectionSeededOrder[flatSpaceVectorIndexDomain[], {seed, serial}, {"dummyVector", #}] & /@ Range[term["DummyCount"]];
   With[
     {
       spinValue = Function[{src, state}, Switch[src[[1]], 1, state[[1, src[[2]]]], 2, state[[3, src[[2]]]], _, $Failed]],

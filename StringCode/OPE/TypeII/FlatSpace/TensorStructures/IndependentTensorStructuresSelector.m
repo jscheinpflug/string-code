@@ -31,7 +31,7 @@ selectorScalarFactorQ::usage =
   "selectorScalarFactorQ[expr] is True when expr contains only scalar prefactors and no raw tensor-structure heads that must be parsed explicitly.";
 selectorScalarFactorQ[expr_] := FreeQ[
   expr,
-  _GammaAntisymmetricProductHold | _GammaUDHold | _GammaDUHold | CUDHold | CDUHold | _\[Delta]
+  _GammaAntisymmetricProductHold | _GammaUDHold | _GammaDUHold | CUDHold | CDUHold | _\[Delta] | _EtaMetric
 ];
 
 selectorCandidateMetadata::usage =
@@ -59,7 +59,7 @@ selectorPartStructuralSortKey::usage =
 selectorPartStructuralSortKey[part_Association] := Switch[
   part["Kind"],
   "Delta",
-  {0, Replace[part["VectorSymbols"], sym_Symbol /; generatedDummyVectorSymbolQ[sym] :> 0, 1]},
+  {0, Lookup[part, "MetricHead", \[Delta]], Replace[part["VectorSymbols"], sym_Symbol /; generatedDummyVectorSymbolQ[sym] :> 0, 1]},
   "Gamma",
   {
     1,

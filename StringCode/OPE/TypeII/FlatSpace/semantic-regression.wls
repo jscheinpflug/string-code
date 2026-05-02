@@ -1,5 +1,5 @@
 Needs["StringCode`"];
-StringCode`InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>];
+StringCode`InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat", "signature" -> "Euclidean"|>];
 Needs["StringCode`OPE`TypeII`FlatSpace`SpinProjection`TestSupport`"];
 
 semanticCases = {

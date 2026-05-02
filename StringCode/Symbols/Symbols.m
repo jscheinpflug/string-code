@@ -60,6 +60,25 @@ isAntiHolomorphic::usage = "Checks if is antiholomorphic";
 
 isIndexed::usage = "Checks if is indexed";
 
+supportedSignatures::usage = "supportedSignatures[] returns the allowed flat-space target-signature labels.";
+
+currentSignature::usage = "currentSignature[] returns the active flat-space target-signature label.";
+
+setCurrentSignature::usage = "setCurrentSignature[signature] sets the active flat-space target-signature label.";
+
+flatSpaceVectorDimension::usage = "flatSpaceVectorDimension[] returns the target-space vector dimension used by flat-space modules.";
+
+flatSpaceVectorIndexDomain::usage = "flatSpaceVectorIndexDomain[] returns the active public vector-index domain for flat-space tensors.";
+
+flatSpaceVectorIndexSlot::usage = "flatSpaceVectorIndexSlot[idx] maps one active public vector index to its canonical 1-based basis slot, or $Failed.";
+
+flatSpaceMetricHead::usage = "flatSpaceMetricHead[] returns the active inert metric tensor head (\\[Delta] in Euclidean mode, EtaMetric in Lorentzian mode).";
+
+flatSpaceMetricTensor::usage = "flatSpaceMetricTensor[mu, nu] returns one active inert metric tensor factor in the current signature.";
+
+flatSpaceMetricScalar::usage = "flatSpaceMetricScalar[mu, nu] evaluates the active flat-space metric on concrete numeric vector indices.";
+
+flatSpaceMetricTrace::usage = "flatSpaceMetricTrace[] returns the summed diagonal value of the active flat-space metric over the configured vector-index domain.";
 
 (* ::Section:: *)
 (*Logic*)
@@ -70,6 +89,59 @@ isIndexed::usage = "Checks if is indexed";
 
 
 Begin["Private`"];
+
+$currentSignature = "Euclidean";
+
+supportedSignatures[] := {"Euclidean", "Lorentzian"};
+
+currentSignature[] := $currentSignature;
+
+setCurrentSignature::invalid =
+  "Unsupported signature `1`. Allowed signatures are `2`.";
+setCurrentSignature[signature_String] := Module[{},
+  If[!MemberQ[supportedSignatures[], signature],
+    Message[setCurrentSignature::invalid, signature, supportedSignatures[]];
+    Return[$Failed]
+  ];
+  $currentSignature = signature
+];
+setCurrentSignature[_] := $Failed;
+
+flatSpaceVectorDimension[] := 10;
+
+flatSpaceVectorIndexDomain[] := If[
+  currentSignature[] === "Lorentzian",
+  Range[0, flatSpaceVectorDimension[] - 1],
+  Range[1, flatSpaceVectorDimension[]]
+];
+
+flatSpaceVectorIndexSlot[idx_Integer] := Module[{pos},
+  pos = FirstPosition[flatSpaceVectorIndexDomain[], idx, Missing["NotFound"], {1}, Heads -> False];
+  If[pos === Missing["NotFound"], $Failed, First[pos]]
+];
+flatSpaceVectorIndexSlot[_] := $Failed;
+
+flatSpaceMetricHead[] := If[
+  currentSignature[] === "Lorentzian",
+  ToExpression["EtaMetric"],
+  ToExpression["\[Delta]"]
+];
+
+flatSpaceMetricTensor[mu_, nu_] := flatSpaceMetricHead[][mu, nu];
+
+flatSpaceMetricScalar[mu_Integer, nu_Integer] := Module[{slotMu, slotNu},
+  slotMu = flatSpaceVectorIndexSlot[mu];
+  slotNu = flatSpaceVectorIndexSlot[nu];
+  If[slotMu === $Failed || slotNu === $Failed, Return[0]];
+  If[currentSignature[] =!= "Lorentzian", KroneckerDelta[slotMu, slotNu], Which[
+    slotMu =!= slotNu, 0,
+    slotMu == 1, -1,
+    True, 1
+  ]]
+];
+flatSpaceMetricScalar[_, _] := 0;
+
+flatSpaceMetricTrace[] := Total[flatSpaceMetricScalar[#, #] & /@ flatSpaceVectorIndexDomain[]];
 
 
 (* ::Subsection:: *)

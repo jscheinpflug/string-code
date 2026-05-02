@@ -1,4 +1,14 @@
-Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCacheData.m"}]];
+gammaProductCacheDataFileForSignature::usage =
+  "gammaProductCacheDataFileForSignature[] returns the signature-specific gamma-product cache data file when present, falling back to the Euclidean canonical data file.";
+gammaProductCacheDataFileForSignature[] := Module[{dir, sigName, candidate, fallback},
+  dir = DirectoryName[$InputFileName];
+  sigName = If[currentSignature[] == "Lorentzian", "Lorentzian", "Euclidean"];
+  candidate = FileNameJoin[{dir, "GammaProductCacheData." <> sigName <> ".m"}];
+  fallback = FileNameJoin[{dir, "GammaProductCacheData.m"}];
+  If[FileExistsQ[candidate], candidate, fallback]
+];
+
+Get[gammaProductCacheDataFileForSignature[]];
 
 
 gammaProductCacheFamilies::usage =
@@ -34,6 +44,11 @@ gammaProductCacheCombinationIndex[inds_List] := Module[{rank = Length[inds], ind
   index
 ];
 
+gammaProductCacheCanonicalIndexQ::usage =
+  "gammaProductCacheCanonicalIndexQ[idx] is True exactly for canonical 1..10 cache slots.";
+gammaProductCacheCanonicalIndexQ[idx_Integer] := 1 <= idx <= gammaVectorDimension;
+gammaProductCacheCanonicalIndexQ[_] := False;
+
 
 gammaProductCacheZeroMatrix::usage =
   "gammaProductCacheZeroMatrix is the canonical zero sparse matrix returned for repeated antisymmetric vector indices.";
@@ -59,7 +74,7 @@ gammaProductCacheLinks[{cTag_, start_Integer}, inds_List] := Module[{dirs},
 gammaCachedProductMatrix::usage =
   "gammaCachedProductMatrix[family, inds] returns one cached sparse gamma-product matrix for a canonical family and sorted vector-index tuple.";
 gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Length[inds], familySlot, comboSlot},
-  If[rank > gammaVectorDimension || !AllTrue[inds, validGammaIndexQ], Return[$Failed]];
+  If[rank > gammaVectorDimension || !AllTrue[inds, gammaProductCacheCanonicalIndexQ], Return[$Failed]];
   If[rank > 1 && !DuplicateFreeQ[inds], Return[gammaProductCacheZeroMatrix]];
   If[Sort[inds] =!= inds, Return[$Failed]];
   familySlot = If[KeyExistsQ[gammaProductCacheFamilySlots, family], gammaProductCacheFamilySlots[family], Missing["UnknownFamily"]];
@@ -70,14 +85,15 @@ gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Le
 
 
 gammaProductCacheNormalizeLinks::usage =
-  "gammaProductCacheNormalizeLinks[links] returns {family, sortedIndices, sign} for one concrete cached gamma-link list, or $Failed if the list is outside the canonical alternating cache.";
-gammaProductCacheNormalizeLinks[links_List] := Module[{cTag = None, vectorLinks = links, dirs, start, family, inds},
+  "gammaProductCacheNormalizeLinks[links] returns {family, sortedCanonicalIndices, phase, canonicalIndexOrder} for one concrete cached gamma-link list, or $Failed if the list is outside the canonical alternating cache.";
+gammaProductCacheNormalizeLinks[links_List] := Module[
+  {cTag = None, vectorLinks = links, dirs, start, family, inds, canonicalInds, phase},
   If[links === {}, Return[$Failed]];
   If[MatchQ[First[links], CUDHold | CDUHold], cTag = First[links]; vectorLinks = Rest[links]];
   If[vectorLinks === {},
     Return @ Switch[cTag,
-      CUDHold, {{CUDHold, 2}, {}, 1},
-      CDUHold, {{CDUHold, 1}, {}, 1},
+      CUDHold, {{CUDHold, 2}, {}, 1, {}},
+      CDUHold, {{CDUHold, 1}, {}, 1, {}},
       _, $Failed
     ]
   ];
@@ -92,17 +108,20 @@ gammaProductCacheNormalizeLinks[links_List] := Module[{cTag = None, vectorLinks 
   If[family === $Failed, Return[$Failed]];
   inds = vectorLinks /. {GammaUDHold[mu_Integer] :> mu, GammaDUHold[mu_Integer] :> mu};
   If[!AllTrue[inds, validGammaIndexQ], Return[$Failed]];
-  {family, Sort[inds], 1}
+  canonicalInds = gammaCanonicalIndexFromExternal /@ inds;
+  If[!AllTrue[canonicalInds, gammaProductCacheCanonicalIndexQ], Return[$Failed]];
+  phase = Times @@ (gammaLorentzianPhase /@ inds);
+  {family, Sort[canonicalInds], phase, canonicalInds}
 ];
 
 
 gammaProductCacheLookupFromLinks::usage =
   "gammaProductCacheLookupFromLinks[links] returns the cached sparse matrix for one supported concrete gamma-link list, or $Failed if the list falls outside the canonical alternating cache.";
-gammaProductCacheLookupFromLinks[links_List] := Module[{normalized, inds, sign, muOrder},
+gammaProductCacheLookupFromLinks[links_List] := Module[{normalized, inds, sign, canonicalOrder},
   normalized = gammaProductCacheNormalizeLinks[links];
   If[normalized === $Failed, Return[$Failed]];
   inds = normalized[[2]];
-  muOrder = Cases[links, GammaUDHold[mu_Integer] | GammaDUHold[mu_Integer] :> mu, {1}];
-  sign = If[Length[inds] > 1 && DuplicateFreeQ[muOrder], Signature[Ordering[muOrder]], 1];
-  sign gammaCachedProductMatrix[normalized[[1]], inds]
+  canonicalOrder = normalized[[4]];
+  sign = If[Length[inds] > 1 && DuplicateFreeQ[canonicalOrder], Signature[Ordering[canonicalOrder]], 1];
+  sign normalized[[3]] gammaCachedProductMatrix[normalized[[1]], inds]
 ];

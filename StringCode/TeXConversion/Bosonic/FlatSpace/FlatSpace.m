@@ -40,6 +40,9 @@ toTeXDispatch[expX[k_, z_, zbar_], opts_Association] :=
 toTeXDispatch[\[Delta][idx1_, idx2_], opts_Association] :=
   "\\delta_{" <> formatIndex[idx1, opts] <> formatIndex[idx2, opts] <> "}";
 
+toTeXDispatch[EtaMetric[idx1_, idx2_], opts_Association] :=
+  "\\eta_{" <> formatIndex[idx1, opts] <> formatIndex[idx2, opts] <> "}";
+
 
 (* ::Subsection:: *)
 (*Profile conversions*)

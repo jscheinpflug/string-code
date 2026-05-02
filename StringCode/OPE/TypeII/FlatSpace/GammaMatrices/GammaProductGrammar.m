@@ -18,8 +18,8 @@ Begin["Private`"];
 gammaProductFactorQ::usage = "gammaProductFactorQ[expr] is True when expr is one GammaAntisymmetricProductHold factor.";
 gammaProductFactorQ[expr_] := Head[expr] === GammaAntisymmetricProductHold;
 
-deltaFactorQ::usage = "deltaFactorQ[expr] is True when expr is one inert vector-contraction factor \\[Delta][mu, nu].";
-deltaFactorQ[expr_] := Head[expr] === \[Delta] && Length[expr] == 2;
+deltaFactorQ::usage = "deltaFactorQ[expr] is True when expr is one inert vector-contraction factor \\[Delta][mu, nu] or EtaMetric[mu, nu].";
+deltaFactorQ[expr_] := MemberQ[{\[Delta], EtaMetric}, Head[expr]] && Length[expr] == 2;
 
 candidateFactorQ::usage = "candidateFactorQ[expr] is True when expr is a supported tensor-structure factor.";
 candidateFactorQ[expr_] := gammaProductFactorQ[expr] || deltaFactorQ[expr];
@@ -97,18 +97,20 @@ gammaFactorMetadataSelector[factor_ /; gammaProductFactorQ[factor]] := Module[{l
 ];
 gammaFactorMetadataSelector[_] := $Failed;
 
-deltaFactorPartsSelector::usage = "deltaFactorPartsSelector[factor] parses one \\[Delta][mu, nu] factor into selector/evaluator metadata.";
+deltaFactorPartsSelector::usage = "deltaFactorPartsSelector[factor] parses one \\[Delta][mu, nu] or EtaMetric[mu, nu] factor into selector/evaluator metadata.";
 deltaFactorPartsSelector[factor_ /; deltaFactorQ[factor]] := <|
   "Kind" -> "Delta",
+  "MetricHead" -> Head[factor],
   "VectorSymbols" -> List @@ factor,
   "Spinors" -> {},
   "SpinorChiralities" -> {}
 |>;
 deltaFactorPartsSelector[_] := $Failed;
 
-deltaFactorMetadataSelector::usage = "deltaFactorMetadataSelector[factor] extracts selector metadata from one \\[Delta][mu, nu] factor.";
+deltaFactorMetadataSelector::usage = "deltaFactorMetadataSelector[factor] extracts selector metadata from one \\[Delta][mu, nu] or EtaMetric[mu, nu] factor.";
 deltaFactorMetadataSelector[factor_ /; deltaFactorQ[factor]] := <|
   "Kind" -> "Delta",
+  "MetricHead" -> Head[factor],
   "Spinors" -> {},
   "SpinorChiralities" -> {},
   "VectorSymbols" -> List @@ factor
@@ -217,7 +219,8 @@ syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "
   ],
   Sequence @@ parts["Spinors"]
 ];
-syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Delta" := \[Delta] @@ parts["VectorSymbols"];
+syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Delta" :=
+  Lookup[parts, "MetricHead", \[Delta]] @@ parts["VectorSymbols"];
 syntheticFactorFromParts[_] := $Failed;
 
 

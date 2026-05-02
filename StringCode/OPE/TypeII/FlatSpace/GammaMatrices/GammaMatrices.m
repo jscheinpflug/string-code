@@ -5,6 +5,7 @@
 
 
 BeginPackage["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
+Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`FlatSpace`"];
 
 
@@ -24,10 +25,28 @@ gammaVectorDimension::usage =
   "gammaVectorDimension is the canonical 10-component vector dimension used by the frozen TypeII flat-space gamma matrices.";
 gammaVectorDimension = 10;
 
+gammaExternalIndexDomain::usage =
+  "gammaExternalIndexDomain[] returns the active public vector-index domain accepted by gamma-matrix accessors.";
+gammaExternalIndexDomain[] := flatSpaceVectorIndexDomain[];
+
+gammaCanonicalIndexFromExternal::usage =
+  "gammaCanonicalIndexFromExternal[mu] maps one active external vector index to the canonical 1..10 slot used by frozen gamma artifacts.";
+gammaCanonicalIndexFromExternal[mu_Integer] := flatSpaceVectorIndexSlot[mu];
+gammaCanonicalIndexFromExternal[_] := $Failed;
+
+gammaLorentzianPhase::usage =
+  "gammaLorentzianPhase[mu] returns the signature-dependent phase for one gamma index (timelike slot carries I in Lorentzian mode).";
+gammaLorentzianPhase[mu_Integer] := If[
+  currentSignature[] == "Lorentzian" && mu == First[gammaExternalIndexDomain[]],
+  I,
+  1
+];
+gammaLorentzianPhase[_] := 1;
+
 
 validGammaIndexQ::usage =
-  "validGammaIndexQ[mu] checks whether mu is a valid canonical flat-space vector index between 1 and 10.";
-validGammaIndexQ[mu_Integer] := 1 <= mu <= gammaVectorDimension;
+  "validGammaIndexQ[mu] checks whether mu is a valid active flat-space vector index in the current signature.";
+validGammaIndexQ[mu_Integer] := MemberQ[gammaExternalIndexDomain[], mu];
 validGammaIndexQ[_] := False;
 
 
@@ -60,8 +79,18 @@ sparseGammaMatrixInverse::usage =
   "sparseGammaMatrixInverse[matrix] returns the exact sparse inverse of one frozen spinor matrix.";
 sparseGammaMatrixInverse[matrix_SparseArray] := SparseArray[Inverse[Normal[matrix]]];
 
+gammaDataFileForSignature::usage =
+  "gammaDataFileForSignature[baseName] returns the signature-specific frozen gamma-data file path when present and otherwise falls back to the Euclidean base file.";
+gammaDataFileForSignature[baseName_String] := Module[{dir, sigName, candidate, fallback},
+  dir = DirectoryName[$InputFileName];
+  sigName = If[currentSignature[] == "Lorentzian", "Lorentzian", "Euclidean"];
+  candidate = FileNameJoin[{dir, StringReplace[baseName, ".m" -> "." <> sigName <> ".m"]}];
+  fallback = FileNameJoin[{dir, baseName}];
+  If[FileExistsQ[candidate], candidate, fallback]
+];
 
-Get[FileNameJoin[{DirectoryName[$InputFileName], "SpinFieldConventionData.m"}]];
+
+Get[gammaDataFileForSignature["SpinFieldConventionData.m"]];
 
 
 CUDSparseData::usage =
@@ -133,29 +162,45 @@ CIGammaData::usage =
   "CIGammaData is the exact list of ten antichiral-antichiral charge-conjugated gamma matrices derived from CDU . GammaUD.";
 CIGammaData = denseGammaMatrixFromSparse /@ CIGammaSparseData;
 
+gammaDenseMatrixAccessor::usage =
+  "gammaDenseMatrixAccessor[data, mu] returns one signature-adapted dense gamma matrix from canonical frozen data.";
+gammaDenseMatrixAccessor[data_List, mu_Integer] := Module[{slot = gammaCanonicalIndexFromExternal[mu], phase},
+  If[slot === $Failed, Return[$Failed]];
+  phase = gammaLorentzianPhase[mu];
+  phase data[[slot]]
+];
 
-CGamma[mu_Integer] := CGammaData[[mu]] /; validGammaIndexQ[mu];
-
-
-CGammaSparse[mu_Integer] := CGammaSparseData[[mu]] /; validGammaIndexQ[mu];
-
-
-CIGamma[mu_Integer] := CIGammaData[[mu]] /; validGammaIndexQ[mu];
-
-
-CIGammaSparse[mu_Integer] := CIGammaSparseData[[mu]] /; validGammaIndexQ[mu];
-
-
-GammaUD[mu_Integer] := gammaUDData[[mu]] /; validGammaIndexQ[mu];
-
-
-GammaUDSparse[mu_Integer] := gammaUDSparseData[[mu]] /; validGammaIndexQ[mu];
+gammaSparseMatrixAccessor::usage =
+  "gammaSparseMatrixAccessor[data, mu] returns one signature-adapted sparse gamma matrix from canonical frozen data.";
+gammaSparseMatrixAccessor[data_List, mu_Integer] := Module[{slot = gammaCanonicalIndexFromExternal[mu], phase},
+  If[slot === $Failed, Return[$Failed]];
+  phase = gammaLorentzianPhase[mu];
+  phase data[[slot]]
+];
 
 
-GammaDU[mu_Integer] := gammaDUData[[mu]] /; validGammaIndexQ[mu];
+CGamma[mu_Integer] := gammaDenseMatrixAccessor[CGammaData, mu] /; validGammaIndexQ[mu];
 
 
-GammaDUSparse[mu_Integer] := gammaDUSparseData[[mu]] /; validGammaIndexQ[mu];
+CGammaSparse[mu_Integer] := gammaSparseMatrixAccessor[CGammaSparseData, mu] /; validGammaIndexQ[mu];
+
+
+CIGamma[mu_Integer] := gammaDenseMatrixAccessor[CIGammaData, mu] /; validGammaIndexQ[mu];
+
+
+CIGammaSparse[mu_Integer] := gammaSparseMatrixAccessor[CIGammaSparseData, mu] /; validGammaIndexQ[mu];
+
+
+GammaUD[mu_Integer] := gammaDenseMatrixAccessor[gammaUDData, mu] /; validGammaIndexQ[mu];
+
+
+GammaUDSparse[mu_Integer] := gammaSparseMatrixAccessor[gammaUDSparseData, mu] /; validGammaIndexQ[mu];
+
+
+GammaDU[mu_Integer] := gammaDenseMatrixAccessor[gammaDUData, mu] /; validGammaIndexQ[mu];
+
+
+GammaDUSparse[mu_Integer] := gammaSparseMatrixAccessor[gammaDUSparseData, mu] /; validGammaIndexQ[mu];
 
 
 CUD = CUDData;
@@ -186,7 +231,7 @@ Gamma11DDSparse = -gammaSparseIdentityMatrix[gammaSpinorDimension];
 Gamma11DD = denseGammaMatrixFromSparse[Gamma11DDSparse];
 
 
-Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCache.m"}]];
+Get[gammaDataFileForSignature["GammaProductCache.m"]];
 
 gammaProductLinkMatrix::usage =
   "gammaProductLinkMatrix[link] returns the exact 16x16 sparse matrix associated with one concrete gamma-link factor.";

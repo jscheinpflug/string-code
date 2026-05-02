@@ -55,7 +55,7 @@ Begin["Private`"];
 
 $maxPsiPerLevel::usage =
   "Maximum number of ψ oscillators permitted at one mode level (equal to target-space dimension in flat TypeII).";
-$maxPsiPerLevel = 10;
+$maxPsiPerLevel := flatSpaceVectorDimension[];
 
 (* ============================================================ *)
 (* SECTION 1: VALIDATION & PICTURE HANDLING                     *)

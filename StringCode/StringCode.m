@@ -5,12 +5,34 @@ BeginPackage["StringCode`"]
 
 InitStringCode::usage = "InitStringCode[conventions] initializes StringCode with a given set of conventions";
 FlushKernelCache::usage = "FlushKernelCache[] flushes the persistent TypeII flat-space gamma-kernel cache when that subsystem is loaded and otherwise returns Null";
+InitStringCode::missingsignature = "InitStringCode requires an explicit \"signature\" key with value \"Euclidean\" or \"Lorentzian\".";
+InitStringCode::invalidsignature = "Invalid signature `1`. Allowed values are \"Euclidean\" and \"Lorentzian\".";
 
 
 Begin["Private`"];
 StringCode`FlushKernelCache[] := Null;
-InitStringCode[options_] := 
-Module[{userContext={}, theoryValue = options["theory"], CFTValue = options["CFT"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
+InitStringCode[options_] :=
+Module[
+{
+  userContext = {},
+  theoryValue = options["theory"],
+  CFTValue = options["CFT"],
+  conventionValue = options["conventions"],
+  bracketValue = options["bracket"],
+  signatureValue = Lookup[options, "signature", Missing["NotPresent"]]
+},
+If[!StringQ[signatureValue],
+  Message[InitStringCode::missingsignature];
+  Return[$Failed]
+];
+If[!MemberQ[{"Euclidean", "Lorentzian"}, signatureValue],
+  Message[InitStringCode::invalidsignature, signatureValue];
+  Return[$Failed]
+];
+
+Needs["StringCode`Symbols`"];
+If[setCurrentSignature[signatureValue] === $Failed, Return[$Failed]];
+
 Switch[theoryValue,
 "TypeII", userContext = {
     "StringCode`Symbols`TypeII`",
@@ -42,6 +64,8 @@ Switch[CFTValue,
 "FlatSpace",
 Switch[theoryValue,
 "TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"];
+AppendTo[userContext, If[signatureValue == "Euclidean", "StringCode`Symbols`TypeII`FlatSpace`Euclidean`", "StringCode`Symbols`TypeII`FlatSpace`Lorentzian`"]];
+AppendTo[userContext, If[signatureValue == "Euclidean", "StringCode`Wick`TypeII`FlatSpace`Euclidean`", "StringCode`Wick`TypeII`FlatSpace`Lorentzian`"]];
 AppendTo[userContext, "StringCode`Operators`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; 
 AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
@@ -51,6 +75,8 @@ AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"],
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
+AppendTo[userContext, If[signatureValue == "Euclidean", "StringCode`Symbols`Bosonic`FlatSpace`Euclidean`", "StringCode`Symbols`Bosonic`FlatSpace`Lorentzian`"]];
+AppendTo[userContext, If[signatureValue == "Euclidean", "StringCode`Wick`Bosonic`FlatSpace`Euclidean`", "StringCode`Wick`Bosonic`FlatSpace`Lorentzian`"]];
 AppendTo[userContext, "StringCode`Operators`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; 
 AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`Bosonic`FlatSpace`"];
@@ -79,7 +105,6 @@ _, Print["No such bracket for theory ", theoryValue]
 ],
 _, Print["There is no such bracket"]];
 
-Needs["StringCode`Symbols`"];
 Needs["StringCode`NormalOrdering`"];
 Needs["StringCode`Taylor`"];
 Needs["StringCode`Wick`"];
