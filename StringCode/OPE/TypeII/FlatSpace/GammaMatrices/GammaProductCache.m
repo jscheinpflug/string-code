@@ -1,11 +1,9 @@
 gammaProductCacheDataFileForSignature::usage =
-  "gammaProductCacheDataFileForSignature[] returns the signature-specific gamma-product cache data file when present, falling back to the Euclidean canonical data file.";
-gammaProductCacheDataFileForSignature[] := Module[{dir, sigName, candidate, fallback},
+  "gammaProductCacheDataFileForSignature[] returns the signature-specific gamma-product cache data file from the appropriate Euclidean or Lorentzian subdirectory.";
+gammaProductCacheDataFileForSignature[] := Module[{dir, sigName},
   dir = DirectoryName[$InputFileName];
   sigName = If[currentSignature[] == "Lorentzian", "Lorentzian", "Euclidean"];
-  candidate = FileNameJoin[{dir, "GammaProductCacheData." <> sigName <> ".m"}];
-  fallback = FileNameJoin[{dir, "GammaProductCacheData.m"}];
-  If[FileExistsQ[candidate], candidate, fallback]
+  FileNameJoin[{dir, sigName, "GammaProductCacheData.m"}]
 ];
 
 Get[gammaProductCacheDataFileForSignature[]];

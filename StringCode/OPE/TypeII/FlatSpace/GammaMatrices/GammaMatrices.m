@@ -80,13 +80,11 @@ sparseGammaMatrixInverse::usage =
 sparseGammaMatrixInverse[matrix_SparseArray] := SparseArray[Inverse[Normal[matrix]]];
 
 gammaDataFileForSignature::usage =
-  "gammaDataFileForSignature[baseName] returns the signature-specific frozen gamma-data file path when present and otherwise falls back to the Euclidean base file.";
-gammaDataFileForSignature[baseName_String] := Module[{dir, sigName, candidate, fallback},
+  "gammaDataFileForSignature[baseName] returns the signature-specific frozen gamma-data file path from the appropriate Euclidean or Lorentzian subdirectory.";
+gammaDataFileForSignature[baseName_String] := Module[{dir, sigName},
   dir = DirectoryName[$InputFileName];
   sigName = If[currentSignature[] == "Lorentzian", "Lorentzian", "Euclidean"];
-  candidate = FileNameJoin[{dir, StringReplace[baseName, ".m" -> "." <> sigName <> ".m"]}];
-  fallback = FileNameJoin[{dir, baseName}];
-  If[FileExistsQ[candidate], candidate, fallback]
+  FileNameJoin[{dir, sigName, baseName}]
 ];
 
 
@@ -231,14 +229,24 @@ Gamma11DDSparse = -gammaSparseIdentityMatrix[gammaSpinorDimension];
 Gamma11DD = denseGammaMatrixFromSparse[Gamma11DDSparse];
 
 
-Get[gammaDataFileForSignature["GammaProductCache.m"]];
+Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCache.m"}]];
 
 gammaProductLinkMatrix::usage =
   "gammaProductLinkMatrix[link] returns the exact 16x16 sparse matrix associated with one concrete gamma-link factor.";
+gammaProductLinkMatrix::invalidindex =
+  "Vector index `1` is not valid in `2` mode. Expected index in `3`.";
 gammaProductLinkMatrix[CUDHold] := CUDSparse;
 gammaProductLinkMatrix[CDUHold] := CDUSparse;
 gammaProductLinkMatrix[GammaUDHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaUDSparse[mu];
 gammaProductLinkMatrix[GammaDUHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaDUSparse[mu];
+gammaProductLinkMatrix[GammaUDHold[mu_Integer]] /; !validGammaIndexQ[mu] := (
+  Message[gammaProductLinkMatrix::invalidindex, mu, currentSignature[], gammaExternalIndexDomain[]];
+  $Failed
+);
+gammaProductLinkMatrix[GammaDUHold[mu_Integer]] /; !validGammaIndexQ[mu] := (
+  Message[gammaProductLinkMatrix::invalidindex, mu, currentSignature[], gammaExternalIndexDomain[]];
+  $Failed
+);
 gammaProductLinkMatrix[Gamma11UUHold[]] := Gamma11UUSparse;
 gammaProductLinkMatrix[Gamma11DDHold[]] := Gamma11DDSparse;
 gammaProductLinkMatrix[_] := $Failed;

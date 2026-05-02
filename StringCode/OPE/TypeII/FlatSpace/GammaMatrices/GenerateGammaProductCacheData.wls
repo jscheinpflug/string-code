@@ -1,7 +1,12 @@
 scriptDir = DirectoryName[$InputFileName];
+targetSignature = If[Length[$ScriptCommandLine] >= 2, $ScriptCommandLine[[2]], "Euclidean"];
+If[!MemberQ[{"Euclidean", "Lorentzian"}, targetSignature],
+  Print["Error: signature must be Euclidean or Lorentzian, got: ", targetSignature];
+  Exit[1]
+];
 
 Needs["StringCode`"];
-StringCode`InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat", "signature" -> "Euclidean"|>];
+StringCode`InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat", "signature" -> targetSignature|>];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
 
 families = {
@@ -24,10 +29,10 @@ gammaProductCacheLinks[{cTag_, start_Integer}, inds_List] := Module[{dirs},
   ]
 ];
 
-gammaProductCacheLinkMatrix[CUDHold] := CUDSparse;
-gammaProductCacheLinkMatrix[CDUHold] := CDUSparse;
-gammaProductCacheLinkMatrix[GammaUDHold[mu_Integer]] /; 1 <= mu <= gammaVectorDimension := GammaUDSparse[mu];
-gammaProductCacheLinkMatrix[GammaDUHold[mu_Integer]] /; 1 <= mu <= gammaVectorDimension := GammaDUSparse[mu];
+gammaProductCacheLinkMatrix[CUDHold] := CUDSparseData;
+gammaProductCacheLinkMatrix[CDUHold] := CDUSparseData;
+gammaProductCacheLinkMatrix[GammaUDHold[slot_Integer]] /; 1 <= slot <= gammaVectorDimension := gammaUDSparseData[[slot]];
+gammaProductCacheLinkMatrix[GammaDUHold[slot_Integer]] /; 1 <= slot <= gammaVectorDimension := gammaDUSparseData[[slot]];
 
 gammaProductCacheAntisymmetrizedMatrixFromPattern[{}, {}] := SparseArray[Band[{1, 1}] -> 1, {gammaSpinorDimension, gammaSpinorDimension}];
 gammaProductCacheAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
@@ -61,12 +66,12 @@ gammaProductCacheData = Table[
 ];
 
 compressed = Compress[gammaProductCacheData];
-cachePath = FileNameJoin[{scriptDir, "GammaProductCacheData.m"}];
+cachePath = FileNameJoin[{scriptDir, targetSignature, "GammaProductCacheData.m"}];
 Export[
   cachePath,
   StringJoin[
     "gammaProductCacheDataCompressed::usage =\n",
-    "  \"gammaProductCacheDataCompressed is the compressed canonical alternating gamma-product cache data for TypeII flat-space spin contractions.\";\n",
+    "  \"gammaProductCacheDataCompressed is the compressed canonical alternating gamma-product cache data for TypeII flat-space spin contractions (", targetSignature, " signature).\";\n",
     "gammaProductCacheDataCompressed = ",
     ToString[InputForm[compressed]],
     ";\n"
@@ -74,5 +79,6 @@ Export[
   "Text"
 ];
 
-Print[cachePath];
-Print[StringLength[compressed]];
+Print["Generated: ", cachePath];
+Print["Signature: ", targetSignature];
+Print["Compressed size: ", StringLength[compressed]];
