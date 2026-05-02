@@ -47,15 +47,15 @@ Begin["Private`"]
 
 rawBosonizedFermionToBosonWickRatio::usage =
   "rawBosonizedFermionToBosonWickRatio is the psi-psi coefficient in the convention-blind raw TypeII bosonization basis.";
-rawBosonizedFermionToBosonWickRatio = -1/2;
+rawBosonizedFermionToBosonWickRatio = 1;
 
 rawBosonizedPsiSCoefficient::usage =
   "rawBosonizedPsiSCoefficient is the coefficient of the bosonized e^-phi psi with e^-phi/2 S OPE in the convention-blind raw TypeII bosonization basis.";
-rawBosonizedPsiSCoefficient = I/2;
+rawBosonizedPsiSCoefficient = 1/Sqrt[2];
 
 rawBosonizedPsiSdotCoefficient::usage =
   "rawBosonizedPsiSdotCoefficient is the coefficient of the bosonized e^-phi psi with e^-3phi/2 Sdot OPE in the convention-blind raw TypeII bosonization basis.";
-rawBosonizedPsiSdotCoefficient = 1/2;
+rawBosonizedPsiSdotCoefficient = -I/Sqrt[2];
 
 rawBosonizedSSdotCoefficient::usage =
   "rawBosonizedSSdotCoefficient is the coefficient of the bosonized e^-phi/2 S with e^-3phi/2 Sdot OPE in the convention-blind raw TypeII bosonization basis.";
