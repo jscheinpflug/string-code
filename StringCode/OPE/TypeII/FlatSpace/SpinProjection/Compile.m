@@ -303,6 +303,23 @@ spinProjectionRelabelSectorFamily0[{op_, tensors_}, rules_List] := {
   spinProjectionRelabelTensorStructureList0[tensors, rules]
 };
 
+relabelSectorArtifact0::usage =
+  "relabelSectorArtifact0[artifact, rules] reinstates actual external labels throughout a cached canonical sector artifact.";
+relabelSectorArtifact0[artifact_Association, rules_List] := If[rules === {},
+  artifact,
+  Association @ KeyValueMap[
+    Function[{key, val},
+      key -> If[
+        MemberQ[{"Ops", "Expr", "Columns", "Families", "FreeSpinSymbols", "FreeVectorGroups"}, key],
+        val /. rules,
+        val
+      ]
+    ],
+    artifact
+  ]
+];
+relabelSectorArtifact0[None, _] := None;
+
 generateSpinFieldOPEData::usage =
   "generateSpinFieldOPEData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] builds {operator, tensorStructures} pairs for one chiral sector.";
 generateSpinFieldOPEData[
@@ -680,19 +697,23 @@ buildProjectedArtifacts[ops_List, wH_, wA_, seed_] := <|
 buildSectorArtifact::usage =
   "buildSectorArtifact[sector, ops, targetWeight, seed] builds one cached chiral sector artifact in ClosedForm or SpinProjection mode.";
 buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] := withPersistentCacheBoundary @ Module[
-  {spec, sectorOps, cacheKey, cached, data, artifact},
+  {spec, sectorOps, canonical, canonicalOps, inverseRules, cacheKey, cached, data, artifact},
   If[targetWeight === None, Return[None]];
   spec = spinProjectionSectorSpec[sector];
   sectorOps = spinProjectionSectorOps0[ops, spec];
-  cacheKey = {sector, spinProjectionCanonicalOps0[sectorOps], targetWeight, seed};
+  canonical = spinProjectionCanonicalizeOps[sectorOps];
+  canonicalOps = canonical["Ops"];
+  inverseRules = canonical["InverseRules"];
+  cacheKey = {sector, canonicalOps, targetWeight, seed};
   cached = spinProjectionArtifactCacheLookup0[cacheKey];
-  If[cached =!= Missing["NotAvailable"], Return[cached]];
-  If[closedFormSectorQ0[sectorOps],
-    artifact = buildClosedFormSectorArtifact0[sector, sectorOps, targetWeight, {}];
-    Return[spinProjectionArtifactCacheStore0[cacheKey, artifact]]
+  If[cached =!= Missing["NotAvailable"], Return[relabelSectorArtifact0[cached, inverseRules]]];
+  If[closedFormSectorQ0[canonicalOps],
+    artifact = buildClosedFormSectorArtifact0[sector, canonicalOps, targetWeight, {}];
+    spinProjectionArtifactCacheStore0[cacheKey, artifact];
+    Return[relabelSectorArtifact0[artifact, inverseRules]]
   ];
   data = spinProjectionSectorData[
-    sectorOps,
+    canonicalOps,
     targetWeight,
     spec["BasisGenerator"],
     spec["PsiHead"],
@@ -702,10 +723,11 @@ buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] 
   ];
   artifact = If[
     data === {},
-    buildFailedSpinSectorArtifact0[sector, sectorOps, targetWeight, "NoCandidates"],
-    buildSpinSectorArtifact0[sector, sectorOps, targetWeight, data]
+    buildFailedSpinSectorArtifact0[sector, canonicalOps, targetWeight, "NoCandidates"],
+    buildSpinSectorArtifact0[sector, canonicalOps, targetWeight, data]
   ];
-  spinProjectionArtifactCacheStore0[cacheKey, artifact]
+  spinProjectionArtifactCacheStore0[cacheKey, artifact];
+  relabelSectorArtifact0[artifact, inverseRules]
 ];
 
 buildClosedFormSectorArtifact0::usage =
