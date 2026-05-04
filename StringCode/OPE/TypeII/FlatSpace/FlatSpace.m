@@ -166,9 +166,9 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   restAntiOps = Select[R @@@ (restSplitLists[[All, 2]]), RTest];
 
   (* Holomorphic sector *)
-  totalCollWeightHolo = Total[totalWeightHolo /@ holoOps];
+  totalCollWeightHolo = Total[totalWeightHolo /@ holoOps] /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
   opeCollResultHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps];
-  minCollWeightHolo = totalCollWeightHolo + Exponent[opeCollResultHolo // Together, \[Epsilon]Holo, Min];
+  minCollWeightHolo = (totalCollWeightHolo + Exponent[opeCollResultHolo // Together, \[Epsilon]Holo, Min]) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
 
   (* Memoized spin solver for holomorphic rest fields *)
   memoRestHolo[restWt_] := memoRestHolo[restWt] = Module[{artifact},
@@ -185,24 +185,35 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
     ]
   ];
 
-  (* Pre-filter valid collapsable weights: must yield non-negative rest weights *)
-  validCollWeightsHolo = Select[
-    Range[minCollWeightHolo, targetWeightHolo],
-    targetWeightHolo - # >= 0 &
-  ];
-
-  tableHolo = Table[
-    Module[{collRes = projectHolo[opeCollResultHolo, collWt - totalCollWeightHolo, \[Epsilon]Holo]},
-      If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[targetWeightHolo - collWt]]]
+  (* Compute valid collapsable weights and project *)
+  If[targetWeightHolo >= 0,
+    (* Standard case: partition targetWeightHolo *)
+    validCollWeightsHolo = Select[
+      Range[minCollWeightHolo, targetWeightHolo],
+      targetWeightHolo - # >= 0 &
+    ];
+    tableHolo = Table[
+      Module[{collRes = projectHolo[opeCollResultHolo, collWt - totalCollWeightHolo, \[Epsilon]Holo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[targetWeightHolo - collWt]]]
+      ],
+      {collWt, validCollWeightsHolo}
     ],
-    {collWt, validCollWeightsHolo}
+    (* Negative target weight: partition wH directly *)
+    validCollWeightsHolo = Range[minCollWeightHolo, wH];
+    tableHolo = Table[
+      Module[{nonCollProjWt = wH - collProjWt,
+              collRes = projectHolo[opeCollResultHolo, collProjWt - totalCollWeightHolo, \[Epsilon]Holo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[nonCollProjWt]]]
+      ],
+      {collProjWt, validCollWeightsHolo}
+    ]
   ];
   holoProjected = Total[tableHolo];
 
   (* Antiholomorphic sector *)
-  totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ antiOps];
+  totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ antiOps] /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
   opeCollResultAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
-  minCollWeightAntiHolo = totalCollWeightAntiHolo + Exponent[opeCollResultAntiHolo // Together, \[Epsilon]AntiHolo, Min];
+  minCollWeightAntiHolo = (totalCollWeightAntiHolo + Exponent[opeCollResultAntiHolo // Together, \[Epsilon]AntiHolo, Min]) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
 
   (* Memoized spin solver for antiholomorphic rest fields *)
   memoRestAntiHolo[restWt_] := memoRestAntiHolo[restWt] = Module[{artifact},
@@ -219,17 +230,28 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
     ]
   ];
 
-  (* Pre-filter valid collapsable weights: must yield non-negative rest weights *)
-  validCollWeightsAntiHolo = Select[
-    Range[minCollWeightAntiHolo, targetWeightAntiHolo],
-    targetWeightAntiHolo - # >= 0 &
-  ];
-
-  tableAntiHolo = Table[
-    Module[{collRes = projectAntiHolo[opeCollResultAntiHolo, collWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
-      If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[targetWeightAntiHolo - collWt]]]
+  (* Compute valid collapsable weights and project *)
+  If[targetWeightAntiHolo >= 0,
+    (* Standard case: partition targetWeightAntiHolo *)
+    validCollWeightsAntiHolo = Select[
+      Range[minCollWeightAntiHolo, targetWeightAntiHolo],
+      targetWeightAntiHolo - # >= 0 &
+    ];
+    tableAntiHolo = Table[
+      Module[{collRes = projectAntiHolo[opeCollResultAntiHolo, collWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[targetWeightAntiHolo - collWt]]]
+      ],
+      {collWt, validCollWeightsAntiHolo}
     ],
-    {collWt, validCollWeightsAntiHolo}
+    (* Negative target weight: partition wA directly *)
+    validCollWeightsAntiHolo = Range[minCollWeightAntiHolo, wA];
+    tableAntiHolo = Table[
+      Module[{nonCollProjWt = wA - collProjWt,
+              collRes = projectAntiHolo[opeCollResultAntiHolo, collProjWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[nonCollProjWt]]]
+      ],
+      {collProjWt, validCollWeightsAntiHolo}
+    ]
   ];
   antiHoloProjected = Total[tableAntiHolo];
 
@@ -302,9 +324,9 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFi
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
 
   (* Holomorphic collapsable OPE *)
-  totalCollWeightHolo = Total[totalWeightHolo /@ collR];
+  totalCollWeightHolo = Total[totalWeightHolo /@ collR] /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
   opeCollResultHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR];
-  minCollWeightHolo = totalCollWeightHolo + Exponent[opeCollResultHolo // Together, \[Epsilon]Holo, Min];
+  minCollWeightHolo = (totalCollWeightHolo + Exponent[opeCollResultHolo // Together, \[Epsilon]Holo, Min]) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
 
   (* Memoized spin solver for rest fields *)
   memoRestHolo[restWt_] := memoRestHolo[restWt] = Module[{artifact},
@@ -321,19 +343,44 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFi
     ]
   ];
 
-  (* Pre-filter valid collapsable weights *)
-  validCollWeightsHolo = Select[
-    Range[minCollWeightHolo, targetWeightHolo],
-    targetWeightHolo - # >= 0 &
-  ];
-
-  tableHolo = Table[
-    Module[{collRes = projectHolo[opeCollResultHolo, collWt - totalCollWeightHolo, \[Epsilon]Holo]},
-      If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[targetWeightHolo - collWt]]]
+  (* Compute valid collapsable weights and project *)
+  If[targetWeightHolo >= 0,
+    (* Standard case: partition targetWeightHolo *)
+    validCollWeightsHolo = Select[
+      Range[minCollWeightHolo, targetWeightHolo],
+      targetWeightHolo - # >= 0 &
+    ];
+    tableHolo = Table[
+      Module[{collRes = projectHolo[opeCollResultHolo, collWt - totalCollWeightHolo, \[Epsilon]Holo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[targetWeightHolo - collWt]]]
+      ],
+      {collWt, validCollWeightsHolo}
     ],
-    {collWt, validCollWeightsHolo}
+    (* Negative target weight: partition wH directly *)
+    validCollWeightsHolo = Range[minCollWeightHolo, wH];
+    tableHolo = Table[
+      Module[{nonCollProjWt = wH - collProjWt,
+              collRes = projectHolo[opeCollResultHolo, collProjWt - totalCollWeightHolo, \[Epsilon]Holo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestHolo[nonCollProjWt]]]
+      ],
+      {collProjWt, validCollWeightsHolo}
+    ]
   ];
   Total[tableHolo]
+];
+
+(* OPEProjectedHolo for pure spin fields (no collapsable) *)
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ] && !AnyTrue[{Ra}, hasCollapsable]), opts___Rule] := Module[
+  {seed, artifact},
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+  If[wH < 0,
+    0,
+    artifact = buildSectorArtifact["Holo", {Ra}, wH, seed];
+    If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
+      0,
+      sectorExprFromArtifact0[artifact, seed]
+    ]
+  ]
 ];
 
 (* OPEProjectedAntiHolo for mixed collapsable + spin fields *)
@@ -360,9 +407,9 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSp
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
 
   (* Antiholomorphic collapsable OPE *)
-  totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ collR];
+  totalCollWeightAntiHolo = Total[totalWeightAntiHolo /@ collR] /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
   opeCollResultAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR];
-  minCollWeightAntiHolo = totalCollWeightAntiHolo + Exponent[opeCollResultAntiHolo // Together, \[Epsilon]AntiHolo, Min];
+  minCollWeightAntiHolo = (totalCollWeightAntiHolo + Exponent[opeCollResultAntiHolo // Together, \[Epsilon]AntiHolo, Min]) /. (h_Symbol)[__] /; MemberQ[{"dot", "der"}, SymbolName[h]] :> 0;
 
   (* Memoized spin solver for rest fields *)
   memoRestAntiHolo[restWt_] := memoRestAntiHolo[restWt] = Module[{artifact},
@@ -379,19 +426,44 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSp
     ]
   ];
 
-  (* Pre-filter valid collapsable weights *)
-  validCollWeightsAntiHolo = Select[
-    Range[minCollWeightAntiHolo, targetWeightAntiHolo],
-    targetWeightAntiHolo - # >= 0 &
-  ];
-
-  tableAntiHolo = Table[
-    Module[{collRes = projectAntiHolo[opeCollResultAntiHolo, collWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
-      If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[targetWeightAntiHolo - collWt]]]
+  (* Compute valid collapsable weights and project *)
+  If[targetWeightAntiHolo >= 0,
+    (* Standard case: partition targetWeightAntiHolo *)
+    validCollWeightsAntiHolo = Select[
+      Range[minCollWeightAntiHolo, targetWeightAntiHolo],
+      targetWeightAntiHolo - # >= 0 &
+    ];
+    tableAntiHolo = Table[
+      Module[{collRes = projectAntiHolo[opeCollResultAntiHolo, collWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[targetWeightAntiHolo - collWt]]]
+      ],
+      {collWt, validCollWeightsAntiHolo}
     ],
-    {collWt, validCollWeightsAntiHolo}
+    (* Negative target weight: partition wA directly *)
+    validCollWeightsAntiHolo = Range[minCollWeightAntiHolo, wA];
+    tableAntiHolo = Table[
+      Module[{nonCollProjWt = wA - collProjWt,
+              collRes = projectAntiHolo[opeCollResultAntiHolo, collProjWt - totalCollWeightAntiHolo, \[Epsilon]AntiHolo]},
+        If[collRes === 0, 0, multiplyFactors[collRes, memoRestAntiHolo[nonCollProjWt]]]
+      ],
+      {collProjWt, validCollWeightsAntiHolo}
+    ]
   ];
   Total[tableAntiHolo]
+];
+
+(* OPEProjectedAntiHolo for pure spin fields (no collapsable) *)
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ] && !AnyTrue[{Ra}, hasCollapsable]), opts___Rule] := Module[
+  {seed, artifact},
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+  If[wA < 0,
+    0,
+    artifact = buildSectorArtifact["Anti", {Ra}, wA, seed];
+    If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
+      0,
+      sectorExprFromArtifact0[artifact, seed]
+    ]
+  ]
 ];
 
 

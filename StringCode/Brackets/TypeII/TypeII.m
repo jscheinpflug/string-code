@@ -29,6 +29,8 @@ Needs["StringCode`Brackets`"];
 
 Begin["Private`"];
 
+hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
+hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
 
 (* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
@@ -161,6 +163,11 @@ If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
+
+(*Defines PCO action for string fields with spin fields*)
+actPCOHolo[Ra_ /; (RTest[Ra] && AnyTrue[{Ra}, hasSpinFieldQ])] := OPEProjectedHolo[totalWeightHolo[Ra]][PCO[z], placeOpAtPosGivenLocalCoordinates[0, 0, List @@ Ra]]
+
+
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
 actPCOAntiHolo[Ra_/;RTest[Ra]] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
@@ -185,6 +192,8 @@ If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand)/.{zBar->0})];
+
+actPCOAntiHolo[Ra_ /; (RTest[Ra] && AnyTrue[{Ra}, hasSpinFieldQ])] := OPEProjectedAntiHolo[totalWeightAntiHolo[Ra]][PCObar[zbar], placeOpAtPosGivenLocalCoordinates[0, 0, List @@ Ra]]
 
 
 (*Multilinearity of PCO zero mode actions*)
