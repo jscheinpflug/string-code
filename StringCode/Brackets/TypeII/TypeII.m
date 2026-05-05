@@ -103,9 +103,9 @@ BracketProjection::usage = "Projects a string bracket onto a given holomorphic/a
 BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:=
 Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs, termsList},
 
-(*Strip off PCOs*)
-bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
-termsList = If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}];
+(*Strip off PCOs and expand to distribute any overall constants across sums*)
+bracketNoPCOs = Expand[bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)}];
+termsList = If[Head[bracketNoPCOs] === Plus, List @@ bracketNoPCOs, {bracketNoPCOs}];
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts [inside PCO actions]*)
 result = Total @ Last @ Reap[
@@ -141,7 +141,8 @@ result
 actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
 
 (*Defines PCO action for string fields with spin fields - must come before general rule*)
-actPCOHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := OPEProjectedHolo[totalWeightHolo[Ra]][PCO[z], RAtPos[Ra, 0, 0]]
+actPCOHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] :=
+  OPEProjectedHolo[totalWeightHolo[Ra]][PCO[z], RAtPos[Ra, 0, 0]]
 
 actPCOHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
@@ -171,7 +172,8 @@ If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
 
 (*Defines PCO action for string fields with spin fields - must come before general rule*)
-actPCOAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := OPEProjectedAntiHolo[totalWeightAntiHolo[Ra]][PCObar[zbar], RAtPos[Ra, 0, 0]]
+actPCOAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] :=
+  OPEProjectedAntiHolo[totalWeightAntiHolo[Ra]][PCObar[zbar], RAtPos[Ra, 0, 0]]
 
 actPCOAntiHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
