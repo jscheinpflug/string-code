@@ -31,6 +31,10 @@ Differential::usage = "Differential of a function of moduli";
 
 Begin["Private`"];
 
+(* Helper to detect spin fields in operators - defined here to avoid load-order issues *)
+localHasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
+localHasSpinFieldQ[op_] := RTest[op] && AnyTrue[List @@ op, MemberQ[{"S", "St"}, SymbolName[Head[#]]] &];
+
 
 (* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
@@ -122,7 +126,11 @@ extractListFromMultiOpTimesConstant[Ma_/;MultiOpTest[Ma]] := List @@ Ma;
 
 (*Projected bracket is Bracket composed with a projection*)
 BracketProjected[toBracket__/; AllTrue[{toBracket}, BracketInputTest], weightHolo_, weightAntiHolo_]:=
-b0mHold[BracketProjection[(Bracket[toBracket]/.{b0mHold[a__]:>a}), weightHolo, weightAntiHolo]];
+Module[{bracketResult, bracketNob0m},
+  bracketResult = Bracket[toBracket];
+  bracketNob0m = bracketResult/.{b0mHold[a__]:>a};
+  b0mHold[BracketProjection[bracketNob0m, weightHolo, weightAntiHolo]]
+];
 
 (*Multilinearity of projected Bracket*)
 BracketProjected[args___, a_ + b_, rest___,  weightHolo_, weightAntiHolo_] := BracketProjected[args, a, rest,  weightHolo, weightAntiHolo] + BracketProjected[args, b, rest, weightHolo, weightAntiHolo]
@@ -135,7 +143,7 @@ BracketProjected[args___, Wedge[a__] b___, rest___, weightHolo_, weightAntiHolo_
 
 (*Multilinearity of Bracket projection*)
 BracketProjection[a_ + b_, weightHolo_, weightAntiHolo_] :=
- BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
+  BracketProjection[a, weightHolo, weightAntiHolo] + BracketProjection[b, weightHolo, weightAntiHolo]
  
 BracketProjection[a_ b_, weightHolo_, weightAntiHolo_] := 
 a BracketProjection[b, weightHolo, weightAntiHolo] /; (isScalarFactorQ[a] && FreeQ[a, Wedge])
@@ -166,7 +174,7 @@ projectBracketLocalOps[localOps_List, weightHolo_, weightAntiHolo_] := Module[
   dualChiralOps = Flatten[(extractListFromRTimesConstant /@ Select[localOps, RTestUpToConstant]), 1];
   dualChiralOps = Select[dualChiralOps, isHolomorphic[Head[#]] && isAntiHolomorphic[Head[#]] &];
 
-  (* Prefer factorized projection; only skip it when mixed-chirality fields exist but some are not factorizable. *)
+  (* Prefer factorized projection; skip when mixed-chirality fields are not factorizable. *)
   If[dualChiralOps === {} || AllTrue[dualChiralOps, isFactorizable[Head[#]] &],
     {bracketHolo, bracketAntiHolo, factorizationPrefac} = factorizeMultiOp[MultiOp @@ localOps];
     holoLocalOps = Select[List @@ bracketHolo, RTest];
