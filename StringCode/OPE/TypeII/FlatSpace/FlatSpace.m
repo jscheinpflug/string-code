@@ -45,6 +45,19 @@ OPEProjected::incomplete =
 hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
 hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
 
+freshSpinIndices::usage = "Replaces canonical \[Alpha]Out/\[Alpha]OutT solver indices in expr with fresh Unique[] symbols, preventing collision with user symbols.";
+freshSpinIndices[expr_] := Module[
+  {n = 20, holoOut, antiOut, rules},
+  holoOut = Table[Symbol["\[Alpha]Out" <> ToString[i]], {i, n}];
+  antiOut = Table[Symbol["\[Alpha]OutT" <> ToString[i]], {i, n}];
+  (* antiOut rules first: \[Alpha]OutT is a longer prefix than \[Alpha]Out *)
+  rules = Join[
+    Thread[antiOut -> (Unique["\[Alpha]t"] & /@ antiOut)],
+    Thread[holoOut -> (Unique["\[Alpha]"] & /@ holoOut)]
+  ];
+  expr /. rules
+];
+
 
 OPEWickList::usage = "OPEWickList[rList] folds OPEWick over a list of normal-ordered products.";
 OPEWickList[rList_List] := Which[
@@ -255,7 +268,7 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   ];
   antiHoloProjected = Total[tableAntiHolo];
 
-  sign signRest combineChiral[holoProjected, antiHoloProjected]
+  freshSpinIndices[sign signRest combineChiral[holoProjected, antiHoloProjected]]
 ];
 
 (* OPEProjected for pure spin fields (no collapsable) *)
@@ -267,7 +280,7 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   If[hExpr === $Failed, Return[Unevaluated[OPEProjected[wH, wA][Ra]]]];
   aExpr = sectorExprFromArtifact0[artifacts["Anti"], seed];
   If[aExpr === $Failed, Return[Unevaluated[OPEProjected[wH, wA][Ra]]]];
-  artifacts["Sign"] combineChiral[hExpr, aExpr]
+  freshSpinIndices[artifacts["Sign"] combineChiral[hExpr, aExpr]]
 ];
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !AnyTrue[{Ra}, hasSpinFieldQ])] := Module[
@@ -366,7 +379,7 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFi
       {collProjWt, validCollWeightsHolo}
     ]
   ];
-  Total[tableHolo]
+  freshSpinIndices[Total[tableHolo]]
 ];
 
 (* OPEProjectedHolo for pure spin fields (no collapsable) *)
@@ -378,7 +391,7 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFi
     artifact = buildSectorArtifact["Holo", {Ra}, wH, seed];
     If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
       0,
-      sectorExprFromArtifact0[artifact, seed]
+      freshSpinIndices[sectorExprFromArtifact0[artifact, seed]]
     ]
   ]
 ];
@@ -449,7 +462,7 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSp
       {collProjWt, validCollWeightsAntiHolo}
     ]
   ];
-  Total[tableAntiHolo]
+  freshSpinIndices[Total[tableAntiHolo]]
 ];
 
 (* OPEProjectedAntiHolo for pure spin fields (no collapsable) *)
@@ -461,7 +474,7 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSp
     artifact = buildSectorArtifact["Anti", {Ra}, wA, seed];
     If[ToString[artifact["Mode"]] === "SpinProjectionFailure" && ToString[artifact["Reason"]] === "NoCandidates",
       0,
-      sectorExprFromArtifact0[artifact, seed]
+      freshSpinIndices[sectorExprFromArtifact0[artifact, seed]]
     ]
   ]
 ];

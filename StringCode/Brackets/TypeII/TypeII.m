@@ -112,8 +112,10 @@ result = Total @ Last @ Reap[
 Scan[Function[bracketNoPCOsTerm,
 prefac = extractPrefacFromMultiOpTimesConstant[bracketNoPCOsTerm];
 localOps = extractListFromMultiOpTimesConstant[bracketNoPCOsTerm];
+
 (* Shared projection logic; TypeII-specific work is only the subsequent PCO action. *)
 projectionData = projectBracketLocalOps[localOps, weightHolo, weightAntiHolo];
+
 If[projectionData[[1]] === "Factorized",
 (* Fast path: project each chirality separately, then apply holomorphic/antiholomorphic PCOs. *)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {
@@ -130,6 +132,7 @@ Sow[Nest[actPCOHolo, Nest[actPCOAntiHolo, projectedOPE, numberOfAntiHoloPCOs], n
 _,
 Total[#2] &
 ];
+
 result
 ];
 
@@ -141,8 +144,14 @@ result
 actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
 
 (*Defines PCO action for string fields with spin fields - must come before general rule*)
-actPCOHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] :=
-  OPEProjectedHolo[totalWeightHolo[Ra]][PCO[z], RAtPos[Ra, 0, 0]]
+actPCOHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wH, pco, raAtOrigin, z, result},
+  wH = totalWeightHolo[Ra];
+  pco = PCO[z];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][pco, raAtOrigin];
+  result
+]
 
 actPCOHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
@@ -172,8 +181,13 @@ If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
 
 (*Defines PCO action for string fields with spin fields - must come before general rule*)
-actPCOAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] :=
-  OPEProjectedAntiHolo[totalWeightAntiHolo[Ra]][PCObar[zbar], RAtPos[Ra, 0, 0]]
+actPCOAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wAH, pcoBar, raAtOrigin, zBar},
+  wAH = totalWeightAntiHolo[Ra];
+  pcoBar = PCObar[zBar];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  OPEProjectedAntiHolo[wAH][pcoBar, raAtOrigin]
+]
 
 actPCOAntiHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
