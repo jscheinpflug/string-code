@@ -323,6 +323,7 @@ pictureHol[\[Xi][n_, z_]]:= 1;
 pictureHol[\[Eta][n_, z_]]:= -1;
 pictureHol[exp\[Phi]f[exp_, z_]]:= exp;
 pictureHol[exp\[Phi]b[exp_, z_]]:= exp;
+pictureHol[a_/;SymbolName[Head[a]]==="S"]:= a[[2]];
 pictureHol[a_/;isField[Head[a]]]:= 0;
 
 pictureAntiHol::usage = "Gives antiholomorphic picture number";
@@ -331,6 +332,7 @@ pictureAntiHol[\[Xi]t[n_, zbar_]]:= 1;
 pictureAntiHol[\[Eta]t[n_, zbar_]]:= -1;
 pictureAntiHol[exp\[Phi]tf[exp_, zbar_]]:= exp;
 pictureAntiHol[exp\[Phi]tb[exp_, zbar_]]:= exp;
+pictureAntiHol[a_/;SymbolName[Head[a]]==="St"]:= a[[2]];
 pictureAntiHol[a_/;isField[Head[a]]]:= 0;
 
 
