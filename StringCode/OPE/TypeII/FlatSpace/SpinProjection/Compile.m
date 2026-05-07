@@ -702,7 +702,7 @@ buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] 
   ];
   artifact = If[
     data === {},
-    buildFailedSpinSectorArtifact0[sector, sectorOps, targetWeight, "NoCandidates"],
+    buildClosedFormSectorArtifact0[sector, sectorOps, targetWeight, {}],
     buildSpinSectorArtifact0[sector, sectorOps, targetWeight, data]
   ];
   spinProjectionArtifactCacheStore0[cacheKey, artifact]
