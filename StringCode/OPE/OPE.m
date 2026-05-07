@@ -258,11 +258,12 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
   collPieces = splitCollapsable /@ {Ra};
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
+  splitSign = Times @@ collPieces[[All, 3]];
 
   collLists = factorizeForChiralSplit /@ (List @@ # & /@ collR);
   splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ collLists;
 
-  sign = If[Flatten[collLists] === {}, 1,
+  sign = splitSign * If[Flatten[collLists] === {}, 1,
     factorizationSign[Flatten[collLists], isHolomorphic, isAntiHolomorphic]
   ];
 
