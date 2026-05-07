@@ -88,11 +88,31 @@ _, Print["No such CFT for theory ", theoryValue]
  AppendTo[userContext, "StringCode`OPE`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`MinimalModel`"];
   AppendTo[userContext, "StringCode`TeXConversion`Bosonic`MinimalModel`"]; AppendTo[userContext, "StringCode`BasisGeneration`Bosonic`MinimalModel`"];,
  Print["No such CFT for theory ", theoryValue]],
+"Lightcone",
+Switch[theoryValue,
+"TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`Lightcone`"]; AppendTo[userContext, "StringCode`Wick`TypeII`Lightcone`"];
+AppendTo[userContext, "StringCode`Operators`TypeII`Lightcone`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`Lightcone`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`Lightcone`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`Lightcone`"];
+AppendTo[userContext, "StringCode`TeXConversion`TypeII`Lightcone`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`Lightcone`"];
+AppendTo[userContext, "StringCode`Correlators`TypeII`Lightcone`"];
+(* Also load FlatSpace for shared symbols like S, alpha', etc. *)
+AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`Operators`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`Correlators`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`CountSinglet`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`GammaMatrices`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`IndependentTensorStructures`"];
+AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`"],
+_, Print["No such CFT for theory ", theoryValue]
+],
 _, Print["There are no such CFTs"]];
 
-Switch[conventionValue, 
+Switch[conventionValue,
 "TypeII-Xi", If[theoryValue == "TypeII", AppendTo[userContext, "StringCode`Conventions`TypeII`Xi`"], Print["No such conventions for theory ", theoryValue]],
 "TypeII-Ashoke", If[theoryValue == "TypeII", AppendTo[userContext,"StringCode`Conventions`TypeII`Ashoke`"], Print["No such conventions for theory ", theoryValue]],
+"TypeII-Lightcone", If[theoryValue == "TypeII", AppendTo[userContext,"StringCode`Conventions`TypeII`Lightcone`"], Print["No such conventions for theory ", theoryValue]],
 "Bosonic-Xi", If[theoryValue == "Bosonic", AppendTo[userContext,"StringCode`Conventions`Bosonic`Xi`"], Print["No such conventions for theory ", theoryValue]],
 _, Print["There are no such conventions"]];
 

@@ -98,7 +98,7 @@ projectedOPE = If[
 ];
 Sow[prefac projectedOPE];
 
-],  If[Head[bracket] === Plus, bracket/.{Plus->List}, {bracket}]]
+],  If[Head[bracket] === Plus, List @@ bracket, {bracket}]]
 ,
 _,
 Total[#2] &

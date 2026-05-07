@@ -29,6 +29,8 @@ Needs["StringCode`Brackets`"];
 
 Begin["Private`"];
 
+hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
+hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{"S", "St"}, SymbolName[Head[#]]] &];
 
 (* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
@@ -98,20 +100,22 @@ result]
 
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
-Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
+BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:=
+Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs, termsList},
 
-(*Strip off PCOs*)
-bracketNoPCOs = bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)};
+(*Strip off PCOs and expand to distribute any overall constants across sums*)
+bracketNoPCOs = Expand[bracket//.{actPCO0Hold[x_]:> (numberOfHoloPCOs ++; x), actPCObar0Hold[x_]:> (numberOfAntiHoloPCOs ++; x)}];
+termsList = If[Head[bracketNoPCOs] === Plus, List @@ bracketNoPCOs, {bracketNoPCOs}];
 
 (*Loop through each multi-local term of Bracket obtained by different actions of B-ghosts [inside PCO actions]*)
 result = Total @ Last @ Reap[
 Scan[Function[bracketNoPCOsTerm,
-
 prefac = extractPrefacFromMultiOpTimesConstant[bracketNoPCOsTerm];
 localOps = extractListFromMultiOpTimesConstant[bracketNoPCOsTerm];
+
 (* Shared projection logic; TypeII-specific work is only the subsequent PCO action. *)
 projectionData = projectBracketLocalOps[localOps, weightHolo, weightAntiHolo];
+
 If[projectionData[[1]] === "Factorized",
 (* Fast path: project each chirality separately, then apply holomorphic/antiholomorphic PCOs. *)
 {holoOPEWithPCOs, antiHoloOPEWithPCOs} = {
@@ -119,15 +123,16 @@ If[projectionData[[1]] === "Factorized",
   Nest[actPCOAntiHolo, projectionData[[4]], numberOfAntiHoloPCOs]
 };
 Sow[R[holoOPEWithPCOs, antiHoloOPEWithPCOs]],
-(* Generic path: project the unsplit local operators, then apply combined PCO action. *)
+(* Generic path: project the unsplit local operators, then apply holo/antiholo PCOs separately. *)
 projectedOPE = prefac projectionData[[2]];
-Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]
+Sow[Nest[actPCOHolo, Nest[actPCOAntiHolo, projectedOPE, numberOfAntiHoloPCOs], numberOfHoloPCOs]]
 ];
-], If[Head[bracketNoPCOs] === Plus, bracketNoPCOs/.{Plus->List}, {bracketNoPCOs}]]
+], termsList]
 ,
 _,
 Total[#2] &
 ];
+
 result
 ];
 
@@ -137,7 +142,18 @@ result
 
 
 actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
-actPCOHolo[Ra_/;RTest[Ra]] := actPCOHolo[Ra] =
+
+(*Defines PCO action for string fields with spin fields - must come before general rule*)
+actPCOHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wH, pco, raAtOrigin, z, result},
+  wH = totalWeightHolo[Ra];
+  pco = PCO[z];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][pco, raAtOrigin];
+  result
+]
+
+actPCOHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOHolo[Ra] =
  Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCO[z];
 Scan[Function[PCOelem,
@@ -155,14 +171,25 @@ Scan[Function[Relem,
 power = Exponent[Relem, z];
 
 (*Extract zeroth order pole from OPE*)
-If[power == 0, result = result + Relem, 
+If[power == 0, result = result + Relem,
 If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];
 ((result // Expand) /.{z->0})];
 
+
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
-actPCOAntiHolo[Ra_/;RTest[Ra]] := actPCOAntiHolo[Ra] =
+
+(*Defines PCO action for string fields with spin fields - must come before general rule*)
+actPCOAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wAH, pcoBar, raAtOrigin, zBar},
+  wAH = totalWeightAntiHolo[Ra];
+  pcoBar = PCObar[zBar];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  OPEProjectedAntiHolo[wAH][pcoBar, raAtOrigin]
+]
+
+actPCOAntiHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := actPCOAntiHolo[Ra] =
 Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
 PCOList = List @@ PCObar[zBar];
 Scan[Function[PCOelem,
@@ -180,7 +207,7 @@ Scan[Function[Relem,
 power = Exponent[Relem, zBar];
 
 (*Extract zeroth order pole from OPE*)
-If[power == 0, result = result + Relem, 
+If[power == 0, result = result + Relem,
 If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
 ], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
 ];], PCOList];

@@ -781,8 +781,8 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     Infinity
   ];
   canonicalLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[lorentzSymbols]];
-  canonicalSpinAlphaSymbolsHolo = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsHolo]];
-  canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]t" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
+  canonicalSpinAlphaSymbolsHolo = Symbol["\\[Alpha]Out" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsHolo]];
+  canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]OutT" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
   lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
   spinAlphaRenamingRules = Join[
     Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
