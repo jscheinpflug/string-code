@@ -45,6 +45,43 @@ OPEProjected::incomplete =
 hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
 hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
 
+typeIIRamondOutputHoloQ::usage =
+  "typeIIRamondOutputHoloQ[restR] is True iff the holomorphic remainder has Ramond output parity.";
+typeIIRamondOutputHoloQ[restR_List] := OddQ[Count[Flatten[List @@ # & /@ restR], _S]];
+
+typeIIRamondOutputAntiHoloQ::usage =
+  "typeIIRamondOutputAntiHoloQ[restR] is True iff the antiholomorphic remainder has Ramond output parity.";
+typeIIRamondOutputAntiHoloQ[restR_List] := OddQ[Count[Flatten[List @@ # & /@ restR], _St]];
+
+typeIITotalPictureHolo0::usage =
+  "typeIITotalPictureHolo0[restR] sums the holomorphic picture contributions of the non-collapsable remainder field-by-field.";
+typeIITotalPictureHolo0[restR_List] := Total[pictureContributionHolo /@ Flatten[List @@ # & /@ restR]];
+
+typeIITotalPictureAntiHolo0::usage =
+  "typeIITotalPictureAntiHolo0[restR] sums the antiholomorphic picture contributions of the non-collapsable remainder field-by-field.";
+typeIITotalPictureAntiHolo0[restR_List] := Total[pictureContributionAntiHolo /@ Flatten[List @@ # & /@ restR]];
+
+minTypeIINonCollapsableWeightFromPicture::usage =
+  "minTypeIINonCollapsableWeightFromPicture[qTotal, ramondQ] returns the TypeII lower bound from picture and NS/R sector.";
+minTypeIINonCollapsableWeightFromPicture[qTotal_, ramondQ_] := With[
+  {base = -qTotal (qTotal + 2)/2},
+  Which[IntegerQ[qTotal], base, TrueQ[ramondQ], base + 5/8, True, base + 1/2]
+];
+
+minNonCollapsableWeightHolo::usage =
+  "minNonCollapsableWeightHolo[restR] returns the TypeII holomorphic lower bound for non-collapsable remainder projections derived from picture number and Ramond parity.";
+minNonCollapsableWeightHolo[restR_List] := minTypeIINonCollapsableWeightFromPicture[
+  typeIITotalPictureHolo0[restR],
+  typeIIRamondOutputHoloQ[restR]
+];
+
+minNonCollapsableWeightAntiHolo::usage =
+  "minNonCollapsableWeightAntiHolo[restR] returns the TypeII antiholomorphic lower bound for non-collapsable remainder projections derived from picture number and Ramond parity.";
+minNonCollapsableWeightAntiHolo[restR_List] := minTypeIINonCollapsableWeightFromPicture[
+  typeIITotalPictureAntiHolo0[restR],
+  typeIIRamondOutputAntiHoloQ[restR]
+];
+
 
 OPEWickList::usage = "OPEWickList[rList] folds OPEWick over a list of normal-ordered products.";
 OPEWickList[rList_List] := Which[

@@ -235,6 +235,72 @@ combineChiral[a_, b_] := Which[
 ];
 
 
+minNonCollapsableWeightHolo::usage =
+  "minNonCollapsableWeightHolo[restR] returns the default holomorphic lower bound for non-collapsable remainder projections.";
+minNonCollapsableWeightHolo[_] := 0;
+
+minNonCollapsableWeightAntiHolo::usage =
+  "minNonCollapsableWeightAntiHolo[restR] returns the default antiholomorphic lower bound for non-collapsable remainder projections.";
+minNonCollapsableWeightAntiHolo[_] := 0;
+
+expandedProjectedTerms0::usage =
+  "expandedProjectedTerms0[expr] expands one projected OPE expression into additive terms and drops explicit zeros.";
+expandedProjectedTerms0[expr_] := DeleteCases[
+  With[{expanded = Expand[expr]},
+    If[Head[expanded] === Plus, List @@ expanded, {expanded}]
+  ],
+  0
+];
+
+minProjectableWeight0::usage =
+  "minProjectableWeight0[collOPE, scaleSymbol] returns a lower bound below which the chiral projector must vanish on the collapsable OPE.";
+minProjectableWeight0[collOPE_, scaleSymbol_] := Module[
+  {terms, powers},
+  If[collOPE === 1, Return[0]];
+  terms = expandedProjectedTerms0[collOPE];
+  powers = (Exponent[normalizeScalingParameter[#, scaleSymbol], scaleSymbol] /. projectionExponentReplacement) & /@ terms;
+  Min[powers]
+];
+
+collectProjectedSectorBuckets::usage =
+  "collectProjectedSectorBuckets[collOPE, targetWeight, minRestWeight, projectFn, scaleSymbol] collects remainder-weight -> projected-collapsable pairs.";
+collectProjectedSectorBuckets[collOPE_, targetWeight_, minRestWeight_, projectFn_, scaleSymbol_] := Module[
+  {buckets = <||>, minColl, maxColl, projected},
+  minColl = minProjectableWeight0[collOPE, scaleSymbol];
+  maxColl = targetWeight - minRestWeight;
+  Do[
+    projected = Expand[projectFn[collOPE, coll, scaleSymbol] /. scaleSymbol -> 1];
+    If[projected =!= 0, buckets[targetWeight - coll] = projected],
+    {coll, minColl, maxColl}
+  ];
+  buckets
+];
+
+projectWithNonCollapsable::usage =
+  "projectWithNonCollapsable[collOPEHolo, collOPEAnti, εHolo, εAntiHolo, wH, wA, collWH, collWA, restR, minRestWH, minRestWA, opts] combines collapsable projections with delegated remainder projections.";
+projectWithNonCollapsable[
+  collOPEHolo_, collOPEAnti_, εHolo_, εAntiHolo_,
+  wH_, wA_, collWH_, collWA_,
+  restR_List, minRestWH_, minRestWA_, opts_List
+] := Module[
+  {restWH, restWA, holoBuckets, antiBuckets, result = 0, collProj, restProj},
+  restWH = Total[totalWeightHolo /@ restR];
+  restWA = Total[totalWeightAntiHolo /@ restR];
+  holoBuckets = collectProjectedSectorBuckets[collOPEHolo, wH - restWH - collWH, minRestWH - restWH, projectHolo, εHolo];
+  antiBuckets = collectProjectedSectorBuckets[collOPEAnti, wA - restWA - collWA, minRestWA - restWA, projectAntiHolo, εAntiHolo];
+  If[holoBuckets === <||> || antiBuckets === <||>, Return[0]];
+  Do[
+    collProj = combineChiral[holoBuckets[hKey], antiBuckets[aKey]];
+    If[collProj =!= 0,
+      restProj = OPEProjected[restWH + hKey, restWA + aKey][Sequence @@ restR, Sequence @@ opts];
+      result += multiplyFactors[collProj, restProj]
+    ],
+    {hKey, Keys[holoBuckets]}, {aKey, Keys[antiBuckets]}
+  ];
+  result
+];
+
+
 (* ::Subsection:: *)
 (*Projected OPE API*)
 
@@ -243,11 +309,12 @@ OPEProjected[wH_, wA_][a___, 0, b___] := 0;
 OPEProjected[wH_, wA_][a___, x_ + y_, b___] := OPEProjected[wH, wA][a, x, b] + OPEProjected[wH, wA][a, y, b];
 OPEProjected[wH_, wA_][a___, c_ x_, b___] := c OPEProjected[wH, wA][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable]), opts___Rule] := Module[
   {
-    collPieces, collR, restR, collLists, splitLists, sign, holoOps, antiOps,
-    insertionWeightHolo, insertionWeightAntiHolo, targetWeightHolo, targetWeightAntiHolo,
-    \[Epsilon]Holo, \[Epsilon]AntiHolo, projectedHolo, projectedAntiHolo, freeProjected, restProjected
+    collPieces, collR, restR, collLists, splitLists, splitSign, sign, holoOps, antiOps,
+    insertionWeightHolo, insertionWeightAntiHolo, collInsertionWeightHolo, collInsertionWeightAntiHolo,
+    targetWeightHolo, targetWeightAntiHolo, \[Epsilon]Holo, \[Epsilon]AntiHolo,
+    collOPEHolo, collOPEAnti, optionList
   },
 
   insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
@@ -259,6 +326,8 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
   splitSign = Times @@ collPieces[[All, 3]];
+  collInsertionWeightHolo = Total[totalWeightHolo /@ collR];
+  collInsertionWeightAntiHolo = Total[totalWeightAntiHolo /@ collR];
 
   collLists = factorizeForChiralSplit /@ (List @@ # & /@ collR);
   splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ collLists;
@@ -269,13 +338,21 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
 
   holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
   antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+  collOPEHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps];
+  collOPEAnti = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
+  optionList = Flatten[{opts}];
 
-  projectedHolo = projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps], targetWeightHolo, \[Epsilon]Holo];
-  projectedAntiHolo = projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps], targetWeightAntiHolo, \[Epsilon]AntiHolo];
-
-  freeProjected = sign combineChiral[projectedHolo, projectedAntiHolo];
-  restProjected = If[restR === {}, 1, opeOfRList[restR]];
-  multiplyFactors[freeProjected, restProjected]
+  If[restR === {},
+    sign combineChiral[
+      projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
+      projectAntiHolo[collOPEAnti, targetWeightAntiHolo, \[Epsilon]AntiHolo]
+    ],
+    sign projectWithNonCollapsable[
+      collOPEHolo, collOPEAnti, \[Epsilon]Holo, \[Epsilon]AntiHolo,
+      wH, wA, collInsertionWeightHolo, collInsertionWeightAntiHolo,
+      restR, minNonCollapsableWeightHolo[restR], minNonCollapsableWeightAntiHolo[restR], optionList
+    ]
+  ]
 ];
 
 OPEProjectedHolo[wH_][a___, 0, b___] := 0;
