@@ -35,8 +35,7 @@ hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{"S", "St"}, Symb
 (* ::Subsection::Closed:: *)
 (*Define 1-bracket (action of BRST charge)*)
 
-
-actBRSTHolo[Ra_/;RTest[Ra]] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRST[z];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
@@ -56,7 +55,16 @@ If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
 ];], BRSTList];
 (z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[Ra_/;RTest[Ra]] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
+actBRSTHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wH, brst, raAtOrigin, z, result},
+  wH = totalWeightHolo[Ra];
+  brst = jBRST[z];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][brst, raAtOrigin];
+  result
+];
+
+actBRSTAntiHolo[Ra_/; (RTest[Ra] && !hasSpinFieldQ[Ra])] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
 BRSTList = List @@ jBRSTbar[zBar];
 Scan[Function[BRSTelem,
 (*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
@@ -75,6 +83,15 @@ If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
 ], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
 ];], BRSTList];
 (zBar result // Expand)/.{zBar->0}];
+
+actBRSTAntiHolo[Ra_ /; (RTest[Ra] && hasSpinFieldQ[Ra])] := Module[
+  {wAH, brstBar, raAtOrigin, zBar, result},
+  wAH = totalWeightAntiHolo[Ra];
+  brstBar = jBRSTbar[zBar];
+  raAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedAntiHolo[wAH][brstBar, raAtOrigin];
+  result
+];
 
 
 (* ::Subsection:: *)
