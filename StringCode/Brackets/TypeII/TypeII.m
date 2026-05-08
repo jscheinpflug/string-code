@@ -34,45 +34,22 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[Ra_/;RTest[Ra]] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRST[z];
-Scan[Function[BRSTelem,
-(*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
-compositeInBRSTPosition = containsCompositeHolo[BRSTelem/.{z->0}];
-If[compositeInBRSTPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], compositeInBRSTPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0]];
-If[singularityUpperBound >= 0,
-(*Compute OPE with terms in the BRST current that possibly contribute*)
-OPEWithBRST = OPE[BRSTelem, RaPos]//Expand;
-Scan[Function[Relem,
-power = Exponent[Relem, z];
-(*Extract first order pole from OPE*)
-If[power == -1, result = result + Relem, 
-If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
-], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];], BRSTList];
-(z result // Expand)/.{z->0}];
 
-actBRSTAntiHolo[Ra_/;RTest[Ra]] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTbar[zBar];
-Scan[Function[BRSTelem,
-(*For each term in the BRST current, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
-compositeInBRSTPosition = containsCompositeAntiHolo[BRSTelem/.{zBar->0}];
-If[compositeInBRSTPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], compositeInBRSTPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0]];
-If[singularityUpperBound >= 0,
-(*Compute OPE with terms in the BRST current that possibly contribute*)
-OPEWithBRST = OPE[BRSTelem, RaPos]//Expand;
-Scan[Function[Relem,
-power = Exponent[Relem, zBar];
-(*Extract first order pole from OPE*)
-If[power == -1, result = result + Relem, 
-If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
-], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];], BRSTList];
-(zBar result // Expand)/.{zBar->0}];
+actBRSTHolo[Ra_ /; RTest[Ra]] := Module[
+  {wH, z, result},
+  wH = totalWeightHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][jBRST[z], inputAtOrigin];
+  postProcessBracketResult0[Expand[z result]/.{z->0}]
+];
+
+actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
+  {wH, zBar, result},
+  wH = totalWeightAntiHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedAntiHolo[wH][jBRSTbar[zBar], inputAtOrigin];
+  postProcessBracketResult0[Expand[zBar result]/.{zBar->0}]
+];
 
 
 (* ::Subsection:: *)
@@ -128,7 +105,7 @@ Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]
 _,
 Total[#2] &
 ];
-result
+postProcessBracketResult0[result]
 ];
 
 
@@ -137,54 +114,23 @@ result
 
 
 actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
-actPCOHolo[Ra_/;RTest[Ra]] := actPCOHolo[Ra] =
- Module[{result = 0, z, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
-PCOList = List @@ PCO[z];
-Scan[Function[PCOelem,
+actPCOHolo[Ra_ /; RTest[Ra]] := actPCOHolo[Ra] = Module[
+  {wH, z, result},
+  wH = totalWeightHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][PCO[z], inputAtOrigin];
+  postProcessBracketResult0[Expand[result]/.{z->0}]
+];
 
-(*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
-compositeInPCOPosition = containsCompositeHolo[PCOelem/.{z->0}];
-If[compositeInPCOPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
-
-If[singularityUpperBound >= 0,
-(*Compute OPE with terms in the PCO that possibly contribute*)
-OPEWithPCO = OPE[PCOelem, Ra]//Expand;
-Scan[Function[Relem,
-power = Exponent[Relem, z];
-
-(*Extract zeroth order pole from OPE*)
-If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrderHolo[Relem, -power, 0]]];
-], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
-];], PCOList];
-((result // Expand) /.{z->0})];
 
 actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
-actPCOAntiHolo[Ra_/;RTest[Ra]] := actPCOAntiHolo[Ra] =
-Module[{result = 0, zBar, OPEWithPCO, power, PCOList, singularityUpperBound, compositeInPCOPosition},
-PCOList = List @@ PCObar[zBar];
-Scan[Function[PCOelem,
-
-(*For each term in the PCO, check if there is any possibility [OPE singularity is upper bounded] of it giving a nonzero contribution*)
-compositeInPCOPosition = containsCompositeAntiHolo[PCOelem/.{zBar->0}];
-If[compositeInPCOPosition !=  "NotFound",
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], compositeInPCOPosition],
-singularityUpperBound = upperBoundSingularity[singularityMatrix[PCOelem, Ra], 0]];
-
-If[singularityUpperBound >= 0,
-(*Compute OPE with terms in the PCO that possibly contribute*)
-OPEWithPCO = OPE[PCOelem, Ra]//Expand;
-Scan[Function[Relem,
-power = Exponent[Relem, zBar];
-
-(*Extract zeroth order pole from OPE*)
-If[power == 0, result = result + Relem, 
-If[power < 0, result = result + TaylorAtOrderAntiHolo[Relem, -power, 0]]];
-], If[Head[OPEWithPCO] === Plus, List @@ OPEWithPCO, {OPEWithPCO}]];
-];], PCOList];
-((result // Expand)/.{zBar->0})];
+actPCOAntiHolo[Ra_ /; RTest[Ra]] := actPCOAntiHolo[Ra] = Module[
+  {wH, zBar, result},
+  wH = totalWeightAntiHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedAntiHolo[wH][PCObar[zBar], inputAtOrigin];
+  postProcessBracketResult0[Expand[result]/.{zBar->0}]
+];
 
 
 (*Multilinearity of PCO zero mode actions*)

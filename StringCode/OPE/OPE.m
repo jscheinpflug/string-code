@@ -300,6 +300,60 @@ projectWithNonCollapsable[
   result
 ];
 
+projectWithNonCollapsableHolo::usage =
+  "projectWithNonCollapsableHolo[collOPEHolo, antiExpr, εHolo, wH, collWH, restR, minRestWH] combines holomorphically projected collapsable terms with delegated holomorphic remainder projections.";
+projectWithNonCollapsableHolo[
+  collOPEHolo_, antiExpr_, εHolo_, wH_, collWH_, restR_List, minRestWH_
+] := Module[
+  {holoBuckets, result = 0, collProjected, restProjected},
+  holoBuckets = collectProjectedSectorBuckets[
+    collOPEHolo,
+    wH - collWH,
+    minRestWH,
+    projectHolo,
+    εHolo
+  ];
+  If[holoBuckets === <||>, Return[0]];
+  KeyValueMap[
+    Function[{restTargetWeightHolo, projectedHolo},
+      collProjected = multiplyFactors[projectedHolo, antiExpr];
+      If[collProjected =!= 0,
+        restProjected = OPEProjectedHolo[restTargetWeightHolo][Sequence @@ restR];
+        result = result + multiplyFactors[collProjected, restProjected];
+      ];
+    ],
+    holoBuckets
+  ];
+  result
+];
+
+projectWithNonCollapsableAntiHolo::usage =
+  "projectWithNonCollapsableAntiHolo[holoExpr, collOPEAnti, εAntiHolo, wA, collWA, restR, minRestWA] combines antiholomorphically projected collapsable terms with delegated antiholomorphic remainder projections.";
+projectWithNonCollapsableAntiHolo[
+  holoExpr_, collOPEAnti_, εAntiHolo_, wA_, collWA_, restR_List, minRestWA_
+] := Module[
+  {antiBuckets, result = 0, collProjected, restProjected},
+  antiBuckets = collectProjectedSectorBuckets[
+    collOPEAnti,
+    wA - collWA,
+    minRestWA,
+    projectAntiHolo,
+    εAntiHolo
+  ];
+  If[antiBuckets === <||>, Return[0]];
+  KeyValueMap[
+    Function[{restTargetWeightAntiHolo, projectedAntiHolo},
+      collProjected = multiplyFactors[holoExpr, projectedAntiHolo];
+      If[collProjected =!= 0,
+        restProjected = OPEProjectedAntiHolo[restTargetWeightAntiHolo][Sequence @@ restR];
+        result = result + multiplyFactors[collProjected, restProjected];
+      ];
+    ],
+    antiBuckets
+  ];
+  result
+];
+
 
 (* ::Subsection:: *)
 (*Projected OPE API*)
@@ -359,16 +413,67 @@ OPEProjectedHolo[wH_][a___, 0, b___] := 0;
 OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OPEProjectedHolo[wH][a, y, b];
 OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
 
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
+  {
+    \[Epsilon]Holo, localLists, factorizedLists, splitLists, sign, holoOps, antiOps,
+    insertionWeightHolo, targetWeightHolo, projectedHolo, spectatorAnti
+  },
+  localLists = List @@ # & /@ {Ra};
+  factorizedLists = factorizeForChiralSplit /@ localLists;
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ factorizedLists;
+  insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
+  targetWeightHolo = wH - insertionWeightHolo;
+  sign = If[Flatten[factorizedLists] === {}, 1,
+    factorizationSign[Flatten[factorizedLists], isHolomorphic, isAntiHolomorphic]
+  ];
+
+  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
+  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+  projectedHolo = projectHolo[
+    opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps],
+    targetWeightHolo, \[Epsilon]Holo
+  ];
+  spectatorAnti = opeOfRList[antiOps];
+  sign multiplyFactors[projectedHolo, spectatorAnti]
+];
+
 OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
-  {collPieces, collR, restR, insertionWeightHolo, targetWeightHolo, \[Epsilon]Holo, projectedHolo, restProjected},
+  {
+    collPieces, collR, restR, collLists, splitLists, splitSign, sign, holoOps, antiOps,
+    insertionWeightHolo, targetWeightHolo, collInsertionWeightHolo,
+    \[Epsilon]Holo, collOPEHolo, spectatorAnti
+  },
   insertionWeightHolo = Total[totalWeightHolo /@ {Ra}];
   targetWeightHolo = wH - insertionWeightHolo;
   collPieces = splitCollapsable /@ {Ra};
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
-  projectedHolo = projectHolo[opeOfRList[rescaleR[\[Epsilon]Holo] /@ collR], targetWeightHolo, \[Epsilon]Holo];
-  restProjected = If[restR === {}, 1, opeOfRList[restR]];
-  multiplyFactors[projectedHolo, restProjected]
+  splitSign = Times @@ collPieces[[All, 3]];
+  collInsertionWeightHolo = Total[totalWeightHolo /@ collR];
+  collLists = factorizeForChiralSplit /@ (List @@ # & /@ collR);
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ collLists;
+  sign = splitSign * If[Flatten[collLists] === {}, 1,
+    factorizationSign[Flatten[collLists], isHolomorphic, isAntiHolomorphic]
+  ];
+  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
+  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+  collOPEHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps];
+  spectatorAnti = opeOfRList[antiOps];
+  If[restR === {},
+    sign multiplyFactors[
+      projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
+      spectatorAnti
+    ],
+    sign projectWithNonCollapsableHolo[
+      collOPEHolo,
+      spectatorAnti,
+      \[Epsilon]Holo,
+      wH,
+      collInsertionWeightHolo,
+      restR,
+      minNonCollapsableWeightHolo[restR]
+    ]
+  ]
 ];
 
 
@@ -376,16 +481,67 @@ OPEProjectedAntiHolo[wA_][a___, 0, b___] := 0;
 OPEProjectedAntiHolo[wA_][a___, x_ + y_, b___] := OPEProjectedAntiHolo[wA][a, x, b] + OPEProjectedAntiHolo[wA][a, y, b];
 OPEProjectedAntiHolo[wA_][a___, c_ x_, b___] := c OPEProjectedAntiHolo[wA][a, x, b] /; (!containsFieldQ[c]);
 
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
+  {
+    \[Epsilon]AntiHolo, localLists, factorizedLists, splitLists, sign, holoOps, antiOps,
+    insertionWeightAntiHolo, targetWeightAntiHolo, projectedAntiHolo, spectatorHolo
+  },
+  localLists = List @@ # & /@ {Ra};
+  factorizedLists = factorizeForChiralSplit /@ localLists;
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ factorizedLists;
+  insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
+  targetWeightAntiHolo = wA - insertionWeightAntiHolo;
+  sign = If[Flatten[factorizedLists] === {}, 1,
+    factorizationSign[Flatten[factorizedLists], isHolomorphic, isAntiHolomorphic]
+  ];
+
+  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
+  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+  projectedAntiHolo = projectAntiHolo[
+    opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps],
+    targetWeightAntiHolo, \[Epsilon]AntiHolo
+  ];
+  spectatorHolo = opeOfRList[holoOps];
+  sign multiplyFactors[spectatorHolo, projectedAntiHolo]
+];
+
 OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
-  {collPieces, collR, restR, insertionWeightAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo, projectedAntiHolo, restProjected},
+  {
+    collPieces, collR, restR, collLists, splitLists, splitSign, sign, holoOps, antiOps,
+    insertionWeightAntiHolo, targetWeightAntiHolo, collInsertionWeightAntiHolo,
+    \[Epsilon]AntiHolo, collOPEAntiHolo, spectatorHolo
+  },
   insertionWeightAntiHolo = Total[totalWeightAntiHolo /@ {Ra}];
   targetWeightAntiHolo = wA - insertionWeightAntiHolo;
   collPieces = splitCollapsable /@ {Ra};
   collR = Select[collPieces[[All, 1]], # =!= 1 &];
   restR = Select[collPieces[[All, 2]], # =!= 1 &];
-  projectedAntiHolo = projectAntiHolo[opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ collR], targetWeightAntiHolo, \[Epsilon]AntiHolo];
-  restProjected = If[restR === {}, 1, opeOfRList[restR]];
-  multiplyFactors[projectedAntiHolo, restProjected]
+  splitSign = Times @@ collPieces[[All, 3]];
+  collInsertionWeightAntiHolo = Total[totalWeightAntiHolo /@ collR];
+  collLists = factorizeForChiralSplit /@ (List @@ # & /@ collR);
+  splitLists = splitOperators[#, isHolomorphic, isAntiHolomorphic] & /@ collLists;
+  sign = splitSign * If[Flatten[collLists] === {}, 1,
+    factorizationSign[Flatten[collLists], isHolomorphic, isAntiHolomorphic]
+  ];
+  holoOps = Select[R @@@ (splitLists[[All, 1]]), RTest];
+  antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
+  collOPEAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
+  spectatorHolo = opeOfRList[holoOps];
+  If[restR === {},
+    sign multiplyFactors[
+      spectatorHolo,
+      projectAntiHolo[collOPEAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo]
+    ],
+    sign projectWithNonCollapsableAntiHolo[
+      spectatorHolo,
+      collOPEAntiHolo,
+      \[Epsilon]AntiHolo,
+      wA,
+      collInsertionWeightAntiHolo,
+      restR,
+      minNonCollapsableWeightAntiHolo[restR]
+    ]
+  ]
 ];
 
 

@@ -34,38 +34,21 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-actBRSTHolo[Ra_/;RTest[Ra]] := Module[{result = 0, z, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTbosonicstring[z];
-Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0];
-If[singularityUpperBound >= 0,
-If[RcontainsProfile[RaPos],
-OPEWithBRST = OPE[BRSTelem, RaPos, 2]//Expand,
-OPEWithBRST = OPE[BRSTelem, RaPos]//Expand];
-Scan[Function[Relem,
-power = Exponent[Relem, z];
-If[power == -1, result = result + Relem, 
-If[power < -1, result = result + TaylorAtOrder[Relem, -power - 1, 0, 0, 0]]];
-], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];], BRSTList];
-(z result // Expand)/.{z->0}];
+actBRSTHolo[Ra_ /; RTest[Ra]] := Module[
+  {wH, z, result},
+  wH = totalWeightHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedHolo[wH][jBRST[z], inputAtOrigin];
+  postProcessBracketResult0[Expand[z result]/.{z->0}]
+];
 
-actBRSTAntiHolo[Ra_/;RTest[Ra]] := Module[{result = 0, zBar, RaPos = RAtPos[Ra, 0, 0], OPEWithBRST, power, BRSTList, singularityUpperBound, compositeInBRSTPosition},
-BRSTList = List @@ jBRSTbosonicstringbar[zBar];
-Scan[Function[BRSTelem,
-singularityUpperBound = upperBoundSingularity[singularityMatrix[BRSTelem, RaPos], 0];
-If[singularityUpperBound >= 0,
-If[RcontainsProfile[RaPos],
-OPEWithBRST = OPE[BRSTelem, RaPos, 2]//Expand,
-OPEWithBRST = OPE[BRSTelem, RaPos]//Expand];
-Scan[Function[Relem,
-power = Exponent[Relem, zBar];
-If[power == -1, result = result + Relem, 
-If[power < -1, result = result + TaylorAtOrder[Relem, 0, -power-1, 0, 0]]];
-], If[Head[OPEWithBRST] === Plus, List @@ OPEWithBRST, {OPEWithBRST}]];
-];], BRSTList];
-(zBar result // Expand)/.{zBar->0}];
-
+actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
+  {wH, zBar, result},
+  wH = totalWeightAntiHolo[Ra];
+  inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
+  result = OPEProjectedAntiHolo[wH][jBRSTbar[zBar], inputAtOrigin];
+  postProcessBracketResult0[Expand[zBar result]/.{zBar->0}]
+];
 
 (* ::Subsection:: *)
 (*Define string bracket*)
@@ -103,7 +86,7 @@ Sow[prefac projectedOPE];
 _,
 Total[#2] &
 ];
-result
+postProcessBracketResult0[result]
 ];
 
 

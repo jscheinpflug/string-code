@@ -39,6 +39,8 @@ Begin["Private`"];
 (*Action of BRST charge splits into holomorphic and antiholomorphic parts*)
 BracketInputTest::usage = "Predicate used by bracket routines to recognize acceptable operator inputs (normal-ordered R[...] or MultiOp[...]).";
 BracketInputTest[x_] := RTest[x] || MultiOpTest[x];
+postProcessBracketResult0::usage = "Post-processes bracket-related outputs before they are returned; FlatSpace overrides this to recombine factorized matter fields.";
+postProcessBracketResult0[expr_] := expr;
 actBRST[op_/;RTest[op]]:= actBRSTHolo[op] + actBRSTAntiHolo[op];
 
 (*Linearity of BRST charge action*)
