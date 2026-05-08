@@ -94,7 +94,7 @@ If[projectionData[[1]] === "Factorized",
   Nest[actPCOHolo, prefac projectionData[[2]] projectionData[[3]], numberOfHoloPCOs],
   Nest[actPCOAntiHolo, projectionData[[4]], numberOfAntiHoloPCOs]
 };
-Sow[R[holoOPEWithPCOs, antiHoloOPEWithPCOs]],
+Sow[combineProjectedBracketChiral[holoOPEWithPCOs, antiHoloOPEWithPCOs]],
 (* Generic path: project the unsplit local operators, then apply combined PCO action. *)
 projectedOPE = prefac projectionData[[2]];
 Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]

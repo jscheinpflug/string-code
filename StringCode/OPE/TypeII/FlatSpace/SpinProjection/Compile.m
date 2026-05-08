@@ -325,12 +325,67 @@ spinProjectionRelabelTensorStructureList0::usage =
   "spinProjectionRelabelTensorStructureList0[tensors, rules] relabels a tensor-structure list with sparse-basis record awareness.";
 spinProjectionRelabelTensorStructureList0[tensors_List, rules_List] := spinProjectionRelabelTensorStructure0[#, rules] & /@ tensors;
 
+spinProjectionFreshOutputSymbol0::usage =
+  "spinProjectionFreshOutputSymbol0[kind, used] returns a deterministic fresh output-state symbol that avoids the given used-symbol set.";
+spinProjectionFreshOutputSymbol0[kind : ("Spinor" | "Vector"), used_List] := Module[
+  {prefix, n = 1, candidate},
+  prefix = If[kind === "Spinor", "α", "μ"];
+  While[True,
+    candidate = Symbol["Global`" <> prefix <> ToString[n]];
+    If[!MemberQ[used, SymbolName[candidate]], Return[candidate]];
+    n++;
+  ]
+];
+
+spinProjectionOutputCollisionRenameRules0::usage =
+  "spinProjectionOutputCollisionRenameRules0[op, actualSymbols] renames output-state vector/spin symbols that would collide with actual external labels after inverse relabeling.";
+spinProjectionOutputCollisionRenameRules0[op_ /; RTest[op], actualSymbols_List] := Module[
+  {outputData, actualSymbolNames, used, renameRules = {}, candidate},
+  outputData = spinProjectionOutputSymbolData[op];
+  If[outputData === $Failed, Return[{}]];
+  actualSymbolNames = DeleteDuplicates[SymbolName /@ Select[actualSymbols, Head[#] === Symbol &]];
+  used = DeleteDuplicates@Join[
+    actualSymbolNames,
+    SymbolName /@ Lookup[outputData, "SpinSymbols", {}],
+    SymbolName /@ Lookup[outputData, "VectorSymbols", {}]
+  ];
+  Scan[
+    Function[symbol,
+      If[MemberQ[actualSymbolNames, SymbolName[symbol]],
+        candidate = spinProjectionFreshOutputSymbol0["Spinor", used];
+        renameRules = Append[renameRules, symbol -> candidate];
+        used = Append[used, SymbolName[candidate]];
+      ]
+    ],
+    Lookup[outputData, "SpinSymbols", {}]
+  ];
+  Scan[
+    Function[symbol,
+      If[MemberQ[actualSymbolNames, SymbolName[symbol]],
+        candidate = spinProjectionFreshOutputSymbol0["Vector", used];
+        renameRules = Append[renameRules, symbol -> candidate];
+        used = Append[used, SymbolName[candidate]];
+      ]
+    ],
+    Lookup[outputData, "VectorSymbols", {}]
+  ];
+  renameRules
+];
+spinProjectionOutputCollisionRenameRules0[_, _List] := {};
+
 spinProjectionRelabelSectorFamily0::usage =
   "spinProjectionRelabelSectorFamily0[{op, tensors}, rules] reinstates actual external labels for one cached canonical sector family without mutating selector caches.";
-spinProjectionRelabelSectorFamily0[{op_, tensors_}, rules_List] := {
-  op /. rules,
-  spinProjectionRelabelTensorStructureList0[tensors, rules]
-};
+spinProjectionRelabelSectorFamily0[{op_, tensors_}, rules_List] := Module[
+  {actualSymbols, outputRenameRules, renamedOp, renamedTensors},
+  actualSymbols = DeleteDuplicates @ Select[Last /@ rules, Head[#] === Symbol &];
+  outputRenameRules = spinProjectionOutputCollisionRenameRules0[op, actualSymbols];
+  renamedOp = op /. outputRenameRules;
+  renamedTensors = spinProjectionRelabelTensorStructureList0[tensors, outputRenameRules];
+  {
+    renamedOp /. rules,
+    spinProjectionRelabelTensorStructureList0[renamedTensors, rules]
+  }
+];
 
 generateSpinFieldOPEData::usage =
   "generateSpinFieldOPEData[ops, targetWeight, basisGeneratorFn, psiHead, spinHead, pictureContributionFn, seed] builds {operator, tensorStructures} pairs for one chiral sector.";
