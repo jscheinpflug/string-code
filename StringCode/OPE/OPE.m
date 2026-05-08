@@ -234,6 +234,10 @@ combineChiral[a_, b_] := Which[
   True, R[a, b]
 ];
 
+postProcessProjectedOPE0::usage =
+  "postProcessProjectedOPE0[expr] post-processes projected OPE outputs; the default is identity, and FlatSpace overrides it to recombine factorizable matter pairs.";
+postProcessProjectedOPE0[expr_] := expr;
+
 
 minNonCollapsableWeightHolo::usage =
   "minNonCollapsableWeightHolo[restR] returns the default holomorphic lower bound for non-collapsable remainder projections.";
@@ -396,15 +400,17 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
   collOPEAnti = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
   optionList = Flatten[{opts}];
 
-  If[restR === {},
-    sign combineChiral[
-      projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
-      projectAntiHolo[collOPEAnti, targetWeightAntiHolo, \[Epsilon]AntiHolo]
-    ],
-    sign projectWithNonCollapsable[
-      collOPEHolo, collOPEAnti, \[Epsilon]Holo, \[Epsilon]AntiHolo,
-      wH, wA, collInsertionWeightHolo, collInsertionWeightAntiHolo,
-      restR, minNonCollapsableWeightHolo[restR], minNonCollapsableWeightAntiHolo[restR], optionList
+  postProcessProjectedOPE0[
+    If[restR === {},
+      sign combineChiral[
+        projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
+        projectAntiHolo[collOPEAnti, targetWeightAntiHolo, \[Epsilon]AntiHolo]
+      ],
+      sign projectWithNonCollapsable[
+        collOPEHolo, collOPEAnti, \[Epsilon]Holo, \[Epsilon]AntiHolo,
+        wH, wA, collInsertionWeightHolo, collInsertionWeightAntiHolo,
+        restR, minNonCollapsableWeightHolo[restR], minNonCollapsableWeightAntiHolo[restR], optionList
+      ]
     ]
   ]
 ];
@@ -434,7 +440,7 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasColla
     targetWeightHolo, \[Epsilon]Holo
   ];
   spectatorAnti = opeOfRList[antiOps];
-  sign multiplyFactors[projectedHolo, spectatorAnti]
+  postProcessProjectedOPE0[sign multiplyFactors[projectedHolo, spectatorAnti]]
 ];
 
 OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
@@ -459,19 +465,21 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollap
   antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
   collOPEHolo = opeOfRList[rescaleR[\[Epsilon]Holo] /@ holoOps];
   spectatorAnti = opeOfRList[antiOps];
-  If[restR === {},
-    sign multiplyFactors[
-      projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
-      spectatorAnti
-    ],
-    sign projectWithNonCollapsableHolo[
-      collOPEHolo,
-      spectatorAnti,
-      \[Epsilon]Holo,
-      wH,
-      collInsertionWeightHolo,
-      restR,
-      minNonCollapsableWeightHolo[restR]
+  postProcessProjectedOPE0[
+    If[restR === {},
+      sign multiplyFactors[
+        projectHolo[collOPEHolo, targetWeightHolo, \[Epsilon]Holo],
+        spectatorAnti
+      ],
+      sign projectWithNonCollapsableHolo[
+        collOPEHolo,
+        spectatorAnti,
+        \[Epsilon]Holo,
+        wH,
+        collInsertionWeightHolo,
+        restR,
+        minNonCollapsableWeightHolo[restR]
+      ]
     ]
   ]
 ];
@@ -502,7 +510,7 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasC
     targetWeightAntiHolo, \[Epsilon]AntiHolo
   ];
   spectatorHolo = opeOfRList[holoOps];
-  sign multiplyFactors[spectatorHolo, projectedAntiHolo]
+  postProcessProjectedOPE0[sign multiplyFactors[spectatorHolo, projectedAntiHolo]]
 ];
 
 OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCollapsable])] := Module[
@@ -527,19 +535,21 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasCo
   antiOps = Select[R @@@ (splitLists[[All, 2]]), RTest];
   collOPEAntiHolo = opeOfRList[rescaleR[\[Epsilon]AntiHolo] /@ antiOps];
   spectatorHolo = opeOfRList[holoOps];
-  If[restR === {},
-    sign multiplyFactors[
-      spectatorHolo,
-      projectAntiHolo[collOPEAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo]
-    ],
-    sign projectWithNonCollapsableAntiHolo[
-      spectatorHolo,
-      collOPEAntiHolo,
-      \[Epsilon]AntiHolo,
-      wA,
-      collInsertionWeightAntiHolo,
-      restR,
-      minNonCollapsableWeightAntiHolo[restR]
+  postProcessProjectedOPE0[
+    If[restR === {},
+      sign multiplyFactors[
+        spectatorHolo,
+        projectAntiHolo[collOPEAntiHolo, targetWeightAntiHolo, \[Epsilon]AntiHolo]
+      ],
+      sign projectWithNonCollapsableAntiHolo[
+        spectatorHolo,
+        collOPEAntiHolo,
+        \[Epsilon]AntiHolo,
+        wA,
+        collInsertionWeightAntiHolo,
+        restR,
+        minNonCollapsableWeightAntiHolo[restR]
+      ]
     ]
   ]
 ];

@@ -39,7 +39,7 @@ actBRSTHolo[Ra_ /; RTest[Ra]] := Module[
   wH = totalWeightHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedHolo[wH][jBRST[z], inputAtOrigin];
-  postProcessBracketResult0[Expand[z result]/.{z->0}]
+  Expand[z result]/.{z->0}
 ];
 
 actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
@@ -47,7 +47,7 @@ actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
   wH = totalWeightAntiHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedAntiHolo[wH][jBRSTbar[zBar], inputAtOrigin];
-  postProcessBracketResult0[Expand[zBar result]/.{zBar->0}]
+  Expand[zBar result]/.{zBar->0}
 ];
 
 (* ::Subsection:: *)
@@ -86,7 +86,7 @@ Sow[prefac projectedOPE];
 _,
 Total[#2] &
 ];
-postProcessBracketResult0[result]
+result
 ];
 
 

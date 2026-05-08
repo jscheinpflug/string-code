@@ -40,7 +40,7 @@ actBRSTHolo[Ra_ /; RTest[Ra]] := Module[
   wH = totalWeightHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedHolo[wH][jBRST[z], inputAtOrigin];
-  postProcessBracketResult0[Expand[z result]/.{z->0}]
+  Expand[z result]/.{z->0}
 ];
 
 actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
@@ -48,7 +48,7 @@ actBRSTAntiHolo[Ra_ /; RTest[Ra]] := Module[
   wH = totalWeightAntiHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedAntiHolo[wH][jBRSTbar[zBar], inputAtOrigin];
-  postProcessBracketResult0[Expand[zBar result]/.{zBar->0}]
+  Expand[zBar result]/.{zBar->0}
 ];
 
 
@@ -105,7 +105,7 @@ Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]
 _,
 Total[#2] &
 ];
-postProcessBracketResult0[result]
+result
 ];
 
 
@@ -119,7 +119,7 @@ actPCOHolo[Ra_ /; RTest[Ra]] := actPCOHolo[Ra] = Module[
   wH = totalWeightHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedHolo[wH][PCO[z], inputAtOrigin];
-  postProcessBracketResult0[Expand[result]/.{z->0}]
+  Expand[result]/.{z->0}
 ];
 
 
@@ -129,7 +129,7 @@ actPCOAntiHolo[Ra_ /; RTest[Ra]] := actPCOAntiHolo[Ra] = Module[
   wH = totalWeightAntiHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedAntiHolo[wH][PCObar[zBar], inputAtOrigin];
-  postProcessBracketResult0[Expand[result]/.{zBar->0}]
+  Expand[result]/.{zBar->0}
 ];
 
 

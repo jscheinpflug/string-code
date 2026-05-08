@@ -450,7 +450,7 @@
   },
   {
    "kind": 2,
-   "value": "br9 = MultiOp[R[dX[mu, 0, z1]], R[ProfileX[h, {}, z2, z2bar]]];\nres9 = Private`BracketProjection[br9, 1, 0];\n{br9Holo, br9AntiHolo, pref9} = Private`factorizeMultiOp[br9];\nholoOps9 = Select[List @@ br9Holo, Private`RTest];\nantiOps9 = Select[List @@ br9AntiHolo, Private`RTest];\nproj9H = If[holoOps9 === {}, 0, OPEProjectedHolo[1] @@ holoOps9];\nproj9A = If[antiOps9 === {}, 1, OPEProjectedAntiHolo[0] @@ antiOps9];\nman9 = Private`postProcessBracketResult0[pref9 Which[proj9H === 0 || proj9A === 0, 0, proj9H === 1, proj9A, proj9A === 1, proj9H, True, R[proj9H, proj9A]]];\ntest9Result = res9 =!= 0 && Simplify[res9 - man9] === 0;\nPrint[\"Test 9 (factorized chiral recombination consistency): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
+   "value": "br9 = MultiOp[R[dX[mu, 0, z1]], R[ProfileX[h, {}, z2, z2bar]]];\nres9 = Private`BracketProjection[br9, 1, 0];\n{br9Holo, br9AntiHolo, pref9} = Private`factorizeMultiOp[br9];\nholoOps9 = Select[List @@ br9Holo, Private`RTest];\nantiOps9 = Select[List @@ br9AntiHolo, Private`RTest];\nproj9H = If[holoOps9 === {}, 0, OPEProjectedHolo[1] @@ holoOps9];\nproj9A = If[antiOps9 === {}, 1, OPEProjectedAntiHolo[0] @@ antiOps9];\nman9 = pref9 Private`combineProjectedBracketChiral[proj9H, proj9A];\ntest9Result = res9 =!= 0 && Simplify[res9 - man9] === 0;\nPrint[\"Test 9 (factorized chiral recombination consistency): \", If[test9Result, \"PASSED\", \"FAILED\"]];\ntest9Result",
    "languageId": "wolfram",
    "outputs": [
     {
