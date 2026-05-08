@@ -45,6 +45,11 @@ OPEProjected::incomplete =
 hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
 hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
 
+sectorHasSpinFieldQ0::usage =
+  "sectorHasSpinFieldQ0[sector, ops] is True iff the selected TypeII chiral sector contains at least one spin field after splitting.";
+sectorHasSpinFieldQ0[sector : ("Holo" | "Anti"), ops_List] :=
+  AnyTrue[spinProjectionSectorOps0[ops, spinProjectionSectorSpec[sector]], hasSpinFieldQ];
+
 typeIIRamondOutputHoloQ::usage =
   "typeIIRamondOutputHoloQ[restR] is True iff the holomorphic remainder has Ramond output parity.";
 typeIIRamondOutputHoloQ[restR_List] := OddQ[Count[Flatten[List @@ # & /@ restR], _S]];
@@ -182,6 +187,34 @@ sectorExprFromArtifact0[artifact_, seed_] := Which[
       expr
     ],
   True, 0
+];
+
+spinProjectionSectorExpr0::usage =
+  "spinProjectionSectorExpr0[sector, ops, weight, seed] resolves one chiral spin-projection artifact to its projected expression or $Failed.";
+spinProjectionSectorExpr0[sector : ("Holo" | "Anti"), ops_List, weight_, seed_] :=
+  sectorExprFromArtifact0[buildSectorArtifact[sector, ops, weight, seed], seed];
+
+spinProjectionSpectatorExpr0::usage =
+  "spinProjectionSpectatorExpr0[sector, ops] returns the unprojected spectator expression in the opposite chirality for chiral projected OPEs.";
+spinProjectionSpectatorExpr0[sector : ("Holo" | "Anti"), ops_List] :=
+  opeOfRList[spinProjectionSectorOps0[ops, spinProjectionSectorSpec[sector]]];
+
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && sectorHasSpinFieldQ0["Holo", {Ra}]), opts___Rule] := Module[
+  {seed, ops = {Ra}, projectedHolo, spectatorAnti},
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+  projectedHolo = spinProjectionSectorExpr0["Holo", ops, wH, seed];
+  If[projectedHolo === $Failed, Return[Unevaluated[OPEProjectedHolo[wH][Ra, opts]]]];
+  spectatorAnti = spinProjectionSpectatorExpr0["Anti", ops];
+  postProcessProjectedOPE0[spinProjectionOverallSign0[ops] multiplyFactors[projectedHolo, spectatorAnti]]
+];
+
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && sectorHasSpinFieldQ0["Anti", {Ra}]), opts___Rule] := Module[
+  {seed, ops = {Ra}, spectatorHolo, projectedAnti},
+  seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
+  projectedAnti = spinProjectionSectorExpr0["Anti", ops, wA, seed];
+  If[projectedAnti === $Failed, Return[Unevaluated[OPEProjectedAntiHolo[wA][Ra, opts]]]];
+  spectatorHolo = spinProjectionSpectatorExpr0["Holo", ops];
+  postProcessProjectedOPE0[spinProjectionOverallSign0[ops] multiplyFactors[spectatorHolo, projectedAnti]]
 ];
 
 OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinFieldQ]), opts___Rule] := Module[

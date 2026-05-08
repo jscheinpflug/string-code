@@ -287,6 +287,13 @@ spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
       right,
       {desc[[1]], desc[[2]], (If[KeyExistsQ[rules, #], rules[#], #] & /@ desc[[3]]), desc[[4]], None}
     };
+  If[
+    AnyTrue[
+      normalizedGammaParts,
+      Function[part, Length[DeleteDuplicates[part[[4, 3]]]] < Length[part[[4, 3]]]]
+    ],
+    Return[<|"ScalarFactor" -> 0, "SpinEqualities" -> spinEqualities, "VectorEqualities" -> DeleteDuplicates[vectorEqualities], "GammaParts" -> {}|>]
+  ];
   <|
     "ScalarFactor" -> 1,
     "SpinEqualities" -> spinEqualities,

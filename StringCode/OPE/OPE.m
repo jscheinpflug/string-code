@@ -234,6 +234,14 @@ combineChiral[a_, b_] := Which[
   True, R[a, b]
 ];
 
+hasSpinFieldQ::usage =
+  "hasSpinFieldQ[Ra] is False by default and may be overridden by theories with specialized spin-field projected OPE logic.";
+hasSpinFieldQ[_] := False;
+
+sectorHasSpinFieldQ0::usage =
+  "sectorHasSpinFieldQ0[sector, ops] is False by default and may be overridden by theories with chiral spin-field projected OPE logic.";
+sectorHasSpinFieldQ0[_, _] := False;
+
 postProcessProjectedOPE0::usage =
   "postProcessProjectedOPE0[expr] post-processes projected OPE outputs; the default is identity, and FlatSpace overrides it to recombine factorizable matter pairs.";
 postProcessProjectedOPE0[expr_] := expr;
@@ -419,7 +427,7 @@ OPEProjectedHolo[wH_][a___, 0, b___] := 0;
 OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OPEProjectedHolo[wH][a, y, b];
 OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !sectorHasSpinFieldQ0["Holo", {Ra}])] := Module[
   {
     \[Epsilon]Holo, localLists, factorizedLists, splitLists, sign, holoOps, antiOps,
     insertionWeightHolo, targetWeightHolo, projectedHolo, spectatorAnti
@@ -489,7 +497,7 @@ OPEProjectedAntiHolo[wA_][a___, 0, b___] := 0;
 OPEProjectedAntiHolo[wA_][a___, x_ + y_, b___] := OPEProjectedAntiHolo[wA][a, x, b] + OPEProjectedAntiHolo[wA][a, y, b];
 OPEProjectedAntiHolo[wA_][a___, c_ x_, b___] := c OPEProjectedAntiHolo[wA][a, x, b] /; (!containsFieldQ[c]);
 
-OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable])] := Module[
+OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasCollapsable] && !sectorHasSpinFieldQ0["Anti", {Ra}])] := Module[
   {
     \[Epsilon]AntiHolo, localLists, factorizedLists, splitLists, sign, holoOps, antiOps,
     insertionWeightAntiHolo, targetWeightAntiHolo, projectedAntiHolo, spectatorHolo

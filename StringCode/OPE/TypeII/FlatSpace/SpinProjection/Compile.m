@@ -117,6 +117,35 @@ mergeRepresentations[reps_List] := <|
   "spinor" -> Flatten[#["spinor"] & /@ reps, 1]
 |>;
 
+representationsHaveRepeatedVectorsQ0::usage =
+  "representationsHaveRepeatedVectorsQ0[incoming, outgoing] is True when the combined incoming/outgoing vector-label multiset contains repeated symbolic vectors, so abstract singlet counting can overestimate the true tensor rank.";
+representationsHaveRepeatedVectorsQ0[incoming_Association, outgoing_Association] := Module[{vectors},
+  vectors = Join[Lookup[incoming, "vector", {}], Lookup[outgoing, "vector", {}]];
+  Length[DeleteDuplicates[vectors]] < Length[vectors]
+];
+
+gammaFactorHasRepeatedVectorIndicesQ0::usage =
+  "gammaFactorHasRepeatedVectorIndicesQ0[factor] is True when a GammaAntisymmetricProductHold factor carries the same vector index more than once and therefore vanishes identically by antisymmetry.";
+gammaFactorHasRepeatedVectorIndicesQ0[factor_GammaAntisymmetricProductHold] := Module[{indices},
+  indices = Cases[factor[[1]], GammaUDHold[idx_] | GammaDUHold[idx_] :> idx];
+  Length[DeleteDuplicates[indices]] < Length[indices]
+];
+gammaFactorHasRepeatedVectorIndicesQ0[_] := False;
+
+tensorCandidateVanishesQ0::usage =
+  "tensorCandidateVanishesQ0[expr] is True when a tensor-structure candidate contains an antisymmetrized gamma factor with repeated vector indices and is therefore identically zero.";
+tensorCandidateVanishesQ0[expr_] := AnyTrue[
+  Cases[expr, _GammaAntisymmetricProductHold, Infinity],
+  gammaFactorHasRepeatedVectorIndicesQ0
+];
+
+normalizeTensorCandidateList0::usage =
+  "normalizeTensorCandidateList0[candidates] drops identically vanishing tensor-structure candidates and deduplicates the survivors by stable InputForm key.";
+normalizeTensorCandidateList0[candidates_List] := DeleteDuplicatesBy[
+  DeleteCases[candidates, candidate_ /; tensorCandidateVanishesQ0[candidate]],
+  ToString[InputForm[#]] &
+];
+
 spinProjectionPlaceholderSymbol::usage =
   "spinProjectionPlaceholderSymbol[kind, n] returns a deterministic shared-private placeholder symbol for abstract tensor bases.";
 spinProjectionPlaceholderSymbol["Vector", n_Integer?Positive] := Symbol["Private`spinProjV" <> ToString[n]];
@@ -340,13 +369,24 @@ generateSpinFieldOPEData[
       antisymmetricVectorGroups =
         outgoingAntisymmetricVectorGroups[op, spinHead] /. (Reverse /@ outgoingData["EvaluationRules"]);
       If[antisymmetricVectorGroups === {},
-        targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
-        tensorStructures = findIndependentTensorStructures[
-          incomingReps,
-          outgoingData["Representations"],
-          "TargetRank" -> targetRank,
-          "RandomSeed" -> seed,
-          "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
+        If[representationsHaveRepeatedVectorsQ0[incomingReps, outgoingData["Representations"]],
+          tensorCandidates = normalizeTensorCandidateList0 @ Flatten[
+            generateTensorStructures[incomingReps, outgoingData["Representations"]],
+            1
+          ];
+          tensorStructures = findIndependentTensorStructures[
+            tensorCandidates,
+            "RandomSeed" -> seed,
+            "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
+          ],
+          targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
+          tensorStructures = findIndependentTensorStructures[
+            incomingReps,
+            outgoingData["Representations"],
+            "TargetRank" -> targetRank,
+            "RandomSeed" -> seed,
+            "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
+          ]
         ],
         tensorCandidates = generateTensorStructures[
           incomingReps,
@@ -1119,7 +1159,7 @@ spinProjectionCompileTensorTerm0[
   columnIndex_Integer?NonNegative
 ] := Module[
   {
-    nextColumn = columnIndex + 1,
+    nextColumn = columnIndex,
     tensorExpr,
     factors,
     tensorFactors,
@@ -1131,7 +1171,8 @@ spinProjectionCompileTensorTerm0[
     parts,
     normalized,
     kernelData,
-    outputSpinSupportRecipe
+    outputSpinSupportRecipe,
+    overallScalarFactor
   },
   tensorExpr = spinProjectionTensorExpr0[tensor];
   factors = If[Head[tensorExpr] === Times, List @@ tensorExpr, {tensorExpr}];
@@ -1184,11 +1225,14 @@ spinProjectionCompileTensorTerm0[
     spinProjectionGammaKernelData[If[normalized["ScalarFactor"] === 0, {}, normalized["GammaParts"]]]
   ];
   If[kernelData === $Failed, Return[$Failed]];
+  overallScalarFactor = scalarFactor normalized["ScalarFactor"] kernelData["ScalarFactor"];
+  If[overallScalarFactor === 0, Return[<|"NextColumn" -> columnIndex, "Term" -> None|>]];
+  nextColumn = columnIndex + 1;
   <|
     "NextColumn" -> nextColumn,
     "Term" -> <|
       "Column" -> nextColumn,
-      "ScalarFactor" -> scalarFactor normalized["ScalarFactor"] kernelData["ScalarFactor"],
+      "ScalarFactor" -> overallScalarFactor,
       "Parts" -> parts,
       "DummyCount" -> Length[dummySymbols],
       "SpinEqualities" -> normalized["SpinEqualities"],
@@ -1232,6 +1276,7 @@ spinProjectionCompileFamily0[
     Do[
       tensor = tensors[[candidateIndex]];
       tensorExpr = spinProjectionTensorExpr0[tensor];
+      If[tensorCandidateVanishesQ0[tensorExpr], Continue[]];
       compileResult = spinProjectionCompileTensorTerm0[
         tensor,
         stateSpins,
@@ -1242,6 +1287,7 @@ spinProjectionCompileFamily0[
       ];
       If[compileResult === $Failed, Return[$Failed]];
       nextColumn = compileResult["NextColumn"];
+      If[compileResult["Term"] === None, Continue[]];
       term = compileResult["Term"];
       repExpr = tensorExpr op;
       Sow[

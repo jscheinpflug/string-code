@@ -34,7 +34,6 @@ Begin["Private`"];
 (*Define 1-bracket (action of BRST charge)*)
 
 
-
 actBRSTHolo[Ra_ /; RTest[Ra]] := Module[
   {wH, z, result},
   wH = totalWeightHolo[Ra];
