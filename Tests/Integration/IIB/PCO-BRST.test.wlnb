@@ -430,6 +430,22 @@
   },
   {
    "kind": 1,
+   "value": "## Ramond Support",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "expandedCanonTerms[expr_] := Module[{expanded = Expand[canon[expr]]}, If[Head[expanded] === Plus, List @@ expanded, {expanded}]];\nexpandedCanonTermStrings[expr_] := ToString[InputForm[#]] & /@ DeleteCases[expandedCanonTerms[expr], 0];\ncontainsTermFragmentsQ[expr_, fragments_List] := AnyTrue[\n  expandedCanonTermStrings[expr],\n  Function[str, And @@ (StringContainsQ[str, #] & /@ fragments)]\n];\nassertContainsFragments[name_, input_, action_, specs_List] := Module[{got, missing},\n  got = action[input];\n  missing = Select[specs, !containsTermFragmentsQ[got, #] &];\n  Print[name, \": \", If[missing === {}, \"PASSED\", \"FAILED\"]];\n  If[missing =!= {}, Print[\"GotTerms: \", expandedCanonTermStrings[got]]];\n  missing === {}\n];\nramondCases = {\n  {\"Q.R1\", R[ProfileX[f, {}, 0, 0], c[0, 0], S[{a1, \"chiral\"}, -1/2, {}, 0, 0]], Private`actBRSTHolo,\n    {\n      {\"R[c[0, 0], c[1, 0], ProfileX[f\", \"\\\"chiral\\\"}, -1/2, {}, 0, 0]]\"},\n      {\"R[c[0, 0], ProfileX[f\", \"\\\"antichiral\\\"}, 1/2, {}, 0, 0], η[0, 0]]\"}\n    }\n  },\n  {\"Q.R2\", R[ProfileX[f, {}, 0, 0], c[0, 0], \\[Xi][1, 0], S[{a1, \"chiral\"}, -5/2, {}, 0, 0]], Private`actBRSTHolo,\n    {\n      {\"R[c[0, 0], c[1, 0], ProfileX[f\", \"\\\"chiral\\\"}, -5/2, {}, 0, 0], ξ[1, 0]]\"},\n      {\"R[c[0, 0], ProfileX[f\", \"\\\"antichiral\\\"}, -3/2, {}, 0, 0]]\"}\n    }\n  },\n  {\"Q.R3\", R[ProfileX[f, {}, 0, 0], c[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]], Private`actBRSTHolo,\n    {\n      {\"R[c[0, 0], c[1, 0], ProfileX[f\", \"\\\"antichiral\\\"}, -3/2, {}, 0, 0]]\"}\n    }\n  },\n  {\"X.R1\", R[ProfileX[f, {}, 0, 0], c[0, 0], S[{a1, \"chiral\"}, -1/2, {}, 0, 0]], actPCOHoloFn,\n    {\n      {\"R[c[0, 0], dX[\", \"\\\"antichiral\\\"}, 1/2, {}, 0, 0]]\"},\n      {\"R[ProfileX[f, {}, 0, 0], S[{\", \"\\\"chiral\\\"}, 3/2, {}, 0, 0], η[1, 0]]\"},\n      {\"R[dϕ[0, 0], ProfileX[f, {}, 0, 0], S[{\", \"\\\"chiral\\\"}, 3/2, {}, 0, 0], η[0, 0]]\"},\n      {\"R[b[0, 0], c[0, 0], ProfileX[f, {}, 0, 0], S[{\", \"\\\"chiral\\\"}, 3/2, {}, 0, 0], η[0, 0]]\"}\n    }\n  },\n  {\"X.R2\", R[ProfileX[f, {}, 0, 0], c[0, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]], actPCOHoloFn,\n    {\n      {\"R[c[0, 0], ProfileX[f\", \"\\\"chiral\\\"}, -1/2, {}, 0, 0]]\"}\n    }\n  },\n  {\"X.R3\", R[ProfileX[f, {}, 0, 0], c[0, 0], c[1, 0], S[{a1, \"antichiral\"}, -3/2, {}, 0, 0]], actPCOHoloFn,\n    {\n      {\"R[c[0, 0], c[1, 0], ProfileX[f\", \"\\\"chiral\\\"}, -1/2, {}, 0, 0]]\"},\n      {\"R[c[0, 0], ProfileX[f, {}, 0, 0], S[{\", \"\\\"antichiral\\\"}, 1/2, {}, 0, 0], η[0, 0]]\"}\n    }\n  }\n};\nramondResults = Map[assertContainsFragments[#[[1]], #[[2]], #[[3]], #[[4]]] &, ramondCases];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## A.59 Assumption",
    "languageId": "markdown",
    "outputs": [],
@@ -496,7 +512,7 @@
   },
   {
    "kind": 2,
-   "value": "allResults = Join[brstResults, pcoResults, {a59Result}];\nPrint[\"Passed: \", Count[allResults, True], \"/\", Length[allResults]];\nAnd @@ allResults",
+   "value": "allResults = Join[brstResults, pcoResults, ramondResults, {a59Result}];\nPrint[\"Passed: \", Count[allResults, True], \"/\", Length[allResults]];\nAnd @@ allResults",
    "languageId": "wolfram",
    "outputs": [
     {
