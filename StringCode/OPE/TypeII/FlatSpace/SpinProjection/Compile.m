@@ -186,6 +186,35 @@ outgoingAntisymmetricVectorGroups[op_ /; RTest[op], spinHead_] := Module[
   ]
 ];
 
+fermionicOutputVectorGroups0::usage =
+  "fermionicOutputVectorGroups0[op] extracts vector-symbol groups carried by identical fermionic output fields and therefore antisymmetrized by operator ordering.";
+fermionicOutputVectorGroups0[op_ /; RTest[op]] := Module[{fields},
+  fields = Select[List @@ op, MemberQ[{ψ, ψt}, Head[#]] && Head[#[[1]]] === Symbol &];
+  SortBy[
+    SortBy[#, SymbolName] & /@ Select[
+      Values @ GroupBy[fields, {Head[#], Sequence @@ Rest[List @@ #]} & -> First],
+      Length[#] > 1 &
+    ],
+    SymbolName[First[#]] &
+  ]
+];
+fermionicOutputVectorGroups0[_] := {};
+
+spinProjectionOutputAntisymmetricVectorGroups0::usage =
+  "spinProjectionOutputAntisymmetricVectorGroups0[op] collects output vector-symbol groups whose repeated equalization would annihilate the operator by antisymmetry.";
+spinProjectionOutputAntisymmetricVectorGroups0[op_ /; RTest[op]] := SortBy[
+  DeleteDuplicatesBy[
+    Join[
+      fermionicOutputVectorGroups0[op],
+      outgoingAntisymmetricVectorGroups[op, S],
+      outgoingAntisymmetricVectorGroups[op, St]
+    ],
+    ToString[InputForm[#]] &
+  ],
+  SymbolName[First[#]] &
+];
+spinProjectionOutputAntisymmetricVectorGroups0[_] := {};
+
 spinProjectionVectorMatterHeads::usage =
   "spinProjectionVectorMatterHeads[psiHead] returns vector-carrying matter heads used in one spin-field projection sector.";
 spinProjectionVectorMatterHeads[ψ] := {ψ, dX};
@@ -1004,6 +1033,18 @@ spinProjectionBuildCompileContext0[ops_List, templateExpr_] := Module[
   |>
 ];
 
+spinProjectionStateVectorAntisymmetricGroups0::usage =
+  "spinProjectionStateVectorAntisymmetricGroups0[op, stateVectors] maps antisymmetric output vector-symbol groups onto compiled output state-vector sources.";
+spinProjectionStateVectorAntisymmetricGroups0[op_ /; RTest[op], stateVectors_Association] := Select[
+  Replace[
+    spinProjectionOutputAntisymmetricVectorGroups0[op],
+    group_List :> Cases[group, sym_ /; KeyExistsQ[stateVectors, sym] :> {2, stateVectors[sym]}],
+    {1}
+  ],
+  Length[#] > 1 &
+];
+spinProjectionStateVectorAntisymmetricGroups0[_, _Association] := {};
+
 spinProjectionVectorSource0::usage =
   "spinProjectionVectorSource0[sym, stateVectors, dummyVectors, context] maps one vector symbol to its compiled vector source descriptor.";
 spinProjectionVectorSource0[sym_, stateVectors_Association, dummyVectors_Association, context_Association] := Which[
@@ -1203,15 +1244,48 @@ spinProjectionOutputSpinSupportRecipe0[parts_List, outputSpinSlot_Integer?Positi
   ]
 ];
 
+spinProjectionEqualityClasses0::usage =
+  "spinProjectionEqualityClasses0[equalities] returns the exposed-vector equality classes implied by normalized compiled term equalities.";
+spinProjectionEqualityClasses0[equalities_List] := Module[
+  {parents = <||>, sources, find, join, roots},
+  If[equalities === {}, Return[{}]];
+  sources = DeleteDuplicates @ Flatten[equalities, 1];
+  Scan[Function[src, parents[src] = src], sources];
+  find[src_] := parents[src] = If[parents[src] === src, src, find[parents[src]]];
+  join[left_, right_] := Module[{leftRoot = find[left], rightRoot = find[right]},
+    If[leftRoot =!= rightRoot, parents[rightRoot] = leftRoot]
+  ];
+  Scan[join @@ # &, equalities];
+  roots = DeleteDuplicates[find /@ sources];
+  DeleteDuplicates @ Map[
+    Function[root, DeleteDuplicates @ Select[sources, find[#] === root &]],
+    roots
+  ]
+];
+
+spinProjectionOutputAntisymmetricEqualityVanishesQ0::usage =
+  "spinProjectionOutputAntisymmetricEqualityVanishesQ0[vectorEqualities, antisymmetricGroups] is True when compiled equalities force two antisymmetrized output vector slots to coincide.";
+spinProjectionOutputAntisymmetricEqualityVanishesQ0[vectorEqualities_List, antisymmetricGroups_List] := Module[{classes},
+  If[vectorEqualities === {} || antisymmetricGroups === {}, Return[False]];
+  classes = spinProjectionEqualityClasses0[vectorEqualities];
+  AnyTrue[
+    antisymmetricGroups,
+    Function[group,
+      AnyTrue[classes, Length[Intersection[group, #]] > 1 &]
+    ]
+  ]
+];
+
 spinProjectionCompileTensorTerm0::usage =
-  "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex] compiles one tensor candidate into one term record and returns the next column index.";
+  "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex, antisymmetricOutputVectorGroups] compiles one tensor candidate into one term record and returns the next column index.";
 spinProjectionCompileTensorTerm0[
   tensor_,
   stateSpins_Association,
   stateSpinChiralities_Association,
   stateVectors_Association,
   context_Association,
-  columnIndex_Integer?NonNegative
+  columnIndex_Integer?NonNegative,
+  antisymmetricOutputVectorGroups_List
 ] := Module[
   {
     nextColumn = columnIndex,
@@ -1260,6 +1334,13 @@ spinProjectionCompileTensorTerm0[
   If[MemberQ[parts, $Failed], Return[$Failed]];
   normalized = spinProjectionNormalizeCompiledTermParts[parts];
   If[normalized === $Failed, Return[$Failed]];
+  If[
+    spinProjectionOutputAntisymmetricEqualityVanishesQ0[
+      normalized["VectorEqualities"],
+      antisymmetricOutputVectorGroups
+    ],
+    Return[<|"NextColumn" -> columnIndex, "Term" -> None|>]
+  ];
   outputSpinSupportRecipe = If[
     Length[stateSpins] == 1,
     spinProjectionOutputSpinSupportRecipe0[parts, First[Values[stateSpins]]],
@@ -1311,6 +1392,7 @@ spinProjectionCompileFamily0[
     stateSpins,
     stateSpinChiralities,
     stateVectors,
+    antisymmetricOutputVectorGroups,
     nextColumn = columnIndex,
     outputAssociationKey,
     reaped,
@@ -1327,6 +1409,7 @@ spinProjectionCompileFamily0[
   stateSpins = AssociationThread[outputData["SpinSymbols"] -> Range[Length[outputData["SpinSymbols"]]]];
   stateSpinChiralities = AssociationThread[outputData["SpinSymbols"] -> outputData["SpinChiralities"]];
   stateVectors = AssociationThread[outputData["VectorSymbols"] -> Range[Length[outputData["VectorSymbols"]]]];
+  antisymmetricOutputVectorGroups = spinProjectionStateVectorAntisymmetricGroups0[op, stateVectors];
   reaped = Reap[
     Do[
       tensor = tensors[[candidateIndex]];
@@ -1338,7 +1421,8 @@ spinProjectionCompileFamily0[
         stateSpinChiralities,
         stateVectors,
         context,
-        nextColumn
+        nextColumn,
+        antisymmetricOutputVectorGroups
       ];
       If[compileResult === $Failed, Return[$Failed]];
       nextColumn = compileResult["NextColumn"];
