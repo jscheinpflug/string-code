@@ -1287,6 +1287,85 @@ spinProjectionOutputAntisymmetricEqualityVanishesQ0[vectorEqualities_List, antis
   ]
 ];
 
+spinProjectionStructuralSortKey0::usage =
+  "spinProjectionStructuralSortKey0[expr] returns one deterministic lexical sort key for nested compiled spin-projection metadata.";
+spinProjectionStructuralSortKey0[expr_] := ToString[InputForm[expr]];
+
+spinProjectionApplyOutputSlotPermutation0::usage =
+  "spinProjectionApplyOutputSlotPermutation0[expr, rules] relabels compiled output-state vector-slot descriptors by one exact antisymmetric-slot permutation.";
+spinProjectionApplyOutputSlotPermutation0[expr_, rules_List] := If[rules === {}, expr, expr /. Dispatch[rules]];
+
+spinProjectionAntisymmetricGroupActions0::usage =
+  "spinProjectionAntisymmetricGroupActions0[groups] enumerates exact combined output-slot permutation actions and signs for one antisymmetric output-slot decomposition.";
+spinProjectionAntisymmetricGroupActions0[groups_List] := spinProjectionAntisymmetricGroupActions0[groups] = Module[
+  {groupActions},
+  groupActions = Map[
+    Function[group,
+      Module[{position = AssociationThread[group -> Range[Length[group]]]},
+        Map[
+          Function[perm,
+            <|
+              "Rules" -> Thread[group -> perm],
+              "Sign" -> Signature[Lookup[position, perm]]
+            |>
+          ],
+          Permutations[group]
+        ]
+      ]
+    ],
+    Select[groups, Length[#] > 1 &]
+  ];
+  If[groupActions === {}, Return[{<|"Rules" -> {}, "Sign" -> 1|>}]];
+  Map[
+    Function[actionTuple,
+      <|
+        "Rules" -> Flatten[Lookup[actionTuple, "Rules", {}], 1],
+        "Sign" -> Times @@ Lookup[actionTuple, "Sign", 1]
+      |>
+    ],
+    Tuples[groupActions]
+  ]
+];
+
+spinProjectionCompiledTermDedupKey0::usage =
+  "spinProjectionCompiledTermDedupKey0[term, antisymmetricGroups] returns one canonical duplicate-elimination key modulo antisymmetric output-slot relabelings, or Missing[\"ZeroOrbit\"] when an odd slot symmetry annihilates the term.";
+spinProjectionCompiledTermDedupKey0[term_Association, antisymmetricGroups_List] := Module[
+  {baseKey, transformed, grouped, canonicalKeyString},
+  baseKey = With[
+    {
+      spinEqualities = SortBy[Lookup[term, "SpinEqualities", {}], spinProjectionStructuralSortKey0],
+      vectorEqualities = SortBy[Lookup[term, "VectorEqualities", {}], spinProjectionStructuralSortKey0],
+      gammaKernelRefs = SortBy[Lookup[term, "GammaKernelRefs", {}], spinProjectionStructuralSortKey0],
+      outputSpinSupportRecipe = Lookup[term, "OutputSpinSupportRecipe", <||>]
+    },
+    HoldComplete[spinEqualities, vectorEqualities, gammaKernelRefs, outputSpinSupportRecipe]
+  ];
+  If[Select[antisymmetricGroups, Length[#] > 1 &] === {}, Return[baseKey]];
+  transformed = Map[
+    Function[action,
+      <|
+        "Key" -> spinProjectionApplyOutputSlotPermutation0[baseKey, action["Rules"]],
+        "Sign" -> action["Sign"]
+      |>
+    ],
+    spinProjectionAntisymmetricGroupActions0[antisymmetricGroups]
+  ];
+  grouped = GatherBy[transformed, spinProjectionStructuralSortKey0[Lookup[#, "Key", HoldComplete[]]] &];
+  If[
+    AnyTrue[
+      grouped,
+      MemberQ[DeleteDuplicates[Lookup[#, "Sign", 1]], 1] && MemberQ[DeleteDuplicates[Lookup[#, "Sign", 1]], -1] &
+    ],
+    Return[Missing["ZeroOrbit"]]
+  ];
+  canonicalKeyString = First @ Sort[spinProjectionStructuralSortKey0[Lookup[#, "Key", HoldComplete[]]] & /@ transformed];
+  Lookup[
+    SelectFirst[transformed, spinProjectionStructuralSortKey0[Lookup[#, "Key", HoldComplete[]]] === canonicalKeyString &],
+    "Key",
+    baseKey
+  ]
+];
+
 spinProjectionCompileTensorTerm0::usage =
   "spinProjectionCompileTensorTerm0[tensor, stateSpins, stateSpinChiralities, stateVectors, context, columnIndex, antisymmetricOutputVectorGroups] compiles one tensor candidate into one term record and returns the next column index.";
 spinProjectionCompileTensorTerm0[
@@ -1413,7 +1492,10 @@ spinProjectionCompileFamily0[
     term,
     tensor,
     tensorExpr,
-    repExpr
+    repExpr,
+    candidateNextColumn,
+    dedupKey,
+    seenDedupKeys = <||>
   },
   outputData = spinProjectionOutputSymbolData[op];
   If[outputData === $Failed, Return[$Failed]];
@@ -1436,9 +1518,13 @@ spinProjectionCompileFamily0[
         antisymmetricOutputVectorGroups
       ];
       If[compileResult === $Failed, Return[$Failed]];
-      nextColumn = compileResult["NextColumn"];
       If[compileResult["Term"] === None, Continue[]];
+      candidateNextColumn = compileResult["NextColumn"];
       term = compileResult["Term"];
+      dedupKey = spinProjectionCompiledTermDedupKey0[term, antisymmetricOutputVectorGroups];
+      If[MissingQ[dedupKey] || KeyExistsQ[seenDedupKeys, dedupKey], Continue[]];
+      seenDedupKeys[dedupKey] = True;
+      nextColumn = candidateNextColumn;
       repExpr = tensorExpr op;
       Sow[
         <|

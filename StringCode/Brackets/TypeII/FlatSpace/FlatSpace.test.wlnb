@@ -327,6 +327,14 @@
    "outputs": [],
    "metadata": {},
    "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`OPE`TypeII`FlatSpace`SpinProjection`Compile`\"];\nNeeds[\"StringCode`OPE`TypeII`FlatSpace`SpinProjection`Solve`\"];\nrrGravPCOHoloArtifact = buildSectorArtifact[\n  \"Holo\",\n  {\n    R[S[{ρ1, \"chiral\"}, -1/2, {}, 0, z1]],\n    R[S[{ρ2, \"chiral\"}, -1/2, {}, 0, z2]],\n    R[expϕf[-1, z3], ψ[μ, 0, z3]]\n  },\n  1,\n  1234\n];\nrrGravPCOHoloSolve = solveSectorArtifact[rrGravPCOHoloArtifact, 1234];\nrrGravPCOHoloArtifactTest = testReport[\n  \"Test 13 (2-spin + expϕf ψ artifact resolves all pivots)\",\n  rrGravPCOHoloArtifact[\"VarCount\"] === 3 &&\n    Lookup[rrGravPCOHoloSolve, \"PivotCount\", 0] === 3 &&\n    TrueQ[rrGravPCOHoloSolve[\"CompleteQ\"]] &&\n    Sort[Lookup[rrGravPCOHoloArtifact[\"Columns\"], \"CandidateIndex\", {}]] === {1, 2, 4}\n];\nrrGravPCOHoloArtifactTest\n",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
   }
  ],
  "metadata": {
