@@ -126,6 +126,7 @@ OPE[Ra_, Rb_] := Module[{collA, restA, signA, collB, restB, signB, opeColl, opeR
 
 (*When both normal-ordered products have length one, OPE reduces to Wick contraction + possible normal ordering*)
 OPEWick[a___,0,b___]:=0;
+OPEWick[f_,g_]:=f g/;(!containsFieldQ[f] || !containsFieldQ[g])
 OPEWick[a_+b_,c_]:=OPEWick[a,c]+OPEWick[b,c];
 OPEWick[c_,a_+b_]:=OPEWick[c,a]+OPEWick[c,b];
 OPEWick[a_ b_,c_]:=a OPEWick[b,c]/;(!containsFieldQ[a]);
