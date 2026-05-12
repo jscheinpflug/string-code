@@ -505,7 +505,7 @@ getBGhostPosition[bmodeAntiHolo[contourCenter_][a_][b_]]:= b;
 
 CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
 
-CollapseB0m[a_ + b_]:= CollapseB0m[a] + CollapseB0m[b]
+CollapseB0m[expr_Plus]:= Map[CollapseB0m, expr]
 CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(isScalarFactorQ[a])
 CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0][0], a] - actBGhostMode[bmodeAntiHolo[0][0],a]
 CollapseB0m[0]:=0

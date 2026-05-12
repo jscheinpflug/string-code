@@ -250,7 +250,7 @@ bmodeAntiHolo[contourCenter_][mode_][0] := 0;
 
 actBGhostMode::usage =
   "Acts a b-ghost mode placeholder on a local-operator expression.";
-actBGhostMode[a_, op1_ + op2_] := actBGhostMode[a, op1] + actBGhostMode[a, op2];
+actBGhostMode[a_, expr_Plus] := Map[actBGhostMode[a, #] &, expr];
 actBGhostMode[a_, b_ c_] := b actBGhostMode[a, c] /; isScalarFactorQ[b];
 
 actBGhostMode[
