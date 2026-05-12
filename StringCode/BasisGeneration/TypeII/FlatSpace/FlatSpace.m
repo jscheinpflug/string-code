@@ -2108,6 +2108,81 @@ generateBasisMatterModeGroups[
 
 generateBasisMatterModeGroups[___] := {};
 
+integerPictureOPEGroundDerivativeWeights0::usage =
+  "integerPictureOPEGroundDerivativeWeights0[weight, picture] returns the synthetic ground-derivative weights needed to generate integer-picture d\[Phi]-dressed OPE basis operators.";
+integerPictureOPEGroundDerivativeWeights0[
+  weight_?validWeightQ,
+  picture_?validPictureSpecQ
+] := Module[{remainingWeight},
+  remainingWeight = weight - groundStateWeight[picture];
+  If[
+    !IntegerQ[pictureValue[picture]] || remainingWeight < 0 || !IntegerQ[2 remainingWeight],
+    {0},
+    Range[0, Floor[remainingWeight]]
+  ]
+];
+
+generateBasisMatterOPEGroupForPictureSpec0::usage =
+  "generateBasisMatterOPEGroupForPictureSpec0[weight, picture, GSOParitySelection, fermionOnly] augments integer-picture matter mode groups with synthetic ground-derivative markers used to emit d\[Phi]-dressed OPE operators.";
+generateBasisMatterOPEGroupForPictureSpec0[
+  weight_?validWeightQ,
+  picture_?validPictureSpecQ,
+  GSOParitySelection_String,
+  fermionOnly_?BooleanQ
+] := Module[{modeLists, baseGroup},
+  modeLists = DeleteDuplicates @ Flatten[
+    Replace[
+      Table[
+        baseGroup = generateBasisMatterHoloForPictureSpecWithSelection[
+          weight - groundDerivativeWeight,
+          picture,
+          GSOParitySelection,
+          fermionOnly
+        ];
+        If[
+          baseGroup === {},
+          Nothing,
+          If[
+            groundDerivativeWeight == 0,
+            baseGroup[[2]],
+            Join[{mode[derGroundStateHolo[groundDerivativeWeight], 0]}, #] & /@ baseGroup[[2]]
+          ]
+        ],
+        {groundDerivativeWeight, integerPictureOPEGroundDerivativeWeights0[weight, picture]}
+      ],
+      Nothing -> Sequence[],
+      {1}
+    ],
+    1
+  ];
+  If[modeLists === {}, {}, {picture, modeLists}]
+];
+
+generateBasisMatterOPEModeGroups::usage =
+  "Generates grouped holomorphic matter-mode results for OPE-basis conversion, including integer-picture synthetic ground-derivative branches needed for d\[Phi]-dressed outputs.";
+generateBasisMatterOPEModeGroups[
+  weight_?validWeightQ,
+  picture_?validPictureInputQ,
+  opts___
+] := Module[{parsedOptions, groupedBySpec},
+  parsedOptions = parseMatterBasisOptionsFromList[Flatten[{opts}]];
+  If[parsedOptions === $Failed,
+    Return[{}]
+  ];
+  groupedBySpec = DeleteCases[
+    generateBasisMatterOPEGroupForPictureSpec0[
+      weight,
+      #,
+      parsedOptions[[1]],
+      parsedOptions[[2]]
+    ] & /@ expandPictureSpecs[picture],
+    {}
+  ];
+  collapseExpandedResult[groupedBySpec, Length[groupedBySpec] == 1]
+];
+
+generateBasisMatterOPEModeGroups[___] := {};
+
 generateBasisMatterHolo::usage =
   "Generates holomorphic matter-only TypeII mode states grouped with their picture ground-state label. Option \"FermionOnly\" -> True|False (default False) suppresses free-boson dX insertions.";
 generateBasisMatterHolo[
@@ -2172,7 +2247,7 @@ generateBasisMatterHoloOPE[
   picture_?validPictureInputQ,
   opts___
 ] := generateMatterOPEFromGroups[
-    generateBasisMatterModeGroups[weight, picture, opts],
+    generateBasisMatterOPEModeGroups[weight, picture, opts],
     convertMatterGroupToOperatorsHolo,
     opts
   ];
@@ -2186,7 +2261,11 @@ generateBasisMatterAntiHoloOPE[
   picture_?validPictureInputQ,
   opts___
 ] := generateMatterOPEFromGroups[
-    generateBasisMatterAntiHolo[weight, picture, opts],
+    mapGroupedResultPreservingShape[
+      generateBasisMatterOPEModeGroups[weight, picture, opts],
+      {_?validPictureSpecQ, _List},
+      antiMatterGroupFromHolo
+    ],
     convertMatterGroupToOperatorsAnti,
     opts
   ];

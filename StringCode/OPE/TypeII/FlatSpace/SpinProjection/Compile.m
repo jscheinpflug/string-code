@@ -185,6 +185,7 @@ outgoingAntisymmetricVectorGroups[op_ /; RTest[op], spinHead_] := Module[
     SymbolName[First[#]] &
   ]
 ];
+outgoingAntisymmetricVectorGroups[_, _] := {};
 
 fermionicOutputVectorGroups0::usage =
   "fermionicOutputVectorGroups0[op] extracts vector-symbol groups carried by identical fermionic output fields and therefore antisymmetrized by operator ordering.";
@@ -274,6 +275,11 @@ extractMatterRepresentationData[
     "Counters" -> <|"Vector" -> vectorCounter, "Spinor" -> spinCounter|>
   |>
 ];
+extractMatterRepresentationData[1, _, _, counters_Association] := <|
+  "Representations" -> <|"vector" -> {}, "spinor" -> {}|>,
+  "EvaluationRules" -> {},
+  "Counters" -> counters
+|>;
 
 extractMatterRepresentationDataList::usage =
   "extractMatterRepresentationDataList[ops, psiHead, spinHead] merges abstract representation data across one operator list.";
@@ -1007,6 +1013,11 @@ spinProjectionOutputSymbolData[op_ /; RTest[op]] := Module[
     "SpinChiralities" -> Lookup[spinChiralities, spinSymbols]
   |>
 ];
+spinProjectionOutputSymbolData[1] := <|
+  "VectorSymbols" -> {},
+  "SpinSymbols" -> {},
+  "SpinChiralities" -> {}
+|>;
 spinProjectionOutputSymbolData[_] := $Failed;
 
 spinProjectionBuildCompileContext0::usage =

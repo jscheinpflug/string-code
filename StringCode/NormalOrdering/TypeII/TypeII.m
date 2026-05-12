@@ -168,6 +168,72 @@ bosonizedTupleExpression[combo_List] := Module[{coeff, fields},
   ]
 ];
 
+samePointPureFieldProductQ0::usage =
+  "samePointPureFieldProductQ0[ops, head] is True exactly for same-point local products of two or more fields with the requested head.";
+samePointPureFieldProductQ0[ops_List, head_Symbol] := Length[ops] > 1 &&
+  AllTrue[ops, Head[#] === head &] &&
+  SameQ @@ ((List @@ #)[[-1]] & /@ ops);
+
+splitBosonizedProbeCoordinates0::usage =
+  "splitBosonizedProbeCoordinates0[n] returns the canonical point-splitting coordinates used to collapse an n-field same-point ψ-product through one projected OPE.";
+splitBosonizedProbeCoordinates0[n_Integer?Positive] := Join[Range[n - 1], {0}];
+
+rewriteFieldCoordinate0::usage =
+  "rewriteFieldCoordinate0[field, coord] rewrites the last coordinate slot of one field to coord.";
+rewriteFieldCoordinate0[field_ /; isField[Head[field]], coord_] :=
+  ReplacePart[field, Length[List @@ field] -> coord];
+rewriteFieldCoordinate0[field_, _] := field;
+
+restoreBosonizedCoordinate0::usage =
+  "restoreBosonizedCoordinate0[sector, expr, coord] restores a projected bosonized same-point product from the origin to coord.";
+restoreBosonizedCoordinate0["Holo", expr_, coord_] := Expand[expr /. {
+  dH[i_, n_, 0] :> dH[i, n, coord],
+  expH[charges_, 0] :> expH[charges, coord]
+}];
+restoreBosonizedCoordinate0["Anti", expr_, coord_] := Expand[expr /. {
+  dHt[i_, n_, 0] :> dHt[i, n, coord],
+  expHt[charges_, 0] :> expHt[charges, coord]
+}];
+
+bosonizedProjectedSectorWeight0::usage =
+  "bosonizedProjectedSectorWeight0[sector, ops] returns the total chiral conformal weight of one pure-ψ same-point product.";
+bosonizedProjectedSectorWeight0["Holo", ops_List] := Total[totalWeightHolo /@ (R /@ ops)];
+bosonizedProjectedSectorWeight0["Anti", ops_List] := Total[totalWeightAntiHolo /@ (R /@ ops)];
+
+bosonizedProjectedSamePointProduct0::usage =
+  "bosonizedProjectedSamePointProduct0[sector, ops, coord] bosonizes a pure same-sector same-point ψ-product by bosonizing each factor once and collapsing the full product through one projected chiral OPE.";
+bosonizedProjectedSamePointProduct0[sector : ("Holo" | "Anti"), ops_List, coord_] := Module[
+  {probeCoords, projectedFn, bosonizedFactors, projected},
+  Needs["StringCode`OPE`"];
+  probeCoords = splitBosonizedProbeCoordinates0[Length[ops]];
+  projectedFn = If[sector === "Holo", StringCode`OPE`OPEProjectedHolo, StringCode`OPE`OPEProjectedAntiHolo];
+  bosonizedFactors = MapThread[
+    Function[{op, probeCoord},
+      Bosonize[R[rewriteFieldCoordinate0[op, probeCoord]]]
+    ],
+    {ops, probeCoords}
+  ];
+  projected = Expand[
+    projectedFn[bosonizedProjectedSectorWeight0[sector, ops]][Sequence @@ bosonizedFactors]
+  ];
+  restoreBosonizedCoordinate0[sector, projected, coord]
+];
+
+bosonizeSamePointMultiPsiLocal0::usage =
+  "bosonizeSamePointMultiPsiLocal0[Ra] bosonizes a same-point pure-ψ or pure-ψt product via one projected bosonized free-field OPE.";
+bosonizeSamePointMultiPsiLocal0[Ra_ /; RTest[Ra]] := Module[
+  {ops = List @@ Ra, originalCoord},
+  originalCoord = (List @@ First[ops])[[-1]];
+  Which[
+    samePointPureFieldProductQ0[ops, ψ],
+      bosonizedProjectedSamePointProduct0["Holo", ops, originalCoord],
+    samePointPureFieldProductQ0[ops, ψt],
+      bosonizedProjectedSamePointProduct0["Anti", ops, originalCoord],
+    True,
+      Unevaluated[Bosonize[Ra]]
+  ]
+];
+
 
 (* ::Subsection::Closed:: *)
 (*Define normal-ordered product*)
@@ -200,8 +266,10 @@ totalAntiHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolPicture[Ra];
 GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
 GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
 
-
-Bosonize[Ra_ /; RTest[Ra]] := Module[{termLists, tuples},
+Bosonize[Ra_ /; RTest[Ra]] := Module[{ops = List @@ Ra, termLists, tuples},
+  If[samePointPureFieldProductQ0[ops, ψ] || samePointPureFieldProductQ0[ops, ψt],
+    Return[bosonizeSamePointMultiPsiLocal0[Ra]]
+  ];
   (* Bosonize each input field independently, form all term combinations, then
      rebuild one normal-ordered tuple per combination so coincident bosonized
      exponentials merge only after every source field has contributed. *)
