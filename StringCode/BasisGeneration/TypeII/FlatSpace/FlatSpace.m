@@ -647,8 +647,10 @@ generateBasisMatterHoloForPictureSpec[___] := {};
   - Holomorphic → antiholomorphic conversion (b → b̃, etc.)
 *)
 
-(* Rename Lorentz indices to canonical form μ1, μ2, ...
-   Ensures consistent ordering for duplicate detection. *)
+(* Rename Lorentz indices to session-unique placeholders mu$N.
+   Uniqueness across invocations prevents name collisions when independent
+   results are combined; downstream canonicalizeDummies (in StringCode`Utils`Canonicalize`)
+   renumbers these to readable \[Mu]Canon1, \[Mu]Canon2, ... at the outermost boundary. *)
 canonicalizeLorentzIndicesModes[modes_List] := Module[
   {indexSymbols, canonicalSymbols, renamingRules},
   indexSymbols = DeleteDuplicates @ Cases[
@@ -656,7 +658,7 @@ canonicalizeLorentzIndicesModes[modes_List] := Module[
     mode[(dX | dXt | \[Psi] | \[Psi]t)[mu_Symbol], __] :> mu,
     Infinity
   ];
-  canonicalSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[indexSymbols]];
+  canonicalSymbols = Table[Unique["mu"], Length[indexSymbols]];
   renamingRules = Thread[indexSymbols -> canonicalSymbols];
   modes /. renamingRules
 ];
@@ -780,9 +782,9 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
     Infinity
   ];
-  canonicalLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[lorentzSymbols]];
-  canonicalSpinAlphaSymbolsHolo = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsHolo]];
-  canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]t" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
+  canonicalLorentzSymbols = Table[Unique["mu"], Length[lorentzSymbols]];
+  canonicalSpinAlphaSymbolsHolo = Table[Unique["\[Alpha]"], Length[spinAlphaSymbolsHolo]];
+  canonicalSpinAlphaSymbolsAnti = Table[Unique["\[Alpha]t"], Length[spinAlphaSymbolsAnti]];
   lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
   spinAlphaRenamingRules = Join[
     Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
