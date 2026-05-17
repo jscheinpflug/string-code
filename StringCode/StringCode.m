@@ -89,6 +89,7 @@ Needs["StringCode`OPE`"];
 Needs["StringCode`Correlators`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`TeXConversion`"];
+Needs["StringCode`Utils`Canonicalize`"];
 
 Scan[
   (AppendTo[$ContextPath, #] &) ,

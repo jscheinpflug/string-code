@@ -49,7 +49,7 @@ recombineProjectedFlatSpaceR0[ra_ /; RTest[ra]] := With[
 ];
 
 postProcessProjectedOPE0::usage =
-  "postProcessProjectedOPE0[expr] recombines factorized FlatSpace profile and plane-wave fields in projected OPE outputs.";
+  "postProcessProjectedOPE0[expr] recombines factorized FlatSpace profile and plane-wave fields in projected OPE outputs. Module-generated dummy indices, Kronecker delta contractions, and der[F][\[Mu]] folding into ProfileX are all deferred to the outermost BracketProjection boundary for performance reasons.";
 postProcessProjectedOPE0[expr_] := FixedPoint[
   Expand[# /. ra_ /; RTest[ra] :> recombineProjectedFlatSpaceR0[ra]] &,
   Expand[expr]

@@ -49,11 +49,13 @@ flatSpaceMatterModeToOperatorField[mode[dX[mu_], modeNumber_Integer], z_] :=
 flatSpaceMatterModesToOperatorFields[matterModes_List, z_] :=
   flatSpaceMatterModeToOperatorField[#, z] & /@ matterModes;
 
-(* Canonicalize Lorentz-index placeholders to deterministic symbols mu1, mu2, ...
-   following first appearance order in the expression. *)
+(* Canonicalize Lorentz-index placeholders to session-unique mu$N symbols.
+   Uniqueness prevents collisions when independent results are combined; the
+   outer canonicalizeDummies (in StringCode`Utils`Canonicalize`) renumbers them
+   to readable \[Mu]Canon1, \[Mu]Canon2, ... at the outermost boundary. *)
 canonicalizeLorentzIndices[expr_] := Module[{indexSymbols, canonicalSymbols, renamingRules},
   indexSymbols = DeleteDuplicates @ Cases[expr, (dX | dXt)[mu_Symbol, __] :> mu, Infinity];
-  canonicalSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[indexSymbols]];
+  canonicalSymbols = Table[Unique["mu"], Length[indexSymbols]];
   renamingRules = Thread[indexSymbols -> canonicalSymbols];
   expr /. renamingRules
 ];
