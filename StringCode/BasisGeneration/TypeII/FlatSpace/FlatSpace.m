@@ -647,18 +647,34 @@ generateBasisMatterHoloForPictureSpec[___] := {};
   - Holomorphic → antiholomorphic conversion (b → b̃, etc.)
 *)
 
-(* Rename Lorentz indices to canonical form μ1, μ2, ...
-   Ensures consistent ordering for duplicate detection. *)
+canonicalizeLorentzIndicesModes::usage =
+  "canonicalizeLorentzIndicesModes[modes] canonicalizes holomorphic mode Lorentz placeholders to mu1, mu2, ... and antiholomorphic ones to mut1, mut2, ....";
+
+(* Rename Lorentz indices to canonical form μ1, μ2, ... for holomorphic
+   modes and mut1, mut2, ... for antiholomorphic modes. This keeps the two
+   chiral sectors visibly distinct while still giving stable duplicate keys. *)
 canonicalizeLorentzIndicesModes[modes_List] := Module[
-  {indexSymbols, canonicalSymbols, renamingRules},
-  indexSymbols = DeleteDuplicates @ Cases[
+  {holoIndexSymbols, antiIndexSymbols, canonicalHoloSymbols, canonicalAntiSymbols, holoRules, antiRules},
+  holoIndexSymbols = DeleteDuplicates @ Cases[
     modes,
-    mode[(dX | dXt | \[Psi] | \[Psi]t)[mu_Symbol], __] :> mu,
+    mode[(dX | \[Psi])[mu_Symbol], __] :> mu,
     Infinity
   ];
-  canonicalSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[indexSymbols]];
-  renamingRules = Thread[indexSymbols -> canonicalSymbols];
-  modes /. renamingRules
+  antiIndexSymbols = DeleteDuplicates @ Cases[
+    modes,
+    mode[(dXt | \[Psi]t)[mu_Symbol], __] :> mu,
+    Infinity
+  ];
+  canonicalHoloSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[holoIndexSymbols]];
+  canonicalAntiSymbols = Symbol["mut" <> ToString[#]] & /@ Range[Length[antiIndexSymbols]];
+  holoRules = AssociationThread[holoIndexSymbols -> canonicalHoloSymbols];
+  antiRules = AssociationThread[antiIndexSymbols -> canonicalAntiSymbols];
+  modes /. {
+    mode[dX[mu_Symbol], rest___] :> mode[dX[Lookup[holoRules, mu, mu]], rest],
+    mode[\[Psi][mu_Symbol], rest___] :> mode[\[Psi][Lookup[holoRules, mu, mu]], rest],
+    mode[dXt[mu_Symbol], rest___] :> mode[dXt[Lookup[antiRules, mu, mu]], rest],
+    mode[\[Psi]t[mu_Symbol], rest___] :> mode[\[Psi]t[Lookup[antiRules, mu, mu]], rest]
+  }
 ];
 
 (* Conformal weight contribution: mode with number n contributes -n *)
@@ -748,21 +764,33 @@ multiplyOperatorExpressions[a_, b_] := Which[
 ];
 
 canonicalizeLorentzIndicesOperators::usage =
-  "Canonicalizes Lorentz placeholder symbols in operator expressions. Uses α for S and αt for St spinor indices.";
+  "Canonicalizes placeholder symbols in operator expressions. Holomorphic Lorentz indices become mu1, mu2, ...; antiholomorphic Lorentz indices become mut1, mut2, ...; spinor indices use α1, α2, ... for S and αt1, αt2, ... for St.";
 canonicalizeLorentzIndicesOperators[expr_] := Module[
   {
-    lorentzSymbols,
+    holoLorentzSymbols, antiLorentzSymbols,
     spinAlphaSymbolsHolo, spinAlphaSymbolsAnti,
-    canonicalLorentzSymbols,
+    canonicalHoloLorentzSymbols, canonicalAntiLorentzSymbols,
     canonicalSpinAlphaSymbolsHolo, canonicalSpinAlphaSymbolsAnti,
-    lorentzRenamingRules,
+    holoLorentzRenamingRules, antiLorentzRenamingRules,
     spinAlphaRenamingRules
   },
-  lorentzSymbols = DeleteDuplicates @ Join[
-    Cases[expr, (dX | dXt | \[Psi] | \[Psi]t)[mu_Symbol, __] :> mu, Infinity],
+  holoLorentzSymbols = DeleteDuplicates @ Join[
+    Cases[expr, (dX | \[Psi])[mu_Symbol, __] :> mu, Infinity],
     Cases[
       expr,
-      (S | St)[_, _, modes_List, __] :>
+      S[_, _, modes_List, __] :>
+        Join[
+          Cases[modes, {mu_Symbol, _} :> mu, Infinity],
+          Cases[modes, {_, mu_Symbol} :> mu, Infinity]
+        ],
+      Infinity
+    ] // Flatten
+  ];
+  antiLorentzSymbols = DeleteDuplicates @ Join[
+    Cases[expr, (dXt | \[Psi]t)[mu_Symbol, __] :> mu, Infinity],
+    Cases[
+      expr,
+      St[_, _, modes_List, __] :>
         Join[
           Cases[modes, {mu_Symbol, _} :> mu, Infinity],
           Cases[modes, {_, mu_Symbol} :> mu, Infinity]
@@ -780,15 +808,44 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
     Infinity
   ];
-  canonicalLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[lorentzSymbols]];
+  canonicalHoloLorentzSymbols = Symbol["mu" <> ToString[#]] & /@ Range[Length[holoLorentzSymbols]];
+  canonicalAntiLorentzSymbols = Symbol["mut" <> ToString[#]] & /@ Range[Length[antiLorentzSymbols]];
   canonicalSpinAlphaSymbolsHolo = Symbol["\\[Alpha]" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsHolo]];
   canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]t" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
-  lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
+  holoLorentzRenamingRules = AssociationThread[holoLorentzSymbols -> canonicalHoloLorentzSymbols];
+  antiLorentzRenamingRules = AssociationThread[antiLorentzSymbols -> canonicalAntiLorentzSymbols];
   spinAlphaRenamingRules = Join[
     Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
     Thread[spinAlphaSymbolsAnti -> canonicalSpinAlphaSymbolsAnti]
   ];
-  expr /. Join[lorentzRenamingRules, spinAlphaRenamingRules]
+  expr /. {
+    dX[mu_Symbol, rest___] :> dX[Lookup[holoLorentzRenamingRules, mu, mu], rest],
+    \[Psi][mu_Symbol, rest___] :> \[Psi][Lookup[holoLorentzRenamingRules, mu, mu], rest],
+    dXt[mu_Symbol, rest___] :> dXt[Lookup[antiLorentzRenamingRules, mu, mu], rest],
+    \[Psi]t[mu_Symbol, rest___] :> \[Psi]t[Lookup[antiLorentzRenamingRules, mu, mu], rest],
+    S[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
+      S[
+        {alpha /. spinAlphaRenamingRules, chirality},
+        q,
+        modes /. {
+          {mu_Symbol, mode_} :> {Lookup[holoLorentzRenamingRules, mu, mu], mode},
+          {mode_, mu_Symbol} :> {mode, Lookup[holoLorentzRenamingRules, mu, mu]}
+        },
+        der,
+        coord
+      ],
+    St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
+      St[
+        {alpha /. spinAlphaRenamingRules, chirality},
+        q,
+        modes /. {
+          {mu_Symbol, mode_} :> {Lookup[antiLorentzRenamingRules, mu, mu], mode},
+          {mode_, mu_Symbol} :> {mode, Lookup[antiLorentzRenamingRules, mu, mu]}
+        },
+        der,
+        coord
+      ]
+  }
 ];
 
 stripOverallMinusInOperatorExpression::usage =
@@ -799,7 +856,7 @@ stripOverallMinusInOperatorExpression[expr_] := Module[{prefactor},
 ];
 
 canonicalizeOperatorIndicesQ::usage =
-  "Controls whether operator-output indices are canonicalized to mu1, mu2, ...";
+  "Controls whether operator-output indices are canonicalized to mu1, mu2, ... in the holomorphic sector and mut1, mut2, ... in the antiholomorphic sector.";
 canonicalizeOperatorIndicesQ[canonicalizeIndices_?BooleanQ, expr_] := Module[
   {canonicalExpression},
   canonicalExpression =
