@@ -775,9 +775,29 @@ spinProjectionFamilyOutputSpinDomain[family_Association, {freeSpins_List, freeVe
   If[TrueQ[includeTerms], {result, termBuckets}, result]
 ];
 
+spinProjectionAntisymmetricStateVectorSlots0::usage =
+  "spinProjectionAntisymmetricStateVectorSlots0[family] returns the output state-vector slot groups constrained to be pairwise distinct by antisymmetry.";
+spinProjectionAntisymmetricStateVectorSlots0[family_Association] := Select[
+  Sort /@ Replace[
+    Lookup[family, "AntisymmetricVectorGroups", {}],
+    group_List :> Cases[group, {2, slot_Integer} :> slot],
+    {1}
+  ],
+  Length[#] > 1 &
+];
+
+spinProjectionStateVectorAssignmentAllowedQ0::usage =
+  "spinProjectionStateVectorAssignmentAllowedQ0[stateVectors, groups] is True exactly when no antisymmetric output-vector group contains repeated assigned values.";
+spinProjectionStateVectorAssignmentAllowedQ0[stateVectors_List, groups_List] := And @@ (
+  DuplicateFreeQ[DeleteCases[stateVectors[[#]], None]] &
+  /@ groups
+);
+spinProjectionStateVectorAssignmentAllowedQ0[_List, {}] := True;
+
 spinProjectionFamilyStateIterator::usage =
   "spinProjectionFamilyStateIterator[family, seed, spinDomainOverride] returns a lazy iterator over concrete output states for one compiled output family, optionally restricting the unique output-spin domain.";
-spinProjectionFamilyStateIterator[family_Association, seed_, spinDomainOverride_: Automatic] := Module[{spinDomains, vectorDomains},
+spinProjectionFamilyStateIterator[family_Association, seed_, spinDomainOverride_: Automatic] := Module[
+  {spinDomains, vectorDomains, antisymmetricVectorSlots, baseIterator, spinCount},
   spinDomains = If[
     Length[family["SpinSymbols"]] == 1 && ListQ[spinDomainOverride],
     {spinDomainOverride},
@@ -787,7 +807,32 @@ spinProjectionFamilyStateIterator[family_Association, seed_, spinDomainOverride_
     ]
   ];
   vectorDomains = spinProjectionSeededOrder[Range[10], seed, #] & /@ family["VectorSymbols"];
-  spinProjectionTupleIterator[Reverse@Join[spinDomains, vectorDomains], seed, {"outputStates", family["Template"]}]
+  antisymmetricVectorSlots = spinProjectionAntisymmetricStateVectorSlots0[family];
+  baseIterator = spinProjectionTupleIterator[Reverse@Join[spinDomains, vectorDomains], seed, {"outputStates", family["Template"]}];
+  If[antisymmetricVectorSlots === {}, Return[baseIterator]];
+  spinCount = Length[family["SpinSymbols"]];
+  Function[{},
+    Module[{tuple, reordered, result = EndOfFile, done = False},
+      While[True,
+        tuple = baseIterator[];
+        If[tuple === EndOfFile,
+          done = True;,
+          reordered = Reverse[tuple];
+          If[
+            spinProjectionStateVectorAssignmentAllowedQ0[
+              Drop[reordered, spinCount],
+              antisymmetricVectorSlots
+            ],
+            result = tuple;
+            done = True
+          ]
+        ];
+        If[done, Break[]];
+      ]
+      ;
+      result
+    ]
+  ]
 ];
 
 spinProjectionFamilyStateRow::usage =
@@ -905,6 +950,7 @@ spinProjectionWitnessAssignment[model_Association, family_Association, term_Asso
       ConstantArray[None, Length[family["VectorSymbols"]]],
       ConstantArray[None, term["DummyCount"]]
     },
+    antisymmetricStateVectorSlots = spinProjectionAntisymmetricStateVectorSlots0[family],
     freeSpinDomains,
     stateSpinDomains,
     freeVectorDomains,
@@ -944,7 +990,14 @@ spinProjectionWitnessAssignment[model_Association, family_Association, term_Asso
           current === value, state,
           current =!= None, $Failed,
           src[[1]] === 1, ReplacePart[state, {2, src[[2]]} -> value],
-          src[[1]] === 2, ReplacePart[state, {4, src[[2]]} -> value],
+          src[[1]] === 2,
+            With[{nextState = ReplacePart[state, {4, src[[2]]} -> value]},
+              If[
+                spinProjectionStateVectorAssignmentAllowedQ0[nextState[[4]], antisymmetricStateVectorSlots],
+                nextState,
+                $Failed
+              ]
+            ],
           src[[1]] === 3, ReplacePart[state, {5, src[[2]]} -> value],
           src[[1]] === 4 && src[[2]] === value, state,
           True, $Failed

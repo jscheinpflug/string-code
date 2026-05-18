@@ -1560,6 +1560,7 @@ spinProjectionCompileFamily0[
       "SpinSymbols" -> outputData["SpinSymbols"],
       "SpinChiralities" -> outputData["SpinChiralities"],
       "VectorSymbols" -> outputData["VectorSymbols"],
+      "AntisymmetricVectorGroups" -> antisymmetricOutputVectorGroups,
       "OutputAssociationKey" -> outputAssociationKey,
       "OutputSpinSupportFastPathQ" ->
         Length[outputData["SpinSymbols"]] == 1 &&

@@ -138,10 +138,10 @@ Gamma11DDHold::usage =
   "Gamma11DDHold[] denotes an inert chirality-preserving Gamma11 insertion with antichiral end-index type.";
 
 CUDHold::usage =
-  "CUDHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming chiral-chiral chains.";
+  "CUDHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming upper-index spinor chains whose first endpoint is chiral.";
 
 CDUHold::usage =
-  "CDUHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming antichiral-antichiral chains.";
+  "CDUHold denotes an inert charge-conjugation insertion used as the first element in GammaAntisymmetricProductHold link lists for incoming upper-index spinor chains whose first endpoint is antichiral.";
 
 CGammaHold::usage = "CGammaHold[{mu1,...}, alpha, beta] denotes an inert Clifford tensor with two chiral spinor indices.";
 

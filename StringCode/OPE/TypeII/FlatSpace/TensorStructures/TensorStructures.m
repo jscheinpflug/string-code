@@ -846,10 +846,10 @@ deltaFactorFromPair[pair_List] := Module[{ordered},
 ];
 
 gammaProductCTag::usage =
-  "gammaProductCTag[hasOutgoing, pairForm] returns CUDHold/CDUHold for incoming same-chirality slots and None otherwise.";
+  "gammaProductCTag[hasOutgoing, pairForm] returns the leading CUDHold/CDUHold insertion required for incoming-only spinor slots and None for slots with one outgoing endpoint.";
 gammaProductCTag[hasOutgoing_, pairForm_] := Which[
   TrueQ[hasOutgoing], None,
-  pairForm === GammaFormUU, CUDHold,
+  MemberQ[{GammaFormUU, GammaFormUD}, pairForm], CUDHold,
   pairForm === GammaFormDD, CDUHold,
   True, None
 ];

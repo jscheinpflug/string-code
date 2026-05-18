@@ -174,6 +174,60 @@ samePointPureFieldProductQ0[ops_List, head_Symbol] := Length[ops] > 1 &&
   AllTrue[ops, Head[#] === head &] &&
   SameQ @@ ((List @@ #)[[-1]] & /@ ops);
 
+samePointProjectedPsiClusterSpec0::usage =
+  "samePointProjectedPsiClusterSpec0[ops] returns the same-point projected psi-cluster specification for one local R-product, or $Failed when no such collapse applies.";
+samePointProjectedPsiClusterSpec0[ops_List] := Module[
+  {coords, psiOps, psitOps, orderedPiecesFor},
+  If[ops === {}, Return[$Failed]];
+  coords = (List @@ #)[[-1]] & /@ ops;
+  If[!SameQ @@ coords, Return[$Failed]];
+  psiOps = Select[ops, Head[#] === ψ &];
+  psitOps = Select[ops, Head[#] === ψt &];
+  orderedPiecesFor[head_Symbol] := Module[{inserted = False},
+    Reap[
+      Scan[
+        Function[op,
+          If[
+            Head[op] === head,
+            If[!inserted,
+              Sow[Missing["PsiCluster"]];
+              inserted = True
+            ],
+            Sow[op]
+          ]
+        ],
+        ops
+      ]
+    ][[2, 1]]
+  ];
+  Which[
+    Length[psiOps] > 1 && psitOps === {},
+      <|
+        "Sector" -> "Holo",
+        "ClusterOps" -> psiOps,
+        "Coord" -> First[coords],
+        "OrderedPieces" -> orderedPiecesFor[ψ]
+      |>,
+    Length[psitOps] > 1 && psiOps === {},
+      <|
+        "Sector" -> "Anti",
+        "ClusterOps" -> psitOps,
+        "Coord" -> First[coords],
+        "OrderedPieces" -> orderedPiecesFor[ψt]
+      |>,
+    True,
+      $Failed
+  ]
+];
+
+bosonizedExpressionTerms0::usage =
+  "bosonizedExpressionTerms0[expr] expands one already bosonized expression into parsed single-term specifications compatible with bosonizedTupleExpression.";
+bosonizedExpressionTerms0[expr_] := Module[{terms, parsed},
+  terms = If[Head[Expand[expr]] === Plus, List @@ Expand[expr], {Expand[expr]}];
+  parsed = bosonizedTermSpec /@ terms;
+  If[MemberQ[parsed, $Failed], $Failed, parsed]
+];
+
 splitBosonizedProbeCoordinates0::usage =
   "splitBosonizedProbeCoordinates0[n] returns the canonical point-splitting coordinates used to collapse an n-field same-point ψ-product through one projected OPE.";
 splitBosonizedProbeCoordinates0[n_Integer?Positive] := Join[Range[n - 1], {0}];
@@ -220,18 +274,23 @@ bosonizedProjectedSamePointProduct0[sector : ("Holo" | "Anti"), ops_List, coord_
 ];
 
 bosonizeSamePointMultiPsiLocal0::usage =
-  "bosonizeSamePointMultiPsiLocal0[Ra] bosonizes a same-point pure-ψ or pure-ψt product via one projected bosonized free-field OPE.";
+  "bosonizeSamePointMultiPsiLocal0[Ra] bosonizes a same-point local ψ/ψt cluster, with or without same-point spectators, via one projected bosonized free-field OPE.";
 bosonizeSamePointMultiPsiLocal0[Ra_ /; RTest[Ra]] := Module[
-  {ops = List @@ Ra, originalCoord},
-  originalCoord = (List @@ First[ops])[[-1]];
-  Which[
-    samePointPureFieldProductQ0[ops, ψ],
-      bosonizedProjectedSamePointProduct0["Holo", ops, originalCoord],
-    samePointPureFieldProductQ0[ops, ψt],
-      bosonizedProjectedSamePointProduct0["Anti", ops, originalCoord],
-    True,
-      Unevaluated[Bosonize[Ra]]
-  ]
+  {ops = List @@ Ra, spec, collapsedCluster, termLists, tuples},
+  spec = samePointProjectedPsiClusterSpec0[ops];
+  If[spec === $Failed, Return[Unevaluated[Bosonize[Ra]]]];
+  collapsedCluster = bosonizedProjectedSamePointProduct0[spec["Sector"], spec["ClusterOps"], spec["Coord"]];
+  termLists = Replace[
+    spec["OrderedPieces"],
+    {
+      Missing["PsiCluster"] :> bosonizedExpressionTerms0[collapsedCluster],
+      op_ :> bosonizedSingleFieldTerms[op]
+    },
+    {1}
+  ];
+  If[MemberQ[termLists, $Failed], Return[Unevaluated[Bosonize[Ra]]]];
+  tuples = Tuples[termLists];
+  Expand[Total[bosonizedTupleExpression /@ tuples]]
 ];
 
 
@@ -267,7 +326,7 @@ GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
 GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
 
 Bosonize[Ra_ /; RTest[Ra]] := Module[{ops = List @@ Ra, termLists, tuples},
-  If[samePointPureFieldProductQ0[ops, ψ] || samePointPureFieldProductQ0[ops, ψt],
+  If[samePointProjectedPsiClusterSpec0[ops] =!= $Failed,
     Return[bosonizeSamePointMultiPsiLocal0[Ra]]
   ];
   (* Bosonize each input field independently, form all term combinations, then
