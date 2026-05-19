@@ -1,0 +1,2277 @@
+In[110]:= Quit[]
+
+StringCode - demo
+
+Initialization
+
+In[1]:= Needs["StringCode`"];
+
+InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", 
+   "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>];
+
+Useful tools
+
+In[3]:= canonicalizeDummies[expr_] := 
+ Module[{terms, canonicalize}, 
+  canonicalize[term_] := 
+   Module[{indices, rules},(*Find all module-generated indices*)
+    indices = 
+     DeleteDuplicates[
+      Cases[term, 
+       s_Symbol /; StringMatchQ[SymbolName[s], __ ~~ "$" ~~ DigitCharacter ..],
+        Infinity]];
+    (*Replace with canonical names in order of appearance*)
+    rules = Thread[
+      indices -> 
+       Take[{\[Mu]D, \[Nu]D, \[Rho]D, \[Sigma]D, \[Tau]D, \[Lambda]D}, 
+        Length[indices]]];
+    term /. rules];
+  (*Apply to each term in the sum*)
+  If[Head[expr] === Plus, Total[canonicalize /@ (List @@ expr)], 
+   canonicalize[expr]]]
+
+twoBracketReplRule = {Private`z[2, 1][{}] :> z0, Private`z[2, 2][{}] :> -z0, 
+   Private`q[2, 1][{}] :> r0, Private`q[2, 2][{}] :> r0, 
+   Private`zbar[2, 1][{}] :> z0, Private`zbar[2, 2][{}] :> -z0, 
+   Private`qbar[2, 1][{}] :> r0, Private`qbar[2, 2][{}] :> r0, 
+   Private`r0 :> r0};
+
+derAppend = {HoldPattern[
+      R[before___, ProfileX[F_, indices_, a_, b_], after___]*der[G_][\[Mu]_]*
+       rest___] /; G === F :> 
+    rest R[before, ProfileX[F, Append[indices, \[Mu]], a, b], after], 
+   HoldPattern[
+      R[before___, ProfileX[F_, indices_, a_, b_], after___]*
+       der[G_][\[Mu]_]^n_Integer*rest___] /; G === F :> 
+    rest R[before, ProfileX[F, Join[indices, ConstantArray[\[Mu], n]], a, b], 
+      after]};
+
+
+Simple usage
+
+Operators and their normal-ordered products
+
+In[3]:= (*Operators are written with their position and number of derivatives they car\
+ry*)
+
+In[59]:= c[1, z]
+
+Out[59]= c[1, z]
+
+In[5]:= (*R is a header for normal-ordered product*)
+
+In[60]:= R[c[1, z], c[2, z]]
+
+Out[60]= R[c[1, z], c[2, z]]
+
+In[7]:= (*It is automatically ordered, with Grassmann signs*)
+
+In[55]:= R[c[1, z], c[0, z]]
+
+Out[55]= -R[c[0, z], c[1, z]]
+
+In[56]:= R[c[1, z], c[1, z]]
+
+Out[56]= 0
+
+Wick contractions
+
+In[10]:= (*We can Wick contract simple operators*)
+
+In[57]:= Wick[c[1, z], b[0, w]]
+
+Out[57]= -(1/(w - z)^2)
+
+In[12]:= (*And composites too*)
+
+In[58]:= SWick[dX[\[Mu], 0, z], expX[k, 0, 0]]
+
+Out[58]= -((I \[Alpha]p k[\[Mu]])/(2 z))
+
+Some simple OPEs
+
+In[14]:= (*Can capture the singular part of OPE*)
+
+In[61]:= OPEProjected[0, 0][R[b[0, z]], R[c[0, w]]]
+
+Out[61]= 1/(-w + z)
+
+In[62]:= OPEProjected[0, 0][R[dX[\[Mu], 0, z]], R[dX[\[Nu], 0, 0]]]
+
+Out[62]= -((\[Alpha]p \[Delta][\[Mu], \[Nu]])/(2 z^2))
+
+In[63]:= (*But also the regular part, at higher levels*)
+
+In[64]:= OPEProjected[1, 0][R[b[0, z]], R[c[0, w]]]
+
+Out[64]= R[b[0, 0], c[0, 0]]
+
+In[65]:= OPEProjected[2, 0][R[b[0, z]], R[c[0, w]]]
+
+Out[65]= w R[b[0, 0], c[1, 0]] + z R[b[1, 0], c[0, 0]]
+
+In[66]:= OPEProjected[2, 0][R[dX[\[Mu], 0, z]], R[dX[\[Nu], 0, 0]]]
+
+Out[66]= R[dX[\[Mu], 0, 0], dX[\[Nu], 0, 0]]
+
+TypeII convention presets have a few useful operators defined
+
+In[67]:= Tmatter[z] // canonicalizeDummies
+
+Out[67]= -(R[dX[\[Mu]D, 0, z], dX[\[Mu]D, 0, z]]/\[Alpha]p) + 
+ R[\[Psi][\[Mu]D, 0, z], \[Psi][\[Mu]D, 1, z]]
+
+In[68]:= Gmatter[z] // canonicalizeDummies
+
+Out[68]= -(R[dX[\[Mu]D, 0, z], \[Psi][\[Mu]D, 0, z]]/Sqrt[\[Alpha]p])
+
+In[69]:= jBRST[z] // canonicalizeDummies
+
+Out[69]= 1/2 R[c[0, z], d\[Phi][1, z]] + 3/2 R[c[1, z], d\[Phi][0, z]] + 
+ R[b[0, z], c[0, z], c[1, z]] - 
+ R[c[0, z], dX[\[Mu]D, 0, z], dX[\[Mu]D, 0, z]]/\[Alpha]p - 
+ 1/2 R[c[0, z], d\[Phi][0, z], d\[Phi][0, z]] - 
+ R[c[0, z], \[Eta][0, z], \[Xi][1, z]] + 
+ R[c[0, z], \[Psi][\[Mu]D, 0, z], \[Psi][\[Mu]D, 1, z]] - 
+ 1/4 R[b[0, z], exp\[Phi]b[2, z], \[Eta][0, z], \[Eta][1, z]] + 
+ R[dX[\[Mu]D, 0, z], 
+  exp\[Phi]f[1, z], \[Eta][0, z], \[Psi][\[Mu]D, 0, z]]/Sqrt[\[Alpha]p]
+
+We can compute their OPE
+
+In[24]:= (*Tmatter-Tmatter OPE*)
+
+In[25]:= (*2 Tmatter(z)/z^2*)
+
+In[70]:= OPEProjected[2, 0][Tmatter[z], Tmatter[0]] // canonicalizeDummies // 
+  ContractDelta // Simplify
+
+Out[70]= (2 (-R[dX[\[Nu]D, 0, 0], 
+     dX[\[Nu]D, 0, 0]] + \[Alpha]p R[\[Psi][\[Nu]D, 0, 0], \[Psi][\[Nu]D, 1, 
+      0]]))/(z^2 \[Alpha]p)
+
+In[71]:= (*partial Tmatter(z)/z*)
+
+In[72]:= OPEProjected[3, 0][Tmatter[z], Tmatter[0]] // ContractDelta // 
+  Simplify // canonicalizeDummies
+
+Out[72]= (-2 R[dX[\[Mu]D, 0, 0], 
+   dX[\[Mu]D, 1, 0]] + \[Alpha]p R[\[Psi][\[Mu]D, 0, 0], \[Psi][\[Mu]D, 2, 
+    0]])/(z \[Alpha]p)
+
+In[73]:= Ttotal[z] // canonicalizeDummies
+
+Out[73]= -R[d\[Phi][1, z]] - 2 R[b[0, z], c[1, z]] - R[b[1, z], c[0, z]] - 
+ R[dX[\[Mu]D, 0, z], dX[\[Mu]D, 0, z]]/\[Alpha]p - 
+ 1/2 R[d\[Phi][0, z], d\[Phi][0, z]] - R[\[Eta][0, z], \[Xi][1, z]] + 
+ R[\[Psi][\[Mu]D, 0, z], \[Psi][\[Mu]D, 1, z]]
+
+In[74]:= (*Ttotal-Ttotal has 2 Total/z^2*)
+
+In[75]:= OPEProjected[2, 0][Ttotal[z], Ttotal[0]] // ContractDelta // 
+  Simplify // canonicalizeDummies
+
+Out[75]= -1/(z^2 \[Alpha]p) (2 \[Alpha]p R[d\[Phi][1, 0]] + 
+    4 \[Alpha]p R[b[0, 0], c[1, 0]] + 2 \[Alpha]p R[b[1, 0], c[0, 0]] + 
+    2 R[dX[\[Mu]D, 0, 0], dX[\[Mu]D, 0, 0]] + \[Alpha]p R[d\[Phi][0, 0], 
+      d\[Phi][0, 0]] + 2 \[Alpha]p R[\[Eta][0, 0], \[Xi][1, 0]] - 
+    2 \[Alpha]p R[\[Psi][\[Mu]D, 0, 0], \[Psi][\[Mu]D, 1, 0]])
+
+In[76]:= (*Necessary checks for jBRST being Virasoro primary*)
+
+In[77]:= (OPEProjected[-1, 0][Ttotal[z], jBRST[0]] // ContractDelta // 
+    Simplify) /. {\[Delta][a_, b_]^2 :> Dim} // FullSimplify
+
+Out[77]= (3 (-10 + Dim) R[c[0, 0]])/(4 z^4)
+
+In[78]:= (OPEProjected[0, 0][Ttotal[z], jBRST[0]] // ContractDelta // 
+    Simplify) /. {\[Delta][a_, b_]^2 :> Dim} // FullSimplify
+
+Out[78]= 0
+
+In[79]:= (*We see 1/z^2 jBRST[\
+0] after canonicalization as we should for a Virasoro primary current*)
+
+In[80]:= (((OPEProjected[1, 0][Ttotal[z], jBRST[0]] // ContractDelta // 
+        Simplify) /. {\[Delta][a_, b_]^2 :> Dim}) - 1/z^2 jBRST[0]) // 
+  FullSimplify // canonicalizeDummies
+
+Out[80]= 1/(z^2 \[Alpha]p) (-R[c[0, 0], dX[\[Mu]D, 0, 0], dX[\[Mu]D, 0, 0]] + 
+   R[c[0, 0], dX[\[Nu]D, 0, 0], 
+    dX[\[Nu]D, 0, 0]] + \[Alpha]p R[
+     c[0, 0], \[Psi][\[Mu]D, 0, 0], \[Psi][\[Mu]D, 1, 0]] - \[Alpha]p R[
+     c[0, 0], \[Psi][\[Nu]D, 0, 0], \[Psi][\[Nu]D, 1, 0]] + 
+   Sqrt[\[Alpha]p]
+     R[dX[\[Rho]D, 0, 0], 
+     exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Rho]D, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[dX[\[Sigma]D, 0, 0], 
+     exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Sigma]D, 0, 0]])
+
+In[81]:= (*jBRST-jBRST OPE only have pure c-\
+ghost terms as expected (did the calculation a while ago by hand)*)
+
+In[82]:= (OPEProjected[-1, 0][jBRST[z], jBRST[0]] // ContractDelta // 
+    Simplify) /. {\[Delta][a_, b_]^2 :> Dim} // FullSimplify
+
+Out[82]= ((20 - 3 Dim) R[c[0, 0], c[1, 0]] + (-10 + Dim) R[
+   exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]])/(4 z^3)
+
+In[83]:= (OPEProjected[0, 0][jBRST[z], jBRST[0]] // ContractDelta // 
+     Simplify) /. {\[Delta][a_, b_]^2 :> Dim} // 
+  FullSimplify // canonicalizeDummies
+
+Out[83]= 1/(8 z^2 Sqrt[\[Alpha]p]) (Sqrt[\[Alpha]p] ((20 - 3 Dim) R[c[0, 0], 
+        c[2, 0]] + (-10 + 
+         Dim) (R[exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][2, 0]] + 
+         2 R[d\[Phi][0, 0], exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]])) - 
+   4 (2 R[c[0, 0], dX[\[Mu]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Mu]D, 0, 0]] + 
+      3 R[c[0, 0], dX[\[Nu]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Nu]D, 0, 0]] - 
+      5 R[c[0, 0], dX[\[Rho]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Rho]D, 0, 0]]))
+
+In[84]:= (*The pure c-ghost term should vanish for Dim = 10, \
+the rest should be a total derivative: checked with GPT*)
+
+In[85]:= (OPEProjected[1, 0][jBRST[z], jBRST[0]] // ContractDelta // 
+     Simplify) /. {\[Delta][a_, b_]^2 :> Dim} // 
+  FullSimplify // canonicalizeDummies
+
+Out[85]= 1/(24 z \[Alpha]p) (-3 (-10 + Dim) \[Alpha]p R[c[0, 0], 
+     c[3, 0]] + (-13 + Dim) \[Alpha]p R[
+     exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][3, 0]] - 
+   3 (\[Alpha]p R[exp\[Phi]b[2, 0], \[Eta][1, 0], \[Eta][2, 0]] + 
+      8 R[c[0, 0], c[1, 0], dX[\[Mu]D, 0, 0], dX[\[Mu]D, 0, 0]] - 
+      8 \[Alpha]p R[c[0, 0], 
+        c[1, 0], \[Psi][\[Mu]D, 0, 0], \[Psi][\[Mu]D, 1, 0]] + 
+      8 \[Alpha]p R[c[0, 0], 
+        c[1, 0], \[Psi][\[Nu]D, 0, 0], \[Psi][\[Nu]D, 1, 0]] + 
+      15 \[Alpha]p R[d\[Phi][0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][2, 0]] - 
+      Dim \[Alpha]p R[d\[Phi][0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][2, 0]] + 
+      13 \[Alpha]p R[d\[Phi][1, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] - 
+      Dim \[Alpha]p R[d\[Phi][1, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+      2 \[Alpha]p R[b[0, 0], c[0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][2, 0]] + 
+      2 \[Alpha]p R[b[0, 0], c[1, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+      2 \[Alpha]p R[b[1, 0], c[0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+      4 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Nu]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Nu]D, 1, 0]] + 
+      12 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Nu]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][1, 0], \[Psi][\[Nu]D, 0, 0]] + 
+      4 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Nu]D, 1, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Nu]D, 0, 0]] + 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Rho]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Rho]D, 1, 0]] + 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Rho]D, 1, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Rho]D, 0, 0]] - 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Sigma]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Sigma]D, 1, 0]] - 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Sigma]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][1, 0], \[Psi][\[Sigma]D, 0, 0]] - 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Sigma]D, 1, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Sigma]D, 0, 0]] + 
+      12 Sqrt[\[Alpha]p]
+        R[c[1, 0], dX[\[Rho]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Rho]D, 0, 0]] - 
+      8 Sqrt[\[Alpha]p]
+        R[c[1, 0], dX[\[Sigma]D, 0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Sigma]D, 0, 0]] - 
+      2 (4 R[c[0, 0], c[1, 0], dX[\[Nu]D, 0, 0], dX[\[Nu]D, 0, 0]] + 
+         R[dX[\[Mu]D, 0, 0], dX[\[Mu]D, 0, 0], 
+          exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+         R[dX[\[Nu]D, 0, 0], dX[\[Nu]D, 0, 0], 
+          exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] - 
+         2 R[dX[\[Sigma]D, 0, 0], dX[\[Sigma]D, 0, 0], 
+           exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]]) + 
+      16 \[Alpha]p R[d\[Phi][0, 0], d\[Phi][0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] - 
+      Dim \[Alpha]p R[d\[Phi][0, 0], d\[Phi][0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+      2 \[Alpha]p R[
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0], \[Psi][\[Mu]D, 0, 
+         0], \[Psi][\[Mu]D, 1, 0]] + 
+      2 \[Alpha]p R[
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0], \[Psi][\[Nu]D, 0, 
+         0], \[Psi][\[Nu]D, 1, 0]] - 
+      4 \[Alpha]p R[
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0], \[Psi][\[Sigma]D, 0, 
+         0], \[Psi][\[Sigma]D, 1, 0]] + 
+      4 \[Alpha]p R[b[0, 0], c[0, 0], d\[Phi][0, 0], 
+        exp\[Phi]b[2, 0], \[Eta][0, 0], \[Eta][1, 0]] + 
+      12 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Nu]D, 0, 0], d\[Phi][0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Nu]D, 0, 0]] - 
+      8 Sqrt[\[Alpha]p]
+        R[c[0, 0], dX[\[Sigma]D, 0, 0], d\[Phi][0, 0], 
+        exp\[Phi]f[1, 0], \[Eta][0, 0], \[Psi][\[Sigma]D, 0, 0]]))
+
+Now, let's define some useful vertex operators:
+
+In[13]:= flux[F_, \[Alpha]_, \[Beta]_, z_, zbar_] := 
+  R[ProfileX[F[\[Alpha], \[Beta]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   S[{\[Alpha], "chiral"}, -1/2, {}, 0, z], 
+   St[{\[Beta], "chiral"}, -1/2, {}, 0, zbar]];
+
+graviton[h_, \[Mu]_, \[Nu]_, z_, zbar_] := 
+  R[ProfileX[h[\[Mu], \[Nu]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+   exp\[Phi]tf[-1, zbar], \[Psi]t[\[Nu], 0, zbar]];
+
+ghostDilaton[Dil_, z_, zbar_] := 
+  R[ProfileX[Dil, {}, z, zbar], c[0, z], ct[0, zbar], \[Eta][0, z], 
+    exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] - 
+   R[ProfileX[Dil, {}, z, zbar], c[0, z], ct[0, zbar], 
+    exp\[Phi]b[-2, z], \[Xi][1, z], \[Eta]t[0, zbar]];
+
+auxField[Aux_, \[Mu]_, z_, 
+   zbar_] := (1/2)*
+    R[c[1, z] + ct[1, zbar], ProfileX[Aux[\[Mu]], {}, z, zbar], c[0, z], 
+     ct[0, zbar], exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+     exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] + (1/2)*
+    R[c[1, z] + ct[1, zbar], ProfileX[Aux[\[Mu]], {}, z, zbar], c[0, z], 
+     ct[0, zbar], exp\[Phi]b[-2, z], \[Xi][1, z], 
+     exp\[Phi]tf[-1, zbar], \[Psi]t[\[Mu], 0, zbar]];
+
+We can compute BRST action on them
+
+(*BRST action on picture -1/2 massless R sector*)
+
+In[110]:= ((actBRST[flux[F, \[Alpha]1, \[Beta]1, 0, 0]] // canonicalizeDummies // 
+      Expand) //. derAppend // Expand) //. {\[Delta][\[Mu]D, \[Mu]D] :> 10}
+
+Out[110]= 1/4 \[Alpha]p GammaAntisymmetricProductHold[{}, \[Alpha]2, \[Alpha]1] R[
+   c[0, 0], c[1, 0], ct[0, 0], 
+   ProfileX[F[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Mu]D}, 0, 0], 
+   S[{\[Alpha]2, "chiral"}, -(1/2), {}, 0, 0], 
+   St[{\[Beta]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+ 1/4 \[Alpha]p GammaAntisymmetricProductHold[{}, \[Alpha]t1, \[Beta]1] R[
+   c[0, 0], ct[0, 0], ct[1, 0], 
+   ProfileX[F[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Mu]D}, 0, 0], 
+   S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+   St[{\[Alpha]t1, "chiral"}, -(1/2), {}, 0, 0]] + 
+ 1/4 Sqrt[\[Alpha]p]
+   GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]D]}, \[Alpha]t1, \
+\[Beta]1] R[c[0, 0], ct[0, 0], 
+   ProfileX[F[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+   S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+   St[{\[Alpha]t1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 0]] + 
+ 1/4 Sqrt[\[Alpha]p]
+   GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]D]}, \[Alpha]2, \
+\[Alpha]1] R[c[0, 0], ct[0, 0], 
+   ProfileX[F[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+   S[{\[Alpha]2, "antichiral"}, 1/2, {}, 0, 0], 
+   St[{\[Beta]1, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 0]]
+
+(*BRST action on picture -1 massless NSNS sector: vector*)
+
+In[111]:= actBRST[graviton[h, \[Mu], \[Nu], 0, 0]] //. derAppend // ContractDelta // 
+  canonicalizeDummies // Simplify
+
+Out[111]= -(1/4) Sqrt[\[Alpha]p] (R[c[0, 0], ct[0, 0], exp\[Phi]f[-1, 0], 
+    ProfileX[h[\[Mu], \[Nu]], {\[Nu]}, 0, 0], \[Eta]t[0, 0], \[Psi][\[Mu], 0, 
+     0]] + R[c[0, 0], ct[0, 0], exp\[Phi]tf[-1, 0], 
+    ProfileX[h[\[Mu], \[Nu]], {\[Mu]}, 0, 0], \[Eta][0, 0], \[Psi]t[\[Nu], 0, 
+     0]] + Sqrt[\[Alpha]p] (R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]f[-1, 0], 
+       exp\[Phi]tf[-1, 0], 
+       ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Mu]D}, 0, 0], \[Psi][\[Mu], 0, 
+        0], \[Psi]t[\[Nu], 0, 0]] - 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+       ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Mu]D}, 0, 0], \[Psi][\[Mu], 0, 
+        0], \[Psi]t[\[Nu], 0, 0]]))
+
+In[87]:= (*BRST action on picture -1 massless NSNS sector: auxiliary field*)
+
+In[112]:= (actBRST[auxField[A, \[Mu], 0, 0]] //. derAppend) // ContractDelta // 
+  canonicalizeDummies // FullSimplify
+
+Out[112]= 1/8 (-2 R[c[0, 0], ct[0, 0], exp\[Phi]f[-1, 0], 
+     ProfileX[A[\[Mu]], {}, 0, 0], \[Eta]t[0, 0], \[Psi][\[Mu], 0, 0]] - 
+   2 R[c[0, 0], ct[0, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[A[\[Mu]], {}, 0, 0], \[Eta][0, 0], \[Psi]t[\[Mu], 0, 0]] + 
+   Sqrt[\[Alpha]p] (R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]b[-2, 0], 
+       ProfileX[A[\[Mu]], {\[Mu]}, 0, 0], \[Eta]t[0, 0], \[Xi][1, 0]] + 
+      R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+       ProfileX[A[\[Mu]], {\[Mu]}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 0]] - 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]b[-2, 0], 
+       ProfileX[A[\[Mu]], {\[Mu]}, 0, 0], \[Eta]t[0, 0], \[Xi][1, 0]] - 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]tb[-2, 0], 
+       ProfileX[A[\[Mu]], {\[Mu]}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 0]] - 
+      2 R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+        ProfileX[A[\[Mu]], {\[Mu]D}, 0, 0], \[Psi][\[Mu], 0, 
+         0], \[Psi]t[\[Mu]D, 0, 0]] - 
+      2 R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+        ProfileX[A[\[Mu]], {\[Mu]D}, 0, 0], \[Psi][\[Mu]D, 0, 
+         0], \[Psi]t[\[Mu], 0, 0]] + 
+      2 R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+        ProfileX[A[\[Mu]], {\[Nu]D}, 0, 0], \[Psi][\[Mu], 0, 
+         0], \[Psi]t[\[Nu]D, 0, 0]] + 
+      2 R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+        ProfileX[A[\[Mu]], {\[Nu]D}, 0, 0], \[Psi][\[Nu]D, 0, 
+         0], \[Psi]t[\[Mu], 0, 0]]) + \[Alpha]p R[c[0, 0], c[1, 0], ct[0, 0], 
+     ct[1, 0], exp\[Phi]b[-2, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[A[\[Mu]], {\[Rho]D, \[Rho]D}, 0, 0], \[Xi][1, 0], \[Psi]t[\[Mu],
+       0, 0]] - \[Alpha]p R[c[0, 0], c[1, 0], ct[0, 0], ct[1, 0], 
+     exp\[Phi]b[-2, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[A[\[Mu]], {\[Sigma]D, \[Sigma]D}, 0, 0], \[Xi][1, 
+      0], \[Psi]t[\[Mu], 0, 0]] + \[Alpha]p R[c[0, 0], c[1, 0], ct[0, 0], 
+     ct[1, 0], exp\[Phi]f[-1, 0], exp\[Phi]tb[-2, 0], 
+     ProfileX[A[\[Mu]], {\[Rho]D, \[Rho]D}, 0, 0], \[Xi]t[1, 0], \[Psi][\[Mu],
+       0, 0]] - \[Alpha]p R[c[0, 0], c[1, 0], ct[0, 0], ct[1, 0], 
+     exp\[Phi]f[-1, 0], exp\[Phi]tb[-2, 0], 
+     ProfileX[A[\[Mu]], {\[Sigma]D, \[Sigma]D}, 0, 0], \[Xi]t[1, 
+      0], \[Psi][\[Mu], 0, 0]])
+
+In[89]:= (*BRST action on picture -1 massless NSNS sector: ghost dilaton*)
+
+In[113]:= (actBRST[ghostDilaton[Dil, 0, 0]] //. derAppend) // ContractDelta // 
+  canonicalizeDummies // FullSimplify
+
+Out[113]= 1/4 (2 Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], exp\[Phi]f[-1, 0], 
+     ProfileX[Dil, {\[Mu]D}, 0, 0], \[Eta]t[0, 0], \[Psi][\[Mu]D, 0, 0]] + 
+   2 Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Dil, {\[Mu]D}, 0, 0], \[Eta][0, 0], \[Psi]t[\[Mu]D, 0, 
+      0]] + \[Alpha]p (R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]b[-2, 0], 
+       ProfileX[Dil, {\[Mu]D, \[Mu]D}, 0, 0], \[Eta]t[0, 0], \[Xi][1, 0]] + 
+      R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+       ProfileX[Dil, {\[Mu]D, \[Mu]D}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 0]] - 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]b[-2, 0], 
+       ProfileX[Dil, {\[Mu]D, \[Mu]D}, 0, 0], \[Eta]t[0, 0], \[Xi][1, 0]] - 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]tb[-2, 0], 
+       ProfileX[Dil, {\[Mu]D, \[Mu]D}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 0]]))
+
+as well as picture-raising
+
+(*Picture-raising picture -2 NS sector*)
+
+In[109]:= (Private`actPCOHolo[
+     R[ProfileX[F, {}, 0, 0], c[0, 0], c[1, 0], d\[Phi][0, 0], 
+      exp\[Phi]f[-3, 0], \[Psi][\[Mu], 0, 0], \[Xi][1, 0]]] // 
+    canonicalizeDummies // ContractDelta) //. derAppend
+
+Out[109]= 1/2 R[c[0, 0], exp\[Phi]f[-1, 0], 
+   ProfileX[F, {}, 0, 0], \[Psi][\[Mu], 0, 0]] + 
+ 1/4 Sqrt[\[Alpha]p]
+   R[c[0, 0], c[1, 0], exp\[Phi]b[-2, 0], 
+   ProfileX[F, {\[Mu]}, 0, 0], \[Xi][1, 0]]
+
+In[92]:= (*Picture-raising picture -1 holomorphic factor of metric string field.*)
+
+In[114]:= (Private`actPCOHolo[
+     R[ProfileX[h[\[Mu], \[Nu]], {}, z, zbar], c[0, z], 
+      exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z]]] //. derAppend) // 
+  canonicalizeDummies // ContractDelta
+
+Out[114]= -(R[c[0, 0], dX[\[Mu], 0, 0], ProfileX[h[\[Mu], \[Nu]], {}, 0, 0]]/(
+  2 Sqrt[\[Alpha]p])) + 
+ 1/4 Sqrt[\[Alpha]p]
+   R[c[0, 0], d\[Phi][0, 0], ProfileX[h[\[Mu], \[Nu]], {\[Mu]}, 0, 0]] + 
+ 1/2 Sqrt[\[Alpha]p]
+   R[c[0, 0], 
+   ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], \[Psi][\[Mu], 0, 
+    0], \[Psi][\[Mu]D, 0, 0]] + 
+ 1/4 R[exp\[Phi]f[1, 0], 
+   ProfileX[h[\[Mu], \[Nu]], {}, 0, 0], \[Eta][0, 0], \[Psi][\[Mu], 0, 0]]
+
+In[94]:= (*Picture-raising picture -1/2 holomorphic factor of flux string field.*)
+
+In[115]:= (Private`actPCOHolo[
+      R[ProfileX[\[Lambda][\[Alpha]], {}, z, zbar], c[0, z], 
+       S[{\[Alpha], "chiral"}, -1/2, {}, 0, z]]] //. derAppend) // 
+   canonicalizeDummies // ContractDelta // Simplify
+
+Out[115]= 1/(4 Sqrt[\[Alpha]p]) \
+(-2 GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]] (R[c[0, 0], dX[\[Mu]D, 0, 0], 
+       ProfileX[\[Lambda][\[Alpha]], {}, 0, 0], 
+       S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0]] - \[Alpha]p R[c[0, 0], 
+        d\[Phi][0, 0], ProfileX[\[Lambda][\[Alpha]], {\[Mu]D}, 0, 0], 
+        S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0]]) + 
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, \[Alpha]] (2 Sqrt[
+       2] \[Alpha]p R[c[0, 0], ProfileX[\[Lambda][\[Alpha]], {mu1}, 0, 0], 
+        S[{\[Alpha]1, "chiral"}, 1/2, {{mu1, -1}}, 0, 0]] - 
+      I Sqrt[\[Alpha]p] (2 R[ProfileX[\[Lambda][\[Alpha]], {}, 0, 0], 
+           S[{\[Alpha]1, "chiral"}, 3/2, {}, 0, 0], \[Eta][1, 0]] + 
+         2 R[d\[Phi][0, 0], ProfileX[\[Lambda][\[Alpha]], {}, 0, 0], 
+           S[{\[Alpha]1, "chiral"}, 3/2, {}, 0, 0], \[Eta][0, 0]] + 
+         R[b[0, 0], c[0, 0], ProfileX[\[Lambda][\[Alpha]], {}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, 3/2, {}, 0, 0], \[Eta][0, 0]])))
+
+OPE's in the R sector
+
+(*We have used simple R sector OPE's above, but StringCode can do more!*)
+
+In[96]:= (*S^alpha S^beta OPE at lowest level*)
+
+In[106]:= OPEProjected[0, 1][R[St[{a1, "chiral"}, -1/2, {}, 0, z]], 
+ R[St[{a2, "chiral"}, -1/2, {}, 0, w]]]
+
+Out[106]= (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[mu1]}, a1, a2] R[
+  exp\[Phi]tf[-1, 0], \[Psi]t[mu1, 0, 0]])/(w - z)
+
+In[98]:= (*S^alpha psi^mu OPE at lowest level*)
+
+In[107]:= OPEProjected[0, 1][R[St[{a1, "chiral"}, -1/2, {}, 0, z]], 
+ R[\[Psi]t[\[Mu], 0, w], exp\[Phi]tf[-1, w]]]
+
+Out[107]= -((I GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]t1, a1] R[
+   St[{\[Alpha]t1, "antichiral"}, -(3/2), {}, 0, 0]])/(2 (w - z)))
+
+In[100]:= (*S^alphadot psi^m OPE at lowest level*)
+
+In[118]:= OPEProjected[0, 0][R[S[{a1, "antichiral"}, -3/2, {}, 0, z]], 
+ R[\[Psi][\[Mu], 0, w], exp\[Phi]f[-1, w]]]
+
+Out[118]= -((GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]]}, \[Alpha]1, a1] R[
+   S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (w - z)^2))
+
+In[102]:= (*S^alphadot S^beta OPE at lowest level*)
+
+In[119]:= OPEProjected[0, 0][R[S[{a1, "antichiral"}, 1/2, {}, 0, z]], 
+ R[S[{a2, "chiral"}, -1/2, {}, 0, w]]]
+
+Out[119]= -((I GammaAntisymmetricProductHold[{}, a2, a1])/(w - z))
+
+In[104]:= (*S^alphadot S^beta OPE at higher levels*)
+
+In[120]:= OPEProjected[1, 0][R[S[{a1, "antichiral"}, 1/2, {}, 0, z]], 
+ R[S[{a2, "chiral"}, -1/2, {}, 0, w]]]
+
+Out[120]= 1/2 I GammaAntisymmetricProductHold[{}, a2, a1] R[d\[Phi][0, 0]] - 
+ 1/2 GammaAntisymmetricProductHold[{GammaUDHold[mu1], GammaDUHold[mu2]}, a2, 
+   a1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 0, 0]]
+
+In[121]:= OPEProjected[2, 0][R[S[{a1, "antichiral"}, 1/2, {}, 0, z]], 
+ R[S[{a2, "chiral"}, -1/2, {}, 0, 0]]]
+
+Out[121]= 1/4 I z GammaAntisymmetricProductHold[{}, a2, a1] R[d\[Phi][1, 0]] + 
+ 1/8 I z GammaAntisymmetricProductHold[{}, a2, a1] R[d\[Phi][0, 0], 
+   d\[Phi][0, 0]] - 
+ 1/2 z GammaAntisymmetricProductHold[{GammaUDHold[mu1], GammaDUHold[mu2]}, a2,
+    a1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 1, 0]] + 
+ 1/24 z GammaAntisymmetricProductHold[{GammaUDHold[mu1], GammaDUHold[mu2], 
+    GammaUDHold[mu3], GammaDUHold[mu4]}, a2, 
+   a1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 0, 0], \[Psi][mu3, 0, 0], \[Psi][mu4, 
+    0, 0]] + 1/
+  4 I z GammaAntisymmetricProductHold[{}, a2, 
+   a1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 1, 0]] \[Delta][mu1, mu2]
+
+However, we can attack more complicated OPE's. Take psi-psi-S for example
+
+In[46]:= chirals = Private`chiralspins;
+antichirals = Private`antichiralspins;
+
+In[48]:= psi1[mu_] := R[exp\[Phi]f[-1, z1], \[Psi][mu, 0, z1]];
+
+In[49]:= psi2[nu_] := R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]];
+
+In[50]:= S3[alpha_] := R[S[{chirals[[alpha]], "chiral"}, -1/2, {}, 0, z3]];
+
+In[51]:= T1[alpha_] := 
+  Table[OPEProjected[0, 0][Bosonize[psi1[mu]], Bosonize[psi2[nu]], 
+     Bosonize@S3[alpha]] // Together, {mu, 1, 10}, {nu, 1, 10}];
+
+In[52]:= T2[alpha_] := 
+  Table[Sum[
+     1/(4 (z1 - z2)^2 (z1 - z3) (z2 - z3))
+       I Bosonize[
+       R[S[{chirals[[\[Alpha]1]], "chiral"}, -(5/2), {}, 0, 
+         0]]] ((z1 - z2) GammaAntisymmetricProduct[{GammaUDHold[mu], 
+           GammaDUHold[nu]}, \[Alpha]1, 
+          alpha] + (z1 + z2 - 2 z3) If[\[Alpha]1 == alpha, 1, 0] If[mu == nu, 
+          1, 0]), {\[Alpha]1, 1, 16}], {mu, 1, 10}, {nu, 1, 10}] // Simplify;
+
+In[53]:= Table[T1[alpha] === T2[alpha], {alpha, 1, 16}]
+
+Out[53]= {True, True, True, True, True, True, True, True, True, True, True, True, \
+True, True, True, True}
+
+psi-psi-psi-S-S-S
+
+In[10]:= psipsipsiSSS = 
+ OPEProjected[-5, 0][psi1[\[Mu]], psi2[\[Nu]], 
+  R[exp\[Phi]f[-1, z3], \[Psi][\[Rho], 0, z3]], 
+  R[S[{\[Alpha], "chiral"}, -1/2, {}, 0, z4]], 
+  R[S[{\[Beta], "chiral"}, -1/2, {}, 0, z5]], 
+  R[S[{\[Gamma], "chiral"}, -1/2, {}, 0, z6]]]
+
+Out[10]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[33282408938459046276 === $SessionID, 
+Out[10], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+In[11]:= Bosonize[((Sum[((psipsipsiSSS) /. {GammaAntisymmetricProductHold[{CUDHold, 
+               GammaDUHold[\[Nu]1_]}, \[Beta]_, \
+\[Gamma]_] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]_], 
+               GammaDUHold[\[Nu]1_]}, \[Alpha]1_, \[Alpha]_] -> 
+            Sum[GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Beta], \
+\[Gamma]] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]], 
+                GammaDUHold[\[Nu]1]}, \[Alpha]1, \[Alpha]], {\[Nu]1, 1, 10}], 
+           GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]_], 
+               GammaDUHold[\[Nu]1]}, \[Alpha]1_, \
+\[Beta]_] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]_], 
+               GammaUDHold[\[Rho]_], 
+               GammaDUHold[\[Nu]1]}, \[Alpha]_, \[Gamma]_] -> 
+            Sum[GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]], 
+                GammaDUHold[\[Nu]1]}, \[Alpha]1, \
+\[Beta]] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]], 
+                GammaUDHold[\[Rho]], 
+                GammaDUHold[\[Nu]1]}, \[Alpha], \[Gamma]], {\[Nu]1, 1, 
+              10}]}) /. { 
+         R[S[{\[Alpha]1, "chiral"}, -(9/2), {}, 0, 0]] :> 
+          R[S[{chirals[[\[Alpha]1]], "chiral"}, -(9/2), {}, 0, 
+            0]]}, {\[Alpha]1, 1, 16}] /. {\[Alpha] -> 8, \[Beta] -> 
+        14, \[Gamma] -> 7, \[Mu] -> 2, \[Nu] -> 2, \[Rho] -> 
+        3}) /. {GammaAntisymmetricProductHold -> 
+      GammaAntisymmetricProduct, \[Delta][a_, b_] :> If[a == b, 1, 0]}) // 
+  Simplify]
+
+Out[11]= -((I (z1^2 (z2 - z4) - z2^2 z4 - 2 z4 z5 z6 + z2 (z5 z6 + z4 (z5 + z6)) + 
+       z1 (z2^2 + z5 z6 - 2 z2 (z5 + z6) + z4 (z5 + z6))) R[
+      expH[{-(9/2), -(1/2), -(1/2), -(1/2), 1/2, -(1/2)}, 0]])/(8 (z1 - 
+       z2)^2 (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4) (z1 - z5) (z2 -
+        z5) (z3 - z5) (z1 - z6) (z2 - z6) (z4 - z6) (z5 - z6)))
+
+In[12]:= With[{mu = 2, nu = 2, rho = 3, alpha = 8, beta = 14, gamma = 7}, 
+  OPEProjected[-5, 0][Bosonize@R[exp\[Phi]f[-1, z1], \[Psi][mu, 0, z1]], 
+   Bosonize@R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]], 
+   Bosonize@R[exp\[Phi]f[-1, z3], \[Psi][rho, 0, z3]], 
+   Bosonize@R[S[{chirals[[alpha]], "chiral"}, -1/2, {}, 0, z4]], 
+   Bosonize@R[S[{chirals[[beta]], "chiral"}, -1/2, {}, 0, z5]], 
+   Bosonize@R[S[{chirals[[gamma]], "chiral"}, -1/2, {}, 0, z6]]]] // Simplify
+
+Out[12]= -((I (z1^2 (z2 - z4) - z2^2 z4 - 2 z4 z5 z6 + z2 (z5 z6 + z4 (z5 + z6)) + 
+       z1 (z2^2 + z5 z6 - 2 z2 (z5 + z6) + z4 (z5 + z6))) R[
+      expH[{-(9/2), -(1/2), -(1/2), -(1/2), 1/2, -(1/2)}, 0]])/(8 (z1 - 
+       z2)^2 (z1 - z3) (z2 - z3) (z1 - z4) (z2 - z4) (z3 - z4) (z1 - z5) (z2 -
+        z5) (z3 - z5) (z1 - z6) (z2 - z6) (z4 - z6) (z5 - z6)))
+
+S-S-S-S-S
+
+In[64]:= AbsoluteTiming[
+ findIndependentTensorStructures[<|"vector" -> {}, 
+   "spinor" -> {{a1, "chiral"}, {a2, "chiral"}, {a3, "chiral"}, {a4, 
+      "chiral"}, {a5, "chiral"}}|>, <|"vector" -> {}, 
+   "spinor" -> {{\[Alpha]1, "chiral"}}|>, "TargetRank" -> 16, 
+  "RandomSeed" -> 1234, "ReturnSparseBasis" -> False]]
+
+Out[64]= {0.134965, {GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, a5],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, a4],
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+    a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, a4],
+   GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a4, 
+    a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a1], 
+  GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3, 
+    a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a1], 
+  GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+    a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3, 
+    a4] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a1], 
+  GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a4, 
+    a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a2], 
+  GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3, 
+    a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a2], 
+  GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+    a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a2, 
+    a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+     GammaDUHold[\[Nu]2]}, \[Alpha]1, a3]}}
+
+In[65]:= AbsoluteTiming[
+ OPEProjected[0, 0][R[S[{a1, "chiral"}, -1/2, {}, 0, z1]], 
+  R[S[{a2, "chiral"}, -1/2, {}, 0, z2]], R[S[{a3, "chiral"}, -1/2, {}, 0, z3]],
+   R[S[{a4, "chiral"}, -1/2, {}, 0, z4]], R[S[{a5, "chiral"}, -1/2, {}, 0, z5]]]]
+
+Out[65]= {1.58837, -((I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+        a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+        a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+        a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+         z4) (z3 - z4) (z1 - z5) (z3 - 
+         z5))) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z1 - 
+       z4) (z2 - z4) (z2 - z5) (z3 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z4) (z3 - z4) (z2 - z5) (z3 - 
+       z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z2 - 
+       z3) (z1 - z4) (z2 - z4) (z4 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z3 - z4) (z1 - z5) (z4 - 
+       z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z3 - z4) (z2 - z5) (z4 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z2 - 
+       z3) (z2 - z4) (z1 - z5) (z2 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+       z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+       z5)) + (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+       z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+       z5)) - (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (-z2 + 
+       z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+       z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (z3 - z4) (z4 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z3 - z4) (z1 - z5) (z4 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z3 - z4) (z1 - z5) (z4 - 
+       z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z1 - z5) (z3 - z5) (z4 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) - (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) + (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) - (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+       z5)) + (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+       z5)) + (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z4) (z3 - z4) (z1 - z5) (z3 - 
+       z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+       z4) (z1 - z5) (z3 - z5) (z4 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+       z5)) - (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+       z5)) + (I z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+       z5)) - (I z1^2 z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z1 z2^2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z1 z2 z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z2^2 z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z1^2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z1 z2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z2^2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z1 z3 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z1 z2 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z2^2 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z1 z3 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) - (I z1 z4 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I z3 z4 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+      a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+      a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+       z5)) + (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+       a2, a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+      a3, a4] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (z2 - 
+       z4) (-z3 + z4) (z1 - z5) (z2 - 
+       z5)) + (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+       a2, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+      a3, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) - (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+       a2, a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+      a4, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z3) (z3 - z4) (z1 - z5) (z4 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) - (I z3 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+       z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a4, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+       z5)) - (I z4 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a4, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+       z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a2, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a3] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+       z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+       z5)) - (I z2 GammaAntisymmetricProductHold[{CUDHold, 
+       GammaDUHold[\[Nu]1]}, a1, 
+      a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a2, 
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+       GammaDUHold[\[Nu]2]}, \[Alpha]1, a3] R[
+      S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+       z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - z5))}
+
+In[66]:= SSSSSS = OPEProjected[0, 0][R[S[{a1, "chiral"}, -1/2, {}, 0, z1]], 
+  R[S[{a2, "chiral"}, -1/2, {}, 0, z2]], R[S[{a3, "chiral"}, -1/2, {}, 0, z3]],
+   R[S[{a4, "chiral"}, -1/2, {}, 0, z4]], R[S[{a5, "chiral"}, -1/2, {}, 0, z5]]]
+
+Out[66]= -((I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+       a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+       a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+       a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+        z4) (z3 - z4) (z1 - z5) (z3 - 
+        z5))) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z1 - 
+      z4) (z2 - z4) (z2 - z5) (z3 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z4) (z3 - z4) (z2 - z5) (z3 - 
+      z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z2 - 
+      z3) (z1 - z4) (z2 - z4) (z4 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z3 - z4) (z1 - z5) (z4 - 
+      z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z3 - z4) (z2 - z5) (z4 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (z2 - 
+      z3) (z2 - z4) (z1 - z5) (z2 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+      z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+      z5)) + (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+      z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+      z5)) - (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z3) (-z2 + 
+      z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+      z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z1 - z4) (z3 - z4) (z4 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a4] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z3 - z4) (z1 - z5) (z4 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z3 - z4) (z1 - z5) (z4 - 
+      z5)) - (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z1 - z5) (z3 - z5) (z4 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+      z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) - (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) + (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+      z3) (z1 - z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) - (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+      z5)) + (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+      z5)) + (I z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a3, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z2 - z5) (z3 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z4) (z3 - z4) (z1 - z5) (z3 - 
+      z5)) + (I GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z2 - 
+      z4) (z1 - z5) (z3 - z5) (z4 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+      z5)) - (I z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+      z5)) + (I z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a2] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a1, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z4 - 
+      z5)) - (I z1^2 z2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - z3) (z2 -
+       z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z1 z2^2 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z1 z2 z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z2^2 z3 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z1^2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z1 z2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z2^2 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z1 z3 z4 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z1 z2 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(2 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z2^2 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z1 z3 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) - (I z1 z4 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I z3 z4 z5 GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+     a1] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2, 
+     a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a4, 
+     a5] R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - 
+      z3) (z2 - z3) (z2 - z4) (-z3 + z4) (z1 - z5) (z2 - z5) (z4 - 
+      z5)) + (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, 
+     a2, a5] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3,
+      a4] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (z2 - 
+      z4) (-z3 + z4) (z1 - z5) (z2 - 
+      z5)) + (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, 
+     a2, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a3,
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - 
+      z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) - (I GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, 
+     a2, a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, a4,
+      a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a1] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - z3) (z3 -
+       z4) (z1 - z5) (z4 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a3, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - z3) (z1 -
+       z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) - (I z3 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a3, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z2 - z3) (z1 -
+       z4) (-z3 + z4) (z1 - z5) (z3 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a4, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - z3) (z2 -
+       z4) (-z3 + z4) (z1 - z5) (z4 - 
+      z5)) - (I z4 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a3] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a4, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a2] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z2) (z1 - z3) (z2 -
+       z4) (-z3 + z4) (z1 - z5) (z4 - 
+      z5)) + (I z1 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a2, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a3] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+      z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - 
+      z5)) - (I z2 GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+      a1, a4] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]}, 
+     a2, a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+      GammaDUHold[\[Nu]2]}, \[Alpha]1, a3] R[
+     S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]])/(4 (z1 - z3) (-z2 + 
+      z3) (z1 - z4) (z2 - z4) (z1 - z5) (z2 - z5))
+
+In[67]:= (Bosonize@
+    Sum[(SSSSSS /. {GammaAntisymmetricProductHold[{CUDHold, 
+             GammaDUHold[\[Nu]1]}, a1_, 
+            a3_] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]},
+             a2_, a4_] -> 
+          Sum[GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, 
+             a1, a3] GammaAntisymmetricProductHold[{CUDHold, 
+              GammaDUHold[\[Nu]1]}, a2, a4], {\[Nu]1, 1, 10}], 
+         GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, a2_, 
+            a3_] GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]2]},
+             a4_, a5_] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+             GammaDUHold[\[Nu]2]}, \[Alpha]1_, a1_] -> 
+          Sum[GammaAntisymmetricProductHold[{CUDHold, GammaDUHold[\[Nu]1]}, 
+             a2, a3] GammaAntisymmetricProductHold[{CUDHold, 
+              GammaDUHold[\[Nu]2]}, a4, 
+             a5] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]1], 
+              GammaDUHold[\[Nu]2]}, \[Alpha]1, a1], {\[Nu]1, 1, 10}, {\[Nu]2, 
+            1, 10}]}) /. {R[S[{\[Alpha]1, "chiral"}, -(5/2), {}, 0, 0]] -> 
+        R[S[{chirals[[\[Alpha]1]], "chiral"}, -(5/2), {}, 0, 0]], 
+       GammaAntisymmetricProductHold -> 
+        GammaAntisymmetricProduct}, {\[Alpha]1, 1, 16}] /. {a1 -> 8, a2 -> 16,
+     a3 -> 3, a4 -> 12, a5 -> 9}) // Simplify
+
+Out[67]= -((I R[expH[{-(5/2), -(1/2), 1/2, -(1/2), -(1/2), -(1/2)}, 0]])/((z1 - 
+    z2) (z2 - z3) (z1 - z4) (z3 - z5) (z4 - z5)))
+
+In[68]:= With[{a1 = 8, a2 = 16, a3 = 3, a4 = 12, a5 = 9}, 
+  OPEProjected[0, 0][Bosonize@R[S[{chirals[[a1]], "chiral"}, -1/2, {}, 0, z1]],
+    Bosonize@R[S[{chirals[[a2]], "chiral"}, -1/2, {}, 0, z2]], 
+   Bosonize@R[S[{chirals[[a3]], "chiral"}, -1/2, {}, 0, z3]], 
+   Bosonize@R[S[{chirals[[a4]], "chiral"}, -1/2, {}, 0, z4]], 
+   Bosonize@R[S[{chirals[[a5]], "chiral"}, -1/2, {}, 0, z5]]]] // Simplify
+
+Out[68]= -((I R[expH[{-(5/2), -(1/2), 1/2, -(1/2), -(1/2), -(1/2)}, 0]])/((z1 - 
+    z2) (z2 - z3) (z1 - z4) (z3 - z5) (z4 - z5)))
+
+Even the massive levels are within reach! 
+Mass level 1  S - psi -> mass level 1
+
+In[123]:= SMass1Psi = 
+ OPEProjected[1, 0][R[S[{a1, "antichiral"}, -1/2, {{mu, -1}}, 0, z1]], 
+  R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]]]
+
+Out[123]= -((GammaAntisymmetricProductHold[{GammaDUHold[mu], 
+     GammaUDHold[nu]}, \[Alpha]1, a1] R[
+    S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]])/(
+  4 Sqrt[2] (z1 - z2)^2)) + (
+ 3 GammaAntisymmetricProductHold[{}, \[Alpha]1, a1] R[
+   S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] \[Delta][mu, nu])/(
+ 4 Sqrt[2] (z1 - z2)^2)
+
+In[72]:= (Bosonize@
+      Sum[SMass1Psi /. {R[S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] :> 
+          R[S[{antichirals[[\[Alpha]1]], "antichiral"}, -(3/2), {}, 0, 0]], 
+         R[S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 1, 0]] :> 
+          R[S[{antichirals[[\[Alpha]1]], "antichiral"}, -(3/2), {}, 1, 0]], 
+         R[d\[Phi][0, 0], S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] -> 
+          R[d\[Phi][0, 0], 
+           S[{antichirals[[\[Alpha]1]], "antichiral"}, -(3/2), {}, 0, 
+            0]]}, {\[Alpha]1, 1, 16}] /. {mu -> 3, nu -> 2, a1 -> 4, 
+      GammaAntisymmetricProductHold -> GammaAntisymmetricProduct} // 
+    Simplify) /. { \[Delta][a_, b_] :> If[a == b, 1, 0]} // Simplify
+
+Out[72]= -(R[expH[{-(3/2), -(1/2), 1/2, -(1/2), 1/2, -(1/2)}, 0]]/(
+ 4 Sqrt[2] (z1 - z2)^2))
+
+In[73]:= With[{a1 = 4, mu = 3, nu = 2}, 
+  OPEProjected[1, 0][
+   Bosonize@R[S[{antichirals[[a1]], "antichiral"}, -1/2, {{mu, -1}}, 0, z1]], 
+   Bosonize@ R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]]]] // FullSimplify
+
+Out[73]= -(R[expH[{-(3/2), -(1/2), 1/2, -(1/2), 1/2, -(1/2)}, 0]]/(
+ 4 Sqrt[2] (z1 - z2)^2))
+
+Mass level 1  S - psi -> mass level 2
+
+SMass1Psi2 = 
+  OPEProjected[2, 0][R[S[{a1, "antichiral"}, -1/2, {{mu, -1}}, 0, z1]], 
+   R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]]];
+
+SMass1Psi2 // FullSimplify
+
+Out[88]= 1/(8 (z1 - 
+    z2)^2) (-Sqrt[2] R[d\[Phi][0, 0], 
+     S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 
+      0]] (z1 GammaAntisymmetricProductHold[{GammaDUHold[mu], 
+         GammaUDHold[nu]}, \[Alpha]1, 
+        a1] + (-7 z1 + 4 z2) GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+        a1] \[Delta][mu, nu]) + 
+   R[S[{\[Alpha]1, "chiral"}, -(3/2), {{mu1, -1}}, 0, 
+      0]] (z1 GammaAntisymmetricProductHold[{GammaUDHold[mu], GammaDUHold[nu],
+          GammaUDHold[mu1]}, \[Alpha]1, 
+        a1] + (-3 z1 + 
+         4 z2) GammaAntisymmetricProductHold[{GammaUDHold[nu]}, \[Alpha]1, 
+        a1] \[Delta][mu, mu1] - 
+      3 z1 GammaAntisymmetricProductHold[{GammaUDHold[mu1]}, \[Alpha]1, 
+        a1] \[Delta][mu, 
+        nu] + (3 z1 - 
+         4 z2) GammaAntisymmetricProductHold[{GammaUDHold[mu]}, \[Alpha]1, 
+        a1] \[Delta][nu, mu1]))
+
+In[89]:= t1 = 1/(8 (z1 - z2)^2) (Bosonize@
+        Sum[Sum[z1 GammaAntisymmetricProductHold[{GammaUDHold[mu], 
+               GammaDUHold[nu], GammaUDHold[mu1]}, \[Alpha]1, a1] R[
+              S[{\[Alpha]1, "chiral"}, -(3/2), {{mu1, -1}}, 0, 0]], {mu1, 1, 
+             10}] - Sqrt[
+             2] z1 GammaAntisymmetricProductHold[{GammaDUHold[mu], 
+              GammaUDHold[nu]}, \[Alpha]1, a1] R[d\[Phi][0, 0], 
+             S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] + 
+           Sum[(-3 z1 + 
+               4 z2) GammaAntisymmetricProductHold[{GammaUDHold[
+                nu]}, \[Alpha]1, a1] R[
+              S[{\[Alpha]1, "chiral"}, -(3/2), {{mu1, -1}}, 0, 0]] \[Delta][
+              mu, mu1], {mu1, 1, 10}] - 
+           Sum[3 z1 GammaAntisymmetricProductHold[{GammaUDHold[
+                mu1]}, \[Alpha]1, a1] R[
+              S[{\[Alpha]1, "chiral"}, -(3/2), {{mu1, -1}}, 0, 0]] \[Delta][
+              mu, nu], {mu1, 1, 
+             10}] + (7 Sqrt[2] z1 - 
+              4 Sqrt[2] z2) GammaAntisymmetricProductHold[{}, \[Alpha]1, 
+             a1] R[d\[Phi][0, 0], 
+             S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] \[Delta][mu, 
+             nu] + Sum[ (3 z1 - 
+               4 z2) GammaAntisymmetricProductHold[{GammaUDHold[
+                mu]}, \[Alpha]1, a1] R[
+              S[{\[Alpha]1, "chiral"}, -(3/2), {{mu1, -1}}, 0, 0]] \[Delta][
+              nu, mu1], {mu1, 1, 10}] /. { 
+           R[S[{\[Alpha]1, "chiral"}, -(3/2), {{xi_, -1}}, 0, 0]] -> 
+            R[S[{chirals[[\[Alpha]1]], "chiral"}, -(3/2), {{xi, -1}}, 0, 0]], 
+           R[S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] :> 
+            R[S[{antichirals[[\[Alpha]1]], "antichiral"}, -(3/2), {}, 0, 0]], 
+           R[d\[Phi][0, 0], S[{\[Alpha]1, "antichiral"}, -(3/2), {}, 0, 0]] ->
+             R[d\[Phi][0, 0], 
+             S[{antichirals[[\[Alpha]1]], "antichiral"}, -(3/2), {}, 0, 
+              0]]}, {\[Alpha]1, 1, 16}] /. {mu -> 4, nu -> 4, a1 -> 5, 
+        GammaAntisymmetricProductHold -> GammaAntisymmetricProduct} // 
+      Simplify) /. { \[Delta][a_, b_] :> If[a == b, 1, 0]} // FullSimplify
+
+Out[89]= -1/(8 Sqrt[
+   2] (z1 - z2)^2) ((z1 + 8 z2) R[dH[1, 0, 0], 
+      expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] + 
+    3 z1 (R[dH[2, 0, 0], 
+        expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] - 
+       R[dH[3, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] + 
+       R[dH[4, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] + 
+       R[dH[5, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] - 
+       R[dH[6, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]]))
+
+In[90]:= t2 = With[{a1 = 5, mu = 4, nu = 4}, 
+   OPEProjected[2, 0][
+    Bosonize@R[S[{antichirals[[a1]], "antichiral"}, -1/2, {{mu, -1}}, 0, z1]],
+     Bosonize@ R[exp\[Phi]f[-1, z2], \[Psi][nu, 0, z2]]]] // Simplify
+
+Out[90]= 1/(8 Sqrt[
+  2] (z1 - z2)^2) (-((z1 + 8 z2) R[dH[1, 0, 0], 
+       expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]]) - 
+   3 z1 (R[dH[2, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] -
+       R[dH[3, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] + 
+      R[dH[4, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] + 
+      R[dH[5, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]] - 
+      R[dH[6, 0, 0], expH[{-(3/2), -(1/2), 1/2, -(1/2), -(1/2), 1/2}, 0]]))
+
+In[94]:= (t1 - t2) // Simplify
+
+Out[94]= 0
+
+Mass level 1 x massless -> Mass level 1 
+
+In[97]:= OPEProjected[1, 0][R[S[{a1, "antichiral"}, -1/2, {{mu, -1}}, 0, z1]], 
+ R[S[{\[Beta]1, "antichiral"}, 1/2, {}, 0, 0]]]
+
+Out[97]= (GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu]}, a1, \[Beta]1] R[
+   d\[Phi][0, 0]])/(2 Sqrt[2] z1) + (
+ GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu], GammaDUHold[mu1], 
+    GammaUDHold[mu2]}, 
+   a1, \[Beta]1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 0, 0]])/(2 Sqrt[2] z1)
+
+Mass level 1 x massless -> Mass level 1 
+
+In[98]:= OPEProjected[2, 0][R[S[{a1, "antichiral"}, -1/2, {{mu, -1}}, 0, z1]], 
+ R[S[{\[Beta]1, "antichiral"}, 1/2, {}, 0, 0]]]
+
+Out[98]= (GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu]}, a1, \[Beta]1] R[
+   d\[Phi][1, 0]])/(2 Sqrt[2]) - 
+ 1/(4 Sqrt[2])
+   GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu]}, a1, \[Beta]1] R[
+    d\[Phi][0, 0], d\[Phi][0, 0]] + 
+ 1/(2 Sqrt[2])
+   3 GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu], GammaDUHold[mu1],
+      GammaUDHold[mu2]}, 
+    a1, \[Beta]1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 1, 0]] - 
+ 1/(24 Sqrt[2])
+   GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu], GammaDUHold[mu1], 
+     GammaUDHold[mu2], GammaDUHold[mu3], GammaUDHold[mu4]}, 
+    a1, \[Beta]1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 0, 0], \[Psi][mu3, 0, 
+     0], \[Psi][mu4, 0, 0]] + 
+ 1/Sqrt[2] GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu2]}, 
+    a1, \[Beta]1] R[\[Psi][mu1, 0, 0], \[Psi][mu2, 1, 0]] \[Delta][mu, mu1] + 
+ 1/(2 Sqrt[2])
+   I GammaAntisymmetricProductHold[{CDUHold, GammaUDHold[mu1]}, 
+    a1, \[Beta]1] R[
+    d\[Phi][0, 0], \[Psi][mu1, 0, 0], \[Psi][mu2, 0, 0]] \[Delta][mu, mu2]
+
+Reproducing Subscript[AdS, 5]*S^5 solution paper - [2507.12921, M. Cho, JG, JS, X. Yin]
+
+In[6]:= (*Here we define the string fields which appear in the paper. \
+Below we define massless string fields at ghost number +2, \
+in both the NSNS and RR sector. \
+These are the string fields which describe the background, \
+as well as linear perturbations around it.*)
+flux[F_, \[Alpha]_, \[Beta]_, z_, zbar_] := 
+  R[ProfileX[F[\[Alpha], \[Beta]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   S[{\[Alpha], "chiral"}, -1/2, {}, 0, z], 
+   St[{\[Beta], "chiral"}, -1/2, {}, 0, zbar]];
+
+graviton[h_, \[Mu]_, \[Nu]_, z_, zbar_] := 
+  R[ProfileX[h[\[Mu], \[Nu]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+   exp\[Phi]tf[-1, zbar], \[Psi]t[\[Nu], 0, zbar]];
+
+ghostDilaton[Dil_, z_, zbar_] := 
+  R[ProfileX[Dil, {}, z, zbar], c[0, z], ct[0, zbar], \[Eta][0, z], 
+    exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] - 
+   R[ProfileX[Dil, {}, z, zbar], c[0, z], ct[0, zbar], 
+    exp\[Phi]b[-2, z], \[Xi][1, z], \[Eta]t[0, zbar]];
+
+auxField[Aux_, \[Mu]_, z_, 
+   zbar_] := (1/2)*
+    R[c[1, z] + ct[1, zbar], ProfileX[Aux[\[Mu]], {}, z, zbar], c[0, z], 
+     ct[0, zbar], exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+     exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] + (1/2)*
+    R[c[1, z] + ct[1, zbar], ProfileX[Aux[\[Mu]], {}, z, zbar], c[0, z], 
+     ct[0, zbar], exp\[Phi]b[-2, z], \[Xi][1, z], 
+     exp\[Phi]tf[-1, zbar], \[Psi]t[\[Mu], 0, zbar]];
+
+fluxConstant[\[Alpha]_, \[Beta]_, z_, zbar_] := 
+  R[c[0, z], ct[0, zbar], S[{\[Alpha], "chiral"}, -1/2, {}, 0, z], 
+   St[{\[Beta], "chiral"}, -1/2, {}, 0, zbar]];
+
+(*We also define massless string fields at ghost number +1 in the NSNS, \
+RNS and NSR sectors. Notably, \
+these include the Hamiltonian and supersymmetries.*)
+
+susyRNS[\[Lambda]_, \[Alpha]_, z_, zbar_] := 
+  R[ProfileX[\[Lambda][\[Alpha]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   S[{\[Alpha], "chiral"}, -1/2, {}, 0, z], 
+   exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]];
+
+susyNSR[\[Lambda]_, \[Alpha]_, z_, zbar_] := 
+  R[ProfileX[\[Lambda][\[Alpha]], {}, z, zbar], c[0, z], ct[0, zbar], 
+   exp\[Phi]b[-2, z], \[Xi][1, z], St[{\[Alpha], "chiral"}, -1/2, {}, 0, zbar]];
+
+symNSNS[V_, \[Mu]_, z_, zbar_] := 
+  R[ProfileX[V[\[Mu]], {}, z, zbar], c[0, z], ct[0, zbar], 
+    exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+    exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] + 
+   R[ProfileX[V[\[Mu]], {}, z, zbar], c[0, z], ct[0, zbar], 
+    exp\[Phi]b[-2, z], \[Xi][1, z], 
+    exp\[Phi]tf[-1, zbar], \[Psi]t[\[Mu], 0, zbar]];
+
+susyRNSConstant[\[Alpha]_, z_, zbar_] := 
+  R[c[0, z], ct[0, zbar], S[{\[Alpha], "chiral"}, -1/2, {}, 0, z], 
+   exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]];
+
+susyNSRConstant[\[Alpha]_, z_, zbar_] := 
+  R[c[0, z], ct[0, zbar], exp\[Phi]b[-2, z], \[Xi][1, z], 
+   St[{\[Alpha], "chiral"}, -1/2, {}, 0, zbar]];
+
+symNSNSConst[\[Mu]_, z_, zbar_] := 
+  R[c[0, z], ct[0, zbar], exp\[Phi]f[-1, z], \[Psi][\[Mu], 0, z], 
+    exp\[Phi]tb[-2, zbar], \[Xi]t[1, zbar]] + 
+   R[c[0, z], ct[0, zbar], exp\[Phi]b[-2, z], \[Xi][1, z], 
+    exp\[Phi]tf[-1, zbar], \[Psi]t[\[Mu], 0, zbar]];
+
+1st order bracket - 1/R
+
+In[124]:= (BracketProjected[susyRNSConstant[\[Alpha]1, 0, 0], 
+     fluxConstant[\[Alpha]2, \[Beta]2, 0, 0], 0, 0] // 
+    Private`CollapseB0m) //. twoBracketReplRule // Simplify
+(BracketProjected[susyNSRConstant[\[Alpha]1, 0, 0], 
+     fluxConstant[\[Alpha]2, \[Beta]2, 0, 0], 0, 0] // 
+    Private`CollapseB0m) //. twoBracketReplRule // Simplify
+
+Out[124]= 1/4 I GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]t1] GammaAntisymmetricProductHold[{}, \[Alpha]t1, \
+\[Beta]2] GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[mu1]}, \[Alpha]1, \[Alpha]2] R[c[0, 0], ct[0, 0], 
+  exp\[Phi]f[-1, 0], 
+  St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Psi][mu1, 0, 0]]
+
+Out[125]= 1/4 I GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] GammaAntisymmetricProductHold[{}, \[Alpha]2, \
+\[Alpha]1] GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[mu1]}, \[Alpha]1, \[Beta]2] R[c[0, 0], ct[0, 0], 
+  exp\[Phi]tf[-1, 0], 
+  S[{\[Alpha]2, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[mu1, 0, 0]]
+
+2nd order brackets - 1/R^2
+
+In[126]:= (*Simplest RR-RR 2-bracket. Source for 2nd order EOM, no PCO action - \
+consistent with source 4.7*)
+(BracketProjected[fluxConstant[\[Alpha]1, \[Beta]1, z1, z1bar], 
+     fluxConstant[\[Alpha]2, \[Beta]2, z2, z2bar], 0, 0] // 
+    Private`CollapseB0m) //. twoBracketReplRule // Simplify
+
+Out[126]= GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[
+    mu1]}, \[Alpha]1, \[Alpha]2] GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[mu1]}, \[Beta]1, \[Beta]2] (R[c[0, 0], c[1, 0], ct[0, 0], 
+    exp\[Phi]f[-1, 0], 
+    exp\[Phi]tf[-1, 0], \[Psi][mu1, 0, 0], \[Psi]t[mu1, 0, 0]] - 
+   R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]f[-1, 0], 
+    exp\[Phi]tf[-1, 0], \[Psi][mu1, 0, 0], \[Psi]t[mu1, 0, 0]])
+
+In[41]:= (*2nd order susy variation: 3-bracket*)
+(BracketProjected[susyRNSConstant[\[Alpha]1, z1, z1bar], 
+     fluxConstant[\[Alpha]2, \[Beta]2, z2, z2bar], 
+     fluxConstant[\[Alpha]3, \[Beta]3, z3, z3bar], 0, 0] // 
+    Private`CollapseB0m) //. twoBracketReplRule // Simplify
+
+Out[41]= 0
+
+In[127]:= (*2nd order susy variation: 2-brackets - \
+all match the string field coefficients for the source 4.6, 4.8*)
+(BracketProjected[susyRNSConstant[\[Alpha]1, z, zbar], 
+        graviton[h, \[Mu], \[Nu], -z, -zbar], 0, 0] // 
+       Private`CollapseB0m) //. derAppend //. twoBracketReplRule // Simplify //
+   ContractDelta // canonicalizeDummies
+
+Out[127]= 1/64 Sqrt[\[Alpha]p]
+  GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]2, \
+\[Alpha]1] (GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]2] (-2 R[c[0, 0], ct[0, 0], exp\[Phi]tf[-1, 0], 
+        ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+        S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[\[Nu], 0, 0]] + 
+      Sqrt[\[Alpha]p] (-2 R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+           ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]}, 0, 0], 
+           S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]] - 
+         R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Nu], \[Mu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]] + 
+         2 R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]tb[-2, 0], 
+           ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]}, 0, 0], 
+           S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]] + 
+         R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]tb[-2, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Nu], \[Mu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]])) + 
+   3 GammaAntisymmetricProductHold[{}, \[Alpha]1, \[Alpha]2] R[c[0, 0], 
+     ct[0, 0], exp\[Phi]tb[-2, 0], ProfileX[h[\[Mu], \[Nu]], {\[Nu]}, 0, 0], 
+     S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 0]])
+
+In[128]:= (BracketProjected[susyRNSConstant[\[Alpha]1, z, zbar], 
+        ghostDilaton[D, -z, -zbar], 0, 0] // Private`CollapseB0m) //. 
+     derAppend //. twoBracketReplRule // Simplify // 
+  ContractDelta // canonicalizeDummies
+
+Out[128]= -(1/16) Sqrt[\[Alpha]p]
+  GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] GammaAntisymmetricProductHold[{}, \[Alpha]2, \[Alpha]1] (R[c[0, 0],
+     ct[0, 0], exp\[Phi]tf[-1, 0], ProfileX[D, {\[Mu]D}, 0, 0], 
+    S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[\[Mu]D, 0, 0]] + 
+   2 R[c[0, 0], ct[0, 0], exp\[Phi]tf[-1, 0], ProfileX[D, {\[Nu]D}, 0, 0], 
+     S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[\[Nu]D, 0, 0]])
+
+In[129]:= (BracketProjected[susyRNSConstant[\[Alpha]1, z, zbar], 
+        auxField[A, \[Mu], -z, -zbar], 0, 0] // Private`CollapseB0m) //. 
+     derAppend //. twoBracketReplRule // Simplify // 
+  ContractDelta // canonicalizeDummies
+
+Out[129]= 1/32 (Sqrt[\[Alpha]p]
+     GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]2, \
+\[Alpha]1] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]2] (-R[c[0, 0], c[1, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+        ProfileX[A[\[Mu]], {\[Mu]D}, 0, 0], 
+        S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]] + 
+      R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]tb[-2, 0], 
+       ProfileX[A[\[Mu]], {\[Mu]D}, 0, 0], 
+       S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Xi]t[1, 0]]) + 
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] (-GammaAntisymmetricProductHold[{}, \[Alpha]2, \[Alpha]1] R[c[0, 0],
+         ct[0, 0], exp\[Phi]tf[-1, 0], ProfileX[A[\[Mu]], {}, 0, 0], 
+        S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[\[Mu], 0, 0]] + 
+      GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]2, \
+\[Alpha]1] R[c[0, 0], ct[0, 0], exp\[Phi]tb[-2, 0], 
+        ProfileX[A[\[Mu]], {}, 0, 0], 
+        S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta][0, 0], \[Xi]t[1, 
+         0]]))
+
+In[130]:= (BracketProjected[susyNSR[\[Lambda], \[Alpha]1, z, zbar], 
+       fluxConstant[\[Alpha]2, \[Beta]2, -z, -zbar], 0, 0] // 
+      Private`CollapseB0m) //. derAppend //. twoBracketReplRule // 
+  Simplify // ContractDelta
+
+Out[130]= 1/4 I GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] GammaAntisymmetricProductHold[{}, \[Alpha]2, \
+\[Alpha]1] GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[mu1]}, \[Alpha]1, \[Beta]2] R[c[0, 0], ct[0, 0], 
+  exp\[Phi]tf[-1, 0], ProfileX[\[Lambda][\[Alpha]1], {}, 0, 0], 
+  S[{\[Alpha]2, "chiral"}, -(1/2), {}, 0, 0], \[Psi]t[mu1, 0, 0]]
+
+3rd order - 1/R^3
+
+(*3-bracket that sources 3d order solution*)
+
+In[55]:= BracketProjected[fluxConstant[\[Alpha]1, \[Beta]1, 0, 0], 
+  fluxConstant[\[Alpha]2, \[Beta]2, 0, 0], 
+  fluxConstant[\[Alpha]3, \[Beta]3, 0, 0], 0, 0] // Private`CollapseB0m
+
+Out[55]= 0
+
+(*2-bracket also appears*)
+
+In[131]:= ((BracketProjected[fluxConstant[\[Alpha]1, \[Beta]1, 0, 0], 
+        graviton[h, \[Mu], \[Nu], 0, 0], 0, 0] // Private`CollapseB0m) //. 
+     twoBracketReplRule // canonicalizeDummies) //. derAppend // Simplify
+
+Out[131]= -(1/64) Sqrt[\[Alpha]p]
+  GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]2, \
+\[Alpha]1] GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]]}, \[Alpha]t1, \
+\[Beta]1] (GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]t1] R[c[0, 0], ct[0, 0], ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+     S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], 
+     St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 0]] + 
+   GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]2] (Sqrt[\[Alpha]p]
+        GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]D]}, \[Alpha]1, \
+\[Alpha]t1] (R[c[0, 0], c[1, 0], ct[0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+         R[c[0, 0], ct[0, 0], ct[1, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]]) + 
+      GammaAntisymmetricProductHold[{}, \[Alpha]1, \[Alpha]t1] R[c[0, 0], 
+        ct[0, 0], ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+        S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+        St[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 0]]))
+
+Linearized fluctuation - axion
+
+In[132]:= (*1st order 2-bracket*)
+(BracketProjected[flux[f, \[Alpha]1, \[Beta]1, z1, z1bar], 
+     fluxConstant[\[Alpha]2, \[Beta]2, z2, z2bar], 0, 0] // 
+    Private`CollapseB0m) //. twoBracketReplRule // Simplify
+
+Out[132]= GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[
+    mu1]}, \[Alpha]1, \[Alpha]2] GammaAntisymmetricProductHold[{CUDHold, 
+   GammaDUHold[mu1]}, \[Beta]1, \[Beta]2] (R[c[0, 0], c[1, 0], ct[0, 0], 
+    exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+    ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], \[Psi][mu1, 0, 0], \[Psi]t[
+     mu1, 0, 0]] - 
+   R[c[0, 0], ct[0, 0], ct[1, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+    ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], \[Psi][mu1, 0, 0], \[Psi]t[
+     mu1, 0, 0]])
+
+In[133]:= (*2nd order 2-bracket - matches source F.1*)
+(BracketProjected[flux[f, \[Alpha]1, \[Beta]1, z, zbar], 
+      ghostDilaton[D, -z, -zbar], 0, 0] // Private`CollapseB0m) //. 
+   twoBracketReplRule // Simplify // ContractDelta
+
+Out[133]= 0
+
+In[134]:= (BracketProjected[flux[f, \[Alpha]1, \[Beta]1, z, zbar], 
+      auxField[A, \[Mu], -z, -zbar], 0, 0] // Private`CollapseB0m) //. 
+   twoBracketReplRule // Simplify // ContractDelta
+
+Out[134]= 0
+
+In[135]:= (BracketProjected[flux[f, \[Alpha]1, \[Beta]1, z, zbar], 
+        graviton[h, \[Mu], \[Nu], -z, -zbar], 0, 0] // 
+       Private`CollapseB0m) //. derAppend //. twoBracketReplRule // Simplify //
+   ContractDelta // canonicalizeDummies
+
+Out[135]= -(1/64) (2 r0 Private`r0 z + 2 z0)^(-(1/2) \[Alpha]p dot[
+   der[f[\[Alpha]1, \[Beta]1]], der[h[\[Mu], \[Nu]]]]) (2 z0 + 
+   2 r0 Private`r0 zbar)^(-(1/2) \[Alpha]p dot[der[f[\[Alpha]1, \[Beta]1]], 
+   der[h[\[Mu], \[Nu]]]]) Sqrt[\[Alpha]p]
+  GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]]}, \[Alpha]2, \
+\[Alpha]1] GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]]}, \[Alpha]t1, \
+\[Beta]1] (GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]2] (Sqrt[\[Alpha]p]
+        GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]D]}, \[Alpha]1, \
+\[Alpha]t1] (R[c[0, 0], c[1, 0], ct[0, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] + 
+         R[c[0, 0], c[1, 0], ct[0, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] + 
+         R[c[0, 0], c[1, 0], ct[0, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Nu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] + 
+         R[c[0, 0], c[1, 0], ct[0, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Nu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+         R[c[0, 0], ct[0, 0], ct[1, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D, \[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+         R[c[0, 0], ct[0, 0], ct[1, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Nu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+         R[c[0, 0], ct[0, 0], ct[1, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Nu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+         R[c[0, 0], ct[0, 0], ct[1, 0], 
+          ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Nu]D}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]]) + 
+      GammaAntisymmetricProductHold[{}, \[Alpha]1, \[Alpha]t1] (R[c[0, 0], 
+          ct[0, 0], ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], 
+          ProfileX[h[\[Mu], \[Nu]], {\[Mu]D}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 0]] + 
+         R[c[0, 0], ct[0, 0], ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0],
+           ProfileX[h[\[Mu], \[Nu]], {}, 0, 0], 
+          S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+          St[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 0]])) + 
+   GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]2] GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]D]}, \[Alpha]1, \
+\[Alpha]t1] (R[c[0, 0], ct[0, 0], ProfileX[f[\[Alpha]1, \[Beta]1], {}, 0, 0], 
+       ProfileX[h[\[Mu], \[Nu]], {\[Nu]D}, 0, 0], 
+       S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], 
+       St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 0]] + 
+      R[c[0, 0], ct[0, 0], ProfileX[f[\[Alpha]1, \[Beta]1], {\[Nu]D}, 0, 0], 
+       ProfileX[h[\[Mu], \[Nu]], {}, 0, 0], 
+       S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], 
+       St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 0]]))
+
+In[70]:= (*2nd order 3-bracket*)
+((((((BracketProjected[flux[f, \[Alpha]1, \[Beta]1, 0, 0], 
+             fluxConstant[\[Alpha]2, \[Beta]2, 0, 0], 
+             fluxConstant[\[Alpha]3, \[Beta]3, 0, 0], 0, 0]) // 
+           Private`CollapseB0m // 
+          canonicalizeDummies //. twoBracketReplRule) //. derAppend // 
+       Simplify)) //. {Differential[a_, b_] :> d[a]}) //. {Private`z[a_, b_][
+     c___] :> z[a, b], Private`zbar[a_, b_][c___] :> zbar[a, b]})
+
+Out[70]= -1/(128 \[Pi])
+   I Sqrt[\[Alpha]p] ((GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]4] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]t1] R[c[0, 0], ct[0, 0], 
+         ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+         S[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], 
+         St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 
+          0]] (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \
+\[Alpha]4, \[Alpha]1] GammaAntisymmetricProductHold[{CUDHold, 
+             GammaDUHold[\[Nu]1]}, \[Alpha]2, \[Alpha]3] (z[3, 1] - z[3, 3]) +
+           GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]4, \
+\[Alpha]2] GammaAntisymmetricProductHold[{CUDHold, 
+             GammaDUHold[\[Nu]1]}, \[Alpha]1, \[Alpha]3] (z[3, 2] - 
+             z[3, 3])) (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \
+\[Alpha]t1, \[Beta]1] GammaAntisymmetricProductHold[{CUDHold, 
+             GammaDUHold[\[Nu]1]}, \[Beta]2, \[Beta]3] (zbar[3, 1] - 
+             zbar[3, 3]) + 
+          GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]t1, \
+\[Beta]2] GammaAntisymmetricProductHold[{CUDHold, 
+             GammaDUHold[\[Nu]1]}, \[Beta]1, \[Beta]3] (zbar[3, 2] - 
+             zbar[3, 3])) (d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 1] + 
+          d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 1] + 
+          d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] - 
+          d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] + 
+          d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+          d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+          d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 1] - 
+          d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 1] + 
+          d[z[3, 2]] d[
+            zbar[3, 3]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 2]) + 
+          d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] + 
+          d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] - 
+          d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 2] + 
+          d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+          d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+          d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] + 
+          d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] - 
+          d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] - 
+          d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] + 
+          d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 2] + 
+          d[z[3, 2]] d[
+            zbar[3, 2]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 3]) - 
+          d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+          d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+          d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 3] - 
+          d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] + 
+          d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] - 
+          d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+          d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+          d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+          d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+          d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 3]))/((z[3, 1] - 
+          z[3, 2]) (z[3, 1] - z[3, 3]) (z[3, 2] - z[3, 3]) (zbar[3, 1] - 
+          zbar[3, 2]) (zbar[3, 1] - zbar[3, 3]) (zbar[3, 2] - zbar[3, 3])) + 
+     GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]D]}, \[Alpha]1, \
+\[Alpha]4] ((Sqrt[\[Alpha]p]
+            GammaAntisymmetricProductHold[{GammaUDHold[\[Nu]D]}, \[Alpha]1, \
+\[Alpha]t1] (R[c[0, 0], c[1, 0], ct[0, 0], 
+              ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Nu]D}, 0, 0], 
+              S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0]] - 
+             R[c[0, 0], ct[0, 0], ct[1, 0], 
+              ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D, \[Nu]D}, 0, 0], 
+              S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 
+               0]]) (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \
+\[Alpha]4, \[Alpha]1] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Alpha]2, \[Alpha]3] (z[3, 1] - 
+                z[3, 3]) + 
+             GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]4, \
+\[Alpha]2] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Alpha]1, \[Alpha]3] (z[3, 2] - 
+                z[3, 3])) (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]},\
+ \[Alpha]t1, \[Beta]1] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Beta]2, \[Beta]3] (zbar[3, 1] - 
+                zbar[3, 3]) + 
+             GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]t1, \
+\[Beta]2] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Beta]1, \[Beta]3] (zbar[3, 2] - 
+                zbar[3, 3])) (d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 1] + 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 1] + 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] + 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 1] - 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 1] + 
+             d[z[3, 2]] d[
+               zbar[3, 3]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 2]) + 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] + 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] - 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 2] + 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] + 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] - 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] + 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 2] + 
+             d[z[3, 2]] d[
+               zbar[3, 2]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 3]) - 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] - 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 3]))/((z[3, 1] - 
+             z[3, 2]) (z[3, 1] - z[3, 3]) (z[3, 2] - z[3, 3]) (zbar[3, 1] - 
+             zbar[3, 2]) (zbar[3, 1] - zbar[3, 3]) (zbar[3, 2] - 
+             zbar[3, 3])) + (GammaAntisymmetricProductHold[{}, \[Alpha]1, \
+\[Alpha]t1] R[c[0, 0], ct[0, 0], 
+            ProfileX[f[\[Alpha]1, \[Beta]1], {\[Mu]D}, 0, 0], 
+            S[{\[Alpha]1, "chiral"}, -(1/2), {}, 0, 0], 
+            St[{\[Alpha]1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 
+             0]] (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \
+\[Alpha]4, \[Alpha]1] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Alpha]2, \[Alpha]3] (z[3, 1] - 
+                z[3, 3]) + 
+             GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]4, \
+\[Alpha]2] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Alpha]1, \[Alpha]3] (z[3, 2] - 
+                z[3, 3])) (GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]},\
+ \[Alpha]t1, \[Beta]1] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Beta]2, \[Beta]3] (zbar[3, 1] - 
+                zbar[3, 3]) + 
+             GammaAntisymmetricProductHold[{GammaDUHold[\[Nu]1]}, \[Alpha]t1, \
+\[Beta]2] GammaAntisymmetricProductHold[{CUDHold, 
+                GammaDUHold[\[Nu]1]}, \[Beta]1, \[Beta]3] (zbar[3, 2] - 
+                zbar[3, 3])) (d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 1] + 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 1] + 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 1] + 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 1] - 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 1] - 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 1] + 
+             d[z[3, 2]] d[
+               zbar[3, 3]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 2]) + 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] + 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 2] - 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 1] zbar[3, 2] + 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] + 
+             d[z[3, 3]] d[zbar[3, 3]] z[3, 2] zbar[3, 2] - 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] - 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 2] + 
+             d[z[3, 1]] d[zbar[3, 3]] z[3, 3] zbar[3, 2] + 
+             d[z[3, 2]] d[
+               zbar[3, 2]] (z[3, 1] - z[3, 3]) (zbar[3, 1] - zbar[3, 3]) - 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 1] zbar[3, 3] - 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 3]] d[zbar[3, 1]] z[3, 2] zbar[3, 3] - 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 3]] d[zbar[3, 2]] z[3, 2] zbar[3, 3] + 
+             d[z[3, 1]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+             d[z[3, 2]] d[zbar[3, 1]] z[3, 3] zbar[3, 3] + 
+             d[z[3, 1]] d[zbar[3, 2]] z[3, 3] zbar[3, 3]))/((z[3, 1] - 
+             z[3, 2]) (z[3, 1] - z[3, 3]) (z[3, 2] - z[3, 3]) (zbar[3, 1] - 
+             zbar[3, 2]) (zbar[3, 1] - zbar[3, 3]) (zbar[3, 2] - zbar[3, 3]))))
+
+(*The result above is a form that still has to be integrated over the moduli s\
+pace of the 4-punctured sphere. \
+Adding such integrations to StringCode is W.I.P.*)
+
+Future directions - Konishi brackets
+
+In[16]:= (*We can also define string fields at different massive levels. Here, \
+we define ghost number +2 string fields at mass level one. \
+These are precisely the string fields we must consider if we want to compute t\
+he Konishi mass from SFT.*)
+
+mass1dX[F_, \[Mu]1_, \[Nu]1_, \[Mu]2_, \[Nu]2_, z_, zbar_] := 
+  R[ProfileX[F[\[Mu]1, \[Nu]1, \[Mu]2, \[Nu]2], {}, z, zbar], c[0, z], 
+   ct[0, zbar], exp\[Phi]f[-1, z], \[Psi][\[Mu]1, 0, z], dX[\[Nu]1, 0, z], 
+   exp\[Phi]tf[-1, zbar], \[Psi]t[\[Mu]2, 0, zbar], dXt[\[Nu]2, 0, zbar]];
+
+
+(*BRST action mass-level 1 correction*)
+
+In[20]:= (actBRST[mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, z, zbar]]) //. 
+    derAppend // canonicalizeDummies // ContractDelta // Simplify
+
+Out[20]= 1/4 (-Sqrt[\[Alpha]p] R[c[0, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], 
+     exp\[Phi]f[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Sigma]2, \[Sigma]2], {}, 0, 
+      0], \[Eta]t[1, 0], \[Psi][\[Rho]1, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dXt[\[Sigma]2, 0, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Sigma]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 
+      0], \[Eta][1, 0], \[Psi]t[\[Rho]2, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], dXt[\[Sigma]2, 0, 0], 
+     exp\[Phi]f[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Rho]2}, 0, 
+      0], \[Eta]t[0, 0], \[Psi][\[Rho]1, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], dXt[\[Sigma]2, 0, 0], 
+     exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Rho]1}, 0, 
+      0], \[Eta][0, 0], \[Psi]t[\[Rho]2, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], d\[Phi]t[0, 0], 
+     exp\[Phi]f[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Sigma]2, \[Sigma]2], {}, 0, 
+      0], \[Eta]t[0, 0], \[Psi][\[Rho]1, 0, 0]] - 
+   Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dXt[\[Sigma]2, 0, 0], d\[Phi][0, 0], 
+     exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Sigma]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 
+      0], \[Eta][0, 0], \[Psi]t[\[Rho]2, 0, 0]] - \[Alpha]p R[c[0, 0], c[2, 0],
+      ct[0, 0], dXt[\[Sigma]2, 0, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Sigma]1}, 0, 
+      0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]] + \[Alpha]p R[c[0, 0],
+      ct[0, 0], ct[2, 0], dX[\[Sigma]1, 0, 0], exp\[Phi]f[-1, 0], 
+     exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Sigma]2}, 0, 
+      0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]] - 
+   2 Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], exp\[Phi]f[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 0], \[Eta]t[
+      0, 0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0], \[Psi]t[\[Sigma]2,
+       0, 0]] - 
+   2 Sqrt[\[Alpha]p]
+     R[c[0, 0], ct[0, 0], dXt[\[Sigma]2, 0, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 0], \[Eta][
+      0, 0], \[Psi][\[Rho]1, 0, 0], \[Psi][\[Sigma]1, 0, 0], \[Psi]t[\[Rho]2, 
+      0, 0]] + 4 R[c[0, 0], c[1, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], 
+     dXt[\[Sigma]2, 0, 0], exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 
+      0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]] - \[Alpha]p R[c[0, 0],
+      c[1, 0], ct[0, 0], dX[\[Sigma]1, 0, 0], dXt[\[Sigma]2, 0, 0], 
+     exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Mu]D, \[Mu]D}, 
+      0, 0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]] - 
+   4 R[c[0, 0], ct[0, 0], ct[1, 0], dX[\[Sigma]1, 0, 0], dXt[\[Sigma]2, 0, 0],
+      exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {}, 0, 
+      0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]] + \[Alpha]p R[c[0, 0],
+      ct[0, 0], ct[1, 0], dX[\[Sigma]1, 0, 0], dXt[\[Sigma]2, 0, 0], 
+     exp\[Phi]f[-1, 0], exp\[Phi]tf[-1, 0], 
+     ProfileX[Kon[\[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2], {\[Mu]D, \[Mu]D}, 
+      0, 0], \[Psi][\[Rho]1, 0, 0], \[Psi]t[\[Rho]2, 0, 0]])
+
+(*1st order mass-level 1 correction*)
+
+In[17]:= ((BracketProjected[fluxConstant[\[Alpha]i, \[Beta]i, 0, 0], 
+         mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, 0, 0], 1, 1] // 
+        Private`CollapseB0m) //. twoBracketReplRule) // derAppend // 
+   canonicalizeDummies // ContractDelta // Simplify
+
+Out[17]= 1/64 Private`r0^4 Sqrt[\[Alpha]p] (GammaAntisymmetricProductHold[{}, \
+\[Alpha]Dummies1, \
+\[Alpha]Dummies2] GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]Canon1]}, \
+\[Alpha]Dummies2, \[Alpha]i] (2 GammaAntisymmetricProductHold[{}, \
+\[Alpha]tDummies1, \
+\[Alpha]tDummies2] GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]Canon2]}, \
+\[Alpha]tDummies2, \[Beta]i] (4 Sqrt[\[Alpha]p]
+           R[c[0, 0], c[1, 0], ct[0, 0], 
+           ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \[Mu]Canon6], {},
+             0, 0], S[{\[Alpha]Dummies1, "antichiral"}, -(1/
+             2), {{\[Mu]Canon5, -1}}, 0, 0], 
+           St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}}, 
+            0, 0]] - 4 Sqrt[\[Alpha]p]
+           R[c[0, 0], ct[0, 0], ct[1, 0], 
+           ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \[Mu]Canon6], {},
+             0, 0], S[{\[Alpha]Dummies1, "antichiral"}, -(1/
+             2), {{\[Mu]Canon5, -1}}, 0, 0], 
+           St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}}, 
+            0, 0]] - I Sqrt[
+          2] (R[c[0, 0], ct[0, 0], dX[\[Mu]Canon3, 0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon3, \[Mu]Canon2, \
+\[Mu]Canon5], {}, 0, 0], S[{\[Alpha]Dummies1, "antichiral"}, 1/2, {}, 0, 0], 
+             St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon5, -1}},
+               0, 0], \[Eta][0, 0]] + 
+            R[c[0, 0], ct[0, 0], dXt[\[Mu]Canon3, 0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon3], {}, 0, 0], 
+             S[{\[Alpha]Dummies1, "antichiral"}, -(1/2), {{\[Mu]Canon5, -1}}, 
+              0, 0], St[{\[Alpha]tDummies1, "antichiral"}, 1/2, {}, 0, 
+              0], \[Eta]t[0, 0]])) - 
+      I GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]Canon2]}, \
+\[Alpha]tDummies1, \
+\[Beta]i] (GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon3]}, \
+\[Alpha]tDummies2, \[Alpha]tDummies1] (2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], c[1, 0], ct[0, 0], dXt[\[Mu]Canon4, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon4], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0], St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] - 
+            2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], ct[0, 0], ct[1, 0], dXt[\[Mu]Canon4, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon4], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0], St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] - 
+            I R[c[0, 0], ct[0, 0], dX[\[Mu]Canon4, 0, 0], 
+              dXt[\[Mu]Canon5, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon5], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies1, "antichiral"}, 1/2, {}, 0, 0], 
+              St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 
+               0]]) + 2 GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]\
+Canon5]}, \[Alpha]tDummies2, \[Alpha]tDummies1] (2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], c[1, 0], ct[0, 0], d\[Phi]t[0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon5], {}, 0, 0], 
+              S[{\[Alpha]Dummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0], St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] - 
+            2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], ct[0, 0], ct[1, 0], d\[Phi]t[0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon5], {}, 0, 0], 
+              S[{\[Alpha]Dummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0], St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] - 
+            I R[c[0, 0], ct[0, 0], dX[\[Mu]Canon4, 0, 0], d\[Phi]t[0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon5], {}, 0, 0], S[{\[Alpha]Dummies1, "antichiral"}, 1/2, {}, 0, 0], 
+              St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0], \[Eta][0, 
+               0]]))) + GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]\
+Canon1]}, \[Alpha]Dummies1, \[Alpha]i] (Sqrt[\[Alpha]p]
+        GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]Canon2]}, \
+\[Alpha]tDummies1, \
+\[Beta]i] (GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon3]}, \
+\[Alpha]Dummies2, \
+\[Alpha]Dummies1] (GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon4]}, \
+\[Alpha]tDummies2, \[Alpha]tDummies1] (-R[c[0, 0], c[1, 0], ct[0, 0], 
+                 dX[\[Mu]Canon5, 0, 0], dXt[\[Mu]Canon6, 0, 0], 
+                 ProfileX[
+                  Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \[Mu]Canon6], \
+{\[Mu]Canon3, \[Mu]Canon4}, 0, 0], 
+                 S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+                 St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] + 
+               R[c[0, 0], ct[0, 0], ct[1, 0], dX[\[Mu]Canon5, 0, 0], 
+                dXt[\[Mu]Canon6, 0, 0], 
+                ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon6], {\[Mu]Canon3, \[Mu]Canon4}, 0, 0], 
+                S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+                St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]]) + 
+            2 GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon6]}, \
+\[Alpha]tDummies2, \[Alpha]tDummies1] (-R[c[0, 0], c[1, 0], ct[0, 0], 
+                 dX[\[Mu]Canon5, 0, 0], d\[Phi]t[0, 0], 
+                 ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon6], {\[Mu]Canon3}, 0, 0], 
+                 S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+                 St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] + 
+               R[c[0, 0], ct[0, 0], ct[1, 0], dX[\[Mu]Canon5, 0, 0], 
+                d\[Phi]t[0, 0], 
+                ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon6], {\[Mu]Canon3}, 0, 0], 
+                S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+                St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]])) + 
+         2 GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon4]}, \
+\[Alpha]tDummies2, \
+\[Alpha]tDummies1] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon6]}, \
+\[Alpha]Dummies2, \[Alpha]Dummies1] (-R[c[0, 0], c[1, 0], ct[0, 0], 
+              dXt[\[Mu]Canon5, 0, 0], d\[Phi][0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon5], {\[Mu]Canon4}, 0, 0], 
+              S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] + 
+            R[c[0, 0], ct[0, 0], ct[1, 0], dXt[\[Mu]Canon5, 0, 0], 
+             d\[Phi][0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon6, \[Mu]Canon2, \
+\[Mu]Canon5], {\[Mu]Canon4}, 0, 0], 
+             S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+             St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]]) + 
+         4 GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon5]}, \
+\[Alpha]Dummies2, \
+\[Alpha]Dummies1] GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon6]}, \
+\[Alpha]tDummies2, \[Alpha]tDummies1] (-R[c[0, 0], c[1, 0], ct[0, 0], 
+              d\[Phi][0, 0], d\[Phi]t[0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon6], {}, 0, 0], S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]] + 
+            R[c[0, 0], ct[0, 0], ct[1, 0], d\[Phi][0, 0], d\[Phi]t[0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \
+\[Mu]Canon6], {}, 0, 0], S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+             St[{\[Alpha]tDummies2, "chiral"}, -(1/2), {}, 0, 0]])) - 
+      I GammaAntisymmetricProductHold[{}, \[Alpha]tDummies1, \
+\[Alpha]tDummies2] GammaAntisymmetricProductHold[{GammaDUHold[\[Mu]Canon2]}, \
+\[Alpha]tDummies2, \[Beta]i] (4 Sqrt[2] Sqrt[\[Alpha]p]
+           GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon4]}, \
+\[Alpha]Dummies2, \[Alpha]Dummies1] (R[c[0, 0], c[1, 0], ct[0, 0], 
+             d\[Phi][0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon6], {}, 0, 0], S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+             St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+               0, 0]] - 
+            R[c[0, 0], ct[0, 0], ct[1, 0], d\[Phi][0, 0], 
+             ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon6], {}, 0, 0], S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+             St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+               0, 0]]) + 
+         GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]Canon3]}, \
+\[Alpha]Dummies2, \[Alpha]Dummies1] (2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], c[1, 0], ct[0, 0], dX[\[Mu]Canon4, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon6], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0]] - 
+            2 Sqrt[2] Sqrt[\[Alpha]p]
+              R[c[0, 0], ct[0, 0], ct[1, 0], dX[\[Mu]Canon4, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon6], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]tDummies1, "antichiral"}, -(1/2), {{\[Mu]Canon6, -1}},
+                0, 0]] - 
+            I R[c[0, 0], ct[0, 0], dX[\[Mu]Canon4, 0, 0], 
+              dXt[\[Mu]Canon5, 0, 0], 
+              ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon4, \[Mu]Canon2, \
+\[Mu]Canon5], {\[Mu]Canon3}, 0, 0], 
+              S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+              St[{\[Alpha]tDummies1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0,
+                0]]) - 2 I GammaAntisymmetricProductHold[{GammaUDHold[\[Mu]\
+Canon5]}, \[Alpha]Dummies2, \[Alpha]Dummies1] R[c[0, 0], ct[0, 0], 
+           dXt[\[Mu]Canon4, 0, 0], d\[Phi][0, 0], 
+           ProfileX[Kon[\[Mu]Canon1, \[Mu]Canon5, \[Mu]Canon2, \[Mu]Canon4], {},
+             0, 0], S[{\[Alpha]Dummies2, "chiral"}, -(1/2), {}, 0, 0], 
+           St[{\[Alpha]tDummies1, "antichiral"}, 1/2, {}, 0, 0], \[Eta]t[0, 0]])))
+
+(*2nd order mass-level 1 correction*)
+
+In[19]:= ((BracketProjected[graviton[h, \[Mu], \[Nu], 0, 0], 
+         mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, 0, 0], 1, 1] // 
+        Private`CollapseB0m) //. twoBracketReplRule) // derAppend // 
+   canonicalizeDummies // ContractDelta // Simplify
+
+Out[21]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19975344514749175756 === $SessionID, 
+Out[21], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+In[25]:= OPEProjected[1, 1][graviton[h, \[Mu], \[Nu], z, zbar], 
+ mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, w, wbar]]
+
+Out[25]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19975356940398861905 === $SessionID, 
+Out[25], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+In[27]:= OPEProjected[1, 1][auxField[A, \[Mu], -z, -zbar], 
+ mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, z, zbar]]
+
+Out[27]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19975356940398861905 === $SessionID, 
+Out[27], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+(BracketProjected[ghostDilaton[\[Phi], 0, 0], 
+   mass1dX[Kon, \[Rho]1, \[Sigma]1, \[Rho]2, \[Sigma]2, 0, 0], 1, 1] // 
+  Private`CollapseB0m)
+
+Out[22]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19976497627167255562 === $SessionID, 
+Out[22], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+In[23]:= Dil = %
+
+Out[23]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19976497627167255562 === $SessionID, 
+Out[23], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
+
+In[28]:= ((Dil //. twoBracketReplRule) //. {dot[a_, b_] :> 0}) //. derAppend // 
+   ContractDelta // canonicalizeDummies // Simplify
+
+Out[28]= If[False, 
+Missing["NotAvailable", "NewSessionID"], 
+If[19976497627167255562 === $SessionID, 
+Out[28], Message[
+MessageName[Syntax, "noinfoker"]]; Missing["NotAvailable"]; Null]]
