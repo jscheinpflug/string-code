@@ -20,6 +20,7 @@ Switch[theoryValue,
     "StringCode`NormalOrdering`TypeII`",
     "StringCode`BasisGeneration`TypeII`",
     "StringCode`Operators`TypeII`",
+    "StringCode`Utils`TypeII`",
     "StringCode`OPE`TypeII`",
     "StringCode`Correlators`TypeII`",
     "StringCode`Brackets`TypeII`",
@@ -32,6 +33,7 @@ Switch[theoryValue,
     "StringCode`NormalOrdering`Bosonic`",
     "StringCode`BasisGeneration`Bosonic`",
     "StringCode`Operators`Bosonic`",
+    "StringCode`Utils`Bosonic`",
     "StringCode`OPE`Bosonic`",
     "StringCode`Correlators`Bosonic`",
     "StringCode`Brackets`Bosonic`",
@@ -43,6 +45,7 @@ Switch[CFTValue,
 Switch[theoryValue,
 "TypeII", AppendTo[userContext, "StringCode`Symbols`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Wick`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`Operators`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Taylor`TypeII`FlatSpace`"];
+AppendTo[userContext, "StringCode`Utils`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`TypeII`FlatSpace`"]; 
 AppendTo[userContext, "StringCode`TeXConversion`TypeII`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`TypeII`FlatSpace`"];
 AppendTo[userContext, "StringCode`Correlators`TypeII`FlatSpace`"];
@@ -53,6 +56,7 @@ AppendTo[userContext, "StringCode`OPE`TypeII`FlatSpace`TensorStructures`Independ
 "Bosonic", AppendTo[userContext,"StringCode`Symbols`Bosonic`FlatSpace`"]; AppendTo[userContext,"StringCode`Wick`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Operators`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`OPE`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Taylor`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`Brackets`Bosonic`FlatSpace`"]; 
+AppendTo[userContext, "StringCode`Utils`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`TeXConversion`Bosonic`FlatSpace`"]; AppendTo[userContext, "StringCode`BasisGeneration`Bosonic`FlatSpace`"];
 AppendTo[userContext, "StringCode`Correlators`Bosonic`FlatSpace`"],
 _, Print["No such CFT for theory ", theoryValue]
@@ -85,6 +89,7 @@ Needs["StringCode`Taylor`"];
 Needs["StringCode`Wick`"];
 Needs["StringCode`BasisGeneration`"];
 Needs["StringCode`Operators`"];
+Needs["StringCode`Utils`"];
 Needs["StringCode`OPE`"];
 Needs["StringCode`Correlators`"];
 Needs["StringCode`Brackets`"];

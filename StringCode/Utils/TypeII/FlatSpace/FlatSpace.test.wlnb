@@ -1,0 +1,19 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# TypeII FlatSpace Utils Unit Tests\n\nCoverage:\n- Spin-field mode relabeling in operator coefficient extraction\n- Profile-argument relabeling alongside spinor/vector coefficient tensors\n- Common-coefficient extraction for sums of operators",
+   "languageId": "markdown"
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"TypeII\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"TypeII-Ashoke\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram"
+  },
+  {
+   "kind": 2,
+   "value": "testReport[name_, cond_] := Module[{}, Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]]; TrueQ[cond]];\nexpr1 = GammaAntisymmetricProductHold[{GammaDUHold[\\[Sigma]]}, \\[Alpha], \\[Beta]] R[S[{\\[Alpha], \"chiral\"}, -1/2, {{\\[Sigma], -1}}, 0, 0], St[{\\[Beta], \"antichiral\"}, -1/2, {}, 0, 0]];\nexpr2 = GammaAntisymmetricProductHold[{GammaDUHold[\\[Rho]]}, \\[Alpha], \\[Beta]] R[ProfileX[Kon[\\[Rho]], {}, 0, 0], dX[\\[Rho], 0, 0], S[{\\[Alpha], \"chiral\"}, -1/2, {}, 0, 0], St[{\\[Beta], \"antichiral\"}, -1/2, {}, 0, 0]];\nexpr3 = x (R[S[{a1, \"chiral\"}, -1/2, {}, 0, 0]] + R[St[{a2, \"antichiral\"}, -1/2, {}, 0, 0]]);\n\ntest1 = testReport[\"Test 1 (spin-mode relabeling)\", OperatorCoefficient[expr1, R[S[{a, \"chiral\"}, -1/2, {{b, -1}}, 0, 0], St[{c, \"antichiral\"}, -1/2, {}, 0, 0]]] === GammaAntisymmetricProductHold[{GammaDUHold[b]}, a, c]];\ntest2 = testReport[\"Test 2 (profile-argument relabeling)\", OperatorCoefficient[expr2, R[dX[r, 0, 0], S[{a, \"chiral\"}, -1/2, {}, 0, 0], St[{c, \"antichiral\"}, -1/2, {}, 0, 0]]] === GammaAntisymmetricProductHold[{GammaDUHold[r]}, a, c] ProfileX[Kon[r], {}, 0, 0]];\ntest3 = testReport[\"Test 3 (common coefficient on summed operators)\", OperatorCoefficient[expr3, R[S[{a1, \"chiral\"}, -1/2, {}, 0, 0]] + R[St[{a2, \"antichiral\"}, -1/2, {}, 0, 0]]] === x];\n\nallTests = {test1, test2, test3};\nallPassed = And @@ allTests;\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", Count[allTests, True], \"/\", Length[allTests]];\nIf[allPassed, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\nallPassed",
+   "languageId": "wolfram"
+  }
+ ]
+}

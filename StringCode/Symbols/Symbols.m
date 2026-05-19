@@ -23,9 +23,6 @@ factorizeOperator::usage = "Factorizes an operator into a tuple {holoPart, antiH
 Contract::usage = "Contract traced indices";
 
 
-ContractDelta::usage = "Contract repeated indices";
-
-
 b::usage = "Holomorphic b-ghost"
 
 

@@ -175,11 +175,6 @@ flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]
 Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
 Contract[f_] := Contract[f, 10];
 
-ContractDelta[f_] := f //. {
-  g_ \[Delta][\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
-  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
-};
-
 GammaProductHold[args___] := GammaAntisymmetricProductHold[args];
 
 

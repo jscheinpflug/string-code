@@ -1,0 +1,19 @@
+{
+ "cells": [
+  {
+   "kind": 1,
+   "value": "# Utils Unit Tests\n\nShared tests for the generic StringCode Utils module.",
+   "languageId": "markdown"
+  },
+  {
+   "kind": 2,
+   "value": "Needs[\"StringCode`\"]\nStringCode`InitStringCode[<|\"theory\" -> \"Bosonic\", \"CFT\" -> \"FlatSpace\", \"conventions\" -> \"Bosonic-Xi\", \"bracket\" -> \"Flat\"|>]",
+   "languageId": "wolfram"
+  },
+  {
+   "kind": 2,
+   "value": "testReport[name_, cond_] := Module[{}, Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]]; TrueQ[cond]];\ntermsKey[ops_List] := Sort[ToString[InputForm[#]] & /@ ops];\n\ntest1 = testReport[\"Test 1 (single operator coefficient)\", OperatorCoefficient[a R[c[0, 0]], R[c[0, 0]]] === a];\ntest2 = testReport[\"Test 2 (common coefficient on operator sum)\", OperatorCoefficient[a R[c[0, 0]] + a R[b[0, 0]], R[c[0, 0]] + R[b[0, 0]]] === a];\ntest3 = testReport[\"Test 3 (distinct operator terms)\", termsKey[OperatorTerms[a R[c[0, 0]] + b R[c[0, 0]] + R[b[0, 0]]]] === termsKey[{R[c[0, 0]], R[b[0, 0]]}]];\n\nallTests = {test1, test2, test3};\nallPassed = And @@ allTests;\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", Count[allTests, True], \"/\", Length[allTests]];\nIf[allPassed, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\nallPassed",
+   "languageId": "wolfram"
+  }
+ ]
+}
