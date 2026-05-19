@@ -772,7 +772,7 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     canonicalHoloLorentzSymbols, canonicalAntiLorentzSymbols,
     canonicalSpinAlphaSymbolsHolo, canonicalSpinAlphaSymbolsAnti,
     holoLorentzRenamingRules, antiLorentzRenamingRules,
-    spinAlphaRenamingRules
+    spinAlphaRenamingRulesHolo, spinAlphaRenamingRulesAnti
   },
   holoLorentzSymbols = DeleteDuplicates @ Join[
     Cases[expr, (dX | \[Psi])[mu_Symbol, __] :> mu, Infinity],
@@ -814,10 +814,8 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
   canonicalSpinAlphaSymbolsAnti = Symbol["\\[Alpha]t" <> ToString[#]] & /@ Range[Length[spinAlphaSymbolsAnti]];
   holoLorentzRenamingRules = AssociationThread[holoLorentzSymbols -> canonicalHoloLorentzSymbols];
   antiLorentzRenamingRules = AssociationThread[antiLorentzSymbols -> canonicalAntiLorentzSymbols];
-  spinAlphaRenamingRules = Join[
-    Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
-    Thread[spinAlphaSymbolsAnti -> canonicalSpinAlphaSymbolsAnti]
-  ];
+  spinAlphaRenamingRulesHolo = AssociationThread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo];
+  spinAlphaRenamingRulesAnti = AssociationThread[spinAlphaSymbolsAnti -> canonicalSpinAlphaSymbolsAnti];
   expr /. {
     dX[mu_Symbol, rest___] :> dX[Lookup[holoLorentzRenamingRules, mu, mu], rest],
     \[Psi][mu_Symbol, rest___] :> \[Psi][Lookup[holoLorentzRenamingRules, mu, mu], rest],
@@ -825,7 +823,7 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     \[Psi]t[mu_Symbol, rest___] :> \[Psi]t[Lookup[antiLorentzRenamingRules, mu, mu], rest],
     S[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
       S[
-        {alpha /. spinAlphaRenamingRules, chirality},
+        {Lookup[spinAlphaRenamingRulesHolo, alpha, alpha], chirality},
         q,
         modes /. {
           {mu_Symbol, mode_} :> {Lookup[holoLorentzRenamingRules, mu, mu], mode},
@@ -836,7 +834,7 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
       ],
     St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
       St[
-        {alpha /. spinAlphaRenamingRules, chirality},
+        {Lookup[spinAlphaRenamingRulesAnti, alpha, alpha], chirality},
         q,
         modes /. {
           {mu_Symbol, mode_} :> {Lookup[antiLorentzRenamingRules, mu, mu], mode},

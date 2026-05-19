@@ -360,11 +360,25 @@ spinProjectionRelabelTensorStructureList0::usage =
   "spinProjectionRelabelTensorStructureList0[tensors, rules] relabels a tensor-structure list with sparse-basis record awareness.";
 spinProjectionRelabelTensorStructureList0[tensors_List, rules_List] := spinProjectionRelabelTensorStructure0[#, rules] & /@ tensors;
 
+spinProjectionOutputSector0::usage =
+  "spinProjectionOutputSector0[op] infers whether one compiled output operator template belongs to the holomorphic or antiholomorphic sector.";
+spinProjectionOutputSector0[op_ /; RTest[op]] := Which[
+  Cases[op, St[__] | \[Psi]t[__] | dXt[__], Infinity] =!= {}, "Anti",
+  Cases[op, S[__] | \[Psi][__] | dX[__], Infinity] =!= {}, "Holo",
+  True, "Holo"
+];
+spinProjectionOutputSector0[_] := "Holo";
+
 spinProjectionFreshOutputSymbol0::usage =
-  "spinProjectionFreshOutputSymbol0[kind, used] returns a deterministic fresh output-state symbol that avoids the given used-symbol set.";
-spinProjectionFreshOutputSymbol0[kind : ("Spinor" | "Vector"), used_List] := Module[
+  "spinProjectionFreshOutputSymbol0[kind, sector, used] returns a deterministic fresh output-state symbol that avoids the given used-symbol set and respects the chiral sector naming convention.";
+spinProjectionFreshOutputSymbol0[kind : ("Spinor" | "Vector"), sector : ("Holo" | "Anti"), used_List] := Module[
   {prefix, n = 1, candidate},
-  prefix = If[kind === "Spinor", "α", "μ"];
+  prefix = Switch[{kind, sector},
+    {"Spinor", "Holo"}, "\[Alpha]",
+    {"Spinor", "Anti"}, "\[Alpha]t",
+    {"Vector", "Holo"}, "\[Mu]",
+    {"Vector", "Anti"}, "mut"
+  ];
   While[True,
     candidate = Symbol["Global`" <> prefix <> ToString[n]];
     If[!MemberQ[used, SymbolName[candidate]], Return[candidate]];
@@ -372,22 +386,141 @@ spinProjectionFreshOutputSymbol0[kind : ("Spinor" | "Vector"), used_List] := Mod
   ]
 ];
 
+spinProjectionTensorPlaceholderSymbols0::usage =
+  "spinProjectionTensorPlaceholderSymbols0[tensors] collects the symbolic spinor/vector placeholders appearing in a relabeled tensor-structure family.";
+spinProjectionTensorPlaceholderSymbols0[tensors_List] := DeleteDuplicates @ Cases[
+  First /@ spinTypedIndices[spinProjectionTensorExpr0 /@ tensors],
+  sym_Symbol :> sym
+];
+
+spinProjectionRenameOutputSymbolsAvoiding0::usage =
+  "spinProjectionRenameOutputSymbolsAvoiding0[expr, reservedSymbols] renames sector output placeholders in expr that would collide with reserved symbolic labels, while avoiding all existing tensor/output placeholders already present in expr.";
+spinProjectionRenameOutputSymbolsAvoiding0[expr_, reservedSymbols_List] := Module[
+  {
+    reservedNames,
+    exprSymbolNames,
+    outputSpinSymbolsHolo,
+    outputSpinSymbolsAnti,
+    outputVectorSymbolsHolo,
+    outputVectorSymbolsAnti,
+    used,
+    renameRules = <||>,
+    renameOne,
+    renameVector,
+    renameSpin
+  },
+  reservedNames = DeleteDuplicates[SymbolName /@ Select[reservedSymbols, Head[#] === Symbol &]];
+  exprSymbolNames = DeleteDuplicates @ Join[
+    SymbolName /@ Cases[First /@ spinTypedIndices[expr], sym_Symbol :> sym],
+    SymbolName /@ Cases[expr, \[Delta][left_Symbol, _] :> left, Infinity],
+    SymbolName /@ Cases[expr, \[Delta][_, right_Symbol] :> right, Infinity]
+  ];
+  outputSpinSymbolsHolo = DeleteDuplicates @ Cases[
+    expr,
+    S[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
+    Infinity
+  ];
+  outputSpinSymbolsAnti = DeleteDuplicates @ Cases[
+    expr,
+    St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
+    Infinity
+  ];
+  outputVectorSymbolsHolo = DeleteDuplicates @ Join[
+    Cases[expr, (dX | \[Psi])[mu_Symbol, __] :> mu, Infinity],
+    Flatten @ Cases[
+      expr,
+      S[_, _, modes_List, __] :>
+        Join[
+          Cases[modes, {mu_Symbol, _} :> mu, Infinity],
+          Cases[modes, {_, mu_Symbol} :> mu, Infinity]
+        ],
+      Infinity
+    ]
+  ];
+  outputVectorSymbolsAnti = DeleteDuplicates @ Join[
+    Cases[expr, (dXt | \[Psi]t)[mu_Symbol, __] :> mu, Infinity],
+    Flatten @ Cases[
+      expr,
+      St[_, _, modes_List, __] :>
+        Join[
+          Cases[modes, {mu_Symbol, _} :> mu, Infinity],
+          Cases[modes, {_, mu_Symbol} :> mu, Infinity]
+        ],
+      Infinity
+    ]
+  ];
+  used = DeleteDuplicates@Join[
+    reservedNames,
+    exprSymbolNames
+  ];
+  renameOne[kind_, sector_, symbol_] := Module[{candidate},
+    If[MemberQ[reservedNames, SymbolName[symbol]] && !KeyExistsQ[renameRules, symbol],
+      candidate = spinProjectionFreshOutputSymbol0[kind, sector, used];
+      renameRules[symbol] = candidate;
+      used = Append[used, SymbolName[candidate]];
+    ]
+  ];
+  Scan[renameOne["Spinor", "Holo", #] &, outputSpinSymbolsHolo];
+  Scan[renameOne["Spinor", "Anti", #] &, outputSpinSymbolsAnti];
+  Scan[renameOne["Vector", "Holo", #] &, outputVectorSymbolsHolo];
+  Scan[renameOne["Vector", "Anti", #] &, outputVectorSymbolsAnti];
+  renameVector[idx_] := If[Head[idx] === Symbol, Lookup[renameRules, idx, idx], idx];
+  renameSpin[idx_] := If[Head[idx] === Symbol, Lookup[renameRules, idx, idx], idx];
+  expr /. {
+    GammaUDHold[idx_] :> GammaUDHold[renameVector[idx]],
+    GammaDUHold[idx_] :> GammaDUHold[renameVector[idx]],
+    \[Delta][left_, right_] :> \[Delta][renameSpin[renameVector[left]], renameSpin[renameVector[right]]],
+    dX[idx_, rest___] :> dX[renameVector[idx], rest],
+    \[Psi][idx_, rest___] :> \[Psi][renameVector[idx], rest],
+    dXt[idx_, rest___] :> dXt[renameVector[idx], rest],
+    \[Psi]t[idx_, rest___] :> \[Psi]t[renameVector[idx], rest],
+    S[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
+      S[
+        {renameSpin[alpha], chirality},
+        q,
+        modes /. {
+          {mu_Symbol, mode_} :> {renameVector[mu], mode},
+          {mode_, mu_Symbol} :> {mode, renameVector[mu]}
+        },
+        der,
+        coord
+      ],
+    St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, q_, modes_List, der_, coord_] :>
+      St[
+        {renameSpin[alpha], chirality},
+        q,
+        modes /. {
+          {mu_Symbol, mode_} :> {renameVector[mu], mode},
+          {mode_, mu_Symbol} :> {mode, renameVector[mu]}
+        },
+        der,
+        coord
+      ],
+    GammaAntisymmetricProductHold[links_List, left_, right_] :>
+      GammaAntisymmetricProductHold[links, renameSpin[left], renameSpin[right]]
+  }
+];
+
 spinProjectionOutputCollisionRenameRules0::usage =
-  "spinProjectionOutputCollisionRenameRules0[op, actualSymbols] renames output-state vector/spin symbols that would collide with actual external labels after inverse relabeling.";
-spinProjectionOutputCollisionRenameRules0[op_ /; RTest[op], actualSymbols_List] := Module[
-  {outputData, actualSymbolNames, used, renameRules = {}, candidate},
+  "spinProjectionOutputCollisionRenameRules0[op, tensors, actualSymbols] renames output-state vector/spin symbols that would collide with actual external labels or existing tensor dummy symbols after inverse relabeling.";
+spinProjectionOutputCollisionRenameRules0[op_ /; RTest[op], tensors_List, actualSymbols_List] := Module[
+  {outputData, actualSymbolNames, tensorSymbolNames, used, renameRules = {}, candidate, sector},
   outputData = spinProjectionOutputSymbolData[op];
   If[outputData === $Failed, Return[{}]];
+  sector = spinProjectionOutputSector0[op];
   actualSymbolNames = DeleteDuplicates[SymbolName /@ Select[actualSymbols, Head[#] === Symbol &]];
+  tensorSymbolNames = DeleteDuplicates[SymbolName /@ spinProjectionTensorPlaceholderSymbols0[tensors]];
   used = DeleteDuplicates@Join[
     actualSymbolNames,
+    tensorSymbolNames,
     SymbolName /@ Lookup[outputData, "SpinSymbols", {}],
     SymbolName /@ Lookup[outputData, "VectorSymbols", {}]
   ];
   Scan[
     Function[symbol,
-      If[MemberQ[actualSymbolNames, SymbolName[symbol]],
-        candidate = spinProjectionFreshOutputSymbol0["Spinor", used];
+      If[
+        MemberQ[actualSymbolNames, SymbolName[symbol]],
+        candidate = spinProjectionFreshOutputSymbol0["Spinor", sector, used];
         renameRules = Append[renameRules, symbol -> candidate];
         used = Append[used, SymbolName[candidate]];
       ]
@@ -396,8 +529,9 @@ spinProjectionOutputCollisionRenameRules0[op_ /; RTest[op], actualSymbols_List] 
   ];
   Scan[
     Function[symbol,
-      If[MemberQ[actualSymbolNames, SymbolName[symbol]],
-        candidate = spinProjectionFreshOutputSymbol0["Vector", used];
+      If[
+        MemberQ[actualSymbolNames, SymbolName[symbol]],
+        candidate = spinProjectionFreshOutputSymbol0["Vector", sector, used];
         renameRules = Append[renameRules, symbol -> candidate];
         used = Append[used, SymbolName[candidate]];
       ]
@@ -406,14 +540,14 @@ spinProjectionOutputCollisionRenameRules0[op_ /; RTest[op], actualSymbols_List] 
   ];
   renameRules
 ];
-spinProjectionOutputCollisionRenameRules0[_, _List] := {};
+spinProjectionOutputCollisionRenameRules0[_, _List, _List] := {};
 
 spinProjectionRelabelSectorFamily0::usage =
   "spinProjectionRelabelSectorFamily0[{op, tensors}, rules] reinstates actual external labels for one cached canonical sector family without mutating selector caches.";
 spinProjectionRelabelSectorFamily0[{op_, tensors_}, rules_List] := Module[
   {actualSymbols, outputRenameRules, renamedOp, renamedTensors},
   actualSymbols = DeleteDuplicates @ Select[Last /@ rules, Head[#] === Symbol &];
-  outputRenameRules = spinProjectionOutputCollisionRenameRules0[op, actualSymbols];
+  outputRenameRules = spinProjectionOutputCollisionRenameRules0[op, tensors, actualSymbols];
   renamedOp = op /. outputRenameRules;
   renamedTensors = spinProjectionRelabelTensorStructureList0[tensors, outputRenameRules];
   {

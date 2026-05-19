@@ -131,14 +131,55 @@ actPCOAntiHolo[Ra_ /; RTest[Ra]] := actPCOAntiHolo[Ra] = Module[
   Expand[result]/.{zBar->0}
 ];
 
+scalarPrefactorReservedSymbols0::usage =
+  "scalarPrefactorReservedSymbols0[expr] collects symbolic tensor/vector/spin placeholders carried by a scalar prefactor.";
+scalarPrefactorReservedSymbols0[expr_] := DeleteDuplicates @ Cases[
+  First /@ spinTypedIndices[expr],
+  sym_Symbol :> sym
+];
+
+pcoScalarFactorizationApplicableQ0::usage =
+  "pcoScalarFactorizationApplicableQ0[expr] is True exactly when expr contains both scalar and nonscalar factors, so PCO multilinearity should split the whole product deterministically.";
+pcoScalarFactorizationApplicableQ0[expr_Times] := Module[{factors},
+  factors = List @@ expr;
+  AnyTrue[factors, isScalarFactorQ] && AnyTrue[factors, Not @* isScalarFactorQ]
+];
+pcoScalarFactorizationApplicableQ0[_] := False;
+
+pcoScalarFactorizationData0::usage =
+  "pcoScalarFactorizationData0[expr] returns {scalarPrefactor, operatorPart} by splitting a product into all scalar factors and all nonscalar factors.";
+pcoScalarFactorizationData0[expr_Times] /; pcoScalarFactorizationApplicableQ0[expr] := Module[
+  {factors, scalarFactors, nonScalarFactors},
+  factors = List @@ expr;
+  scalarFactors = Select[factors, isScalarFactorQ];
+  nonScalarFactors = Select[factors, Not @* isScalarFactorQ];
+  {Times @@ scalarFactors, Times @@ nonScalarFactors}
+];
+
 
 (*Multilinearity of PCO zero mode actions*)
 actPCOHolo[a_+b_]:=actPCOHolo[a] + actPCOHolo[b];
-actPCOHolo[a_ b_]:=a actPCOHolo[b]/;(isScalarFactorQ[a])
+actPCOHolo[expr_Times] /; pcoScalarFactorizationApplicableQ0[expr] := Module[
+  {split, scalarPrefactor, operatorPart},
+  split = pcoScalarFactorizationData0[expr];
+  {scalarPrefactor, operatorPart} = split;
+  scalarPrefactor spinProjectionRenameOutputSymbolsAvoiding0[
+    actPCOHolo[operatorPart],
+    scalarPrefactorReservedSymbols0[scalarPrefactor]
+  ]
+];
 actPCOHolo[0] := 0;
 
 actPCOAntiHolo[a_+b_]:=actPCOAntiHolo[a] + actPCOAntiHolo[b];
-actPCOAntiHolo[a_ b_]:=a actPCOAntiHolo[b]/;(isScalarFactorQ[a])
+actPCOAntiHolo[expr_Times] /; pcoScalarFactorizationApplicableQ0[expr] := Module[
+  {split, scalarPrefactor, operatorPart},
+  split = pcoScalarFactorizationData0[expr];
+  {scalarPrefactor, operatorPart} = split;
+  scalarPrefactor spinProjectionRenameOutputSymbolsAvoiding0[
+    actPCOAntiHolo[operatorPart],
+    scalarPrefactorReservedSymbols0[scalarPrefactor]
+  ]
+];
 actPCOAntiHolo[0] := 0;
 
 actPCO[a___]:= actPCOHolo[actPCOAntiHolo[a]];
