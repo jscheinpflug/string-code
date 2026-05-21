@@ -2,7 +2,7 @@
  "cells": [
   {
    "kind": 1,
-   "value": "# Utils Unit Tests\n\nShared tests for the generic StringCode Utils module.",
+   "value": "# Utils Unit Tests\n\nShared tests for the public StringCode Utils entry points under a FlatSpace initialization.",
    "languageId": "markdown"
   },
   {
@@ -12,7 +12,7 @@
   },
   {
    "kind": 2,
-   "value": "testReport[name_, cond_] := Module[{}, Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]]; TrueQ[cond]];\ntermsKey[ops_List] := Sort[ToString[InputForm[#]] & /@ ops];\n\ntest1 = testReport[\"Test 1 (single operator coefficient)\", OperatorCoefficient[a R[c[0, 0]], R[c[0, 0]]] === a];\ntest2 = testReport[\"Test 2 (common coefficient on operator sum)\", OperatorCoefficient[a R[c[0, 0]] + a R[b[0, 0]], R[c[0, 0]] + R[b[0, 0]]] === a];\ntest3 = testReport[\"Test 3 (distinct operator terms)\", termsKey[OperatorTerms[a R[c[0, 0]] + b R[c[0, 0]] + R[b[0, 0]]]] === termsKey[{R[c[0, 0]], R[b[0, 0]]}]];\n\nallTests = {test1, test2, test3};\nallPassed = And @@ allTests;\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", Count[allTests, True], \"/\", Length[allTests]];\nIf[allPassed, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\nallPassed",
+   "value": "testReport[name_, cond_] := Module[{}, Print[name, \": \", If[TrueQ[cond], \"PASSED\", \"FAILED\"]]; TrueQ[cond]];\ntermsKey[ops_List] := Sort[ToString[InputForm[#]] & /@ ops];\nabsorbedExpr = AbsorbProfileDerivatives[der[f][a] der[f][b] R[ProfileX[f, {}, 0, 0], dX[\\[Mu], 0, 0]]];\nexpectedAbsorbedExpr = R[dX[\\[Mu], 0, 0], ProfileX[f, {a, b}, 0, 0]];\nscalarAbsorbedExpr = AbsorbProfileDerivatives[x der[f][a]^2 ProfileX[f, {}, 0, 0]];\nexpectedScalarAbsorbedExpr = x ProfileX[f, {a, a}, 0, 0];\ncanonExpr1 = CanonicalizeDummyIndices[R[dX[\\[Mu]1, 0, 0], ProfileX[Kon[\\[Rho]], {dummyA, dummyB}, 0, 0]]];\ncanonExpr2 = CanonicalizeDummyIndices[R[dX[\\[Mu]1, 0, 0], ProfileX[Kon[\\[Rho]], {dummyX, dummyY}, 0, 0]]];\nexpectedCanonExpr = R[dX[\\[Mu]1, 0, 0], ProfileX[Kon[\\[Rho]], {\\[Mu]2, \\[Mu]3}, 0, 0]];\n\ntest1 = testReport[\"Test 1 (single operator coefficient)\", OperatorCoefficient[a R[c[0, 0]], R[c[0, 0]]] === a];\ntest2 = testReport[\"Test 2 (common coefficient on operator sum)\", OperatorCoefficient[a R[c[0, 0]] + a R[b[0, 0]], R[c[0, 0]] + R[b[0, 0]]] === a];\ntest3 = testReport[\"Test 3 (distinct operator terms)\", termsKey[OperatorTerms[a R[c[0, 0]] + b R[c[0, 0]] + R[b[0, 0]]]] === termsKey[{R[c[0, 0]], R[b[0, 0]]}]];\ntest4 = testReport[\"Test 4 (profile derivative absorption inside R)\", absorbedExpr === expectedAbsorbedExpr];\ntest5 = testReport[\"Test 5 (profile derivative absorption in scalar coefficient)\", scalarAbsorbedExpr === expectedScalarAbsorbedExpr];\ntest6 = testReport[\"Test 6 (dummy canonicalization collision avoidance)\", canonExpr1 === canonExpr2 === expectedCanonExpr];\n\nallTests = {test1, test2, test3, test4, test5, test6};\nallPassed = And @@ allTests;\nPrint[\"\\n=== SUMMARY ===\"];\nPrint[\"Passed: \", Count[allTests, True], \"/\", Length[allTests]];\nIf[allPassed, Print[\"All tests PASSED!\"], Print[\"Some tests FAILED.\"]];\nallPassed",
    "languageId": "wolfram"
   }
  ]
