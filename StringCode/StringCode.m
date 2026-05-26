@@ -90,6 +90,7 @@ Needs["StringCode`Correlators`"];
 Needs["StringCode`Brackets`"];
 Needs["StringCode`TeXConversion`"];
 Needs["StringCode`Utils`Canonicalize`"];
+Needs["StringCode`ModuliIntegration`"];
 
 Scan[
   (AppendTo[$ContextPath, #] &) ,
