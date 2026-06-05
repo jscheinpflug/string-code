@@ -7,6 +7,7 @@
 BeginPackage["StringCode`Symbols`TypeII`FlatSpace`"]
 Needs["StringCode`Symbols`"];
 Needs["StringCode`Symbols`TypeII`"]
+Needs["StringCode`NormalOrdering`"]
 Needs["StringCode`Conventions`TypeII`"]
 
 
@@ -68,6 +69,14 @@ der::usage = "Symbol for a derivative";
 
 \[Delta]::usage = "Inert Kronecker delta tensor for flat-space vector-index contractions.";
 
+Eta::usage = "Inert Minkowski metric tensor for Lorentzian flat-space vector-index contractions.";
+
+SetFlatSpaceSignature::usage =
+  "SetFlatSpaceSignature[signature] sets the active TypeII FlatSpace vector signature. Supported signatures are \"Euclidean\" and \"Lorentzian\".";
+
+FlatSpaceSignature::usage =
+  "FlatSpaceSignature[] returns the active TypeII FlatSpace vector signature.";
+
 CGamma::usage =
   "CGamma[mu] returns the exact 16x16 chiral-chiral charge-conjugated gamma matrix with both spinor indices up in the canonical TypeII flat-space basis.";
 
@@ -86,11 +95,59 @@ GammaUD::usage =
 GammaUDSparse::usage =
   "GammaUDSparse[mu] returns the exact 16x16 sparse mixed-chirality gamma matrix mapping chiral to antichiral spinors in the canonical TypeII flat-space basis.";
 
+GammaUDUp::usage =
+  "GammaUDUp[mu] returns the exact mixed chiral-to-antichiral gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+GammaUDUpSparse::usage =
+  "GammaUDUpSparse[mu] returns the exact sparse mixed chiral-to-antichiral gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+GammaUDDown::usage =
+  "GammaUDDown[mu] returns the exact mixed chiral-to-antichiral gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+GammaUDDownSparse::usage =
+  "GammaUDDownSparse[mu] returns the exact sparse mixed chiral-to-antichiral gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
 GammaDU::usage =
   "GammaDU[mu] returns the exact 16x16 mixed-chirality gamma matrix mapping antichiral to chiral spinors in the canonical TypeII flat-space basis.";
 
 GammaDUSparse::usage =
   "GammaDUSparse[mu] returns the exact 16x16 sparse mixed-chirality gamma matrix mapping antichiral to chiral spinors in the canonical TypeII flat-space basis.";
+
+GammaDUUp::usage =
+  "GammaDUUp[mu] returns the exact mixed antichiral-to-chiral gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+GammaDUUpSparse::usage =
+  "GammaDUUpSparse[mu] returns the exact sparse mixed antichiral-to-chiral gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+GammaDUDown::usage =
+  "GammaDUDown[mu] returns the exact mixed antichiral-to-chiral gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+GammaDUDownSparse::usage =
+  "GammaDUDownSparse[mu] returns the exact sparse mixed antichiral-to-chiral gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+CGammaUp::usage =
+  "CGammaUp[mu] returns the exact chiral-chiral charge-conjugated gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+CGammaUpSparse::usage =
+  "CGammaUpSparse[mu] returns the exact sparse chiral-chiral charge-conjugated gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+CGammaDown::usage =
+  "CGammaDown[mu] returns the exact chiral-chiral charge-conjugated gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+CGammaDownSparse::usage =
+  "CGammaDownSparse[mu] returns the exact sparse chiral-chiral charge-conjugated gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+CIGammaUp::usage =
+  "CIGammaUp[mu] returns the exact antichiral-antichiral charge-conjugated gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+CIGammaUpSparse::usage =
+  "CIGammaUpSparse[mu] returns the exact sparse antichiral-antichiral charge-conjugated gamma matrix with an upper vector index in the active TypeII flat-space signature.";
+
+CIGammaDown::usage =
+  "CIGammaDown[mu] returns the exact antichiral-antichiral charge-conjugated gamma matrix with a lower vector index in the active TypeII flat-space signature.";
+
+CIGammaDownSparse::usage =
+  "CIGammaDownSparse[mu] returns the exact sparse antichiral-antichiral charge-conjugated gamma matrix with a lower vector index in the active TypeII flat-space signature.";
 
 CUD::usage =
   "CUD is the exact 16x16 chiral-antichiral spinor pairing matrix in the canonical TypeII flat-space basis.";
@@ -131,6 +188,12 @@ GammaUDHold::usage =
 GammaDUHold::usage =
   "GammaDUHold[mu] denotes an inert single-link gamma block carrying antichiral-to-chiral spinor index flow.";
 
+GammaIndexUp::usage =
+  "GammaIndexUp[mu] marks an upper vector index carried by an inert GammaUDHold/GammaDUHold link.";
+
+GammaIndexDown::usage =
+  "GammaIndexDown[mu] marks a lower vector index carried by an inert GammaUDHold/GammaDUHold link.";
+
 Gamma11UUHold::usage =
   "Gamma11UUHold[] denotes an inert chirality-preserving Gamma11 insertion with chiral end-index type.";
 
@@ -169,8 +232,153 @@ Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion a
 Begin["Private`"];
 
 
+flatSpaceVectorDimension::usage =
+  "flatSpaceVectorDimension is the fixed TypeII FlatSpace vector dimension.";
+flatSpaceVectorDimension = 10;
+
+
+flatSpaceSignatureState::usage =
+  "flatSpaceSignatureState stores the active TypeII FlatSpace vector signature.";
+flatSpaceSignatureState = "Euclidean";
+
+
+normalizeFlatSpaceSignature::usage =
+  "normalizeFlatSpaceSignature[signature] canonicalizes supported TypeII FlatSpace signature names.";
+normalizeFlatSpaceSignature["Euclidean" | Euclidean] := "Euclidean";
+normalizeFlatSpaceSignature["Lorentzian" | Lorentzian | "Minkowski" | Minkowski] := "Lorentzian";
+normalizeFlatSpaceSignature[_] := $Failed;
+
+
+SetFlatSpaceSignature::badsig =
+  "Unsupported TypeII FlatSpace signature `1`. Supported signatures are \"Euclidean\" and \"Lorentzian\".";
+
+
+SetFlatSpaceSignature[signature_] := Module[{normalized = normalizeFlatSpaceSignature[signature]},
+  If[normalized === $Failed,
+    Message[SetFlatSpaceSignature::badsig, signature];
+    Return[$Failed]
+  ];
+  flatSpaceSignatureState = normalized;
+  normalized
+];
+
+
+FlatSpaceSignature[] := flatSpaceSignatureState;
+
+
+flatSpaceSignatureName::usage =
+  "flatSpaceSignatureName[] returns the active TypeII FlatSpace signature name as a stable string.";
+flatSpaceSignatureName[] := FlatSpaceSignature[];
+
+
+flatSpaceLorentzianSignatureQ::usage =
+  "flatSpaceLorentzianSignatureQ[] is True exactly when the active TypeII FlatSpace signature is Lorentzian.";
+flatSpaceLorentzianSignatureQ[] := FlatSpaceSignature[] === "Lorentzian";
+
+
+flatSpaceEuclideanSignatureQ::usage =
+  "flatSpaceEuclideanSignatureQ[] is True exactly when the active TypeII FlatSpace signature is Euclidean.";
+flatSpaceEuclideanSignatureQ[] := FlatSpaceSignature[] === "Euclidean";
+
+
+flatSpaceVectorIndexRange::usage =
+  "flatSpaceVectorIndexRange[] returns the active concrete vector-index range: 1..10 in Euclidean signature and 0..9 in Lorentzian signature.";
+flatSpaceVectorIndexRange[] := If[flatSpaceLorentzianSignatureQ[], Range[0, flatSpaceVectorDimension - 1], Range[1, flatSpaceVectorDimension]];
+
+
+validFlatSpaceVectorIndexQ::usage =
+  "validFlatSpaceVectorIndexQ[mu] checks whether mu is a concrete vector index in the active TypeII FlatSpace signature.";
+validFlatSpaceVectorIndexQ[mu_Integer] := MemberQ[flatSpaceVectorIndexRange[], mu];
+validFlatSpaceVectorIndexQ[_] := False;
+
+
+flatSpaceVectorIndexPosition::usage =
+  "flatSpaceVectorIndexPosition[mu] maps an active concrete vector index to its 1-based matrix/list position.";
+flatSpaceVectorIndexPosition[mu_Integer] := Which[
+  flatSpaceEuclideanSignatureQ[] && 1 <= mu <= flatSpaceVectorDimension, mu,
+  flatSpaceLorentzianSignatureQ[] && 0 <= mu <= flatSpaceVectorDimension - 1, mu + 1,
+  True, $Failed
+];
+
+
+flatSpaceMetricDiagonalSign::usage =
+  "flatSpaceMetricDiagonalSign[mu] returns the diagonal metric sign for one active concrete vector index.";
+flatSpaceMetricDiagonalSign[mu_Integer] := Which[
+  !validFlatSpaceVectorIndexQ[mu], $Failed,
+  flatSpaceLorentzianSignatureQ[] && mu === 0, -1,
+  True, 1
+];
+
+
+flatSpaceLorentzianUpperGammaPhase::usage =
+  "flatSpaceLorentzianUpperGammaPhase[mu] returns the phase relating Lorentzian upper-index gamma matrices to the stored Euclidean basis.";
+flatSpaceLorentzianUpperGammaPhase[mu_Integer] := If[flatSpaceLorentzianSignatureQ[] && mu === 0, -I, 1];
+
+
+flatSpaceUpperGammaScale::usage =
+  "flatSpaceUpperGammaScale[mu] returns the active-signature scale multiplying the stored Euclidean gamma matrix for an upper vector index.";
+flatSpaceUpperGammaScale[mu_Integer] := Module[{sign = flatSpaceMetricDiagonalSign[mu]},
+  If[sign === $Failed, Return[$Failed]];
+  flatSpaceLorentzianUpperGammaPhase[mu]
+];
+
+
+flatSpaceLowerGammaScale::usage =
+  "flatSpaceLowerGammaScale[mu] returns the active-signature scale multiplying the stored Euclidean gamma matrix for a lower vector index.";
+flatSpaceLowerGammaScale[mu_Integer] := Module[{sign = flatSpaceMetricDiagonalSign[mu], upper = flatSpaceUpperGammaScale[mu]},
+  If[sign === $Failed || upper === $Failed, Return[$Failed]];
+  sign upper
+];
+
+
+flatSpaceMetricValue::usage =
+  "flatSpaceMetricValue[mu, nu] evaluates the active flat-space metric on concrete vector indices.";
+flatSpaceMetricValue[mu_Integer, nu_Integer] := Module[{sign},
+  If[!validFlatSpaceVectorIndexQ[mu] || !validFlatSpaceVectorIndexQ[nu], Return[$Failed]];
+  If[mu =!= nu, Return[0]];
+  sign = flatSpaceMetricDiagonalSign[mu];
+  If[sign === $Failed, $Failed, sign]
+];
+
+
+flatSpaceMetricTensor::usage =
+  "flatSpaceMetricTensor[mu, nu] emits the active inert vector metric tensor, \\[Delta] in Euclidean signature and Eta in Lorentzian signature.";
+flatSpaceMetricTensor[mu_, nu_] := If[flatSpaceLorentzianSignatureQ[], Eta[mu, nu], \[Delta][mu, nu]];
+
+
+flatSpaceMetricTrace::usage =
+  "flatSpaceMetricTrace[] returns the diagonal trace of the active flat-space metric.";
+flatSpaceMetricTrace[] := Total[flatSpaceMetricDiagonalSign /@ flatSpaceVectorIndexRange[]];
+
+
+flatSpaceVectorComponent::usage =
+  "flatSpaceVectorComponent[vector, mu] returns the component of a dense length-10 vector at active vector index mu.";
+flatSpaceVectorComponent[vector_List, mu_Integer] := Module[{pos = flatSpaceVectorIndexPosition[mu]},
+  If[pos === $Failed || pos < 1 || pos > Length[vector], Return[$Failed]];
+  vector[[pos]]
+];
+
+
+flatSpaceMetricInnerProduct::usage =
+  "flatSpaceMetricInnerProduct[left, right] contracts two dense length-10 vectors with the active flat-space metric.";
+flatSpaceMetricInnerProduct[left_List, right_List] := Module[{range = flatSpaceVectorIndexRange[], signs},
+  If[Length[left] =!= flatSpaceVectorDimension || Length[right] =!= flatSpaceVectorDimension, Return[$Failed]];
+  signs = flatSpaceMetricDiagonalSign /@ range;
+  If[MemberQ[signs, $Failed], Return[$Failed]];
+  Sum[signs[[i]] left[[i]] right[[i]], {i, 1, Length[range]}]
+];
+
+
+Eta[mu_Integer, nu_Integer] := flatSpaceMetricValue[mu, nu] /; flatSpaceLorentzianSignatureQ[];
+
+
 flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns TypeII FlatSpace contraction rules for \\[Delta] tensors.";
-flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim};
+flatSpaceContractRules[dim_] := {
+  \[Delta][\[Mu]_, \[Mu]_] :> dim,
+  \[Delta][\[Mu]_, \[Nu]_]^2 :> dim,
+  Eta[\[Mu]_, \[Mu]_] :> flatSpaceMetricTrace[],
+  Eta[\[Mu]_, \[Nu]_]^2 :> dim
+};
 
 Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
 Contract[f_] := Contract[f, 10];
@@ -636,7 +844,7 @@ DefineField[St,
 
 spinModeIndexLikeQ::usage =
   "spinModeIndexLikeQ[idx] is True when idx can serve as a spin-mode vector label.";
-spinModeIndexLikeQ[idx_] := !NumericQ[idx] || MatchQ[idx, _Integer?Positive];
+spinModeIndexLikeQ[idx_] := !NumericQ[idx] || (IntegerQ[idx] && validFlatSpaceVectorIndexQ[idx]);
 
 spinModeWeightContribution::usage =
   "spinModeWeightContribution[spinMode] returns the conformal-weight contribution carried by one spin-mode tuple.";
@@ -665,15 +873,15 @@ spinModeOrderingKey[spinMode_] := Module[{canonicalSpinMode = spinModeCanonicalR
 
 spinDescendantModeData::usage =
   "spinDescendantModeData[spinMode] returns {idx, r} for one bosonizable descendant spin mode with nonpositive integer modding, or $Failed.";
-spinDescendantModeData[{idx_Integer?Positive, modding_Integer?NonPositive}] := {idx, modding};
-spinDescendantModeData[{modding_Integer?NonPositive, idx_Integer?Positive}] := {idx, modding};
+spinDescendantModeData[{idx_Integer, modding_Integer?NonPositive}] := {idx, modding} /; validFlatSpaceVectorIndexQ[idx];
+spinDescendantModeData[{modding_Integer?NonPositive, idx_Integer}] := {idx, modding} /; validFlatSpaceVectorIndexQ[idx];
 spinDescendantModeData[spinMode_] := $Failed;
 
 spinDescendantModeQ::usage =
   "spinDescendantModeQ[spinMode, maxIndex] is True when spinMode is a bosonizable descendant mode with index in 1..maxIndex.";
 spinDescendantModeQ[spinMode_, maxIndex_Integer?Positive] := MatchQ[
   spinDescendantModeData[spinMode],
-  {idx_Integer /; 1 <= idx <= maxIndex, _Integer?NonPositive}
+  {idx_Integer /; validFlatSpaceVectorIndexQ[idx] && 1 <= flatSpaceVectorIndexPosition[idx] <= maxIndex, _Integer?NonPositive}
 ];
 
 spinDescendantModeVectorIndex::usage =
@@ -812,12 +1020,16 @@ bosonizeStateRaw[HoldPattern[St[{spinVec_List, chirality : ("chiral" | "antichir
 (* The fermion bosonization is stored in the vector-charge basis and then
    rotated back to the spacetime mu-basis with the fixed notebook-derived
    change-of-basis matrix. *)
-bosonizeStateRaw[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] :=
-  Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
+bosonizeStateRaw[\[Psi][mu_Integer, n_Integer?NonNegative, z_]] := Module[
+  {pos = flatSpaceVectorIndexPosition[mu], scale = flatSpaceUpperGammaScale[mu]},
+  scale Sum[basisChangeM[[pos, a]] bosonizedPsiBasisComponent[a, n, z, dH, expH], {a, 1, Length[vectors]}]
+] /; validFlatSpaceVectorIndexQ[mu];
 
 
-bosonizeStateRaw[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] :=
-  Sum[basisChangeM[[mu, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt], {a, 1, Length[vectors]}] /; 1 <= mu <= Length[vectors];
+bosonizeStateRaw[\[Psi]t[mu_Integer, n_Integer?NonNegative, zbar_]] := Module[
+  {pos = flatSpaceVectorIndexPosition[mu], scale = flatSpaceUpperGammaScale[mu]},
+  scale Sum[basisChangeM[[pos, a]] bosonizedPsiBasisComponent[a, n, zbar, dHt, expHt], {a, 1, Length[vectors]}]
+] /; validFlatSpaceVectorIndexQ[mu];
 
 
 bosonizeStateRaw[field_ /; isField[Head[field]]] := field;

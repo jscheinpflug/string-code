@@ -19,7 +19,7 @@ gammaProductFactorQ::usage = "gammaProductFactorQ[expr] is True when expr is one
 gammaProductFactorQ[expr_] := Head[expr] === GammaAntisymmetricProductHold;
 
 deltaFactorQ::usage = "deltaFactorQ[expr] is True when expr is one inert vector-contraction factor \\[Delta][mu, nu].";
-deltaFactorQ[expr_] := Head[expr] === \[Delta] && Length[expr] == 2;
+deltaFactorQ[expr_] := MemberQ[{\[Delta], Eta}, Head[expr]] && Length[expr] == 2;
 
 candidateFactorQ::usage = "candidateFactorQ[expr] is True when expr is a supported tensor-structure factor.";
 candidateFactorQ[expr_] := gammaProductFactorQ[expr] || deltaFactorQ[expr];
@@ -34,14 +34,19 @@ candidateCacheKey[expr_] := ToString[InputForm[expr]];
 gammaVectorLinkQ::usage = "gammaVectorLinkQ[link] is True when link is GammaUDHold or GammaDUHold.";
 gammaVectorLinkQ[link_] := MatchQ[link, GammaUDHold[_] | GammaDUHold[_]];
 
+gammaVectorIndexSymbol::usage = "gammaVectorIndexSymbol[idx] unwraps a gamma vector-index variance marker and returns the underlying index.";
+gammaVectorIndexSymbol[GammaIndexUp[idx_]] := idx;
+gammaVectorIndexSymbol[GammaIndexDown[idx_]] := idx;
+gammaVectorIndexSymbol[idx_] := idx;
+
 gammaLinkIndexSelector::usage = "gammaLinkIndexSelector[link] extracts the vector payload from one GammaUDHold or GammaDUHold link.";
-gammaLinkIndexSelector[GammaUDHold[idx_]] := idx;
-gammaLinkIndexSelector[GammaDUHold[idx_]] := idx;
+gammaLinkIndexSelector[GammaUDHold[idx_]] := gammaVectorIndexSymbol[idx];
+gammaLinkIndexSelector[GammaDUHold[idx_]] := gammaVectorIndexSymbol[idx];
 gammaLinkIndexSelector[_] := None;
 
 gammaLinkVectorIndices::usage = "gammaLinkVectorIndices[link] extracts explicit vector indices from one gamma-chain link.";
-gammaLinkVectorIndices[GammaUDHold[idx_]] := Flatten[{idx}];
-gammaLinkVectorIndices[GammaDUHold[idx_]] := Flatten[{idx}];
+gammaLinkVectorIndices[GammaUDHold[idx_]] := Flatten[{gammaVectorIndexSymbol[idx]}];
+gammaLinkVectorIndices[GammaDUHold[idx_]] := Flatten[{gammaVectorIndexSymbol[idx]}];
 gammaLinkVectorIndices[_] := {};
 
 toggleSpinorChirality::usage = "toggleSpinorChirality[chirality] toggles between \"chiral\" and \"antichiral\".";
@@ -224,7 +229,7 @@ syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "
   ],
   Sequence @@ parts["Spinors"]
 ];
-syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Delta" := \[Delta] @@ parts["VectorSymbols"];
+syntheticFactorFromParts[parts_Association] /; Lookup[parts, "Kind", None] === "Delta" := flatSpaceMetricTensor @@ parts["VectorSymbols"];
 syntheticFactorFromParts[_] := $Failed;
 
 

@@ -26,8 +26,8 @@ gammaVectorDimension = 10;
 
 
 validGammaIndexQ::usage =
-  "validGammaIndexQ[mu] checks whether mu is a valid canonical flat-space vector index between 1 and 10.";
-validGammaIndexQ[mu_Integer] := 1 <= mu <= gammaVectorDimension;
+  "validGammaIndexQ[mu] checks whether mu is a valid concrete vector index in the active TypeII FlatSpace signature.";
+validGammaIndexQ[mu_Integer] := validFlatSpaceVectorIndexQ[mu];
 validGammaIndexQ[_] := False;
 
 
@@ -134,28 +134,108 @@ CIGammaData::usage =
 CIGammaData = denseGammaMatrixFromSparse /@ CIGammaSparseData;
 
 
-CGamma[mu_Integer] := CGammaData[[mu]] /; validGammaIndexQ[mu];
+gammaSparseMatrixAtActiveIndex::usage =
+  "gammaSparseMatrixAtActiveIndex[data, mu] returns a stored sparse gamma matrix at active vector index mu.";
+gammaSparseMatrixAtActiveIndex[data_List, mu_Integer] := Module[{pos = flatSpaceVectorIndexPosition[mu]},
+  If[pos === $Failed, Return[$Failed]];
+  data[[pos]]
+];
 
 
-CGammaSparse[mu_Integer] := CGammaSparseData[[mu]] /; validGammaIndexQ[mu];
+gammaDenseMatrixAtActiveIndex::usage =
+  "gammaDenseMatrixAtActiveIndex[data, mu] returns a stored dense gamma matrix at active vector index mu.";
+gammaDenseMatrixAtActiveIndex[data_List, mu_Integer] := Module[{pos = flatSpaceVectorIndexPosition[mu]},
+  If[pos === $Failed, Return[$Failed]];
+  data[[pos]]
+];
 
 
-CIGamma[mu_Integer] := CIGammaData[[mu]] /; validGammaIndexQ[mu];
+gammaScaledSparseMatrixAtActiveIndex::usage =
+  "gammaScaledSparseMatrixAtActiveIndex[data, scale, mu] returns a signature-scaled sparse gamma matrix at active vector index mu.";
+gammaScaledSparseMatrixAtActiveIndex[data_List, scale_, mu_Integer] := Module[{matrix = gammaSparseMatrixAtActiveIndex[data, mu]},
+  If[matrix === $Failed || scale === $Failed, Return[$Failed]];
+  scale matrix
+];
 
 
-CIGammaSparse[mu_Integer] := CIGammaSparseData[[mu]] /; validGammaIndexQ[mu];
+gammaScaledDenseMatrixAtActiveIndex::usage =
+  "gammaScaledDenseMatrixAtActiveIndex[data, scale, mu] returns a signature-scaled dense gamma matrix at active vector index mu.";
+gammaScaledDenseMatrixAtActiveIndex[data_List, scale_, mu_Integer] := Module[{matrix = gammaDenseMatrixAtActiveIndex[data, mu]},
+  If[matrix === $Failed || scale === $Failed, Return[$Failed]];
+  scale matrix
+];
 
 
-GammaUD[mu_Integer] := gammaUDData[[mu]] /; validGammaIndexQ[mu];
+GammaUDUpSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[gammaUDSparseData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
 
 
-GammaUDSparse[mu_Integer] := gammaUDSparseData[[mu]] /; validGammaIndexQ[mu];
+GammaUDUp[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[gammaUDData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
 
 
-GammaDU[mu_Integer] := gammaDUData[[mu]] /; validGammaIndexQ[mu];
+GammaUDDownSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[gammaUDSparseData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
 
 
-GammaDUSparse[mu_Integer] := gammaDUSparseData[[mu]] /; validGammaIndexQ[mu];
+GammaUDDown[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[gammaUDData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+GammaDUUpSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[gammaDUSparseData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+GammaDUUp[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[gammaDUData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+GammaDUDownSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[gammaDUSparseData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+GammaDUDown[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[gammaDUData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CGammaUpSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[CGammaSparseData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CGammaUp[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[CGammaData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CGammaDownSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[CGammaSparseData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CGammaDown[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[CGammaData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CIGammaUpSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[CIGammaSparseData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CIGammaUp[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[CIGammaData, flatSpaceUpperGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CIGammaDownSparse[mu_Integer] := gammaScaledSparseMatrixAtActiveIndex[CIGammaSparseData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CIGammaDown[mu_Integer] := gammaScaledDenseMatrixAtActiveIndex[CIGammaData, flatSpaceLowerGammaScale[mu], mu] /; validGammaIndexQ[mu];
+
+
+CGamma[mu_Integer] := CGammaDown[mu] /; validGammaIndexQ[mu];
+
+
+CGammaSparse[mu_Integer] := CGammaDownSparse[mu] /; validGammaIndexQ[mu];
+
+
+CIGamma[mu_Integer] := CIGammaDown[mu] /; validGammaIndexQ[mu];
+
+
+CIGammaSparse[mu_Integer] := CIGammaDownSparse[mu] /; validGammaIndexQ[mu];
+
+
+GammaUD[mu_Integer] := GammaUDDown[mu] /; validGammaIndexQ[mu];
+
+
+GammaUDSparse[mu_Integer] := GammaUDDownSparse[mu] /; validGammaIndexQ[mu];
+
+
+GammaDU[mu_Integer] := GammaDUDown[mu] /; validGammaIndexQ[mu];
+
+
+GammaDUSparse[mu_Integer] := GammaDUDownSparse[mu] /; validGammaIndexQ[mu];
 
 
 CUD = CUDData;
@@ -192,41 +272,99 @@ gammaProductLinkMatrix::usage =
   "gammaProductLinkMatrix[link] returns the exact 16x16 sparse matrix associated with one concrete gamma-link factor.";
 gammaProductLinkMatrix[CUDHold] := CUDSparse;
 gammaProductLinkMatrix[CDUHold] := CDUSparse;
-gammaProductLinkMatrix[GammaUDHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaUDSparse[mu];
-gammaProductLinkMatrix[GammaDUHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaDUSparse[mu];
+gammaProductLinkMatrix[GammaUDHold[GammaIndexUp[mu_Integer]]] /; validGammaIndexQ[mu] := GammaUDUpSparse[mu];
+gammaProductLinkMatrix[GammaUDHold[GammaIndexDown[mu_Integer]]] /; validGammaIndexQ[mu] := GammaUDDownSparse[mu];
+gammaProductLinkMatrix[GammaUDHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaUDDownSparse[mu];
+gammaProductLinkMatrix[GammaDUHold[GammaIndexUp[mu_Integer]]] /; validGammaIndexQ[mu] := GammaDUUpSparse[mu];
+gammaProductLinkMatrix[GammaDUHold[GammaIndexDown[mu_Integer]]] /; validGammaIndexQ[mu] := GammaDUDownSparse[mu];
+gammaProductLinkMatrix[GammaDUHold[mu_Integer]] /; validGammaIndexQ[mu] := GammaDUDownSparse[mu];
 gammaProductLinkMatrix[Gamma11UUHold[]] := Gamma11UUSparse;
 gammaProductLinkMatrix[Gamma11DDHold[]] := Gamma11DDSparse;
 gammaProductLinkMatrix[_] := $Failed;
 
+gammaProductLinkIndex::usage =
+  "gammaProductLinkIndex[link] returns the concrete vector index carried by one concrete gamma link, ignoring vector-index variance markers.";
+gammaProductLinkIndex[GammaUDHold[GammaIndexUp[mu_]]] := mu;
+gammaProductLinkIndex[GammaUDHold[GammaIndexDown[mu_]]] := mu;
+gammaProductLinkIndex[GammaUDHold[mu_Integer]] := mu;
+gammaProductLinkIndex[GammaDUHold[GammaIndexUp[mu_]]] := mu;
+gammaProductLinkIndex[GammaDUHold[GammaIndexDown[mu_]]] := mu;
+gammaProductLinkIndex[GammaDUHold[mu_Integer]] := mu;
+gammaProductLinkIndex[_] := $Failed;
+
+gammaProductLinkVariance::usage =
+  "gammaProductLinkVariance[link] returns \"Up\" or \"Down\" for one concrete gamma vector link.";
+gammaProductLinkVariance[GammaUDHold[GammaIndexUp[_]]] := "Up";
+gammaProductLinkVariance[GammaDUHold[GammaIndexUp[_]]] := "Up";
+gammaProductLinkVariance[_] := "Down";
+
+gammaProductLinkPattern::usage =
+  "gammaProductLinkPattern[link] returns the spinor-flow head and vector-index variance carried by one concrete gamma vector link.";
+gammaProductLinkPattern[GammaUDHold[idx_]] := {GammaUDHold, gammaProductLinkVariance[GammaUDHold[idx]]};
+gammaProductLinkPattern[GammaDUHold[idx_]] := {GammaDUHold, gammaProductLinkVariance[GammaDUHold[idx]]};
+gammaProductLinkPattern[_] := $Failed;
+
+gammaProductLinkFromPattern::usage =
+  "gammaProductLinkFromPattern[pattern, mu] rebuilds one gamma vector link from a spinor-flow/variance pattern and a concrete vector index.";
+gammaProductLinkFromPattern[{head_, "Up"}, mu_] := head[GammaIndexUp[mu]];
+gammaProductLinkFromPattern[{head_, "Down"}, mu_] := head[GammaIndexDown[mu]];
+gammaProductLinkFromPattern[head_, mu_] /; MemberQ[{GammaUDHold, GammaDUHold}, head] := head[mu];
+gammaProductLinkFromPattern[_, _] := $Failed;
+
 gammaProductAntisymmetrizedMatrixFromPattern::usage =
-  "gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds] antisymmetrizes vector labels while preserving the ordered U/D head pattern.";
+  "gammaProductAntisymmetrizedMatrixFromPattern[linkPatterns, inds] antisymmetrizes vector labels while preserving the ordered spinor-flow and vector-variance pattern.";
 gammaProductAntisymmetrizedMatrixFromPattern[{}, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
-gammaProductAntisymmetrizedMatrixFromPattern[linkHeads_List, inds_List] /; Length[linkHeads] === Length[inds] :=
-  gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds] = Module[{rank = Length[inds]},
+gammaProductAntisymmetrizedMatrixFromPattern[linkPatterns_List, inds_List] /; Length[linkPatterns] === Length[inds] :=
+  gammaProductAntisymmetrizedMatrixFromPattern[flatSpaceSignatureName[], linkPatterns, inds];
+gammaProductAntisymmetrizedMatrixFromPattern[signature_String, {}, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrixFromPattern[signature_String, linkPatterns_List, inds_List] /; Length[linkPatterns] === Length[inds] :=
+  gammaProductAntisymmetrizedMatrixFromPattern[signature, linkPatterns, inds] = Module[{rank = Length[inds]},
     1/rank Sum[
-      (-1)^(pos - 1) gammaProductLinkMatrix[linkHeads[[1]][inds[[pos]]]] .
-        gammaProductAntisymmetrizedMatrixFromPattern[Rest[linkHeads], Delete[inds, pos]],
+      (-1)^(pos - 1) gammaProductLinkMatrix[gammaProductLinkFromPattern[First[linkPatterns], inds[[pos]]]] .
+        gammaProductAntisymmetrizedMatrixFromPattern[signature, Rest[linkPatterns], Delete[inds, pos]],
       {pos, 1, rank}
     ]
+  ];
+
+gammaProductLinkLabelSpec::usage =
+  "gammaProductLinkLabelSpec[link] returns {variance, index} for the vector label carried by one concrete gamma link.";
+gammaProductLinkLabelSpec[link : GammaUDHold[_]] := {gammaProductLinkVariance[link], gammaProductLinkIndex[link]};
+gammaProductLinkLabelSpec[link : GammaDUHold[_]] := {gammaProductLinkVariance[link], gammaProductLinkIndex[link]};
+gammaProductLinkLabelSpec[_] := $Failed;
+
+gammaProductAntisymmetrizedMatrixFromLabelSpecs::usage =
+  "gammaProductAntisymmetrizedMatrixFromLabelSpecs[heads, labelSpecs] antisymmetrizes vector labels while preserving slot spinor-flow heads and label variances.";
+gammaProductAntisymmetrizedMatrixFromLabelSpecs[{}, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrixFromLabelSpecs[heads_List, labelSpecs_List] /; Length[heads] === Length[labelSpecs] :=
+  gammaProductAntisymmetrizedMatrixFromLabelSpecs[flatSpaceSignatureName[], heads, labelSpecs];
+gammaProductAntisymmetrizedMatrixFromLabelSpecs[signature_String, {}, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrixFromLabelSpecs[signature_String, heads_List, labelSpecs_List] /; Length[heads] === Length[labelSpecs] :=
+  gammaProductAntisymmetrizedMatrixFromLabelSpecs[signature, heads, labelSpecs] = Module[
+    {rank = Length[labelSpecs], linkMatrix, restMatrix, terms, link},
+    terms = Table[
+      link = gammaProductLinkFromPattern[{First[heads], labelSpecs[[pos, 1]]}, labelSpecs[[pos, 2]]];
+      linkMatrix = gammaProductLinkMatrix[link];
+      restMatrix = gammaProductAntisymmetrizedMatrixFromLabelSpecs[signature, Rest[heads], Delete[labelSpecs, pos]];
+      If[link === $Failed || linkMatrix === $Failed || restMatrix === $Failed, Return[$Failed]];
+      (-1)^(pos - 1) linkMatrix . restMatrix,
+      {pos, 1, rank}
+    ];
+    Total[terms]/rank
   ];
 
 gammaProductAntisymmetrizedMatrix::usage =
   "gammaProductAntisymmetrizedMatrix[vectorLinks] returns the exact sparse antisymmetrized gamma matrix for one concrete vector-link list.";
 gammaProductAntisymmetrizedMatrix[{}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
-gammaProductAntisymmetrizedMatrix[vectorLinks_List] := gammaProductAntisymmetrizedMatrix[vectorLinks] = Module[
-  {linkHeads, inds},
-  linkHeads = Replace[
-    vectorLinks,
-    {GammaUDHold[_Integer] :> GammaUDHold, GammaDUHold[_Integer] :> GammaDUHold, _ :> $Failed},
-    1
-  ];
-  inds = Replace[
-    vectorLinks,
-    {GammaUDHold[mu_Integer] :> mu, GammaDUHold[mu_Integer] :> mu, _ :> $Failed},
-    1
-  ];
-  If[MemberQ[linkHeads, $Failed] || MemberQ[inds, $Failed], Return[$Failed]];
-  gammaProductAntisymmetrizedMatrixFromPattern[linkHeads, inds]
+gammaProductAntisymmetrizedMatrix[vectorLinks_List] := gammaProductAntisymmetrizedMatrix[flatSpaceSignatureName[], vectorLinks];
+gammaProductAntisymmetrizedMatrix[signature_String, {}] := gammaSparseIdentityMatrix[gammaSpinorDimension];
+gammaProductAntisymmetrizedMatrix[signature_String, vectorLinks_List] := gammaProductAntisymmetrizedMatrix[signature, vectorLinks] = Module[
+  {linkPatterns, heads, labelSpecs},
+  If[!AllTrue[vectorLinks, MatchQ[#, GammaUDHold[_] | GammaDUHold[_]] &], Return[$Failed]];
+  linkPatterns = gammaProductLinkPattern /@ vectorLinks;
+  labelSpecs = gammaProductLinkLabelSpec /@ vectorLinks;
+  If[MemberQ[linkPatterns, $Failed] || MemberQ[labelSpecs, $Failed], Return[$Failed]];
+  heads = First /@ linkPatterns;
+  gammaProductAntisymmetrizedMatrixFromLabelSpecs[signature, heads, labelSpecs]
 ];
 
 gammaProductFactorMatrixRaw::usage =
@@ -253,11 +391,12 @@ gammaProductFactorMatrixRaw[links_List] := Module[
 
 gammaProductFactorMatrix::usage =
   "gammaProductFactorMatrix[links] returns the memoized exact sparse matrix represented by one concrete GammaAntisymmetricProductHold link list.";
-gammaProductFactorMatrix[links_List] := gammaProductFactorMatrix[links] =
+gammaProductFactorMatrix[links_List] := gammaProductFactorMatrix[flatSpaceSignatureName[], links];
+gammaProductFactorMatrix[signature_String, links_List] := gammaProductFactorMatrix[signature, links] =
   gammaProductFactorMatrixRaw[links];
 
 GammaAntisymmetricProduct[links_List] /; Head[gammaProductFactorMatrix[links]] === SparseArray :=
-  GammaAntisymmetricProduct[links] = denseGammaMatrixFromSparse[gammaProductFactorMatrix[links]];
+  denseGammaMatrixFromSparse[gammaProductFactorMatrix[links]];
 
 GammaAntisymmetricProduct[links_List, alpha_Integer, beta_Integer] /;
     validGammaSpinorIndexQ[alpha] && validGammaSpinorIndexQ[beta] &&

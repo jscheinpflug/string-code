@@ -10,7 +10,16 @@ FlushKernelCache::usage = "FlushKernelCache[] flushes the persistent TypeII flat
 Begin["Private`"];
 StringCode`FlushKernelCache[] := Null;
 InitStringCode[options_] := 
-Module[{userContext={}, theoryValue = options["theory"], CFTValue = options["CFT"], conventionValue = options["conventions"], bracketValue = options["bracket"]},
+Module[
+  {
+    userContext = {},
+    theoryValue = options["theory"],
+    CFTValue = options["CFT"],
+    conventionValue = options["conventions"],
+    bracketValue = options["bracket"],
+    signatureValue = Lookup[options, "signature", "Euclidean"],
+    signatureSetter
+  },
 Switch[theoryValue,
 "TypeII", userContext = {
     "StringCode`Symbols`TypeII`",
@@ -96,12 +105,22 @@ Needs["StringCode`Brackets`"];
 Needs["StringCode`TeXConversion`"];
 Needs["StringCode`ModuliIntegration`"];
 
+If[theoryValue === "TypeII" && CFTValue === "FlatSpace",
+  Needs["StringCode`Symbols`TypeII`FlatSpace`"];
+  signatureSetter = ToExpression["StringCode`Symbols`TypeII`FlatSpace`SetFlatSpaceSignature"];
+  signatureSetter[signatureValue];
+];
+
 Scan[
   (AppendTo[$ContextPath, #] &) ,
  userContext
 ];
 Scan[(Needs[#] &) ,
  userContext
+];
+If[theoryValue === "TypeII" && CFTValue === "FlatSpace",
+  signatureSetter = ToExpression["StringCode`Symbols`TypeII`FlatSpace`SetFlatSpaceSignature"];
+  signatureSetter[signatureValue];
 ];
 ];
 End[];

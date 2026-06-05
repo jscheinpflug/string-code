@@ -34,8 +34,8 @@ Begin["Private`"];
 (*Free boson*)
 
 
-Wick[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= Wick[dX[\[Mu],n,z], dX[\[Nu],m,w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
-Wick[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:= Wick[dXt[\[Mu],n,z],dXt[\[Nu],m,w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
+Wick[dX[\[Mu]_,n_,z_],dX[\[Nu]_,m_,w_]]:= Module[{zd}, flatSpaceMetricTensor[\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
+Wick[dXt[\[Mu]_,n_,z_],dXt[\[Nu]_,m_,w_]]:= Module[{zd}, flatSpaceMetricTensor[\[Mu], \[Nu]] (-1)^m D[(-1/2)*\[Alpha]p/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
 Wick[dH[i_, n_, z_], dH[j_, m_, w_]] := Wick[dH[i, n, z], dH[j, m, w]] =
   Module[{zd}, -hMetric[[i, j]] (-1)^m D[-1/(zd - w)^2, {zd, n + m}] /. {zd -> z}];
 Wick[dHt[i_, n_, zbar_], dHt[j_, m_, wbar_]] := Wick[dHt[i, n, zbar], dHt[j, m, wbar]] =
@@ -46,8 +46,8 @@ Wick[dHt[i_, n_, zbar_], dHt[j_, m_, wbar_]] := Wick[dHt[i, n, zbar], dHt[j, m, 
 (*Free fermion*)
 
 
-Wick[\[Psi][\[Mu]_, n_, z_], \[Psi][\[Nu]_, m_, w_]] := Wick[\[Psi][\[Mu], n, z], \[Psi][\[Nu], m, w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. {zd -> z}]
-Wick[\[Psi]t[\[Mu]_, n_, z_], \[Psi]t[\[Nu]_, m_, w_]] := Wick[\[Psi]t[\[Mu], n, z], \[Psi]t[\[Nu], m, w]] = Module[{zd}, \[Delta][\[Mu], \[Nu]] (-1)^m D[fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Psi][\[Mu]_, n_, z_], \[Psi][\[Nu]_, m_, w_]] := Module[{zd}, flatSpaceMetricTensor[\[Mu], \[Nu]] (-1)^m D[fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. {zd -> z}]
+Wick[\[Psi]t[\[Mu]_, n_, z_], \[Psi]t[\[Nu]_, m_, w_]] := Module[{zd}, flatSpaceMetricTensor[\[Mu], \[Nu]] (-1)^m D[fermionToBosonWickRatio/(zd - w), {zd, n + m}] /. {zd -> z}]
 
 
 (* ::Subsection:: *)

@@ -95,6 +95,12 @@ flatSpaceGammaVectorLinkQ0::usage =
   "flatSpaceGammaVectorLinkQ0[link] is True when link is one explicit GammaUDHold or GammaDUHold vector link.";
 flatSpaceGammaVectorLinkQ0[link_] := MatchQ[link, GammaUDHold[_] | GammaDUHold[_]];
 
+flatSpaceGammaVectorIndexSymbol0::usage =
+  "flatSpaceGammaVectorIndexSymbol0[idx] unwraps a gamma vector-index variance marker and returns the underlying index.";
+flatSpaceGammaVectorIndexSymbol0[GammaIndexUp[idx_]] := idx;
+flatSpaceGammaVectorIndexSymbol0[GammaIndexDown[idx_]] := idx;
+flatSpaceGammaVectorIndexSymbol0[idx_] := idx;
+
 
 flatSpaceToggleSpinorChirality0::usage =
   "flatSpaceToggleSpinorChirality0[chirality] toggles between chiral and antichiral labels.";
@@ -143,7 +149,11 @@ flatSpaceGammaFactorSpinorEndpointData0[_] := {};
 flatSpaceGammaFactorVectorData0::usage =
   "flatSpaceGammaFactorVectorData0[factor] extracts typed vector-index records from one GammaAntisymmetricProductHold factor.";
 flatSpaceGammaFactorVectorData0[GammaAntisymmetricProductHold[links_List, _, _]] :=
-  (flatSpaceDummyIndexData0[#, "Vector"] &) /@ Cases[links, GammaUDHold[idx_Symbol] | GammaDUHold[idx_Symbol] :> idx, {1}];
+  (flatSpaceDummyIndexData0[#, "Vector"] &) /@ Cases[
+    links,
+    GammaUDHold[idx_] | GammaDUHold[idx_] :> flatSpaceGammaVectorIndexSymbol0[idx],
+    {1}
+  ];
 flatSpaceGammaFactorVectorData0[_] := {};
 
 
@@ -180,7 +190,7 @@ flatSpaceVectorNonGammaCandidateSymbols0[expr_] := DeleteDuplicates @ Join[
   ],
   Flatten @ Cases[
     expr,
-    \[Delta][lhs_Symbol, rhs_Symbol] :> {lhs, rhs},
+    (\[Delta] | Eta)[lhs_Symbol, rhs_Symbol] :> {lhs, rhs},
     Infinity
   ]
 ];

@@ -23,11 +23,13 @@ gammaProductCacheCombinationCount[rank_Integer?NonNegative] /; rank <= gammaVect
 
 gammaProductCacheCombinationIndex::usage =
   "gammaProductCacheCombinationIndex[inds] returns the 1-based lexicographic slot of one sorted vector-index combination.";
-gammaProductCacheCombinationIndex[inds_List] := Module[{rank = Length[inds], index = 1, start, stop},
+gammaProductCacheCombinationIndex[inds_List] := Module[{rank = Length[inds], positions, index = 1, start, stop},
+  positions = flatSpaceVectorIndexPosition /@ inds;
+  If[MemberQ[positions, $Failed], Return[$Failed]];
   If[rank == 0, Return[1]];
   Do[
-    start = If[pos == 1, 1, inds[[pos - 1]] + 1];
-    stop = inds[[pos]] - 1;
+    start = If[pos == 1, 1, positions[[pos - 1]] + 1];
+    stop = positions[[pos]] - 1;
     If[start <= stop, index += Sum[Binomial[gammaVectorDimension - value, rank - pos], {value, start, stop}]],
     {pos, 1, rank}
   ];
@@ -56,16 +58,32 @@ gammaProductCacheLinks[{cTag_, start_Integer}, inds_List] := Module[{dirs},
 ];
 
 
+gammaProductCacheLinkScale::usage =
+  "gammaProductCacheLinkScale[link] returns the active-signature scalar relating one concrete gamma cache link to the stored Euclidean cache.";
+gammaProductCacheLinkScale[GammaUDHold[mu_Integer]] /; validGammaIndexQ[mu] := flatSpaceLowerGammaScale[mu];
+gammaProductCacheLinkScale[GammaDUHold[mu_Integer]] /; validGammaIndexQ[mu] := flatSpaceLowerGammaScale[mu];
+gammaProductCacheLinkScale[_] := 1;
+
+
+gammaProductCacheScale::usage =
+  "gammaProductCacheScale[family, inds] returns the total active-signature scale for one cached alternating gamma-product entry.";
+gammaProductCacheScale[family : {_, _Integer}, inds_List] :=
+  Times @@ (gammaProductCacheLinkScale /@ gammaProductCacheLinks[family, inds]);
+
+
 gammaCachedProductMatrix::usage =
   "gammaCachedProductMatrix[family, inds] returns one cached sparse gamma-product matrix for a canonical family and sorted vector-index tuple.";
-gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Length[inds], familySlot, comboSlot},
+gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Length[inds], familySlot, comboSlot, scale},
   If[rank > gammaVectorDimension || !AllTrue[inds, validGammaIndexQ], Return[$Failed]];
   If[rank > 1 && !DuplicateFreeQ[inds], Return[gammaProductCacheZeroMatrix]];
   If[Sort[inds] =!= inds, Return[$Failed]];
   familySlot = If[KeyExistsQ[gammaProductCacheFamilySlots, family], gammaProductCacheFamilySlots[family], Missing["UnknownFamily"]];
   If[MissingQ[familySlot], Return[$Failed]];
   comboSlot = gammaProductCacheCombinationIndex[inds];
-  gammaProductCacheData[[familySlot, rank + 1, comboSlot]]
+  If[comboSlot === $Failed, Return[$Failed]];
+  scale = gammaProductCacheScale[family, inds];
+  If[scale === $Failed, Return[$Failed]];
+  scale gammaProductCacheData[[familySlot, rank + 1, comboSlot]]
 ];
 
 

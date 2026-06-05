@@ -61,7 +61,7 @@ Begin["Private`"];
 
 isTensorHeadQ::usage = "isTensorHeadQ[head] is True if head is a supported tensor head in any context.";
 isTensorHeadQ[head_] := MemberQ[
-  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold", SymbolName[Unevaluated[\[Delta]]]},
+  {"GammaAntisymmetricProductHold", "GammaProductHold", "GammaUDHold", "GammaDUHold", "Gamma11UUHold", "Gamma11DDHold", "CUDHold", "CDUHold", SymbolName[Unevaluated[\[Delta]]], "Eta"},
   SymbolName[Unevaluated[head]]
 ];
 
@@ -115,8 +115,8 @@ isGammaFactorVisualQ::usage =
   "isGammaFactorVisualQ[factor] is True for supported GammaAntisymmetricProductHold[{links},a,b] forms with optional leading CUDHold/CDUHold in the links list.";
 isGammaFactorVisualQ[factor_] := AssociationQ[gammaProductPartsVisual[factor]];
 
-deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported \\[Delta][mu, nu] vector-contraction factors.";
-deltaFactorVisualQ[factor_] := SymbolName[Head[factor]] === SymbolName[\[Delta]] && Length[factor] == 2;
+deltaFactorVisualQ::usage = "deltaFactorVisualQ[factor] is True for supported vector metric factors.";
+deltaFactorVisualQ[factor_] := MemberQ[{SymbolName[Unevaluated[\[Delta]]], "Eta"}, SymbolName[Head[factor]]] && Length[factor] == 2;
 
 isTensorFactorVisualQ::usage = "isTensorFactorVisualQ[factor] is True for supported gamma or delta tensor factors.";
 isTensorFactorVisualQ[factor_] := isGammaFactorVisualQ[factor] || deltaFactorVisualQ[factor];

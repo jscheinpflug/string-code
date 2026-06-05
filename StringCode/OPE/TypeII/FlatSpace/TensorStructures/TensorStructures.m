@@ -360,6 +360,26 @@ gammaLinkHeadForIndex["U"] := GammaUDHold;
 gammaLinkHeadForIndex["D"] := GammaDUHold;
 gammaLinkHeadForIndex[_] := GammaUDHold;
 
+gammaExternalVectorIndex::usage =
+  "gammaExternalVectorIndex[idx, outgoingQ, hasOutgoingVectorsQ] marks an external gamma-chain vector index for Lorentzian tensor structures.";
+gammaExternalVectorIndex[idx_, outgoingQ_, hasOutgoingVectorsQ_] := If[
+  flatSpaceLorentzianSignatureQ[],
+  If[TrueQ[hasOutgoingVectorsQ], GammaIndexDown[idx], GammaIndexUp[idx]],
+  idx
+];
+gammaExternalVectorIndex[idx_, outgoingQ_] := If[
+  flatSpaceLorentzianSignatureQ[],
+  If[TrueQ[outgoingQ], GammaIndexDown[idx], GammaIndexUp[idx]],
+  idx
+];
+gammaExternalVectorIndex[idx_] := gammaExternalVectorIndex[idx, False];
+
+gammaContractedVectorIndex::usage =
+  "gammaContractedVectorIndex[idx, variance] marks one occurrence of a gamma-chain vector index in an internal Lorentzian contraction.";
+gammaContractedVectorIndex[idx_, "Up"] := If[flatSpaceLorentzianSignatureQ[], GammaIndexUp[idx], idx];
+gammaContractedVectorIndex[idx_, "Down"] := If[flatSpaceLorentzianSignatureQ[], GammaIndexDown[idx], idx];
+gammaContractedVectorIndex[idx_, _] := idx;
+
 gamma11TailHeadForIndex::usage = "gamma11TailHeadForIndex[idx] returns Gamma11UUHold for \"U\" and Gamma11DDHold for \"D\".";
 gamma11TailHeadForIndex["U"] := Gamma11UUHold;
 gamma11TailHeadForIndex["D"] := Gamma11DDHold;
@@ -839,10 +859,10 @@ buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
   {i, 1, count}
 ];
 
-deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert \\[Delta] factor.";
+deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert vector metric factor.";
 deltaFactorFromPair[pair_List] := Module[{ordered},
   ordered = canonicalizeVectorPair[pair];
-  \[Delta][ordered[[1]], ordered[[2]]]
+  flatSpaceMetricTensor[ordered[[1]], ordered[[2]]]
 ];
 
 gammaProductCTag::usage =
@@ -902,15 +922,72 @@ deduplicateGroupStructures[group_List] := DeleteDuplicatesBy[
   canonicalizeStructureExpression @ If[AssociationQ[#] && KeyExistsQ[#, "Expression"], #["Expression"], #] &
 ];
 
+generatedCandidateExpression0::usage =
+  "generatedCandidateExpression0[candidate] returns the concrete expression carried by a generated tensor-structure candidate.";
+generatedCandidateExpression0[candidate_Association] := Lookup[candidate, "Expression", candidate];
+generatedCandidateExpression0[candidate_] := candidate;
+
+generatedTensorDummyVectorCount0::usage =
+  "generatedTensorDummyVectorCount0[expr] counts generated tensor-structure dummy vector symbols in one expression.";
+generatedTensorDummyVectorCount0[expr_] := Length @ DeleteDuplicates @ Select[
+  Cases[expr, sym_Symbol :> sym, Infinity],
+  generatedDummyVectorSymbolQ
+];
+
+generatedTensorMetricFactorCount0::usage =
+  "generatedTensorMetricFactorCount0[expr] counts inert flat-space metric factors in one generated tensor-structure expression.";
+generatedTensorMetricFactorCount0[expr_] := Length @ Cases[expr, _\[Delta] | _Eta, Infinity];
+
+generatedTensorGroupDummyMetricSignature0::usage =
+  "generatedTensorGroupDummyMetricSignature0[group] returns a common {dummyCount, metricCount} signature for a generated tensor-structure group, or $Failed when the group is heterogeneous.";
+generatedTensorGroupDummyMetricSignature0[group_List] := Module[{signatures},
+  signatures = DeleteDuplicates[
+    ({generatedTensorDummyVectorCount0[#], generatedTensorMetricFactorCount0[#]} &) /@
+      (generatedCandidateExpression0 /@ group)
+  ];
+  If[Length[signatures] == 1, First[signatures], $Failed]
+];
+
+lorentzianPreferRightTensorGroupQ0::usage =
+  "lorentzianPreferRightTensorGroupQ0[left, right] is True when a Lorentzian higher-dummy metric group should scan after the adjacent lower-dummy no-metric group.";
+lorentzianPreferRightTensorGroupQ0[left_List, right_List] := Module[{leftSig, rightSig},
+  If[!flatSpaceLorentzianSignatureQ[], Return[False]];
+  leftSig = generatedTensorGroupDummyMetricSignature0[left];
+  rightSig = generatedTensorGroupDummyMetricSignature0[right];
+  If[leftSig === $Failed || rightSig === $Failed, Return[False]];
+  leftSig[[1]] > 1 && leftSig[[1]] == rightSig[[1]] + 1 && leftSig[[2]] > 0 && rightSig[[2]] == 0
+];
+
+lorentzianPreferredTensorGroupOrder0::usage =
+  "lorentzianPreferredTensorGroupOrder0[groups] preserves generator order except for Lorentzian adjacent higher-dummy metric groups that should follow their lower-dummy no-metric representative.";
+lorentzianPreferredTensorGroupOrder0[groups_List] := Module[{ordered = {}, i = 1},
+  While[i <= Length[groups],
+    If[
+      i < Length[groups] && lorentzianPreferRightTensorGroupQ0[groups[[i]], groups[[i + 1]]],
+      AppendTo[ordered, groups[[i + 1]]];
+      AppendTo[ordered, groups[[i]]];
+      i += 2,
+      AppendTo[ordered, groups[[i]]];
+      i++
+    ]
+  ];
+  ordered
+];
+
 buildConcreteStructure::usage =
   "buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement] builds one Times-product structure with gamma and optional \\[Delta] factors.";
-buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association] := Module[
+buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association, outVectors_List : {}] := Module[
   {
     k = Length[slots], slotVectorsOrig, deltaPairs, dummyTotal, dummies, cursor = 1,
     i, j, count, pairDummies,
-    gammaFactors, deltaFactors, baseHead, pRank, hasOutgoing, pairForm, gammaVecs
+    gammaFactors, deltaFactors, baseHead, pRank, hasOutgoing, pairForm, gammaVecs, outgoingVectorQ
   },
+  outgoingVectorQ[idx_] := MemberQ[outVectors, idx];
   slotVectorsOrig = Lookup[extPlacement, "SlotVectors", {}];
+  slotVectorsOrig = MapThread[
+    Function[{vectors, slot}, gammaExternalVectorIndex[#, outgoingVectorQ[#], outVectors =!= {}] & /@ vectors],
+    {slotVectorsOrig, slots}
+  ];
   deltaPairs = Lookup[extPlacement, "DeltaPairs", {}];
   dummyTotal = Total[upperTriangleValues[cMatrix]];
   dummies = buildDummyIndexSymbols[dummyTotal];
@@ -920,8 +997,8 @@ buildConcreteStructure[slots_List, cMatrix_List, spinPlacement_List, extPlacemen
       If[count > 0,
         pairDummies = Take[dummies, {cursor, cursor + count - 1}];
         cursor += count;
-        slotVectorsOrig[[i]] = Join[slotVectorsOrig[[i]], pairDummies];
-        slotVectorsOrig[[j]] = Join[slotVectorsOrig[[j]], pairDummies];
+        slotVectorsOrig[[i]] = Join[slotVectorsOrig[[i]], gammaContractedVectorIndex[#, "Up"] & /@ pairDummies];
+        slotVectorsOrig[[j]] = Join[slotVectorsOrig[[j]], gammaContractedVectorIndex[#, "Down"] & /@ pairDummies];
       ];
     ];
   ];
@@ -971,11 +1048,11 @@ buildGammaFactorData0[
 ];
 
 buildDeltaFactorData0::usage =
-  "buildDeltaFactorData0[pair] builds one generated delta factor together with parsed selector parts.";
+  "buildDeltaFactorData0[pair] builds one generated vector metric factor together with parsed selector parts.";
 buildDeltaFactorData0[pair_List] := Module[{ordered},
   ordered = canonicalizeVectorPair[pair];
   <|
-    "Expression" -> \[Delta][ordered[[1]], ordered[[2]]],
+    "Expression" -> flatSpaceMetricTensor[ordered[[1]], ordered[[2]]],
     "Parts" -> <|
       "Kind" -> "Delta",
       "VectorSymbols" -> ordered,
@@ -987,12 +1064,17 @@ buildDeltaFactorData0[pair_List] := Module[{ordered},
 
 buildConcreteStructureData0::usage =
   "buildConcreteStructureData0[slots, cMatrix, spinPlacement, extPlacement] builds one concrete generated structure together with parsed selector factor data.";
-buildConcreteStructureData0[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association] := Module[
+buildConcreteStructureData0[slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association, outVectors_List : {}] := Module[
   {
     k = Length[slots], slotVectorsOrig, deltaPairs, dummyTotal, dummies, cursor = 1,
-    i, j, count, pairDummies, gammaFactorData, deltaFactorData, factors, factorParts
+    i, j, count, pairDummies, gammaFactorData, deltaFactorData, factors, factorParts, outgoingVectorQ
   },
+  outgoingVectorQ[idx_] := MemberQ[outVectors, idx];
   slotVectorsOrig = Lookup[extPlacement, "SlotVectors", {}];
+  slotVectorsOrig = MapThread[
+    Function[{vectors, slot}, gammaExternalVectorIndex[#, outgoingVectorQ[#], outVectors =!= {}] & /@ vectors],
+    {slotVectorsOrig, slots}
+  ];
   deltaPairs = Lookup[extPlacement, "DeltaPairs", {}];
   dummyTotal = Total[upperTriangleValues[cMatrix]];
   dummies = buildDummyIndexSymbols[dummyTotal];
@@ -1002,8 +1084,8 @@ buildConcreteStructureData0[slots_List, cMatrix_List, spinPlacement_List, extPla
       If[count > 0,
         pairDummies = Take[dummies, {cursor, cursor + count - 1}];
         cursor += count;
-        slotVectorsOrig[[i]] = Join[slotVectorsOrig[[i]], pairDummies];
-        slotVectorsOrig[[j]] = Join[slotVectorsOrig[[j]], pairDummies];
+        slotVectorsOrig[[i]] = Join[slotVectorsOrig[[i]], gammaContractedVectorIndex[#, "Up"] & /@ pairDummies];
+        slotVectorsOrig[[j]] = Join[slotVectorsOrig[[j]], gammaContractedVectorIndex[#, "Down"] & /@ pairDummies];
       ];
     ];
   ];
@@ -1057,10 +1139,10 @@ buildGeneratedSelectorCandidate0[data_Association] := Module[{parsed, familyData
 buildGeneratedCandidate0::usage =
   "buildGeneratedCandidate0[slots, cMatrix, spinPlacement, extPlacement, returnSelectorCandidates] emits either a plain tensor-structure expression or a selector-ready parsed candidate record.";
 buildGeneratedCandidate0[
-  slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association, returnSelectorCandidates_
+  slots_List, cMatrix_List, spinPlacement_List, extPlacement_Association, returnSelectorCandidates_, outVectors_List : {}
 ] := Module[{data},
-  If[!TrueQ[returnSelectorCandidates], Return[buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement]]];
-  data = buildConcreteStructureData0[slots, cMatrix, spinPlacement, extPlacement];
+  If[!TrueQ[returnSelectorCandidates], Return[buildConcreteStructure[slots, cMatrix, spinPlacement, extPlacement, outVectors]]];
+  data = buildConcreteStructureData0[slots, cMatrix, spinPlacement, extPlacement, outVectors];
   buildGeneratedSelectorCandidate0[data]
 ];
 
@@ -1311,7 +1393,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
       builtGroup = If[
         oneSpin === $Failed || oneVec === $Failed,
         {},
-        DeleteCases[{buildGeneratedCandidate0[slots, cMatrix, oneSpin, oneVec, returnSelectorCandidates]}, $Failed]
+        DeleteCases[{buildGeneratedCandidate0[slots, cMatrix, oneSpin, oneVec, returnSelectorCandidates, outVec]}, $Failed]
       ];
       AppendTo[groups, builtGroup],
       spinKey = spinorPlacementCacheKey[slots, outSpinor];
@@ -1342,7 +1424,7 @@ generateTensorStructures[incoming_, outgoing_, opts___Rule] := Module[
         groups,
         DeleteCases[
           Table[
-            buildGeneratedCandidate0[slots, cMatrix, pairs[[i, 1]], pairs[[i, 2]], returnSelectorCandidates],
+            buildGeneratedCandidate0[slots, cMatrix, pairs[[i, 1]], pairs[[i, 2]], returnSelectorCandidates, outVec],
             {i, 1, Length[pairs]}
           ],
           $Failed

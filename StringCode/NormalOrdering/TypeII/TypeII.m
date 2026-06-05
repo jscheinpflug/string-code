@@ -73,12 +73,16 @@ bosExpRules = {
   tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]b && Head[bb] == exp\[Phi]f && aa[[2]] == bb[[2]] :>
     tmpR[cc, exp\[Phi]f[aa[[1]] + bb[[1]], aa[[2]]], dd],
   tmpR[cc___, aa_, bb_, dd___] /; Head[aa] == exp\[Phi]tb && Head[bb] == exp\[Phi]tf && aa[[2]] == bb[[2]] :>
-    tmpR[cc, exp\[Phi]tf[aa[[1]] + bb[[1]], aa[[2]]], dd]
+    tmpR[cc, exp\[Phi]tf[aa[[1]] + bb[[1]], aa[[2]]], dd],
+  tmpR[cc___, aa_, bb_, dd___] /; SymbolName[Head[aa]] == "expH" && Head[bb] === Head[aa] && aa[[2]] == bb[[2]] :>
+    With[{head = Head[aa]}, tmpR[cc, head[aa[[1]] + bb[[1]], aa[[2]]], dd]],
+  tmpR[cc___, aa_, bb_, dd___] /; SymbolName[Head[aa]] == "expHt" && Head[bb] === Head[aa] && aa[[2]] == bb[[2]] :>
+    With[{head = Head[aa]}, tmpR[cc, head[aa[[1]] + bb[[1]], aa[[2]]], dd]]
 };
 
 
 bosonizedExponentialFieldQ::usage = "bosonizedExponentialFieldQ[field] checks whether field is expH or expHt.";
-bosonizedExponentialFieldQ[field_] := MatchQ[field, expH[_List, _] | expHt[_List, _]];
+bosonizedExponentialFieldQ[field_] := Length[field] == 2 && ListQ[field[[1]]] && MemberQ[{"expH", "expHt"}, SymbolName[Head[field]]];
 
 
 bosonizedTermSpec::usage = "bosonizedTermSpec[expr] parses one bosonized single-field term into coefficient, charge, and field-factor data.";
@@ -101,7 +105,7 @@ bosonizedTermSpec[expr_] := Module[
     {charge6Zero, None, None},
     {
       expFactors[[1, 1]],
-      If[Head[expFactors[[1]]] === expH, "Holo", "AntiHolo"],
+      If[SymbolName[Head[expFactors[[1]]]] === "expH", "Holo", "AntiHolo"],
       expFactors[[1, 2]]
     }
   ];
@@ -242,11 +246,13 @@ restoreBosonizedCoordinate0::usage =
   "restoreBosonizedCoordinate0[sector, expr, coord] restores a projected bosonized same-point product from the origin to coord.";
 restoreBosonizedCoordinate0["Holo", expr_, coord_] := Expand[expr /. {
   dH[i_, n_, 0] :> dH[i, n, coord],
-  expH[charges_, 0] :> expH[charges, coord]
+  field_ /; SymbolName[Head[field]] === "expH" && MatchQ[field, _[_, 0]] :>
+    With[{head = Head[field]}, head[field[[1]], coord]]
 }];
 restoreBosonizedCoordinate0["Anti", expr_, coord_] := Expand[expr /. {
   dHt[i_, n_, 0] :> dHt[i, n, coord],
-  expHt[charges_, 0] :> expHt[charges, coord]
+  field_ /; SymbolName[Head[field]] === "expHt" && MatchQ[field, _[_, 0]] :>
+    With[{head = Head[field]}, head[field[[1]], coord]]
 }];
 
 bosonizedProjectedSectorWeight0::usage =
@@ -306,8 +312,8 @@ R[ c___,a_,b_,d___]:=R[c,exp\[Phi]b[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tb[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tf && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]f[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]b && Head[b]==exp\[Phi]f && a[[2]]==b[[2]])
 R[ c___,a_,b_,d___]:=R[c,exp\[Phi]tf[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==exp\[Phi]tb && Head[b]==exp\[Phi]tf && a[[2]]==b[[2]])
-R[ c___,a_,b_,d___]:=R[c,expH[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==expH && Head[b]==expH && a[[2]]==b[[2]])
-R[ c___,a_,b_,d___]:=R[c,expHt[a[[1]]+b[[1]],a[[2]]],d]/;(Head[a]==expHt && Head[b]==expHt && a[[2]]==b[[2]])
+R[ c___,a_,b_,d___]:=With[{head = Head[a]}, R[c, head[a[[1]]+b[[1]],a[[2]]],d]]/;(SymbolName[Head[a]]=="expH" && Head[b]===Head[a] && a[[2]]==b[[2]])
+R[ c___,a_,b_,d___]:=With[{head = Head[a]}, R[c, head[a[[1]]+b[[1]],a[[2]]],d]]/;(SymbolName[Head[a]]=="expHt" && Head[b]===Head[a] && a[[2]]==b[[2]])
 
 (* ::Subsection:: *)
 (*Define total picture number*)

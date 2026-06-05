@@ -55,21 +55,37 @@ spinProjectionEvaluateTensorScalars0::usage =
   "spinProjectionEvaluateTensorScalars0[expr] evaluates concrete gamma factors and deltas in one tensor scalar expression.";
 spinProjectionEvaluateTensorScalars0[expr_] := Expand[expr /. {
   factor_ /; SymbolName[Head[factor]] === "GammaAntisymmetricProductHold" :> spinProjectionConcreteGammaFactorValue0[factor],
-  factor_ /; SymbolName[Head[factor]] === "\[Delta]" && Length[factor] == 2 :> KroneckerDelta[factor[[1]], factor[[2]]]
+  factor_ /; MemberQ[{"\[Delta]", "Eta"}, SymbolName[Head[factor]]] && Length[factor] == 2 && IntegerQ[factor[[1]]] && IntegerQ[factor[[2]]] :> flatSpaceMetricValue[factor[[1]], factor[[2]]]
 }];
 
-spinProjectionEvaluateSummedTensorScalars0::usage =
-  "spinProjectionEvaluateSummedTensorScalars0[expr] sums dummy vectors over 1..10 and evaluates remaining concrete tensor scalars.";
-spinProjectionEvaluateSummedTensorScalars0[expr_] := Module[{dummySyms, summed},
-  dummySyms = SortBy[
-    DeleteDuplicates @ Cases[
-      expr,
-      sym_Symbol /; TrueQ[generatedDummyVectorSymbolQ[sym]],
-      Infinity
-    ],
-    SymbolName
+spinProjectionGeneratedDummyVectorSymbols0::usage =
+  "spinProjectionGeneratedDummyVectorSymbols0[expr] returns the generated vector dummy symbols that occur in one expression.";
+spinProjectionGeneratedDummyVectorSymbols0[expr_] := SortBy[
+  DeleteDuplicates @ Cases[
+    expr,
+    sym_Symbol /; TrueQ[generatedDummyVectorSymbolQ[sym]],
+    Infinity
+  ],
+  SymbolName
+];
+
+spinProjectionTermwiseVectorDummySum0::usage =
+  "spinProjectionTermwiseVectorDummySum0[expr] sums each additive term over only the generated vector dummies present in that term.";
+spinProjectionTermwiseVectorDummySum0[expr_] := Module[{expanded, terms, sumTerm},
+  expanded = Expand[expr];
+  terms = If[Head[expanded] === Plus, List @@ expanded, {expanded}];
+  sumTerm[term_] := Fold[
+    Sum[#1, {#2, flatSpaceVectorIndexRange[]}] &,
+    term,
+    spinProjectionGeneratedDummyVectorSymbols0[term]
   ];
-  summed = Expand @ Fold[Sum[#1, {#2, 1, 10}] &, expr, dummySyms];
+  Expand[Total[sumTerm /@ terms]]
+];
+
+spinProjectionEvaluateSummedTensorScalars0::usage =
+  "spinProjectionEvaluateSummedTensorScalars0[expr] termwise-sums generated vector dummies over the active flat-space vector range and evaluates remaining concrete tensor scalars.";
+spinProjectionEvaluateSummedTensorScalars0[expr_] := Module[{summed},
+  summed = spinProjectionTermwiseVectorDummySum0[expr];
   spinProjectionEvaluateTensorScalars0[summed]
 ];
 

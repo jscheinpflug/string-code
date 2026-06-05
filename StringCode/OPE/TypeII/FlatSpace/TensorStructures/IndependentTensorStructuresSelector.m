@@ -31,8 +31,18 @@ selectorScalarFactorQ::usage =
   "selectorScalarFactorQ[expr] is True when expr contains only scalar prefactors and no raw tensor-structure heads that must be parsed explicitly.";
 selectorScalarFactorQ[expr_] := FreeQ[
   expr,
-  _GammaAntisymmetricProductHold | _GammaUDHold | _GammaDUHold | CUDHold | CDUHold | _\[Delta]
+  _GammaAntisymmetricProductHold | _GammaUDHold | _GammaDUHold | CUDHold | CDUHold | _\[Delta] | _Eta
 ];
+
+selectorGammaLinkStructuralKey::usage =
+  "selectorGammaLinkStructuralKey[link] returns a structural key for one gamma vector link, preserving spinor flow and vector-index variance.";
+selectorGammaLinkStructuralKey[GammaUDHold[GammaIndexUp[_]]] := {1, "Up"};
+selectorGammaLinkStructuralKey[GammaUDHold[GammaIndexDown[_]]] := {1, "Down"};
+selectorGammaLinkStructuralKey[GammaUDHold[_]] := {1, "Down"};
+selectorGammaLinkStructuralKey[GammaDUHold[GammaIndexUp[_]]] := {2, "Up"};
+selectorGammaLinkStructuralKey[GammaDUHold[GammaIndexDown[_]]] := {2, "Down"};
+selectorGammaLinkStructuralKey[GammaDUHold[_]] := {2, "Down"};
+selectorGammaLinkStructuralKey[_] := {0, "Down"};
 
 selectorCandidateMetadata::usage =
   "selectorCandidateMetadata[candidates] returns lightweight metadata used for target-rank inference and exact probe-bank setup.";
@@ -64,7 +74,7 @@ selectorPartStructuralSortKey[part_Association] := Switch[
   {
     1,
     Replace[part["CTag"], None -> 0],
-    Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+    selectorGammaLinkStructuralKey /@ part["VectorLinks"],
     Replace[part["VectorSymbols"], sym_Symbol /; generatedDummyVectorSymbolQ[sym] :> 0, 1],
     part["TailLinks"],
     part["SpinorChiralities"]
@@ -85,7 +95,7 @@ selectorDummySymbolSignature[sym_Symbol, orderedParts_List] := Cases[
           pos,
           If[
             part["Kind"] === "Gamma" && pos <= Length[part["VectorLinks"]],
-            Replace[Head[part["VectorLinks"][[pos]]], {GammaUDHold -> 1, GammaDUHold -> 2}],
+            selectorGammaLinkStructuralKey[part["VectorLinks"][[pos]]],
             0
           ]
         }
@@ -93,7 +103,7 @@ selectorDummySymbolSignature[sym_Symbol, orderedParts_List] := Cases[
     ],
     orderedParts
   ],
-  {_Integer, _Integer, _Integer},
+  {_Integer, _Integer, _},
   Infinity
 ];
 

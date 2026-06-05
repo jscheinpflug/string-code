@@ -43,14 +43,54 @@ spinProjectionGammaLinkMatrix[link_] := gammaProductLinkMatrix[link];
 spinProjectionGammaVectorLinkHead::usage =
   "spinProjectionGammaVectorLinkHead[link] returns the GammaUDHold/GammaDUHold head for one concrete vector link.";
 spinProjectionGammaVectorLinkHead[GammaUDHold[_Integer]] := GammaUDHold;
+spinProjectionGammaVectorLinkHead[GammaUDHold[GammaIndexUp[_Integer]]] := GammaUDHold;
+spinProjectionGammaVectorLinkHead[GammaUDHold[GammaIndexDown[_Integer]]] := GammaUDHold;
 spinProjectionGammaVectorLinkHead[GammaDUHold[_Integer]] := GammaDUHold;
+spinProjectionGammaVectorLinkHead[GammaDUHold[GammaIndexUp[_Integer]]] := GammaDUHold;
+spinProjectionGammaVectorLinkHead[GammaDUHold[GammaIndexDown[_Integer]]] := GammaDUHold;
 spinProjectionGammaVectorLinkHead[_] := $Failed;
 
 spinProjectionGammaVectorLinkIndex::usage =
   "spinProjectionGammaVectorLinkIndex[link] returns the concrete vector index carried by one GammaUDHold/GammaDUHold link.";
 spinProjectionGammaVectorLinkIndex[GammaUDHold[mu_Integer]] := mu;
+spinProjectionGammaVectorLinkIndex[GammaUDHold[GammaIndexUp[mu_Integer]]] := mu;
+spinProjectionGammaVectorLinkIndex[GammaUDHold[GammaIndexDown[mu_Integer]]] := mu;
 spinProjectionGammaVectorLinkIndex[GammaDUHold[mu_Integer]] := mu;
+spinProjectionGammaVectorLinkIndex[GammaDUHold[GammaIndexUp[mu_Integer]]] := mu;
+spinProjectionGammaVectorLinkIndex[GammaDUHold[GammaIndexDown[mu_Integer]]] := mu;
 spinProjectionGammaVectorLinkIndex[_] := $Failed;
+
+spinProjectionGammaDescriptorLinkPattern::usage =
+  "spinProjectionGammaDescriptorLinkPattern[spec] normalizes a gamma descriptor link spec to {GammaUDHold|GammaDUHold, \"Up\"|\"Down\"}.";
+spinProjectionGammaDescriptorLinkPattern[1] := {GammaUDHold, "Down"};
+spinProjectionGammaDescriptorLinkPattern[2] := {GammaDUHold, "Down"};
+spinProjectionGammaDescriptorLinkPattern[pattern : {head_, variance_}] /;
+    MemberQ[{GammaUDHold, GammaDUHold}, head] && MemberQ[{"Up", "Down"}, variance] := pattern;
+spinProjectionGammaDescriptorLinkPattern[link : (GammaUDHold[_] | GammaDUHold[_])] := gammaProductLinkPattern[link];
+spinProjectionGammaDescriptorLinkPattern[_] := $Failed;
+
+spinProjectionGammaDescriptorLinkDirection::usage =
+  "spinProjectionGammaDescriptorLinkDirection[spec] returns 1 for GammaUDHold and 2 for GammaDUHold descriptor specs.";
+spinProjectionGammaDescriptorLinkDirection[spec_] := Module[{pattern = spinProjectionGammaDescriptorLinkPattern[spec]},
+  Which[
+    pattern === $Failed, $Failed,
+    pattern[[1]] === GammaUDHold, 1,
+    pattern[[1]] === GammaDUHold, 2,
+    True, $Failed
+  ]
+];
+
+spinProjectionGammaDescriptorLinkVariance::usage =
+  "spinProjectionGammaDescriptorLinkVariance[spec] returns the vector-index variance carried by a gamma descriptor link spec.";
+spinProjectionGammaDescriptorLinkVariance[spec_] := Module[{pattern = spinProjectionGammaDescriptorLinkPattern[spec]},
+  If[pattern === $Failed, $Failed, pattern[[2]]]
+];
+
+spinProjectionGammaDescriptorLink::usage =
+  "spinProjectionGammaDescriptorLink[spec, mu] rebuilds a concrete gamma link from a descriptor link spec and vector index.";
+spinProjectionGammaDescriptorLink[spec_, mu_] := Module[{pattern = spinProjectionGammaDescriptorLinkPattern[spec]},
+  If[pattern === $Failed, $Failed, gammaProductLinkFromPattern[pattern, mu]]
+];
 
 spinProjectionAntisymmetrizedMatrixFromPattern::usage =
   "spinProjectionAntisymmetrizedMatrixFromPattern[linkHeads, inds] antisymmetrizes the vector labels while preserving the ordered U/D head pattern.";
@@ -67,7 +107,11 @@ spinProjectionFlipVectorLinkDirections::usage =
   "spinProjectionFlipVectorLinkDirections[links] swaps GammaUDHold and GammaDUHold on every explicit vector link.";
 spinProjectionFlipVectorLinkDirections[links_List] := links /. {
   GammaUDHold[mu_Integer] :> GammaDUHold[mu],
-  GammaDUHold[mu_Integer] :> GammaUDHold[mu]
+  GammaUDHold[GammaIndexUp[mu_Integer]] :> GammaDUHold[GammaIndexUp[mu]],
+  GammaUDHold[GammaIndexDown[mu_Integer]] :> GammaDUHold[GammaIndexDown[mu]],
+  GammaDUHold[mu_Integer] :> GammaUDHold[mu],
+  GammaDUHold[GammaIndexUp[mu_Integer]] :> GammaUDHold[GammaIndexUp[mu]],
+  GammaDUHold[GammaIndexDown[mu_Integer]] :> GammaUDHold[GammaIndexDown[mu]]
 };
 
 spinProjectionOddMixedNoCTagLinksQ::usage =
@@ -97,13 +141,15 @@ spinProjectionGammaFactorMatrixRaw[links_List] := Module[{matrix = gammaProductF
 
 spinProjectionGammaFactorMatrix::usage =
   "spinProjectionGammaFactorMatrix[links] returns the exact matrix represented by one concrete GammaAntisymmetricProductHold link list.";
-spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[links] =
+spinProjectionGammaFactorMatrix[links_List] := spinProjectionGammaFactorMatrix[flatSpaceSignatureName[], links];
+spinProjectionGammaFactorMatrix[signature_String, links_List] := spinProjectionGammaFactorMatrix[signature, links] =
   spinProjectionGammaFactorMatrixRaw[links];
 
 spinProjectionDisjointBlockBasisTuples::usage =
-  "spinProjectionDisjointBlockBasisTuples[blockSizes] returns ordered tuples of pairwise-disjoint increasing basis subsets with the requested ranks.";
+  "spinProjectionDisjointBlockBasisTuples[blockSizes] returns ordered tuples of pairwise-disjoint increasing basis subsets with the requested ranks in the active vector-index range.";
 spinProjectionDisjointBlockBasisTuples[{}] := {{}};
-spinProjectionDisjointBlockBasisTuples[blockSizes_List] := spinProjectionDisjointBlockBasisTuples[blockSizes] = Module[{recurse},
+spinProjectionDisjointBlockBasisTuples[blockSizes_List] := spinProjectionDisjointBlockBasisTuples[flatSpaceSignatureName[], blockSizes];
+spinProjectionDisjointBlockBasisTuples[signature_String, blockSizes_List] := spinProjectionDisjointBlockBasisTuples[signature, blockSizes] = Module[{recurse},
   recurse[{}, _] := {{}};
   recurse[{size_, rest___}, remaining_List] := Flatten[
     Table[
@@ -112,7 +158,7 @@ spinProjectionDisjointBlockBasisTuples[blockSizes_List] := spinProjectionDisjoin
     ],
     1
   ];
-  recurse[blockSizes, Range[10]]
+  recurse[blockSizes, flatSpaceVectorIndexRange[]]
 ];
 
 spinProjectionAssociationLookup::usage =
@@ -124,8 +170,10 @@ persistentCacheSourceFiles::usage =
 persistentCacheSourceFiles[] := persistentCacheSourceFiles[] = Module[{rootDir},
   rootDir = DirectoryName[DirectoryName[FindFile["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"]]];
   FileNameJoin[{rootDir, #}] & /@ {
+    "../../../Symbols/TypeII/FlatSpace/FlatSpace.m",
     "GammaMatrices/GammaMatrices.m",
     "GammaMatrices/GammaKernelEngine.m",
+    "GammaMatrices/GammaProductCache.m",
     "GammaMatrices/SpinFieldConventionData.m",
     "TensorStructures/IndependentTensorStructures.m",
     "TensorStructures/IndependentTensorStructuresSelector.m",
@@ -142,12 +190,13 @@ persistentCacheSourceHash[] := persistentCacheSourceHash[] = IntegerString[
 
 persistentGammaKernelCacheFile::usage =
   "persistentGammaKernelCacheFile[] returns the on-disk mx file used for the persistent TypeII flat-space gamma-kernel cache.";
-persistentGammaKernelCacheFile[] := persistentGammaKernelCacheFile[] = FileNameJoin[
+persistentGammaKernelCacheFile[] := persistentGammaKernelCacheFile[flatSpaceSignatureName[]];
+persistentGammaKernelCacheFile[signature_String] := persistentGammaKernelCacheFile[signature] = FileNameJoin[
   {
     $UserBaseDirectory,
     "ApplicationData",
     "StringCode",
-    "TypeIIFlatSpaceGammaKernelCache-" <> persistentCacheSourceHash[] <> ".mx"
+    "TypeIIFlatSpaceGammaKernelCache-" <> signature <> "-" <> persistentCacheSourceHash[] <> ".mx"
   }
 ];
 
@@ -213,7 +262,7 @@ flushPersistentGammaKernelCache0[] := Module[{},
 ];
 
 spinProjectionNormalizeCompiledTermParts::usage =
-  "spinProjectionNormalizeCompiledTermParts[parts] strips vector deltas into a scalar zero/nonzero factor, spin equalities, vector equalities, and normalized gamma factors for one compiled term.";
+  "spinProjectionNormalizeCompiledTermParts[parts] strips vector metric factors into scalar support, spin equalities, vector equalities, runtime metric factors, and normalized gamma factors for one compiled term.";
 spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
   {
     canonicalPair,
@@ -232,7 +281,8 @@ spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
     representative,
     rules = <||>,
     vectorEqualities = {},
-    normalizedGammaParts
+    normalizedGammaParts,
+    metricFactors
   },
   canonicalPair[pair_List] := SortBy[pair, {First[#], Last[#]} &];
   deltaParts = Cases[parts, {0, _, _}];
@@ -287,6 +337,7 @@ spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
       right,
       {desc[[1]], desc[[2]], (If[KeyExistsQ[rules, #], rules[#], #] & /@ desc[[3]]), desc[[4]], None}
     };
+  metricFactors = ({If[KeyExistsQ[rules, #[[2]]], rules[#[[2]]], #[[2]]], If[KeyExistsQ[rules, #[[3]]], rules[#[[3]]], #[[3]]]} & /@ deltaParts);
   If[
     AnyTrue[
       normalizedGammaParts,
@@ -298,6 +349,7 @@ spinProjectionNormalizeCompiledTermParts[parts_List] := Module[
     "ScalarFactor" -> 1,
     "SpinEqualities" -> spinEqualities,
     "VectorEqualities" -> DeleteDuplicates[vectorEqualities],
+    "MetricFactors" -> metricFactors,
     "GammaParts" -> normalizedGammaParts
   |>
 ];
@@ -384,7 +436,7 @@ spinProjectionKernelDummySourceSignature[src_, orderedComponent_List] := Cases[
     ],
     orderedComponent
   ],
-  {_Integer, _Integer, _Integer},
+  {_Integer, _Integer, _},
   Infinity
 ];
 
@@ -516,10 +568,11 @@ spinProjectionRegisterGammaKernelComponent[component_List] := Module[
     orderedComponent
   ];
   storedFactors = Map[KeyDrop[#, {"KeyData"}] &, factors];
-  key = {blockSizes, factors[[All, "KeyData"]]};
+  key = {flatSpaceSignatureName[], blockSizes, factors[[All, "KeyData"]]};
   If[!KeyExistsQ[spinProjectionGammaKernelRegistry, key],
     spinProjectionGammaKernelRegistry[key] = <|
       "BlockSizes" -> blockSizes,
+      "BlockMultiplicity" -> Times @@ (Factorial /@ blockSizes),
       "BlockTuples" -> spinProjectionDisjointBlockBasisTuples[blockSizes],
       "SpinSlotCount" -> Length[spinSlots],
       "Factors" -> storedFactors,
@@ -528,6 +581,14 @@ spinProjectionRegisterGammaKernelComponent[component_List] := Module[
     markPersistentGammaKernelCacheDirty0[]
   ];
   <|"ScalarFactor" -> 1, "KernelRef" -> <|"Key" -> key, "SpinSlots" -> spinSlots, "VectorSlots" -> vectorSlots|>|>
+];
+
+spinProjectionGammaKernelBlockMultiplicity0::usage =
+  "spinProjectionGammaKernelBlockMultiplicity0[kernel] returns the ordered-dummy multiplicity represented by one kernel's increasing dummy-block tuples.";
+spinProjectionGammaKernelBlockMultiplicity0[kernel_Association] := Lookup[
+  kernel,
+  "BlockMultiplicity",
+  Times @@ (Factorial /@ Lookup[kernel, "BlockSizes", {}])
 ];
 
 spinProjectionGammaKernelData::usage =
@@ -570,9 +631,10 @@ spinProjectionConcreteGammaSparseMatrix[desc_, freeVectors_List, stateVectors_Li
   If[!AllTrue[values, IntegerQ], Return[$Failed]];
   matrix = spinProjectionGammaFactorMatrix @ Join[
     If[desc[[1]] === None, {}, {desc[[1]]}],
-    MapThread[If[#1 === 1, GammaUDHold[#2], GammaDUHold[#2]] &, {desc[[2]], values}],
+    MapThread[spinProjectionGammaDescriptorLink, {desc[[2]], values}],
     desc[[4]]
   ];
+  If[matrix === $Failed, Return[$Failed]];
   matrix
 ];
 
@@ -766,8 +828,9 @@ spinProjectionGammaKernelJoinBlockRules[joinPlan_List, ruleLists_List, slotCount
 
 spinProjectionCompileGammaKernelSlice::usage =
   "spinProjectionCompileGammaKernelSlice[kernel, vectorTuple] compiles one exact concrete vector slice of a registered gamma kernel.";
-spinProjectionCompileGammaKernelSlice[kernel_Association, vectorTuple_List] := Module[{items, ruleLists, blockEntries},
+spinProjectionCompileGammaKernelSlice[kernel_Association, vectorTuple_List] := Module[{items, ruleLists, blockEntries, multiplicity},
   If[kernel["Factors"] === {}, Return[<|{} -> 1|>]];
+  multiplicity = spinProjectionGammaKernelBlockMultiplicity0[kernel];
   items = Catch[
     Replace[
       Last @ Reap[
@@ -786,7 +849,7 @@ spinProjectionCompileGammaKernelSlice[kernel_Association, vectorTuple_List] := M
   If[items === $Failed, Return[$Failed]];
   Select[
     Association @ KeyValueMap[
-      spinProjectionGammaKernelDecodeSpinKey[#1, kernel["SpinSlotCount"]] -> #2 &,
+      spinProjectionGammaKernelDecodeSpinKey[#1, kernel["SpinSlotCount"]] -> multiplicity #2 &,
       If[items === {}, <||>, Select[Merge[items, Total], # =!= 0 &]]
     ],
     # =!= 0 &
@@ -907,12 +970,10 @@ spinProjectionGammaKernelFactorLocalizedMatrix[factorKey_List, localBlockTuple_L
   If[!AllTrue[values, IntegerQ], Return[$Failed]];
   links = Join[
     If[desc[[1]] === None, {}, {desc[[1]]}],
-    MapThread[
-      If[#1 === 1, GammaUDHold[#2], GammaDUHold[#2]] &,
-      {desc[[2]], values}
-    ],
+    MapThread[spinProjectionGammaDescriptorLink, {desc[[2]], values}],
     desc[[4]]
   ];
+  If[MemberQ[links, $Failed], Return[$Failed]];
   spinProjectionGammaFactorMatrix[links]
 ];
 
@@ -983,8 +1044,11 @@ spinProjectionGammaKernelMatrixEntrySparseRow[matrix_] := Module[{rules, dim = g
 spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0::usage =
   "spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey] returns {family, rank, sign} when one localized factor key is a canonical single-block alternating gamma family, and $Failed otherwise.";
 spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey_List] := Module[
-  {cTag, dirs, localizedSpecs, tailLinks, blockSizes, rank, positions, start, family},
-  {cTag, dirs, localizedSpecs, tailLinks, blockSizes} = factorKey;
+  {cTag, linkSpecs, dirs, localizedSpecs, tailLinks, blockSizes, rank, positions, start, family},
+  {cTag, linkSpecs, localizedSpecs, tailLinks, blockSizes} = factorKey;
+  dirs = spinProjectionGammaDescriptorLinkDirection /@ linkSpecs;
+  If[MemberQ[dirs, $Failed], Return[$Failed]];
+  If[!AllTrue[linkSpecs, spinProjectionGammaDescriptorLinkVariance[#] === "Down" &], Return[$Failed]];
   rank = Length[dirs];
   If[tailLinks =!= {} || Length[blockSizes] =!= 1 || blockSizes[[1]] =!= rank, Return[$Failed]];
   If[!AllTrue[localizedSpecs, MatchQ[#, {1, 1, _Integer}] &], Return[$Failed]];
@@ -1001,7 +1065,7 @@ spinProjectionGammaKernelCanonicalFamilyRankFromFactorKey0[factorKey_List] := Mo
 spinProjectionGammaKernelCanonicalFamilyRowOperator0::usage =
   "spinProjectionGammaKernelCanonicalFamilyRowOperator0[family, rank] builds one sparse row operator directly from the cached canonical gamma-product family.";
 spinProjectionGammaKernelCanonicalFamilyRowOperator0[family : {_, _Integer}, rank_Integer?NonNegative] := Module[
-  {cacheKey = {family, rank}, cache, rows},
+  {cacheKey = {flatSpaceSignatureName[], family, rank}, cache, rows},
   cache = spinProjectionAssociationLookup[
     spinProjectionGammaKernelCanonicalFamilyRowOperatorCache,
     cacheKey,
@@ -1009,7 +1073,7 @@ spinProjectionGammaKernelCanonicalFamilyRowOperator0[family : {_, _Integer}, ran
   ];
   If[cache =!= Missing["NotFound"], Return[cache]];
   rows = spinProjectionGammaKernelMatrixEntrySparseRow[gammaCachedProductMatrix[family, #]] & /@
-    Subsets[Range[gammaVectorDimension], {rank}];
+    Subsets[flatSpaceVectorIndexRange[], {rank}];
   cache = spinProjectionGammaKernelStackSparseRows0[rows];
   spinProjectionGammaKernelCanonicalFamilyRowOperatorCache[cacheKey] = cache;
   cache
@@ -1068,7 +1132,7 @@ spinProjectionCompileGammaKernelEntry[key_, kernel_Association, vectorTuple_List
     {factorIndex, Length[kernel["Factors"]]}
   ];
   If[MemberQ[factorVectors, $Failed], Return[$Failed]];
-  Total[Times @@ factorVectors]
+  spinProjectionGammaKernelBlockMultiplicity0[kernel] Total[Times @@ factorVectors]
 ];
 
 spinProjectionGammaKernelEntryValue::usage =
@@ -1172,7 +1236,7 @@ spinProjectionCompileGammaKernelPairMatrixReferenceDense0[key_, kernel_Associati
   leftMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 1, vectorTuple];
   rightMatrices = spinProjectionGammaKernelFactorMatrixVector[key, 2, vectorTuple];
   If[leftMatrices === $Failed || rightMatrices === $Failed, Return[$Failed]];
-  Total @ MapThread[
+  spinProjectionGammaKernelBlockMultiplicity0[kernel] Total @ MapThread[
     Outer[
       Times,
       spinProjectionGammaKernelMatrixEntryVector[#1],
@@ -1210,7 +1274,7 @@ spinProjectionCompileGammaKernelPairMatrix[key_, kernel_Association, vectorTuple
   leftRows = spinProjectionGammaKernelFactorRowOperator0[key, 1, vectorTuple];
   rightRows = spinProjectionGammaKernelFactorRowOperator0[key, 2, vectorTuple];
   If[leftRows === $Failed || rightRows === $Failed, Return[$Failed]];
-  Normal[Transpose[leftRows] . rightRows]
+  spinProjectionGammaKernelBlockMultiplicity0[kernel] Normal[Transpose[leftRows] . rightRows]
 ];
 
 spinProjectionGammaKernelPairMatrix::usage =
@@ -1345,7 +1409,7 @@ spinProjectionGammaKernelProbeValue[key_, vectorTuple_List, spinVectors_List] :=
       {factorIndex, Length[kernel["Factors"]]}
     ];
     If[MemberQ[factorVectors, $Failed], Return[$Failed]];
-    Total[Times @@ factorVectors],
+    spinProjectionGammaKernelBlockMultiplicity0[kernel] Total[Times @@ factorVectors],
     spinProjectionGammaKernelBoundaryVector[spinVectors[[kernel["Factors"][[1, "SpinSlots"]]]]] .
       pairMatrix .
       spinProjectionGammaKernelBoundaryVector[spinVectors[[kernel["Factors"][[2, "SpinSlots"]]]]]
@@ -1357,9 +1421,11 @@ spinProjectionGammaKernelProbeValue[key_, vectorTuple_List, spinVectors_List] :=
 ];
 
 spinProjectionAllBasisSubsets::usage =
-  "spinProjectionAllBasisSubsets[rank] returns all increasing basis subsets of Range[10] with the requested rank.";
+  "spinProjectionAllBasisSubsets[rank] returns all increasing basis subsets of the active vector-index range with the requested rank.";
 spinProjectionAllBasisSubsets[0] := {{}};
-spinProjectionAllBasisSubsets[rank_Integer?Positive] := spinProjectionAllBasisSubsets[rank] = Subsets[Range[10], {rank}];
+spinProjectionAllBasisSubsets[rank_Integer?Positive] := spinProjectionAllBasisSubsets[flatSpaceSignatureName[], rank];
+spinProjectionAllBasisSubsets[signature_String, rank_Integer?Positive] := spinProjectionAllBasisSubsets[signature, rank] =
+  Subsets[flatSpaceVectorIndexRange[], {rank}];
 
 spinProjectionOrderedAssociationRules::usage =
   "spinProjectionOrderedAssociationRules[assoc] returns deterministic association rules sorted by key.";
@@ -1379,20 +1445,24 @@ spinProjectionSelectorGammaFactorMatrixAssociationCache = <||>;
 spinProjectionSelectorGammaFactorMatrixAssociationKey::usage =
   "spinProjectionSelectorGammaFactorMatrixAssociationKey[parts] returns the structural key for one parsed selector gamma factor.";
 spinProjectionSelectorGammaFactorMatrixAssociationKey[parts_Association] := {
+  flatSpaceSignatureName[],
   parts["CTag"],
-  Head /@ parts["VectorLinks"],
+  spinProjectionGammaDescriptorLinkPattern /@ parts["VectorLinks"],
   parts["TailLinks"]
 };
 
 spinProjectionSelectorGammaFactorLinks::usage =
   "spinProjectionSelectorGammaFactorLinks[parts, subset] instantiates one parsed selector gamma factor on a concrete increasing basis subset.";
-spinProjectionSelectorGammaFactorLinks[parts_Association, subset_List] := Join[
-  If[parts["CTag"] === None, {}, {parts["CTag"]}],
-  MapThread[
-    If[Head[#1] === GammaUDHold, GammaUDHold[#2], GammaDUHold[#2]] &,
-    {parts["VectorLinks"], subset}
-  ],
-  parts["TailLinks"]
+spinProjectionSelectorGammaFactorLinks[parts_Association, subset_List] := Module[{links},
+  links = Join[
+    If[parts["CTag"] === None, {}, {parts["CTag"]}],
+    MapThread[
+      spinProjectionGammaDescriptorLink,
+      {parts["VectorLinks"], subset}
+    ],
+    parts["TailLinks"]
+  ];
+  If[MemberQ[links, $Failed], $Failed, links]
 ];
 
 spinProjectionSelectorGammaFactorMatrixAssociation::usage =
@@ -1403,7 +1473,9 @@ spinProjectionSelectorGammaFactorMatrixAssociation[parts_Association] := Module[
   If[cached =!= Missing["NotFound"], Return[cached]];
   subsets = spinProjectionAllBasisSubsets[Length[parts["VectorLinks"]]];
   assoc = Association @ Table[
-    subset -> spinProjectionGammaFactorMatrix[spinProjectionSelectorGammaFactorLinks[parts, subset]],
+    subset -> With[{links = spinProjectionSelectorGammaFactorLinks[parts, subset]},
+      If[links === $Failed, $Failed, spinProjectionGammaFactorMatrix[links]]
+    ],
     {subset, subsets}
   ];
   If[MemberQ[Values[assoc], $Failed], Return[$Failed]];
@@ -1457,7 +1529,7 @@ spinProjectionSelectorDeltaFactorValue[parts_Association, probe_Association] := 
   vec1 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[1]], Missing["Unassigned"]];
   vec2 = Lookup[Lookup[probe, "VectorComponents", <||>], parts["VectorSymbols"][[2]], Missing["Unassigned"]];
   If[!VectorQ[vec1, spinProjectionSelectorExactScalarQ] || !VectorQ[vec2, spinProjectionSelectorExactScalarQ], Return[$Failed]];
-  vec1 . vec2
+  flatSpaceMetricInnerProduct[vec1, vec2]
 ];
 
 spinProjectionSelectorFormCoefficientValue::usage =
@@ -1473,8 +1545,8 @@ spinProjectionSelectorApplyExternalVectorToCoefficients::usage =
 spinProjectionSelectorApplyExternalVectorToCoefficients[coefficients_Association, rank_Integer?Positive, pos_Integer?Positive, vector_List] := Association @ Select[
   Table[
     subset -> Sum[
-      vector[[basisIndex]] spinProjectionSelectorFormCoefficientValue[coefficients, Insert[subset, basisIndex, pos]],
-      {basisIndex, 1, 10}
+      flatSpaceVectorComponent[vector, basisIndex] spinProjectionSelectorFormCoefficientValue[coefficients, Insert[subset, basisIndex, pos]],
+      {basisIndex, flatSpaceVectorIndexRange[]}
     ],
     {subset, spinProjectionAllBasisSubsets[rank - 1]}
   ],
@@ -1532,13 +1604,14 @@ spinProjectionSelectorMatrixDesc[parts_Association, externalSlots_Association, d
   If[AllTrue[sources, First[#] === 4 &],
     links = Join[
       If[parts["CTag"] === None, {}, {parts["CTag"]}],
-      MapThread[If[Head[#1] === GammaUDHold, GammaUDHold[#2[[2]]], GammaDUHold[#2[[2]]]] &, {parts["VectorLinks"], sources}],
+      MapThread[spinProjectionGammaDescriptorLink, {parts["VectorLinks"], sources[[All, 2]]}],
       parts["TailLinks"]
     ];
+    If[MemberQ[links, $Failed], Return[$Failed]];
     Return[
       {
         parts["CTag"],
-        Replace[Head /@ parts["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+        spinProjectionGammaDescriptorLinkPattern /@ parts["VectorLinks"],
         sources,
         parts["TailLinks"],
         spinProjectionGammaFactorMatrix[links]
@@ -1547,7 +1620,7 @@ spinProjectionSelectorMatrixDesc[parts_Association, externalSlots_Association, d
   ];
   {
     parts["CTag"],
-    Replace[Head /@ parts["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+    spinProjectionGammaDescriptorLinkPattern /@ parts["VectorLinks"],
     sources,
     parts["TailLinks"],
     None
@@ -1572,7 +1645,7 @@ spinProjectionSelectorCompiledFamilyData[candidate_Association] := Module[
     matrix,
     kernelData
   },
-  cached = spinProjectionAssociationLookup[spinProjectionSelectorFamilyCompileCache, candidate["Key"], Missing["NotFound"]];
+  cached = spinProjectionAssociationLookup[spinProjectionSelectorFamilyCompileCache, {flatSpaceSignatureName[], candidate["Key"]}, Missing["NotFound"]];
   If[cached =!= Missing["NotFound"], Return[cached]];
   spinSymbols = SortBy[Keys[candidate["SpinorChiralities"]], SymbolName];
   vectorSymbols = SortBy[Lookup[candidate, "ExternalVectors", {}], SymbolName];
@@ -1633,7 +1706,7 @@ spinProjectionSelectorCompiledFamilyData[candidate_Association] := Module[
       "blockTensor"
     ]
   |>;
-  AssociateTo[spinProjectionSelectorFamilyCompileCache, candidate["Key"] -> cached];
+  AssociateTo[spinProjectionSelectorFamilyCompileCache, {flatSpaceSignatureName[], candidate["Key"]} -> cached];
   cached
 ];
 
@@ -1670,20 +1743,27 @@ spinProjectionSelectorProbeSpinVectors[spinSources_List, spinSymbols_List, probe
 spinProjectionSelectorExternalVectorAssignments::usage =
   "spinProjectionSelectorExternalVectorAssignments[vectorCount] returns the concrete exposed-vector assignments summed over in canonical selector family evaluation.";
 spinProjectionSelectorExternalVectorAssignments[0] := {{}};
-spinProjectionSelectorExternalVectorAssignments[vectorCount_Integer?Positive] := Tuples[Range[10], vectorCount];
+spinProjectionSelectorExternalVectorAssignments[vectorCount_Integer?Positive] := spinProjectionSelectorExternalVectorAssignments[flatSpaceSignatureName[], vectorCount];
+spinProjectionSelectorExternalVectorAssignments[signature_String, vectorCount_Integer?Positive] :=
+  spinProjectionSelectorExternalVectorAssignments[signature, vectorCount] = Tuples[flatSpaceVectorIndexRange[], vectorCount];
 
 spinProjectionSelectorExternalVectorWeight::usage =
   "spinProjectionSelectorExternalVectorWeight[compiled, vectorTuple, probe] returns the exact dense selector weight for one concrete exposed-vector assignment, including delta constraints.";
 spinProjectionSelectorExternalVectorWeight[compiled_Association, vectorTuple_List, probe_Association] := Module[
-  {vectorComponents, weight, left, right},
+  {vectorComponents, tupleComponents, weight, left, right, metricValue},
   vectorComponents = Lookup[Lookup[probe, "VectorComponents", <||>], compiled["VectorSymbols"], Missing["Unassigned"]];
   If[AnyTrue[vectorComponents, # === Missing["Unassigned"] &] || !AllTrue[vectorComponents, VectorQ[#, spinProjectionSelectorExactScalarQ] &], Return[$Failed]];
-  weight = If[vectorTuple === {}, 1, Times @@ MapThread[#1[[#2]] &, {vectorComponents, vectorTuple}]];
+  tupleComponents = If[vectorTuple === {}, {}, MapThread[flatSpaceVectorComponent[#1, #2] &, {vectorComponents, vectorTuple}]];
+  If[MemberQ[tupleComponents, $Failed], Return[$Failed]];
+  weight = If[tupleComponents === {}, 1, Times @@ tupleComponents];
   Do[
     left = spinProjectionSelectorFamilyVectorSourceValue[delta[[1]], vectorTuple];
     right = spinProjectionSelectorFamilyVectorSourceValue[delta[[2]], vectorTuple];
     If[!IntegerQ[left] || !IntegerQ[right], Return[$Failed]];
-    If[left =!= right, Return[0]],
+    metricValue = flatSpaceMetricValue[left, right];
+    If[metricValue === $Failed, Return[$Failed]];
+    If[metricValue === 0, Return[0]];
+    weight *= metricValue,
     {delta, compiled["DeltaFactors"]}
   ];
   weight
@@ -1957,12 +2037,22 @@ spinProjectionEqualitiesHoldQ[equalities_List, valueFn_] := AllTrue[
 ];
 
 spinProjectionTermValue::usage =
-  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term through normalized equalities and the lazy gamma-kernel entry cache.";
+  "spinProjectionTermValue[term, freeSpins, freeVectors, stateSpins, stateVectors] evaluates one compiled tensor term through normalized equalities, runtime metric factors, and the lazy gamma-kernel entry cache.";
 spinProjectionTermValue[term_Association, freeSpins_List, freeVectors_List, stateSpins_List, stateVectors_List] := Module[
-  {kernelValue = 1, vectorTuple, spinTuple, value},
+  {kernelValue = 1, metricValue = 1, vectorTuple, spinTuple, left, right, value},
   If[term["ScalarFactor"] === 0, Return[0]];
   If[!spinProjectionEqualitiesHoldQ[term["SpinEqualities"], spinProjectionSpinSourceValue[#, freeSpins, stateSpins] &], Return[0]];
   If[!spinProjectionEqualitiesHoldQ[term["VectorEqualities"], spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] &], Return[0]];
+  Do[
+    left = spinProjectionVectorSourceValue[metric[[1]], freeVectors, stateVectors, {}];
+    right = spinProjectionVectorSourceValue[metric[[2]], freeVectors, stateVectors, {}];
+    If[!(IntegerQ[left] && IntegerQ[right]), Continue[]];
+    value = flatSpaceMetricValue[left, right];
+    If[value === $Failed, Return[$Failed]];
+    metricValue *= value;
+    If[metricValue === 0, Return[0]],
+    {metric, Lookup[term, "MetricFactors", {}]}
+  ];
   Do[
     vectorTuple = spinProjectionVectorSourceValue[#, freeVectors, stateVectors, {}] & /@ ref["VectorSlots"];
     If[!AllTrue[vectorTuple, IntegerQ], Return[$Failed]];
@@ -1975,7 +2065,7 @@ spinProjectionTermValue[term_Association, freeSpins_List, freeVectors_List, stat
     {ref, term["GammaKernelRefs"]}
   ];
   If[kernelValue === $Failed, Return[$Failed]];
-  term["ScalarFactor"] kernelValue
+  term["ScalarFactor"] metricValue kernelValue
 ];
 
 

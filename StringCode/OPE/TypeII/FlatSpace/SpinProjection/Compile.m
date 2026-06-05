@@ -127,7 +127,10 @@ representationsHaveRepeatedVectorsQ0[incoming_Association, outgoing_Association]
 gammaFactorHasRepeatedVectorIndicesQ0::usage =
   "gammaFactorHasRepeatedVectorIndicesQ0[factor] is True when a GammaAntisymmetricProductHold factor carries the same vector index more than once and therefore vanishes identically by antisymmetry.";
 gammaFactorHasRepeatedVectorIndicesQ0[factor_GammaAntisymmetricProductHold] := Module[{indices},
-  indices = Cases[factor[[1]], GammaUDHold[idx_] | GammaDUHold[idx_] :> idx];
+  indices = Cases[
+    factor[[1]],
+    GammaUDHold[idx_] | GammaDUHold[idx_] :> Replace[idx, {GammaIndexUp[mu_] :> mu, GammaIndexDown[mu_] :> mu}]
+  ];
   Length[DeleteDuplicates[indices]] < Length[indices]
 ];
 gammaFactorHasRepeatedVectorIndicesQ0[_] := False;
@@ -321,6 +324,166 @@ spinProjectionTargetRank[incoming_Association, outgoing_Association] := Module[
   countSinglets[nChiral, nAnti, Length[Lookup[incoming, "vector", {}]] + Length[Lookup[outgoing, "vector", {}]]]
 ];
 
+spinProjectionSelectIndependentTensorStructures0::usage =
+  "spinProjectionSelectIndependentTensorStructures0[candidates, targetRank, seed, opts] selects a signature-independent tensor basis from pre-generated candidates.";
+spinProjectionSelectIndependentTensorStructures0[candidates_List, targetRank_, seed_, opts___Rule] := Module[
+  {activeSignature = FlatSpaceSignature[], selectorSignature, selectorCandidates, selectorResult, runSelector},
+  runSelector[input_] := findIndependentTensorStructures[
+    input,
+    "TargetRank" -> targetRank,
+    "RandomSeed" -> seed,
+    opts
+  ];
+  If[
+    !flatSpaceLorentzianSignatureQ[],
+    Return[runSelector[candidates]]
+  ];
+  selectorCandidates = spinProjectionMapTensorCandidateInput0[
+    candidates,
+    spinProjectionStripLorentzianGammaVariance0
+  ];
+  selectorSignature = "Euclidean";
+  selectorResult = spinProjectionWithIsolatedTensorSelectorCaches0[
+    Internal`WithLocalSettings[
+      SetFlatSpaceSignature[selectorSignature],
+      runSelector[selectorCandidates],
+      SetFlatSpaceSignature[activeSignature]
+    ]
+  ];
+  If[selectorResult === $Failed, Return[$Failed]];
+  spinProjectionLiftLorentzianSelectorResult0[selectorResult, candidates, selectorCandidates]
+];
+
+spinProjectionWithIsolatedTensorSelectorCaches0::usage =
+  "spinProjectionWithIsolatedTensorSelectorCaches0[expr] evaluates a Lorentzian stripped tensor-basis selector scan with temporary gamma-kernel selector caches.";
+SetAttributes[spinProjectionWithIsolatedTensorSelectorCaches0, HoldAll];
+spinProjectionWithIsolatedTensorSelectorCaches0[expr_] := Module[
+  {
+    gammaKernelRegistry,
+    gammaKernelSliceCache,
+    gammaKernelEntryCache,
+    gammaKernelFactorValueVectorCache,
+    gammaKernelFactorMatrixVectorCache,
+    gammaKernelFactorLocalValueTableCache,
+    gammaKernelFactorLocalMatrixTableCache,
+    gammaKernelCanonicalFamilyRowOperatorCache,
+    gammaKernelLocalizedFactorRowOperatorCache,
+    gammaKernelFactorProbeVectorCache,
+    gammaKernelProbeCache,
+    gammaKernelPairMatrixCache,
+    selectorFamilyCompileCache,
+    persistentDirty
+  },
+  Internal`WithLocalSettings[
+    (
+      gammaKernelRegistry = spinProjectionGammaKernelRegistry;
+      gammaKernelSliceCache = spinProjectionGammaKernelSliceCache;
+      gammaKernelEntryCache = spinProjectionGammaKernelEntryCache;
+      gammaKernelFactorValueVectorCache = spinProjectionGammaKernelFactorValueVectorCache;
+      gammaKernelFactorMatrixVectorCache = spinProjectionGammaKernelFactorMatrixVectorCache;
+      gammaKernelFactorLocalValueTableCache = spinProjectionGammaKernelFactorLocalValueTableCache;
+      gammaKernelFactorLocalMatrixTableCache = spinProjectionGammaKernelFactorLocalMatrixTableCache;
+      gammaKernelCanonicalFamilyRowOperatorCache = spinProjectionGammaKernelCanonicalFamilyRowOperatorCache;
+      gammaKernelLocalizedFactorRowOperatorCache = spinProjectionGammaKernelLocalizedFactorRowOperatorCache;
+      gammaKernelFactorProbeVectorCache = spinProjectionGammaKernelFactorProbeVectorCache;
+      gammaKernelProbeCache = spinProjectionGammaKernelProbeCache;
+      gammaKernelPairMatrixCache = spinProjectionGammaKernelPairMatrixCache;
+      selectorFamilyCompileCache = spinProjectionSelectorFamilyCompileCache;
+      persistentDirty = spinProjectionPersistentGammaKernelCacheDirty;
+      spinProjectionGammaKernelRegistry = <||>;
+      spinProjectionGammaKernelSliceCache = <||>;
+      spinProjectionGammaKernelEntryCache = <||>;
+      spinProjectionGammaKernelFactorValueVectorCache = <||>;
+      spinProjectionGammaKernelFactorMatrixVectorCache = <||>;
+      spinProjectionGammaKernelFactorLocalValueTableCache = <||>;
+      spinProjectionGammaKernelFactorLocalMatrixTableCache = <||>;
+      spinProjectionGammaKernelCanonicalFamilyRowOperatorCache = <||>;
+      spinProjectionGammaKernelLocalizedFactorRowOperatorCache = <||>;
+      spinProjectionGammaKernelFactorProbeVectorCache = <||>;
+      spinProjectionGammaKernelProbeCache = <||>;
+      spinProjectionGammaKernelPairMatrixCache = <||>;
+      spinProjectionSelectorFamilyCompileCache = <||>;
+    ),
+    expr,
+    (
+      spinProjectionGammaKernelRegistry = gammaKernelRegistry;
+      spinProjectionGammaKernelSliceCache = gammaKernelSliceCache;
+      spinProjectionGammaKernelEntryCache = gammaKernelEntryCache;
+      spinProjectionGammaKernelFactorValueVectorCache = gammaKernelFactorValueVectorCache;
+      spinProjectionGammaKernelFactorMatrixVectorCache = gammaKernelFactorMatrixVectorCache;
+      spinProjectionGammaKernelFactorLocalValueTableCache = gammaKernelFactorLocalValueTableCache;
+      spinProjectionGammaKernelFactorLocalMatrixTableCache = gammaKernelFactorLocalMatrixTableCache;
+      spinProjectionGammaKernelCanonicalFamilyRowOperatorCache = gammaKernelCanonicalFamilyRowOperatorCache;
+      spinProjectionGammaKernelLocalizedFactorRowOperatorCache = gammaKernelLocalizedFactorRowOperatorCache;
+      spinProjectionGammaKernelFactorProbeVectorCache = gammaKernelFactorProbeVectorCache;
+      spinProjectionGammaKernelProbeCache = gammaKernelProbeCache;
+      spinProjectionGammaKernelPairMatrixCache = gammaKernelPairMatrixCache;
+      spinProjectionSelectorFamilyCompileCache = selectorFamilyCompileCache;
+      spinProjectionPersistentGammaKernelCacheDirty = persistentDirty;
+    )
+  ]
+];
+
+spinProjectionStripLorentzianGammaVariance0::usage =
+  "spinProjectionStripLorentzianGammaVariance0[expr] removes Lorentzian GammaIndexUp/GammaIndexDown wrappers for signature-independent tensor-basis selection.";
+spinProjectionStripLorentzianGammaVariance0[expr_] := expr /. {
+  GammaIndexUp[idx_] :> idx,
+  GammaIndexDown[idx_] :> idx
+};
+
+spinProjectionMapTensorCandidateInput0::usage =
+  "spinProjectionMapTensorCandidateInput0[candidates, fn] maps fn over flat or grouped tensor candidate input while preserving grouping.";
+spinProjectionMapTensorCandidateInput0[candidates_List, fn_] := If[
+  candidates === {},
+  {},
+  If[AllTrue[candidates, ListQ], (fn /@ #) & /@ candidates, fn /@ candidates]
+];
+
+spinProjectionFlattenTensorCandidateInput0::usage =
+  "spinProjectionFlattenTensorCandidateInput0[candidates] flattens flat or grouped tensor candidate input to a single candidate list.";
+spinProjectionFlattenTensorCandidateInput0[candidates_List] := If[
+  candidates === {},
+  {},
+  If[AllTrue[candidates, ListQ], Flatten[candidates, 1], candidates]
+];
+
+spinProjectionTensorCandidateSelectionKey0::usage =
+  "spinProjectionTensorCandidateSelectionKey0[expr] returns the stable structural key used to lift a stripped selector result back to the original Lorentzian candidate.";
+spinProjectionTensorCandidateSelectionKey0[expr_] := ToString[InputForm[expr]];
+
+spinProjectionLiftLorentzianBasis0::usage =
+  "spinProjectionLiftLorentzianBasis0[basis, originalCandidates, selectorCandidates] replaces stripped selected basis entries by the corresponding original Lorentzian candidates.";
+spinProjectionLiftLorentzianBasis0[basis_List, originalCandidates_List, selectorCandidates_List] := Module[
+  {originalFlat, selectorFlat, buckets = <||>, key, lifted = {}, original},
+  originalFlat = spinProjectionFlattenTensorCandidateInput0[originalCandidates];
+  selectorFlat = spinProjectionFlattenTensorCandidateInput0[selectorCandidates];
+  If[Length[originalFlat] =!= Length[selectorFlat], Return[$Failed]];
+  Do[
+    key = spinProjectionTensorCandidateSelectionKey0[selectorFlat[[i]]];
+    buckets[key] = Append[Lookup[buckets, key, {}], originalFlat[[i]]],
+    {i, Length[selectorFlat]}
+  ];
+  Do[
+    key = spinProjectionTensorCandidateSelectionKey0[expr];
+    If[!KeyExistsQ[buckets, key] || buckets[key] === {}, Return[$Failed]];
+    original = First[buckets[key]];
+    buckets[key] = Rest[buckets[key]];
+    lifted = Append[lifted, original],
+    {expr, basis}
+  ];
+  lifted
+];
+
+spinProjectionLiftLorentzianSelectorResult0::usage =
+  "spinProjectionLiftLorentzianSelectorResult0[result, originalCandidates, selectorCandidates] restores Lorentzian variance wrappers in selector results produced from stripped candidates.";
+spinProjectionLiftLorentzianSelectorResult0[result_List, originalCandidates_List, selectorCandidates_List] :=
+  spinProjectionLiftLorentzianBasis0[result, originalCandidates, selectorCandidates];
+spinProjectionLiftLorentzianSelectorResult0[result_Association, originalCandidates_List, selectorCandidates_List] /; KeyExistsQ[result, "Basis"] := Module[
+  {basis = spinProjectionLiftLorentzianBasis0[result["Basis"], originalCandidates, selectorCandidates]},
+  If[basis === $Failed, $Failed, Join[result, <|"Basis" -> basis|>]]
+];
+spinProjectionLiftLorentzianSelectorResult0[result_, _, _] := result;
+
 spinProjectionSparseBasisRecordQ::usage =
   "spinProjectionSparseBasisRecordQ[tensor] is True exactly for sparse-basis selector records carrying Expr, relabel maps, and selector family cache data.";
 spinProjectionSparseBasisRecordQ[tensor_] :=
@@ -413,7 +576,9 @@ spinProjectionRenameOutputSymbolsAvoiding0[expr_, reservedSymbols_List] := Modul
   exprSymbolNames = DeleteDuplicates @ Join[
     SymbolName /@ Cases[First /@ spinTypedIndices[expr], sym_Symbol :> sym],
     SymbolName /@ Cases[expr, \[Delta][left_Symbol, _] :> left, Infinity],
-    SymbolName /@ Cases[expr, \[Delta][_, right_Symbol] :> right, Infinity]
+    SymbolName /@ Cases[expr, \[Delta][_, right_Symbol] :> right, Infinity],
+    SymbolName /@ Cases[expr, Eta[left_Symbol, _] :> left, Infinity],
+    SymbolName /@ Cases[expr, Eta[_, right_Symbol] :> right, Infinity]
   ];
   outputSpinSymbolsHolo = DeleteDuplicates @ Cases[
     expr,
@@ -465,11 +630,15 @@ spinProjectionRenameOutputSymbolsAvoiding0[expr_, reservedSymbols_List] := Modul
   Scan[renameOne["Vector", "Holo", #] &, outputVectorSymbolsHolo];
   Scan[renameOne["Vector", "Anti", #] &, outputVectorSymbolsAnti];
   renameVector[idx_] := If[Head[idx] === Symbol, Lookup[renameRules, idx, idx], idx];
+  renameGammaVectorIndex[GammaIndexUp[idx_]] := GammaIndexUp[renameVector[idx]];
+  renameGammaVectorIndex[GammaIndexDown[idx_]] := GammaIndexDown[renameVector[idx]];
+  renameGammaVectorIndex[idx_] := renameVector[idx];
   renameSpin[idx_] := If[Head[idx] === Symbol, Lookup[renameRules, idx, idx], idx];
   expr /. {
-    GammaUDHold[idx_] :> GammaUDHold[renameVector[idx]],
-    GammaDUHold[idx_] :> GammaDUHold[renameVector[idx]],
+    GammaUDHold[idx_] :> GammaUDHold[renameGammaVectorIndex[idx]],
+    GammaDUHold[idx_] :> GammaDUHold[renameGammaVectorIndex[idx]],
     \[Delta][left_, right_] :> \[Delta][renameSpin[renameVector[left]], renameSpin[renameVector[right]]],
+    Eta[left_, right_] :> Eta[renameSpin[renameVector[left]], renameSpin[renameVector[right]]],
     dX[idx_, rest___] :> dX[renameVector[idx], rest],
     \[Psi][idx_, rest___] :> \[Psi][renameVector[idx], rest],
     dXt[idx_, rest___] :> dXt[renameVector[idx], rest],
@@ -598,15 +767,22 @@ generateSpinFieldOPEData[
             generateTensorStructures[incomingReps, outgoingData["Representations"]],
             1
           ];
-          tensorStructures = findIndependentTensorStructures[
+          tensorStructures = spinProjectionSelectIndependentTensorStructures0[
             tensorCandidates,
+            Automatic,
+            seed,
             "RandomSeed" -> seed,
             "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
           ],
           targetRank = spinProjectionTargetRank[incomingReps, outgoingData["Representations"]];
-          tensorStructures = findIndependentTensorStructures[
+          tensorCandidates = generateTensorStructures[
             incomingReps,
-            outgoingData["Representations"],
+            outgoingData["Representations"]
+          ];
+          tensorStructures = spinProjectionSelectIndependentTensorStructures0[
+            tensorCandidates,
+            targetRank,
+            seed,
             "TargetRank" -> targetRank,
             "RandomSeed" -> seed,
             "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
@@ -618,12 +794,12 @@ generateSpinFieldOPEData[
           "AntisymmetricVectorGroups" -> antisymmetricVectorGroups
         ];
         targetRank = Total[Length /@ tensorCandidates];
-        tensorStructures = findIndependentTensorStructures[
-          incomingReps,
-          outgoingData["Representations"],
+        tensorStructures = spinProjectionSelectIndependentTensorStructures0[
+          tensorCandidates,
+          targetRank,
+          seed,
           "TargetRank" -> targetRank,
           "RandomSeed" -> seed,
-          "AntisymmetricVectorGroups" -> antisymmetricVectorGroups,
           "ReturnSparseBasis" -> spinProjectionEnableSelectorSparseBasisPassthrough
         ]
       ];
@@ -769,11 +945,11 @@ spinProjectionConnectedSymbolGroups[symbols_List, edges_List] := Module[
 ];
 
 spinProjectionVectorConstraintPairs::usage =
-  "spinProjectionVectorConstraintPairs[obj, freeVectors] extracts free-vector equality pairs implied by explicit delta tensors.";
+  "spinProjectionVectorConstraintPairs[obj, freeVectors] extracts free-vector equality pairs implied by explicit metric tensors.";
 spinProjectionVectorConstraintPairs[obj_, freeVectors_List] := DeleteDuplicates[
   Sort /@ Cases[
     HoldComplete[obj],
-    factor_ /; Head[factor] === \[Delta] && Length[factor] == 2 &&
+    factor_ /; MemberQ[{\[Delta], Eta}, Head[factor]] && Length[factor] == 2 &&
       MemberQ[freeVectors, factor[[1]]] && MemberQ[freeVectors, factor[[2]]] :>
         {factor[[1]], factor[[2]]},
     Infinity
@@ -922,6 +1098,8 @@ spinTypedIndices::usage =
   "spinTypedIndices[obj] collects symbolic vector/spinor placeholders from spin-field OPE inputs or ansatz expressions.";
 spinTypedIndices[obj_] := Join[
   Cases[obj, (ψ | ψt | dX | dXt)[μ_, __] /; symbolIndexQ[μ] :> {μ, "v"}, Infinity],
+  Flatten[Cases[obj, factor_ /; MemberQ[{\[Delta], Eta}, Head[factor]] && Length[factor] == 2 :>
+    ({#, "v"} & /@ Select[List @@ factor, symbolIndexQ]), Infinity], 1],
   Cases[obj, (S | St)[{α_, ("chiral" | "antichiral")}, __] /; symbolIndexQ[α] :> {α, "s"}, Infinity],
   Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
     ({#, "v"} & /@ Cases[m, {_?NumericQ, ν_ /; symbolIndexQ[ν]} :> ν]),
@@ -1088,7 +1266,8 @@ projectSingleFamilyOutputTuple0[key_, tuple_List] := Module[
 
 familyOutputAssociation0::usage =
   "familyOutputAssociation0[key, tuple] memoizes one tuple-specific output operator association.";
-familyOutputAssociation0[key_, tuple_List] := familyOutputAssociation0[key, tuple] = Module[{expr},
+familyOutputAssociation0[key_, tuple_List] := familyOutputAssociation0[flatSpaceSignatureName[], key, tuple];
+familyOutputAssociation0[signature_String, key_, tuple_List] := familyOutputAssociation0[signature, key, tuple] = Module[{expr},
   expr = projectSingleFamilyOutputTuple0[key, tuple];
   spinProjectionOperatorAssociation[expr]
 ];
@@ -1208,6 +1387,22 @@ spinProjectionSpinSource0[sym_, stateSpins_Association, context_Association] := 
   True, $Failed
 ];
 
+spinProjectionMatrixLinkPattern0::usage =
+  "spinProjectionMatrixLinkPattern0[link] returns {GammaUDHold|GammaDUHold, \"Up\"|\"Down\"} for one parsed gamma link.";
+spinProjectionMatrixLinkPattern0[GammaUDHold[GammaIndexUp[_]]] := {GammaUDHold, "Up"};
+spinProjectionMatrixLinkPattern0[GammaDUHold[GammaIndexUp[_]]] := {GammaDUHold, "Up"};
+spinProjectionMatrixLinkPattern0[GammaUDHold[_]] := {GammaUDHold, "Down"};
+spinProjectionMatrixLinkPattern0[GammaDUHold[_]] := {GammaDUHold, "Down"};
+spinProjectionMatrixLinkPattern0[_] := $Failed;
+
+spinProjectionMatrixLinkFromPattern0::usage =
+  "spinProjectionMatrixLinkFromPattern0[pattern, mu] rebuilds one gamma link from a spinor-flow/variance pattern and a vector index.";
+spinProjectionMatrixLinkFromPattern0[{GammaUDHold, "Up"}, mu_] := GammaUDHold[GammaIndexUp[mu]];
+spinProjectionMatrixLinkFromPattern0[{GammaDUHold, "Up"}, mu_] := GammaDUHold[GammaIndexUp[mu]];
+spinProjectionMatrixLinkFromPattern0[{GammaUDHold, "Down"}, mu_] := GammaUDHold[GammaIndexDown[mu]];
+spinProjectionMatrixLinkFromPattern0[{GammaDUHold, "Down"}, mu_] := GammaDUHold[GammaIndexDown[mu]];
+spinProjectionMatrixLinkFromPattern0[_, _] := $Failed;
+
 spinProjectionMatrixDesc0::usage =
   "spinProjectionMatrixDesc0[part, stateVectors, dummyVectors, context] builds one compiled gamma-matrix descriptor for one parsed factor part.";
 spinProjectionMatrixDesc0[
@@ -1221,19 +1416,20 @@ spinProjectionMatrixDesc0[
   If[AllTrue[sources, First[#] === 4 &],
     links = Join[
       If[part["CTag"] === None, {}, {part["CTag"]}],
-      MapThread[If[#1 === GammaUDHold, GammaUDHold[#2[[2]]], GammaDUHold[#2[[2]]]] &, {Head /@ part["VectorLinks"], sources}],
+      MapThread[spinProjectionMatrixLinkFromPattern0, {spinProjectionMatrixLinkPattern0 /@ part["VectorLinks"], sources[[All, 2]]}],
       part["TailLinks"]
     ];
+    If[MemberQ[links, $Failed], Return[$Failed]];
     {
       part["CTag"],
-      Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+      spinProjectionMatrixLinkPattern0 /@ part["VectorLinks"],
       sources,
       part["TailLinks"],
       spinProjectionGammaFactorMatrix[links]
     },
     {
       part["CTag"],
-      Replace[Head /@ part["VectorLinks"], {GammaUDHold -> 1, GammaDUHold -> 2}, 1],
+      spinProjectionMatrixLinkPattern0 /@ part["VectorLinks"],
       sources,
       part["TailLinks"],
       None
@@ -1597,6 +1793,7 @@ spinProjectionCompileTensorTerm0[
       "DummyCount" -> Length[dummySymbols],
       "SpinEqualities" -> normalized["SpinEqualities"],
       "VectorEqualities" -> normalized["VectorEqualities"],
+      "MetricFactors" -> Lookup[normalized, "MetricFactors", {}],
       "GammaKernelRefs" -> kernelData["KernelRefs"],
       "OutputSpinSupportRecipe" -> outputSpinSupportRecipe
     |>
