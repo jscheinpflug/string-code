@@ -1,0 +1,2026 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 11:55 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor And CFT Kernel Interface</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Tensor And CFT Kernel Interface</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org9f11bd6">1. Goal</a></li>
+<li><a href="#org8beca3a">2. Kernel Boundary</a></li>
+<li><a href="#org76bc736">3. Redline Against Current Org</a>
+<ul>
+<li><a href="#org443a562">3.1. Differences</a></li>
+<li><a href="#org69a1350">3.2. Extensions</a></li>
+</ul>
+</li>
+<li><a href="#orgc7a73ef">4. CFT Data Structures</a>
+<ul>
+<li><a href="#orge532b18">4.1. Theory</a></li>
+<li><a href="#orgf694f4a">4.2. Operator Kind</a></li>
+<li><a href="#orgb6b6bf6">4.3. Strategy Selection</a></li>
+<li><a href="#org1d3ef19">4.4. Sector Couplings</a></li>
+<li><a href="#orga41e862">4.5. Statistics And Cocycles</a></li>
+<li><a href="#orgc8b8f1e">4.6. Lattice And Bosonized Labels</a></li>
+<li><a href="#orga3d10d0">4.7. Quantum Numbers</a></li>
+<li><a href="#org47380d0">4.8. Local Operator</a></li>
+<li><a href="#org906d37c">4.9. Multi-Local Operator</a></li>
+<li><a href="#orgd534bfd">4.10. Domain And Chiral Support</a></li>
+<li><a href="#orgf72d2f2">4.11. Pairing And Local Data</a></li>
+<li><a href="#org11c0bc5">4.12. Coefficient</a></li>
+<li><a href="#orge68de89">4.13. OPE</a></li>
+<li><a href="#org3056b27">4.14. Correlator</a></li>
+<li><a href="#org1237dd5">4.15. BCFT And Boundary Operators</a></li>
+</ul>
+</li>
+<li><a href="#orgb87e7fa">5. Tensor-Code Data Structures</a>
+<ul>
+<li><a href="#orgcd22fa6">5.1. Representation And Index</a></li>
+<li><a href="#orgeae7e90">5.2. Tensor Structure</a></li>
+<li><a href="#org6aab34b">5.3. Invariant Tensor Generation</a></li>
+</ul>
+</li>
+<li><a href="#org82fd90b">6. Stress Tests</a>
+<ul>
+<li><a href="#orgeb51858">6.1. RNS Chiral Sector</a></li>
+<li><a href="#org7f11e05">6.2. SO(10) Spin Fields</a></li>
+<li><a href="#org3e3d03a">6.3. Heterotic SO(32)</a></li>
+<li><a href="#orgfd948af">6.4. Heterotic E8xE8</a></li>
+<li><a href="#org358959c">6.5. Narain Cocycles</a></li>
+</ul>
+</li>
+<li><a href="#org65bcab6">7. Public CFT API</a></li>
+<li><a href="#org7e69501">8. How Future Modules Use It</a>
+<ul>
+<li><a href="#org4137d9f">8.1. On-Shell RNS</a></li>
+<li><a href="#orgae6bfad">8.2. SFT</a></li>
+<li><a href="#orga84cc37">8.3. NLSM</a></li>
+<li><a href="#orgcf7a7d8">8.4. Pure Spinor</a></li>
+</ul>
+</li>
+<li><a href="#org3760572">9. First Milestone</a></li>
+<li><a href="#org643fcdc">10. API Review</a></li>
+<li><a href="#orgeb7aceb">11. Summary</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org9f11bd6" class="outline-2">
+<h2 id="org9f11bd6"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note rewrites the proposed interface for <code>tensor-code</code> and <code>cft-code</code> in
+plain physics language.
+</p>
+
+<p>
+The kernel should support the worldsheet calculations needed by
+<a href="../org/overview.html">Overview</a>:
+</p>
+
+<ul class="org-ul">
+<li>free-field OPEs and correlators without storing huge intermediate sums;</li>
+<li>RNS spin fields and excited Ramond-sector OPEs;</li>
+<li>on-shell amplitudes and SFT brackets as clients of the same CFT operations;</li>
+<li>boundary and orientifold projections;</li>
+<li>weak-background/NLSM perturbation theory;</li>
+<li>pure-spinor worldsheet calculations.</li>
+</ul>
+
+<p>
+The guiding point is simple:
+</p>
+
+<ul class="org-ul">
+<li><code>cft-code</code> describes local worldsheet operators and computes their OPEs,
+projections, and correlators.</li>
+<li><code>tensor-code</code> describes spacetime/internal tensor structures that appear as
+coefficients of those worldsheet calculations.</li>
+</ul>
+
+<p>
+The CFT tensor product is handled exactly as in the current direction: an
+operator carries a list of quantum-number entries.  A product theory just gives
+operators longer lists of charges, sectors, and representation labels.  There
+is no need for a separate runtime object for the tensor product of CFT sectors.
+</p>
+</div>
+</div>
+<div id="outline-container-org8beca3a" class="outline-2">
+<h2 id="org8beca3a"><span class="section-number-2">2.</span> Kernel Boundary</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+<code>cft-code</code> should know about:
+</p>
+
+<ul class="org-ul">
+<li>local fields and local operators;</li>
+<li>insertion points \(z,\bar z,x\) and derivatives;</li>
+<li>normal-ordered products;</li>
+<li>conformal weights;</li>
+<li>quantum numbers as a list of named entries;</li>
+<li>which fields can contract with which other fields;</li>
+<li>which evaluation strategies each operator kind supports;</li>
+<li>the preference order of strategies in each sector;</li>
+<li>projection of an OPE to a target weight;</li>
+<li>OPEs and correlators of any number of local insertions;</li>
+<li>the surface on which a correlator is evaluated;</li>
+<li>finite projections such as GSO/orbifold/orientifold actions;</li>
+<li>sector-level statistics and cocycle conventions;</li>
+<li>BCFT data: boundary conditions, their boundary operator kinds, and gluing
+data for the doubling trick.</li>
+</ul>
+
+<p>
+<code>cft-code</code> should not know the physical interpretation of the entries called
+<code>ghost_number</code>, <code>picture</code>, <code>GSO</code>, <code>pure_spinor_ghost_number</code>, or any similar
+name.  They are just quantum numbers in a list.
+</p>
+
+<p>
+<code>tensor-code</code> should know about:
+</p>
+
+<ul class="org-ul">
+<li>symmetry algebras such as \(SO(10)\), \(Spin(1,9)\), internal symmetry
+algebras, Chan-Paton groups, and \(U(1)\)&rsquo;s;</li>
+<li>representations such as vector, spinor, conjugate spinor, adjoint, and
+singlet;</li>
+<li>abstract indices;</li>
+<li>invariant tensors such as \(\eta_{\mu\nu}\), \(\delta^\mu{}_\nu\),
+\(\epsilon_{\mu_1\ldots\mu_d}\), charge conjugation matrices,
+antisymmetrized gamma matrices, generators, and Clebsch-Gordan coefficients;</li>
+<li>linear combinations of such tensor structures;</li>
+<li>generation of all allowed invariant tensors;</li>
+<li>selection of an independent tensor basis;</li>
+<li>solving for coefficients in that basis.</li>
+</ul>
+
+<p>
+<code>tensor-code</code> should not know what an OPE, a PCO, a string bracket, or a
+worldsheet ghost is.
+</p>
+</div>
+</div>
+<div id="outline-container-org76bc736" class="outline-2">
+<h2 id="org76bc736"><span class="section-number-2">3.</span> Redline Against Current Org</h2>
+<div class="outline-text-2" id="text-3">
+<div style="color: red;">
+<p>
+This section records where this proposal differs from, or extends, the current
+<code>/org</code> code.
+</p>
+</div>
+<div id="outline-container-org443a562" class="outline-3">
+<h3 id="org443a562"><span class="section-number-3">3.1.</span> Differences</h3>
+<div class="outline-text-3" id="text-3-1">
+<ol class="org-ol">
+<li>Current <a href="../org/tensor-code/symmetry.html">Symmetry</a> already treats quantum numbers as a list of
+representation labels.  This design keeps that point.  The previous draft
+incorrectly suggested product-algebra metadata as if CFT tensor products
+needed a separate object.  They do not.  For CFT purposes, tensor products
+are represented by concatenating quantum-number lists.</li>
+
+<li>Current <a href="../org/tensor-code/symmetry.html">Symmetry</a> uses small ids such as <code>u8</code>.  This design differs only by
+recommending wider ids for long calculations.  This is a storage choice, not
+a physics change.</li>
+
+<li>Current <a href="../org/tensor-code/symmetry.html">Symmetry</a> has only <code>none</code> and one Kronecker delta as tensor
+structures.  This design differs by requiring general tensor structures:
+products and sums of metrics, deltas, epsilons, gamma matrices, generators,
+and Clebsch-Gordan tensors.</li>
+
+<li>Current <a href="../org/cft-code/expressions/coefficient.html">Coefficient</a> uses floating scalars.  This design differs by requiring
+exact symbolic scalars for kernel data.  Conformal weights, OPE powers, and
+spin-field branch powers are rational data, not floating-point data.</li>
+
+<li>Current <a href="../org/cft-code/expressions/coefficient.html">Coefficient</a> uses integer powers in rational functions.  This design
+differs by allowing rational powers.  Ramond spin fields and bosonized
+exponentials naturally produce fractional powers.</li>
+
+<li>Current <a href="../org/cft-code/expressions/operators.html">Operators</a> represents a local operator as an insertion and a body.
+This design keeps that.  The difference is that the body store must have one
+canonical constructor for normal-ordered products, so signs, repeated
+fermions, and same-point exponential fusions are handled in one place.</li>
+
+<li>Current <a href="../org/cft-code/expressions/operators.html">Operators</a> calls the theory-level object an <code>OperatorKind</code>.  This design
+ keeps that name.  The physics meaning is: \(b\), \(c\),
+\(X^\mu\), \(\partial X^\mu\), \(\psi^\mu\), \(e^{ikX}\), \(e^{q\phi}\), and a spin
+ field \(S_A\) are operator kinds.  A normal-ordered product such as
+ \(:e^{-\phi}\psi^\mu:\) is not a new operator kind by default; it is an
+ <code>OperatorBody</code> built from already defined kinds.</li>
+
+<li>Current <a href="../org/cft-code/expressions/operators.html">Operators</a> stores quantum numbers through <code>tensor-code</code>.  This design
+keeps quantum numbers as a list, but separates their physics roles:
+additive charges, finite cyclic \(\mathbb{Z}_N\) charges, and
+representation labels may all occur in the list.  Only
+representation-valued entries need tensor-code interpretation.</li>
+
+<li>Current <a href="../org/cft-code/expressions/expressions.html">Expressions</a> has a coefficient times one local operator.  This design
+differs by also requiring <code>MultiOp</code>: just a collection of local operators.
+Before an OPE or correlator is evaluated, an amplitude or SFT bracket
+naturally contains several local insertions at distinct points.</li>
+
+<li>Current <a href="../org/cft-code/correlators/correlators.html">Correlators</a> names the tactics <code>abstract</code>, <code>wick</code>, and
+<code>bosonization</code>.  This design keeps these tactics but makes two independent
+inputs explicit: the Riemann surface and the CFT/BCFT sector.  A boundary
+condition is not a property of the surface; it defines a BCFT sector with
+its own boundary operator kinds.  The same BCFT can be evaluated on
+different Riemann surfaces.</li>
+
+<li>Current <a href="../org/cft-code/ope/ope.html">OPE</a> emphasizes deriving OPE coefficients from a basis and a pairing.
+This design keeps that as one strategy, but does not make it the only
+strategy.  For each sector, the kernel chooses the highest-ranked strategy
+supported by all operators from that sector.  Free-field RNS and ghost
+calculations can then use Wick directly, while abstract/interacting sectors
+can use basis-pairing or abstract tactics.</li>
+
+<li>Current <a href="../org/cft-code/basis-generation/basis-generation.html">Basis-Generation</a> is a stub.  This design differs by making basis
+generation a stream of states/operators with weights and quantum-number
+lists.</li>
+
+<li>Current <a href="../org/sft-code/sft-code.html">SFT-Code</a> says brackets use CFT OPEs and correlators.  This design
+keeps that, but explicitly keeps BRST, PCO placement, local coordinates,
+propagators, and brackets outside the CFT kernel.  They are physics layers
+that call the CFT kernel.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org69a1350" class="outline-3">
+<h3 id="org69a1350"><span class="section-number-3">3.2.</span> Extensions</h3>
+<div class="outline-text-3" id="text-3-2">
+<ol class="org-ol">
+<li>Extend <a href="../org/tensor-code/tensor-code.html">Tensor-Code</a> from one delta to a full tensor-structure language:
+sums of products of invariant tensors.</li>
+
+<li>Extend <a href="../org/tensor-code/tensor-code.html">Tensor-Code</a> with antisymmetrized gamma matrices and spinor
+bilinears.  This is the tensor part of Ramond-sector spin-field OPEs.</li>
+
+<li>Extend <a href="../org/tensor-code/tensor-code.html">Tensor-Code</a> with an invariant-tensor generator and an independent-basis
+selector.  This replaces the prototype&rsquo;s overcomplete enumeration followed
+by probing with a typed kernel operation.</li>
+
+<li>Extend <a href="../org/cft-code/expressions/operators.html">Operators</a> with enough <code>OperatorKind</code> data to answer physics questions:
+statistics, conformal weights, quantum-number list, spacetime/internal
+index type, bulk/boundary domain, chiral support, and which
+OPE/correlator strategies the kind supports.</li>
+
+<li>Extend <a href="../org/cft-code/expressions/operators.html">Operators</a> with boundary insertions and boundary operator kinds.  A
+boundary condition should give a BCFT sector: its boundary-local kinds,
+boundary-changing kinds when needed, and gluing rules from
+antiholomorphic bulk fields to holomorphic image fields.</li>
+
+<li>Extend <a href="../org/cft-code/ope/ope.html">OPE</a> so that the public operation called <code>ope</code> is the projected OPE.
+There should not be separate public <code>ope</code> and <code>projectedOpe</code> operations.
+The projection data may ask for a target weight, target insertion point, and
+truncation order.  This is needed for SFT brackets, BRST residues, PCO
+zero-mode actions, and spin-field OPEs.</li>
+
+<li>Extend <a href="../org/cft-code/correlators/correlators.html">Correlators</a> with explicit surface-dependent zero-mode rules and Wick
+kernels.  For example, the \(bc\) system on the sphere and free fields on a
+disk or upper half plane have base cases and propagators that are not
+determined by the operator kinds alone.</li>
+
+<li>Extend <a href="../org/cft-code/basis-generation/basis-generation.html">Basis-Generation</a> with finite projections on generated spectra.
+GSO, orbifold, and orientifold projections should act linearly on the
+generated operator/state basis.</li>
+</ol>
+
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orgc7a73ef" class="outline-2">
+<h2 id="orgc7a73ef"><span class="section-number-2">4.</span> CFT Data Structures</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+<div id="outline-container-orge532b18" class="outline-3">
+<h3 id="orge532b18"><span class="section-number-3">4.1.</span> Theory</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+A theory is a list of sectors and a list of operator kinds.
+</p>
+
+<p>
+Examples of sectors:
+</p>
+
+<ul class="org-ul">
+<li>\(bc\) ghosts;</li>
+<li>the RNS chiral \((\psi^\mu,\phi,\eta,\xi)\) sector, equivalently
+\((\psi^\mu,\beta,\gamma)\) after bosonization;</li>
+<li>free bosons \(X^\mu\);</li>
+<li>heterotic gauge fermions \(\lambda^A\);</li>
+<li>Narain lattice sectors;</li>
+<li>an internal minimal model;</li>
+<li>an abstract interacting CFT.</li>
+</ul>
+
+<p>
+The tensor product of sectors is reflected in the quantum-number list carried
+by each operator kind and each generated operator.  For example, an RNS vertex may
+carry entries for:
+</p>
+
+<ul class="org-ul">
+<li>\(bc\) ghost number;</li>
+<li>picture number;</li>
+<li>fermion number or GSO charge as a finite cyclic \(\mathbb{Z}_N\) entry;</li>
+<li>Lorentz representation;</li>
+<li>internal CFT representation;</li>
+<li>left/right sector labels.</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Sector</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">tactic_preference</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">StrategyId</span>,
+    <span style="color: #83a598;">statistics_rule</span>: <span style="color: #fabd2f;">StatisticsRuleId</span>,
+    <span style="color: #83a598;">cocycle_rule</span>: ?<span style="color: #fabd2f;">CocycleRuleId</span>,
+    <span style="color: #83a598;">pairing_data</span>: ?<span style="color: #fabd2f;">PairingDataId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CFTSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sectors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Sector</span>,
+    <span style="color: #83a598;">operator_kinds</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorKind</span>,
+    <span style="color: #83a598;">quantum_names</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">QuantumName</span>,
+    <span style="color: #83a598;">statistics_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">StatisticsRule</span>,
+    <span style="color: #83a598;">cocycle_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CocycleRule</span>,
+    <span style="color: #83a598;">finite_projections</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">FiniteProjection</span>,
+    <span style="color: #83a598;">lattices</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Lattice</span>,
+    <span style="color: #83a598;">local_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LocalRule</span>,
+    <span style="color: #83a598;">bcfts</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">BCFT</span>,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgf694f4a" class="outline-3">
+<h3 id="orgf694f4a"><span class="section-number-3">4.2.</span> Operator Kind</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+An <code>OperatorKind</code> is a physical kind of local field or primary.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>\(b\), \(c\);</li>
+<li>\(\partial X^\mu\);</li>
+<li>\(e^{ikX}\);</li>
+<li>\(\psi^\mu\);</li>
+<li>\(e^{q\phi}\), \(\eta\), \(\xi\);</li>
+<li>\(S_A\), an R-sector spin field;</li>
+<li>a minimal-model primary \(\phi_i\);</li>
+<li>a pure-spinor variable \(\lambda^\alpha\), \(w_\alpha\), or current.</li>
+</ul>
+
+<p>
+For each operator kind we need:
+</p>
+
+<ul class="org-ul">
+<li>its name;</li>
+<li>its sector;</li>
+<li>whether it is a bulk or boundary operator;</li>
+<li>for bulk operators, whether it is holomorphic, antiholomorphic, or has both
+holomorphic and antiholomorphic support;</li>
+<li>for boundary operators, the support is chiral by construction;</li>
+<li>the data needed by the sector&rsquo;s statistics rule;</li>
+<li>whether repeated identical factors vanish in a regular normal product;</li>
+<li>its conformal weights, fixed or computed from labels such as momentum;</li>
+<li>its list of quantum-number entries;</li>
+<li>which spacetime/internal indices it carries;</li>
+<li>which OPE/correlator strategies it supports.</li>
+</ul>
+
+<p>
+The phrase &ldquo;which spacetime/internal indices it carries&rdquo; is meant literally:
+it says what kind of free indices can appear on this operator kind.
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorKind</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">domain</span>: <span style="color: #fabd2f;">OperatorDomain</span>,
+    <span style="color: #83a598;">support</span>: <span style="color: #fabd2f;">ChiralSupport</span>,
+    <span style="color: #83a598;">statistics</span>: <span style="color: #fabd2f;">StatisticsData</span>,
+    <span style="color: #83a598;">regular_square_zero</span>: <span style="color: #fabd2f;">bool</span>,
+    <span style="color: #83a598;">weights</span>: <span style="color: #fabd2f;">WeightData</span>,
+    <span style="color: #83a598;">quantum_numbers</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">QuantumEntry</span>,
+    <span style="color: #83a598;">indices</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">IndexSlot</span>,
+    <span style="color: #83a598;">strategies</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">StrategyId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorDomain</span> = <span style="color: #fb4934;">enum</span> {
+    bulk,
+    boundary,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ChiralSupport</span> = <span style="color: #fb4934;">enum</span> {
+    holomorphic,
+    antiholomorphic,
+    holomorphic_antiholomorphic,
+};
+</code></pre>
+</div>
+
+<p>
+Here <code>indices</code> is physical data.  For \(\partial X^\mu\) it says &ldquo;one vector
+index&rdquo;.  For \(S_A\) it says &ldquo;one spinor index&rdquo;.  For \(e^{ikX}\) it says &ldquo;no
+free tensor index, but extra data stores the momentum&rdquo;.
+</p>
+
+<p>
+The two axes should not be collapsed.  A bulk kind may be purely holomorphic
+like \(\partial X^\mu(z)\), purely antiholomorphic like
+\(\bar\partial X^\mu(\bar z)\), or mixed like
+\(:e^{ikX(z,\bar z)}:\).  A boundary kind lives on the boundary coordinate
+and is chiral in the boundary CFT.  Boundary conditions decide which boundary
+kinds exist; they are not encoded in <code>OperatorDomain</code> or <code>ChiralSupport</code>.
+</p>
+
+<p>
+<code>statistics</code> is not just a fixed \(\mathbb{Z}_2\) flag.  The sector interprets
+it.  In the RNS \((\psi,\phi,\eta,\xi)\) sector, for example,
+\(\psi^\mu\), \(\eta\), and \(\xi\) are odd, while \(e^{q\phi}\) is odd for
+odd integral \(q\) and even for even integral \(q\).  Half-integral charges
+need the sector&rsquo;s cocycle rule to fix phases.  This cannot be represented by a
+single boolean stored on the operator kind.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb6b6bf6" class="outline-3">
+<h3 id="orgb6b6bf6"><span class="section-number-3">4.3.</span> Strategy Selection</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+There is no separate class of operators that the OPE engine tries to peel off
+before choosing an algorithm.
+</p>
+
+<p>
+Each operator kind says which OPE/correlator strategies it supports.  Each
+sector gives a preference order for strategies.  When the kernel is asked to
+evaluate operators from one sector, it chooses the first strategy in the
+sector&rsquo;s preference list that is supported by every operator from that sector.
+</p>
+
+<p>
+Examples of strategies:
+</p>
+
+<ul class="org-ul">
+<li>Wick;</li>
+<li>bosonize then Wick;</li>
+<li>basis plus pairing;</li>
+<li>abstract selection-rule filtering.</li>
+</ul>
+
+<p>
+If an input contains operators from several sectors, the kernel groups them by
+sector, chooses the strategy independently in each sector, evaluates each
+sector factor, and then multiplies the sector results with the required signs
+and tensor/coordinate coefficients.
+</p>
+</div>
+</div>
+<div id="outline-container-org1d3ef19" class="outline-3">
+<h3 id="org1d3ef19"><span class="section-number-3">4.4.</span> Sector Couplings</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+A sector is allowed to couple operator kinds that should not be split into
+independent CFT factors.
+</p>
+
+<p>
+The main example is the RNS matter-fermion plus superghost system.  Abstractly,
+the \(\beta\gamma\) system is tied by GSO and cocycles to the free fermions.
+The admissible physical R-sector ground states are not just \(\psi\) states or
+\(\phi\) states separately, but combinations such as
+\[
+  e^{-\phi/2}\Theta_A .
+\]
+Likewise the NS vertices include objects such as
+\[
+  :e^{-\phi}\psi^\mu: .
+\]
+</p>
+
+<p>
+The sector must still allow subexpressions such as \(\psi^\mu\psi^\nu\) or
+\(e^{2\phi}\) to appear by themselves when a calculation asks for them.  The
+point is only that strategy choice, statistics, cocycles, and GSO projection
+are sector-level data shared by the \(\psi,\phi,\eta,\xi\) operator kinds.
+</p>
+
+<p>
+So the RNS chiral sector should contain at least:
+</p>
+
+<ul class="org-ul">
+<li>\(\psi^\mu\);</li>
+<li>\(\eta,\xi\);</li>
+<li>\(e^{q\phi}\) or an abstract \(\phi\)-exponential kind;</li>
+<li>matter spin fields \(\Theta_A,\Theta_{\dot A}\);</li>
+<li>their normal-ordered products as <code>OperatorBody</code> values.</li>
+</ul>
+
+<p>
+The same principle applies to heterotic gauge sectors.  The \(32\) left-moving
+fermions \(\lambda^A\) form one chiral sector whose GSO projection produces the
+\(SO(32)\) theory.  A different projection on two groups of \(16\) fermions
+produces the \(E_8\times E_8\) theory, with \(SO(16)\times SO(16)\) currents
+and spin fields enhancing the symmetry.
+</p>
+</div>
+</div>
+<div id="outline-container-orga41e862" class="outline-3">
+<h3 id="orga41e862"><span class="section-number-3">4.5.</span> Statistics And Cocycles</h3>
+<div class="outline-text-3" id="text-4-5">
+<p>
+Statistics are sector data evaluated on an <code>OperatorBody</code>.  They are not just
+one boolean field attached to an atomic operator.
+</p>
+
+<p>
+For the RNS chiral sector:
+</p>
+
+<ul class="org-ul">
+<li>\(\psi^\mu\), \(\eta\), and \(\xi\) are odd;</li>
+<li>\(e^{q\phi}\) is odd for odd integral \(q\), even for even integral \(q\);</li>
+<li>half-integral \(\phi\)-charges and spin fields use the sector cocycle rule;</li>
+<li>products such as \(:e^{-\phi}\psi^\mu:\) get their sign from the same
+sector rule, not from multiplying two independent CFT factors.</li>
+</ul>
+
+<p>
+For bosonized fermions and Narain exponentials, the cocycle rule supplies the
+phase in the product of two exponentials.  The kernel stores a small id for
+the generated sector procedure and compact labels for the lattice or bosonized
+charge vectors; the concrete formula is owned by the sector preset.
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">StatisticsRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CocycleRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">bodyParity</span>(<span style="color: #83a598;">spec</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CFTSpec</span>, <span style="color: #83a598;">body</span>: <span style="color: #fabd2f;">OperatorBodyId</span>) GrassmannParity;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">cocyclePhase</span>(
+    <span style="color: #83a598;">spec</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CFTSpec</span>,
+    <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">OperatorBodyId</span>,
+    <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">OperatorBodyId</span>,
+) Scalar;
+</code></pre>
+</div>
+
+<p>
+This is deliberately small: statistics answers &ldquo;does exchanging these bodies
+produce a minus sign?&rdquo;, while the cocycle answers &ldquo;what phase multiplies the
+bosonized or lattice exponential product?&rdquo;.  The public API does not expose
+these procedures; <code>normalOrdered</code>, <code>ope</code>, and <code>correlator</code> call them internally.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc8b8f1e" class="outline-3">
+<h3 id="orgc8b8f1e"><span class="section-number-3">4.6.</span> Lattice And Bosonized Labels</h3>
+<div class="outline-text-3" id="text-4-6">
+<p>
+Some atomic bodies need labels in addition to their kind.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>\(e^{q\phi}\) carries the rational label \(q\);</li>
+<li>\(e^{ikX}\) carries the momentum \(k\);</li>
+<li>\(e^{i s_a H^a}\) for an \(SO(10)\) spin field carries a five-entry
+half-integral spin weight;</li>
+<li>a Narain operator \({\cal O}_k\) carries a lattice vector \(k\in\Gamma\);</li>
+<li>derivatives carry derivative labels.</li>
+</ul>
+
+<p>
+These are labels of the atomic body, not new public API operations.  In
+storage, the <code>ExtraId</code> on <code>AtomicBody</code> points to a compact list of labels.
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">BodyLabel</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    none,
+    <span style="color: #83a598;">rational_charge</span>: <span style="color: #fabd2f;">Rational</span>,
+    <span style="color: #83a598;">momentum</span>: <span style="color: #fabd2f;">MomentumId</span>,
+    <span style="color: #83a598;">bosonized_weight</span>: <span style="color: #fabd2f;">ChargeVectorId</span>,
+    <span style="color: #83a598;">lattice_vector</span>: <span style="color: #fabd2f;">LatticeVectorId</span>,
+    <span style="color: #83a598;">derivative</span>: <span style="color: #fabd2f;">DerivativeLabel</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Lattice</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">rank_left</span>: <span style="color: #fabd2f;">u16</span>,
+    <span style="color: #83a598;">rank_right</span>: <span style="color: #fabd2f;">u16</span>,
+    <span style="color: #83a598;">gram</span>: <span style="color: #fabd2f;">MatrixId</span>,
+    <span style="color: #83a598;">basis_vectors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LatticeVectorId</span>,
+    <span style="color: #83a598;">cocycle</span>: <span style="color: #fabd2f;">CocycleRuleId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For a Narain sector, <code>basis</code> enumerates allowed lattice vectors and oscillator
+decorations subject to the query.  The OPE of two lattice exponentials adds
+their lattice vectors and multiplies by the cocycle phase and coordinate
+factor.  This is enough for \(\Gamma_{16}\), \(\Gamma_8\oplus\Gamma_8\), and
+ordinary toroidal Narain models.
+</p>
+</div>
+</div>
+<div id="outline-container-orga3d10d0" class="outline-3">
+<h3 id="orga3d10d0"><span class="section-number-3">4.7.</span> Quantum Numbers</h3>
+<div class="outline-text-3" id="text-4-7">
+<p>
+Quantum numbers are a list.  This is how tensor products are represented in the
+CFT layer.
+</p>
+
+<p>
+Each entry has a name and a value.
+</p>
+
+<p>
+Examples:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>bc_ghost_number -&gt; +1
+picture -&gt; -1
+GSO -&gt; 1 mod 2
+orbifold_sector -&gt; 3 mod 5
+left_lorentz_rep -&gt; chiral_spinor
+right_lorentz_rep -&gt; vector
+minimal_model_primary -&gt; (r,s)
+pure_spinor_ghost_number -&gt; +1
+</code></pre>
+</div>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">QuantumEntry</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: <span style="color: #fabd2f;">QuantumNameId</span>,
+    <span style="color: #83a598;">value</span>: <span style="color: #fabd2f;">QuantumValue</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">QuantumValue</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">integer</span>: <span style="color: #fabd2f;">i32</span>,
+    <span style="color: #83a598;">rational</span>: <span style="color: #fabd2f;">Rational</span>,
+    <span style="color: #83a598;">cyclic</span>: <span style="color: #fabd2f;">CyclicCharge</span>,
+    <span style="color: #83a598;">representation</span>: <span style="color: #fabd2f;">tensor.RepresentationId</span>,
+    <span style="color: #83a598;">label</span>: <span style="color: #fabd2f;">u32</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CyclicCharge</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">value</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">modulus</span>: <span style="color: #fabd2f;">u32</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The CFT kernel only adds, compares, and filters these entries.  The physical
+meaning is supplied by the theory preset or by a client module.
+</p>
+</div>
+</div>
+<div id="outline-container-org47380d0" class="outline-3">
+<h3 id="org47380d0"><span class="section-number-3">4.8.</span> Local Operator</h3>
+<div class="outline-text-3" id="text-4-8">
+<p>
+A local operator is an insertion point together with a body.
+</p>
+
+<p>
+The body is either:
+</p>
+
+<ul class="org-ul">
+<li>the identity;</li>
+<li>one atomic operator kind with labels;</li>
+<li>a normal-ordered product of bodies.</li>
+</ul>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>\(b(z)\);</li>
+<li>\(\partial X^\mu(z)\);</li>
+<li>\(e^{ikX}(z,\bar z)\);</li>
+<li>\(:bc:(z)\);</li>
+<li>\(:e^{-\phi}\psi^\mu:(z)\).</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Operator</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">insertion</span>: <span style="color: #fabd2f;">Insertion</span>,
+    <span style="color: #83a598;">body</span>: <span style="color: #fabd2f;">OperatorBodyId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorBody</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    identity,
+    <span style="color: #83a598;">atomic</span>: <span style="color: #fabd2f;">AtomicBody</span>,
+    <span style="color: #83a598;">normal_ordered</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorBodyId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">AtomicBody</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">labels</span>: <span style="color: #fabd2f;">ExtraId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The body store must canonicalize normal products.  It should:
+</p>
+
+<ul class="org-ul">
+<li>flatten nested normal products;</li>
+<li>move fields into canonical order;</li>
+<li>compute Grassmann signs;</li>
+<li>kill repeated regular fermions;</li>
+<li>merge same-point bosonized exponentials when the theory says they fuse.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org906d37c" class="outline-3">
+<h3 id="org906d37c"><span class="section-number-3">4.9.</span> Multi-Local Operator</h3>
+<div class="outline-text-3" id="text-4-9">
+<p>
+A multi-local operator is just a collection of local operators.
+</p>
+
+<p>
+It has no extra physics beyond the local operators it contains.  It is the
+natural input shape for an OPE or correlator before the algorithm has expanded
+several insertions around one target point or evaluated the vacuum expectation
+value.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>\(b(z)c(w)\);</li>
+<li>\(V_1(z_1,\bar z_1)V_2(z_2,\bar z_2)V_3(z_3,\bar z_3)\);</li>
+<li>the set of placed puncture operators appearing inside an SFT vertex before
+the local OPEs are taken.</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">MultiOp</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">operators</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Operator</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The OPE and correlator APIs should accept this type.  Passing a single local
+operator is the length-one case.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd534bfd" class="outline-3">
+<h3 id="orgd534bfd"><span class="section-number-3">4.10.</span> Domain And Chiral Support</h3>
+<div class="outline-text-3" id="text-4-10">
+<p>
+The kernel should not use one field called <code>locality</code> for two different
+questions.
+</p>
+
+<p>
+The two questions are:
+</p>
+
+<ol class="org-ol">
+<li>Does the operator live in the bulk or on a boundary?</li>
+<li>Which chiral components does the operator use?</li>
+</ol>
+
+<p>
+Examples:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>bulk + holomorphic                  -&gt; b(z), psi^mu(z), dX^mu(z)
+bulk + antiholomorphic              -&gt; bt(zbar), psit^mu(zbar), dXt^mu(zbar)
+bulk + holomorphic_antiholomorphic  -&gt; :exp(i k X(z,zbar)):
+boundary + holomorphic              -&gt; open-string or BCFT boundary field O(x)
+</code></pre>
+</div>
+
+<p>
+Boundary operators are always chiral in the boundary CFT.  Bulk operators may
+be chiral, antichiral, or mixed.  BCFT gluing rules can rewrite an
+antiholomorphic bulk field as a holomorphic image field, but that is an
+operation performed in a BCFT correlator, not a change in the original
+operator kind.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf72d2f2" class="outline-3">
+<h3 id="orgf72d2f2"><span class="section-number-3">4.11.</span> Pairing And Local Data</h3>
+<div class="outline-text-3" id="text-4-11">
+<p>
+The OPE engine is built from basis generation, correlators, and pairing data.
+For free sectors, the correlator strategy may itself use local Wick kernels.
+For abstract or interacting sectors, the correlator strategy may only apply
+selection rules or supplied conformal data.
+</p>
+
+<p>
+Examples:
+</p>
+
+<p>
+\[
+  b(z)c(w) \sim {1 \over z-w},
+\]
+</p>
+
+<p>
+\[
+  \partial X^\mu(z)\partial X^\nu(w)
+  \sim -{\alpha' \over 2}{\eta^{\mu\nu}\over (z-w)^2},
+\]
+</p>
+
+<p>
+\[
+  \partial X^\mu(z)e^{ikX}(w,\bar w)
+  \sim -{i\alpha'\over 2}{k^\mu\over z-w} e^{ikX}(w,\bar w).
+\]
+</p>
+
+<p>
+Free-field correlator data may include short-distance kernels such as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>b c -&gt; 1/(z-w)
+dX dX -&gt; eta/(z-w)^2
+dX expX -&gt; k/(z-w) paired against the same expX body
+</code></pre>
+</div>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">PairingData</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">pairing</span>: <span style="color: #fabd2f;">PairingId</span>,
+    <span style="color: #83a598;">inverse_pairing</span>: <span style="color: #fabd2f;">InversePairingId</span>,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org11c0bc5" class="outline-3">
+<h3 id="org11c0bc5"><span class="section-number-3">4.12.</span> Coefficient</h3>
+<div class="outline-text-3" id="text-4-12">
+<p>
+A coefficient in a CFT calculation is:
+</p>
+
+<ul class="org-ul">
+<li>a scalar;</li>
+<li>a function of insertion-point differences;</li>
+<li>a tensor structure.</li>
+</ul>
+
+<p>
+Examples:
+</p>
+
+<p>
+\[
+  {1\over z-w},
+  \qquad
+  {\eta^{\mu\nu}\over (z-w)^2},
+  \qquad
+  (z-w)^{k_1\cdot k_2}.
+\]
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Coeff</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CoeffTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CoeffTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">scalar</span>: <span style="color: #fabd2f;">Scalar</span>,
+    <span style="color: #83a598;">coordinate_factor</span>: <span style="color: #fabd2f;">CoordinateFactor</span>,
+    <span style="color: #83a598;">tensor_factor</span>: <span style="color: #fabd2f;">tensor.TensorExpr</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The coordinate factor must allow rational powers.
+</p>
+</div>
+</div>
+<div id="outline-container-orge68de89" class="outline-3">
+<h3 id="orge68de89"><span class="section-number-3">4.13.</span> OPE</h3>
+<div class="outline-text-3" id="text-4-13">
+<p>
+The public operation should be called <code>ope</code>, and it should be the projected OPE.
+There should not be a separate public <code>OPE</code> and <code>OPEProjected</code>.
+</p>
+
+<p>
+Input:
+</p>
+
+<ul class="org-ul">
+<li>any number of local operators, usually packaged as a <code>MultiOp</code>;</li>
+<li>projection data, such as target weights and quantum numbers.</li>
+</ul>
+
+<p>
+Output:
+</p>
+
+<ul class="org-ul">
+<li>only those OPE terms that land at the requested weight.</li>
+</ul>
+
+<p>
+The basic strategy for OPE is:
+</p>
+
+<ol class="org-ol">
+<li>use <code>basis</code> to generate candidate output <code>OperatorBody</code> values compatible
+with the requested weights and quantum numbers;</li>
+<li>compute the correlators needed to pair the input <code>MultiOp</code> against the dual
+basis elements;</li>
+<li>use the sector&rsquo;s pairing data, or inverse Gram/BPZ matrix, to solve for the
+OPE coefficients;</li>
+<li>stream the resulting local terms.</li>
+</ol>
+
+<p>
+If the input is multi-local, <code>ope</code> treats it as the product of all its local
+insertions.  There is no need to expose a separate pairwise OPE operation.
+Derivative labels are just part of the operator data used by <code>basis</code>,
+<code>correlator</code>, and the pairing.
+</p>
+
+<p>
+The strategy is chosen sector by sector: all operators in the same sector must
+share the strategy used for that sector, and the sector&rsquo;s preference list
+decides which common strategy is tried first.
+</p>
+
+<p>
+This is the operation needed by:
+</p>
+
+<ul class="org-ul">
+<li>SFT brackets;</li>
+<li>BRST residues;</li>
+<li>PCO zero-mode actions;</li>
+<li>Ramond spin-field OPE projection;</li>
+<li>effective bracket computations.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org3056b27" class="outline-3">
+<h3 id="org3056b27"><span class="section-number-3">4.14.</span> Correlator</h3>
+<div class="outline-text-3" id="text-4-14">
+<p>
+A correlator takes any number of local operators, usually packaged as a
+<code>MultiOp</code>.
+</p>
+
+<p>
+It is evaluated with two independent pieces of data:
+</p>
+
+<ul class="org-ul">
+<li>the Riemann surface or worldsheet geometry;</li>
+<li>the CFT or BCFT sector whose operators are inserted.</li>
+</ul>
+
+<p>
+The surface data says:
+</p>
+
+<ul class="org-ul">
+<li>sphere, plane, torus, upper half plane, disk, or symbolic higher genus;</li>
+<li>spin structure if needed;</li>
+<li>puncture/local-coordinate information if the caller wants to carry it here;</li>
+<li>which zero-mode structure and Wick kernels are used on that surface.</li>
+</ul>
+
+<p>
+The BCFT data says:
+</p>
+
+<ul class="org-ul">
+<li>which boundary condition or boundary sector defines the BCFT;</li>
+<li>which boundary-local operator kinds exist;</li>
+<li>which boundary-changing operator kinds exist, if any;</li>
+<li>what gluing rules should be used for the doubling trick.</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Surface</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">SurfaceKind</span>,
+    <span style="color: #83a598;">spin_structure</span>: ?<span style="color: #fabd2f;">SpinStructureId</span>,
+    <span style="color: #83a598;">wick_kernel_set</span>: <span style="color: #fabd2f;">WickKernelSetId</span>,
+    <span style="color: #83a598;">zero_modes</span>: <span style="color: #fabd2f;">ZeroModeRuleSetId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorContext</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">surface</span>: <span style="color: #fabd2f;">Surface</span>,
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">CorrelatorSector</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorSector</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    bulk_cft,
+    <span style="color: #83a598;">bcft</span>: <span style="color: #fabd2f;">BCFTId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This keeps the Riemann surface separate from the CFT/BCFT sector.  The surface
+mostly changes zero-mode structure and the precise form of Wick kernels.  The
+BCFT sector supplies the boundary operator kinds and gluing data.
+</p>
+</div>
+</div>
+<div id="outline-container-org1237dd5" class="outline-3">
+<h3 id="org1237dd5"><span class="section-number-3">4.15.</span> BCFT And Boundary Operators</h3>
+<div class="outline-text-3" id="text-4-15">
+<p>
+A boundary condition gives a BCFT sector.  That BCFT sector has its own
+boundary-local operator kinds.
+</p>
+
+<p>
+For a single boundary condition \(B\), there is a boundary operator space
+\({\cal H}_{BB}\).  For a pair of boundary conditions \(B_1,B_2\), there may be
+boundary-changing operators in \({\cal H}_{B_1B_2}\).
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">BCFT</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">boundary_conditions</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">BoundaryCondition</span>,
+    <span style="color: #83a598;">boundary_operator_kinds</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">boundary_changing_kinds</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">BoundaryChangingKind</span>,
+    <span style="color: #83a598;">gluing_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">GluingRule</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">BoundaryChangingKind</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">from</span>: <span style="color: #fabd2f;">BoundaryConditionId</span>,
+    <span style="color: #83a598;">to</span>: <span style="color: #fabd2f;">BoundaryConditionId</span>,
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The gluing rules tell the kernel how to rewrite antiholomorphic bulk fields as
+holomorphic image fields when the doubling trick applies.
+</p>
+
+<p>
+For free bosons on a D-brane:
+</p>
+
+<p>
+\[
+  \bar\partial X^\mu(\bar z)
+  \mapsto
+  R^\mu{}_\nu \partial X^\nu(\bar z).
+\]
+</p>
+
+<p>
+For free fermions:
+</p>
+
+<p>
+\[
+  \tilde\psi^\mu(\bar z)
+  \mapsto
+  \eta_B R^\mu{}_\nu \psi^\nu(\bar z).
+\]
+</p>
+
+<p>
+The CFT kernel applies the gluing rule and then calls the ordinary chiral
+correlator/OPE engine.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb87e7fa" class="outline-2">
+<h2 id="orgb87e7fa"><span class="section-number-2">5.</span> Tensor-Code Data Structures</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="outline-container-orgcd22fa6" class="outline-3">
+<h3 id="orgcd22fa6"><span class="section-number-3">5.1.</span> Representation And Index</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+<code>tensor-code</code> needs to know which representation an index belongs to.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>vector index \(\mu\) of \(SO(10)\);</li>
+<li>chiral spinor index \(A\);</li>
+<li>antichiral spinor index \(\dot A\);</li>
+<li>adjoint index \(a\);</li>
+<li>Chan-Paton fundamental index \(i\).</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Representation</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">symmetry</span>: <span style="color: #fabd2f;">SymmetryId</span>,
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">label</span>: <span style="color: #fabd2f;">RepresentationLabel</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorIndex</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">representation</span>: <span style="color: #fabd2f;">RepresentationId</span>,
+    <span style="color: #83a598;">name</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">variance</span>: <span style="color: #fabd2f;">Variance</span>,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgeae7e90" class="outline-3">
+<h3 id="orgeae7e90"><span class="section-number-3">5.2.</span> Tensor Structure</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+A tensor structure is a sum of products of invariant tensors.
+</p>
+
+<p>
+Examples:
+</p>
+
+<p>
+\[
+  \eta^{\mu\nu},
+  \qquad
+  (\Gamma^\mu C)_{AB},
+  \qquad
+  \eta^{\mu\nu}\eta^{\rho\sigma}
+  -\eta^{\mu\rho}\eta^{\nu\sigma},
+  \qquad
+  \epsilon_{\mu_1\ldots\mu_{10}}.
+\]
+</p>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorExpr</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">scalar</span>: <span style="color: #fabd2f;">Scalar</span>,
+    <span style="color: #83a598;">factors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorFactor</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorFactor</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">metric</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">TensorIndexId</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">TensorIndexId</span> },
+    <span style="color: #83a598;">delta</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">TensorIndexId</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">TensorIndexId</span> },
+    <span style="color: #83a598;">epsilon</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorIndexId</span>,
+    <span style="color: #83a598;">gamma_antisym</span>: <span style="color: #fabd2f;">GammaAntisym</span>,
+    <span style="color: #83a598;">generator</span>: <span style="color: #fabd2f;">GeneratorTensor</span>,
+    <span style="color: #83a598;">clebsch_gordan</span>: <span style="color: #fabd2f;">ClebschGordanTensor</span>,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org6aab34b" class="outline-3">
+<h3 id="org6aab34b"><span class="section-number-3">5.3.</span> Invariant Tensor Generation</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+The central problem for Type II R-sector amplitudes is:
+</p>
+
+<p>
+Given external vector and spinor indices, generate all invariant tensors that
+can appear, then choose an independent basis.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>two spinor indices and one vector index give gamma-matrix structures;</li>
+<li>many spinor/vector indices give products of gamma matrices and metrics;</li>
+<li>amplitude calculations may require a very large invariant basis.</li>
+</ul>
+
+<p>
+Implementation sketch:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">InvariantProblem</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">external_indices</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorIndexId</span>,
+    <span style="color: #83a598;">required_symmetries</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">SymmetryId</span>,
+    <span style="color: #83a598;">symmetry_conditions</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorSymmetryCondition</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The API should be:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">generateInvariants</span>(<span style="color: #83a598;">problem</span>: <span style="color: #fabd2f;">InvariantProblem</span>, <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">Sink</span>(TensorExpr)) !<span style="color: #fabd2f;">void</span>;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">selectIndependent</span>(<span style="color: #83a598;">candidates</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorExpr</span>, <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">Sink</span>(TensorExpr)) !<span style="color: #fabd2f;">void</span>;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">solveInBasis</span>(<span style="color: #83a598;">basis</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">TensorExpr</span>, <span style="color: #83a598;">target</span>: <span style="color: #fabd2f;">TensorExpr</span>) !LinearSolution;
+</code></pre>
+</div>
+
+<p>
+The first serious target should be ten-dimensional vector/spinor structures for
+Type II flat space.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org82fd90b" class="outline-2">
+<h2 id="org82fd90b"><span class="section-number-2">6.</span> Stress Tests</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+These examples are the check that the data structures are broad enough without
+becoming a large public API.
+</p>
+</div>
+<div id="outline-container-orgeb51858" class="outline-3">
+<h3 id="orgeb51858"><span class="section-number-3">6.1.</span> RNS Chiral Sector</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+The holomorphic RNS matter-fermion plus superghost sector should be one sector,
+not a tensor product of an independent \(\psi\) sector and an independent
+\(\phi,\eta,\xi\) sector.
+</p>
+
+<p>
+Atomic kinds:
+</p>
+
+<ul class="org-ul">
+<li>\(\psi^\mu\), with one Lorentz-vector index;</li>
+<li>\(\eta\) and \(\xi\);</li>
+<li>\(e^{q\phi}\), with rational charge label \(q\);</li>
+<li>\(\Theta_A\) and \(\Theta_{\dot A}\), with spinor index and optional
+bosonized \(H\)-weight labels.</li>
+</ul>
+
+<p>
+Normal bodies:
+</p>
+
+<ul class="org-ul">
+<li>\(:e^{-\phi}\psi^\mu:\);</li>
+<li>\(e^{-\phi/2}\Theta_A\);</li>
+<li>\(\psi^\mu\psi^\nu\);</li>
+<li>\(e^{2\phi}\).</li>
+</ul>
+
+<p>
+This directly matches the physics: physical RNS states are selected by a GSO
+projection on the combined \((\psi,\beta,\gamma)\) system, while intermediate
+operator bodies may still contain only the \(\psi\) part or only the
+\(\phi,\eta,\xi\) part.
+</p>
+
+<p>
+The sector owns:
+</p>
+
+<ul class="org-ul">
+<li>the Wick kernels for \(\psi^\mu\psi^\nu\), \(\eta\xi\), and \(\phi\phi\);</li>
+<li>the statistics rule for \(\psi,\eta,\xi,e^{q\phi}\);</li>
+<li>the cocycle rule for half-integral \(\phi\) charges and spin fields;</li>
+<li>the finite GSO projection used by <code>basis</code>.</li>
+</ul>
+
+<p>
+No extra public operation is needed.
+</p>
+</div>
+</div>
+<div id="outline-container-org7f11e05" class="outline-3">
+<h3 id="org7f11e05"><span class="section-number-3">6.2.</span> SO(10) Spin Fields</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+The ten matter fermions can be bosonized by five \(H^a\)&rsquo;s.  A spin field has
+weights \(s_a=\pm 1/2\) and body label \(s=(s_0,\ldots,s_4)\), while
+<code>tensor-code</code> records whether its free index is chiral or antichiral.
+</p>
+
+<p>
+The CFT part computes coordinate powers and cocycle phases.  The tensor part
+expresses the answer in invariant tensors such as
+</p>
+
+<p>
+\[
+  (\Gamma^{\mu_1\ldots\mu_p}C)_{AB}.
+\]
+</p>
+
+<p>
+The important split is:
+</p>
+
+<ul class="org-ul">
+<li>CFT labels know the bosonized \(H\)-charges used for contractions;</li>
+<li>tensor indices know \(SO(10)\) vector, chiral-spinor, and antichiral-spinor
+representations;</li>
+<li><code>basis</code> generates candidate spin-field descendants by weight and quantum
+numbers;</li>
+<li><code>ope</code> solves their coefficients by correlator pairing.</li>
+</ul>
+
+<p>
+This covers the prototype spin-field machinery without copying its old
+algorithm-specific organization.
+</p>
+</div>
+</div>
+<div id="outline-container-org3e3d03a" class="outline-3">
+<h3 id="org3e3d03a"><span class="section-number-3">6.3.</span> Heterotic SO(32)</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+The \(32\) left-moving fermions \(\lambda^A\) are one chiral gauge sector.
+</p>
+
+<p>
+Atomic kinds:
+</p>
+
+<ul class="org-ul">
+<li>\(\lambda^A\), with an \(SO(32)\) vector index.</li>
+</ul>
+
+<p>
+Normal bodies:
+</p>
+
+<ul class="org-ul">
+<li>\(j^{AB}=:\lambda^A\lambda^B:\), represented as an <code>OperatorBody</code> with two
+antisymmetric vector indices, or as a named current kind if a preset wants a
+shorter basis.</li>
+</ul>
+
+<p>
+The \(SO(32)\) GSO projection is a finite projection in <code>BasisQuery</code>.  The
+sector&rsquo;s Wick strategy contracts \(\lambda^A\lambda^B\) with \(\delta^{AB}\)
+and uses the sector statistics rule for signs.  <code>tensor-code</code> supplies the
+vector and adjoint representation data.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfd948af" class="outline-3">
+<h3 id="orgfd948af"><span class="section-number-3">6.4.</span> Heterotic E8xE8</h3>
+<div class="outline-text-3" id="text-6-4">
+<p>
+The same \(32\) real fermions can be split into two groups of \(16\) with
+separate fermion parities.  The resulting CFT contains
+\(SO(16)\times SO(16)\) currents and weight-one spin fields that enhance the
+symmetry to \(E_8\times E_8\).
+</p>
+
+<p>
+There are two equivalent presets:
+</p>
+
+<ol class="org-ol">
+<li>Free-fermion preset:
+<code>lambda</code> remains the atomic kind, and <code>basis</code> applies the two finite GSO
+projections.  Spin fields are atomic kinds with \(SO(16)\) spinor indices
+and bosonized charge labels.</li>
+
+<li>Narain-lattice preset:
+the gauge sector is a rank-16 chiral lattice CFT with lattice
+\(\Gamma_8\oplus\Gamma_8\).  The atomic exponential kind carries a
+<code>lattice_vector</code> label.  Currents are root-vector exponentials and Cartan
+derivatives.</li>
+</ol>
+
+<p>
+Both presets use the same public API.  They differ only in sector data,
+operator kinds, labels, and cocycle rule.
+</p>
+</div>
+</div>
+<div id="outline-container-org358959c" class="outline-3">
+<h3 id="org358959c"><span class="section-number-3">6.5.</span> Narain Cocycles</h3>
+<div class="outline-text-3" id="text-6-5">
+<p>
+A Narain exponential is an atomic body with a lattice-vector label:
+</p>
+
+<p>
+\[
+  {\cal O}_k = :e^{i k_L X_L+i k_R X_R}: .
+\]
+</p>
+
+<p>
+The OPE adds labels:
+</p>
+
+<p>
+\[
+  {\cal O}_k(z){\cal O}_{k'}(w)
+  \sim
+  \epsilon(k,k') (z-w)^{k_L\cdot k'_L}
+  (\bar z-\bar w)^{k_R\cdot k'_R}
+  {\cal O}_{k+k'}(w).
+\]
+</p>
+
+<p>
+The kernel does not need to know why \(\Gamma_{16}\) and
+\(\Gamma_8\oplus\Gamma_8\) are the two rank-16 cases.  It only needs the
+lattice, the bilinear form, and the cocycle rule.  The theory preset enforces
+integrality, evenness, self-duality, and the finite projections appropriate to
+the string model.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org65bcab6" class="outline-2">
+<h2 id="org65bcab6"><span class="section-number-2">7.</span> Public CFT API</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+The public API should be small and physics-oriented.  It should not grow
+one-off helpers such as a separate doubling operation.  Boundary doubling is an
+implementation of <code>ope</code> or <code>correlator</code> when the selected sector is a BCFT.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorBodyStore</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">atomic</span>(<span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>, <span style="color: #83a598;">labels</span>: <span style="color: #fabd2f;">ExtraId</span>) !OperatorBodyId;
+    <span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">normalOrdered</span>(<span style="color: #83a598;">factors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorBodyId</span>) !CanonicalOperatorBody;
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OpeProjection</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">target_weights</span>: ?<span style="color: #fabd2f;">ConformalWeights</span>,
+    <span style="color: #83a598;">quantum_constraints</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">QuantumConstraint</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">ope</span>(
+    <span style="color: #83a598;">operators</span>: <span style="color: #fabd2f;">MultiOp</span>,
+    <span style="color: #83a598;">projection</span>: <span style="color: #fabd2f;">OpeProjection</span>,
+    <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">Sink</span>(LocalTerm),
+) !<span style="color: #fabd2f;">void</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">correlator</span>(
+    <span style="color: #83a598;">context</span>: <span style="color: #fabd2f;">CorrelatorContext</span>,
+    <span style="color: #83a598;">operators</span>: <span style="color: #fabd2f;">MultiOp</span>,
+    <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">Sink</span>(Coeff),
+) !<span style="color: #fabd2f;">void</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">basis</span>(
+    <span style="color: #83a598;">query</span>: <span style="color: #fabd2f;">BasisQuery</span>,
+    <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">Sink</span>(BasisState),
+) !<span style="color: #fabd2f;">void</span>;
+</code></pre>
+</div>
+
+<p>
+Internally these functions should be methods on a generated theory type.  The
+external meaning is still the physics list above.
+</p>
+
+<p>
+<code>BasisQuery</code> should include weight conditions, quantum-number conditions, and
+optional finite projections.  It should also allow optional <code>domain</code> and
+<code>support</code> filters, so a client can ask separately for bulk holomorphic, bulk
+antiholomorphic, bulk mixed, or boundary chiral candidates.  That keeps
+projection as data, not another public verb.
+</p>
+</div>
+</div>
+<div id="outline-container-org7e69501" class="outline-2">
+<h2 id="org7e69501"><span class="section-number-2">8.</span> How Future Modules Use It</h2>
+<div class="outline-text-2" id="text-8">
+</div>
+<div id="outline-container-org4137d9f" class="outline-3">
+<h3 id="org4137d9f"><span class="section-number-3">8.1.</span> On-Shell RNS</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+On-shell RNS code supplies:
+</p>
+
+<ul class="org-ul">
+<li>vertex operators;</li>
+<li>ghost and picture constraints;</li>
+<li>GSO projection;</li>
+<li>PCO insertion prescription;</li>
+<li>integration over moduli.</li>
+</ul>
+
+<p>
+It calls <code>cft-code</code> for OPEs and correlators.  Here <code>ope</code> already means the
+projected OPE operation computed from candidate bodies, correlators, and
+pairing data.
+It calls <code>tensor-code</code> for Lorentz and spinor tensor algebra.
+</p>
+</div>
+</div>
+<div id="outline-container-orgae6bfad" class="outline-3">
+<h3 id="orgae6bfad"><span class="section-number-3">8.2.</span> SFT</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+SFT code supplies:
+</p>
+
+<ul class="org-ul">
+<li>local coordinate maps;</li>
+<li>\(b\)-ghost mode insertions;</li>
+<li>BRST operator;</li>
+<li>BPZ pairing;</li>
+<li>propagators;</li>
+<li>bracket/vertex prescriptions.</li>
+</ul>
+
+<p>
+It calls <code>ope</code> and <code>correlator</code> after placing operators with its local
+coordinate data.  The placed operators are naturally passed as a <code>MultiOp</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orga84cc37" class="outline-3">
+<h3 id="orga84cc37"><span class="section-number-3">8.3.</span> NLSM</h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+NLSM code supplies:
+</p>
+
+<ul class="org-ul">
+<li>target-space geometry;</li>
+<li>background-field expansion;</li>
+<li>regulator;</li>
+<li>counterterms and beta functions.</li>
+</ul>
+
+<p>
+It uses CFT operator kinds for fluctuation fields and background profiles, and uses
+<code>tensor-code</code> for target-index contractions such as curvature and \(H\)-flux
+tensors.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcf7a7d8" class="outline-3">
+<h3 id="orgcf7a7d8"><span class="section-number-3">8.4.</span> Pure Spinor</h3>
+<div class="outline-text-3" id="text-8-4">
+<p>
+Pure-spinor code supplies:
+</p>
+
+<ul class="org-ul">
+<li>constrained pure-spinor variables;</li>
+<li>BRST operator;</li>
+<li>quotient/gauge equivalence data;</li>
+<li>regularization of the \(AdS_5\times S^5\) sigma model.</li>
+</ul>
+
+<p>
+It uses <code>cft-code</code> for local OPE steps and <code>tensor-code</code> for representation
+constraints and invariant tensors.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org3760572" class="outline-2">
+<h2 id="org3760572"><span class="section-number-2">9.</span> First Milestone</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+The first milestone should be concrete:
+</p>
+
+<ol class="org-ol">
+<li>Define \(bc\), \(X^\mu\), and one combined RNS
+\((\psi^\mu,\phi,\eta,\xi)\) sector.</li>
+<li>Compute normal free-field OPEs with coefficients carrying tensor structures.</li>
+<li>Compute projected OPEs through the single public <code>ope</code> operation using
+basis generation, correlators, and pairing data.</li>
+<li>Generate a small R-sector spin-field tensor basis using gamma matrices.</li>
+<li>Solve one spin-field projected OPE in that tensor basis.</li>
+<li>Define a simple D-brane BCFT with boundary operator kinds and gluing
+rules, then derive one upper-half-plane two-point function using the
+surface-specific Wick kernel.</li>
+<li>Define a heterotic gauge-sector preset: first \(SO(32)\) with
+\(\lambda^A\), then either the free-fermion or Narain version of
+\(E_8\times E_8\).</li>
+</ol>
+
+<p>
+If this works, the data structures are strong enough for the next layer of
+on-shell RNS and SFT work without baking those layers into the CFT kernel.
+</p>
+</div>
+</div>
+<div id="outline-container-org643fcdc" class="outline-2">
+<h2 id="org643fcdc"><span class="section-number-2">10.</span> API Review</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+The proposed <code>cft-code</code> public surface is deliberately small:
+</p>
+
+<ul class="org-ul">
+<li><code>OperatorBodyStore.atomic</code> and <code>OperatorBodyStore.normalOrdered</code> construct <code>OperatorBody</code>
+values.</li>
+<li><code>ope</code> computes the projected OPE of any <code>MultiOp</code> using candidate bodies,
+correlators, and pairing data.</li>
+<li><code>correlator</code> evaluates any <code>MultiOp</code> in a surface and CFT/BCFT sector.</li>
+<li><code>basis</code> streams operator/state candidates satisfying a query.</li>
+</ul>
+
+<p>
+This is concise because it avoids extra verbs for special cases:
+</p>
+
+<ul class="org-ul">
+<li>no separate <code>projectedOpe</code>, because public <code>ope</code> is already projected;</li>
+<li>no Taylor operation yet, because OPE is proposed through <code>basis</code>,
+<code>correlator</code>, and pairing data; derivative labels are already part of local
+operators;</li>
+<li>no separate <code>projectBasis</code>, because finite projections belong in
+<code>BasisQuery</code>;</li>
+<li>no <code>doubleBulkInsertion</code> or boundary-doubling helper, because gluing is how
+<code>ope</code> and <code>correlator</code> operate in a BCFT sector.</li>
+</ul>
+
+<p>
+This is still complete enough because clients can build higher operations from
+these pieces:
+</p>
+
+<ul class="org-ul">
+<li>BRST and PCO actions are residues/projections of OPEs with specified
+operator bodies.</li>
+<li>SFT brackets are local-coordinate placement followed by <code>ope</code> and
+<code>correlator</code>.</li>
+<li>On-shell amplitudes are correlators plus moduli integration supplied by the
+client.</li>
+<li>Boundary and orientifold calculations are BCFT sectors, finite projections,
+and surface-dependent kernels.</li>
+<li>R-sector computations use <code>basis</code> together with <code>tensor-code</code> invariant
+generation and solving.</li>
+<li>Heterotic gauge sectors are either free-fermion sectors with GSO projections
+or Narain lattice sectors with cocycles; both use the same three public
+operations.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgeb7aceb" class="outline-2">
+<h2 id="orgeb7aceb"><span class="section-number-2">11.</span> Summary</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+The corrected design is:
+</p>
+
+<ul class="org-ul">
+<li>CFT tensor products are quantum-number lists.</li>
+<li>Sectors may intentionally couple fields, as in the combined RNS
+\((\psi,\phi,\eta,\xi)\) sector.</li>
+<li>A local operator is an insertion plus a body.</li>
+<li>A normal product is a canonical <code>OperatorBody</code>, not a new <code>OperatorKind</code>.</li>
+<li>Each <code>OperatorKind</code> declares supported strategies; each sector ranks strategies.</li>
+<li>OPE/correlator evaluation chooses the best common strategy sector by sector.</li>
+<li>Statistics and cocycles are sector-level rules evaluated on bodies and their
+labels.</li>
+<li>A CFT coefficient is a coordinate factor times a tensor structure.</li>
+<li>OPE is computed from candidate output bodies, correlators, and pairing data.</li>
+<li>The public OPE operation is the projected OPE.</li>
+<li>OPEs and correlators accept any number of local operators, usually through a
+<code>MultiOp</code>.</li>
+<li>Surface data selects zero-mode structure and Wick kernels.</li>
+<li>BCFT data supplies boundary operator kinds, boundary-changing kinds,
+and gluing rules.</li>
+<li>Tensor-code is the engine for invariant spacetime/internal tensor structures.</li>
+<li>Narain lattice data is internal sector data, not another public API layer.</li>
+</ul>
+
+<p>
+This is the smallest kernel that still reaches on-shell RNS, SFT, NLSM, and
+pure-spinor applications.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 11:55</p>
+</div>
+</body>
+</html>

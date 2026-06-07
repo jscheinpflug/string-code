@@ -1,0 +1,21 @@
+:PROPERTIES:
+:ID:       20260605T075909.433647
+:END:
+#+title: Tensor-Code
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/tensor-code.zig :mkdirp yes
+
+#+api:
+
+This module handles the representation theory of different [[id:20260606T085016.945165][Symmetry]] algebras necessary for the calculations in other accompanying modules. Its killer feature is an extremely efficient generator of [[id:20260606T085254.829431][Clebsch-Gordan]] coefficients, but it also defines some basic invariant tensors, their canonicalization (of indices).
+
+The public module exposes only the two tensor-code boundaries.  Clients use
+[[id:20260606T085016.945165][Symmetry]] for representation data and [[id:20260606T150001.000000][Tensor Kernel]] for tensor-expression handles
+and streaming invariant sources consumed by [[id:20260603T063945.054265][CFT-Code]].
+
+#+begin_src zig
+/// symmetry exposes compact Lie-algebra and representation data.
+pub const symmetry = @import("symmetry.zig");
+/// kernel exposes tensor expression handles and streamed invariant sources.
+pub const kernel = @import("kernel.zig");
+#+end_src

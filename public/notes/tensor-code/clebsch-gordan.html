@@ -1,0 +1,1201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clebsch-Gordan</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Clebsch-Gordan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgc864cfe">Goals</a></li>
+<li><a href="#orga6576fc">Non-Solutions</a></li>
+<li><a href="#org984db90">Weasel Modes And Required Evidence</a></li>
+<li><a href="#orgbeabb5d">Independence By Construction</a></li>
+<li><a href="#orgdbb0ac3">Implementation Instructions</a></li>
+<li><a href="#org864e8d9">Current State</a></li>
+<li><a href="#org5fdf502">Backend Goal</a></li>
+<li><a href="#orge2da967">Backend Build Order</a>
+<ul>
+<li><a href="#orgb2e6cf2">1. Backend registry</a></li>
+<li><a href="#org77b0402">2. Root-data helpers</a></li>
+<li><a href="#org4a54cc7">3. Weight storage</a></li>
+<li><a href="#org77271a5">4. Weight-system generator</a></li>
+<li><a href="#orgd0cf4d4">5. Tensor-product decomposition</a></li>
+<li><a href="#orgdb63b27">6. Decomposition cache integration</a></li>
+<li><a href="#orga2eeb68">7. Projector identities and expansion obligations</a></li>
+<li><a href="#orged4dddf">8. Backend capability implementation</a></li>
+<li><a href="#org83750e4">9. Expansion stream and filters</a></li>
+</ul>
+</li>
+<li><a href="#orgb4f8440">Compute Model</a></li>
+<li><a href="#org56eb4f6">Data-Oriented Constraints</a></li>
+<li><a href="#org5bbd7e8">Explicit Non-Goals For First Backend</a></li>
+<li><a href="#orgc1e003e">Definition Of Done</a></li>
+</ul>
+</div>
+</div>
+<p>
+This node is the handoff for implementing the tensor-code backend that will
+eventually generate Clebsch-Gordan data and invariant tensor bases.  The first
+backend milestone is not explicit CG coefficients.  It is a reliable,
+generic, cached decomposition engine:
+\[
+  R\otimes S = \bigoplus_T m_T T.
+\]
+The CG generator will consume these decompositions to enumerate coupling paths
+to a target representation, usually the singlet \(\mathbf 1\).
+</p>
+<div id="outline-container-orgc864cfe" class="outline-2">
+<h2 id="orgc864cfe">Goals</h2>
+<div class="outline-text-2" id="text-orgc864cfe">
+<p>
+The implementation must follow <a href="../../AGENTS.md">AGENTS.md</a>:
+</p>
+
+<ul class="org-ul">
+<li>write simple explicit procedural Zig;</li>
+<li>design lean data structures first;</li>
+<li>avoid large intermediate symbolic expressions;</li>
+<li>keep data flows parallelizable;</li>
+<li>expose the bare minimum public API;</li>
+<li>keep the CFT-facing API in <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>;</li>
+<li>keep internal backend/decomposition/projector details out of the public root
+unless a caller actually needs them;</li>
+<li>document the implementation in org-roam nodes and keep prose concise.</li>
+</ul>
+
+<p>
+The mathematical and product requirements are:
+</p>
+
+<ul class="org-ul">
+<li>support \(A_n\) for \(SU(N)\);</li>
+<li>support \(B_n,D_n\) for \(SO(N)\) and \(Spin(N)\);</li>
+<li>support \(E_6,E_7,E_8\), with \(E_8\) a key target;</li>
+<li>do not overfocus the architecture on \(SO(10)\), even though \(Spin(10)\)
+is the main stress test;</li>
+<li>identify irreps by Dynkin labels, not dimensions;</li>
+<li>treat multiplicities as first-class channel copies;</li>
+<li>distinguish abstract irreps from concrete index realizations;</li>
+<li>support constrained realizations such as \(144\subset 10\otimes16\) without
+carrying the full ambient tensor product through every internal step;</li>
+<li>represent large invariant bases as compact coupling paths, not dense tensor
+components;</li>
+<li>render explicit gamma/projector formulas only on demand and by streaming
+terms to a sink;</li>
+<li>make every projector appearing in a returned result fully expandable.</li>
+</ul>
+
+<p>
+The goals are concrete:
+</p>
+
+<ol class="org-ol">
+<li>Abstract representation theory must be correct first.  Irreps are Dynkin
+labels; decompositions have explicit multiplicities; channels are not
+identified by dimension.</li>
+<li>Large invariant bases must be stored as compact coupling paths.  A basis
+element is a recipe: external legs, intermediate channels, and local
+projector/CG kernel ids.</li>
+<li>Projectors in returned results must not be opaque tokens.  A projector id
+may be the compact storage form, but it must carry enough derivation data to
+expand into concrete symbolic terms later.</li>
+<li>Expansion must be streamed.  Fully expandable does not mean eagerly
+expanded.  It means the renderer can enumerate the terms without inventing
+missing identities or asking the user for hidden Fierz relations.</li>
+<li>The runnable target is not merely obtaining \(73744\) abstract basis
+expressions.  The runnable target is also being able to expand each selected
+basis element through a caller-supplied filter, and for the resulting stream
+to be consumed at high throughput by CFT/correlator code.</li>
+<li>Filters are part of the execution model.  They may discard terms by index
+support, operator kind, realization leg, component assignment, symmetry,
+coefficient class, or target downstream contraction.  The renderer must
+apply filters while streaming, not after materializing the full expansion.
+Partial filtering must be sound: a partial product may be rejected only
+when no completion can survive.  Otherwise the filter must return
+<code>undecided</code> and the expansion continues.</li>
+<li>Coupling-tree policy is part of the basis convention.  Build one canonical
+tree first, and certify independence for that tree.  Multiple trees are
+different bases unless a basis-change or reduction map is explicitly
+constructed.</li>
+<li>Fierz and projector identities must be derived from the backend
+construction: channel decomposition, idempotent splitting, highest-weight
+solvers, Casimir separation where valid, and explicit residual linear
+algebra only when necessary.  They are not user-supplied tables.</li>
+<li>Compute estimates must include projector expansion cost.  Counting coupling
+paths alone is insufficient if each path contains a projector whose
+expansion is large.</li>
+</ol>
+
+<p>
+The motivating stress target remains:
+\[
+  \dim\operatorname{Hom}_{Spin(10)}(\mathbf 1,16^{12}) = 73744.
+\]
+Those \(73744\) objects should be records describing coupling paths and local
+projector ids.  They should not be expanded into component tensors during basis
+enumeration.  However, every projector id in those paths must be traceable to
+a stored expansion procedure.  When the caller asks for concrete notation,
+rendering should stream terms built from metrics, epsilons, named operators,
+gamma-like backend operators, or projector blocks.  The stream must be
+filterable as it is produced.  A successful implementation is one where a
+downstream consumer can iterate through selected expanded terms without waiting
+for the full expansion of all \(73744\) invariants to be allocated.
+</p>
+</div>
+</div>
+<div id="outline-container-orga6576fc" class="outline-2">
+<h2 id="orga6576fc">Non-Solutions</h2>
+<div class="outline-text-2" id="text-orga6576fc">
+<p>
+The following are explicitly not acceptable:
+</p>
+
+<ul class="org-ul">
+<li>Returning only abstract representation-theory counts.  Counts are useful for
+feasibility, but CFT code needs actual invariant handles and eventually
+streamable tensor expressions.</li>
+<li>Returning opaque named projectors with no derivation recipe.  A compact
+projector id is acceptable only if the backend can expand it.</li>
+<li>Returning compact coupling paths with no efficient expansion path.  A list
+of \(73744\) abstract expressions is not enough.</li>
+<li>Expanding all \(73744\) basis elements into memory before filtering.  Filters
+must be pushed into the streaming expansion loop.</li>
+<li>Treating rendering as a slow debug printer.  Rendering is part of the
+runnable computational path and must feed downstream correlator code at a
+fast pace.</li>
+<li>Treating \(144\subset10\otimes16\) as \(10\otimes16\) throughout all
+internal coupling steps and projecting only at the very end.  The realization
+projector belongs at the boundary.</li>
+<li>Relying on hand-entered Fierz identities.  Identities must follow from the
+algebraic construction and verified projector/idempotent relations.</li>
+<li>Building dense tensors or dense component spaces such as \(16^{12}\).</li>
+<li>Designing an \(SO(10)\)-only system.  \(Spin(10)\) is a stress test, not the
+architecture.</li>
+<li>Making gamma matrices part of the generic public ADE API.  Gamma-like
+objects are backend-rendered named operators or internal SO/Spin atoms.</li>
+<li>Optimizing by hiding mathematical ambiguity.  Multiplicity copies,
+realization channels, basis conventions, and signature/rendering conventions
+must be explicit.</li>
+<li>Rejecting a partial expanded term because the current prefix does not yet
+match a filter.  Prefix filters must distinguish <code>reject</code> from <code>undecided</code>.</li>
+<li>Concatenating paths from several coupling trees and calling the union a
+larger independent basis.  This is allowed only after constructing and
+applying a basis-change or reduction map.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org984db90" class="outline-2">
+<h2 id="org984db90">Weasel Modes And Required Evidence</h2>
+<div class="outline-text-2" id="text-org984db90">
+<p>
+An implementation is not accepted because it can print plausible data.  It
+must produce the required records and expose enough evidence that the records
+are real.  The following failure modes are common and must be rejected during
+review:
+</p>
+
+<ul class="org-ul">
+<li>Claiming a "fast structure generator" that only returns the count of
+invariants.  Required evidence: stored basis handles with inspectable path
+records, one record per basis element.</li>
+<li>Returning a list of abstract labels without local channel data.  Required
+evidence: each path stores the coupling tree, intermediate channel handles,
+multiplicity-copy ids, and local projector/CG kernel ids.</li>
+<li>Returning projectors as names such as <code>P_144</code> with no expansion route.
+Required evidence: every projector id reports its derivation kind and an
+expansion source, or returns a typed <code>NotExpandable</code> error before it appears
+in a returned basis.</li>
+<li>Using an overcomplete gamma-monomial list and calling it a basis.  Required
+evidence: basis construction happens in representation/multiplicity space
+before rendering; gamma terms are a rendering of already-independent basis
+elements.</li>
+<li>Running a dense component-space linear solve and hiding the cost behind a
+small output.  Required evidence: logs/counters for maximum allocated weight
+multiset size, path count, projector count, and no allocations proportional
+to \(16^{12}\) or another full tensor component space.</li>
+<li>Filtering after materializing all expanded terms.  Required evidence:
+filters are called during expansion, and a reject-all filter allocates no
+large output buffer.</li>
+<li>Failing to distinguish multiplicity copies.  Required evidence:
+decomposition terms include multiplicity, and local kernels/projectors
+carry the selected copy.</li>
+<li>Treating projected realizations as ambient products until the final output.
+Required evidence: external legs using constrained realizations carry a
+boundary projector once, and internal coupling uses the target irrep.</li>
+<li>Claiming independence from successful numerical spot checks only.  Required
+evidence: independence follows from the decomposition path construction, and
+numerical/rendered checks are secondary audits.</li>
+<li>Hardcoding known decompositions for the acceptance tests.  Required
+evidence: tests include at least one generated decomposition not present as a
+literal special case, and the backend exposes counters showing which generic
+procedure produced it.</li>
+</ul>
+
+<p>
+Every major stage must produce a compact audit record:
+</p>
+
+<ul class="org-ul">
+<li>algebra and convention ids;</li>
+<li>input irreps;</li>
+<li>number of weights generated;</li>
+<li>total weight multiplicity;</li>
+<li>product multiset size;</li>
+<li>decomposition channel count;</li>
+<li>sum of channel dimensions times multiplicities;</li>
+<li>number of basis paths;</li>
+<li>number of distinct projector ids;</li>
+<li>maximum known projector expansion size, if available;</li>
+<li>filter accept/reject/undecided counts during streamed expansion.</li>
+</ul>
+
+<p>
+These audits are mandatory internal milestone evidence, not optional debug
+output.  They are not user-facing API by default, but each backend milestone
+must produce enough audit data to prove that it is doing the promised
+computation.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbeabb5d" class="outline-2">
+<h2 id="orgbeabb5d">Independence By Construction</h2>
+<div class="outline-text-2" id="text-orgbeabb5d">
+<p>
+The basis must be independent before rendering.  The construction should be:
+</p>
+
+<ol class="org-ol">
+<li>For each binary product \(R\otimes S\), decompose into irreps:
+\[
+  R\otimes S=\bigoplus_T M_{RS}^T\otimes T.
+\]
+Here \(M_{RS}^T\) is the finite multiplicity space.  If \(m_T=\dim
+M_{RS}^T\), choose a basis vector \(e_i\) for each copy \(i=0,\dots,m_T-1\).</li>
+<li>A local CG kernel is an intertwiner selecting one basis vector in
+\(M_{RS}^T\).  Distinct multiplicity-copy ids are distinct basis vectors in
+that multiplicity space.</li>
+<li>For a fixed canonical coupling tree, a global path is a product of local
+choices: at every internal node, choose the output channel and
+multiplicity-copy basis vector.</li>
+<li>The set of all paths ending in the requested target \(T\), usually
+\(\mathbf 1\), is a basis of the multiplicity space
+\[
+  \operatorname{Hom}_{\mathfrak g}
+  \left(T,\;R_1\otimes\cdots\otimes R_n\right)
+\]
+for that tree and basis convention.</li>
+</ol>
+
+<p>
+Independence follows for that fixed tree because the decomposition is a direct
+sum of irreducible channels and explicit multiplicity spaces.  We are not
+selecting linearly independent gamma expressions from an overcomplete list.  We
+are selecting basis vectors in multiplicity spaces and composing intertwiners
+along one tree convention.
+</p>
+
+<p>
+Different tree policies give different coordinate systems on the same
+multiplicity space.  They must not be concatenated.  If the implementation
+later supports several trees, each tree must separately produce the target
+multiplicity.  The combined count across trees is not an independence
+certificate; it is redundant data until a basis-change or reduction map is
+available.
+</p>
+
+<p>
+Rendered formulas may look dependent because gamma matrices, epsilons,
+metrics, and projector blocks satisfy identities.  Those identities are part
+of the rendering backend.  They must not be used to define the abstract basis.
+Rendering must be a faithful expansion of the already-selected path basis in a
+chosen convention.  If a renderer cannot prove or verify faithfulness for a
+convention, it must report a typed error or mark the expansion as an audit
+target; it must not silently collapse or add basis elements.
+</p>
+
+<p>
+Required independence checks:
+</p>
+
+<ul class="org-ul">
+<li>The number of emitted basis paths equals the target multiplicity computed by
+dynamic programming over decompositions.</li>
+<li>For every binary decomposition, the sum
+\[
+  \sum_T m_T\dim T
+\]
+equals \(\dim R\,\dim S\).</li>
+<li>Local projector records for a product channel must satisfy the abstract
+projector laws in their construction record: idempotency and channel
+separation.  When explicit formulas exist, audits should verify
+\(P_iP_j=\delta_{ij}P_i\) in the chosen representation of the local product.</li>
+<li>Boundary realization projectors must satisfy the same rule: e.g.
+\(144\subset10\otimes16\) is represented by an idempotent whose image has
+dimension \(144\), and the complementary channel is accounted for.</li>
+<li>Rendered term streams are audits of the basis, not the source of the basis.
+Component evaluation or filtered numerical checks can catch renderer bugs
+but cannot replace the multiplicity-space construction.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgdbb0ac3" class="outline-2">
+<h2 id="orgdbb0ac3">Implementation Instructions</h2>
+<div class="outline-text-2" id="text-orgdbb0ac3">
+<p>
+Proceed in this order.  Do not skip ahead to rendered gamma formulas or
+high-level invariant counts.
+</p>
+
+<ol class="org-ol">
+<li>Implement the backend registry privately in <code>Context</code>.  It must select a
+backend by algebra family and return typed unsupported-capability errors.</li>
+<li>Implement flat weight storage and a weight-system cache.  Store signed
+weight coordinates in one buffer and weight records as offsets.  Add audit
+counters for weight count and total multiplicity.</li>
+<li>Implement the generic highest-weight weight-system generator.  Validate it
+on known dimensions before any tensor-product code is accepted.</li>
+<li>Implement tensor-product character multiplication and subtraction.  The
+result must be flat product terms with multiplicities.  Store the result in
+<a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a>.</li>
+<li>Add decomposition acceptance tests:
+\(SU(2):2\otimes2=1\oplus3\),
+\(Spin(10):10\otimes16=16\oplus144\),
+\(Spin(10):16\otimes16=10\oplus120\oplus126\), and
+\(E_8:248\otimes248\) with the known channels.</li>
+<li>Implement dynamic-programming path counting to a target using cached binary
+decompositions.  This is still counting, but it must use the same channel
+records that path enumeration will use.</li>
+<li>Implement path enumeration for one canonical coupling tree.  Each emitted
+path must store its local channel choices and multiplicity-copy ids.  The
+path count must equal the dynamic count.  Do not enumerate several trees
+until basis-change or reduction maps exist.</li>
+<li>Implement projector identity creation.  Each projector id must record its
+role, convention, derivation kind, and expansion obligation.</li>
+<li>Implement a minimal expansion interface that can walk one path and call a
+sink with streamed symbolic terms.  At first it may return typed
+<code>NotImplemented</code> for missing local formulas, but it must not return opaque
+successful placeholders.</li>
+<li>Implement filters inside the expansion loop.  The filter decision is
+tri-state: <code>accept</code>, <code>reject</code>, or <code>undecided</code>.  A partial term can be
+rejected only when rejection is final under all completions.  Prove with a
+reject-all filter test that no large output buffer is allocated.</li>
+<li>Only after the generic path and projector infrastructure is correct, add
+specialized SO/Spin gamma/projector renderers, SU tableau/Gelfand-Tsetlin
+optimizations, or E-type special renderers.</li>
+</ol>
+
+<p>
+At every step, prefer the smallest working data structure.  Add a new
+abstraction only when it removes real duplication or separates a hot data path.
+Do not add public exports for backend internals unless CFT code has a concrete
+call site that needs them.
+</p>
+</div>
+</div>
+<div id="outline-container-org864e8d9" class="outline-2">
+<h2 id="org864e8d9">Current State</h2>
+<div class="outline-text-2" id="text-org864e8d9">
+<p>
+The public API is rooted at <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>.  Public
+callers create a context, register an algebra, register irreps, optionally
+register concrete realizations, and request an invariant basis:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> tensor.Context.init(allocator);
+<span style="color: #fb4934; font-weight: bold;">defer</span> ctx.deinit();
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so10</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.registerIrrep(so10, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 1 } });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">leg</span> = tensor.ExternalLeg.primitive(spinor, &amp;.{
+    .init(.spinor, <span style="color: #b8bb26; font-style: italic;">"a"</span>),
+});
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.invariantBasis(.{
+    .algebra = so10,
+    .external_legs = &amp;.{leg},
+});
+</pre>
+</div>
+
+<p>
+Conventions are configurable at context construction:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> tensor.Context.initWithOptions(allocator, .{
+    .algebra_conventions = .{
+        .quadratic_casimir_scale = .{ .numerator = 1, .denominator = 1 },
+    },
+    .default_signature = .complex,
+});
+<span style="color: #fb4934; font-weight: bold;">defer</span> ctx.deinit();
+</pre>
+</div>
+
+<p>
+The current substrate is:
+</p>
+
+<ul class="org-ul">
+<li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a> validates supported simple algebras,
+stores Cartan data, computes positive roots, dual Dynkin labels, Weyl
+dimensions, and quadratic Casimirs.</li>
+<li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a> interns algebras and
+irreps.  It computes metadata from Dynkin labels and provides explicit
+<code>dualIrrep</code> lookup without recursively closing registration under duals.</li>
+<li><a href="/notes/tensor-code/realization.html">Tensor Realization</a> records concrete external
+index shapes.  Projected realizations store a selected channel, so a
+constrained leg such as \(144\subset 10\otimes16\) is a first-class boundary
+realization.</li>
+<li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a> owns the binary product
+decomposition cache.  It stores flat product terms and has a hash index keyed
+by the pair of irrep handles.</li>
+<li><a href="/notes/tensor-code/projector.html">Tensor Projector</a> owns projector identities:
+product-channel projectors, boundary-realization projectors, and basis-change
+projectors.</li>
+<li><a href="/notes/tensor-code/backend.html">Tensor Backend</a> defines the internal backend
+capability contract.</li>
+<li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a> defines streamed symbolic
+terms.  <code>SymbolicTerm</code> carries borrowed slices valid only until the sink
+returns.  The public root does not expose a gamma-specific type; SO/Spin
+renderers can emit backend operators through generic symbolic atoms.</li>
+</ul>
+
+<p>
+Build-checked metadata cases currently include:
+</p>
+
+<ul class="org-ul">
+<li>\(B_4\): vector \(9\), spinor \(16\);</li>
+<li>\(D_5\): vector \(10\), spinor \(16\), vector-spinor \(144\);</li>
+<li>\(E_6\): fundamental \(27\);</li>
+<li>\(E_7\): fundamental \(56\);</li>
+<li>\(E_8\): adjoint \(248\).</li>
+</ul>
+
+<p>
+The following are still intentionally not implemented:
+</p>
+
+<ul class="org-ul">
+<li>binary decomposition algorithms;</li>
+<li>weight-system generation;</li>
+<li>channel-path enumeration;</li>
+<li>local CG/projector construction;</li>
+<li>explicit gamma or projector expansion execution;</li>
+<li>expansion filters and downstream stream consumers;</li>
+<li><code>Context.renderInvariant</code>;</li>
+<li><code>Context.evaluateInvariant</code>.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org5fdf502" class="outline-2">
+<h2 id="org5fdf502">Backend Goal</h2>
+<div class="outline-text-2" id="text-org5fdf502">
+<p>
+The first backend should be a generic highest-weight backend.  It should be a
+correctness backend and cache builder, not yet a family-specific optimized
+renderer.  Its first job is to answer:
+</p>
+
+<ol class="org-ol">
+<li>is this algebra supported?</li>
+<li>what is the weight system of this irrep?</li>
+<li>what is the decomposition of \(R\otimes S\)?</li>
+<li>what stable projector identity corresponds to one product channel?</li>
+</ol>
+
+<p>
+The backend must not allocate dense tensor-product component spaces.  It may
+construct compact weight multisets and flat cache records.
+</p>
+</div>
+</div>
+<div id="outline-container-orge2da967" class="outline-2">
+<h2 id="orge2da967">Backend Build Order</h2>
+<div class="outline-text-2" id="text-orge2da967">
+</div>
+<div id="outline-container-orgb2e6cf2" class="outline-3">
+<h3 id="orgb2e6cf2">1. Backend registry</h3>
+<div class="outline-text-3" id="text-orgb2e6cf2">
+<p>
+Add an internal backend registry owned by the private <code>Context</code> implementation.
+It maps <code>LieFamily</code> to a backend record and selects a backend from an algebra
+family.  It should not be exported from <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>.
+</p>
+
+<p>
+Start with one backend implementation:
+</p>
+
+<ul class="org-ul">
+<li>file: <code>generic-highest-weight-backend.zig</code>;</li>
+<li>supports \(A_n,B_n,D_n,E_6,E_7,E_8\);</li>
+<li>returns typed missing-capability errors for unimplemented operations.</li>
+</ul>
+
+<p>
+The registry should make no CFT-facing API changes.  CFT code still asks the
+context for invariant bases.
+</p>
+</div>
+</div>
+<div id="outline-container-org77b0402" class="outline-3">
+<h3 id="org77b0402">2. Root-data helpers</h3>
+<div class="outline-text-3" id="text-org77b0402">
+<p>
+Use <a href="/notes/tensor-code/root-data.html">Tensor Root Data</a> as the source of algebra
+conventions.  Do not duplicate Cartan matrices or exceptional diagrams in the
+backend.
+</p>
+
+<p>
+The backend will need internal helpers for:
+</p>
+
+<ul class="org-ul">
+<li>rank;</li>
+<li>Cartan entries;</li>
+<li>simple-root reflection on weights;</li>
+<li>dominant-weight test;</li>
+<li>highest-weight validation;</li>
+<li>exact rational inner products where Freudenthal or Casimir formulas need
+them.</li>
+</ul>
+
+<p>
+Keep these helper APIs internal unless a later caller clearly needs them.
+</p>
+</div>
+</div>
+<div id="outline-container-org4a54cc7" class="outline-3">
+<h3 id="org4a54cc7">3. Weight storage</h3>
+<div class="outline-text-3" id="text-org4a54cc7">
+<p>
+Weights are not public API.  Store them in flat buffers:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightRef</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightMultiplicity</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeightRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+</pre>
+</div>
+
+<p>
+The actual Dynkin-coordinate arrays should live in one flat signed buffer,
+probably <code>i32</code> once tensor products become large enough.  Signed coordinates
+are necessary because intermediate weights and reflected weights need not be
+dominant.
+</p>
+
+<p>
+Store rank once on the weight-system span or get it from the algebra.  Do not
+store rank in every weight record.  Do not allocate one heap object per weight.
+</p>
+</div>
+</div>
+<div id="outline-container-org77271a5" class="outline-3">
+<h3 id="org77271a5">4. Weight-system generator</h3>
+<div class="outline-text-3" id="text-org77271a5">
+<p>
+Implement a cached weight-system generator for one highest-weight irrep.
+Freudenthal multiplicity recursion is the generic first choice because it
+works uniformly for the supported simple families.
+</p>
+
+<p>
+Cache key:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightSystemKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+};
+</pre>
+</div>
+
+<p>
+Cache value:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightSystem</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+</pre>
+</div>
+
+<p>
+Acceptance checks:
+</p>
+
+<ul class="org-ul">
+<li>\(D_5\) spinor has total weight multiplicity \(16\);</li>
+<li>\(D_5\) vector has total weight multiplicity \(10\);</li>
+<li>\(B_4\) spinor has total weight multiplicity \(16\);</li>
+<li>\(E_8\) adjoint has total weight multiplicity \(248\).</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd0cf4d4" class="outline-3">
+<h3 id="orgd0cf4d4">5. Tensor-product decomposition</h3>
+<div class="outline-text-3" id="text-orgd0cf4d4">
+<p>
+Use character subtraction first.  It is generic and easier to audit than a
+family-specific closed formula.
+</p>
+
+<p>
+Algorithm:
+</p>
+
+<ol class="org-ol">
+<li>get cached weight systems for \(R\) and \(S\);</li>
+<li>add all pairs of weights to build the weight multiset for \(R\otimes S\);</li>
+<li>find a maximal dominant weight still present, using one deterministic
+dominance-order rule;</li>
+<li>its remaining multiplicity is the multiplicity of the next channel;</li>
+<li>subtract that many copies of the cached character of that highest weight;</li>
+<li>repeat until the multiset is empty.</li>
+</ol>
+
+<p>
+The dominance selection rule must be explicit and stable.  A practical first
+rule is:
+</p>
+
+<ol class="org-ol">
+<li>scan only weights with positive residual multiplicity;</li>
+<li>discard non-dominant weights;</li>
+<li>choose a dominant weight not strictly below another remaining dominant
+weight in the root partial order;</li>
+<li>break ties by lexicographic Dynkin labels.</li>
+</ol>
+
+<p>
+After every subtraction, no residual multiplicity may become negative.  A
+negative residual is a backend bug, not a recoverable ambiguity.  The selected
+channel multiplicity is the residual multiplicity of the selected highest
+weight before subtraction.
+</p>
+
+<p>
+The audit invariant after each subtraction is:
+\[
+  \chi_{\mathrm{remaining}}+\sum_i m_i\chi_{T_i}
+  = \chi_R\chi_S .
+\]
+The final residual character must be zero.  This catches lost multiplicities,
+wrong dominant-weight selection, and incorrect subtraction signs.
+</p>
+
+<p>
+This is not the final fastest algorithm.  It is the first trusted backend.  It
+will become the oracle against which specialized \(SO/Spin\), \(SU\), and
+exceptional backends are checked.
+</p>
+
+<p>
+Acceptance checks:
+</p>
+
+<ul class="org-ul">
+<li>\(SU(2): 2\otimes2 = 1\oplus3\);</li>
+<li>\(Spin(10): 10\otimes16 = 16\oplus144\);</li>
+<li>\(Spin(10): 16\otimes16 = 10\oplus120\oplus126\);</li>
+<li>\(E_8: 248\otimes248\) matches the known decomposition, including
+multiplicities and dimensions.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgdb63b27" class="outline-3">
+<h3 id="orgdb63b27">6. Decomposition cache integration</h3>
+<div class="outline-text-3" id="text-orgdb63b27">
+<p>
+The backend writes decompositions into <a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a>.
+The cache stores:
+</p>
+
+<ul class="org-ul">
+<li>product key \(R,S\);</li>
+<li>flat product terms \((T,m_T)\);</li>
+<li>stable handle for repeated requests.</li>
+</ul>
+
+<p>
+The future internal context method should look like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">decomposeProduct</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) !decomposition.ProductDecompositionHandle
+</pre>
+</div>
+
+<p>
+Do not expose this method publicly unless CFT code needs it.
+</p>
+</div>
+</div>
+<div id="outline-container-orga2eeb68" class="outline-3">
+<h3 id="orga2eeb68">7. Projector identities and expansion obligations</h3>
+<div class="outline-text-3" id="text-orga2eeb68">
+<p>
+For each product term, the backend may create a product-channel projector
+identity in <a href="/notes/tensor-code/projector.html">Tensor Projector</a>.  The first
+decomposition backend does not need to expand projector formulas immediately,
+but a successful basis result must not contain projector ids that have no
+expansion route.  Internal blocked records are allowed only if they fail before
+being returned as successful invariant data.  Each projector record needs
+enough information to recover an expansion path.
+</p>
+
+<p>
+The projector identity records:
+</p>
+
+<ul class="org-ul">
+<li>left irrep;</li>
+<li>right irrep;</li>
+<li>target channel;</li>
+<li>convention id;</li>
+<li>derivation kind;</li>
+<li>expansion source, such as Casimir polynomial, idempotent split,
+highest-weight solver output, or backend-specific verified construction.</li>
+</ul>
+
+<p>
+Do not store expandability as a boolean.  The backend needs enough state to
+distinguish several useful stages:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpansionStatus</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    not_requested,
+    expandable_named,
+    expandable_blocks,
+    expandable_terms,
+    blocked_missing_formula,
+    blocked_unverified_identity,
+};
+</pre>
+</div>
+
+<p>
+<code>expandable_named</code> is only a rendering mode.  It is not proof that the
+projector satisfies the fully-expandable requirement.  A projector appearing in
+a successful invariant basis must have a derivation route that can reach
+<code>expandable_terms</code> in the requested convention, even when the caller chooses to
+render it as a compact name.
+</p>
+
+<p>
+Acceptance checks:
+</p>
+
+<ul class="org-ul">
+<li>repeated requests return the same projector id;</li>
+<li>multiplicity copies are explicit;</li>
+<li>no symbolic projector expansion is allocated during decomposition;</li>
+<li>every returned projector reports an <code>ExpansionStatus</code> in the requested
+convention;</li>
+<li>blocked projector statuses are typed errors before successful basis return,
+not silently named placeholders;</li>
+<li>a basis result rendered in named mode still audits that each local projector
+has a term-expansion route.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orged4dddf" class="outline-3">
+<h3 id="orged4dddf">8. Backend capability implementation</h3>
+<div class="outline-text-3" id="text-orged4dddf">
+<p>
+Update <a href="/notes/tensor-code/backend.html">Tensor Backend</a> only as needed to support the
+generic backend.  The expected internal procedures are:
+</p>
+
+<ul class="org-ul">
+<li><code>validateAlgebra</code>;</li>
+<li><code>irrepMetadata</code>, if a backend-specific metadata path is needed;</li>
+<li><code>weightSystem</code>;</li>
+<li><code>decomposeProduct</code>;</li>
+<li><code>localProjectorId</code>.</li>
+</ul>
+
+<p>
+Rendering remains <code>NotImplemented</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org83750e4" class="outline-3">
+<h3 id="org83750e4">9. Expansion stream and filters</h3>
+<div class="outline-text-3" id="text-org83750e4">
+<p>
+Before explicit projector formulas are implemented, define the execution
+boundary they must satisfy.  The expansion API should be a streaming pipeline:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">renderInvariantExpanded</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.BasisHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.RenderOptions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">filter</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpansionFilter</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>
+</pre>
+</div>
+
+<p>
+The exact public shape may differ, but the semantics should not:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FilterDecision</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    accept,
+    reject,
+    undecided,
+};
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>the renderer walks the compact coupling path;</li>
+<li>local projector expansions are pulled lazily;</li>
+<li>each local expansion term is combined into the current partial term;</li>
+<li>the filter is applied as early as possible to borrowed scratch terms;</li>
+<li>accepted terms are emitted immediately to the sink;</li>
+<li>rejected terms are not stored;</li>
+<li>undecided partial terms may continue, but the implementation must track their
+frontier size;</li>
+<li>repeated local projector expansions are cached by projector id and
+convention when doing so reduces work.</li>
+</ul>
+
+<p>
+Partial terms can be rejected only when the predicate is final and sound under
+all later factors.  Otherwise the filter must return <code>undecided</code>.  This is
+part of correctness, not just an optimization detail.
+</p>
+
+<p>
+Filter callbacks and sinks must not retain borrowed slices from streamed
+terms.  If a caller needs to keep a term, it must copy it into caller-owned
+storage.  This keeps the renderer free to reuse scratch buffers and prevents a
+hidden materialized expansion from growing behind the streaming interface.
+</p>
+
+<p>
+The filter is not a post-processing pass over a giant vector.  It is an
+execution hook that keeps the streamed expansion small enough to be useful.
+</p>
+
+<p>
+Possible filter predicates:
+</p>
+
+<ul class="org-ul">
+<li>term contains or avoids a given external index block;</li>
+<li>term uses only selected symbolic operator kinds;</li>
+<li>term is compatible with a component assignment;</li>
+<li>term can contribute to a downstream contraction;</li>
+<li>term has a coefficient/operator class accepted by the target CFT routine.</li>
+</ul>
+
+<p>
+Acceptance checks:
+</p>
+
+<ul class="org-ul">
+<li>expanding one invariant can stream terms without allocating the full
+expansion;</li>
+<li>expanding many invariants can reuse local projector expansions;</li>
+<li>a filter that rejects all terms performs no large output allocation;</li>
+<li>a filter that accepts a sparse subset scales with the accepted frontier plus
+unavoidable local projector traversal, not with a materialized full basis.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb4f8440" class="outline-2">
+<h2 id="orgb4f8440">Compute Model</h2>
+<div class="outline-text-2" id="text-orgb4f8440">
+<p>
+The first backend has four different compute scales:
+</p>
+
+<ol class="org-ol">
+<li>Decomposition compute: weight-system generation, tensor-product weight
+multisets, and character subtraction.</li>
+<li>Path enumeration compute: dynamic programming over cached binary
+decompositions to enumerate coupling paths to a target.</li>
+<li>Expansion compute: streaming the local projector/CG expansions appearing in
+selected paths.</li>
+<li>Filter compute: deciding early which partial or complete expansion terms can
+be discarded before they reach downstream CFT code.</li>
+</ol>
+
+<p>
+The first milestone implements the first scale and prepares records for the
+third and fourth.  It must not pretend expansion is free.  A \(73744\)-path
+result can be small as stored paths while still being expensive to render if
+each path contains large expandable projectors.  Therefore every feasibility
+estimate must track:
+</p>
+
+<ul class="org-ul">
+<li>number of basis paths;</li>
+<li>number of distinct local projector ids used by those paths;</li>
+<li>maximum and total expected expansion terms per projector when known;</li>
+<li>whether expansion can be shared across repeated projector ids;</li>
+<li>whether expansion is requested as named, block-expanded, or term-expanded;</li>
+<li>expected filter rejection rate;</li>
+<li>whether filters can be applied to partial products or only complete terms;</li>
+<li>number of undecided partial terms retained at each expansion layer;</li>
+<li>sink throughput and backpressure behavior.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org56eb4f6" class="outline-2">
+<h2 id="org56eb4f6">Data-Oriented Constraints</h2>
+<div class="outline-text-2" id="text-org56eb4f6">
+<p>
+The expensive objects are weight systems, tensor-product weight multisets,
+path records, and projector expansions.  Therefore:
+</p>
+
+<ul class="org-ul">
+<li>cache weight systems by irrep handle;</li>
+<li>store weights in flat buffers;</li>
+<li>sort or hash compact weight keys, not heap-allocated slices;</li>
+<li>store product decompositions as flat terms;</li>
+<li>keep projector ids as small records;</li>
+<li>cache projector expansions by projector id and convention when expansion is
+requested repeatedly;</li>
+<li>push filters into expansion loops;</li>
+<li>emit accepted terms immediately;</li>
+<li>stream rendered terms into sinks;</li>
+<li>never build dense component tensors.</li>
+</ul>
+
+<p>
+The \(16^{12}\) target should produce coupling paths, not components.  A
+single dense tensor in \(16^{12}\) has \(16^{12}\) components, while the desired
+answer has \(73744\) basis paths.  The algorithm must scale with the number of
+channels and paths, not the full component space.
+</p>
+</div>
+</div>
+<div id="outline-container-org5bbd7e8" class="outline-2">
+<h2 id="org5bbd7e8">Explicit Non-Goals For First Backend</h2>
+<div class="outline-text-2" id="text-org5bbd7e8">
+<p>
+Do not implement the following in the first backend:
+</p>
+
+<ul class="org-ul">
+<li>gamma-matrix rendering;</li>
+<li>bulk explicit projector expansion execution;</li>
+<li>explicit CG coefficient tables;</li>
+<li>higher-Casimir projector splitting;</li>
+<li>sparse nullspace solvers;</li>
+<li>parallel execution;</li>
+<li>\(SU(N)\) Gelfand-Tsetlin or tableau optimized CGs;</li>
+<li>\(SO/Spin\) Clifford-specialized renderers;</li>
+<li>\(E_8\) adjoint-specialized renderers.</li>
+</ul>
+
+<p>
+Those belong after binary decomposition is correct, cached, and tested.  The
+data model must still be designed so these operations can be added without
+changing the meaning of existing projector ids.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc1e003e" class="outline-2">
+<h2 id="orgc1e003e">Definition Of Done</h2>
+<div class="outline-text-2" id="text-orgc1e003e">
+<p>
+The backend handoff is complete when:
+</p>
+
+<ul class="org-ul">
+<li><code>zig build --global-cache-dir /tmp/zig-global-cache</code> passes;</li>
+<li>all acceptance decompositions above pass;</li>
+<li>weight systems are cached and flat;</li>
+<li>product decompositions are cached by key;</li>
+<li>no dense tensor component arrays are allocated;</li>
+<li><code>Context.invariantBasis</code> can internally request product decompositions;</li>
+<li>projector records created by the backend have explicit expansion obligations;</li>
+<li>expanded invariants can be streamed through a filter without materializing
+their full term list;</li>
+<li>repeated projector expansions can be cached and reused;</li>
+<li>a downstream sink can consume accepted terms incrementally;</li>
+<li>render/evaluate remain explicitly unimplemented until projector formulas and
+term streaming are ready.</li>
+</ul>
+</div>
+</div>
+</div>
+</body>
+</html>

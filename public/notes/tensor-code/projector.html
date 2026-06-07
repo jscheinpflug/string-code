@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Projector</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Projector</h1>
+<p>
+A projector is an idempotent intertwiner.  It can select a channel in
+\(R\otimes S\), impose a boundary realization such as a gamma-traceless
+subspace, or change between invariant-basis conventions.  This module stores
+projector identities and derivation labels; it does not construct formulas.
+</p>
+
+<a id="ProjectorId"></a>
+<a id="ProjectorConvention"></a>
+<a id="ProjectorRole"></a>
+<a id="ProductChannelKey"></a>
+<a id="BasisChangeKey"></a>
+<a id="Store"></a>
+<a id="ProjectorKey"></a>
+<a id="ProjectorKind"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org058083a"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"realization.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rendering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rendering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorId names one local projector or Clebsch-Gordan kernel.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorConvention records configurable projector-rendering choices.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorConvention</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">render_mode</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.ProjectorRenderMode</span> = .named,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.SignatureConvention</span> = .complex,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">normalization_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorRole records what mathematical object a projector selects.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorRole</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product_channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductChannelKey</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_realization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.RealizationHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis_change</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisChangeKey</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProductChannelKey identifies one target channel inside a binary product.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProductChannelKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.ChannelHandle</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BasisChangeKey identifies a change of invariant-basis convention.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisChangeKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">source_basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Store owns projector identities and compact emitted-term spans.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Store</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">records</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ProjectorRecord) = .empty,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty projector store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Store {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .allocator = allocator };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases projector-store memory.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.records.deinit(self.allocator);
+        self.* = Store.init(self.allocator);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internProjector returns a stable id for a projector identity.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internProjector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKind</span>) !ProjectorId {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.records.items, 0..) |record, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (projectorKeyEql(record.key, key)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+        }
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.records.append(self.allocator, .{
+            .key = key,
+            .kind = kind,
+            .term_offset = 0,
+            .term_len = 0,
+        });
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.records.items.len - 1);
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorKey identifies one projector in one convention.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorRole</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">convention</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorConvention</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorKind records how a local projector was derived.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    identity,
+    quadratic_casimir,
+    higher_casimir_signature,
+    local_idempotent_split,
+    highest_weight_solver,
+    backend_specific_verified,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorRecord stores one local kernel and its derivation kind.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorAudit stores local splitting diagnostics for feasibility studies.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorAudit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductChannelKey</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quadratic_collision_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">true_multiplicity_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_block_max</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projectorKeyEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> projectorRoleEql(left.role, right.role) <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.convention.render_mode == right.convention.render_mode <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.convention.signature == right.convention.signature <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.convention.normalization_id == right.convention.normalization_id;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projectorRoleEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorRole</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorRole</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (left) {
+        .product_channel =&gt; |left_key| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .product_channel =&gt; |right_key| left_key.left.value == right_key.left.value <span style="color: #fb4934; font-weight: bold;">and</span>
+                left_key.right.value == right_key.right.value <span style="color: #fb4934; font-weight: bold;">and</span>
+                left_key.target.value == right_key.target.value,
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        },
+        .boundary_realization =&gt; |left_handle| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .boundary_realization =&gt; |right_handle| left_handle.value == right_handle.value,
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        },
+        .basis_change =&gt; |left_key| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .basis_change =&gt; |right_key| left_key.source_basis == right_key.source_basis <span style="color: #fb4934; font-weight: bold;">and</span> left_key.target_basis == right_key.target_basis,
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        },
+    };
+}
+</pre>
+</div>
+</div>
+</body>
+</html>

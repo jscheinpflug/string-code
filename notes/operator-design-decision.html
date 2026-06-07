@@ -1,0 +1,944 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-05 Fri 11:32 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Operator Design Decision</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Operator Design Decision</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org096cc21">1. Goal</a></li>
+<li><a href="#org0f113a0">2. Shared Theory Assumptions</a></li>
+<li><a href="#org8b50e23">3. Option A: Composite Operators Are First-Class Runtime Objects</a>
+<ul>
+<li><a href="#orgfb9ec50">3.1. Example A1: `b(z)`</a></li>
+<li><a href="#org16ed343">3.2. Example A2: `:bc:(z)`</a></li>
+<li><a href="#orga75159f">3.3. Example A3: `:dX<sup>mu</sup> dX<sup>nu</sup>:(z)`</a></li>
+<li><a href="#orgead1e5e">3.4. What Option A Gives You</a></li>
+<li><a href="#org59f2042">3.5. What Option A Forces Later</a></li>
+</ul>
+</li>
+<li><a href="#org6d400dc">4. Option B: Runtime Operators Stay Atomic</a>
+<ul>
+<li><a href="#orgeaad53e">4.1. Example B1: `b(z)`</a></li>
+<li><a href="#org2ea8f30">4.2. Example B2: `dX<sup>mu</sup>(z)`</a></li>
+<li><a href="#orga4409cf">4.3. Example B3: What about `:bc:(z)`?</a></li>
+<li><a href="#orgb6e732d">4.4. Example B4: `:dX<sup>mu</sup> dX<sup>nu</sup>:(z)`</a></li>
+<li><a href="#org5518fb3">4.5. What Option B Gives You</a></li>
+<li><a href="#org321599e">4.6. What Option B Forces Later</a></li>
+</ul>
+</li>
+<li><a href="#org4591c92">5. Explicit Comparison On One Example</a></li>
+<li><a href="#org120a980">6. Performance Comparison</a></li>
+<li><a href="#org85bec0c">7. What Each Option Implies For Wick</a>
+<ul>
+<li><a href="#org0985d5b">7.1. Under A</a></li>
+<li><a href="#orgccb0837">7.2. Under B</a></li>
+</ul>
+</li>
+<li><a href="#orgefe34c0">8. What Each Option Implies For Interacting Theories</a></li>
+<li><a href="#org9c90535">9. Recommendation</a></li>
+<li><a href="#org3e608a0">10. Summary</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org096cc21" class="outline-2">
+<h2 id="org096cc21"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note records the two main design options for runtime operators.
+The question is:
+</p>
+
+<ul class="org-ul">
+<li>should composite free-field operators be first-class runtime operator identities?</li>
+<li>or should runtime operators stay atomic, with composite structure handled in generated evaluation code?</li>
+</ul>
+
+<p>
+These are called Option A and Option B below.
+</p>
+</div>
+</div>
+<div id="outline-container-org0f113a0" class="outline-2">
+<h2 id="org0f113a0"><span class="section-number-2">2.</span> Shared Theory Assumptions</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Both options share the same theory-level assumptions.
+</p>
+
+<p>
+A theory consists of sectors.
+Each sector defines a finite set of atomic operator kinds.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Theory</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sectors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Sector</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Sector</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">operator_kinds</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorKind</span>,
+    <span style="color: #83a598;">tactic</span>: <span style="color: #fabd2f;">CorrelatorTactic</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">SectorId</span> = <span style="color: #fabd2f;">u16</span>;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorKindId</span> = <span style="color: #fabd2f;">u16</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorKindRef</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorKind</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">holomorphicity</span>: <span style="color: #fabd2f;">Holomorphicity</span>,
+    <span style="color: #83a598;">field_kind</span>: <span style="color: #fabd2f;">FieldKind</span>,
+    <span style="color: #83a598;">weights</span>: <span style="color: #fabd2f;">WeightRule</span>,
+    <span style="color: #83a598;">tensor_type</span>: ?<span style="color: #fabd2f;">TensorType</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">FieldKind</span> = <span style="color: #fb4934;">enum</span> {
+    free_field,
+    ordinary_operator,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Holomorphicity</span> = <span style="color: #fb4934;">enum</span> {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ConformalWeights</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">h</span>: ?<span style="color: #fabd2f;">coefficient.Scalar</span>,
+    <span style="color: #83a598;">hbar</span>: ?<span style="color: #fabd2f;">coefficient.Scalar</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">WeightRule</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">fixed</span>: <span style="color: #fabd2f;">ConformalWeights</span>,
+    computed,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorType</span> = <span style="color: #fb4934;">enum</span> {
+    scalar,
+    vector,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorTactic</span> = <span style="color: #fb4934;">enum</span> {
+    abstract,
+    wick,
+};
+</code></pre>
+</div>
+
+<p>
+Runtime insertion data is also shared.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorInsertion</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">single</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">position</span>: <span style="color: #fabd2f;">coefficient.Variable</span>,
+        <span style="color: #83a598;">derivatives</span>: <span style="color: #fabd2f;">u8</span>,
+    },
+    <span style="color: #83a598;">pair</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">coefficient.Variable</span>,
+        <span style="color: #83a598;">zbar</span>: <span style="color: #fabd2f;">coefficient.Variable</span>,
+        <span style="color: #83a598;">dz</span>: <span style="color: #fabd2f;">u8</span>,
+        <span style="color: #83a598;">dzbar</span>: <span style="color: #fabd2f;">u8</span>,
+    },
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorExtraId</span> = <span style="color: #fabd2f;">u32</span>;
+</code></pre>
+</div>
+
+<p>
+The difference between A and B is only in how the runtime operator identity is represented.
+</p>
+</div>
+</div>
+<div id="outline-container-org8b50e23" class="outline-2">
+<h2 id="org8b50e23"><span class="section-number-2">3.</span> Option A: Composite Operators Are First-Class Runtime Objects</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+In Option A, a runtime operator can be either atomic or a composite free-field object.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Operator</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">insertion</span>: <span style="color: #fabd2f;">OperatorInsertion</span>,
+    <span style="color: #83a598;">head</span>: <span style="color: #fabd2f;">OperatorHeadId</span>,
+    <span style="color: #83a598;">extra</span>: <span style="color: #fabd2f;">OperatorExtraId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorHeadId</span> = <span style="color: #fabd2f;">u32</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorHead</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">atomic</span>: <span style="color: #fabd2f;">OperatorKindRef</span>,
+    <span style="color: #83a598;">free_composite</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">FreeCompositeFactor</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeCompositeFactor</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindRef</span>,
+    <span style="color: #83a598;">extra_projection</span>: <span style="color: #fabd2f;">ExtraProjection</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ExtraProjection</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    none,
+    inherit,
+    <span style="color: #83a598;">slot</span>: <span style="color: #fabd2f;">u8</span>,
+};
+</code></pre>
+</div>
+
+<p>
+Interpretation:
+</p>
+
+<ul class="org-ul">
+<li>`atomic` means a direct atomic operator kind from the theory</li>
+<li>`free<sub>composite</sub>` means a local operator built from an ordered list of atomic free-field factors</li>
+</ul>
+
+<p>
+This makes composite free-field operators first-class runtime identities.
+</p>
+</div>
+<div id="outline-container-orgfb9ec50" class="outline-3">
+<h3 id="orgfb9ec50"><span class="section-number-3">3.1.</span> Example A1: `b(z)`</h3>
+<div class="outline-text-3" id="text-3-1">
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">b_head_id</span>: <span style="color: #fabd2f;">OperatorHeadId</span> = 0;
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">b_at_z</span> = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = b_head_id,
+    .extra = no_extra,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org16ed343" class="outline-3">
+<h3 id="org16ed343"><span class="section-number-3">3.2.</span> Example A2: `:bc:(z)`</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+Define a head for the composite:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_head</span> = OperatorHead{
+    .free_composite = &amp;[_]FreeCompositeFactor{
+        .{ .kind = b_ref, .extra_projection = .inherit },
+        .{ .kind = c_ref, .extra_projection = .inherit },
+    },
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_head_id</span>: <span style="color: #fabd2f;">OperatorHeadId</span> = 1;
+</code></pre>
+</div>
+
+<p>
+Then the runtime operator is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_at_z</span> = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = bc_head_id,
+    .extra = no_extra,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga75159f" class="outline-3">
+<h3 id="orga75159f"><span class="section-number-3">3.3.</span> Example A3: `:dX<sup>mu</sup> dX<sup>nu</sup>:(z)`</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Define a head for the composite:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">dXdX_head</span> = OperatorHead{
+    .free_composite = &amp;[_]FreeCompositeFactor{
+        .{ .kind = dX_ref, .extra_projection = .{ .slot = 0 } },
+        .{ .kind = dX_ref, .extra_projection = .{ .slot = 1 } },
+    },
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">dXdX_head_id</span>: <span style="color: #fabd2f;">OperatorHeadId</span> = 2;
+</code></pre>
+</div>
+
+<p>
+Then the runtime operator is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">dXdX_at_z</span> = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = dXdX_head_id,
+    .extra = dXdX_mu_nu_extra,
+};
+</code></pre>
+</div>
+
+<p>
+Interpretation:
+</p>
+
+<ul class="org-ul">
+<li>`extra` carries the pair `(mu, nu)` at runtime</li>
+<li>the composite head explains how the two child `dX` factors get their respective index payloads</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgead1e5e" class="outline-3">
+<h3 id="orgead1e5e"><span class="section-number-3">3.4.</span> What Option A Gives You</h3>
+<div class="outline-text-3" id="text-3-4">
+<ul class="org-ul">
+<li>composite free-field operators are explicit runtime objects</li>
+<li>residual operators such as the `expX` left over from a `dX-expX` contraction can remain ordinary runtime operators naturally</li>
+<li>free-field structure is present in the runtime identity itself</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org59f2042" class="outline-3">
+<h3 id="org59f2042"><span class="section-number-3">3.5.</span> What Option A Forces Later</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+If you choose A, then later you must settle:
+</p>
+
+<ol class="org-ol">
+<li>how `free<sub>composite</sub>` heads are stored and interned</li>
+<li>how quantum numbers are derived or cached for composite heads</li>
+<li>how equality and hashing of operator identities works for composite heads</li>
+<li>how nested composites are flattened or normalized</li>
+<li>how `extra<sub>projection</sub>` is interpreted by generated theory code</li>
+</ol>
+
+<p>
+So A is expressive, but it pushes composite structure directly into the hot runtime path.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org6d400dc" class="outline-2">
+<h2 id="org6d400dc"><span class="section-number-2">4.</span> Option B: Runtime Operators Stay Atomic</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+In Option B, a runtime operator is always atomic.
+Composite structure is not part of runtime operator identity.
+Instead, free-field realization is handled by generated evaluation code.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Operator</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindRef</span>,
+    <span style="color: #83a598;">insertion</span>: <span style="color: #fabd2f;">OperatorInsertion</span>,
+    <span style="color: #83a598;">extra</span>: <span style="color: #fabd2f;">OperatorExtraId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is the smallest and fastest runtime operator representation.
+</p>
+</div>
+<div id="outline-container-orgeaad53e" class="outline-3">
+<h3 id="orgeaad53e"><span class="section-number-3">4.1.</span> Example B1: `b(z)`</h3>
+<div class="outline-text-3" id="text-4-1">
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">b_at_z</span> = Operator{
+    .kind = b_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = no_extra,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2ea8f30" class="outline-3">
+<h3 id="org2ea8f30"><span class="section-number-3">4.2.</span> Example B2: `dX<sup>mu</sup>(z)`</h3>
+<div class="outline-text-3" id="text-4-2">
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">dX_mu_at_z</span> = Operator{
+    .kind = dX_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = dX_mu_extra,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga4409cf" class="outline-3">
+<h3 id="orga4409cf"><span class="section-number-3">4.3.</span> Example B3: What about `:bc:(z)`?</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+Under B, `:bc:` is <b>not</b> a first-class runtime operator by default.
+Instead, the theory generator knows how to expand a particular atomic operator kind into free fields when needed for Wick evaluation.
+</p>
+
+<p>
+So if the theory declares some ordinary operator kind `bc<sub>no</sub><sub>ref</sub>`, generated code may know:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>bc_no_ref  -&gt;  : b c :
+</code></pre>
+</div>
+
+<p>
+but the runtime operator itself is still only:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_no_at_z</span> = Operator{
+    .kind = bc_no_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = no_extra,
+};
+</code></pre>
+</div>
+
+<p>
+The free-field structure is carried only in generated evaluation logic, not in the operator value.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb6e732d" class="outline-3">
+<h3 id="orgb6e732d"><span class="section-number-3">4.4.</span> Example B4: `:dX<sup>mu</sup> dX<sup>nu</sup>:(z)`</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+Same idea:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">dXdX_no_at_z</span> = Operator{
+    .kind = dXdX_no_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = dXdX_mu_nu_extra,
+};
+</code></pre>
+</div>
+
+<p>
+Generated code knows that `dXdX<sub>no</sub><sub>ref</sub>` should be treated as `:dX<sup>mu</sup> dX<sup>nu</sup>:` when the chosen tactic needs that realization.
+</p>
+</div>
+</div>
+<div id="outline-container-org5518fb3" class="outline-3">
+<h3 id="org5518fb3"><span class="section-number-3">4.5.</span> What Option B Gives You</h3>
+<div class="outline-text-3" id="text-4-5">
+<ul class="org-ul">
+<li>smallest runtime operator</li>
+<li>simplest copying, storage, hashing, and comparison</li>
+<li>theory-agnostic algorithms operate on very lean objects</li>
+<li>best fit for huge streamed calculations</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org321599e" class="outline-3">
+<h3 id="org321599e"><span class="section-number-3">4.6.</span> What Option B Forces Later</h3>
+<div class="outline-text-3" id="text-4-6">
+<p>
+If you choose B, then later you must settle:
+</p>
+
+<ol class="org-ol">
+<li>how generated theory code expands certain ordinary operator kinds into free-field constituents</li>
+<li>how residual operators from contractions are represented when composite structure matters</li>
+<li>whether all useful composite operators need an atomic theory-level kind name to be referenced at runtime</li>
+<li>how to avoid baking too much theory-specific logic into the generated runtime evaluator</li>
+</ol>
+
+<p>
+So B is leaner and faster, but it makes composite structure more operational and less first-class.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org4591c92" class="outline-2">
+<h2 id="org4591c92"><span class="section-number-2">5.</span> Explicit Comparison On One Example</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Take the free-field composite:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>:dX^mu dX^nu:(z)
+</code></pre>
+</div>
+
+<p>
+Under A:
+</p>
+
+<ul class="org-ul">
+<li>runtime operator carries a head id for a composite</li>
+<li>that composite head explicitly stores two `dX` factors</li>
+<li>the runtime object itself knows it is composite</li>
+</ul>
+
+<p>
+Under B:
+</p>
+
+<ul class="org-ul">
+<li>runtime operator carries only one atomic-like kind reference, say `dXdX<sub>no</sub><sub>ref</sub>`</li>
+<li>generated theory code knows how to treat that kind as `:dX<sup>mu</sup> dX<sup>nu</sup>:` when using Wick</li>
+<li>the runtime object itself does not know it is composite</li>
+</ul>
+
+<p>
+So A stores more structure in the runtime value. B stores less structure in the runtime value and pushes more responsibility into generated evaluation code.
+</p>
+</div>
+</div>
+<div id="outline-container-org120a980" class="outline-2">
+<h2 id="org120a980"><span class="section-number-2">6.</span> Performance Comparison</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Option B is more performant.
+</p>
+
+<p>
+Why:
+</p>
+
+<ul class="org-ul">
+<li>the runtime operator is smaller</li>
+<li>no composite-head lookup is needed in the common hot path unless theory code explicitly chooses to expand</li>
+<li>storage and hashing of operators are simpler</li>
+<li>very large streamed calculations benefit from the reduced runtime footprint</li>
+</ul>
+
+<p>
+Option A is more expressive.
+</p>
+
+<p>
+Why:
+</p>
+
+<ul class="org-ul">
+<li>free-field composites are first-class runtime objects</li>
+<li>residual composite operators are easier to represent explicitly</li>
+<li>runtime manipulation of composites is more data-driven and less operational</li>
+</ul>
+
+<p>
+So the practical tradeoff is:
+</p>
+
+<ul class="org-ul">
+<li>choose A for expressiveness and clarity of free-field composites</li>
+<li>choose B for lean runtime performance</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org85bec0c" class="outline-2">
+<h2 id="org85bec0c"><span class="section-number-2">7.</span> What Each Option Implies For Wick</h2>
+<div class="outline-text-2" id="text-7">
+</div>
+<div id="outline-container-org0985d5b" class="outline-3">
+<h3 id="org0985d5b"><span class="section-number-3">7.1.</span> Under A</h3>
+<div class="outline-text-3" id="text-7-1">
+<p>
+`Theory.wick(left, right)` can inspect composite heads directly.
+If a head is composite, Wick can recurse into its factors using runtime data.
+</p>
+
+<p>
+This makes the runtime evaluator more structural and data-driven.
+</p>
+</div>
+</div>
+<div id="outline-container-orgccb0837" class="outline-3">
+<h3 id="orgccb0837"><span class="section-number-3">7.2.</span> Under B</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+`Theory.wick(left, right)` works primarily on atomic kinds.
+If a kind has a free-field realization, the generated theory code expands it internally before contracting.
+</p>
+
+<p>
+This keeps the runtime surface smaller, but the evaluator becomes more specialized to each theory.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgefe34c0" class="outline-2">
+<h2 id="orgefe34c0"><span class="section-number-2">8.</span> What Each Option Implies For Interacting Theories</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Take Ising `sigma`.
+</p>
+
+<p>
+Under A:
+</p>
+
+<ul class="org-ul">
+<li>`sigma` is an atomic kind</li>
+<li>you simply never build a free-composite head from `sigma` unless the theory explicitly allows it</li>
+</ul>
+
+<p>
+Under B:
+</p>
+
+<ul class="org-ul">
+<li>`sigma` is also an atomic kind</li>
+<li>since composite structure is not first-class anyway, nothing special is needed</li>
+</ul>
+
+<p>
+So both A and B can handle interacting theories.
+The real difference is only in how free-field composite structure is represented.
+</p>
+</div>
+</div>
+<div id="outline-container-org9c90535" class="outline-2">
+<h2 id="org9c90535"><span class="section-number-2">9.</span> Recommendation</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+If the main priority is:
+</p>
+
+<ul class="org-ul">
+<li>huge streamed calculations</li>
+<li>minimal memory footprint</li>
+<li>theory-agnostic runtime algorithms</li>
+</ul>
+
+<p>
+then Option B is the better choice.
+</p>
+
+<p>
+If the main priority is:
+</p>
+
+<ul class="org-ul">
+<li>explicit representation of free-field composites</li>
+<li>direct runtime manipulation of residual composites</li>
+<li>data-driven structural evaluation</li>
+</ul>
+
+<p>
+then Option A is the better choice.
+</p>
+
+<p>
+A pragmatic recommendation is:
+</p>
+
+<ul class="org-ul">
+<li>start with Option B if performance is the dominant concern</li>
+<li>move toward A only if explicit runtime composite structure becomes genuinely necessary</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org3e608a0" class="outline-2">
+<h2 id="org3e608a0"><span class="section-number-2">10.</span> Summary</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+Option A:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>Operator = insertion + head + extra
+Head = atomic kind | free composite
+</code></pre>
+</div>
+
+<p>
+Pros:
+</p>
+
+<ul class="org-ul">
+<li>composites are first-class runtime objects</li>
+<li>more expressive and structural</li>
+</ul>
+
+<p>
+Cons:
+</p>
+
+<ul class="org-ul">
+<li>larger runtime objects</li>
+<li>more runtime complexity</li>
+<li>more metadata and normalization work later</li>
+</ul>
+
+<p>
+Option B:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text"><code>Operator = atomic kind + insertion + extra
+</code></pre>
+</div>
+
+<p>
+Pros:
+</p>
+
+<ul class="org-ul">
+<li>smallest runtime representation</li>
+<li>best performance</li>
+<li>simplest theory-agnostic hot path</li>
+</ul>
+
+<p>
+Cons:
+</p>
+
+<ul class="org-ul">
+<li>composite structure is not explicit in runtime values</li>
+<li>generated theory code must carry more operational knowledge</li>
+</ul>
+
+<p>
+This is the main operator-design decision still remaining.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2026-06-05 Fri 11:32</p>
+</div>
+</body>
+</html>

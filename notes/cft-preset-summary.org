@@ -1,0 +1,863 @@
+#+title: CFT Preset Summary
+
+* Goal
+
+A CFT preset is the compile-time declaration of a theory.
+It contains only theory-level data.
+
+From that preset, Zig metaprogramming builds a theory-specific runtime interface such as:
+
+#+begin_src zig
+Theory.wick(left, right) ?Coeff
+#+end_src
+
+So the preset is the single source of truth for the theory.
+
+* Core Internal Types
+
+These are the minimal internal types that the builder layer lowers into.
+
+#+begin_src zig
+pub const Scalar = f64;
+pub const Symbol = u32;
+pub const SectorId = u16;
+pub const OperatorFamilyId = u32;
+pub const TensorIndex = u32;
+
+pub const CFTSpec = struct {
+    sectors: []const SectorSpec,
+};
+
+pub const SectorSpec = struct {
+    name: []const u8,
+    operators: []const OperatorFamilySpec,
+    correlator_tactic: CorrelatorTactic,
+    wick_rules: []const WickRuleTemplate,
+    rules: RuleSet,
+};
+
+pub const OperatorKind = enum {
+    fundamental_field,
+    ordinary_operator,
+};
+
+pub const Holomorphicity = enum {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+pub const WeightSpec = union(enum) {
+    fixed: ConformalWeights,
+    supplied_at_construction,
+};
+
+pub const ConformalWeights = struct {
+    h: ?Scalar,
+    hbar: ?Scalar,
+};
+
+pub const QuantumNumbers = struct {
+    ghost_number: i16 = 0,
+    picture_number: i16 = 0,
+};
+
+pub const TensorType = enum {
+    scalar,
+    vector,
+};
+
+pub const OperatorFamilySpec = struct {
+    name: []const u8,
+    kind: OperatorKind,
+    holomorphicity: Holomorphicity,
+    weights: WeightSpec,
+    quantum_numbers: QuantumNumbers,
+    tensor_type: ?TensorType = null,
+};
+
+pub const CorrelatorTactic = enum {
+    abstract,
+    wick,
+};
+
+pub const RuleSet = struct {
+    ope_rules: []const OPERule,
+    bosonization_rules: []const BosonizationRule,
+};
+#+end_src
+
+* Runtime Operator Type
+
+#+begin_src zig
+pub const PositionData = union(enum) {
+    single: Symbol,
+    pair: struct {
+        z: Symbol,
+        zbar: Symbol,
+    },
+};
+
+pub const LocalOperator = struct {
+    sector: SectorId,
+    family: OperatorFamilyId,
+    position: PositionData,
+    weights: ConformalWeights,
+    dz: u8 = 0,
+    dzbar: u8 = 0,
+    tensor_indices: []const TensorIndex,
+};
+#+end_src
+
+* Coeff Representation And Builder Surface
+
+The preset author should not write raw `Coeff` structs by hand.
+They should have a small builder surface for constructing coefficients directly when the basic `pole(...).delta(...)` templates are not enough.
+
+#+begin_src zig
+pub const Coeff = struct {
+    summands: []const CoeffSummand,
+};
+
+pub const CoeffSummand = struct {
+    rational_function: RationalFunction,
+    tensor_structure: TensorStructure,
+};
+
+pub const RationalFunction = struct {
+    factors: []const Factor,
+};
+
+pub const Factor = struct {
+    base: Polynomial,
+    exponent: i16,
+};
+
+pub const Polynomial = struct {
+    terms: []const PolynomialTerm,
+};
+
+pub const PolynomialTerm = struct {
+    monomial_coefficient: Scalar,
+    monomial: Monomial,
+};
+
+pub const Monomial = struct {
+    terms: []const MonomialTerm,
+};
+
+pub const MonomialTerm = struct {
+    variable: Symbol,
+    power: u16,
+};
+
+pub const TensorStructure = union(enum) {
+    none,
+    kronecker_delta: struct {
+        left: TensorIndex,
+        right: TensorIndex,
+    },
+};
+
+fn variable(sym: Symbol) Polynomial {
+    return .{
+        .terms = &[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = sym, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+fn difference(z: Symbol, w: Symbol) Polynomial {
+    return .{
+        .terms = &[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = z, .power = 1 },
+                    },
+                },
+            },
+            .{
+                .monomial_coefficient = -1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = w, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+fn oneOverPower(poly: Polynomial, power: u16) Coeff {
+    return .{
+        .summands = &[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &[_]Factor{
+                        .{ .base = poly, .exponent = -@as(i16, @intCast(power)) },
+                    },
+                },
+                .tensor_structure = .none,
+            },
+        },
+    };
+}
+
+fn scaleCoeff(coeff: Coeff, scalar: Scalar) Coeff {
+    _ = scalar;
+    return coeff;
+}
+
+fn withKroneckerDelta(coeff: Coeff, left: TensorIndex, right: TensorIndex) Coeff {
+    return .{
+        .summands = &[_]CoeffSummand{
+            .{
+                .rational_function = coeff.summands[0].rational_function,
+                .tensor_structure = .{ .kronecker_delta = .{ .left = left, .right = right } },
+            },
+        },
+    };
+}
+#+end_src
+
+The three functions above are internal lowering helpers.
+The user-facing way to build coefficients should be a small compositional `coeff` namespace together with a separate `tensor` namespace.
+
+The important design choice is that tensor structure should not be hardcoded to Kronecker deltas. Tensor structure should be its own small symbolic language.
+
+#+begin_src zig
+pub const TensorExpr = union(enum) {
+    one,
+    factor: TensorFactor,
+    mul: []const TensorExpr,
+};
+
+pub const TensorFactor = union(enum) {
+    delta: struct {
+        left: IndexRef,
+        right: IndexRef,
+    },
+    metric: struct {
+        left: IndexRef,
+        right: IndexRef,
+    },
+    epsilon: []const IndexRef,
+    invariant: struct {
+        name: []const u8,
+        indices: []const IndexRef,
+    },
+};
+
+pub const tensor = struct {
+    pub fn one() TensorExpr {
+        return .one;
+    }
+
+    pub fn delta(comptime left: IndexRef, comptime right: IndexRef) TensorExpr {
+        return .{ .factor = .{ .delta = .{ .left = left, .right = right } } };
+    }
+
+    pub fn metric(comptime left: IndexRef, comptime right: IndexRef) TensorExpr {
+        return .{ .factor = .{ .metric = .{ .left = left, .right = right } } };
+    }
+
+    pub fn epsilon(comptime indices: []const IndexRef) TensorExpr {
+        return .{ .factor = .{ .epsilon = indices } };
+    }
+
+    pub fn invariant(comptime name: []const u8, comptime indices: []const IndexRef) TensorExpr {
+        return .{ .factor = .{ .invariant = .{ .name = name, .indices = indices } } };
+    }
+
+    pub fn mul(comptime factors: []const TensorExpr) TensorExpr {
+        return .{ .mul = factors };
+    }
+};
+
+pub const coeff = struct {
+    pub fn pole(comptime left: PosRef, comptime right: PosRef, comptime power: u8) CoeffTemplate {
+        return .{
+            .pole = .{
+                .left = left,
+                .right = right,
+                .power = power,
+            },
+            .tensor = .none,
+        };
+    }
+
+    pub fn tensorExpr(comptime t: TensorExpr) CoeffTemplate {
+        return .{
+            .pole = .{
+                .left = at(.left),
+                .right = at(.right),
+                .power = 0,
+            },
+            .tensor = lowerTensorExpr(t),
+        };
+    }
+
+    pub fn mul(comptime left: CoeffTemplate, comptime right: CoeffTemplate) CoeffTemplate {
+        return combineCoeffTemplates(left, right);
+    }
+};
+#+end_src
+
+So if the user wants to describe a coefficient directly, they should write things like:
+
+#+begin_src zig
+coeff.pole(at(.left), at(.right), 1)
+
+coeff.mul(
+    coeff.pole(at(.left), at(.right), 2),
+    coeff.tensorExpr(
+        tensor.delta(idx(.left, 0), idx(.right, 0)),
+    ),
+)
+
+coeff.tensorExpr(
+    tensor.invariant("f", &[_]IndexRef{
+        idx(.left, 0),
+        idx(.left, 1),
+        idx(.right, 0),
+    }),
+)
+#+end_src
+
+This scales to more general tensor structures without hardcoding separate coefficient helpers for each one.
+
+`scaleCoeff` is shown schematically here. In a real implementation it should scale the summand coefficients explicitly.
+
+* Ergonomic Builder DSL
+
+The preset author should write a small comptime DSL, not raw structs and not handwritten evaluator functions.
+
+** Pattern placeholders
+
+These placeholders are abstract. They do not hardcode concrete runtime names like `z`, `w`, `mu`, or `nu`.
+
+#+begin_src zig
+pub const Side = enum {
+    left,
+    right,
+};
+
+pub const PosRef = struct {
+    side: Side,
+    barred: bool = false,
+};
+
+pub const IndexRef = struct {
+    side: Side,
+    slot: u8,
+};
+#+end_src
+
+** DSL types
+
+#+begin_src zig
+pub const OpPattern = struct {
+    family: []const u8,
+    pos: PosRef,
+    dz: u8 = 0,
+    dzbar: u8 = 0,
+    indices: []const IndexRef = &.{},
+};
+
+pub const PoleTemplate = struct {
+    left: PosRef,
+    right: PosRef,
+    power: u8,
+};
+
+pub const TensorTemplate = union(enum) {
+    none,
+    expr: TensorExpr,
+};
+
+pub const CoeffTemplate = struct {
+    pole: PoleTemplate,
+    tensor: TensorTemplate = .none,
+};
+
+pub const WickRuleTemplate = struct {
+    left: OpPattern,
+    right: OpPattern,
+    coeff: CoeffTemplate,
+};
+#+end_src
+
+** Actual builder implementations
+
+#+begin_src zig
+pub fn at(comptime side: Side) PosRef {
+    return .{ .side = side, .barred = false };
+}
+
+pub fn atBar(comptime side: Side) PosRef {
+    return .{ .side = side, .barred = true };
+}
+
+pub fn idx(comptime side: Side, comptime slot: u8) IndexRef {
+    return .{ .side = side, .slot = slot };
+}
+
+pub fn op(
+    comptime family: []const u8,
+    comptime pos: PosRef,
+) OpPattern {
+    return .{
+        .family = family,
+        .pos = pos,
+        .indices = &.{},
+    };
+}
+
+pub fn opIndexed(
+    comptime family: []const u8,
+    comptime indices: []const IndexRef,
+    comptime pos: PosRef,
+) OpPattern {
+    return .{
+        .family = family,
+        .pos = pos,
+        .indices = indices,
+    };
+}
+
+pub fn b(comptime pos: PosRef) OpPattern {
+    return op("b", pos);
+}
+
+pub fn c(comptime pos: PosRef) OpPattern {
+    return op("c", pos);
+}
+
+pub fn dX(comptime mu: IndexRef, comptime pos: PosRef) OpPattern {
+    return opIndexed("dX", &[_]IndexRef{mu}, pos);
+}
+
+pub fn psi(comptime mu: IndexRef, comptime pos: PosRef) OpPattern {
+    return opIndexed("psi", &[_]IndexRef{mu}, pos);
+}
+
+pub fn expPhi(comptime pos: PosRef) OpPattern {
+    return op("expPhi", pos);
+}
+
+pub fn dz(comptime n: u8, comptime pattern: OpPattern) OpPattern {
+    var out = pattern;
+    out.dz += n;
+    return out;
+}
+
+pub fn dzbar(comptime n: u8, comptime pattern: OpPattern) OpPattern {
+    var out = pattern;
+    out.dzbar += n;
+    return out;
+}
+
+pub pub fn wick(
+    comptime left: OpPattern,
+    comptime right: OpPattern,
+    comptime coeff: CoeffTemplate,
+) WickRuleTemplate {
+    return .{
+        .left = left,
+        .right = right,
+        .coeff = coeff,
+    };
+}
+
+pub fn field(
+    comptime name: []const u8,
+    comptime holomorphicity: Holomorphicity,
+    comptime weights: WeightSpec,
+    comptime quantum_numbers: QuantumNumbers,
+    comptime tensor_type: ?TensorType,
+) OperatorFamilySpec {
+    return .{
+        .name = name,
+        .kind = .fundamental_field,
+        .holomorphicity = holomorphicity,
+        .weights = weights,
+        .quantum_numbers = quantum_numbers,
+        .tensor_type = tensor_type,
+    };
+}
+
+pub fn ordinaryOperator(
+    comptime name: []const u8,
+    comptime holomorphicity: Holomorphicity,
+    comptime weights: WeightSpec,
+    comptime quantum_numbers: QuantumNumbers,
+    comptime tensor_type: ?TensorType,
+) OperatorFamilySpec {
+    return .{
+        .name = name,
+        .kind = .ordinary_operator,
+        .holomorphicity = holomorphicity,
+        .weights = weights,
+        .quantum_numbers = quantum_numbers,
+        .tensor_type = tensor_type,
+    };
+}
+
+pub fn fixedWeight(comptime h: ?Scalar, comptime hbar: ?Scalar) WeightSpec {
+    return .{ .fixed = .{ .h = h, .hbar = hbar } };
+}
+
+pub fn suppliedWeight() WeightSpec {
+    return .supplied_at_construction;
+}
+
+pub fn sector(
+    comptime name: []const u8,
+    comptime operators: []const OperatorFamilySpec,
+    comptime correlator_tactic: CorrelatorTactic,
+    comptime wick_rules: []const WickRuleTemplate,
+    comptime rules: RuleSet,
+) SectorSpec {
+    return .{
+        .name = name,
+        .operators = operators,
+        .correlator_tactic = correlator_tactic,
+        .wick_rules = wick_rules,
+        .rules = rules,
+    };
+}
+
+pub fn tensor(comptime sectors: []const SectorSpec) CFTSpec {
+    return .{ .sectors = sectors };
+}
+#+end_src
+
+* Generated Wick Implementation
+
+The user never writes this by hand. The comptime lowering step generates something equivalent to it.
+
+** Runtime resolution helpers
+
+#+begin_src zig
+fn resolvePos(which: PosRef, left: LocalOperator, right: LocalOperator) Symbol {
+    const op = switch (which.side) {
+        .left => left,
+        .right => right,
+    };
+
+    if (!which.barred) {
+        return switch (op.position) {
+            .single => |z| z,
+            .pair => |p| p.z,
+        };
+    }
+
+    return switch (op.position) {
+        .single => unreachable,
+        .pair => |p| p.zbar,
+    };
+}
+
+fn resolveIndex(which: IndexRef, left: LocalOperator, right: LocalOperator) TensorIndex {
+    const op = switch (which.side) {
+        .left => left,
+        .right => right,
+    };
+    return op.tensor_indices[which.slot];
+}
+#+end_src
+
+** Analytic derivative handling
+
+The user should specify only the base Wick rule. Higher derivatives are handled automatically by differentiating the base pole analytically.
+
+For a base pole
+
+#+begin_src text
+1 / (z - w)^p
+#+end_src
+
+and runtime derivative counts `m = left.dz`, `n = right.dz`, the generated evaluator raises the pole order to `p + m + n` and multiplies by the correct scalar prefactor.
+
+A small implementation sketch:
+
+#+begin_src zig
+fn risingFactorial(start: u16, count: u8) Scalar {
+    var out: Scalar = 1;
+    var i: u8 = 0;
+    while (i < count) : (i += 1) {
+        out *= @as(Scalar, @floatFromInt(start + i));
+    }
+    return out;
+}
+
+fn holomorphicDerivativeScalar(base_power: u8, left_dz: u8, right_dz: u8) Scalar {
+    const left_factor = risingFactorial(base_power, left_dz);
+    const right_factor = risingFactorial(base_power + left_dz, right_dz);
+    const right_sign: Scalar = if ((right_dz % 2) == 0) 1 else -1;
+    return left_factor * right_factor * right_sign;
+}
+
+fn lowerCoeffTemplate(
+    tmpl: CoeffTemplate,
+    left: LocalOperator,
+    right: LocalOperator,
+) Coeff {
+    const z = resolvePos(tmpl.pole.left, left, right);
+    const w = resolvePos(tmpl.pole.right, left, right);
+    const total_power = tmpl.pole.power + left.dz + right.dz;
+    const scalar = holomorphicDerivativeScalar(tmpl.pole.power, left.dz, right.dz);
+
+    var coeff = scaleCoeff(oneOverPower(difference(z, w), total_power), scalar);
+
+    switch (tmpl.tensor) {
+        .none => {},
+        .expr => |t| {
+            coeff = attachTensorExpr(coeff, t, left, right);
+        },
+    }
+
+    return coeff;
+}
+#+end_src
+
+** Pattern matching helpers
+
+#+begin_src zig
+fn matchesPattern(op: LocalOperator, pattern: OpPattern, family_id: OperatorFamilyId) bool {
+    if (op.family != family_id) return false;
+    if (op.dzbar != pattern.dzbar) return false;
+    return true;
+}
+#+end_src
+
+In the common Wick case, `pattern.dz` is the derivative order explicitly authored in the rule. Usually that is zero, because higher holomorphic derivatives are handled analytically from the base rule.
+
+** Sector-local dispatcher generation
+
+#+begin_src zig
+const WickFn = fn (left: LocalOperator, right: LocalOperator) ?Coeff;
+
+fn buildSectorWick(
+    comptime sector_spec: SectorSpec,
+    comptime family_ids: anytype,
+) *const WickFn {
+    return &struct {
+        fn call(left: LocalOperator, right: LocalOperator) ?Coeff {
+            inline for (sector_spec.wick_rules) |rule| {
+                const left_id = family_ids.resolve(rule.left.family);
+                const right_id = family_ids.resolve(rule.right.family);
+
+                if (!matchesPattern(left, rule.left, left_id)) continue;
+                if (!matchesPattern(right, rule.right, right_id)) continue;
+
+                return lowerCoeffTemplate(rule.coeff, left, right);
+            }
+            return null;
+        }
+    }.call;
+}
+#+end_src
+
+** Final theory builder
+
+#+begin_src zig
+pub fn buildTheory(comptime spec: CFTSpec) type {
+    return struct {
+        pub fn wick(left: LocalOperator, right: LocalOperator) ?Coeff {
+            if (left.sector != right.sector) return null;
+
+            const sector = spec.sectors[left.sector];
+            return switch (sector.correlator_tactic) {
+                .abstract => null,
+                .wick => buildSectorWick(sector, FamilyIdsFor(sector))(left, right),
+            };
+        }
+    };
+}
+#+end_src
+
+This is the intended shape:
+
+- presets author compact `wick(...)` templates
+- comptime lowering resolves family names and generates sector dispatchers
+- runtime code calls only `Theory.wick(left, right)`
+
+* Minimal bc Example
+
+#+begin_src zig
+pub const bc = sector(
+    "bc",
+    &[_]OperatorFamilySpec{
+        field("b", .holomorphic, fixedWeight(2, null), .{ .ghost_number = -1 }, null),
+        field("c", .holomorphic, fixedWeight(-1, null), .{ .ghost_number = 1 }, null),
+    },
+    .wick,
+    &[_]WickRuleTemplate{
+        wick(
+            b(at(.left)),
+            c(at(.right)),
+            coeff.coeff.pole(at(.left), at(.right), 1),
+        ),
+    },
+    .{
+        .ope_rules = &[_]OPERule{},
+        .bosonization_rules = &[_]BosonizationRule{},
+    },
+);
+#+end_src
+
+This one base rule is enough. The generated evaluator handles:
+
+- `b(z)` with `c(w)`
+- `b(z)` with `\partial c(w)`
+- `\partial^m b(z)` with `\partial^n c(w)`
+
+by differentiating the base pole analytically.
+
+* Free Boson Example With Vector Indices
+
+#+begin_src zig
+pub const free_boson = sector(
+    "free_boson",
+    &[_]OperatorFamilySpec{
+        field("dX", .holomorphic, fixedWeight(1, null), .{}, .vector),
+        ordinaryOperator("expX", .generic, suppliedWeight(), .{}, null),
+    },
+    .wick,
+    &[_]WickRuleTemplate{
+        wick(
+            dX(idx(.left, 0), at(.left)),
+            dX(idx(.right, 0), at(.right)),
+            coeff.delta(coeff.pole(at(.left), at(.right), 2), idx(.left, 0), idx(.right, 0)),
+        ),
+    },
+    .{
+        .ope_rules = &[_]OPERule{},
+        .bosonization_rules = &[_]BosonizationRule{},
+    },
+);
+#+end_src
+
+This says:
+
+- `dX` is a fundamental holomorphic vector-valued family
+- the actual runtime index labels are supplied on the concrete `LocalOperator`
+- the generated Wick evaluator returns a pole of order 2 multiplied by the Kronecker delta on those runtime indices
+
+* Combined phi-psi System
+
+The `phi-psi` system should be treated as a whole sector, not as two unrelated theories. That is the right level for superstring matter-plus-superghost building blocks.
+
+A minimal sector can look like:
+
+#+begin_src zig
+pub const phi_psi = sector(
+    "phi_psi",
+    &[_]OperatorFamilySpec{
+        field("psi", .holomorphic, fixedWeight(0.5, null), .{}, .vector),
+        field("expPhi", .holomorphic, suppliedWeight(), .{}, null),
+        ordinaryOperator("expPhiPsi", .holomorphic, suppliedWeight(), .{}, .vector),
+    },
+    .wick,
+    &[_]WickRuleTemplate{
+        wick(
+            psi(idx(.left, 0), at(.left)),
+            psi(idx(.right, 0), at(.right)),
+            delta(coeff.pole(at(.left), at(.right), 1), idx(.left, 0), idx(.right, 0)),
+        ),
+    },
+    .{
+        .ope_rules = &[_]OPERule{},
+        .bosonization_rules = &[_]BosonizationRule{},
+    },
+);
+#+end_src
+
+The intent is:
+
+- `psi` has direct Wick contractions
+- `expPhi` carries its weight at insertion time
+- combined objects such as `e^{-phi} psi^mu` belong naturally to the same sector and can later be represented as ordinary operator families or composite local operators built from these ingredients
+
+This is more natural than pretending the `phi` and `psi` pieces live in entirely separate authoring worlds.
+
+* Full Theory Example
+
+#+begin_src zig
+pub const bc_free_boson = tensor(&[_]SectorSpec{
+    bc,
+    free_boson,
+});
+
+pub const superstring_like = tensor(&[_]SectorSpec{
+    bc,
+    phi_psi,
+    free_boson,
+});
+#+end_src
+
+* Compile-Time Use
+
+#+begin_src zig
+const predefined = @import("cft-presets.zig");
+const cft = @import("cft-spec.zig");
+
+pub const Theory = comptime cft.buildTheory(predefined.superstring_like);
+#+end_src
+
+Then runtime code stays theory-agnostic:
+
+#+begin_src zig
+const maybe_coeff = Theory.wick(left, right);
+#+end_src
+
+* Is It General Enough?
+
+For:
+
+- `bc`
+- free bosons
+- free fermions
+- combined `phi-psi` sector
+- vector-valued fields with runtime indices
+- arbitrary holomorphic derivative Wick contractions from base rules
+
+this surface is general enough.
+
+The main future extension points are:
+
+- richer tensor templates beyond Kronecker delta
+- composite local-operator authoring for objects such as `e^{-phi} psi^mu`
+- boundary/projection data for D-branes and orientifolds layered on top of a bulk CFT
+
+Those extensions fit on top of this preset surface without forcing a redesign of the core ideas.
+
+* Summary Checklist
+
+To define a CFT preset, the user must specify:
+
+- the sector decomposition of the theory
+- the operator families in each sector
+- for each family:
+  - name
+  - fundamental vs ordinary
+  - holomorphicity
+  - weight policy
+  - quantum numbers
+  - tensor type if needed
+- for each Wick-enabled sector:
+  - compact `wick(...)` rule templates written in the Zig-side DSL
+- for each sector:
+  - any extra OPE or bosonization rules
+
+The user should *not* write raw `Coeff` structs or handwritten evaluator functions. Those are generated internally at comptime.

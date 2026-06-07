@@ -1,0 +1,58 @@
+:PROPERTIES:
+:ID:       20260603T063945.054265
+:END:
+#+title: CFT-Code
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/cft-code/cft-code.zig :mkdirp yes
+
+The following module is the worldsheet CFT core of the project. It defines symbolic [[id:20260605T082209.767536][Expressions]] used in worldsheet CFT calculations i.e. local [[id:20260603T094125.997360][Operators]] multiplied by nontrivial [[id:20260604T083119.372970][Coefficients]] and computes their [[id:20260603T094112.928043][OPE]] and [[id:20260603T094138.285453][Correlators]]. It can also generate a basis of local operator with a given set of quantum numbers via [[id:20260606T063253.759714][Basis-Generation]]. The data of a CFT or BCFT is specified by generated preset constructors and executed by [[id:20260606T150002.000000][CFT Kernel]].
+
+As far as dependencies go, this module only depends on [[id:20260605T075909.433647][Tensor-Code]], which forms an integral part of the definition of [[id:20260604T083119.372970][Coefficients]] and determines the properties of various quantum numbers of [[id:20260603T094125.997360][Operators]].  The public API follows [[id:20260605T075909.433647][Tensor-Code]]: implementation nodes such as [[id:20260606T163500.000000][Presets]], [[id:20260605T090102.250727][Theory]], and [[id:20260606T150002.000000][CFT Kernel]] organize the code, but clients import this root module and use the selected declarations below.
+
+#+api:
+
+#+begin_src zig
+const presets = @import("presets.zig");
+
+/// Handle groups compact ids used by generated preset operator builders.
+pub const Handle = presets.Handle;
+/// scalars exposes scalar atoms and exact scalar helpers used in convention choices.
+pub const scalars = presets.scalars;
+
+/// FreeBoson groups the public free-boson preset constructors and configs.
+pub const FreeBoson = presets.FreeBoson;
+/// Bc groups the public bc-ghost preset constructors and configs.
+pub const Bc = presets.Bc;
+/// product builds the generated preset type for a product of independent bulk presets.
+pub const product = presets.product;
+/// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
+pub const boundary = presets.boundary;
+
+test "root CFT API exposes selected constructors without implementation namespaces" {
+    const testing = @import("std").testing;
+    try testing.expect(@hasDecl(@This(), "FreeBoson"));
+    try testing.expect(@hasDecl(@This(), "Bc"));
+    try testing.expect(@hasDecl(@This(), "product"));
+    try testing.expect(@hasDecl(@This(), "boundary"));
+    try testing.expect(@hasDecl(FreeBoson, "make"));
+    try testing.expect(@hasDecl(FreeBoson, "boundary"));
+    try testing.expect(@hasDecl(Bc, "sphere"));
+    try testing.expect(@hasDecl(Bc, "diskBoundary"));
+    try testing.expect(!@hasDecl(@This(), "freeBoson"));
+    try testing.expect(!@hasDecl(@This(), "bcSphere"));
+    try testing.expect(!@hasDecl(@This(), "freeBosonBoundary"));
+    try testing.expect(!@hasDecl(@This(), "bcDiskBoundary"));
+    try testing.expect(!@hasDecl(@This(), "presets"));
+    try testing.expect(!@hasDecl(@This(), "kernel"));
+    try testing.expect(!@hasDecl(@This(), "theory"));
+    try testing.expect(!@hasDecl(@This(), "expressions"));
+}
+#+end_src
+
+This root block is the public CFT API for now.  It intentionally groups each
+CFT family behind one compact object and does not export raw Wick-rule data,
+correlator configs, generated-kernel internals, or the preset implementation
+namespace.  Application modules such as on-shell code, SFT code, NLSM code,
+and pure-spinor code should build theories through the constructors above; a
+later public user-defined-CFT DSL should be one deliberate export rather than
+a leak of the preset runtime.

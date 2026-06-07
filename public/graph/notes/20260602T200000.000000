@@ -1,0 +1,39 @@
+:PROPERTIES:
+:ID:       20260602T200000.000000
+:END:
+#+title: Overview
+
+#+bibliography: refs.bib
+The aim of this project is to provide a set of convenient and performant tools for performing worldsheet string theory calculations. The project is split into the following parts:
+- [[id:20260603T063945.054265][CFT-Code]] is the kernel for performing worldsheet CFT calculations. It defines local operators, their OPE and correlation functions (on various Riemann surfaces).
+- [[id:20260605T075909.433647][Tensor-Code]] defines tensor structures and provides utilities for their manipulation and generation.
+- [[id:20260603T070744.656277][On-Shell-Code]] defines string amplitudes in the on-shell formalism.
+- [[id:20260603T064210.664096][SFT-Code]] defines string field theory vertices and brackets given an abstract set of local coordinate data. It provides utilities for the local coordinate data construction of open-closed \(SL(2)\) vertices.
+- [[id:20260603T064230.276471][NLSM-Code]] defines utilities for quantizing nonlinear sigma models on weakly curved target spacetimes. As such it defines the Polyakov path integral in a suitable regularization scheme. Composite operators are defined by inserting fields into the regularized path integral.
+- [[id:20260603T085219.077418][Pure-Spinor-Code]] defines utilities for quantizing the \(AdS_5 \times S^5\) pure spinor worldsheet theory by defining its path integral in a suitable regularization scheme. Composite operators are defined by inserting fields into the regularized path integral.
+
+For each part, we have a few physical goals in mind, guiding the implementation requirements:
+- [[id:20260603T063945.054265][CFT-Code]]
+  - Covariantly solve R-sector OPE and correlation functions for GSO-projected free fermion + ghosts theories. By solving, we mean to all mass levels and at practical speeds. This provides the basic ingredients for the treatment of RR backgrounds in SFT and for computing elusive high-point on-shell amplitudes involving the R-sector.
+- [[id:20260605T075909.433647][Tensor-Code]]
+  - For many applications (beyond the worldsheet), one needs to quickly generate independent invariant tensors contained in some tensor product of representations. Current Lie algebra packages are severely lacking in this regarding, and we aim to fill this gap.
+- [[id:20260603T070744.656277][On-Shell-Code]]
+  - Compute higher-point string amplitudes. A good testing ground is to reproduce known results regarding the SUSY completion of \(R^4\) term of Type IIB superstring, and to extend it further. This will require very efficient handling of tensor structures on both the string theory and the EFT side. For example, we expect there to be a 16-dilatino term and a 16-dilatino amplitude should have about 80 million independent invariant tensors in it.
+  - As a check, we also aim to compute the RR and NSNS amplitudes at four-point tree-level and one-loop and check they are related by SUSY [cite:@atick1987covariant]. This is nontrivial, the R-sector amplitudes involve excited spin fields upon picture-raising.
+- [[id:20260603T064210.664096][SFT-Code]]
+  - Compute the anomalous scaling dimension of the Konishi string in the large radius \(AdS_5 \times S^5\) regime. To begin with, at tree-level, but more ambitiously also incorporate string loops, which go beyond integrability.
+  - Carry out loop calculations on Calabi-Yau orientifolds, expressing the answers in terms of the 2d \((2,2)\) SCFT conformal data.
+- [[id:20260603T064230.276471][NLSM-Code]]
+  - Given numeric Calabi-Yau metrics, obtain the 2d \((2,2)\) SCFT conformal data in a large volume expansion. A good test-case is the IIA quintic as it only has a single volume modulus.
+- [[id:20260603T085219.077418][Pure-Spinor-Code]]
+  - Systematically quantize the \(AdS_5 \times S^5\) pure spinor \(PSU(2,2|4)\) sigma model and use it to compute the pure spinor BRST cohomology at mass level 0 and 1.
+
+In a previously written Mathematica [[https://github.com/jscheinpflug/string-code][prototype]], we have encountered that there are a few major bottlenecks towards achieving these goals.
+- Free field calculations fundamentally lead to a huge combinatorial blow-up of the number of terms involved. When scaling up, it is infeasible to store the intermediate expressions in RAM. Rather, we construct a stream of data that emits the various expressions and introduce filters along the way that extract the desired result. We are then only limited by the size of that result.
+- R-sector OPE was severely limited by the speed at which we could construct invariant tensors. Our algorithm was to construct a largely overcomplete set of invariants and then statistically (by plugging in random components) determine an independent subset. We must now leverage representation theory better to do less computation.
+- We have not succeeded in writing the code abstractly enough so that adding new CFTs, combining CFTs to form a valid string worldsheet and adding boundaries, orientifolds could be done without large interference with the code. We must now design the [[id:20260603T063945.054265][CFT-Code]] kernel abstractly enough to avoid these issues.
+
+
+Due to the large expressions involved, each part has a core written in a performant programming language that handles memory explicitly. We expose a well-defined API that allows one to easily write wrappers for say Python, Mathematica, ... backing a DSL. Also note that having such a concise API to carry out worldsheet calculations is useful for agentic coding as it saves a large amount of context.
+
+#+print_bibliography:

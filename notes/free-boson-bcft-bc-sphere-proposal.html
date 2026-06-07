@@ -1,0 +1,913 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 16:24 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Free Boson, Profiles, bc Sphere, And Basic BCFT Proposal</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Free Boson, Profiles, bc Sphere, And Basic BCFT Proposal</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org36b2023">1. Goal</a></li>
+<li><a href="#orgf664fe9">2. Free Boson Preset</a></li>
+<li><a href="#orgd29a34b">3. Free Boson Wick Data</a></li>
+<li><a href="#orgdcf466a">4. Weights And Conventions</a></li>
+<li><a href="#org597572d">5. bc System On The Sphere</a></li>
+<li><a href="#org83aa44b">6. Free Boson BCFT</a></li>
+<li><a href="#orga68d27e">7. Neumann And Dirichlet Boundary Operators</a></li>
+<li><a href="#org7729b03">8. Boundary bc Ghosts</a></li>
+<li><a href="#org2969fa3">9. Correlator Algorithm Check</a></li>
+<li><a href="#orgbf2cb11">10. Zero Modes And Coefficient Shape</a></li>
+<li><a href="#org971c075">11. Zero-Mode Rule Shape</a></li>
+<li><a href="#org72146f4">12. Momentum And Profiles</a></li>
+<li><a href="#org32f0dd4">13. Minimal API Shape</a></li>
+<li><a href="#org22129b6">14. What Needs Sign-Off</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org36b2023" class="outline-2">
+<h2 id="org36b2023"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This is a drawing-board proposal for the first concrete CFT presets to build
+on top of <a href="../org/cft-code/theory/theory.html#ID-20260605T090102.250727">Theory</a>, <a href="../org/cft-code/expressions/operators.html#ID-20260603T094125.997360">Operators</a>,
+<a href="../org/cft-code/correlators/correlators.html#ID-20260603T094138.285453">Correlators</a>, <a href="../org/cft-code/correlators/wick.html#ID-20260606T064107.303587">Wick</a>, and
+<a href="../org/tensor-code/tensor-code.html#ID-20260605T075909.433647">Tensor-Code</a>.
+</p>
+
+<p>
+The target is deliberately small but physically diagnostic:
+</p>
+
+<ul class="org-ul">
+<li>a \(D\)-dimensional free boson \(X^\mu\), including arbitrary \(X\)-profiles
+as in <code>prototype-string-code/</code>;</li>
+<li>the holomorphic \(bc\) ghost system on the sphere;</li>
+<li>the basic BCFT extensions needed for a free boson with Neumann/Dirichlet
+directions, plus the standard boundary ghost sector.</li>
+</ul>
+
+<p>
+The proposal keeps runtime correlators lean.  A correlator receives local
+operators and a compiled rule config: Wick rules, zero-mode rules, and the
+few convention constants needed by those rules.  Boundary conditions, gluing,
+and doubling are used earlier when building the BCFT preset.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf664fe9" class="outline-2">
+<h2 id="orgf664fe9"><span class="section-number-2">2.</span> Free Boson Preset</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The free boson is a bulk CFT sector parameterized by dimension, conventions,
+and target-space invariant data.  Dimension is not a cosmetic label: it
+decides the vector representation, the metric/delta contractions, and whether
+epsilon-type \(SO(D)\) invariants are available.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeBosonSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">dimension</span>: <span style="color: #fabd2f;">u16</span>,
+    <span style="color: #83a598;">alpha_prime</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">dX_normalization</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">vector_symmetry</span>: <span style="color: #fabd2f;">TensorSymmetryRef</span>,
+    <span style="color: #83a598;">vector_rep</span>: <span style="color: #fabd2f;">TensorRepRef</span>,
+    <span style="color: #83a598;">metric</span>: <span style="color: #fabd2f;">TensorInvariantRef</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For the first implementation, <code>vector_symmetry</code> should be \(SO(D)\) with the
+vector representation.  The tensor module should own identities such as
+\(\delta^\mu{}_\mu=D\), metric contractions, and optionally epsilon identities.
+The free-boson Wick rules should only ask tensor-code for those invariant
+handles and streamed contractions.
+</p>
+
+<p>
+The bulk operator families are:
+</p>
+
+<ul class="org-ul">
+<li>\(\partial^{n+1}X^\mu(z)\), represented as <code>dX</code> with a vector index and a
+nonnegative derivative label \(n\);</li>
+<li>\(\bar\partial^{n+1}X^\mu(\bar z)\), represented as <code>dXt</code>;</li>
+<li>\(:e^{ikX}(z,\bar z):\), with a momentum label in the vector dual;</li>
+<li>holomorphic and antiholomorphic factorized exponentials when the client
+explicitly chooses a chiral presentation;</li>
+<li>arbitrary \(X\)-profiles, with labels pointing to a symbolic target-space
+profile and to the target derivatives already taken.</li>
+</ul>
+
+<p>
+The profile point is important.  A profile is not a surface and not a special
+case in the correlator.  It is an operator body whose label says &ldquo;this body
+depends on \(X\) through a profile \(F(X)\)&rdquo;, and whose Wick rule knows how to
+emit target derivatives such as \(\partial_\mu F\).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeBosonBodyLabel</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">dX</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">mu</span>: <span style="color: #fabd2f;">TensorIndex</span>, <span style="color: #83a598;">derivative</span>: <span style="color: #fabd2f;">u16</span> },
+    <span style="color: #83a598;">dXt</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">mu</span>: <span style="color: #fabd2f;">TensorIndex</span>, <span style="color: #83a598;">derivative</span>: <span style="color: #fabd2f;">u16</span> },
+    <span style="color: #83a598;">expX</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">momentum</span>: <span style="color: #fabd2f;">MomentumRef</span> },
+    <span style="color: #83a598;">expX_holo</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">momentum</span>: <span style="color: #fabd2f;">MomentumRef</span> },
+    <span style="color: #83a598;">expX_anti</span>: <span style="color: #fb4934;">struct</span> { <span style="color: #83a598;">momentum</span>: <span style="color: #fabd2f;">MomentumRef</span> },
+    <span style="color: #83a598;">profileX</span>: <span style="color: #fabd2f;">ProfileLabel</span>,
+    <span style="color: #83a598;">profileX_holo</span>: <span style="color: #fabd2f;">ProfileLabel</span>,
+    <span style="color: #83a598;">profileX_anti</span>: <span style="color: #fabd2f;">ProfileLabel</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ProfileLabel</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">profile</span>: <span style="color: #fabd2f;">ProfileRef</span>,
+    <span style="color: #83a598;">target_derivatives</span>: <span style="color: #fabd2f;">ProfileDerivativeSpan</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This mirrors the prototype&rsquo;s <code>ProfileX[profile, ders, z, zbar]</code>,
+<code>ProfileXHolo</code>, and <code>ProfileXAntiHolo</code>.  The new code should not expand
+profiles into polynomials unless a client later asks for that.  The generic
+free-boson Wick rule emits symbolic target derivatives of the profile and
+leaves the target-space simplification to tensor-code or to the client.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd29a34b" class="outline-2">
+<h2 id="orgd29a34b"><span class="section-number-2">3.</span> Free Boson Wick Data</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The sphere Wick rules are the local data:
+</p>
+
+<ul class="org-ul">
+<li>\(dX^\mu dX^\nu\) gives a metric/delta tensor times derivatives of the
+holomorphic kernel;</li>
+<li>\(dXt^\mu dXt^\nu\) is the antiholomorphic copy;</li>
+<li>mixed \(dX dXt\) vanishes on the sphere;</li>
+<li>\(dX^\mu\) contracts with \(e^{ikX}\) by emitting \(k^\mu\);</li>
+<li>\(dX^\mu\) contracts with \(F(X)\) by emitting \(\partial_\mu F\);</li>
+<li>exponential/profile pairs multiply by powers determined by target-space
+pairings such as \(k\cdot p\), \(k\cdot \partial F\), and
+\(\partial F\cdot\partial G\).</li>
+</ul>
+
+<p>
+This is still ordinary Wick data.  The only additional distinction is that
+some pairings are additive contractions, while exponential/profile pairings
+are multiplicative factors.  That distinction belongs in the Wick rule table,
+not in the operator data structure.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickRuleKind</span> = <span style="color: #fb4934;">enum</span> {
+    additive_pair,
+    multiplicative_pair,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">left_kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">right_kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">WickRuleKind</span>,
+    <span style="color: #83a598;">evaluator</span>: <span style="color: #fabd2f;">WickEvaluatorRef</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The runtime correlator does not need to know that one of these rules came from
+a profile or a plane wave.  It only needs to stream the rule&rsquo;s emitted
+coefficient and residual operator bodies.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdcf466a" class="outline-2">
+<h2 id="orgdcf466a"><span class="section-number-2">4.</span> Weights And Conventions</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The free boson must compute weights at runtime from labels:
+</p>
+
+<ul class="org-ul">
+<li>\(dX^\mu_n\) has holomorphic weight \(1+n\);</li>
+<li>\(dXt^\mu_n\) has antiholomorphic weight \(1+n\);</li>
+<li>\(e^{ikX}\) has weights determined by the chosen \(\alpha'\) convention and
+\(k^2\);</li>
+<li>profile weights are rule-defined.  Initially they can be abstract unless the
+profile label supplies enough data to compute them.</li>
+</ul>
+
+<p>
+The convention set should make it easy to change \(\alpha'\), the sign of the
+two-point function, and the normalization of \(dX\).  These are preset
+conventions, not client-side rewrites of every Wick rule.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeBosonConvention</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">alpha_prime</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">xx_green_sign</span>: <span style="color: #fabd2f;">i2</span>,
+    <span style="color: #83a598;">dX_dX_prefactor</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">expX_weight_prefactor</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">boundary_expX_weight_prefactor</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For the first preset, the values can match the prototype.  The point of this
+object is that Ashoke/Xi/other convention choices become data used by the
+rule builders, not forks of the operator representation.
+</p>
+</div>
+</div>
+<div id="outline-container-org597572d" class="outline-2">
+<h2 id="org597572d"><span class="section-number-2">5.</span> bc System On The Sphere</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The sphere \(bc\) ghost preset is a chiral first-order system with:
+</p>
+
+<ul class="org-ul">
+<li>\(b(z)\), weight \(2\), ghost number \(-1\), fermionic;</li>
+<li>\(c(z)\), weight \(-1\), ghost number \(+1\), fermionic;</li>
+<li>optional antiholomorphic copy \(bt(\bar z),ct(\bar z)\) for closed-string
+calculations;</li>
+<li>Wick kernel \(b(z)c(w)\sim 1/(z-w)\) with derivative labels handled by
+differentiating the kernel;</li>
+<li>a sphere zero-mode/top-form rule for the three \(c\) zero modes.</li>
+</ul>
+
+<p>
+The correlator engine should not hard-code \(\langle ccc\rangle\).  It should
+receive a zero-mode rule saying that the surviving \(c\)-sector top form on
+the sphere is represented by three modes.  From that, the familiar values
+such as
+\[
+  \langle c(z_1)c(z_2)c(z_3)\rangle
+  =(z_1-z_2)(z_1-z_3)(z_2-z_3)
+\]
+are emitted by the zero-mode evaluator.
+</p>
+
+<p>
+For the \(bc\) preset, this is private rule data behind the generic
+zero-mode evaluator:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">BcTopFormData</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">field_kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">modes</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">i16</span>,
+    <span style="color: #83a598;">normalization</span>: <span style="color: #fabd2f;">ConventionScalar</span>,
+    <span style="color: #83a598;">kill_if_unpaired_kind_present</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorKindId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is the same physics as the prototype&rsquo;s registered top-form VEV sector,
+but it is not a public coefficient variant.  It is table data used by the
+<code>bc_sphere_top_form</code> zero-mode evaluator.  The same private shape also works
+for the antiholomorphic \(ct\) copy.
+</p>
+</div>
+</div>
+<div id="outline-container-org83aa44b" class="outline-2">
+<h2 id="org83aa44b"><span class="section-number-2">6.</span> Free Boson BCFT</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The free-boson BCFT is compiled from the bulk free-boson preset plus a boundary
+condition.  The bulk CFT spec remains boundary-free.
+</p>
+
+<p>
+A Neumann/Dirichlet condition is most compactly encoded by a reflection matrix
+on the vector representation:
+\[
+  R^\mu{}_\nu = +\delta^\mu{}_\nu \quad \text{on Neumann directions},\qquad
+  R^\mu{}_\nu = -\delta^\mu{}_\nu \quad \text{on Dirichlet directions}.
+\]
+Dirichlet directions may also carry a position \(x_0^\mu\).  Neumann
+directions carry the ordinary momentum-conservation zero-mode rule.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeBosonBoundaryCondition</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">reflection</span>: <span style="color: #fabd2f;">TensorExprRef</span>,
+    <span style="color: #83a598;">neumann_projector</span>: <span style="color: #fabd2f;">TensorExprRef</span>,
+    <span style="color: #83a598;">dirichlet_projector</span>: <span style="color: #fabd2f;">TensorExprRef</span>,
+    <span style="color: #83a598;">dirichlet_position</span>: ?<span style="color: #fabd2f;">TargetVectorRef</span>,
+};
+</code></pre>
+</div>
+
+<p>
+From this, the BCFT builder compiles:
+</p>
+
+<ul class="org-ul">
+<li>boundary-local operator kinds such as \(dX_B^\mu(x)\), boundary
+exponentials, and boundary profiles;</li>
+<li>mixed bulk-boundary Wick kernels;</li>
+<li>disk/UHP zero-mode rules;</li>
+<li>optional boundary-changing families for strings stretched between different
+Dirichlet positions or more general branes.</li>
+</ul>
+
+<p>
+Boundary operators are chiral in the boundary CFT.  A bulk operator remains
+bulk and may be chiral, antichiral, or both.  The BCFT builder may use the
+doubling trick internally, but the runtime correlator only sees the resulting
+local operators and rule config.
+</p>
+</div>
+</div>
+<div id="outline-container-orga68d27e" class="outline-2">
+<h2 id="orga68d27e"><span class="section-number-2">7.</span> Neumann And Dirichlet Boundary Operators</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+For Neumann directions, boundary \(X\)-dependent operators have a genuine
+zero mode along the brane.  Boundary exponentials and boundary profiles may
+carry momentum/profile dependence in the Neumann subspace, and the disk
+zero-mode rule imposes the corresponding conservation law.
+</p>
+
+<p>
+For Dirichlet directions, the zero mode is fixed by the brane position.  Bulk
+closed-string exponentials near the disk can produce factors depending on
+\(x_0^\mu\), while boundary exponentials should not pretend that Dirichlet
+momentum is integrated.  This distinction belongs in the BCFT zero-mode rule
+and in the allowed boundary operator families.
+</p>
+
+<p>
+The stringbook convention that the boundary normal ordering differs from bulk
+normal ordering should be represented by the boundary Wick rule and boundary
+weight rule.  In particular, the dimension of a boundary exponential is
+controlled by the boundary kernel and need not equal the sum of the bulk left
+and right weights.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">BoundaryFreeBosonFamilies</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">dX_boundary</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">expX_boundary</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">profileX_boundary</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">boundary_changing</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorKindId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The factor of two relating \(\partial_y X(y)\) and the holomorphic boundary
+field in Neumann directions should be a convention in the BCFT preset.  We
+should ask for sign-off before freezing that normalization.
+</p>
+</div>
+</div>
+<div id="outline-container-org7729b03" class="outline-2">
+<h2 id="org7729b03"><span class="section-number-2">8.</span> Boundary bc Ghosts</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+The ghost BCFT is not Neumann/Dirichlet in the target-space sense.  It is the
+standard boundary gluing of the holomorphic and antiholomorphic ghost systems,
+compiled into a chiral boundary \(bc\) system with disk zero modes.
+</p>
+
+<p>
+For the first implementation, it is enough to support:
+</p>
+
+<ul class="org-ul">
+<li>boundary \(b(x)\), \(c(x)\) with the same first-order Wick kernel;</li>
+<li>disk/UHP top-form rule for the three boundary conformal Killing zero modes;</li>
+<li>mixed bulk-boundary ghost rules only if an immediate open-closed amplitude
+calculation needs them.</li>
+</ul>
+
+<p>
+This keeps the target-space Neumann/Dirichlet data attached only to the free
+boson and keeps the ghost boundary condition as ghost-sector BCFT data.
+</p>
+</div>
+</div>
+<div id="outline-container-org2969fa3" class="outline-2">
+<h2 id="org2969fa3"><span class="section-number-2">9.</span> Correlator Algorithm Check</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+The existing correlator direction is sufficient if the config object is
+specific enough.  The algorithm should be:
+</p>
+
+<ol class="org-ol">
+<li>Receive a collection of local operators and a <code>CorrelatorConfig</code>.</li>
+<li>Flatten multilocal input into local insertions without changing bodies.</li>
+<li>Stream over sectors and operator bodies; do not allocate a full expanded
+expression unless the caller explicitly asks for materialization.</li>
+<li>Apply zero-mode selection early when it can prove the correlator vanishes.</li>
+<li>Apply additive and multiplicative Wick rules by pair lookup on operator
+kinds and labels.</li>
+<li>Pass leftover uncontracted fields to the zero-mode rule.</li>
+<li>Emit coefficient/tensor/operator residual terms as a stream.</li>
+</ol>
+
+<p>
+That gives enough data for:
+</p>
+
+<ul class="org-ul">
+<li>free-boson sphere correlators with \(dX\), \(dXt\), \(e^{ikX}\), and
+arbitrary profiles;</li>
+<li>sphere \(bc\) correlators, including derivative \(c\)&rsquo;s and insertions at
+infinity once BPZ limits are implemented;</li>
+<li>disk/UHP free-boson BCFT correlators for Neumann/Dirichlet directions;</li>
+<li>boundary ghost correlators on the disk.</li>
+</ul>
+
+<p>
+The OPE implementation can still be the projected OPE computed from
+correlators plus pairing data.  For local bulk OPEs the sphere config is
+enough; for boundary OPEs the disk/BCFT config is enough.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbf2cb11" class="outline-2">
+<h2 id="orgbf2cb11"><span class="section-number-2">10.</span> Zero Modes And Coefficient Shape</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+The phrase &ldquo;zero-mode rule&rdquo; should mean the last evaluation step after Wick
+contractions.  It is not only a selection rule.  It consumes the residual
+uncontracted bodies in one sector and emits scalar coefficient factors.  For
+the \(bc\) system this is finite Grassmann top-form saturation.  For free
+bosons this is continuous zero-mode integration.  For arbitrary profiles, the
+correct first implementation is to keep the zero-mode integral explicit.
+</p>
+
+<p>
+The important data-shape decision is that <a href="../org/cft-code/expressions/coefficient.html#ID-20260604T083119.372970">Coefficient</a> should not learn new
+physics every time a user defines a CFT.  It should know how to multiply,
+add, stream, and canonicalize a small algebra of coefficient terms.  Physics
+families such as \(\delta^D(\sum k_i)\), \(Z'_X(\Sigma)\), \(e^{-ikx_0}\),
+Green-kernel exponentials, and explicit profile zero-mode integrals should be
+opaque scalar factors owned by the theory preset or by the client.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">CoeffTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">scalar</span>: <span style="color: #fabd2f;">ExactScalar</span>,
+    <span style="color: #83a598;">coordinate_kernel</span>: <span style="color: #fabd2f;">CoordinateKernelRef</span>,
+    <span style="color: #83a598;">tensor_factor</span>: <span style="color: #fabd2f;">TensorExprRef</span>,
+    <span style="color: #83a598;">symbolic_factors</span>: <span style="color: #fabd2f;">SymbolicFactorSpan</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">SymbolicFactor</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">family</span>: <span style="color: #fabd2f;">SymbolicFactorFamilyId</span>,
+    <span style="color: #83a598;">labels</span>: <span style="color: #fabd2f;">LabelSpan</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This keeps the coefficient module tight.  It does not need a public variant
+called <code>momentum_delta</code> or <code>profile_integral</code>.  The user-defined factor family
+names the meaning.  The coefficient engine only treats these as commuting
+scalar factors with optional family-supplied equality/canonicalization and
+printing.
+</p>
+
+<p>
+The coordinate part remains narrow: rational powers of coordinate
+differences, and later the small set of algebraic coordinate kernels that are
+common enough to justify first-class storage.  Torus prime forms, higher-genus
+Green functions, and explicit zero-mode integrals should begin life as
+symbolic factors, not as built-in coefficient syntax.
+</p>
+</div>
+</div>
+<div id="outline-container-org971c075" class="outline-2">
+<h2 id="org971c075"><span class="section-number-2">11.</span> Zero-Mode Rule Shape</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+The correlator config should point to sector-wise residual evaluators.
+Each evaluator receives only the residual bodies from its sector, the
+already-collected scalar factors, and the minimal rule data needed for that
+sector.  It returns a stream of coefficient factors, usually one term.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">ZeroModeRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">evaluator</span>: <span style="color: #fabd2f;">ZeroModeEvaluatorRef</span>,
+    <span style="color: #83a598;">rule_data</span>: <span style="color: #fabd2f;">RuleDataRef</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ZeroModeInput</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">residual_bodies</span>: <span style="color: #fabd2f;">OperatorBodySpan</span>,
+    <span style="color: #83a598;">labels</span>: <span style="color: #fabd2f;">LabelStoreRef</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ZeroModeOutput</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">factors</span>: <span style="color: #fabd2f;">SymbolicFactorSpan</span>,
+};
+</code></pre>
+</div>
+
+<p>
+Concrete free-boson rule families then become ordinary preset data:
+</p>
+
+<ul class="org-ul">
+<li><code>free_boson_bulk_noncompact</code>: sum all momenta carried by \(e^{ikX}\) and
+Fourier-profile bodies, emit the \(D\)-dimensional momentum delta, and leave
+arbitrary profile zero modes as an explicit integral;</li>
+<li><code>free_boson_neumann_boundary</code>: project momenta and profiles to Neumann
+directions, emit momentum conservation along the brane, and keep profile
+zero-mode integrals over Neumann zero modes when needed;</li>
+<li><code>free_boson_dirichlet_boundary</code>: project to Dirichlet directions and emit
+evaluation/phase factors at \(x_0\), with no Dirichlet momentum integration;</li>
+<li><code>bc_sphere_top_form</code>: localize the surviving \(c\)-ghost modes and emit the
+finite top-form normalization;</li>
+<li><code>charge_background</code>: handle bosonized charge-background rules such as
+\(\phi\), \(H_i\), or later lattice systems.</li>
+</ul>
+
+<p>
+The zero-mode evaluator should not ask for the full surface object.  It only
+uses the rule data already selected by the correlator config.  A sphere free
+boson rule and a torus free boson rule may share operator bodies but emit
+different symbolic factors.
+</p>
+</div>
+</div>
+<div id="outline-container-org72146f4" class="outline-2">
+<h2 id="org72146f4"><span class="section-number-2">12.</span> Momentum And Profiles</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+Momentum should be first-class enough to sum, project, and pair without
+expanding it into coefficient syntax.  This is not a new tensor-code physics
+layer; it is a compact vector-expression handle used by free-boson operator
+labels and zero-mode rules.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">MomentumLabel</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">vector</span>: <span style="color: #fabd2f;">VectorExprRef</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ProfileZeroModeLabel</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">profile</span>: <span style="color: #fabd2f;">ProfileRef</span>,
+    <span style="color: #83a598;">argument_space</span>: <span style="color: #fabd2f;">TargetSubspaceRef</span>,
+    <span style="color: #83a598;">target_derivatives</span>: <span style="color: #fabd2f;">ProfileDerivativeSpan</span>,
+};
+</code></pre>
+</div>
+
+<p>
+<a href="../org/tensor-code/tensor-code.html#ID-20260605T075909.433647">Tensor-Code</a> should supply the vector algebra: \(SO(D)\) metric, projectors
+for Neumann/Dirichlet subspaces, dot products, and streamed simplification of
+linear vector expressions.  It should not know that a vector expression is a
+momentum-conservation constraint.  The free-boson zero-mode rule knows that.
+</p>
+
+<p>
+For arbitrary profiles, the residual factor should be explicit.  Schematically
+the free-boson bulk zero-mode rule can emit
+\[
+  \int d^D x_0\,
+  F_1(x_0) \cdots F_r(x_0)\,
+  \exp\!\left(i x_0\cdot\sum_j k_j\right),
+\]
+or the projected Neumann/Dirichlet analogue.  If all profile labels are
+Fourier-like, a later user-side simplifier may collapse this to a momentum
+delta.  The generic correlator should not require that collapse.
+</p>
+</div>
+</div>
+<div id="outline-container-org32f0dd4" class="outline-2">
+<h2 id="org32f0dd4"><span class="section-number-2">13.</span> Minimal API Shape</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+The public API should stay close to the current kernel boundary.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">FreeBoson</span> = cft.presets.freeBoson(.{
+    .dimension = 10,
+    .conventions = .prototype,
+});
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">BosonicSphere</span> = cft.presets.tensor(.{
+    FreeBoson,
+    cft.presets.bcSphere(.{}),
+});
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">DpBrane</span> = cft.presets.freeBosonBoundary(.{
+    .bulk = FreeBoson,
+    .neumann = neumann_projector,
+    .dirichlet = dirichlet_projector,
+    .position = x0,
+});
+</code></pre>
+</div>
+
+<p>
+The generated theory should expose ordinary body builders and the two runtime
+operations:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">O</span> = BosonicSphere.op;
+
+<span style="color: #fb4934;">try</span> BosonicSphere.correlator(&amp;.{
+    O.local(O.c(.{}, z1)),
+    O.local(O.c(.{}, z2)),
+    O.local(O.c(.{}, z3)),
+}, BosonicSphere.config.sphere);
+
+<span style="color: #fb4934;">try</span> DpBrane.correlator(&amp;.{
+    DpBrane.op.boundary(DpBrane.op.expXBoundary(k, x)),
+}, DpBrane.config.disk);
+</code></pre>
+</div>
+
+<p>
+This is schematic.  The important boundary is that <code>correlator</code> receives
+operators plus a rule config, not a surface object, boundary-condition object,
+or gluing rule.
+</p>
+</div>
+</div>
+<div id="outline-container-org22129b6" class="outline-2">
+<h2 id="org22129b6"><span class="section-number-2">14.</span> What Needs Sign-Off</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+Before implementing these presets, I need domain sign-off on four precise
+physics choices:
+</p>
+
+<ol class="org-ol">
+<li>Profile semantics: should <code>ProfileX</code> denote a general local functional
+\(F(X)\), a normal-ordered exponential-like insertion whose pairings are
+governed by \(\partial F\), or both via two profile operator families?</li>
+<li>Boundary free-boson normalization: should the boundary generator be named
+and normalized as \(\partial X(y)\), as \(\partial_y X(y)\), or should both
+be exposed with a fixed factor-of-two conversion?</li>
+<li>Dirichlet zero modes: should the first implementation allow boundary
+profile/exponential labels with Dirichlet components and let the zero-mode
+rule evaluate them at \(x_0\), or reject those labels at construction?</li>
+<li>Ghost boundary scope: for the first BCFT pass, do we need only boundary
+\(bc\) correlators on the disk, or also mixed bulk-boundary ghost insertions
+immediately?</li>
+</ol>
+
+<p>
+My recommended implementation order is:
+</p>
+
+<ol class="org-ol">
+<li>tensor-code \(SO(D)\) vector invariant handles and dimension contraction;</li>
+<li>free-boson bulk operator families, labels, weights, and sphere Wick rules;</li>
+<li>profile labels and profile Wick rules;</li>
+<li>sphere \(bc\) top-form zero-mode rule and \(b c\) Wick rule;</li>
+<li>free-boson Neumann/Dirichlet BCFT compilation;</li>
+<li>boundary \(bc\) disk config.</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 16:24</p>
+</div>
+</body>
+</html>

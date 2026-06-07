@@ -1,0 +1,2434 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 19:07 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Clebsch-Gordan And Invariant Tensor Generation Design</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Clebsch-Gordan And Invariant Tensor Generation Design</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgfb308cc">1. Problem</a></li>
+<li><a href="#org3a65e54">2. State Of The Art</a></li>
+<li><a href="#orgabcf786">3. Recommended Design</a></li>
+<li><a href="#org81240bb">4. Representation Theory Primer</a></li>
+<li><a href="#orgdd6102c">5. \(Spin(10)\) \(16^{12}\) Feasibility</a></li>
+<li><a href="#org3648457">6. Projectors From Scratch</a></li>
+<li><a href="#org78ef29f">7. Higher Casimirs Versus Direct Local Solvers</a></li>
+<li><a href="#org6418d24">8. Concrete \(Spin(10)\) First-Layer Audit</a></li>
+<li><a href="#orgf0ac8ee">9. \(16^{12}\) Feasibility Study</a>
+<ul>
+<li><a href="#org3f7e7c8">9.1. Basis Size</a></li>
+<li><a href="#org5d85a95">9.2. Local Kernel Count</a></li>
+<li><a href="#org19a3bfb">9.3. Explicit Solver Need</a></li>
+<li><a href="#org71c7792">9.4. Compute Risk</a></li>
+<li><a href="#org7abbda3">9.5. Review Verdict</a></li>
+</ul>
+</li>
+<li><a href="#org10f5a91">10. Projector Pseudocode</a></li>
+<li><a href="#orgafbf60b">11. Full \(16^{12}\) Pseudocode</a></li>
+<li><a href="#orgec3027f">12. Core Data</a></li>
+<li><a href="#org9880237">13. Direct Solver</a></li>
+<li><a href="#org8855915">14. Recursive Coupling Backend</a></li>
+<li><a href="#org210d969">15. Group-Specific Backends</a>
+<ul>
+<li><a href="#org66a9148">15.1. \(SU(N)\)</a></li>
+<li><a href="#orgda303ec">15.2. \(SO(N)\) And \(Spin(N)\)</a></li>
+<li><a href="#org4cfe22c">15.3. \(E_8\)</a></li>
+</ul>
+</li>
+<li><a href="#orgb6017a0">16. Scalar Domain</a></li>
+<li><a href="#org5323a9b">17. Compute And Scaling</a></li>
+<li><a href="#orgfbb84fe">18. Data-Oriented Compute Plan</a></li>
+<li><a href="#orga801439">19. How This Replaces The Prototype Selector</a></li>
+<li><a href="#org2639b6f">20. Implementation Roadmap</a>
+<ul>
+<li><a href="#org9277858">20.1. Phase 0: Algebra And Representation Store</a></li>
+<li><a href="#org9fb1c50">20.2. Phase 1: Generic Local Solver</a></li>
+<li><a href="#org239ed7a">20.3. Phase 2: Coupling Paths</a></li>
+<li><a href="#orgc1bfd7a">20.4. Phase 3: Symbolic Tensor Term Store</a></li>
+<li><a href="#orgd8b7c07">20.5. Phase 4: \(SO(N)\) And \(Spin(N)\)</a></li>
+<li><a href="#org8f37c9e">20.6. Phase 5: \(SU(N)\)</a></li>
+<li><a href="#org465c586">20.7. Phase 6: \(E_8\)</a></li>
+<li><a href="#org449cba8">20.8. Phase 7: CFT Integration Boundary</a></li>
+<li><a href="#orge0c170a">20.9. Clarifications Needed</a></li>
+<li><a href="#org3316278">20.10. Milestones</a></li>
+</ul>
+</li>
+<li><a href="#org85d90f8">21. Design Decision</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgfb308cc" class="outline-2">
+<h2 id="orgfb308cc"><span class="section-number-2">1.</span> Problem</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+We need independent invariant tensors in
+\[
+  \operatorname{Hom}_G(\mathbf{1}, R_1 \otimes \cdots \otimes R_k),
+\]
+or, equivalently, Clebsch-Gordan maps between irreducible representations.
+</p>
+
+<p>
+The prototype for \(Spin(10)\) generates an overcomplete set of expressions
+from antisymmetrized gamma matrices, evaluates concrete components, and keeps
+new candidates when exact probing increases rank.  That proves independence,
+but it spends most of its time on the wrong object: candidate expressions
+whose count grows much faster than the true invariant multiplicity.
+</p>
+
+<p>
+For \(16^6\), the true singlet multiplicity is modest.  The candidate family
+and the component signatures are not.  Scaling to tens of thousands of
+invariants requires generating the multiplicity space directly.
+</p>
+</div>
+</div>
+<div id="outline-container-org3a65e54" class="outline-2">
+<h2 id="org3a65e54"><span class="section-number-2">2.</span> State Of The Art</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The mature computational systems separate two tasks.
+</p>
+
+<ol class="org-ol">
+<li>Decompose tensor products and count multiplicities with characters,
+crystals, tableaux, or root-system algorithms.  Sage&rsquo;s Weyl character ring
+treats multiplication as tensor product decomposition, and its crystal
+implementation gives explicit tensor-product crystal operators
+<a href="https://doc.sagemath.org/html/en/thematic_tutorials/lie/weyl_character_ring.html">Sage Weyl character ring</a>
+<a href="https://doc.sagemath.org/html/en/reference/combinat/sage/combinat/crystals/tensor_product.html">Sage tensor-product crystals</a>.</li>
+
+<li>Compute explicit CG coefficients only after choosing a sparse basis for
+weight states.  CleGo builds representations through explicit weight
+states for all simple Lie algebras \(A\)-\(G\), explicitly noting that this
+is slower and more memory-heavy than just computing decompositions, but it
+produces the coefficients
+<a href="https://arxiv.org/abs/1011.4008">CleGo</a>.  GroupMath and LieART expose the same split between
+basis-independent data and basis-dependent matrices or CG coefficients
+<a href="https://arxiv.org/abs/2011.01764">GroupMath</a>
+<a href="https://arxiv.org/abs/1912.10969">LieART 2.0</a>.</li>
+</ol>
+
+<p>
+For \(SU(N)\), the strongest specialized route is Gelfand-Tsetlin or
+tableau/Littlewood-Richardson data.  Alex, Kalus, Huckleberry, and von Delft
+give a numerical \(SU(N)\) CG algorithm based on Gelfand-Tsetlin patterns, with
+source code
+<a href="https://arxiv.org/abs/1009.0437">paper</a>
+<a href="https://homepages.physik.uni-muenchen.de/~vondelft/Papers/ClebschGordan/">code page</a>.
+For multiplicity counting, Knutson-Tao honeycombs and Berenstein-Zelevinsky
+polytopes give compact positive combinatorics for \(GL(N)\) tensor products
+<a href="https://arxiv.org/abs/math/9807160">Knutson-Tao</a>.
+</p>
+
+<p>
+For \(SO(N)\), vector tensor invariants are controlled by Brauer-algebra or
+birdtrack centralizer diagrams; spinors are best handled through a Clifford
+module basis and weight-state CG maps.  Gamma-matrix products are useful
+generators and evaluators, but they should not be the primary basis-selection
+algorithm.  Cvitanovic&rsquo;s birdtrack approach is the right diagrammatic model
+for \(SU(N)\), \(SO(N)\), \(Sp(N)\), and exceptional-group invariant
+manipulation
+<a href="https://birdtracks.eu/PUPress/index.html">Birdtracks webbook</a>.
+</p>
+
+<p>
+For \(E_8\), there is no small defining representation analogous to the
+\(SU(N)\) fundamental or \(SO(N)\) vector.  The practical route is therefore
+root-data and highest-weight computation, with special cached projectors and
+structure constants for common adjoint products such as \(248 \otimes 248\).
+</p>
+</div>
+</div>
+<div id="outline-container-orgabcf786" class="outline-2">
+<h2 id="orgabcf786"><span class="section-number-2">3.</span> Recommended Design</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The invariant generator should be representation-first.
+</p>
+
+<p>
+Do not enumerate symbolic invariant expressions first.  Instead:
+</p>
+
+<ol class="org-ol">
+<li>Store each irreducible representation as sparse weight data and sparse
+Chevalley-generator actions.</li>
+
+<li>For a requested tensor product, count singlets by sparse characters or a
+Weyl constant-term formula.  The prototype&rsquo;s <code>countSinglets</code> already follows
+this direction for \(D_5\).</li>
+
+<li>Construct the multiplicity space by solving highest-weight equations in
+the relevant weight slice.  For singlets, enumerate only tensor-product
+states of total weight zero, then impose \(E_i v = 0\) for every simple
+root.  A weight-zero vector killed by all raising operators is a highest
+weight vector of weight zero, hence a singlet.</li>
+
+<li>Compute nullspaces with streamed sparse modular linear algebra.  Work over
+one or more machine primes for rank and basis selection, then reconstruct an
+integer or rational unnormalized basis only when the caller asks for
+printable coefficients.</li>
+
+<li>Represent a many-leg invariant as a coupling tree of 3-valent maps.  The
+tree stores a compact tensor network.  Component evaluation contracts the
+tree on demand; no dense \(d_1 \cdots d_k\) tensor is materialized.</li>
+</ol>
+
+<p>
+This changes the bottleneck from &ldquo;how many gamma expressions did we generate?&rdquo;
+to &ldquo;how large is the relevant weight slice and multiplicity space?&rdquo;  That is
+the right scaling variable.
+</p>
+</div>
+</div>
+<div id="outline-container-org81240bb" class="outline-2">
+<h2 id="org81240bb"><span class="section-number-2">4.</span> Representation Theory Primer</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+A representation is a vector space on which the symmetry algebra acts by
+matrices.  For \(SO(10)\), the vector representation has dimension 10 and the
+chiral spinor representation has dimension 16.  A tensor with twelve spinor
+indices is an element of
+\[
+  16 \otimes 16 \otimes \cdots \otimes 16 .
+\]
+</p>
+
+<p>
+An invariant tensor is a vector in this tensor product that is killed by every
+generator of the Lie algebra.  Equivalently, it is a copy of the trivial
+one-dimensional representation inside the tensor product.  The number of
+independent invariant tensors is the singlet multiplicity.
+</p>
+
+<p>
+A Clebsch-Gordan map is a concrete change of basis from a tensor product basis
+to irreducible channels:
+\[
+  U \otimes V = \bigoplus_R N^R_{UV} R .
+\]
+The labels \(R\) are irreducible representations and \(N^R_{UV}\) are
+multiplicities.  If \(R=\mathbf{1}\), the corresponding CG maps are invariant
+tensors.
+</p>
+
+<p>
+Irreducible representations must be identified by Dynkin labels, not by
+dimension.  Dimensions are display names and sanity checks only.  Two
+different irreps may have the same dimension, and one tensor product may
+contain multiple copies of the same irrep.  The internal channel identity is
+therefore
+</p>
+
+<pre class="example" id="orgaead584">
+channel = (algebra id, Dynkin label, multiplicity copy)
+</pre>
+
+<p>
+The multiplicity copy is not part of the irrep.  It records which copy of the
+same Dynkin-label irrep appears in the chosen tensor product and coupling
+scheme.  No central Casimir can distinguish two copies of the same Dynkin
+label, because all central elements act by the same scalar on every copy of an
+irrep.
+</p>
+
+<p>
+There is one more identity layer: occurrence.  The same irrep can appear as an
+external input, as a channel in one tensor product, or as a channel in another
+tensor product.  These are isomorphic representations, but they are not the
+same embedded subspace.
+</p>
+
+<p>
+For example, \(10\otimes16\) contains a gamma-trace spinor channel.  Depending
+on chirality conventions this is the opposite chiral spinor, often written
+\(\overline{16}\), together with the gamma-traceless vector-spinor channel:
+\[
+  10 \otimes 16_+ = 16_- \oplus 144_- .
+\]
+The \(16_-\) here is identified by its Dynkin label as an irrep, but its
+concrete occurrence is the image of the gamma-trace map
+\[
+  V \otimes S_+ \to S_- .
+\]
+That occurrence must be distinguished from an external \(S_-\) leg and from
+any other \(S_-\) channel reached through a different coupling tree.
+</p>
+
+<p>
+The internal identity stack should therefore be:
+</p>
+
+<pre class="example" id="org8152130">
+Irrep:
+  algebra id
+  Dynkin label
+
+Channel:
+  irrep id
+  multiplicity copy inside one local product
+
+Occurrence:
+  channel id
+  parent tensor product or external-leg marker
+  embedding/projector kernel id
+  normalization convention
+</pre>
+
+<p>
+Only <code>Irrep</code> is representation-theoretic.  <code>Channel</code> records multiplicity
+inside a local product.  <code>Occurrence</code> records the concrete embedding map that
+makes symbolic rendering and component evaluation well-defined.
+</p>
+
+<p>
+For \(Spin(10)\), a crucial small decomposition is
+\[
+  16 \otimes 16 = 10 \oplus 120 \oplus 126 .
+\]
+In gamma-matrix language these three channels are the bilinears
+\[
+  \Gamma^{[1]}_{AB}, \qquad
+  \Gamma^{[3]}_{AB}, \qquad
+  \Gamma^{[5]+}_{AB}.
+\]
+The superscript \(+\) means the self-dual half of the five-form.  Gamma
+matrices are therefore the first concrete Clebsch-Gordan maps out of two
+spinors, not just a notation preference.
+</p>
+
+<p>
+Fierz identities are recoupling identities.  They say that two different ways
+of pairing and coupling the same spinor legs span the same invariant space.
+For four spinors, a Fierz move compares
+\[
+  (16_1 \otimes 16_2) \otimes (16_3 \otimes 16_4)
+\]
+with
+\[
+  (16_1 \otimes 16_3) \otimes (16_2 \otimes 16_4).
+\]
+These identities should be derived from the primitive gamma action, exact
+contractions, and local linear algebra.  They should not be entered by hand.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdd6102c" class="outline-2">
+<h2 id="orgdd6102c"><span class="section-number-2">5.</span> \(Spin(10)\) \(16^{12}\) Feasibility</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The singlet counts for same-chirality spinors are:
+</p>
+
+<pre class="example" id="org7aa94e2">
+16^4   -&gt; 2 singlets
+16^8   -&gt; 175 singlets
+16^12  -&gt; 73,744 singlets
+16^16  -&gt; 79,974,544 singlets
+</pre>
+
+<p>
+The direct weight-zero slice for \(16^{12}\) has about
+\[
+  3.287429376 \times 10^{11}
+\]
+product states.  Therefore the direct solver on the raw twelve-spinor product
+is not feasible.  This is the important negative result.
+</p>
+
+<p>
+The feasible route pairs the spinors first:
+\[
+  16^{12}
+  =
+  (16\otimes16)^6
+  =
+  (10\oplus120\oplus126)^6 .
+\]
+The problem is then to construct all singlets in six \(SO(10)\) tensor
+channels.  A basis vector is a concrete contraction tree:
+</p>
+
+<pre class="example" id="orgb83a967">
+pairing:
+  (A1 A2), (A3 A4), (A5 A6), (A7 A8), (A9 A10), (A11 A12)
+
+leaf channels:
+  Gamma[3]_{A1 A2}^{m n p}
+  Gamma[1]_{A3 A4}^{q}
+  Gamma[5+]_{A5 A6}^{r1 r2 r3 r4 r5}
+  Gamma[3]_{A7 A8}^{s t u}
+  Gamma[1]_{A9 A10}^{v}
+  Gamma[5+]_{A11 A12}^{w1 w2 w3 w4 w5}
+
+tree:
+  couple leaf 0 and leaf 1 to an intermediate irrep
+  couple leaf 2 and leaf 3 to an intermediate irrep
+  couple leaf 4 and leaf 5 to an intermediate irrep
+  couple the intermediates until the singlet is reached
+</pre>
+
+<p>
+The output can be rendered with no numeric gamma storage:
+</p>
+
+<pre class="example" id="org76ad096">
+sum_t c_t
+  Gamma[p1]_{I1 A1 A2}
+  Gamma[p2]_{I2 A3 A4}
+  Gamma[p3]_{I3 A5 A6}
+  Gamma[p4]_{I4 A7 A8}
+  Gamma[p5]_{I5 A9 A10}
+  Gamma[p6]_{I6 A11 A12}
+  D_t(I1, I2, I3, I4, I5, I6)
+</pre>
+
+<p>
+Here \(D_t\) is not an opaque projector.  It is an explicit product/sum of
+metric contractions, epsilon tensors, antisymmetrized block deltas, and
+rational coefficients.  Antisymmetric block notation such as
+\(\delta^{[abc]}{}_{[def]}\) should remain a primitive atom; expanding every
+signed permutation would be pure expression swell.
+</p>
+</div>
+</div>
+<div id="outline-container-org3648457" class="outline-2">
+<h2 id="org3648457"><span class="section-number-2">6.</span> Projectors From Scratch</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The projectors are the main hard part.  They should be derived, not entered.
+For \(SO(N)\), the most useful invariant operator on \(U \otimes V\) is
+\[
+  \Omega_{UV} = \sum_a T^a_U \otimes T^a_V ,
+\]
+where \(T^a_U\) and \(T^a_V\) are Lie algebra generators on \(U\) and \(V\).
+</p>
+
+<p>
+On an irreducible channel \(R \subset U \otimes V\), \(\Omega_{UV}\) acts by
+the scalar
+\[
+  \omega_R =
+  \frac{C_2(R)-C_2(U)-C_2(V)}{2}.
+\]
+If the channels have distinct \(\omega_R\), the projector is the spectral
+projector
+\[
+  P_R =
+  \prod_{S \ne R}
+  \frac{\Omega_{UV} - \omega_S}{\omega_R - \omega_S}.
+\]
+</p>
+
+<p>
+This formula is constructive.  It reduces projector construction to three
+pieces of data:
+</p>
+
+<ol class="org-ol">
+<li>generators on the two input representations;</li>
+<li>Casimir eigenvalues from Dynkin labels;</li>
+<li>arithmetic in the invariant diagram algebra.</li>
+</ol>
+
+<p>
+For \(SO(N)\) forms, the generator action is explicit.  On a \(p\)-form
+\(F_{i_1\ldots i_p}\),
+\[
+  (M<sub>ab</sub> F)<sub>i<sub>1\ldots</sub> i<sub>p</sub></sub>
+  =
+  &sum;<sub>r=1</sub><sup>p</sup>
+  \left(
+    &delta;<sub>a i<sub>r</sub></sub> F<sub>i<sub>1\ldots</sub> b \ldots i<sub>p</sub></sub>
+</p>
+<ul class="org-ul">
+<li></li>
+</ul>
+<p>
+    &delta;<sub>b i<sub>r</sub></sub> F<sub>i<sub>1\ldots</sub> a \ldots i<sub>p</sub></sub>
+  \right).
+\]
+Therefore \(\Omega_{UV}\) itself is a finite sum of metric contractions
+between antisymmetric blocks.  Powers of \(\Omega_{UV}\) remain explicit
+delta-contraction diagrams.
+</p>
+
+<p>
+For a middle-dimensional self-dual form in \(SO(2m)\), include the Hodge
+projector
+\[
+  P_+ = \frac{1}{2}(1 + *)
+\]
+with
+\[
+  (*F)_{a_1\ldots a_m}
+  =
+  \frac{1}{m!}
+  \epsilon_{a_1\ldots a_m b_1\ldots b_m}
+  F^{b_1\ldots b_m}.
+\]
+For \(SO(10)\), this is exactly the \(126\) channel in \(16\otimes16\).
+</p>
+
+<p>
+Casimir projectors do not always separate all channels.  There may be
+multiplicity or coincident Casimir eigenvalues.  The fallback is still
+derived, but it is local:
+</p>
+
+<ol class="org-ol">
+<li>build a finite diagram basis of invariant operators on \(U\otimes V\);</li>
+<li>compute the multiplication table of this diagram algebra;</li>
+<li>solve for primitive idempotents \(P^2=P\);</li>
+<li>render each idempotent as delta/epsilon/antisymmetrizer terms.</li>
+</ol>
+
+<p>
+This is small compared with the original problem because it is done for one
+pair \(U,V\), cached, and reused throughout all high-arity couplings.
+</p>
+</div>
+</div>
+<div id="outline-container-org78ef29f" class="outline-2">
+<h2 id="org78ef29f"><span class="section-number-2">7.</span> Higher Casimirs Versus Direct Local Solvers</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Higher Casimirs are real and useful.  The primitive degrees for the simple
+families are:
+</p>
+
+<pre class="example" id="org5f5a421">
+A_n:  2, 3, ..., n+1
+B_n:  2, 4, 6, ..., 2n
+C_n:  2, 4, 6, ..., 2n
+D_n:  2, 4, 6, ..., 2n-2, n
+E_8:  2, 8, 12, 14, 18, 20, 24, 30
+</pre>
+
+<p>
+For \(SO(10)=D_5\), the primitive degrees are
+\[
+  2,\ 4,\ 5,\ 6,\ 8 .
+\]
+The degree-5 invariant is the even-orthogonal Pfaffian/chirality-type
+invariant.
+</p>
+
+<p>
+Higher Casimirs can separate different irreducible representations that have
+the same quadratic Casimir.  They cannot separate two copies of the same
+irrep, because every central Casimir acts by the same scalar on every copy of
+that irrep.
+</p>
+
+<p>
+This gives a practical hierarchy:
+</p>
+
+<ol class="org-ol">
+<li>Use the quadratic two-body Casimir first.  It is cheap, explicit, and
+renders directly as delta contractions.</li>
+
+<li>If different irreps collide under the quadratic Casimir, either use higher
+Casimir eigenvalues as additional signatures or fall back to the local
+solver.</li>
+
+<li>If the collision is true multiplicity of the same irrep, higher Casimirs
+cannot help.  Split the multiplicity space with the local commutant/diagram
+algebra or a local highest-weight solver.</li>
+</ol>
+
+<p>
+The direct local solver is preferred before implementing expanded higher
+Casimirs for four reasons.
+</p>
+
+<p>
+First, it is complete.  A local highest-weight or commutant solver separates
+all channels, including multiplicities.  Higher central Casimirs only separate
+irreps with different central characters.
+</p>
+
+<p>
+Second, it is easier to verify.  The outputs are projectors that can be tested
+by local identities:
+\[
+  P_i^2=P_i,\qquad P_iP_j=0,\qquad \sum_i P_i=1,\qquad
+  \operatorname{tr}(P_i)=\dim(R_i).
+\]
+An expanded quartic, sextic, or octic Casimir diagram has many more places for
+normalization and reduction errors.
+</p>
+
+<p>
+Third, the quadratic operator already has a simple diagram form.  A higher
+Casimir is derivable, but rendering it into reduced delta/epsilon diagrams is
+substantially more complex.  If the diagram reducer is not mature, high-degree
+Casimir expansion can create more expression swell than the local solver.
+</p>
+
+<p>
+Fourth, the local solver is a necessary fallback anyway.  Since multiplicities
+cannot be split by central Casimirs, the implementation must eventually have a
+local idempotent-splitting mechanism.  Building it early gives a correctness
+backstop for every projector.
+</p>
+
+<p>
+This does not mean higher Casimirs should be discarded.  They are useful as an
+optimization once the local solver exists:
+</p>
+
+<ul class="org-ul">
+<li>use higher Casimir eigenvalue signatures to reduce the size of local
+multiplicity blocks;</li>
+<li>use them to avoid constructing a full diagram algebra when they already
+separate all distinct irreps;</li>
+<li>use them as independent checks on derived projectors;</li>
+<li>for \(SU(N)\), prefer tableau/Jucys-Murphy machinery, which plays a similar
+separating role with better combinatorics;</li>
+<li>for \(SO(N)\), prefer Brauer/Jucys-Murphy elements for vector-index tensor
+categories, with higher Casimirs as supporting signatures;</li>
+<li>for \(E_8\), use higher Casimir eigenvalues mostly as abstract signatures,
+because expanded degree-8 through degree-30 tensor formulas are unlikely to
+be the best primary representation.</li>
+</ul>
+
+<p>
+The kill criterion is clear.  If local projector derivation produces diagram
+bases whose \(B^3\) idempotent splitting is too large for common \(SO(10)\)
+channel products, then higher Casimirs move up in priority as block splitters.
+If the local blocks remain small, higher Casimirs are optional optimizations,
+not the foundation.
+</p>
+</div>
+</div>
+<div id="outline-container-org6418d24" class="outline-2">
+<h2 id="org6418d24"><span class="section-number-2">8.</span> Concrete \(Spin(10)\) First-Layer Audit</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+For the \(16^{12}\) plan, the first concrete layer is determined by
+\[
+  16\otimes16 = 10\oplus120\oplus126 .
+\]
+Pairing the twelve spinors gives six leaves, each one of
+\[
+  10,\quad 120,\quad 126 .
+\]
+The first local products are therefore the six unordered products below.
+Dimensions are used here only as readable aliases.  The actual internal labels
+are Dynkin labels:
+</p>
+
+<pre class="example" id="orgb972235">
+1            = (0,0,0,0,0)
+10           = (1,0,0,0,0)
+45           = (0,1,0,0,0)
+54           = (2,0,0,0,0)
+120          = (0,0,1,0,0)
+126          = (0,0,0,0,2)
+210          = (0,0,0,1,1)
+770          = (0,2,0,0,0)
+945          = (1,0,1,0,0)
+1050         = (1,0,0,0,2)
+conj(1050)   = (1,0,0,2,0)
+2772         = (0,0,0,0,4)
+4125         = (0,0,2,0,0)
+5940         = (0,1,0,1,1)
+6930         = (0,0,1,0,2)
+</pre>
+
+<pre class="example" id="org13e6e74">
+10 x 10
+  = 1 + 45 + 54
+  quadratic Casimir separates all channels
+
+10 x 120
+  = 45 + 210 + 945
+  quadratic Casimir separates all channels
+
+10 x 126
+  = 210 + 1050
+  quadratic Casimir separates all channels
+
+120 x 120
+  = 1 + 45 + 54 + 2*210 + 770 + 945
+    + 1050 + conjugate(1050) + 4125 + 5940
+
+  quadratic Casimir collisions:
+    2*210 is true multiplicity
+    770, 1050, conjugate(1050) have the same quadratic Casimir
+
+  higher D5 invariants:
+    degree 4 separates 770 from the two 1050 channels
+    degree 5 Pfaffian/chirality invariant separates 1050 from conjugate(1050)
+    no central Casimir separates the two copies of 210
+
+120 x 126
+  = 45 + 210 + 945 + 1050 + 5940 + 6930
+  quadratic Casimir separates all channels
+
+126 x 126
+  = 54 + 945 + 1050 + 4125 + 6930 + 2772
+  quadratic Casimir separates all channels
+</pre>
+
+<p>
+This audit already proves that higher Casimirs are useful but not sufficient.
+At the first layer, \(120\otimes120\) requires a local solver or local
+commutant idempotent split for the two \(210\) copies.  The other quadratic
+collision in \(120\otimes120\) is exactly the kind of case where higher
+Casimirs are good block splitters.
+</p>
+
+<p>
+The key lesson is that this is true multiplicity, not a dimension collision:
+\[
+  120\otimes120 \supset
+  2\cdot(0,0,0,1,1).
+\]
+Using Dynkin labels correctly still leaves two copies.  These copies need
+separate multiplicity labels in the coupling basis.
+</p>
+
+<p>
+For a fixed balanced six-leaf tree, \(120\otimes120\) appears whenever two
+\(\Gamma^{[3]}\) leaves are coupled at the first internal layer.  With caching,
+this is one derived local kernel family, not a new global solve every time it
+appears in a basis path.
+</p>
+
+<p>
+The next audit should enumerate the second-layer products between the first
+internal channels and record:
+</p>
+
+<ol class="org-ol">
+<li>number of distinct local products reached;</li>
+<li>which products have true output multiplicities;</li>
+<li>which quadratic collisions are split by degree \(4,5,6,8\) signatures;</li>
+<li>largest residual local idempotent block after all useful Casimir
+signatures.</li>
+</ol>
+
+<p>
+That table is the decision point for whether higher Casimirs are merely
+checks/block splitters or should be implemented before the full local diagram
+algebra.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf0ac8ee" class="outline-2">
+<h2 id="orgf0ac8ee"><span class="section-number-2">9.</span> \(16^{12}\) Feasibility Study</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+This study assumes a fixed balanced tree:
+</p>
+
+<pre class="example" id="orgb431933">
+spinor pairing:
+  (A1 A2), (A3 A4), (A5 A6), (A7 A8), (A9 A10), (A11 A12)
+
+first layer:
+  N0 = couple leaf0 leaf1
+  N1 = couple leaf2 leaf3
+  N2 = couple leaf4 leaf5
+
+second layer:
+  N3 = couple N0 N1
+
+root:
+  singlet = couple N3 N2
+</pre>
+
+<p>
+This tree is not unique, but it gives concrete engineering counts.
+</p>
+</div>
+<div id="outline-container-org3f7e7c8" class="outline-3">
+<h3 id="org3f7e7c8"><span class="section-number-3">9.1.</span> Basis Size</h3>
+<div class="outline-text-3" id="text-9-1">
+<p>
+The target multiplicity is
+\[
+  \dim\operatorname{Hom}_{Spin(10)}(1,16^{12}) = 73744 .
+\]
+Those \(73744\) objects should be stored as coupling paths.  A path stores six
+leaf channels, the coupling-node output channels that are not fixed by the
+root singlet, and multiplicity labels.  This is low-megabyte data.
+</p>
+
+<p>
+The dense tensor is impossible:
+\[
+  16^{12}=281474976710656
+\]
+components per invariant.
+</p>
+
+<p>
+The direct weight-zero solver is also impossible:
+\[
+  \text{weight-zero slice}(16^{12})
+  \approx 328742937600
+\]
+product states.
+</p>
+</div>
+</div>
+<div id="outline-container-org5d85a95" class="outline-3">
+<h3 id="org5d85a95"><span class="section-number-3">9.2.</span> Local Kernel Count</h3>
+<div class="outline-text-3" id="text-9-2">
+<p>
+The first layer has only six unordered local products:
+</p>
+
+<pre class="example" id="orgfc2e993">
+10 x 10
+10 x 120
+10 x 126
+120 x 120
+120 x 126
+126 x 126
+</pre>
+
+<p>
+Their union of output Dynkin labels has twelve irreps:
+</p>
+
+<pre class="example" id="org94dfc06">
+1, 45, 54, 210, 770, 945, 1050, conj(1050),
+2772, 4125, 5940, 6930
+</pre>
+
+<p>
+More precisely, the first-layer channel set is:
+</p>
+
+<pre class="example" id="orgf15f8f2">
+(0,0,0,0,0)
+(0,1,0,0,0)
+(2,0,0,0,0)
+(0,0,0,1,1)
+(0,2,0,0,0)
+(1,0,1,0,0)
+(1,0,0,0,2)
+(1,0,0,2,0)
+(0,0,0,0,4)
+(0,0,2,0,0)
+(0,1,0,1,1)
+(0,0,1,0,2)
+</pre>
+
+<p>
+The second layer only couples products among this first-layer set.  Therefore
+the number of unordered second-layer product decompositions is bounded by
+\[
+  \frac{12\cdot13}{2}=78 .
+\]
+It is smaller in practice if reachability-to-singlet pruning is applied before
+projector construction.
+</p>
+
+<p>
+At the root, a singlet appears only when the second-layer representation is
+dual to the third first-layer channel.  Therefore the root layer needs only
+the canonical pairing \(R\otimes R^*\to1\) for first-layer channels, not a new
+large projector problem.
+</p>
+
+<p>
+A reasonable upper bound for distinct local product decompositions in this
+fixed tree is therefore:
+</p>
+
+<pre class="example" id="org1951ebf">
+first layer:   6
+second layer: &lt;= 78
+root layer:   &lt;= 12 dual pairings
+total:        &lt;= 96 local product families
+</pre>
+
+<p>
+This is the main feasibility argument.  The number \(73744\) controls output
+paths, but not the number of local algebra problems.
+</p>
+</div>
+</div>
+<div id="outline-container-org19a3bfb" class="outline-3">
+<h3 id="org19a3bfb"><span class="section-number-3">9.3.</span> Explicit Solver Need</h3>
+<div class="outline-text-3" id="text-9-3">
+<p>
+At least one explicit local multiplicity split is required:
+</p>
+
+<pre class="example" id="org18ce685">
+120 x 120 contains 2*(0,0,0,1,1)
+</pre>
+
+<p>
+No Dynkin-label convention or central Casimir removes this.  It is a real copy
+multiplicity.
+</p>
+
+<p>
+Higher \(D_5\) Casimirs are still useful.  In the same product,
+\[
+  770,\quad1050,\quad\overline{1050}
+\]
+share the quadratic Casimir.  The degree-4 invariant separates \(770\) from
+the \(1050\) pair, and the degree-5 Pfaffian/chirality invariant separates
+\(1050\) from \(\overline{1050}\).
+</p>
+
+<p>
+The expected strategy is therefore:
+</p>
+
+<pre class="example" id="org7aa51b2">
+quadratic Casimir:
+  first separator, cheapest diagram expression
+
+higher Casimir signatures:
+  split distinct irreps that collide under the quadratic Casimir
+
+local solver / diagram idempotents:
+  split true multiplicities and any residual collision
+</pre>
+
+<p>
+The second-layer audit must determine how many of the \(\le 78\) products have true
+multiplicity.  If only a small fraction do, the direct local solver is clearly
+fine.  If many products have large residual multiplicity blocks, higher
+Casimirs and Brauer/Jucys-Murphy elements should be implemented earlier as
+block splitters.
+</p>
+</div>
+</div>
+<div id="outline-container-org71c7792" class="outline-3">
+<h3 id="org71c7792"><span class="section-number-3">9.4.</span> Compute Risk</h3>
+<div class="outline-text-3" id="text-9-4">
+<p>
+The likely costs are ordered as follows:
+</p>
+
+<ol class="org-ol">
+<li>Gamma bilinear generation is negligible.  Dense storage of all
+\(\Gamma^{[1]},\Gamma^{[3]},\Gamma^{[5]+}\) components is only \(65536\)
+possible spinor-pair entries before sparsity.</li>
+
+<li>First-layer projectors are small.  Five of six products are separated by
+the quadratic Casimir.  The one remaining product has a known true
+multiplicity block.</li>
+
+<li>Second-layer projector derivation is the main unknown.  The count of local
+product families is bounded, but some representations are thousands of
+dimensional.  This is where lean data structures matter.</li>
+
+<li>Basis path enumeration is moderate.  It emits \(73744\) records and can be
+streamed.</li>
+
+<li>Fully projector-expanded rendering can dominate wall time and disk usage.
+The cost is proportional to the total number of reduced delta/epsilon terms
+after substituting cached projectors into each path.</li>
+</ol>
+
+<p>
+The feasibility target is therefore not &ldquo;can we allocate the result?&rdquo; but
+&ldquo;can we derive and reduce the \(\le 78\) second-layer local projector families?&rdquo;
+That is a much smaller and better-structured problem than the prototype&rsquo;s
+global overcomplete gamma-expression selection.
+</p>
+</div>
+</div>
+<div id="outline-container-org7abbda3" class="outline-3">
+<h3 id="org7abbda3"><span class="section-number-3">9.5.</span> Review Verdict</h3>
+<div class="outline-text-3" id="text-9-5">
+<p>
+The \(16^{12}\) target remains feasible under these constraints:
+</p>
+
+<ul class="org-ul">
+<li>irreps are keyed by Dynkin labels, never dimensions;</li>
+<li>channel identities include multiplicity copy labels;</li>
+<li>all projectors are derived and cached locally;</li>
+<li>higher Casimirs are used as block splitters, not as the only solver;</li>
+<li>second-layer products are audited before implementing the full renderer;</li>
+<li>expressions are stored and rendered as flat term streams.</li>
+</ul>
+
+<p>
+The main thing that could kill the plan is second-layer local diagram algebras
+whose residual idempotent blocks are too large after Casimir and
+Brauer/Jucys-Murphy splitting.  That is the next measurable risk.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org10f5a91" class="outline-2">
+<h2 id="org10f5a91"><span class="section-number-2">10.</span> Projector Pseudocode</h2>
+<div class="outline-text-2" id="text-10">
+<pre class="example" id="org265cd27">
+function derive_pair_projectors(algebra, U, V):
+    channels = decompose_product(algebra, U, V)
+    omega = build_two_body_casimir_diagram(algebra, U, V)
+
+    groups = group channels by casimir_eigenvalue(channel)
+
+    projectors = empty list
+
+    for each eigenvalue group G:
+        spectral = identity_operator(U, V)
+
+        for each other eigenvalue group H:
+            spectral *= (omega - eigenvalue(H)) / (eigenvalue(G) - eigenvalue(H))
+            spectral = reduce_diagram_operator(spectral)
+
+        if size(G) == 1 and multiplicity(G[0]) == 1:
+            projectors.append(projector for G[0] = spectral)
+            continue
+
+        local_basis = build_diagram_operator_basis(U, V, spectral)
+        product_table = multiply_and_reduce(local_basis)
+        idempotents = split_primitive_idempotents(product_table, spectral)
+
+        assign idempotents to channels in G by highest weights or probes
+        projectors.extend(idempotents)
+
+    return projectors
+</pre>
+
+<p>
+The only linear algebra here is local.  The matrix sizes are controlled by the
+number of invariant diagrams on \(U\otimes V\), not by \(16^{12}\).
+</p>
+</div>
+</div>
+<div id="outline-container-orgafbf60b" class="outline-2">
+<h2 id="orgafbf60b"><span class="section-number-2">11.</span> Full \(16^{12}\) Pseudocode</h2>
+<div class="outline-text-2" id="text-11">
+<pre class="example" id="orge008b15">
+function build_spin10_16_power_12_basis():
+    algebra = Spin(10)
+    spin = Rep(0,0,0,0,1)       # one chiral 16, convention-dependent
+
+    gamma_channels = derive_gamma_bilinears(spin, spin)
+    assert gamma_channels == [10, 120, 126]
+
+    leaf_options = [10, 120, 126]
+    tree_shape = choose_fixed_binary_tree(6 leaves)
+
+    kernel_cache = empty cache
+    basis = empty stream
+
+    for leaf_channels in cartesian_product(leaf_options, repeat=6):
+        partial_paths = [state with six leaves]
+
+        for node in tree_shape.postorder_nodes:
+            next_paths = empty stream
+
+            for path in partial_paths:
+                U = representation_at(path, node.left)
+                V = representation_at(path, node.right)
+
+                decomposition = decompose_product(algebra, U, V)
+
+                for each output channel R with multiplicity mult:
+                    if cannot_reach_singlet_after_this_node(path, node, R):
+                        continue
+
+                    projector_key = (U, V, R, mult)
+                    kernel_cache.get_or_insert(projector_key,
+                        derive_pair_projector(algebra, U, V, R, mult))
+
+                    next_paths.emit(path extended by node -&gt; (R, mult))
+
+            partial_paths = next_paths
+
+        for path in partial_paths:
+            if root_rep(path) == singlet:
+                basis.emit(path)
+
+    assert basis.count == 73744
+    return basis, kernel_cache
+</pre>
+
+<p>
+Rendering is a separate stream:
+</p>
+
+<pre class="example" id="org6589798">
+function render_basis_element(path, kernel_cache, writer):
+    write six gamma bilinears from path.leaf_channels
+
+    expression = identity_contraction_on_leaf_form_indices(path)
+
+    for node in path.tree_nodes:
+        projector = kernel_cache[node.projector_key]
+        expression = substitute_projector(expression, node, projector)
+        expression = reduce_delta_epsilon_antisym(expression)
+
+    writer.write(expression)
+</pre>
+
+<p>
+Evaluation is also a stream:
+</p>
+
+<pre class="example" id="org0151af4">
+function evaluate_component(path, spinor_indices, kernel_cache):
+    values = evaluate six gamma bilinears on the twelve spinor indices
+
+    for node in path.tree_nodes:
+        values = apply_sparse_projector_kernel(values, kernel_cache[node.key])
+
+    return scalar at root
+</pre>
+
+<p>
+These procedures obey the data-flow rule: enumeration does not need gamma
+components, rendering does not need all basis elements, and component
+evaluation does not need to read unrelated paths.
+</p>
+</div>
+</div>
+<div id="outline-container-orgec3027f" class="outline-2">
+<h2 id="orgec3027f"><span class="section-number-2">12.</span> Core Data</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+The low-level structures should be lean arrays.
+</p>
+
+<ul class="org-ul">
+<li><code>RootDatum</code>: rank, Cartan matrix, simple roots, positive roots, fundamental
+weights, Weyl vector, family tag.</li>
+
+<li><code>RepSpec</code>: algebra id and Dynkin labels.</li>
+
+<li><code>RepData</code>: dimension, sorted weights, weight offsets, state offsets, and
+sparse generator edges.</li>
+
+<li><code>GeneratorEdge</code>: source state, destination state, coefficient.</li>
+
+<li><code>TensorFactor</code>: representation id and dual/conjugation flag.</li>
+
+<li><code>WeightSlice</code>: tensor-product basis states of one total weight, stored as
+factor-state tuples or packed factor-state ids.</li>
+
+<li><code>SparseConstraint</code>: streamed rows for \(E_i v = 0\), built from one weight
+slice into the adjacent root-shifted slice.</li>
+
+<li><code>InvariantBasis</code>: nullspace vectors over a selected scalar domain, plus the
+tensor-factor metadata needed to evaluate components.</li>
+
+<li><code>CouplingTree</code>: binary tree whose vertices are cached 3-valent CG maps and
+whose leaves are external representations.</li>
+</ul>
+
+<p>
+The public API can stay small:
+</p>
+
+<ul class="org-ul">
+<li><code>countInvariants(algebra, reps) -&gt; u64</code></li>
+<li><code>invariantBasis(algebra, reps, options) -&gt; InvariantBasis</code></li>
+<li><code>componentIterator(basis_vector, external_indices) -&gt; stream</code></li>
+<li><code>decomposeProduct(algebra, left, right) -&gt; irreps with multiplicities</code></li>
+</ul>
+
+<p>
+Everything else can be internal cache and workspace.
+</p>
+</div>
+</div>
+<div id="outline-container-org9880237" class="outline-2">
+<h2 id="org9880237"><span class="section-number-2">13.</span> Direct Solver</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+The direct highest-weight solver is the first backend to build.
+</p>
+
+<p>
+For target highest weight \(\lambda\):
+</p>
+
+<ol class="org-ol">
+<li>Enumerate tensor-product states with total weight \(\lambda\).</li>
+
+<li>For each simple raising operator \(E_i\), stream its action on those states.
+Acting on a tensor product changes one factor at a time and preserves a
+sparse row pattern.</li>
+
+<li>Assemble the block constraint
+\[
+     E_i v = 0
+   \]
+into a sparse matrix over a modular field.</li>
+
+<li>Compute a nullspace basis.  For singlets, \(\lambda=0\).  For general CG
+maps into \(R_\lambda\), the nullspace gives highest-weight copies of
+\(R_\lambda\) inside the product.</li>
+
+<li>Optionally generate the full irrep copy by applying lowering operators from
+each highest-weight vector.  Do this only if the caller asks for all CG
+coefficients, not when they only need invariant tensors.</li>
+</ol>
+
+<p>
+This is simple, procedural, and parallelizable.  Weight-slice enumeration,
+raising-action row generation, modular row reduction, and component evaluation
+all split by roots, rows, primes, or coupling-tree branches.
+</p>
+
+<p>
+For \(16^{12}\), this direct solver is a validation tool and a local kernel
+builder, not the main high-arity algorithm.  It should be used for small
+products and for pair/triple projector derivation.  It should not be invoked
+on the raw twelve-spinor tensor product.
+</p>
+</div>
+</div>
+<div id="outline-container-org8855915" class="outline-2">
+<h2 id="org8855915"><span class="section-number-2">14.</span> Recursive Coupling Backend</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+The direct solver is best for few factors or validation.  For high arity, use
+recursive coupling.
+</p>
+
+<ol class="org-ol">
+<li>Choose a binary bracketing of the input representations.</li>
+
+<li>At each internal node, decompose the product of the two child
+representation sums.</li>
+
+<li>Cache only the 3-valent CG maps that actually appear along paths ending in
+the target representation.</li>
+
+<li>Store each invariant as a path through intermediate irreps plus a
+multiplicity label at each vertex.</li>
+</ol>
+
+<p>
+This converts a huge invariant tensor into a compact list of intermediate
+channels.  It also gives a natural user-facing basis: a coupling scheme basis,
+the same way angular momentum calculations use binary recoupling schemes.
+</p>
+
+<p>
+The best bracketing is not always left-associated.  Choose it by minimizing an
+estimated cost:
+</p>
+
+<ul class="org-ul">
+<li>intermediate representation dimensions;</li>
+<li>number of intermediate channels;</li>
+<li>expected weight-slice sizes;</li>
+<li>requested target multiplicity.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org210d969" class="outline-2">
+<h2 id="org210d969"><span class="section-number-2">15.</span> Group-Specific Backends</h2>
+<div class="outline-text-2" id="text-15">
+</div>
+<div id="outline-container-org66a9148" class="outline-3">
+<h3 id="org66a9148"><span class="section-number-3">15.1.</span> \(SU(N)\)</h3>
+<div class="outline-text-3" id="text-15-1">
+<p>
+Implement the generic highest-weight backend first, then add a specialized
+backend:
+</p>
+
+<ul class="org-ul">
+<li>Gelfand-Tsetlin basis for explicit state labels and generator action.</li>
+<li>Littlewood-Richardson/tableau or hive data for fast product
+decompositions.</li>
+<li>Young-symmetrizer or birdtrack evaluators for fundamental tensor
+representations when a compact diagram basis is better than coefficient
+tables.</li>
+</ul>
+
+<p>
+This gives fast \(SU(N)\) behavior without making the whole system
+\(SU(N)\)-specific.
+</p>
+
+<p>
+For \(SU(N)\), there are better algorithms than generic sparse highest-weight
+linear algebra for many common cases:
+</p>
+
+<ul class="org-ul">
+<li>Littlewood-Richardson tableaux, hives, or puzzles give fast tensor-product
+multiplicities for polynomial \(GL(N)\) and \(SU(N)\) representations.</li>
+<li>Schur-Weyl duality and Young symmetrizers give explicit tensor projectors
+for representations built from fundamentals.</li>
+<li>Gelfand-Tsetlin bases give concrete state labels and sparse generator
+actions, making explicit CG coefficient generation practical.</li>
+</ul>
+
+<p>
+The best \(SU(N)\) strategy is therefore hybrid.  Use LR/hive data to know the
+channels, Young symmetrizers for fundamental-index tensor renderings, and
+Gelfand-Tsetlin or highest-weight sparse linear algebra when explicit CG
+numbers are needed in a canonical weight basis.
+</p>
+</div>
+</div>
+<div id="outline-container-orgda303ec" class="outline-3">
+<h3 id="orgda303ec"><span class="section-number-3">15.2.</span> \(SO(N)\) And \(Spin(N)\)</h3>
+<div class="outline-text-3" id="text-15-2">
+<p>
+Use three layers.
+</p>
+
+<ol class="org-ol">
+<li>Vector tensor invariants: Brauer diagrams, metrics, epsilons, and quotient
+relations outside the stable range.</li>
+
+<li>Spinors: Clifford/Fock basis.  For \(Spin(10)\), a chiral spinor is 16
+basis states, naturally packable in a small integer.  Gamma action is wedge
+plus contraction, not a symbolic matrix product.</li>
+
+<li>Mixed vector-spinor tensors: produce CG maps from the sparse
+highest-weight solver, then add gamma/birdtrack renderers only as a
+presentation layer.</li>
+</ol>
+
+<p>
+This still allows output in gamma-matrix notation, but independence is decided
+before gamma expressions are generated.
+</p>
+
+<p>
+For generic \(SO(N)\), the vector-only tensor category is controlled by the
+Brauer algebra.  In the stable range, invariant diagrams are pairings by the
+metric; outside the stable range, trace relations and epsilon relations appear.
+This is better than generic highest-weight linear algebra for vector tensor
+powers because the diagrams are the natural data.
+</p>
+
+<p>
+For spinors, the best primitive model is Clifford/Fock:
+</p>
+
+<ul class="org-ul">
+<li>\(Spin(2m)\): use \(m\) creation and \(m\) annihilation operators.</li>
+<li>chiral spinors are even or odd occupation-number states.</li>
+<li>gamma action is a sparse signed bit operation.</li>
+<li>antisymmetrized gamma products are generated from the Clifford action.</li>
+</ul>
+
+<p>
+Projectors between form channels should be derived by the Casimir/diagram
+method above.  Fierz identities should be derived as local recoupling matrices
+between gamma-pair bases.
+</p>
+</div>
+</div>
+<div id="outline-container-org4cfe22c" class="outline-3">
+<h3 id="org4cfe22c"><span class="section-number-3">15.3.</span> \(E_8\)</h3>
+<div class="outline-text-3" id="text-15-3">
+<p>
+Start with the root-data highest-weight backend and a special adjoint cache.
+</p>
+
+<ul class="org-ul">
+<li>Store roots and Cartan states for the 248-dimensional adjoint.</li>
+<li>Derive and cache \(248 \otimes 248\) decomposition and projectors.</li>
+<li>Express common invariants through Killing form, structure constants, and
+projector channels.</li>
+</ul>
+
+<p>
+For larger \(E_8\) representations, do not attempt dense tensors.  Use only
+weight slices, modular nullspaces, and coupling trees.
+</p>
+
+<p>
+For \(E_8\), there is no vector-index diagram calculus as simple as
+delta/epsilon or Young diagrams.  The best practical algorithms are therefore
+root-data algorithms:
+</p>
+
+<ul class="org-ul">
+<li>sparse weight generation from the highest weight;</li>
+<li>Freudenthal or equivalent weight-multiplicity algorithms;</li>
+<li>tensor-product decomposition by characters or highest-weight subtraction;</li>
+<li>local projector construction by Casimir and additional invariant operators.</li>
+</ul>
+
+<p>
+The adjoint representation is special and should get primitive invariant
+atoms: Killing form and structure constants.  Adjoint-channel projectors should
+still be derived from those atoms, Casimirs, and local idempotent splitting.
+The primitive atoms are analogous to delta, epsilon, and gamma for classical
+groups, but only at the level of the \(E_8\) adjoint tensor category.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb6017a0" class="outline-2">
+<h2 id="orgb6017a0"><span class="section-number-2">16.</span> Scalar Domain</h2>
+<div class="outline-text-2" id="text-16">
+<p>
+There are three useful scalar domains.
+</p>
+
+<ol class="org-ol">
+<li>Modular primes for rank, nullspace, and independence.</li>
+
+<li>Exact integers/rationals for unnormalized bases.</li>
+
+<li>Algebraic normalized coefficients for orthonormal CG tables.</li>
+</ol>
+
+<p>
+The kernel should default to the first two.  Orthonormal square-root
+normalization is expensive and mostly unnecessary for constructing an
+independent tensor basis.
+</p>
+</div>
+</div>
+<div id="outline-container-org5323a9b" class="outline-2">
+<h2 id="org5323a9b"><span class="section-number-2">17.</span> Compute And Scaling</h2>
+<div class="outline-text-2" id="text-17">
+<p>
+The scaling must be measured against the objects actually stored.
+</p>
+
+<pre class="example" id="org23deec6">
+bad dense invariant:
+  one tensor in 16^12 has 281,474,976,710,656 components
+
+bad direct nullspace:
+  weight-zero slice for 16^12 has about 328,742,937,600 states
+
+good basis path storage:
+  73,744 paths * small fixed record
+
+good primitive gamma storage:
+  (10 + 120 + 126) * 16 * 16 = 65,536 possible entries before sparsity
+</pre>
+
+<p>
+A rough storage budget for the \(73,744\)-basis target is small if the basis is
+stored as paths:
+</p>
+
+<pre class="example" id="orgfd16e72">
+one path:
+  6 leaf channel ids
+  5 intermediate representation ids
+  5 multiplicity ids
+  optional offsets into projector cache
+
+73,744 paths:
+  low megabytes with compact ids
+  still comfortably below tens of megabytes with generous metadata
+
+projector cache:
+  problem-dependent
+  should be measured by total reduced delta/epsilon terms
+  expected to dominate path storage if projectors are fully expanded
+</pre>
+
+<p>
+The pair-channel algorithm has this shape:
+</p>
+
+<pre class="example" id="org2b3b858">
+m = number of output invariants
+d = number of internal tree nodes
+K = number of distinct local projector kernels
+B_k = local diagram-basis size for kernel k
+
+path storage:        O(m * d)
+path enumeration:    O(number of reachable channel paths)
+kernel derivation:   sum_k local_projector_cost(B_k)
+rendering:           O(total rendered terms)
+component eval:      O(d * sparse kernel application)
+</pre>
+
+<p>
+The local projector cost depends on the case:
+</p>
+
+<ul class="org-ul">
+<li>If Casimir eigenvalues separate all channels, construction is polynomial
+arithmetic in \(\Omega\).  Cost is roughly the cost of multiplying and
+reducing a small number of diagram operators.</li>
+<li>If multiplicities remain, construct a local diagram algebra and split
+primitive idempotents.  If the local basis has size \(B\), dense fallback
+linear algebra is \(O(B^3)\), but \(B\) is local and cacheable.</li>
+<li>If a local tensor product creates large representations, fall back to sparse
+modular highest-weight linear algebra for that local product only.</li>
+</ul>
+
+<p>
+For \(Spin(10)\) \(16^{12}\), the expected compute profile is:
+</p>
+
+<ul class="org-ul">
+<li>trivial: gamma bilinear generation and storage;</li>
+<li>small: four-spinor Fierz derivation;</li>
+<li>moderate: deriving all distinct pair projectors reached by the six-channel
+coupling tree;</li>
+<li>moderate: enumerating and writing 73,744 basis paths;</li>
+<li>potentially large but streamable: rendering every projector-expanded
+expression if many projectors expand to many delta/epsilon terms.</li>
+</ul>
+
+<p>
+The hard output-size variable is the total number of rendered contraction
+terms, not the number of basis vectors.  The implementation should therefore
+store expressions as term streams, not strings or nested symbolic trees.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfbb84fe" class="outline-2">
+<h2 id="orgfbb84fe"><span class="section-number-2">18.</span> Data-Oriented Compute Plan</h2>
+<div class="outline-text-2" id="text-18">
+<p>
+The AGENTS.md constraints translate to these design choices.
+</p>
+
+<ol class="org-ol">
+<li>Data first.  Store gamma tables, diagram atoms, projector terms, and
+coupling paths as flat arrays with offsets.  Avoid pointer-heavy expression
+trees in the kernel.</li>
+
+<li>No large intermediates.  Projector multiplication returns a reduced stream
+of terms.  Rendering writes terms to a caller-provided writer.  Component
+evaluation touches one path at a time.</li>
+
+<li>Minimal access.  Path enumeration needs only representation ids and product
+decompositions.  Rendering needs one path and the projectors it references.
+Numeric evaluation needs one path, spinor indices, gamma lookup tables, and
+sparse projector evaluators.</li>
+
+<li>Parallel units.  Distinct projector kernels, distinct leaf-channel
+patterns, distinct output paths, and distinct primes for modular checks are
+independent work units.</li>
+
+<li>Cache derived data with convention hashes.  Fierz matrices, projectors, and
+gamma tables depend on conventions.  Cache keys must include algebra,
+representations, scalar domain, normalization, chirality, and Hodge-star
+sign.</li>
+
+<li>Verify locally.  Do not write broad tests just to have coverage.  Test
+precise invariants: projectors are idempotent, orthogonal, sum to identity,
+have the expected trace, and agree with component evaluation for selected
+samples.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orga801439" class="outline-2">
+<h2 id="orga801439"><span class="section-number-2">19.</span> How This Replaces The Prototype Selector</h2>
+<div class="outline-text-2" id="text-19">
+<p>
+Keep these prototype ideas:
+</p>
+
+<ul class="org-ul">
+<li>exact singlet counting by sparse characters;</li>
+<li>lazy component evaluation;</li>
+<li>grouped/cached candidate families;</li>
+<li>deterministic verification probes for debugging.</li>
+</ul>
+
+<p>
+Remove these as the main algorithm:
+</p>
+
+<ul class="org-ul">
+<li>gamma-word enumeration as the source of the basis;</li>
+<li>random component probing as the independence selector;</li>
+<li>dense candidate signatures;</li>
+<li>public exposure of gamma-product grammar as the representation-theory API.</li>
+</ul>
+
+<p>
+The new selector is:
+</p>
+
+<ol class="org-ol">
+<li>count the target multiplicity;</li>
+<li>construct that multiplicity space by highest-weight nullspace;</li>
+<li>store invariants as sparse coefficient vectors or coupling trees;</li>
+<li>render to gamma/diagram notation only when requested.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2639b6f" class="outline-2">
+<h2 id="org2639b6f"><span class="section-number-2">20.</span> Implementation Roadmap</h2>
+<div class="outline-text-2" id="text-20">
+<p>
+The implementation should be built in layers.  Each layer has a small public
+surface and a clear cache boundary.  The user-facing goal is:
+</p>
+
+<pre class="example" id="org7015c53">
+CFT correlator output =
+  sum_i rational_function_i(z, momenta, ...)
+        * tensor_invariant_i(external tensor/spinor indices)
+</pre>
+
+<p>
+The CFT code should receive compact invariant ids and render/evaluate them on
+demand.  It should not receive a giant expanded gamma expression unless the
+caller explicitly asks to export one.
+</p>
+</div>
+<div id="outline-container-org9277858" class="outline-3">
+<h3 id="org9277858"><span class="section-number-3">20.1.</span> Phase 0: Algebra And Representation Store</h3>
+<div class="outline-text-3" id="text-20-1">
+<p>
+Implement:
+</p>
+
+<ul class="org-ul">
+<li>root datum for \(A_n\), \(B_n\), \(C_n\), \(D_n\), and \(E_8\);</li>
+<li>Dynkin-label interning;</li>
+<li>irrep dimension and quadratic Casimir;</li>
+<li>Weyl character multiplication for counts and decompositions;</li>
+<li>dual/conjugate irrep maps;</li>
+<li>stable ids for <code>Irrep</code>, <code>Channel</code>, and <code>Occurrence</code>.</li>
+</ul>
+
+<p>
+Public operations:
+</p>
+
+<pre class="example" id="org15cecf7">
+intern_irrep(algebra, dynkin) -&gt; IrrepId
+dimension(irrep) -&gt; u64 or big integer
+casimir2(irrep) -&gt; Rational
+dual(irrep) -&gt; IrrepId
+decompose_product(left, right) -&gt; stream of (irrep, multiplicity)
+count_invariants(reps) -&gt; integer
+</pre>
+
+<p>
+Complexity:
+</p>
+
+<ul class="org-ul">
+<li>Character multiplication scales with the number of distinct weights, not the
+product dimension.</li>
+<li>For small and medium reps this is cheap.  For large \(E_8\) or high Dynkin
+labels, weight generation becomes the bottleneck.</li>
+</ul>
+
+<p>
+Storage:
+</p>
+
+<ul class="org-ul">
+<li><code>RootDatum</code> is tiny.</li>
+<li><code>IrrepData</code> stores weights as flat sorted arrays with offsets.</li>
+<li>Cache by <code>(algebra, Dynkin label)</code>.</li>
+</ul>
+
+<p>
+Bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>weight multiplicity generation for large irreps;</li>
+<li>product decomposition for many repeated pairs.</li>
+</ul>
+
+<p>
+Mitigation:
+</p>
+
+<ul class="org-ul">
+<li>cache decompositions aggressively;</li>
+<li>use Weyl-character and highest-weight subtraction for decomposition;</li>
+<li>keep an LRU or explicit workspace cache for exploratory runs.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org9fb1c50" class="outline-3">
+<h3 id="org9fb1c50"><span class="section-number-3">20.2.</span> Phase 1: Generic Local Solver</h3>
+<div class="outline-text-3" id="text-20-2">
+<p>
+Implement the direct highest-weight solver for small local products:
+</p>
+
+<pre class="example" id="org80c4613">
+local_cg_basis(left, right, target) -&gt; local CG/projector kernels
+</pre>
+
+<p>
+It should:
+</p>
+
+<ol class="org-ol">
+<li>enumerate only the relevant weight slice;</li>
+<li>stream raising-operator constraints;</li>
+<li>solve over one or more machine primes;</li>
+<li>reconstruct rational coefficients only when required;</li>
+<li>emit compact sparse kernels.</li>
+</ol>
+
+<p>
+Complexity:
+</p>
+
+<pre class="example" id="org1a40b9f">
+W = size of relevant local weight slice
+E = nonzero generator edges touching that slice
+
+constraint build: O(E)
+modular solve:    sparse linear algebra in W columns
+storage:          O(E + output nonzeros)
+</pre>
+
+<p>
+This is not for \(16^{12}\) directly.  It is for local products such as
+\(120\otimes120\) multiplicity splitting and for validation.
+</p>
+
+<p>
+Bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>sparse nullspace fill-in;</li>
+<li>rational reconstruction if exact printable coefficients are requested.</li>
+</ul>
+
+<p>
+Mitigation:
+</p>
+
+<ul class="org-ul">
+<li>default to modular kernels;</li>
+<li>use two-prime verification before rational reconstruction;</li>
+<li>only reconstruct local projector terms that must be rendered symbolically.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org239ed7a" class="outline-3">
+<h3 id="org239ed7a"><span class="section-number-3">20.3.</span> Phase 2: Coupling Paths</h3>
+<div class="outline-text-3" id="text-20-3">
+<p>
+Implement coupling-tree enumeration:
+</p>
+
+<pre class="example" id="orgeb97130">
+invariant_basis(reps, target, tree_policy) -&gt; BasisHandle
+iterate_basis_paths(handle) -&gt; stream of CouplingPath
+</pre>
+
+<p>
+A <code>CouplingPath</code> stores:
+</p>
+
+<ul class="org-ul">
+<li>leaf occurrences;</li>
+<li>internal node input occurrence ids;</li>
+<li>output irrep ids;</li>
+<li>multiplicity copy labels;</li>
+<li>projector-kernel keys.</li>
+</ul>
+
+<p>
+Complexity:
+</p>
+
+<pre class="example" id="orgba45fb9">
+m = output multiplicity
+d = internal nodes
+K = distinct local product families
+
+path storage:      O(m*d)
+enumeration time:  O(reachable channel paths)
+kernel cache size: O(K + total kernel terms)
+</pre>
+
+<p>
+For \(Spin(10)\) \(16^{12}\), \(m=73744\) and \(d=5\).  Path storage is small.
+The risk is deriving the local projector cache, not storing the basis.
+</p>
+
+<p>
+Bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>bad tree choices that create large intermediate reps;</li>
+<li>repeated decomposition of the same local products;</li>
+<li>too-late reachability pruning.</li>
+</ul>
+
+<p>
+Mitigation:
+</p>
+
+<ul class="org-ul">
+<li>choose tree by estimated channel count and dimension growth;</li>
+<li>memoize product decompositions;</li>
+<li>run backward reachability from the target so impossible channels are pruned
+before projector construction.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgc1bfd7a" class="outline-3">
+<h3 id="orgc1bfd7a"><span class="section-number-3">20.4.</span> Phase 3: Symbolic Tensor Term Store</h3>
+<div class="outline-text-3" id="text-20-4">
+<p>
+Implement a compact symbolic term language:
+</p>
+
+<pre class="example" id="orgdec95c7">
+GammaBlock:
+  spinor slots
+  antisymmetric vector block
+  chirality/self-duality tag
+
+DiagramAtom:
+  metric pair
+  generalized delta block
+  epsilon
+  Hodge star
+  antisymmetrizer block
+
+Term:
+  rational coefficient
+  gamma block range
+  diagram atom range
+
+Expression:
+  term offset and term length
+</pre>
+
+<p>
+No nested expression trees in the kernel.  Multiplication, substitution, and
+reduction operate on sorted flat term streams.
+</p>
+
+<p>
+Complexity:
+</p>
+
+<pre class="example" id="org023d7b9">
+rendering one basis path: O(number of reduced terms emitted)
+rendering all paths:      O(total emitted terms)
+memory:                   bounded by streaming buffer + cache
+</pre>
+
+<p>
+Bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>expression swell after expanding projectors;</li>
+<li>duplicate term canonicalization;</li>
+<li>epsilon-delta simplification.</li>
+</ul>
+
+<p>
+Mitigation:
+</p>
+
+<ul class="org-ul">
+<li>keep antisymmetric block deltas primitive;</li>
+<li>canonicalize diagram atoms by sorted packed index-block ids;</li>
+<li>reduce after every local substitution, not after building the full tree;</li>
+<li>support writer-backed rendering so giant exports do not live in memory.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd8b7c07" class="outline-3">
+<h3 id="orgd8b7c07"><span class="section-number-3">20.5.</span> Phase 4: \(SO(N)\) And \(Spin(N)\)</h3>
+<div class="outline-text-3" id="text-20-5">
+<p>
+Start here because the immediate string-code use case is spin-field
+correlators.
+</p>
+
+<p>
+Implement:
+</p>
+
+<ul class="org-ul">
+<li>\(SO(N)\) vector-index diagram atoms: metric, epsilon, generalized delta;</li>
+<li>Brauer algebra operations for vector tensor powers;</li>
+<li>Clifford/Fock spinor basis for \(Spin(2m)\);</li>
+<li>sparse gamma action as bit operations;</li>
+<li>antisymmetrized gamma bilinear channel generation;</li>
+<li>Hodge self-duality for middle forms;</li>
+<li>two-body Casimir diagrams for form channels;</li>
+<li>local Fierz/recoupling derivation from exact gamma contractions.</li>
+</ul>
+
+<p>
+Initial targets:
+</p>
+
+<pre class="example" id="orgb5f2229">
+Spin(10):
+  16 x 16 = 10 + 120 + 126
+  10 x 10 = 1 + 45 + 54
+  120 x 120 first-layer projector audit
+  16^4 -&gt; 2 singlets, full Fierz table
+  16^8 -&gt; 175 singlets
+  16^12 -&gt; 73744 coupling paths
+</pre>
+
+<p>
+Complexity:
+</p>
+
+<ul class="org-ul">
+<li>primitive gamma storage for \(Spin(10)\) is tiny:
+\((10+120+126)16^2=65536\) possible entries before sparsity;</li>
+<li>vector-only \(SO(N)\) diagram operations scale with diagram count and
+tensor rank, not representation dimension;</li>
+<li>spinor high-arity basis construction scales by coupling paths and local
+projector cache.</li>
+</ul>
+
+<p>
+Main bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>second-layer \(Spin(10)\) projector families for \(16^{12}\);</li>
+<li>local multiplicity blocks such as \(120\otimes120\supset2\cdot210\);</li>
+<li>projector-expanded rendering size.</li>
+</ul>
+
+<p>
+How to shatter them:
+</p>
+
+<ul class="org-ul">
+<li>use Dynkin labels and multiplicity-copy labels, never dimensions;</li>
+<li>use quadratic Casimir first;</li>
+<li>use higher \(D_5\) Casimir signatures \(4,5,6,8\) as block splitters;</li>
+<li>use Brauer/Jucys-Murphy elements for vector-index tensor categories;</li>
+<li>use local diagram idempotent splitting only on residual blocks;</li>
+<li>cache every derived local projector by convention hash.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org8f37c9e" class="outline-3">
+<h3 id="org8f37c9e"><span class="section-number-3">20.6.</span> Phase 5: \(SU(N)\)</h3>
+<div class="outline-text-3" id="text-20-6">
+<p>
+Use better \(SU(N)\)-specific combinatorics instead of forcing the
+\(SO(N)\) strategy onto \(A_n\).
+</p>
+
+<p>
+Implement:
+</p>
+
+<ul class="org-ul">
+<li>partitions/tableaux and conversion to Dynkin labels;</li>
+<li>Littlewood-Richardson multiplication for decomposition;</li>
+<li>Young symmetrizer or birdtrack diagram rendering for fundamental-index
+tensors;</li>
+<li>Gelfand-Tsetlin basis for explicit state labels and generator actions;</li>
+<li>Jucys-Murphy elements for separating standard-tableau paths.</li>
+</ul>
+
+<p>
+Public behavior:
+</p>
+
+<pre class="example" id="org824dfa9">
+decompose_product_SU_N(partition_a, partition_b)
+young_projector(path/tableau) -&gt; symbolic symmetrizer terms
+invariant_basis_SU_N(reps) -&gt; coupling paths or birdtrack diagrams
+</pre>
+
+<p>
+Complexity:
+</p>
+
+<ul class="org-ul">
+<li>LR decomposition scales with the number of admissible tableaux/hives;</li>
+<li>Young symmetrizer expansion can grow factorially if expanded naively;</li>
+<li>Gelfand-Tsetlin CG generation scales with the number of patterns and local
+sparse generator edges.</li>
+</ul>
+
+<p>
+Main bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>factorial expansion of symmetrizers;</li>
+<li>multiplicities in LR products;</li>
+<li>canonicalization of epsilon/delta identities for \(SU(N)\).</li>
+</ul>
+
+<p>
+How to shatter them:
+</p>
+
+<ul class="org-ul">
+<li>keep row/column symmetrizers factored as long as possible;</li>
+<li>use standard tableaux paths as the natural multiplicity labels;</li>
+<li>use Jucys-Murphy eigenvalues to separate tableau basis vectors;</li>
+<li>expand to delta/epsilon terms only in a streaming renderer;</li>
+<li>use generic local solver only when tableau machinery is not enough.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org465c586" class="outline-3">
+<h3 id="org465c586"><span class="section-number-3">20.7.</span> Phase 6: \(E_8\)</h3>
+<div class="outline-text-3" id="text-20-7">
+<p>
+\(E_8\) should begin with root-data methods and the adjoint representation.
+There is no simple vector-index diagram language comparable to \(SO(N)\)
+metrics or \(SU(N)\) Young diagrams.
+</p>
+
+<p>
+Implement:
+</p>
+
+<ul class="org-ul">
+<li>\(E_8\) root system and adjoint basis;</li>
+<li>Killing form and structure constants as primitive atoms;</li>
+<li>sparse adjoint generator action;</li>
+<li>character decomposition and local highest-weight solver;</li>
+<li>derived projectors for common adjoint products.</li>
+</ul>
+
+<p>
+Initial target:
+</p>
+
+<pre class="example" id="orgcc4a210">
+248 x 248 = 1 + 248 + 3875 + 27000 + 30380
+</pre>
+
+<p>
+Complexity:
+</p>
+
+<ul class="org-ul">
+<li>adjoint primitive storage is manageable if sparse;</li>
+<li>general \(E_8\) high-weight products are dominated by weight multiplicity
+generation and local sparse linear algebra;</li>
+<li>higher Casimirs of degrees \(8\) through \(30\) are useful as eigenvalue
+signatures but poor as expanded tensor formulas.</li>
+</ul>
+
+<p>
+Main bottlenecks:
+</p>
+
+<ul class="org-ul">
+<li>large weight systems;</li>
+<li>local nullspace solves for non-adjoint products;</li>
+<li>no compact universal diagram calculus.</li>
+</ul>
+
+<p>
+How to shatter them:
+</p>
+
+<ul class="org-ul">
+<li>keep \(E_8\) support initially adjoint-focused;</li>
+<li>cache common \(248\)-channel projectors;</li>
+<li>use modular local solvers;</li>
+<li>use higher Casimir eigenvalues only as signatures/checks;</li>
+<li>delay symbolic expanded rendering beyond Killing form and structure
+constants until a concrete use case demands it.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org449cba8" class="outline-3">
+<h3 id="org449cba8"><span class="section-number-3">20.8.</span> Phase 7: CFT Integration Boundary</h3>
+<div class="outline-text-3" id="text-20-8">
+<p>
+Spin-field correlators and OPEs should call tensor-code through a narrow
+interface.
+</p>
+
+<p>
+Input:
+</p>
+
+<pre class="example" id="org0a3cf50">
+TensorRequest:
+  symmetry algebra
+  external tensor/spinor legs
+  desired invariant basis or target representation
+  rendering level
+</pre>
+
+<p>
+Output:
+</p>
+
+<pre class="example" id="org5030d9e">
+TensorExpansion:
+  basis handle
+  terms:
+    rational_function_id
+    invariant_id
+    scalar coefficient
+</pre>
+
+<p>
+The CFT layer owns rational functions of positions, momenta, and conformal
+data.  The tensor layer owns invariant ids, gamma/projector rendering, and
+component evaluation.
+</p>
+
+<p>
+For a spin-field correlator, the final object should look like:
+</p>
+
+<pre class="example" id="org2d36f77">
+sum_i R_i(z_a, z_b, ...)
+      * GammaInvariant_i(A1, A2, ..., vectors...)
+</pre>
+
+<p>
+The default <code>GammaInvariant_i</code> is a compact coupling path.  Optional renderers
+produce:
+</p>
+
+<ol class="org-ol">
+<li>gamma blocks plus named derived projectors;</li>
+<li>gamma blocks plus expanded delta/epsilon/antisymmetrizer projectors;</li>
+<li>fully streamed term export.</li>
+</ol>
+
+<p>
+This keeps expensive tensor rendering outside ordinary CFT simplification.
+</p>
+</div>
+</div>
+<div id="outline-container-orge0c170a" class="outline-3">
+<h3 id="orge0c170a"><span class="section-number-3">20.9.</span> Clarifications Needed</h3>
+<div class="outline-text-3" id="text-20-9">
+<p>
+Before code beyond the core engine, clarify:
+</p>
+
+<ol class="org-ol">
+<li>Which normalization is required for physical outputs: unnormalized integer
+CG maps, rational projectors, or orthonormal square-root conventions?</li>
+
+<li>Which \(Spin(10)\) signature and chirality conventions are required:
+Euclidean \(SO(10)\), Lorentzian \(Spin(1,9)\), or both through a shared
+complexified algebra?</li>
+
+<li>Should default spin-field output use fixed pairings, or should it choose a
+basis adapted to a given OPE channel?</li>
+
+<li>How expanded must &ldquo;expanded projector&rdquo; mean: antisymmetric block deltas as
+atoms, or every signed permutation written out?</li>
+
+<li>For \(SU(N)\), are the expected reps mostly fundamentals/antisymmetrics, or
+arbitrary Dynkin labels?</li>
+
+<li>For \(E_8\), is the first real target adjoint-only, or arbitrary \(E_8\)
+irreps?</li>
+
+<li>Should tensor-code persist derived caches on disk, or should long caches be
+regenerated per project build?</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org3316278" class="outline-3">
+<h3 id="org3316278"><span class="section-number-3">20.10.</span> Milestones</h3>
+<div class="outline-text-3" id="text-20-10">
+<ol class="org-ol">
+<li>Implement root datum, Dynkin interning, dimensions, duals, and
+decompositions.  Validate \(Spin(10)\), \(SU(3)\), and \(E_8\) adjoint
+decompositions.</li>
+
+<li>Implement \(Spin(10)\) Clifford/Fock gamma bilinears and derive
+\(16\otimes16=10\oplus120\oplus126\).</li>
+
+<li>Implement symbolic diagram atoms and quadratic-Casimir projectors for
+\(SO(10)\) form products.</li>
+
+<li>Derive the \(16^4\) Fierz table from scratch and verify it by component
+evaluation.</li>
+
+<li>Complete the second-layer \(16^{12}\) feasibility audit:
+enumerate the \(\le78\) second-layer products, record multiplicities,
+Casimir collisions, and residual block sizes.</li>
+
+<li>Generate \(16^8\) and \(16^{12}\) coupling paths.</li>
+
+<li>Connect CFT spin-field correlator output to <code>TensorExpansion</code>.</li>
+
+<li>Add \(SU(N)\) LR/tableau backend.</li>
+
+<li>Add \(E_8\) adjoint backend.</li>
+</ol>
+</div>
+</div>
+</div>
+<div id="outline-container-org85d90f8" class="outline-2">
+<h2 id="org85d90f8"><span class="section-number-2">21.</span> Design Decision</h2>
+<div class="outline-text-2" id="text-21">
+<p>
+The best approach for this codebase is a sparse highest-weight engine with
+coupling-tree output.
+</p>
+
+<p>
+Gamma products, deltas, epsilons, Young diagrams, Brauer diagrams, and
+structure constants should be presentation/evaluation backends, not the
+primary basis-generation mechanism.  The primary data should be weight states,
+sparse generator actions, modular nullspaces, and cached 3-valent maps.
+</p>
+
+<p>
+That design follows the existing rule that symbolic expressions grow
+combinatorially and must not be stored as large intermediates.  It also gives
+clear parallel work units and a minimal public API.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 19:07</p>
+</div>
+</body>
+</html>

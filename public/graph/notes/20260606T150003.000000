@@ -1,0 +1,24 @@
+:PROPERTIES:
+:ID:       20260606T150003.000000
+:END:
+#+title: String-Code
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../src/root.zig :mkdirp yes
+
+The root module exposes the two build-checked kernels.  Higher string modules
+depend on these through their public APIs.
+
+#+api:
+
+#+begin_src zig
+/// tensor exposes tensor-code data structures and tensor handles.
+pub const tensor = @import("tensor-code");
+/// cft exposes worldsheet CFT data structures and generated kernels.
+pub const cft = @import("cft-code");
+
+test "top-level API exposes tensor and cft boundaries" {
+    const testing = @import("std").testing;
+    try testing.expect(@hasDecl(@This(), "tensor"));
+    try testing.expect(@hasDecl(@This(), "cft"));
+}
+#+end_src

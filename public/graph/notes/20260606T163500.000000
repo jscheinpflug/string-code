@@ -1,0 +1,649 @@
+:PROPERTIES:
+:ID:       20260606T163500.000000
+:END:
+#+title: Presets
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/presets.zig :mkdirp yes
+
+#+interface:
+
+Presets are the physics-facing constructors for common CFT data.  They sit
+between [[id:20260605T090102.250727][Theory]] and [[id:20260606T150002.000000][CFT Kernel]]: a user asks for a free
+boson, a \(bc\) system, a product, or a boundary extension, and receives a small
+generated type with operator builders and correlator entry points.
+
+This file is intentionally modest.  The current kernel does not yet execute
+Wick contractions, so these presets establish the API and stable operator
+families without pretending to compute correlators.  The lowering to compact
+rule tables will happen inside the future DSL.
+
+#+begin_src zig
+const operators = @import("expressions/operators.zig");
+const coefficient = @import("expressions/coefficient.zig");
+const theory = @import("theory/theory.zig");
+const tensor = @import("tensor-code");
+#+end_src
+
+* Handles And Conventions
+
+The preset API uses handles, not owned symbolic payloads.  This keeps the user
+surface compact and lets later stores decide how momenta, profiles, tensors,
+and Chan-Paton factors are represented.
+
+#+begin_src zig
+/// Handle groups compact ids used by preset operator builders.
+pub const Handle = struct {
+    /// Coord names a holomorphic or antiholomorphic coordinate variable.
+    pub const Coord = coefficient.Variable;
+    /// BoundaryCoord names a real boundary coordinate variable.
+    pub const BoundaryCoord = coefficient.Variable;
+    /// Index names a target-space vector index.
+    pub const Index = u32;
+    /// Momentum names a target-space momentum expression.
+    pub const Momentum = u32;
+    /// Profile names a selected presentation of a target-space profile.
+    pub const Profile = u32;
+    /// TargetFunction names a position-space target profile.
+    pub const TargetFunction = u32;
+    /// FourierTransform names a Fourier-space target profile.
+    pub const FourierTransform = u32;
+    /// TargetPoint names a point in target space.
+    pub const TargetPoint = u32;
+    /// TensorProjector names a tensor-code projector expression.
+    pub const TensorProjector = tensor.kernel.TensorExprId;
+    /// BoundaryStack names stacked boundary-condition Chan-Paton data.
+    pub const BoundaryStack = u32;
+    /// PolynomialProfileTerm stores one finite polynomial profile term.
+    pub const PolynomialProfileTerm = struct {
+        coefficient: u32,
+        power: u16,
+    };
+};
+
+/// ConventionScalar stores small convention constants used by preset builders.
+pub const ConventionScalar = union(enum) {
+    one,
+    rational: struct { numerator: i64, denominator: i64 },
+    symbol: []const u8,
+};
+
+/// FreeBosonConvention selects the normalization convention for the free boson.
+pub const FreeBosonConvention = enum {
+    stringbook,
+    prototype,
+};
+#+end_src
+
+The default free-boson convention follows the stringbook normalization
+\[
+  T^X=-{1\over \alpha'}\,\partial X^\mu\partial X_\mu,
+\]
+and the corresponding Polyakov/free-field conventions [cite:@yinStringbook].
+The \(bc\) preset uses
+\[
+  b(z)c(0)\sim {1\over z},\qquad
+  T^{\rm gh}=-(\partial b)c-2b\partial c,
+\]
+and the sphere normalization
+\[
+  \left\langle\prod_{i=1}^3 c(z_i)\tilde c(\bar z_i)\right\rangle
+  = |z_{12}z_{13}z_{23}|^2
+\]
+[cite:@yinStringbook].
+
+* Operator Helpers
+
+For now an operator body id is just a stable kind number.  The future body store
+will attach label spans for indices, momenta, profiles, derivative labels, and
+Chan-Paton factors.  We do not allocate such a store here.
+
+#+begin_src zig
+const BodyKind = enum(operators.OperatorBodyId) {
+    x = 1,
+    d_x = 2,
+    d_xt = 3,
+    exp_x = 4,
+    profile_x = 5,
+    b = 16,
+    c = 17,
+    bt = 18,
+    ct = 19,
+    d_x_boundary = 32,
+    exp_x_boundary = 33,
+    profile_x_boundary = 34,
+    b_boundary = 48,
+    c_boundary = 49,
+};
+
+fn pairInsertion(z: Handle.Coord, zbar: Handle.Coord) operators.OperatorInsertion {
+    return .{ .pair = .{
+        .holomorphic_position = z,
+        .antiholomorphic_position = zbar,
+        .holomorphic_derivatives = 0,
+        .antiholomorphic_derivatives = 0,
+    } };
+}
+
+fn singleInsertion(z: Handle.Coord, derivatives: u8) operators.OperatorInsertion {
+    return .{ .single = .{
+        .position = z,
+        .derivatives = derivatives,
+    } };
+}
+
+fn operator(kind: BodyKind, insertion: operators.OperatorInsertion) operators.Operator {
+    return .{
+        .insertion = insertion,
+        .body = @intFromEnum(kind),
+    };
+}
+#+end_src
+
+* Free Boson
+
+The free boson preset is a bulk theory.  Its public data is just dimension and
+normalization choice.  \(SO(D)\) tensor invariants and momentum algebra are
+handled by [[id:20260605T075909.433647][Tensor-Code]] later; the preset only fixes the operator families.
+
+#+begin_src zig
+/// FreeBosonConfig declares a noncompact D-dimensional free boson preset.
+pub const FreeBosonConfig = struct {
+    dimension: u16,
+    alpha_prime: ConventionScalar = .{ .symbol = "alpha_prime" },
+    convention: FreeBosonConvention = .stringbook,
+    explicit_x: bool = true,
+};
+
+/// freeBoson builds the API type for a noncompact free-boson CFT.
+pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
+    return struct {
+        const preset_kind = PresetKind.free_boson;
+        const preset_config = cfg;
+
+        /// op exposes free-boson local operator builders.
+        pub const op = FreeBosonOp;
+        /// profile exposes profile-presentation builders.
+        pub const profile = ProfileOp;
+        /// config exposes named correlator configs for this preset.
+        pub const config = SphereConfig;
+
+        /// correlator evaluates free-boson insertions with a compiled config.
+        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
+            _ = config_ptr;
+            _ = ops;
+            _ = sink;
+            return error.NotImplemented;
+        }
+    };
+}
+#+end_src
+
+The derivative label convention is \(dX(\mu,n,z)=\partial^{n+1}X^\mu(z)\).
+An explicit \(X\) body is present because position-space profiles and NLSM
+expansions naturally produce logarithmic Green kernels.
+
+#+begin_src zig
+const FreeBosonOp = struct {
+    /// X builds an explicit bulk free-boson field insertion.
+    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        _ = mu;
+        return operator(.x, pairInsertion(z, zbar));
+    }
+
+    /// dX builds a holomorphic derivative field insertion.
+    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
+        _ = mu;
+        return operator(.d_x, singleInsertion(z, n));
+    }
+
+    /// dXt builds an antiholomorphic derivative field insertion.
+    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
+        _ = mu;
+        return operator(.d_xt, singleInsertion(zbar, n));
+    }
+
+    /// expX builds a normal-ordered plane-wave insertion.
+    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        _ = k;
+        return operator(.exp_x, pairInsertion(z, zbar));
+    }
+
+    /// profile builds a target-space profile insertion.
+    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        _ = f;
+        return operator(.profile_x, pairInsertion(z, zbar));
+    }
+};
+#+end_src
+
+Profiles are presentation handles.  Position-space profiles keep the zero-mode
+integral explicit; Fourier profiles reduce to plane waves; polynomial profiles
+support Riemann-normal-coordinate expansions.
+
+#+begin_src zig
+const ProfileOp = struct {
+    /// positionSpace selects the exact residual position-space profile presentation.
+    pub fn positionSpace(f: Handle.TargetFunction) Handle.Profile {
+        return f;
+    }
+
+    /// fourier selects the Fourier-space profile presentation.
+    pub fn fourier(f_hat: Handle.FourierTransform) Handle.Profile {
+        return f_hat;
+    }
+
+    /// polynomialRnc selects a finite polynomial profile presentation.
+    pub fn polynomialRnc(point: Handle.TargetPoint, terms: []const Handle.PolynomialProfileTerm) Handle.Profile {
+        _ = terms;
+        return point;
+    }
+};
+#+end_src
+
+* bc Sphere
+
+The \(bc\) sphere preset is independent of the matter CFT.  Stringbook fixes
+the local OPE \(b(z)c(0)\sim z^{-1}\), the weights \(h_b=2\),
+\(h_c=-1\), and the sphere top-form normalization [cite:@yinStringbook].
+
+#+begin_src zig
+/// BcSphereConfig declares the holomorphic bc system and optional antiholomorphic copy.
+pub const BcSphereConfig = struct {
+    include_antiholomorphic_copy: bool = true,
+};
+
+/// bcSphere builds the API type for the sphere bc ghost CFT.
+pub fn bcSphere(comptime cfg: BcSphereConfig) type {
+    return struct {
+        const preset_kind = PresetKind.bc_sphere;
+        const preset_config = cfg;
+
+        /// op exposes bc ghost local operator builders.
+        pub const op = BcSphereOp;
+        /// config exposes named correlator configs for this preset.
+        pub const config = SphereConfig;
+
+        /// correlator evaluates bc insertions with a compiled config.
+        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
+            _ = config_ptr;
+            _ = ops;
+            _ = sink;
+            return error.NotImplemented;
+        }
+    };
+}
+#+end_src
+
+Derivative labels mean \(\partial^n b\), \(\partial^n c\), and the
+antiholomorphic copies.
+
+#+begin_src zig
+const BcSphereOp = struct {
+    /// b builds a holomorphic b-ghost insertion.
+    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
+        return operator(.b, singleInsertion(z, n));
+    }
+
+    /// c builds a holomorphic c-ghost insertion.
+    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
+        return operator(.c, singleInsertion(z, n));
+    }
+
+    /// bt builds an antiholomorphic b-ghost insertion.
+    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
+        return operator(.bt, singleInsertion(zbar, n));
+    }
+
+    /// ct builds an antiholomorphic c-ghost insertion.
+    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
+        return operator(.ct, singleInsertion(zbar, n));
+    }
+};
+#+end_src
+
+* Product
+
+Tensor products are products of sector data and quantum-number lists.  There is
+no runtime tensor-product payload.  At this milestone the product API exposes
+the implemented bulk builders directly: free bosons and \(bc\) ghosts.
+
+#+begin_src zig
+/// product builds the API type for a product of independent bulk presets.
+pub fn product(comptime factors: anytype) type {
+    return struct {
+        const preset_kind = PresetKind.product;
+        const preset_factors = factors;
+
+        /// op exposes the joined operator builders of the product factors.
+        pub const op = ProductOp(factors);
+        /// config exposes named correlator configs for this product preset.
+        pub const config = SphereConfig;
+
+        /// correlator evaluates product-theory insertions with a compiled config.
+        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
+            _ = config_ptr;
+            _ = ops;
+            _ = sink;
+            return error.NotImplemented;
+        }
+    };
+}
+
+fn ProductOp(comptime factors: anytype) type {
+    _ = factors;
+    return BulkProductOp;
+}
+
+const BulkProductOp = struct {
+    /// X builds an explicit bulk free-boson field insertion.
+    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return FreeBosonOp.X(mu, z, zbar);
+    }
+
+    /// dX builds a holomorphic derivative field insertion.
+    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
+        return FreeBosonOp.dX(mu, n, z);
+    }
+
+    /// dXt builds an antiholomorphic derivative field insertion.
+    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
+        return FreeBosonOp.dXt(mu, n, zbar);
+    }
+
+    /// expX builds a normal-ordered plane-wave insertion.
+    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return FreeBosonOp.expX(k, z, zbar);
+    }
+
+    /// profile builds a target-space profile insertion.
+    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return FreeBosonOp.profile(f, z, zbar);
+    }
+
+    /// b builds a holomorphic b-ghost insertion.
+    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
+        return BcSphereOp.b(n, z);
+    }
+
+    /// c builds a holomorphic c-ghost insertion.
+    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
+        return BcSphereOp.c(n, z);
+    }
+
+    /// bt builds an antiholomorphic b-ghost insertion.
+    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
+        return BcSphereOp.bt(n, zbar);
+    }
+
+    /// ct builds an antiholomorphic c-ghost insertion.
+    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
+        return BcSphereOp.ct(n, zbar);
+    }
+};
+#+end_src
+
+* Boundary Extensions
+
+The bulk CFT remains boundary-free.  A BCFT is formed only by applying boundary
+extensions to a chosen bulk theory.  This mirrors the stringbook distinction
+between the bulk field and its boundary limit.  In particular,
+\[
+  \partial^n X(y)=\lim_{z\to y}\partial^nX(z),
+\]
+and \(\partial X(y)\) is not \(\partial_yX(y)\): for Neumann
+\(\partial_yX=2\partial X\), while for Dirichlet \(\partial_yX=0\)
+[cite:@yinStringbook].
+
+#+begin_src zig
+const BoundaryExtensionKind = enum {
+    free_boson_boundary,
+    bc_disk,
+};
+
+const BoundaryExtension = struct {
+    kind: BoundaryExtensionKind,
+    chan_paton: ?Handle.BoundaryStack = null,
+};
+
+/// FreeBosonBoundaryConfig declares Neumann and Dirichlet data for a brane.
+pub const FreeBosonBoundaryConfig = struct {
+    neumann: Handle.TensorProjector,
+    dirichlet: Handle.TensorProjector,
+    dirichlet_position: Handle.TargetPoint,
+    chan_paton: ?Handle.BoundaryStack = null,
+};
+
+/// freeBosonBoundary declares the Neumann/Dirichlet free-boson boundary extension.
+pub fn freeBosonBoundary(comptime cfg: FreeBosonBoundaryConfig) BoundaryExtension {
+    _ = cfg.neumann;
+    _ = cfg.dirichlet;
+    _ = cfg.dirichlet_position;
+    return .{ .kind = .free_boson_boundary, .chan_paton = cfg.chan_paton };
+}
+#+end_src
+
+The boundary free-boson builders expose stringbook's holomorphic boundary
+limit.  A real boundary derivative can be built later at expression level if a
+client wants it.
+
+#+begin_src zig
+const FreeBosonBoundaryOp = struct {
+    /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
+    pub fn dXBoundary(mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        _ = mu;
+        return operator(.d_x_boundary, singleInsertion(y, n));
+    }
+
+    /// expXBoundary builds a Neumann boundary plane-wave insertion.
+    pub fn expXBoundary(k: Handle.Momentum, y: Handle.BoundaryCoord) operators.Operator {
+        _ = k;
+        return operator(.exp_x_boundary, singleInsertion(y, 0));
+    }
+
+    /// profileBoundary builds a boundary profile insertion.
+    pub fn profileBoundary(f: Handle.Profile, y: Handle.BoundaryCoord) operators.Operator {
+        _ = f;
+        return operator(.profile_x_boundary, singleInsertion(y, 0));
+    }
+};
+#+end_src
+
+The boundary \(bc\) extension supplies boundary ghosts and mixed bulk-boundary
+rules for disk amplitudes.  The rules are not executed here yet; they are part
+of the future lowered Wick table.
+
+#+begin_src zig
+/// BcDiskConfig declares the disk boundary extension for the bc ghost system.
+pub const BcDiskConfig = struct {
+    include_mixed_bulk_boundary: bool = true,
+};
+
+/// bcDiskBoundary declares boundary and mixed bulk-boundary bc rules on the disk.
+pub fn bcDiskBoundary(comptime cfg: BcDiskConfig) BoundaryExtension {
+    _ = cfg;
+    return .{ .kind = .bc_disk };
+}
+
+const BcDiskBoundaryOp = struct {
+    /// bBoundary builds a boundary b-ghost insertion.
+    pub fn bBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        return operator(.b_boundary, singleInsertion(y, n));
+    }
+
+    /// cBoundary builds a boundary c-ghost insertion.
+    pub fn cBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        return operator(.c_boundary, singleInsertion(y, n));
+    }
+};
+#+end_src
+
+The boundary builder merges the bulk operator namespace with the selected
+boundary namespaces.  Chan-Paton data remains an optional label on boundary
+extensions and may point to tensor-code structures later.
+
+#+begin_src zig
+/// boundary builds the API type for a BCFT from a bulk preset and boundary extensions.
+pub fn boundary(comptime Bulk: type, comptime extensions: anytype) type {
+    return struct {
+        const preset_kind = PresetKind.boundary;
+        const bulk = Bulk;
+        const boundary_extensions = extensions;
+
+        /// op exposes bulk and boundary operator builders.
+        pub const op = BoundaryOp(Bulk, extensions);
+        /// config exposes named correlator configs for this BCFT.
+        pub const config = DiskConfig;
+
+        /// correlator evaluates BCFT insertions with a compiled config.
+        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
+            _ = config_ptr;
+            _ = ops;
+            _ = sink;
+            return error.NotImplemented;
+        }
+    };
+}
+
+fn BoundaryOp(comptime Bulk: type, comptime extensions: anytype) type {
+    _ = Bulk;
+    _ = extensions;
+    return BoundaryProductOp;
+}
+
+const BoundaryProductOp = struct {
+    /// X builds an explicit bulk free-boson field insertion.
+    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.X(mu, z, zbar);
+    }
+
+    /// dX builds a holomorphic derivative field insertion.
+    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
+        return BulkProductOp.dX(mu, n, z);
+    }
+
+    /// dXt builds an antiholomorphic derivative field insertion.
+    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.dXt(mu, n, zbar);
+    }
+
+    /// expX builds a normal-ordered plane-wave insertion.
+    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.expX(k, z, zbar);
+    }
+
+    /// profile builds a target-space profile insertion.
+    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.profile(f, z, zbar);
+    }
+
+    /// b builds a holomorphic b-ghost insertion.
+    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
+        return BulkProductOp.b(n, z);
+    }
+
+    /// c builds a holomorphic c-ghost insertion.
+    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
+        return BulkProductOp.c(n, z);
+    }
+
+    /// bt builds an antiholomorphic b-ghost insertion.
+    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.bt(n, zbar);
+    }
+
+    /// ct builds an antiholomorphic c-ghost insertion.
+    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
+        return BulkProductOp.ct(n, zbar);
+    }
+
+    /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
+    pub fn dXBoundary(mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        return FreeBosonBoundaryOp.dXBoundary(mu, n, y);
+    }
+
+    /// expXBoundary builds a Neumann boundary plane-wave insertion.
+    pub fn expXBoundary(k: Handle.Momentum, y: Handle.BoundaryCoord) operators.Operator {
+        return FreeBosonBoundaryOp.expXBoundary(k, y);
+    }
+
+    /// profileBoundary builds a boundary profile insertion.
+    pub fn profileBoundary(f: Handle.Profile, y: Handle.BoundaryCoord) operators.Operator {
+        return FreeBosonBoundaryOp.profileBoundary(f, y);
+    }
+
+    /// bBoundary builds a boundary b-ghost insertion.
+    pub fn bBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        return BcDiskBoundaryOp.bBoundary(n, y);
+    }
+
+    /// cBoundary builds a boundary c-ghost insertion.
+    pub fn cBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
+        return BcDiskBoundaryOp.cBoundary(n, y);
+    }
+};
+#+end_src
+
+* Minimal Config Data
+
+The correlator receives a pointer to a compact config.  The numeric ids here
+are placeholders until the DSL lowers presets into [[id:20260605T090102.250727][Theory]] rule tables.
+
+#+begin_src zig
+const SphereConfig = struct {
+    /// sphere selects sphere Wick and zero-mode rules.
+    pub const sphere = theory.Runtime.CorrelatorConfig{
+        .wick_rules = 0,
+        .zero_modes = 0,
+    };
+};
+
+const DiskConfig = struct {
+    /// disk selects disk Wick and zero-mode rules.
+    pub const disk = theory.Runtime.CorrelatorConfig{
+        .wick_rules = 1,
+        .zero_modes = 1,
+    };
+};
+#+end_src
+
+* Private Data
+
+The only private generic data left here is the preset tag used by generated
+types.  The actual rule tables remain future DSL output.
+
+#+begin_src zig
+const PresetKind = enum {
+    free_boson,
+    bc_sphere,
+    product,
+    boundary,
+};
+#+end_src
+
+* API Check
+
+This test checks one concept: the public preset API composes bulk factors and
+boundary extensions without asking the caller to touch theory internals.
+
+#+begin_src zig
+test "presets compose operator builders without exposing theory tables" {
+    const testing = @import("std").testing;
+
+    const FreeBoson = freeBoson(.{ .dimension = 26 });
+    const BosonicSphere = product(.{ FreeBoson, bcSphere(.{}) });
+    const BosonicDisk = boundary(BosonicSphere, .{
+        freeBosonBoundary(.{
+            .neumann = 1,
+            .dirichlet = 2,
+            .dirichlet_position = 3,
+        }),
+        bcDiskBoundary(.{}),
+    });
+
+    const x = BosonicDisk.op.expXBoundary(4, 10);
+    const c = BosonicDisk.op.cBoundary(0, 11);
+
+    try testing.expectEqual(@intFromEnum(BodyKind.exp_x_boundary), x.body);
+    try testing.expectEqual(@intFromEnum(BodyKind.c_boundary), c.body);
+}
+#+end_src

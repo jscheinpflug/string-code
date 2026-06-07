@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFT Kernel</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">CFT Kernel</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org6bad890">Streamed Output</a></li>
+<li><a href="#org91dcd23">Runtime Calls</a></li>
+<li><a href="#orgce4f5c1">Body Construction</a></li>
+<li><a href="#org2774e49">Generated Kernels</a></li>
+</ul>
+</div>
+</div>
+<p>
+The kernel is the runtime executor for a CFT preset.  It does not define what a
+CFT is; that belongs to <a href="/notes/cft-code/theory/theory.html">Theory</a>.  The kernel receives a theory declaration at
+<code>comptime</code>, builds a generated type from it, and exposes only the small
+runtime operations that <a href="/notes/cft-code/correlators/correlators.html">Correlators</a>, <a href="/notes/cft-code/ope/ope.html">OPE</a>, and <a href="/notes/cft-code/basis-generation/basis-generation.html">Basis-Generation</a> need.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">theory</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"theory/theory.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>);
+</pre>
+</div>
+
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#CFTKernel"><code>CFTKernel(comptime spec: theory.Spec.CFT) type</code></a></dt>
+<dd>CFTKernel returns the generated kernel type for a bulk CFT preset.</dd>
+<dt><a href="#BCFTKernel"><code>BCFTKernel(comptime Bulk: type, comptime bcft: theory.Spec.BCFT) type</code></a></dt>
+<dd>BCFTKernel returns the generated kernel type for a BCFT extension.</dd>
+</dl>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#Stream"><code>Stream (struct)</code></a></dt>
+<dd>Stream groups coefficient and projected-local-term records emitted by kernels.</dd>
+<dt><a href="#Call"><code>Call (struct)</code></a></dt>
+<dd>Call groups compact input records passed to generated kernels.</dd>
+</dl>
+</div>
+</div>
+</div>
+<div id="outline-container-org6bad890" class="outline-2">
+<h2 id="org6bad890">Streamed Output</h2>
+<div class="outline-text-2" id="text-org6bad890">
+<p>
+A <a href="/notes/cft-code/correlators/correlators.html">correlator</a> or <a href="/notes/cft-code/ope/ope.html">OPE</a> should emit terms as soon as possible instead of
+materializing a large <a href="/notes/cft-code/expressions/expressions.html">Expression</a>.  The stream namespace holds the small output
+records used by sinks.
+</p>
+
+<a id="Stream"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga8a906d"><span style="color: #e0d3b9; font-style: italic;">/// Stream groups coefficient and projected-local-term records emitted by kernels.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Stream</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// Scalar is the numeric coefficient type used by the kernel skeleton.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Scalar</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">f64</span>;
+    <span style="color: #e0d3b9; font-style: italic;">/// CoordinateFactor names a coordinate factor in a coefficient store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateFactor</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// CoeffTerm is one streamed scalar-coordinate-tensor coefficient term.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoeffTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Scalar</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate_factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateFactor</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_structure</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.TensorExprId</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LocalTerm is one streamed projected local OPE term.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">coeff</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoeffTerm</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorInsertion</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">body</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorBodyId</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org91dcd23" class="outline-2">
+<h2 id="org91dcd23">Runtime Calls</h2>
+<div class="outline-text-2" id="text-org91dcd23">
+<p>
+The public <a href="/notes/cft-code/ope/ope.html">OPE</a> and <a href="/notes/cft-code/correlators/correlators.html">correlator</a> accept any number of local <a href="/notes/cft-code/expressions/operators.html">Operators</a> through a
+<code>MultiOp</code>.  At runtime a local operator is only its insertion, operator kind,
+and a span into an immutable label store.  The typed preset builder will create
+these spans; the kernel only needs compact data for fast Wick and zero-mode
+passes.
+</p>
+
+<p>
+Projection and <a href="/notes/cft-code/basis-generation/basis-generation.html">basis</a> queries are call data; <a href="/notes/cft-code/theory/theory.html">Theory</a> owns the
+quantum-number, weight, domain, and mode ids they refer to.
+</p>
+
+<a id="Call"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgdd78e1b"><span style="color: #e0d3b9; font-style: italic;">/// Call groups compact input records passed to generated kernels.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Call</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// RationalLabel stores one exact rational operator label.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RationalLabel</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LabelValue stores one compact runtime operator label.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelValue</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">integer</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalLabel</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.TensorExprId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LabelStore is the immutable label arena carried by a MultiOp.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelStore</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">values</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelValue</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LocalOp is one runtime local operator with labels stored out-of-line.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorInsertion</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Id.LabelSpan</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// MultiOp is an ordered collection of local operators and their label store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">MultiOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalOp</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelStore</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// OpeProjection stores the target and filters for projected OPE output.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OpeProjection</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OpeTarget</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">target_weights</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.ConformalWeights</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_filters</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Label.QuantumFilter</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">max_level</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.LevelBound</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// OpeTarget tells the OPE where the projected local term is inserted.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OpeTarget</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+        first_insertion,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">explicit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorInsertion</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// BasisQuery stores filters for streamed operator or state generation.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisQuery</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.ConformalWeights</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_filters</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Label.QuantumFilter</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">domain</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.OperatorDomain</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">support</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.ChiralSupport</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">max_level</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.LevelBound</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">finite_projections</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Id.FiniteProjection</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">descendants</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DescendantFilter</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// DescendantFilter limits which mode descendants basis generation may use.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DescendantFilter</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">mode_algebras</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Id.ModeAlgebra</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">max_level</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.LevelBound</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// BasisState is one streamed candidate body with computed weights.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisState</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">body</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorBodyId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.ConformalWeights</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgce4f5c1" class="outline-2">
+<h2 id="orgce4f5c1">Body Construction</h2>
+<div class="outline-text-2" id="text-orgce4f5c1">
+<p>
+The body store is generated from a theory operator schema.  Later
+implementations will validate labels and canonicalize normal products here;
+the first version only build-checks the boundary.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Body</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Schema</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKind</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_kind_ids</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = &amp;.{},
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_changing_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Boundary.ChangingKind</span> = &amp;.{},
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CanonicalResult</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">coeff</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Stream.Scalar</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">body</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorBodyId</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">Store</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">schema</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Schema</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_schema</span> = schema;
+
+            <span style="color: #e0d3b9; font-style: italic;">/// atomic constructs an atomic operator body handle.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">atomic</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Id.LabelSpan</span>) !operators.OperatorBodyId {
+                _ = labels;
+                <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@as</span>(operators.OperatorBodyId, kind);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// normalOrdered constructs a canonical normal-product body handle.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">normalOrdered</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorBodyId</span>) !CanonicalResult {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (factors.len == 0) {
+                    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .coeff = 1, .body = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> };
+                }
+                <span style="color: #fb4934; font-weight: bold;">return</span> .{ .coeff = 1, .body = factors[0] };
+            }
+        };
+    }
+};
+</pre>
+</div>
+
+<p>
+The store is a generated type because its schema is preset data.  This is the
+right use of <code>comptime</code>: it specializes a hot construction boundary without
+moving runtime operator labels or generated basis states to compile time.
+</p>
+</div>
+</div>
+<div id="outline-container-org2774e49" class="outline-2">
+<h2 id="org2774e49">Generated Kernels</h2>
+<div class="outline-text-2" id="text-org2774e49">
+<p>
+The generated bulk kernel owns no boundary data.  It receives a bulk
+<code>Spec.CFT</code>, exposes public runtime operations, and keeps preset tables private
+to the generated type.
+</p>
+
+<a id="CFTKernel"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga5a9fc2"><span style="color: #e0d3b9; font-style: italic;">/// CFTKernel returns the generated kernel type for a bulk CFT preset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">CFTKernel</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Spec.CFT</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cft_spec</span> = spec;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk_operator_kinds</span> = spec.bulk_operator_kinds;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// Bodies constructs operator bodies using this preset's schema.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bodies</span> = Body.Store(.{
+            .bulk_kinds = spec.bulk_operator_kinds,
+        });
+
+        <span style="color: #e0d3b9; font-style: italic;">/// ope computes the projected OPE of any number of local operators.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ope</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">projection</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.OpeProjection</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = input;
+            _ = projection;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator evaluates any number of local operators with a config.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.CorrelatorConfig</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = config;
+            _ = input;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// basis streams operator or state candidates satisfying a query.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basis</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">query</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.BasisQuery</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = query;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+    };
+}
+</pre>
+</div>
+
+<p>
+The BCFT generated kernel extends an already generated bulk kernel.  Boundary
+data enters only through the <code>Spec.BCFT</code> supplied here.
+</p>
+
+<a id="BCFTKernel"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgff823fa"><span style="color: #e0d3b9; font-style: italic;">/// BCFTKernel returns the generated kernel type for a BCFT extension.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BCFTKernel</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bcft</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Spec.BCFT</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span> = Bulk;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bcft_spec</span> = bcft;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// Bodies constructs bulk, boundary, and boundary-changing bodies.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bodies</span> = Body.Store(.{
+            .bulk_kinds = Bulk.bulk_operator_kinds,
+            .boundary_kind_ids = bcft.boundary_operator_kinds,
+            .boundary_changing_kinds = bcft.boundary_changing_kinds,
+        });
+
+        <span style="color: #e0d3b9; font-style: italic;">/// ope computes the projected OPE for this BCFT extension.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ope</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">projection</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.OpeProjection</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = input;
+            _ = projection;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator evaluates bulk and boundary local operators with a config.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Runtime.CorrelatorConfig</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = config;
+            _ = input;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// basis streams bulk, boundary, or boundary-changing candidates.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basis</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">query</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Call.BasisQuery</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = query;
+            _ = sink;
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+        }
+    };
+}
+</pre>
+</div>
+
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>CFT Kernel / Generated Kernels</b></p>
+<p>
+The first test protects the runtime call shape: a <code>MultiOp</code> carries the local
+operators and the label store needed to interpret them, without receiving a
+separate context.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"MultiOp carries local operators and labels"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span> = Call.LabelStore{
+        .values = &amp;.{ .{ .integer = 7 } },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = [_]Call.LocalOp{
+        .{
+            .insertion = .{ .single = .{ .position = 1, .derivatives = 0 } },
+            .kind = 2,
+            .labels = 0,
+        },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span> = Call.MultiOp{
+        .operators = &amp;ops,
+        .labels = &amp;labels,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), input.operators.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(operators.OperatorKindId, 2), input.operators[0].kind);
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (input.labels.values[0]) {
+        .integer =&gt; |value| <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>, 7), value),
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnexpectedLabelKind,
+    }
+}
+</pre>
+</div>
+
+<p>
+The second test checks the kernel/theory boundary that matters now: a BCFT
+generated kernel extends the body schema without mutating the bulk generated
+kernel.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"BCFT kernel extends bulk schema without mutating bulk schema"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk_spec</span> = theory.Spec.CFT{
+        .sectors = &amp;.{},
+        .bulk_operator_kinds = &amp;.{},
+        .conformal_structure = 0,
+        .conformal_structures = &amp;.{},
+        .quantum_names = &amp;.{},
+        .label_schemas = &amp;.{},
+        .conventions = &amp;.{},
+        .weight_rules = &amp;.{},
+        .quantum_rules = &amp;.{},
+        .statistics_rules = &amp;.{},
+        .strategy_support_rules = &amp;.{},
+        .wick_rule_sets = &amp;.{},
+        .pairing_data = &amp;.{},
+        .zero_mode_rule_sets = &amp;.{},
+        .correlator_configs = &amp;.{},
+        .local_ope_configs = &amp;.{},
+        .cocycle_tables = &amp;.{},
+        .presentations = &amp;.{},
+        .finite_projections = &amp;.{},
+        .lattices = &amp;.{},
+        .mode_algebras = &amp;.{},
+        .mode_action_rules = &amp;.{},
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bcft_spec</span> = theory.Spec.BCFT{
+        .name = <span style="color: #b8bb26; font-style: italic;">"empty boundary extension"</span>,
+        .bulk = 0,
+        .boundary_conditions = &amp;.{},
+        .boundary_stacks = &amp;.{},
+        .boundary_stress_tensor = .{ .kind = 0, .labels = 0 },
+        .boundary_spin = &amp;.{},
+        .boundary_operator_kinds = &amp;.{ 1, 2 },
+        .boundary_changing_kinds = &amp;.{},
+        .wick_rule_sets = &amp;.{},
+        .pairing_data = &amp;.{},
+        .zero_mode_rule_sets = &amp;.{},
+        .correlator_configs = &amp;.{},
+        .local_ope_configs = &amp;.{},
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span> = CFTKernel(bulk_spec);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundaryKernel</span> = BCFTKernel(Bulk, bcft_spec);
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), Bulk.Bodies.operator_schema.boundary_kind_ids.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), BoundaryKernel.Bodies.operator_schema.boundary_kind_ids.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(operators.OperatorKindId, 1), BoundaryKernel.Bodies.operator_schema.boundary_kind_ids[0]);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

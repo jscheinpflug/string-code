@@ -1,0 +1,1583 @@
+const std = @import("std");
+const operators = @import("../expressions/operators.zig");
+const coefficient = @import("../expressions/coefficient.zig");
+const kernel = @import("../kernel.zig");
+const theory = @import("../theory/theory.zig");
+
+/// Handle groups compact ids used by preset operator builders.
+pub const Handle = struct {
+    /// Coord names a holomorphic or antiholomorphic coordinate variable.
+    pub const Coord = enum(u32) { _ };
+    /// BoundaryCoord names a real boundary coordinate variable.
+    pub const BoundaryCoord = enum(u32) { _ };
+    /// Index names a target-space vector index.
+    pub const Index = enum(u32) { _ };
+    /// Momentum names a target-space momentum expression.
+    pub const Momentum = enum(u32) { _ };
+    /// Profile names a selected presentation of a target-space profile.
+    pub const Profile = enum(u32) { _ };
+    /// TargetFunction names a position-space target profile.
+    pub const TargetFunction = enum(u32) { _ };
+    /// FourierTransform names a Fourier-space target profile.
+    pub const FourierTransform = enum(u32) { _ };
+    /// TargetPoint names a point in target space.
+    pub const TargetPoint = enum(u32) { _ };
+    /// ProfileCoefficient names one coefficient in a polynomial profile.
+    pub const ProfileCoefficient = enum(u32) { _ };
+    /// TensorProjector names a tensor-code projector expression.
+    pub const TensorProjector = enum(u32) { _ };
+    /// BoundaryStack names stacked boundary-condition Chan-Paton data.
+    pub const BoundaryStack = enum(u32) { _ };
+    /// PolynomialProfileTerm stores one finite polynomial profile term.
+    pub const PolynomialProfileTerm = struct {
+        coefficient: ProfileCoefficient,
+        power: u16,
+    };
+    /// ProfilePresentation records how a profile handle should be lowered.
+    pub const ProfilePresentation = enum(u2) {
+        position_space,
+        fourier,
+        polynomial_rnc,
+    };
+};
+
+fn rawToken(value: anytype) u32 {
+    return @intFromEnum(value);
+}
+
+fn token(comptime T: type, id: u32) T {
+    return @enumFromInt(if (id == 0) 1 else id);
+}
+
+const profile_tag_shift = 30;
+const profile_payload_mask: u32 = 0x3fff_ffff;
+
+/// profileHandle packs a profile presentation tag with a compact payload id.
+pub fn profileHandle(comptime presentation: Handle.ProfilePresentation, payload: u32) Handle.Profile {
+    const tag = @as(u32, @intFromEnum(presentation)) << profile_tag_shift;
+    return token(Handle.Profile, tag | (payload & profile_payload_mask));
+}
+
+/// profilePresentation reads the presentation tag from a profile handle.
+pub fn profilePresentation(profile: Handle.Profile) Handle.ProfilePresentation {
+    return @enumFromInt(@intFromEnum(profile) >> profile_tag_shift);
+}
+
+/// profilePayload reads the presentation-local payload id from a profile handle.
+pub fn profilePayload(profile: Handle.Profile) u32 {
+    return @intFromEnum(profile) & profile_payload_mask;
+}
+
+fn stableId(comptime namespace: []const u8, comptime name: []const u8) u32 {
+    var hash: u32 = 2166136261;
+    inline for (namespace) |byte| {
+        hash = (hash ^ @as(u32, byte)) *% 16777619;
+    }
+    hash = (hash ^ @as(u32, ':')) *% 16777619;
+    inline for (name) |byte| {
+        hash = (hash ^ @as(u32, byte)) *% 16777619;
+    }
+    return if (hash == 0) 1 else hash;
+}
+
+/// configRef derives a stable id for correlator configuration data.
+pub fn configRef(comptime namespace: []const u8, comptime name: []const u8) ConfigRef {
+    return stableId(namespace, name);
+}
+
+/// ScalarAtom names one scalar generator.
+pub const ScalarAtom = u32;
+
+/// ConfigRef names one entry in a correlator configuration payload.
+pub const ConfigRef = u32;
+
+/// RationalScalar stores one exact rational scalar multiplier.
+pub const RationalScalar = struct {
+    numerator: i64,
+    denominator: i64,
+};
+
+/// ScalarMonomial stores a compact rational times i-power times one scalar atom power.
+pub const ScalarMonomial = struct {
+    rational: RationalScalar = .{ .numerator = 1, .denominator = 1 },
+    imaginary_power: u2 = 0,
+    atom: ?ScalarAtom = null,
+    atom_power: i8 = 0,
+};
+
+/// RuleScalar stores small structured scalar factors used by preset builders.
+pub const RuleScalar = union(enum) {
+    one,
+    rational: RationalScalar,
+    monomial: ScalarMonomial,
+};
+
+/// scalars exposes basic algebra for compact structured rule scalars.
+pub const scalars = ScalarDsl;
+
+const ScalarDsl = struct {
+    fn absInt(comptime value: i64) u64 {
+        if (value == std.math.minInt(i64)) @compileError("cannot normalize minInt(i64) rational component");
+        return if (value < 0) @intCast(-value) else @intCast(value);
+    }
+
+    fn gcd(comptime first: u64, comptime second: u64) u64 {
+        var a = first;
+        var b = second;
+        while (b != 0) {
+            const rem = a % b;
+            a = b;
+            b = rem;
+        }
+        return if (a == 0) 1 else a;
+    }
+
+    fn rationalValue(comptime numerator: i64, comptime denominator: i64) RationalScalar {
+        if (denominator == 0) @compileError("rational denominator cannot be zero");
+        var num = numerator;
+        var den = denominator;
+        if (den < 0) {
+            num = -num;
+            den = -den;
+        }
+        const factor: i64 = @intCast(gcd(absInt(num), absInt(den)));
+        return .{
+            .numerator = @divExact(num, factor),
+            .denominator = @divExact(den, factor),
+        };
+    }
+
+    /// atom derives a stable scalar atom id from a preset namespace and atom name.
+    pub fn atom(comptime namespace: []const u8, comptime name: []const u8) ScalarAtom {
+        return stableId(namespace, name);
+    }
+
+    /// one constructs the multiplicative unit scalar.
+    pub fn one() RuleScalar {
+        return .one;
+    }
+
+    /// rational constructs an exact rational scalar.
+    pub fn rational(comptime numerator: i64, comptime denominator: i64) RuleScalar {
+        return .{ .rational = rationalValue(numerator, denominator) };
+    }
+
+    /// atomScalar constructs a scalar consisting of one named atom.
+    pub fn atomScalar(comptime atom_id: ScalarAtom) RuleScalar {
+        return monomial(1, 1, 0, atom_id, 1);
+    }
+
+    /// monomial constructs a rational times i-power times atom-power scalar.
+    pub fn monomial(comptime numerator: i64, comptime denominator: i64, comptime imaginary_power: u2, comptime atom_id: ?ScalarAtom, comptime atom_power: i8) RuleScalar {
+        return .{ .monomial = .{
+            .rational = rationalValue(numerator, denominator),
+            .imaginary_power = imaginary_power,
+            .atom = atom_id,
+            .atom_power = atom_power,
+        } };
+    }
+
+    fn monomialFrom(comptime value: RuleScalar) ScalarMonomial {
+        return switch (value) {
+            .one => .{},
+            .rational => |r| .{ .rational = r },
+            .monomial => |m| m,
+        };
+    }
+
+    /// scale multiplies a scalar by an exact rational number.
+    pub fn scale(comptime value: RuleScalar, comptime numerator: i64, comptime denominator: i64) RuleScalar {
+        var factor = monomialFrom(value);
+        factor.rational = rationalValue(factor.rational.numerator * numerator, factor.rational.denominator * denominator);
+        return .{ .monomial = factor };
+    }
+
+    /// neg negates a scalar.
+    pub fn neg(comptime value: RuleScalar) RuleScalar {
+        return scale(value, -1, 1);
+    }
+
+    /// div divides a scalar by an integer denominator.
+    pub fn div(comptime value: RuleScalar, comptime denominator: i64) RuleScalar {
+        return scale(value, 1, denominator);
+    }
+
+    /// i multiplies a scalar by the imaginary unit.
+    pub fn i(comptime value: RuleScalar) RuleScalar {
+        var factor = monomialFrom(value);
+        factor.imaginary_power +%= 1;
+        return .{ .monomial = factor };
+    }
+};
+
+/// familyKind derives a compact operator kind id from a preset namespace and local family enum.
+pub fn familyKind(comptime namespace: []const u8, comptime family: anytype) operators.OperatorKindId {
+    return stableId(namespace, @tagName(family));
+}
+
+/// sectorId derives a compact zero-mode sector id from a preset namespace and local sector enum.
+pub fn sectorId(comptime namespace: []const u8, comptime sector: anytype) u32 {
+    return stableId(namespace, @tagName(sector));
+}
+
+/// extensionKind derives a compact boundary-extension id from a preset namespace.
+pub fn extensionKind(comptime namespace: []const u8) u32 {
+    return stableId("boundary_extension", namespace);
+}
+
+/// Local builds typed handles, local operators, and the MultiOp label store.
+pub const Local = struct {
+    allocator: std.mem.Allocator,
+    labels: std.ArrayList(kernel.Call.LabelValue) = .empty,
+    operators_list: std.ArrayList(kernel.Call.LocalOp) = .empty,
+    owned_labels: []kernel.Call.LabelValue = &.{},
+    owned_operators: []kernel.Call.LocalOp = &.{},
+    label_store: kernel.Call.LabelStore = .{ .values = &.{} },
+    next_symbol: u32 = 1,
+    finished: bool = false,
+
+    /// init constructs an empty local-operator builder.
+    pub fn init(allocator: std.mem.Allocator) Local {
+        return .{ .allocator = allocator };
+    }
+
+    /// deinit releases memory owned by this local builder and its frozen MultiOp.
+    pub fn deinit(self: *Local) void {
+        if (self.finished) {
+            self.allocator.free(self.owned_labels);
+            self.allocator.free(self.owned_operators);
+        } else {
+            self.labels.deinit(self.allocator);
+            self.operators_list.deinit(self.allocator);
+        }
+        self.* = Local.init(self.allocator);
+    }
+
+    fn next(self: *Local) u32 {
+        const value = self.next_symbol;
+        self.next_symbol += 1;
+        return value;
+    }
+
+    /// coord creates a named bulk coordinate token.
+    pub fn coord(self: *Local, name: []const u8) !Handle.Coord {
+        _ = name;
+        return token(Handle.Coord, self.next());
+    }
+
+    /// boundaryCoord creates a named boundary coordinate token.
+    pub fn boundaryCoord(self: *Local, name: []const u8) !Handle.BoundaryCoord {
+        _ = name;
+        return token(Handle.BoundaryCoord, self.next());
+    }
+
+    /// index creates a target-space index token.
+    pub fn index(self: *Local, name: []const u8) !Handle.Index {
+        _ = name;
+        return token(Handle.Index, self.next());
+    }
+
+    /// momentum creates a target-space momentum token.
+    pub fn momentum(self: *Local, name: []const u8) !Handle.Momentum {
+        _ = name;
+        return token(Handle.Momentum, self.next());
+    }
+
+    /// targetFunction creates a position-space target-profile token.
+    pub fn targetFunction(self: *Local, name: []const u8) !Handle.TargetFunction {
+        _ = name;
+        return token(Handle.TargetFunction, self.next());
+    }
+
+    /// fourierTransform creates a Fourier-space profile token.
+    pub fn fourierTransform(self: *Local, name: []const u8) !Handle.FourierTransform {
+        _ = name;
+        return token(Handle.FourierTransform, self.next());
+    }
+
+    /// targetPoint creates a target-space point token.
+    pub fn targetPoint(self: *Local, name: []const u8) !Handle.TargetPoint {
+        _ = name;
+        return token(Handle.TargetPoint, self.next());
+    }
+
+    /// profileCoefficient creates a polynomial-profile coefficient token.
+    pub fn profileCoefficient(self: *Local, name: []const u8) !Handle.ProfileCoefficient {
+        _ = name;
+        return token(Handle.ProfileCoefficient, self.next());
+    }
+
+    fn labelSpan(self: *Local, values: []const kernel.Call.LabelValue) !theory.Id.LabelSpan {
+        const start = self.labels.items.len;
+        try self.labels.appendSlice(self.allocator, values);
+        return @intCast(start);
+    }
+
+    /// symbol stores an enum-backed handle as a compact label value.
+    pub fn symbol(value: anytype) kernel.Call.LabelValue {
+        return .{ .symbol = rawToken(value) };
+    }
+
+    /// op builds one generic local operator from a preset-owned kind id and label slice.
+    pub fn op(self: *Local, kind: operators.OperatorKindId, insertion: operators.OperatorInsertion, values: []const kernel.Call.LabelValue) !kernel.Call.LocalOp {
+        return .{
+            .insertion = insertion,
+            .kind = kind,
+            .labels = try self.labelSpan(values),
+        };
+    }
+
+    /// add appends one local operator to this builder's MultiOp.
+    pub fn add(self: *Local, item: kernel.Call.LocalOp) !void {
+        if (self.finished) return error.LocalAlreadyFinished;
+        try self.operators_list.append(self.allocator, item);
+    }
+
+    /// ops freezes a tuple of local operators into a MultiOp.
+    pub fn ops(self: *Local, items: anytype) !kernel.Call.MultiOp {
+        inline for (items) |item| {
+            try self.add(item);
+        }
+        return self.finish();
+    }
+
+    /// finish freezes the accumulated local operators and labels into a MultiOp.
+    pub fn finish(self: *Local) !kernel.Call.MultiOp {
+        if (self.finished) return error.LocalAlreadyFinished;
+        self.owned_operators = try self.operators_list.toOwnedSlice(self.allocator);
+        self.owned_labels = try self.labels.toOwnedSlice(self.allocator);
+        self.label_store = .{ .values = self.owned_labels };
+        self.finished = true;
+        return .{ .operators = self.owned_operators, .labels = &self.label_store };
+    }
+};
+
+/// wick exposes compact preset-author helpers for primitive Wick rule templates.
+pub const wick = WickDsl;
+
+const WickDsl = struct {
+    /// Support tells the evaluator which insertion coordinate slots it reads.
+    pub const Support = enum {
+        holomorphic,
+        antiholomorphic,
+        bulk_pair,
+        boundary,
+    };
+
+    /// Side selects the left or right operator in a Wick rule expression.
+    pub const Side = enum { left, right };
+
+    /// CoordinateSlot selects the coordinate component of a matched insertion.
+    pub const CoordinateSlot = enum { position, holomorphic, antiholomorphic };
+
+    /// CoordinateRef refers to one coordinate of one side of a Wick rule.
+    pub const CoordinateRef = struct {
+        side: Side,
+        slot: CoordinateSlot,
+    };
+
+    /// LabelRef refers to one runtime label of one side of a Wick rule.
+    pub const LabelRef = struct {
+        side: Side,
+        slot: u8,
+    };
+
+    /// ScalarFactor describes one non-coordinate scalar multiplier.
+    pub const ScalarFactor = union(enum) {
+        value: RuleScalar,
+        label_bilinear_phase: struct { left: LabelRef, right: LabelRef, form: []const u8 },
+        cocycle: struct { table: []const u8, left: LabelRef, right: LabelRef },
+        spin_structure: []const u8,
+    };
+
+    /// TensorRef identifies tensor data coming from labels or selected config data.
+    pub const TensorRef = union(enum) {
+        label: LabelRef,
+        config: ConfigRef,
+    };
+
+    /// TensorFactor describes one tensor multiplier in a Wick coefficient.
+    pub const TensorFactor = union(enum) {
+        none,
+        metric: struct { left: LabelRef, right: LabelRef },
+        momentum_index: struct { momentum: LabelRef, index: LabelRef },
+        momentum_pair: struct { left: LabelRef, right: LabelRef },
+        projector_metric: struct { projector: TensorRef, left: LabelRef, right: LabelRef },
+        projector_momentum_index: struct { projector: TensorRef, momentum: LabelRef, index: LabelRef },
+        projector_momentum_pair: struct { projector: TensorRef, left: LabelRef, right: LabelRef },
+    };
+
+    /// ActionFactor describes a non-multiplicative action produced by a Wick contraction.
+    pub const ActionFactor = union(enum) {
+        profile_derivative: struct { profile: LabelRef, index: LabelRef },
+        projected_profile_derivative: struct { projector: TensorRef, profile: LabelRef, index: LabelRef },
+    };
+
+    /// CoordinateDifference is the coordinate difference read by a Wick kernel.
+    pub const CoordinateDifference = struct {
+        left: CoordinateRef,
+        right: CoordinateRef,
+    };
+
+    /// DerivativeAction tells resolution how insertion derivative labels act on a coordinate factor.
+    pub const DerivativeAction = struct {
+        include_left: bool = false,
+        include_right: bool = false,
+    };
+
+    /// CoordinateFactor describes one coordinate-dependent multiplier.
+    pub const CoordinateFactor = union(enum) {
+        difference_power: struct { coordinate: CoordinateDifference, exponent: i16, derivatives: DerivativeAction = .{} },
+        logarithm: struct { coordinate: CoordinateDifference, derivatives: DerivativeAction = .{} },
+        green_kernel: struct { name: []const u8, coordinate: CoordinateDifference, derivatives: DerivativeAction = .{} },
+        green_exponential: CoordinateDifference,
+    };
+
+    /// Term is one product of scalar, coordinate, tensor, and action factors.
+    pub const Term = struct {
+        scalars: []const ScalarFactor,
+        coordinates: []const CoordinateFactor,
+        tensors: []const TensorFactor,
+        actions: []const ActionFactor = &.{},
+    };
+
+    /// Expr is a sum of Wick coefficient terms.
+    pub const Expr = struct {
+        terms: []const Term,
+    };
+
+    const PoleExpr = struct {
+        scalar: ScalarFactor,
+        numerator: TensorFactor,
+        coordinate: CoordinateDifference,
+        exponent: i16,
+    };
+
+    const GreenExponentialExpr = struct {
+        scalar: ScalarFactor,
+        momentum_pair: TensorFactor,
+        coordinate: CoordinateDifference,
+    };
+
+    /// Pattern is one side of a primitive Wick rule.
+    pub const Pattern = struct {
+        kind: operators.OperatorKindId,
+        support: Support,
+    };
+
+    /// Rule is one preset-authored primitive Wick rule.
+    pub const Rule = struct {
+        left: Pattern,
+        right: Pattern,
+        expr: Expr,
+    };
+
+    /// rule constructs one primitive Wick rule template.
+    pub fn rule(left: Pattern, right: Pattern, expression: Expr) Rule {
+        return .{ .left = left, .right = right, .expr = expression };
+    }
+
+    /// pattern constructs one Wick-rule side from a preset-owned kind id.
+    pub fn pattern(comptime kind: operators.OperatorKindId, comptime support: Support) Pattern {
+        return .{ .kind = kind, .support = support };
+    }
+
+    /// coord refers to one coordinate slot of one Wick-rule side.
+    pub fn coord(side: Side, slot: CoordinateSlot) CoordinateRef {
+        return .{ .side = side, .slot = slot };
+    }
+
+    /// label refers to one label slot of one Wick-rule side.
+    pub fn label(side: Side, slot: u8) LabelRef {
+        return .{ .side = side, .slot = slot };
+    }
+
+    /// difference constructs a coordinate difference.
+    pub fn difference(left: CoordinateRef, right: CoordinateRef) CoordinateDifference {
+        return .{ .left = left, .right = right };
+    }
+
+    /// scalar constructs a scalar factor from a rule scalar.
+    pub fn scalar(comptime value: RuleScalar) ScalarFactor {
+        return .{ .value = value };
+    }
+
+    /// term constructs one product term in a Wick expression.
+    pub fn term(comptime scalar_factors: []const ScalarFactor, comptime coordinates: []const CoordinateFactor, comptime tensors: []const TensorFactor) Term {
+        return .{ .scalars = scalar_factors, .coordinates = coordinates, .tensors = tensors };
+    }
+
+    /// termWithActions constructs one Wick term that also carries operator actions.
+    pub fn termWithActions(comptime scalar_factors: []const ScalarFactor, comptime coordinates: []const CoordinateFactor, comptime tensors: []const TensorFactor, comptime actions: []const ActionFactor) Term {
+        return .{ .scalars = scalar_factors, .coordinates = coordinates, .tensors = tensors, .actions = actions };
+    }
+
+    /// expr constructs a Wick expression from one or more terms.
+    pub fn expr(comptime terms: []const Term) Expr {
+        return .{ .terms = terms };
+    }
+
+    /// profileDerivative constructs the action of a target derivative on a profile label.
+    pub fn profileDerivative(comptime profile: LabelRef, comptime index: LabelRef) ActionFactor {
+        return .{ .profile_derivative = .{ .profile = profile, .index = index } };
+    }
+
+    /// projectedProfileDerivative constructs a projected target derivative on a profile label.
+    pub fn projectedProfileDerivative(comptime projector: TensorRef, comptime profile: LabelRef, comptime index: LabelRef) ActionFactor {
+        return .{ .projected_profile_derivative = .{ .projector = projector, .profile = profile, .index = index } };
+    }
+
+    /// differencePower constructs a power of a coordinate difference.
+    pub fn differencePower(comptime coordinate: CoordinateDifference, comptime exponent: i16) CoordinateFactor {
+        return .{ .difference_power = .{ .coordinate = coordinate, .exponent = exponent } };
+    }
+
+    /// differentiatedPower applies matched insertion derivative labels to a coordinate power.
+    pub fn differentiatedPower(comptime coordinate: CoordinateDifference, comptime exponent: i16, comptime derivatives: DerivativeAction) CoordinateFactor {
+        return .{ .difference_power = .{ .coordinate = coordinate, .exponent = exponent, .derivatives = derivatives } };
+    }
+
+    /// logarithm constructs a logarithm of a coordinate difference.
+    pub fn logarithm(comptime coordinate: CoordinateDifference) CoordinateFactor {
+        return .{ .logarithm = .{ .coordinate = coordinate } };
+    }
+
+    /// differentiatedLogarithm applies matched insertion derivative labels to a logarithm.
+    pub fn differentiatedLogarithm(comptime coordinate: CoordinateDifference, comptime derivatives: DerivativeAction) CoordinateFactor {
+        return .{ .logarithm = .{ .coordinate = coordinate, .derivatives = derivatives } };
+    }
+
+    /// greenKernel constructs a named Green-kernel coordinate factor.
+    pub fn greenKernel(comptime name: []const u8, comptime coordinate: CoordinateDifference) CoordinateFactor {
+        return .{ .green_kernel = .{ .name = name, .coordinate = coordinate } };
+    }
+
+    /// differentiatedGreenKernel records derivative labels acting on a named Green kernel.
+    pub fn differentiatedGreenKernel(comptime name: []const u8, comptime coordinate: CoordinateDifference, comptime derivatives: DerivativeAction) CoordinateFactor {
+        return .{ .green_kernel = .{ .name = name, .coordinate = coordinate, .derivatives = derivatives } };
+    }
+
+    /// pole constructs a primitive pole coefficient.
+    pub fn pole(comptime scalar_value: RuleScalar, comptime numerator: TensorFactor, comptime coordinate: CoordinateDifference, comptime exponent: i16) Expr {
+        const shape = PoleExpr{
+            .scalar = scalar(scalar_value),
+            .numerator = numerator,
+            .coordinate = coordinate,
+            .exponent = exponent,
+        };
+        return expr(&.{term(&.{shape.scalar}, &.{differencePower(shape.coordinate, shape.exponent)}, &.{shape.numerator})});
+    }
+
+    /// differentiatedPole constructs a pole acted on by matched insertion derivatives.
+    pub fn differentiatedPole(comptime scalar_value: RuleScalar, comptime numerator: TensorFactor, comptime coordinate: CoordinateDifference, comptime exponent: i16, comptime derivatives: DerivativeAction) Expr {
+        const scalar_factor = scalar(scalar_value);
+        return expr(&.{term(&.{scalar_factor}, &.{differentiatedPower(coordinate, exponent, derivatives)}, &.{numerator})});
+    }
+
+    /// differentiatedActionPole constructs a differentiated pole carrying profile or custom actions.
+    pub fn differentiatedActionPole(comptime scalar_value: RuleScalar, comptime numerator: TensorFactor, comptime coordinate: CoordinateDifference, comptime exponent: i16, comptime derivatives: DerivativeAction, comptime actions: []const ActionFactor) Expr {
+        const scalar_factor = scalar(scalar_value);
+        return expr(&.{termWithActions(&.{scalar_factor}, &.{differentiatedPower(coordinate, exponent, derivatives)}, &.{numerator}, actions)});
+    }
+
+    /// greenExponential constructs a plane-wave Green-kernel factor.
+    pub fn greenExponential(comptime scalar_value: RuleScalar, comptime momentum_pair: TensorFactor, comptime coordinate: CoordinateDifference) Expr {
+        const shape = GreenExponentialExpr{
+            .scalar = scalar(scalar_value),
+            .momentum_pair = momentum_pair,
+            .coordinate = coordinate,
+        };
+        return expr(&.{term(&.{shape.scalar}, &.{.{ .green_exponential = shape.coordinate }}, &.{shape.momentum_pair})});
+    }
+
+};
+
+/// zero_mode exposes compact preset-author helpers for zero-mode rules.
+pub const zero_mode = ZeroModeDsl;
+
+const ZeroModeDsl = struct {
+    /// Sector names a preset-owned zero-mode sector.
+    pub const Sector = u32;
+
+    /// BcSupport selects the finite c-zero-mode basis used by the bc evaluator.
+    pub const BcSupport = enum {
+        sphere_holomorphic,
+        sphere_antiholomorphic,
+        disk_doubled,
+    };
+
+    /// BcTopForm declares one top-form ghost zero-mode saturation rule.
+    pub const BcTopForm = struct {
+        support: BcSupport,
+        c_kind_ids: []const operators.OperatorKindId,
+        normalization: RuleScalar = .one,
+    };
+
+    /// RankSource records where a power of 2pi gets its exponent.
+    pub const RankSource = union(enum) {
+        none,
+        target_dimension: ConfigRef,
+        projector_rank: ConfigRef,
+    };
+
+    /// Normalization records the CFT normalization attached to a zero-mode rule.
+    pub const Normalization = struct {
+        scalar: RuleScalar = .one,
+        two_pi_power: RankSource = .none,
+    };
+
+    /// FreeBosonConstantMode declares the free-boson constant-mode base case.
+    pub const FreeBosonConstantMode = struct {
+        integration_projector: ?ConfigRef = null,
+        fixed_projector: ?ConfigRef = null,
+        fixed_position: ?ConfigRef = null,
+        exp_kind_ids: []const operators.OperatorKindId,
+        profile_kind_ids: []const operators.OperatorKindId,
+        normalization: Normalization = .{},
+    };
+
+    /// Expr selects the zero-mode evaluator and payload.
+    pub const Expr = union(enum) {
+        bc_top_form: BcTopForm,
+        free_boson_constant_mode: FreeBosonConstantMode,
+    };
+
+    /// Rule is one preset-authored zero-mode rule.
+    pub const Rule = struct {
+        sector: Sector,
+        expr: Expr,
+    };
+
+    /// rule constructs a zero-mode rule.
+    pub fn rule(sector: Sector, expr: Expr) Rule {
+        return .{ .sector = sector, .expr = expr };
+    }
+};
+
+/// WickRuleIndexEntry maps an ordered operator-kind pair to one primitive Wick rule.
+pub const WickRuleIndexEntry = struct {
+    key: u64,
+    rule_index: u32,
+    reversed: bool,
+};
+
+/// CorrelatorConfig selects actual Wick and zero-mode rule declarations.
+pub const CorrelatorConfig = struct {
+    wick_rules: []const wick.Rule,
+    wick_rule_index: []const WickRuleIndexEntry = &.{},
+    zero_modes: []const zero_mode.Rule,
+    config_entries: []const ConfigEntry = &.{},
+};
+
+/// ConfigValue stores one typed value referenced by Wick or zero-mode rules.
+pub const ConfigValue = union(enum) {
+    tensor_projector: Handle.TensorProjector,
+    target_point: Handle.TargetPoint,
+    target_dimension: u16,
+    boundary_stack: Handle.BoundaryStack,
+};
+
+/// ConfigEntry binds one compact config id to one typed value.
+pub const ConfigEntry = struct {
+    id: ConfigRef,
+    value: ConfigValue,
+};
+
+/// BoundaryExtension carries one preset-authored boundary operator namespace and rule slices.
+pub const BoundaryExtension = struct {
+    kind: u32,
+    op: type,
+    wick_rules: []const wick.Rule,
+    zero_modes: []const zero_mode.Rule,
+    config_entries: []const ConfigEntry = &.{},
+};
+
+fn wickRuleKey(left_kind: operators.OperatorKindId, right_kind: operators.OperatorKindId) u64 {
+    return (@as(u64, left_kind) << 32) | @as(u64, right_kind);
+}
+
+fn wickRuleIndexEntryCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        count += 1;
+        if (rule.left.kind != rule.right.kind) count += 1;
+    }
+    return count;
+}
+
+fn sortWickRuleIndex(entries: []WickRuleIndexEntry) void {
+    var index: usize = 1;
+    while (index < entries.len) : (index += 1) {
+        const value = entries[index];
+        var hole = index;
+        while (hole > 0 and entries[hole - 1].key > value.key) : (hole -= 1) {
+            entries[hole] = entries[hole - 1];
+        }
+        entries[hole] = value;
+    }
+}
+
+/// wickRuleIndexStorage builds a sorted lookup table for primitive Wick rules.
+pub fn wickRuleIndexStorage(comptime rules: []const wick.Rule) [wickRuleIndexEntryCount(rules)]WickRuleIndexEntry {
+    var entries: [wickRuleIndexEntryCount(rules)]WickRuleIndexEntry = undefined;
+    var entry_index: usize = 0;
+
+    for (rules, 0..) |rule, rule_index| {
+        if (rule_index > std.math.maxInt(u32)) @compileError("too many Wick rules for compact rule index");
+        entries[entry_index] = .{
+            .key = wickRuleKey(rule.left.kind, rule.right.kind),
+            .rule_index = @intCast(rule_index),
+            .reversed = false,
+        };
+        entry_index += 1;
+
+        if (rule.left.kind != rule.right.kind) {
+            entries[entry_index] = .{
+                .key = wickRuleKey(rule.right.kind, rule.left.kind),
+                .rule_index = @intCast(rule_index),
+                .reversed = true,
+            };
+            entry_index += 1;
+        }
+    }
+
+    sortWickRuleIndex(entries[0..]);
+    return entries;
+}
+
+const Correlator = struct {
+    /// WickPair is one oriented primitive Wick contraction between two concrete local operators.
+    const WickPair = struct {
+        rule: *const wick.Rule,
+        config: *const CorrelatorConfig,
+        left: kernel.Call.LocalOp,
+        right: kernel.Call.LocalOp,
+        labels: *const kernel.Call.LabelStore,
+        reversed: bool,
+
+        fn sideOp(self: WickPair, side: wick.Side) kernel.Call.LocalOp {
+            return switch (side) {
+                .left => if (self.reversed) self.right else self.left,
+                .right => if (self.reversed) self.left else self.right,
+            };
+        }
+
+        fn coordinate(self: WickPair, coordinate_ref: wick.CoordinateRef) ?coefficient.Variable {
+            const op = self.sideOp(coordinate_ref.side);
+            return switch (op.insertion) {
+                .single => |single| switch (coordinate_ref.slot) {
+                    .position, .holomorphic => single.position,
+                    .antiholomorphic => null,
+                },
+                .pair => |pair| switch (coordinate_ref.slot) {
+                    .position, .holomorphic => pair.holomorphic_position,
+                    .antiholomorphic => pair.antiholomorphic_position,
+                },
+            };
+        }
+
+        fn derivativeCount(self: WickPair, coordinate_ref: wick.CoordinateRef) ?u8 {
+            const op = self.sideOp(coordinate_ref.side);
+            return switch (op.insertion) {
+                .single => |single| switch (coordinate_ref.slot) {
+                    .position, .holomorphic => single.derivatives,
+                    .antiholomorphic => null,
+                },
+                .pair => |pair| switch (coordinate_ref.slot) {
+                    .position, .holomorphic => pair.holomorphic_derivatives,
+                    .antiholomorphic => pair.antiholomorphic_derivatives,
+                },
+            };
+        }
+
+        fn label(self: WickPair, label_ref: wick.LabelRef) ?kernel.Call.LabelValue {
+            const op = self.sideOp(label_ref.side);
+            const index: usize = @as(usize, @intCast(op.labels)) + label_ref.slot;
+            if (index >= self.labels.values.len) return null;
+            return self.labels.values[index];
+        }
+
+        fn configValue(self: WickPair, config_ref: ConfigRef) ?ConfigValue {
+            for (self.config.config_entries) |entry| {
+                if (entry.id == config_ref) return entry.value;
+            }
+            return null;
+        }
+    };
+
+    /// ResolvedCoordinateRef is one concrete coordinate variable with its derivative count.
+    const ResolvedCoordinateRef = struct {
+        variable: coefficient.Variable,
+        derivatives: u8,
+    };
+
+    /// ResolvedCoordinateDifference is a concrete coordinate difference read by a Wick factor.
+    const ResolvedCoordinateDifference = struct {
+        left: ResolvedCoordinateRef,
+        right: ResolvedCoordinateRef,
+    };
+
+    /// ResolvedDerivativeAction records the derivative counts requested by one coordinate factor.
+    const ResolvedDerivativeAction = struct {
+        left: ?u8 = null,
+        right: ?u8 = null,
+    };
+
+    /// ResolvedTensorRef is tensor data resolved either from an operator label or config entry.
+    const ResolvedTensorRef = union(enum) {
+        label: kernel.Call.LabelValue,
+        config: ConfigValue,
+    };
+
+    /// ResolvedScalarFactor is a scalar factor with all label references plugged in.
+    const ResolvedScalarFactor = union(enum) {
+        value: RuleScalar,
+        label_bilinear_phase: struct { left: kernel.Call.LabelValue, right: kernel.Call.LabelValue, form: []const u8 },
+        cocycle: struct { table: []const u8, left: kernel.Call.LabelValue, right: kernel.Call.LabelValue },
+        spin_structure: []const u8,
+    };
+
+    /// ResolvedTensorFactor is a tensor multiplier with concrete labels and config values.
+    const ResolvedTensorFactor = union(enum) {
+        none,
+        metric: struct { left: kernel.Call.LabelValue, right: kernel.Call.LabelValue },
+        momentum_index: struct { momentum: kernel.Call.LabelValue, index: kernel.Call.LabelValue },
+        momentum_pair: struct { left: kernel.Call.LabelValue, right: kernel.Call.LabelValue },
+        projector_metric: struct { projector: ResolvedTensorRef, left: kernel.Call.LabelValue, right: kernel.Call.LabelValue },
+        projector_momentum_index: struct { projector: ResolvedTensorRef, momentum: kernel.Call.LabelValue, index: kernel.Call.LabelValue },
+        projector_momentum_pair: struct { projector: ResolvedTensorRef, left: kernel.Call.LabelValue, right: kernel.Call.LabelValue },
+    };
+
+    /// ResolvedActionFactor is a Wick action with concrete profile, index, and projector data.
+    const ResolvedActionFactor = union(enum) {
+        profile_derivative: struct { profile: kernel.Call.LabelValue, index: kernel.Call.LabelValue },
+        projected_profile_derivative: struct { projector: ResolvedTensorRef, profile: kernel.Call.LabelValue, index: kernel.Call.LabelValue },
+    };
+
+    /// ResolvedCoordinateFactor is a coordinate kernel with concrete coordinates and derivative data.
+    const ResolvedCoordinateFactor = union(enum) {
+        difference_power: struct { coordinate: ResolvedCoordinateDifference, exponent: i16, derivatives: ResolvedDerivativeAction },
+        logarithm: struct { coordinate: ResolvedCoordinateDifference, derivatives: ResolvedDerivativeAction },
+        green_kernel: struct { name: []const u8, coordinate: ResolvedCoordinateDifference, derivatives: ResolvedDerivativeAction },
+        green_exponential: ResolvedCoordinateDifference,
+    };
+
+    /// ResolvedTerm is one Wick term whose factors can be resolved without allocation.
+    const ResolvedTerm = struct {
+        pair: WickPair,
+        source: *const wick.Term,
+
+        fn scalarCount(self: ResolvedTerm) usize {
+            return self.source.scalars.len;
+        }
+
+        fn coordinateCount(self: ResolvedTerm) usize {
+            return self.source.coordinates.len;
+        }
+
+        fn tensorCount(self: ResolvedTerm) usize {
+            return self.source.tensors.len;
+        }
+
+        fn actionCount(self: ResolvedTerm) usize {
+            return self.source.actions.len;
+        }
+
+        fn scalar(self: ResolvedTerm, index: usize) ?ResolvedScalarFactor {
+            if (index >= self.source.scalars.len) return null;
+            return resolveScalarFactor(self.pair, self.source.scalars[index]);
+        }
+
+        fn coordinate(self: ResolvedTerm, index: usize) ?ResolvedCoordinateFactor {
+            if (index >= self.source.coordinates.len) return null;
+            return resolveCoordinateFactor(self.pair, self.source.coordinates[index]);
+        }
+
+        fn tensor(self: ResolvedTerm, index: usize) ?ResolvedTensorFactor {
+            if (index >= self.source.tensors.len) return null;
+            return resolveTensorFactor(self.pair, self.source.tensors[index]);
+        }
+
+        fn action(self: ResolvedTerm, index: usize) ?ResolvedActionFactor {
+            if (index >= self.source.actions.len) return null;
+            return resolveActionFactor(self.pair, self.source.actions[index]);
+        }
+    };
+
+    /// ResolvedWickPair gives allocation-free access to concrete Wick terms for one pair.
+    const ResolvedWickPair = struct {
+        pair: WickPair,
+
+        fn termCount(self: ResolvedWickPair) usize {
+            return self.pair.rule.expr.terms.len;
+        }
+
+        fn term(self: ResolvedWickPair, index: usize) ?ResolvedTerm {
+            if (index >= self.pair.rule.expr.terms.len) return null;
+            return .{ .pair = self.pair, .source = &self.pair.rule.expr.terms[index] };
+        }
+    };
+
+    /// PrimitiveWickTerm is one complete primitive Wick contribution without later simplification.
+    const PrimitiveWickTerm = struct {
+        resolved: ResolvedTerm,
+
+        fn scalarCount(self: PrimitiveWickTerm) usize {
+            return self.resolved.scalarCount();
+        }
+
+        fn coordinateCount(self: PrimitiveWickTerm) usize {
+            return self.resolved.coordinateCount();
+        }
+
+        fn tensorCount(self: PrimitiveWickTerm) usize {
+            return self.resolved.tensorCount();
+        }
+
+        fn actionCount(self: PrimitiveWickTerm) usize {
+            return self.resolved.actionCount();
+        }
+
+        fn scalar(self: PrimitiveWickTerm, index: usize) ?ResolvedScalarFactor {
+            return self.resolved.scalar(index);
+        }
+
+        fn coordinate(self: PrimitiveWickTerm, index: usize) ?coefficient.CoordinateFactor {
+            const factor = self.resolved.coordinate(index) orelse return null;
+            return evaluateCoordinateFactor(factor);
+        }
+
+        fn tensor(self: PrimitiveWickTerm, index: usize) ?ResolvedTensorFactor {
+            return self.resolved.tensor(index);
+        }
+
+        fn action(self: PrimitiveWickTerm, index: usize) ?ResolvedActionFactor {
+            return self.resolved.action(index);
+        }
+    };
+
+    /// PrimitiveWickPair gives allocation-free complete terms for one primitive Wick pair.
+    const PrimitiveWickPair = struct {
+        pair: WickPair,
+
+        fn termCount(self: PrimitiveWickPair) usize {
+            return self.pair.rule.expr.terms.len;
+        }
+
+        fn term(self: PrimitiveWickPair, index: usize) ?PrimitiveWickTerm {
+            const resolved = (ResolvedWickPair{ .pair = self.pair }).term(index) orelse return null;
+            return .{ .resolved = resolved };
+        }
+    };
+
+    fn resolveCoordinateRef(pair: WickPair, coordinate_ref: wick.CoordinateRef) ?ResolvedCoordinateRef {
+        return .{
+            .variable = pair.coordinate(coordinate_ref) orelse return null,
+            .derivatives = pair.derivativeCount(coordinate_ref) orelse return null,
+        };
+    }
+
+    fn resolveCoordinateDifference(pair: WickPair, difference: wick.CoordinateDifference) ?ResolvedCoordinateDifference {
+        return .{
+            .left = resolveCoordinateRef(pair, difference.left) orelse return null,
+            .right = resolveCoordinateRef(pair, difference.right) orelse return null,
+        };
+    }
+
+    fn resolveDerivativeAction(pair: WickPair, coordinate: wick.CoordinateDifference, action: wick.DerivativeAction) ?ResolvedDerivativeAction {
+        return .{
+            .left = if (action.include_left) pair.derivativeCount(coordinate.left) orelse return null else null,
+            .right = if (action.include_right) pair.derivativeCount(coordinate.right) orelse return null else null,
+        };
+    }
+
+    fn resolveTensorRef(pair: WickPair, tensor_ref: wick.TensorRef) ?ResolvedTensorRef {
+        return switch (tensor_ref) {
+            .label => |label_ref| .{ .label = pair.label(label_ref) orelse return null },
+            .config => |config_ref| .{ .config = pair.configValue(config_ref) orelse return null },
+        };
+    }
+
+    fn resolveScalarFactor(pair: WickPair, factor: wick.ScalarFactor) ?ResolvedScalarFactor {
+        return switch (factor) {
+            .value => |value| .{ .value = value },
+            .label_bilinear_phase => |phase| .{ .label_bilinear_phase = .{
+                .left = pair.label(phase.left) orelse return null,
+                .right = pair.label(phase.right) orelse return null,
+                .form = phase.form,
+            } },
+            .cocycle => |cocycle| .{ .cocycle = .{
+                .table = cocycle.table,
+                .left = pair.label(cocycle.left) orelse return null,
+                .right = pair.label(cocycle.right) orelse return null,
+            } },
+            .spin_structure => |spin_structure| .{ .spin_structure = spin_structure },
+        };
+    }
+
+    fn resolveTensorFactor(pair: WickPair, factor: wick.TensorFactor) ?ResolvedTensorFactor {
+        return switch (factor) {
+            .none => .none,
+            .metric => |metric| .{ .metric = .{
+                .left = pair.label(metric.left) orelse return null,
+                .right = pair.label(metric.right) orelse return null,
+            } },
+            .momentum_index => |item| .{ .momentum_index = .{
+                .momentum = pair.label(item.momentum) orelse return null,
+                .index = pair.label(item.index) orelse return null,
+            } },
+            .momentum_pair => |item| .{ .momentum_pair = .{
+                .left = pair.label(item.left) orelse return null,
+                .right = pair.label(item.right) orelse return null,
+            } },
+            .projector_metric => |item| .{ .projector_metric = .{
+                .projector = resolveTensorRef(pair, item.projector) orelse return null,
+                .left = pair.label(item.left) orelse return null,
+                .right = pair.label(item.right) orelse return null,
+            } },
+            .projector_momentum_index => |item| .{ .projector_momentum_index = .{
+                .projector = resolveTensorRef(pair, item.projector) orelse return null,
+                .momentum = pair.label(item.momentum) orelse return null,
+                .index = pair.label(item.index) orelse return null,
+            } },
+            .projector_momentum_pair => |item| .{ .projector_momentum_pair = .{
+                .projector = resolveTensorRef(pair, item.projector) orelse return null,
+                .left = pair.label(item.left) orelse return null,
+                .right = pair.label(item.right) orelse return null,
+            } },
+        };
+    }
+
+    fn resolveActionFactor(pair: WickPair, factor: wick.ActionFactor) ?ResolvedActionFactor {
+        return switch (factor) {
+            .profile_derivative => |item| .{ .profile_derivative = .{
+                .profile = pair.label(item.profile) orelse return null,
+                .index = pair.label(item.index) orelse return null,
+            } },
+            .projected_profile_derivative => |item| .{ .projected_profile_derivative = .{
+                .projector = resolveTensorRef(pair, item.projector) orelse return null,
+                .profile = pair.label(item.profile) orelse return null,
+                .index = pair.label(item.index) orelse return null,
+            } },
+        };
+    }
+
+    fn resolveCoordinateFactor(pair: WickPair, factor: wick.CoordinateFactor) ?ResolvedCoordinateFactor {
+        return switch (factor) {
+            .difference_power => |item| .{ .difference_power = .{
+                .coordinate = resolveCoordinateDifference(pair, item.coordinate) orelse return null,
+                .exponent = item.exponent,
+                .derivatives = resolveDerivativeAction(pair, item.coordinate, item.derivatives) orelse return null,
+            } },
+            .logarithm => |item| .{ .logarithm = .{
+                .coordinate = resolveCoordinateDifference(pair, item.coordinate) orelse return null,
+                .derivatives = resolveDerivativeAction(pair, item.coordinate, item.derivatives) orelse return null,
+            } },
+            .green_kernel => |item| .{ .green_kernel = .{
+                .name = item.name,
+                .coordinate = resolveCoordinateDifference(pair, item.coordinate) orelse return null,
+                .derivatives = resolveDerivativeAction(pair, item.coordinate, item.derivatives) orelse return null,
+            } },
+            .green_exponential => |coordinate| .{ .green_exponential = resolveCoordinateDifference(pair, coordinate) orelse return null },
+        };
+    }
+
+    fn coordinateDifference(coordinate: ResolvedCoordinateDifference) coefficient.CoordinateDifference {
+        return .{
+            .left = coordinate.left.variable,
+            .right = coordinate.right.variable,
+        };
+    }
+
+    fn selectedDerivativeCount(action: ResolvedDerivativeAction) u16 {
+        const left: u16 = if (action.left) |count| count else 0;
+        const right: u16 = if (action.right) |count| count else 0;
+        return left + right;
+    }
+
+    fn selectedRightDerivativeCount(action: ResolvedDerivativeAction) u16 {
+        return if (action.right) |count| count else 0;
+    }
+
+    fn checkedMulInt(left: i64, right: i64) ?i64 {
+        const result = @mulWithOverflow(left, right);
+        if (result[1] != 0) return null;
+        return result[0];
+    }
+
+    fn checkedAddExponent(exponent: i16, derivative_count: u16) ?i16 {
+        const next = @as(i32, exponent) - @as(i32, derivative_count);
+        if (next < std.math.minInt(i16) or next > std.math.maxInt(i16)) return null;
+        return @intCast(next);
+    }
+
+    fn fallingPower(exponent: i16, derivative_count: u16) ?i64 {
+        var value: i64 = 1;
+        var current: i64 = exponent;
+        var index: u16 = 0;
+        while (index < derivative_count) : (index += 1) {
+            value = checkedMulInt(value, current) orelse return null;
+            current -= 1;
+        }
+        return value;
+    }
+
+    fn factorial(value: u16) ?i64 {
+        var result: i64 = 1;
+        var current: u16 = 2;
+        while (current <= value) : (current += 1) {
+            result = checkedMulInt(result, current) orelse return null;
+        }
+        return result;
+    }
+
+    fn signFromParity(power: u16) i64 {
+        return if ((power & 1) == 0) 1 else -1;
+    }
+
+    fn evaluateDifferencePower(item: anytype) ?coefficient.CoordinateFactor {
+        const derivative_count = selectedDerivativeCount(item.derivatives);
+        const right_count = selectedRightDerivativeCount(item.derivatives);
+        const falling = fallingPower(item.exponent, derivative_count) orelse return null;
+        const signed = checkedMulInt(signFromParity(right_count), falling) orelse return null;
+        return .{
+            .scalar = coefficient.rational(signed, 1) orelse return null,
+            .kernel = .{ .difference_power = .{
+                .coordinate = coordinateDifference(item.coordinate),
+                .exponent = checkedAddExponent(item.exponent, derivative_count) orelse return null,
+            } },
+        };
+    }
+
+    fn evaluateLogarithm(item: anytype) ?coefficient.CoordinateFactor {
+        const derivative_count = selectedDerivativeCount(item.derivatives);
+        if (derivative_count == 0) {
+            return .{
+                .scalar = coefficient.integer(1),
+                .kernel = .{ .logarithm = coordinateDifference(item.coordinate) },
+            };
+        }
+
+        const right_count = selectedRightDerivativeCount(item.derivatives);
+        const base = factorial(derivative_count - 1) orelse return null;
+        const signed = checkedMulInt(signFromParity(right_count + derivative_count - 1), base) orelse return null;
+        return .{
+            .scalar = coefficient.rational(signed, 1) orelse return null,
+            .kernel = .{ .difference_power = .{
+                .coordinate = coordinateDifference(item.coordinate),
+                .exponent = -@as(i16, @intCast(derivative_count)),
+            } },
+        };
+    }
+
+    fn evaluateGreenKernel(item: anytype) coefficient.CoordinateFactor {
+        return .{
+            .scalar = coefficient.integer(1),
+            .kernel = .{ .green_kernel = .{
+                .name = item.name,
+                .coordinate = coordinateDifference(item.coordinate),
+                .left_derivatives = if (item.derivatives.left) |count| count else 0,
+                .right_derivatives = if (item.derivatives.right) |count| count else 0,
+            } },
+        };
+    }
+
+    fn evaluateCoordinateFactor(factor: ResolvedCoordinateFactor) ?coefficient.CoordinateFactor {
+        return switch (factor) {
+            .difference_power => |item| evaluateDifferencePower(item),
+            .logarithm => |item| evaluateLogarithm(item),
+            .green_kernel => |item| evaluateGreenKernel(item),
+            .green_exponential => |coordinate| .{
+                .scalar = coefficient.integer(1),
+                .kernel = .{ .green_exponential = coordinateDifference(coordinate) },
+            },
+        };
+    }
+
+    const WickTermEvent = struct {
+        left_index: usize,
+        right_index: usize,
+        term_index: usize,
+    };
+
+};
+
+const max_zero_mode_residuals = 128;
+const max_zero_mode_items = 32;
+
+const ZeroModeRuntime = struct {
+    const ResidualCursor = struct {
+        ops: kernel.Call.MultiOp,
+        indices: ?[]const usize,
+
+        fn len(self: ResidualCursor) usize {
+            return if (self.indices) |indices| indices.len else self.ops.operators.len;
+        }
+
+        fn opIndex(self: ResidualCursor, residual_index: usize) usize {
+            return if (self.indices) |indices| indices[residual_index] else residual_index;
+        }
+
+        fn op(self: ResidualCursor, residual_index: usize) kernel.Call.LocalOp {
+            return self.ops.operators[self.opIndex(residual_index)];
+        }
+    };
+
+    const CJet = struct {
+        coordinate: coefficient.Variable,
+        derivative_order: u8,
+    };
+
+    const MomentumDelta = struct {
+        projector: ?ConfigValue,
+        momenta: []const kernel.Call.LabelValue,
+        two_pi_power: u16,
+        scalar: RuleScalar,
+    };
+
+    const DirichletPhase = struct {
+        projector: ConfigValue,
+        position: ConfigValue,
+        momenta: []const kernel.Call.LabelValue,
+    };
+
+    const ProfileFactor = struct {
+        profile: kernel.Call.LabelValue,
+        coordinate: coefficient.Variable,
+    };
+
+    const ZeroModeFactor = union(enum) {
+        bc_top_form: struct {
+            support: zero_mode.BcSupport,
+            normalization: RuleScalar,
+            jets: [3]CJet,
+        },
+        momentum_delta: MomentumDelta,
+        dirichlet_phase: DirichletPhase,
+        profile_fourier_integral: ProfileFactor,
+        profile_polynomial_integral: ProfileFactor,
+        profile_gaussian_differential: ProfileFactor,
+    };
+};
+
+fn residualConsumed(mask: u128, index: usize) bool {
+    return (mask & (@as(u128, 1) << @intCast(index))) != 0;
+}
+
+fn markResidualConsumed(mask: *u128, index: usize) void {
+    mask.* |= @as(u128, 1) << @intCast(index);
+}
+
+fn kindIn(kind: operators.OperatorKindId, candidates: []const operators.OperatorKindId) bool {
+    for (candidates) |candidate| {
+        if (candidate == kind) return true;
+    }
+    return false;
+}
+
+fn localPosition(op: kernel.Call.LocalOp) ?coefficient.Variable {
+    return switch (op.insertion) {
+        .single => |single| single.position,
+        .pair => |pair| pair.holomorphic_position,
+    };
+}
+
+fn localDerivativeOrder(op: kernel.Call.LocalOp) u8 {
+    return switch (op.insertion) {
+        .single => |single| single.derivatives,
+        .pair => |pair| pair.holomorphic_derivatives,
+    };
+}
+
+fn firstLabel(ops: kernel.Call.MultiOp, op: kernel.Call.LocalOp) ?kernel.Call.LabelValue {
+    const index: usize = @intCast(op.labels);
+    if (index >= ops.labels.values.len) return null;
+    return ops.labels.values[index];
+}
+
+fn configValue(config_ptr: *const CorrelatorConfig, config_ref: ConfigRef) ?ConfigValue {
+    for (config_ptr.config_entries) |entry| {
+        if (entry.id == config_ref) return entry.value;
+    }
+    return null;
+}
+
+fn projectorRank(value: ConfigValue) ?u16 {
+    return switch (value) {
+        .tensor_projector => |projector| @intCast(@intFromEnum(projector) >> 24),
+        else => null,
+    };
+}
+
+fn rankValue(config_ptr: *const CorrelatorConfig, source: zero_mode.RankSource) ?u16 {
+    return switch (source) {
+        .none => 0,
+        .target_dimension => |config_ref| switch (configValue(config_ptr, config_ref) orelse return null) {
+            .target_dimension => |dimension| dimension,
+            else => null,
+        },
+        .projector_rank => |config_ref| projectorRank(configValue(config_ptr, config_ref) orelse return null),
+    };
+}
+
+fn hasRankSource(source: zero_mode.RankSource) bool {
+    return switch (source) {
+        .none => false,
+        else => true,
+    };
+}
+
+fn emitBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
+    var jets: [3]ZeroModeRuntime.CJet = undefined;
+    var residual_ids: [3]usize = undefined;
+    var jet_count: usize = 0;
+    var overflow = false;
+
+    var residual_index: usize = 0;
+    while (residual_index < residual.len()) : (residual_index += 1) {
+        if (residualConsumed(consumed.*, residual_index)) continue;
+        const op = residual.op(residual_index);
+        if (!kindIn(op.kind, rule.c_kind_ids)) continue;
+        if (jet_count >= jets.len) {
+            overflow = true;
+            continue;
+        }
+        jets[jet_count] = .{
+            .coordinate = localPosition(op) orelse return error.InvalidZeroModeOperator,
+            .derivative_order = localDerivativeOrder(op),
+        };
+        residual_ids[jet_count] = residual_index;
+        jet_count += 1;
+    }
+
+    if (overflow or jet_count != 3) return;
+    for (residual_ids) |residual_id| {
+        markResidualConsumed(consumed, residual_id);
+    }
+    try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .bc_top_form = .{
+        .support = rule.support,
+        .normalization = rule.normalization,
+        .jets = jets,
+    } });
+}
+
+fn emitFreeBosonConstantMode(config_ptr: *const CorrelatorConfig, rule: zero_mode.FreeBosonConstantMode, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
+    var momenta: [max_zero_mode_items]kernel.Call.LabelValue = undefined;
+    var momentum_count: usize = 0;
+
+    var residual_index: usize = 0;
+    while (residual_index < residual.len()) : (residual_index += 1) {
+        if (residualConsumed(consumed.*, residual_index)) continue;
+        const op = residual.op(residual_index);
+        if (kindIn(op.kind, rule.exp_kind_ids)) {
+            if (momentum_count >= momenta.len) return error.TooManyZeroModeItems;
+            momenta[momentum_count] = firstLabel(residual.ops, op) orelse return error.InvalidZeroModeOperator;
+            momentum_count += 1;
+            markResidualConsumed(consumed, residual_index);
+            continue;
+        }
+
+        if (kindIn(op.kind, rule.profile_kind_ids)) {
+            const label = firstLabel(residual.ops, op) orelse return error.InvalidZeroModeOperator;
+            const profile = switch (label) {
+                .symbol => |value| @as(Handle.Profile, @enumFromInt(value)),
+                else => return error.InvalidZeroModeOperator,
+            };
+            const factor = ZeroModeRuntime.ProfileFactor{
+                .profile = label,
+                .coordinate = localPosition(op) orelse return error.InvalidZeroModeOperator,
+            };
+            switch (profilePresentation(profile)) {
+                .position_space => try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .profile_gaussian_differential = factor }),
+                .fourier => try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .profile_fourier_integral = factor }),
+                .polynomial_rnc => try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .profile_polynomial_integral = factor }),
+            }
+            markResidualConsumed(consumed, residual_index);
+        }
+    }
+
+    if (momentum_count != 0 or hasRankSource(rule.normalization.two_pi_power)) {
+        const projector = if (rule.integration_projector) |config_ref| configValue(config_ptr, config_ref) orelse return error.InvalidZeroModeConfig else null;
+        try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .momentum_delta = .{
+            .projector = projector,
+            .momenta = momenta[0..momentum_count],
+            .two_pi_power = rankValue(config_ptr, rule.normalization.two_pi_power) orelse return error.InvalidZeroModeConfig,
+            .scalar = rule.normalization.scalar,
+        } });
+    }
+
+    if (rule.fixed_projector) |projector_ref| {
+        if (momentum_count == 0) return;
+        const position_ref = rule.fixed_position orelse return error.InvalidZeroModeConfig;
+        try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .dirichlet_phase = .{
+            .projector = configValue(config_ptr, projector_ref) orelse return error.InvalidZeroModeConfig,
+            .position = configValue(config_ptr, position_ref) orelse return error.InvalidZeroModeConfig,
+            .momenta = momenta[0..momentum_count],
+        } });
+    }
+}
+
+fn allResidualsConsumed(residual: ZeroModeRuntime.ResidualCursor, consumed: u128) bool {
+    var residual_index: usize = 0;
+    while (residual_index < residual.len()) : (residual_index += 1) {
+        if (!residualConsumed(consumed, residual_index)) return false;
+    }
+    return true;
+}
+
+/// emitZeroModeBaseCase consumes residual operators with configured zero-mode rules.
+pub fn emitZeroModeBaseCase(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, residual_indices: ?[]const usize, sink: anytype) !bool {
+    const residual = ZeroModeRuntime.ResidualCursor{ .ops = ops, .indices = residual_indices };
+    if (residual.len() > max_zero_mode_residuals) return error.TooManyZeroModeResiduals;
+
+    var consumed: u128 = 0;
+    for (config_ptr.zero_modes) |rule| {
+        switch (rule.expr) {
+            .bc_top_form => |payload| try emitBcTopForm(payload, residual, &consumed, sink),
+            .free_boson_constant_mode => |payload| try emitFreeBosonConstantMode(config_ptr, payload, residual, &consumed, sink),
+        }
+    }
+
+    if (!allResidualsConsumed(residual, consumed)) return false;
+    try sink.emitZeroModeBaseEnd();
+    return true;
+}
+
+fn ruleMatches(rule: wick.Rule, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) ?bool {
+    if (rule.left.kind == left.kind and rule.right.kind == right.kind) {
+        return false;
+    }
+    if (rule.left.kind == right.kind and rule.right.kind == left.kind) {
+        return true;
+    }
+    return null;
+}
+
+fn matchRule(config_ptr: *const CorrelatorConfig, rule: *const wick.Rule, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp, labels: *const kernel.Call.LabelStore) ?Correlator.WickPair {
+    const reversed = ruleMatches(rule.*, left, right) orelse return null;
+    return .{
+        .rule = rule,
+        .config = config_ptr,
+        .left = left,
+        .right = right,
+        .labels = labels,
+        .reversed = reversed,
+    };
+}
+
+fn lowerBoundWickRuleIndex(entries: []const WickRuleIndexEntry, key: u64) usize {
+    var lo: usize = 0;
+    var hi: usize = entries.len;
+    while (lo < hi) {
+        const mid = lo + ((hi - lo) / 2);
+        if (entries[mid].key < key) {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    return lo;
+}
+
+fn emitPrimitiveWickTerm(pair: Correlator.WickPair, left_index: usize, right_index: usize, term_index: usize, sink: anytype) !void {
+    const primitive = (Correlator.PrimitiveWickPair{ .pair = pair }).term(term_index) orelse return error.InvalidWickTerm;
+
+    const event = Correlator.WickTermEvent{
+        .left_index = left_index,
+        .right_index = right_index,
+        .term_index = term_index,
+    };
+    try sink.emitWickTermStart(event);
+
+    var scalar_index: usize = 0;
+    while (scalar_index < primitive.scalarCount()) : (scalar_index += 1) {
+        try sink.emitWickScalar(primitive.scalar(scalar_index) orelse return error.InvalidWickFactor);
+    }
+
+    var coordinate_index: usize = 0;
+    while (coordinate_index < primitive.coordinateCount()) : (coordinate_index += 1) {
+        try sink.emitWickCoordinate(primitive.coordinate(coordinate_index) orelse return error.InvalidWickFactor);
+    }
+
+    var tensor_index: usize = 0;
+    while (tensor_index < primitive.tensorCount()) : (tensor_index += 1) {
+        try sink.emitWickTensor(primitive.tensor(tensor_index) orelse return error.InvalidWickFactor);
+    }
+
+    var action_index: usize = 0;
+    while (action_index < primitive.actionCount()) : (action_index += 1) {
+        try sink.emitWickAction(primitive.action(action_index) orelse return error.InvalidWickFactor);
+    }
+
+    try sink.emitWickTermEnd();
+}
+
+fn emitIndexedWickPairTerms(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp, sink: anytype) !usize {
+    const key = wickRuleKey(left.kind, right.kind);
+    var entry_index = lowerBoundWickRuleIndex(config_ptr.wick_rule_index, key);
+    var emitted: usize = 0;
+
+    while (entry_index < config_ptr.wick_rule_index.len and config_ptr.wick_rule_index[entry_index].key == key) : (entry_index += 1) {
+        const entry = config_ptr.wick_rule_index[entry_index];
+        const rule_index: usize = @intCast(entry.rule_index);
+        if (rule_index >= config_ptr.wick_rules.len) return error.InvalidWickRuleIndex;
+        const rule = &config_ptr.wick_rules[rule_index];
+        const pair = Correlator.WickPair{
+            .rule = rule,
+            .config = config_ptr,
+            .left = left,
+            .right = right,
+            .labels = ops.labels,
+            .reversed = entry.reversed,
+        };
+
+        var term_index: usize = 0;
+        while (term_index < pair.rule.expr.terms.len) : (term_index += 1) {
+            try emitPrimitiveWickTerm(pair, left_index, right_index, term_index, sink);
+            emitted += 1;
+        }
+    }
+
+    return emitted;
+}
+
+fn emitScannedWickPairTerms(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp, sink: anytype) !usize {
+    var emitted: usize = 0;
+
+    for (config_ptr.wick_rules) |*rule| {
+        if (matchRule(config_ptr, rule, left, right, ops.labels)) |pair| {
+            var term_index: usize = 0;
+            while (term_index < pair.rule.expr.terms.len) : (term_index += 1) {
+                try emitPrimitiveWickTerm(pair, left_index, right_index, term_index, sink);
+                emitted += 1;
+            }
+        }
+    }
+
+    return emitted;
+}
+
+/// emitWickPairTerms emits complete primitive Wick terms for two input positions.
+pub fn emitWickPairTerms(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, sink: anytype) !usize {
+    if (left_index >= ops.operators.len or right_index >= ops.operators.len or left_index == right_index) return error.InvalidOperatorIndex;
+
+    const left = ops.operators[left_index];
+    const right = ops.operators[right_index];
+    if (config_ptr.wick_rule_index.len != 0) {
+        return emitIndexedWickPairTerms(config_ptr, ops, left_index, right_index, left, right, sink);
+    }
+
+    return emitScannedWickPairTerms(config_ptr, ops, left_index, right_index, left, right, sink);
+}
+
+/// streamCorrelator emits pair Wick events and then tries the zero-mode base case.
+pub fn streamCorrelator(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, sink: anytype) !void {
+    for (ops.operators, 0..) |_, left_index| {
+        var right_index = left_index + 1;
+        while (right_index < ops.operators.len) : (right_index += 1) {
+            _ = try emitWickPairTerms(config_ptr, ops, left_index, right_index, sink);
+        }
+    }
+
+    _ = try emitZeroModeBaseCase(config_ptr, ops, null, sink);
+}

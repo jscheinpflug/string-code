@@ -1,0 +1,365 @@
+:PROPERTIES:
+:ID:       20260606T190103.000000
+:END:
+#+title: Tensor Realization
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/realization.zig :mkdirp yes
+
+Realizations map abstract irreps to concrete index layouts.  This is where a
+field acquires caller-visible slots such as vector, spinor, fundamental, or
+adjoint indices.  The coupling search still reasons about the target irrep, so
+projected realizations like an irrep inside \(V \otimes S\) do not force every
+later step to carry the full ambient product.
+
+#+begin_src zig
+const std = @import("std");
+const store = @import("representation-store.zig");
+#+end_src
+
+Public handles identify registered concrete realizations and external legs.
+
+#+begin_src zig
+/// RealizationHandle names a concrete index realization of an irrep.
+pub const RealizationHandle = struct {
+    value: u32,
+
+    /// init constructs a realization handle from a store index.
+    pub fn init(value: u32) RealizationHandle {
+        return .{ .value = value };
+    }
+};
+
+/// ExternalLegHandle names one external leg in an invariant request.
+pub const ExternalLegHandle = struct {
+    value: u32,
+
+    /// init constructs an external-leg handle from a store index.
+    pub fn init(value: u32) ExternalLegHandle {
+        return .{ .value = value };
+    }
+};
+#+end_src
+
+Construction records are public because CFT code must be able to describe its
+free indices.  The arrays are caller-owned until they are registered in the
+context.
+
+#+begin_src zig
+/// RealizationRef identifies a primitive or registered external tensor shape.
+pub const RealizationRef = union(enum) {
+    primitive_irrep: store.IrrepHandle,
+    handle: RealizationHandle,
+    registered_name: []const u8,
+};
+
+/// IndexKind classifies the visible slot type of an external index.
+pub const IndexKind = enum {
+    vector,
+    spinor,
+    conjugate_spinor,
+    fundamental,
+    anti_fundamental,
+    adjoint,
+    form,
+    custom,
+};
+
+/// NamedIndex records one caller-supplied free index name.
+pub const NamedIndex = struct {
+    kind: IndexKind,
+    name: []const u8,
+
+    /// init constructs one caller-named index slot.
+    pub fn init(kind: IndexKind, name: []const u8) NamedIndex {
+        return .{ .kind = kind, .name = name };
+    }
+};
+
+/// RealizationChannel selects one irrep copy inside a realization product.
+pub const RealizationChannel = struct {
+    irrep: store.IrrepHandle,
+    copy: u16 = 0,
+
+    /// init constructs a selected irrep copy.
+    pub fn init(irrep: store.IrrepHandle, copy: u16) RealizationChannel {
+        return .{ .irrep = irrep, .copy = copy };
+    }
+
+    /// first selects the first copy of an irrep.
+    pub fn first(irrep: store.IrrepHandle) RealizationChannel {
+        return .{ .irrep = irrep };
+    }
+};
+
+/// ExternalLeg describes a public invariant leg with named free indices.
+pub const ExternalLeg = struct {
+    realization: RealizationRef,
+    indices: []const NamedIndex,
+    label: ?[]const u8 = null,
+
+    /// primitive constructs a leg whose realization is the irrep itself.
+    pub fn primitive(irrep: store.IrrepHandle, indices: []const NamedIndex) ExternalLeg {
+        return .{
+            .realization = .{ .primitive_irrep = irrep },
+            .indices = indices,
+        };
+    }
+
+    /// realized constructs a leg from a registered realization handle.
+    pub fn realized(realization: RealizationHandle, indices: []const NamedIndex) ExternalLeg {
+        return .{
+            .realization = .{ .handle = realization },
+            .indices = indices,
+        };
+    }
+
+    /// registered constructs a leg from a preset realization name.
+    pub fn registered(name: []const u8, indices: []const NamedIndex) ExternalLeg {
+        return .{
+            .realization = .{ .registered_name = name },
+            .indices = indices,
+        };
+    }
+
+    /// named returns the leg with a caller-facing label attached.
+    pub fn named(self: ExternalLeg, label: []const u8) ExternalLeg {
+        var out = self;
+        out.label = label;
+        return out;
+    }
+};
+
+/// RealizationSpec describes a primitive or projected external index model.
+pub const RealizationSpec = struct {
+    channel: RealizationChannel,
+    ambient: []const store.IrrepHandle = &.{},
+    indices: []const NamedIndex,
+    name: ?[]const u8 = null,
+
+    /// primitive constructs a direct index realization of an irrep.
+    pub fn primitive(target: store.IrrepHandle, indices: []const NamedIndex) RealizationSpec {
+        return .{
+            .channel = RealizationChannel.first(target),
+            .indices = indices,
+        };
+    }
+
+    /// projected constructs an irrep realization inside an ambient product.
+    pub fn projected(target: store.IrrepHandle, ambient: []const store.IrrepHandle, indices: []const NamedIndex, copy: u16) RealizationSpec {
+        return RealizationSpec.projectedChannel(RealizationChannel.init(target, copy), ambient, indices);
+    }
+
+    /// projectedChannel constructs a realization from an explicit channel.
+    pub fn projectedChannel(channel: RealizationChannel, ambient: []const store.IrrepHandle, indices: []const NamedIndex) RealizationSpec {
+        return .{
+            .channel = channel,
+            .ambient = ambient,
+            .indices = indices,
+        };
+    }
+
+    /// named returns the realization spec with a preset-facing name attached.
+    pub fn named(self: RealizationSpec, name: []const u8) RealizationSpec {
+        var out = self;
+        out.name = name;
+        return out;
+    }
+
+    /// targetIrrep returns the abstract irrep realized by this index model.
+    pub fn targetIrrep(self: RealizationSpec) store.IrrepHandle {
+        return self.channel.irrep;
+    }
+};
+#+end_src
+
+The store owns cloned realization specs and interns repeated requests.
+
+#+begin_src zig
+/// Store owns interned concrete realization records.
+pub const Store = struct {
+    allocator: std.mem.Allocator,
+    specs: std.ArrayList(RealizationSpec) = .empty,
+
+    /// init constructs an empty realization store.
+    pub fn init(allocator: std.mem.Allocator) Store {
+        return .{ .allocator = allocator };
+    }
+
+    /// deinit releases all realization-store memory.
+    pub fn deinit(self: *Store) void {
+        for (self.specs.items) |spec| {
+            freeRealizationSpec(self.allocator, spec);
+        }
+        self.specs.deinit(self.allocator);
+        self.* = Store.init(self.allocator);
+    }
+
+    /// internRealization returns the stable handle for a realization spec.
+    pub fn internRealization(self: *Store, spec: RealizationSpec) !RealizationHandle {
+        for (self.specs.items, 0..) |stored, index| {
+            if (realizationSpecEql(stored, spec)) {
+                return RealizationHandle.init(@intCast(index));
+            }
+        }
+
+        const owned = try cloneRealizationSpec(self.allocator, spec);
+        errdefer freeRealizationSpec(self.allocator, owned);
+        try self.specs.append(self.allocator, owned);
+        return RealizationHandle.init(@intCast(self.specs.items.len - 1));
+    }
+
+    /// containsRealization returns whether a realization handle belongs to this store.
+    pub fn containsRealization(self: Store, handle: RealizationHandle) bool {
+        return self.realizationSpec(handle) != null;
+    }
+
+    /// targetIrrep returns the irrep realized by a stored realization handle.
+    pub fn targetIrrep(self: Store, handle: RealizationHandle) ?store.IrrepHandle {
+        const spec = self.realizationSpec(handle) orelse return null;
+        return spec.targetIrrep();
+    }
+
+    fn realizationSpec(self: Store, handle: RealizationHandle) ?RealizationSpec {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.specs.items.len) return null;
+        return self.specs.items[index];
+    }
+};
+#+end_src
+
+These private records describe the future projector derivation path for a
+realization.  The selected channel is a single value, so future embedding
+conventions have one natural place to attach.
+
+#+begin_src zig
+/// IndexSlotSpec declares one slot in a realization layout.
+const IndexSlotSpec = struct {
+    kind: IndexKind,
+    default_name: ?[]const u8 = null,
+};
+
+/// RealizationRequest declares an irrep as a projected ambient tensor shape.
+const RealizationRequest = struct {
+    channel: RealizationChannel,
+    ambient: []const store.IrrepHandle,
+    index_layout: []const IndexSlotSpec,
+};
+
+/// RealizationKind distinguishes primitive from projected realizations.
+const RealizationKind = enum {
+    primitive,
+    projected_channel,
+};
+
+/// RealizationRecord stores one concrete index layout for an irrep.
+const RealizationRecord = struct {
+    channel: RealizationChannel,
+    kind: RealizationKind,
+    ambient_offset: u32,
+    ambient_len: u16,
+    index_layout_offset: u32,
+    index_layout_len: u16,
+    projector: ?RealizationProjectorId = null,
+};
+
+/// RealizationProjectorId names a derived boundary realization projector.
+const RealizationProjectorId = u32;
+
+/// AmbientFactor records one irrep in an ambient realization product.
+const AmbientFactor = struct {
+    irrep: store.IrrepHandle,
+};
+
+/// RealizationRule records the construction request for one realization.
+const RealizationRule = struct {
+    request: RealizationRequest,
+    projector: ?RealizationProjectorId = null,
+};
+#+end_src
+
+Structural equality and clone/free helpers are private implementation details.
+They keep public construction records lightweight while making registered
+realizations stable after caller buffers go out of scope.
+
+#+begin_src zig
+fn realizationSpecEql(left: RealizationSpec, right: RealizationSpec) bool {
+    return realizationChannelEql(left.channel, right.channel) and
+        optionalStringEql(left.name, right.name) and
+        irrepSliceEql(left.ambient, right.ambient) and
+        namedIndexSliceEql(left.indices, right.indices);
+}
+
+fn realizationChannelEql(left: RealizationChannel, right: RealizationChannel) bool {
+    return left.irrep.value == right.irrep.value and left.copy == right.copy;
+}
+
+fn irrepSliceEql(left: []const store.IrrepHandle, right: []const store.IrrepHandle) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |left_item, right_item| {
+        if (left_item.value != right_item.value) return false;
+    }
+    return true;
+}
+
+fn namedIndexSliceEql(left: []const NamedIndex, right: []const NamedIndex) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |left_item, right_item| {
+        if (left_item.kind != right_item.kind) return false;
+        if (!std.mem.eql(u8, left_item.name, right_item.name)) return false;
+    }
+    return true;
+}
+
+fn optionalStringEql(left: ?[]const u8, right: ?[]const u8) bool {
+    if (left == null or right == null) return left == null and right == null;
+    return std.mem.eql(u8, left.?, right.?);
+}
+
+fn cloneRealizationSpec(allocator: std.mem.Allocator, spec: RealizationSpec) !RealizationSpec {
+    const ambient = try allocator.dupe(store.IrrepHandle, spec.ambient);
+    errdefer allocator.free(ambient);
+
+    const indices = try cloneNamedIndices(allocator, spec.indices);
+    errdefer freeNamedIndices(allocator, indices);
+
+    const name = if (spec.name) |value| try allocator.dupe(u8, value) else null;
+    errdefer if (name) |value| allocator.free(value);
+
+    return .{
+        .channel = spec.channel,
+        .ambient = ambient,
+        .indices = indices,
+        .name = name,
+    };
+}
+
+fn freeRealizationSpec(allocator: std.mem.Allocator, spec: RealizationSpec) void {
+    allocator.free(spec.ambient);
+    freeNamedIndices(allocator, spec.indices);
+    if (spec.name) |name| allocator.free(name);
+}
+
+fn cloneNamedIndices(allocator: std.mem.Allocator, indices: []const NamedIndex) ![]NamedIndex {
+    const owned = try allocator.alloc(NamedIndex, indices.len);
+    var initialized: usize = 0;
+    errdefer {
+        for (owned[0..initialized]) |previous| allocator.free(previous.name);
+        allocator.free(owned);
+    }
+
+    for (indices, owned[0..]) |source, *target| {
+        const name = try allocator.dupe(u8, source.name);
+        target.* = .{ .kind = source.kind, .name = name };
+        initialized += 1;
+    }
+
+    return owned;
+}
+
+fn freeNamedIndices(allocator: std.mem.Allocator, indices: []const NamedIndex) void {
+    for (indices) |index| {
+        allocator.free(index.name);
+    }
+    allocator.free(indices);
+}
+#+end_src

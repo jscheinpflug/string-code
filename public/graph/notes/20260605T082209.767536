@@ -1,0 +1,27 @@
+:PROPERTIES:
+:ID:       20260605T082209.767536
+:END:
+#+title: Expressions
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/expressions/expressions.zig :mkdirp yes
+
+#+interface:
+
+#+begin_src zig
+const coefficient = @import("coefficient.zig");
+const operators = @import("operators.zig");
+#+end_src
+
+The symbolic expressions we work with are simply [[id:20260604T083119.372970][Coefficients]] multiplied by local [[id:20260603T094125.997360][Operators]].
+
+#+begin_src zig
+/// A symbolic expression encountered in worldsheet calculations
+pub const Expr = struct {
+    summands: []const ExprSummand
+};
+/// Each summand is a local operator with a coefficient
+pub const ExprSummand = struct {
+    coeff: coefficient.Coeff,
+    operators: operators.Operator
+};
+#+end_src

@@ -1,0 +1,440 @@
+:PROPERTIES:
+:ID:       20260606T214500.000000
+:END:
+#+title: Correlator Implementation Handoff
+#+date: 2026-06-07
+#+PROPERTY: header-args:zig :tangle no
+
+* Purpose
+
+This note is the handoff for implementing the first general correlator
+algorithm.  The first tactic is [[id:20260606T064107.303587][Wick]], but the correlator itself must not
+know what a Wick contraction is in a particular CFT.
+
+The generic algorithm should live behind [[id:20260603T094138.285453][Correlators]] and consume only the
+runtime call shape from [[id:20260606T150002.000000][CFT Kernel]].  The physics of a given preset stays in
+[[id:20260606T163500.000000][Presets]] and in the compiled CFT/BCFT config produced by the preset.  The
+algorithm must not import or branch on [[id:20260606T183200.000000][Free Boson Preset]],
+[[id:20260606T183300.000000][bc Preset]], boundary conditions, Riemann surfaces, profile presentations,
+or any future RNS, heterotic, Narain, pure-spinor, or NLSM-specific object.
+
+The rule is simple: the correlator chooses branches and manages scratch
+state; the tactic tells it what a pair operation and a zero-mode base case
+emit.
+
+* Boundary To Preserve
+
+The public call shape remains:
+
+#+begin_src zig
+correlator(config_ptr, ops, sink)
+#+end_src
+
+where =ops= is =kernel.Call.MultiOp=.  In implementation form, the generic
+Wick engine should be specialized by a =comptime= tactic type rather than by
+runtime function pointers:
+
+#+begin_src zig
+pub fn wickCorrelator(
+    comptime Tactic: type,
+    config_ptr: *const Tactic.Config,
+    ops: kernel.Call.MultiOp,
+    scratch: *Scratch,
+    sink: anytype,
+) !void
+#+end_src
+
+The generated preset wrapper supplies =Tactic=.  For the current presets that
+tactic delegates to the existing shared-runtime pair and zero-mode emitters.
+Later presets supply the same tactic boundary.  The generic correlator does
+not widen when a new CFT is added.
+
+* What The Correlator May Read
+
+The correlator may read only the structural operator collection:
+
+- =ops.operators.len=;
+- =ops.operators[index].kind= only for generic ordering, cheap pair probes, or
+  future parity/sign metadata lookups through the tactic;
+- =ops.operators[index].insertion= only if the generic output sink needs to
+  preserve residual operator order;
+- =ops.labels= only to pass the unchanged =MultiOp= back to the tactic.
+
+The correlator should treat operator labels as opaque.  It should not decode
+momenta, indices, profiles, tensor projectors, boundary stacks, picture
+numbers, cocycles, or ghost numbers.  Those belong to the pair emitter,
+zero-mode emitter, or later basis/projection code.
+
+The correlator may keep compact scratch state:
+
+- which pair indices have already been considered in a branch;
+- which local-operator occurrences remain available for further pair
+  operations;
+- the ordered residual expression view passed to the zero-mode base case;
+- accumulated branch sign;
+- spans of streamed coefficient factors already emitted by pair operations.
+
+The scratch state should be caller-owned or stack-bounded.  Do not allocate a
+large expression tree or a full sum of pairings.
+
+* What The Correlator May Call
+
+The first generic Wick engine may call exactly these tactic operations:
+
+#+begin_src zig
+Tactic.emitPairTerms(config_ptr, ops, left_occurrence, right_occurrence, pair_sink)
+Tactic.emitZeroModeBaseCase(config_ptr, ops, residual_expr, base_sink)
+#+end_src
+
+Current code already has the first two operations in
+[[id:20260606T183100.000000][Preset Shared Runtime]]:
+
+#+begin_src zig
+emitWickPairTerms(config_ptr, ops, left_index, right_index, sink) !usize
+emitZeroModeBaseCase(config_ptr, ops, residual_indices, sink) !bool
+#+end_src
+
+The full correlator should call them only through a small =comptime= tactic
+adapter.  That keeps [[id:20260603T094138.285453][Correlators]] independent of preset internals while still
+allowing Zig to inline the hot path.
+
+The adapter may map a first-pass occurrence reference to the current
+=left_index/right_index= form when the occurrence is an original input
+operator.  It may likewise map a first-pass residual expression made only of
+references to original input operators into =residual_indices=.  These are
+adapter details, not the generic correlator interface.  Once Wick rules can
+produce a fresh local operator or a nested normal-ordered product, the tactic
+must receive opaque occurrence and residual-expression cursors instead of
+plain index slices.  Do not bake =[]usize= or original input indices into the
+generic algorithm.
+
+When fermionic sectors are implemented, add one more tactic query for parity:
+
+#+begin_src zig
+Tactic.operatorParity(config_ptr, ops, occurrence)
+#+end_src
+
+That query should still return generic parity data, not sector names.
+
+The correlator must not call or inspect:
+
+- =wick.Rule= or =zero_mode.Rule=;
+- =wick.Rule.expr=, =zero_mode.Rule.expr=, or any rule payload union;
+- =CorrelatorConfig.wick_rules=, =wick_rule_index=, =zero_modes=, or
+  =config_entries= directly;
+- preset namespaces such as =free_boson= or =bc=;
+- =ConfigValue=, profile presentation tags, Neumann/Dirichlet projectors, or
+  Chan-Paton stack handles;
+- tensor internals except as opaque factors received from the tactic.
+
+* Required Wick-Expression Semantics
+
+The current =emitWickPairTerms= emits coefficient factors for a pair.  The full
+recursive algorithm needs the Wick tactic to return the whole local expression
+produced by contracting the selected pair: coefficient factors together with
+the residual local operators, if any.  This is the clean abstraction.  The
+correlator should not reason in terms of free-boson words such as "consume
+\(dX\)" or "keep \(e^{ikX}\)".
+
+Examples:
+
+- \(dX^\mu(z)dX^\nu(w)\): the Wick expression has only coefficient factors.
+- \(dX^\mu(z)e^{ikX(w)}\): the Wick expression contains the coefficient
+  factors and the surviving exponential operator.
+- \(e^{ikX(z)}e^{iqX(w)}\): the Wick expression contains the Green-kernel
+  coefficient factor and the surviving exponential operators.
+- \(dX^\mu(z)F(X(w))\): the Wick expression contains the coefficient/action
+  factor and the surviving profile-side local data represented by the
+  preset-authored expression.
+
+Thus the generic pair result should be a stream of complete Wick-expression
+terms:
+
+#+begin_src zig
+emitWickTermStart(event)
+emitWickScalar(factor)
+emitWickCoordinate(factor)
+emitWickTensor(factor)
+emitWickAction(factor)
+emitWickResidualOperator(op_or_ref)
+emitWickTermEnd()
+#+end_src
+
+The residual operator event is still opaque.  It can initially be a compact
+reference to an existing input operator, and later become a generated local
+operator handle if a rule produces a genuine replacement.  The correlator may
+thread the residual expression into the branch state, but it must not inspect
+why those residual operators are present.
+
+The first implementation may encode residual expressions compactly, but the
+conceptual API remains: Wick returns an expression.
+
+The returned expression may contain normal-ordered products.  The correlator
+implementation must know how to carry, expand, and recurse through
+normal-ordered products as generic local-expression structure.  It must not
+special case the fields inside the product, but it must preserve operator
+ordering faithfully.  This is also where the later fermion-sign implementation
+connects: signs come from moving operator occurrences through ordered
+residual/normal-ordered products, not from ad-hoc sector-specific branches in
+the correlator.
+
+The branch state must therefore track operator occurrences, not merely
+operator kinds or input array indices.  A residual reference should identify a
+specific occurrence.  If a Wick-expression term returns a normal-ordered
+product, that product contributes an ordered occurrence range to the residual
+expression.  Pair-used bookkeeping and future fermion signs must be keyed by
+occurrences, because two identical local operators in the same input are still
+different Wick targets.
+
+There is one bookkeeping point that remains generic: if a Wick-expression term
+returns the same pair as residual operators, the correlator must not apply the
+same primitive pair operation to that same occurrence again.  This is needed
+for exponential-type rules and is independent of the concrete CFT.  Track
+used pair interactions in the branch frame; do not special case exponentials.
+
+* Pair Sink Contract
+
+The pair sink is the only way a pair operation contributes to a branch.  It
+should receive:
+
+#+begin_src zig
+emitWickTermStart(event)
+emitWickScalar(factor)
+emitWickCoordinate(factor)
+emitWickTensor(factor)
+emitWickAction(factor)
+emitWickResidualOperator(op_or_ref)
+emitWickTermEnd()
+#+end_src
+
+The generic correlator may store or forward these factors, but it may not
+switch on their physics.  It should not ask whether a scalar is \(\alpha'\),
+whether a coordinate factor is a logarithm or Green function, whether a tensor
+factor is a metric or projector, or whether an action is a profile
+derivative.  Those are coefficient-layer and simplifier concerns.
+
+Current emitted factor families already cover:
+
+- structured scalar monomials, including rational factors, \(i\)-powers, and
+  named atoms such as \(\alpha'\);
+- coordinate powers, logarithms, named Green kernels, and Green-exponential
+  factors;
+- tensor factors such as metrics, momentum-index contractions, momentum
+  pairs, and config-backed projector variants;
+- action factors for profile derivatives and projected profile derivatives.
+
+This is broad enough for the implemented free boson, its disk/boundary
+extension, and the \(bc\) preset.  Future CFTs should extend the factor
+vocabulary only when a new primitive factor cannot be expressed through this
+stream.
+
+* Zero-Mode Sink Contract
+
+The base case is a separate tactic operation.  The correlator calls it after a
+branch has no more allowed pair operations or after the branch deliberately
+leaves residual operators to zero modes.
+
+The zero-mode call is:
+
+#+begin_src zig
+Tactic.emitZeroModeBaseCase(config_ptr, ops, residual_expr, base_sink) !bool
+#+end_src
+
+It returns =false= when the residual operators are not a valid base case.  In
+that case the branch vanishes.  It emits =emitZeroModeBaseEnd()= only after
+the residual view has been fully consumed by configured zero-mode rules.
+
+The generic correlator passes an opaque residual expression view.  For the
+current implementation this can be adapted to the existing =residual_indices=
+helper when the residual expression only references input operators.  The
+correlator may not inspect why the base case succeeds or fails.
+
+Current zero-mode capability includes:
+
+- \(bc\) top-form saturation by three \(c\)-jets, including derivative jets
+  such as \(c\,\partial c\,\partial^2 c\);
+- free-boson momentum-conservation factors with the appropriate \(2\pi\)
+  powers;
+- Dirichlet phase data from fixed-position boundary conditions;
+- profile zero-mode factors for position-space, Fourier, and polynomial/RNC
+  profile presentations.
+
+The generic correlator must not emit string-coupling factors, surface
+normalizations, or Chan-Paton traces by itself.  If a factor belongs to the
+zero-mode or boundary data, it must come from the selected tactic/config.
+
+* Current CFT Definition Capabilities
+
+The present CFT definition already gives the correlator enough structural
+data to start the Wick tactic once Wick-expression residual emission is added.
+
+Implemented and available:
+
+- compact root API through =cft.FreeBoson=, =cft.Bc=, =cft.product=, and
+  =cft.boundary=;
+- local operator builders that produce =kernel.Call.LocalOp= with compact
+  kind ids, insertion labels, and out-of-line label spans;
+- =kernel.Call.MultiOp= as a collection of local operators plus immutable
+  labels;
+- enough compact local-operator structure to build occurrence views over a
+  =MultiOp= without copying operator payloads;
+- generated sphere and disk configs;
+- product composition of rule slices;
+- boundary extension of a bulk CFT without changing the bulk definition;
+- Neumann/Dirichlet projector handles and Chan-Paton stack handles stored as
+  config-backed values;
+- compile-time generated Wick-rule pair indices for generated configs;
+- primitive pair Wick emission for implemented free-boson and \(bc\) pairs;
+- coordinate derivative action on powers/logs/Green-kernel factors;
+- profile derivative and projected-profile derivative action factors;
+- zero-mode base-case emission for current free-boson and \(bc\) presets.
+
+Still missing before a real full correlator:
+
+- Wick-expression residual operator emission, as described above;
+- recursive branch enumeration using the residual expressions returned by pair
+  terms and once-only persistent pair interactions;
+- stable occurrence identity for input operators and residual operators,
+  including occurrences inside normal-ordered products;
+- normal-ordered product traversal and residual ordering, so future fermion
+  signs are computed from the same occurrence ordering used by Wick recursion;
+- a compact branch accumulator that can multiply pair factors without
+  materializing the full expression sum;
+- a final correlator output sink vocabulary;
+- parity/sign metadata and the branch sign algorithm for fermionic sectors;
+- tests that prove non-overlap, zero-mode survival, and profile/exponential
+  behavior.
+
+* First Wick Algorithm
+
+The first implementation should be a streaming branch engine.
+
+1. Build a compact branch frame over the input operator occurrences.
+2. Select a pair of local-operator occurrences that the tactic can try.
+3. Call =Tactic.emitPairTerms= with an accumulator sink.
+4. For each primitive pair term:
+   - append emitted factors to the branch coefficient;
+   - splice the emitted residual local expression into the branch residual
+     state at the occurrence positions selected by the pair, not at the end of
+     the branch;
+   - preserve normal-ordered product structure and occurrence order;
+   - record persistent pair interactions so exponential-type rules are not
+     repeated on the same occurrence pair;
+   - recurse without allocating a full expression tree.
+5. When no more pair operation is available, call
+   =Tactic.emitZeroModeBaseCase= on the ordered residual view.
+6. If the base case succeeds, stream the accumulated factors plus the
+   zero-mode factors to the final sink.
+
+Simplification must be a downstream filter.  The correlator streams final
+terms; it does not collect all branches to simplify them.
+
+The first pair-selection heuristic can be simple.  Correctness is more
+important than clever ordering.  After correctness, we can optimize by asking
+the tactic for cheap pair availability using the generated pair index, still
+without exposing rule internals.
+
+* No Theory-Specific Scope In Correlator
+
+Do not add any of the following to [[id:20260603T094138.285453][Correlators]]:
+
+- imports of concrete preset files;
+- switches on free-boson, \(bc\), RNS, heterotic, Narain, pure-spinor, or NLSM
+  operator kind names;
+- surface objects such as sphere, disk, annulus, torus, or Mobius strip;
+- boundary-condition objects;
+- profile-presentation logic;
+- projectors, Chan-Paton factors, cocycles, GSO data, picture number logic, or
+  spin-structure logic;
+- pure-spinor constraints, equations of motion, regularization choices, or
+  string-field-theory vertex data;
+- runtime Wick-rule lookup tables.
+
+Those belong either in CFT definition/preset generation, in the selected
+compiled config, or in client layers built above the correlator.
+
+The correlator is a high-performance generic executor.  Its only physics
+input is the opaque tactic supplied by the generated CFT.
+
+* Performance Requirement
+
+The benchmark target is not a formal shorthand or partially factored answer.
+For cases where =prototype-string-code/= currently takes more than one second,
+the Zig correlator must produce the fully expanded output with all pairings
+explicitly computed, no hidden pairing shorthands, and no shortcut objects
+standing in for an expanded result.  When the prototype applies, the expanded
+Zig output must be equivalent to the prototype output.
+
+The speed target for those cases is at least \(10^4\) faster than the
+prototype, with negligible peak live memory relative to the expanded output
+stream.  In practice this means:
+
+- stream terms as soon as they are complete;
+- keep only branch-local scratch and small factor spans live;
+- never materialize the full pairing sum merely to simplify it later;
+- make simplification an optional downstream filter;
+- specialize the hot path with =comptime= tactic data rather than runtime
+  rule dispatch.
+
+* Implementation Pitfalls
+
+These are the places where an implementation can easily violate the design:
+
+- Do not implement another diagnostic "emit every pair" loop.  The correlator
+  must recursively compose pair results into branches.
+- Do not model the residual state as just a consumed bitset.  Wick returns an
+  expression, and that expression can contain residual operators and
+  normal-ordered products.
+- Do not append residual operators at the end of a branch.  Replacement
+  happens at occurrence positions and must preserve normal-ordering structure.
+- Do not key repeated-pair avoidance by operator kind or label value.  It must
+  be keyed by occurrence identity.
+- Do not let the zero-mode base case see the original input when the branch
+  residual expression has changed.
+- Do not use =residual_indices= as the long-term generic API.  It is only a
+  compatibility adapter for residual expressions made of original input
+  occurrences.
+- Do not allocate one expression tree per branch.  Use scratch spans and reset
+  lengths during backtracking.
+- Do not put simplification, tensor reduction, or normal-form policy inside
+  the recursive correlator.  Those are output filters or coefficient/tensor
+  services.
+- Do not move this algorithm into preset shared runtime.  Preset shared
+  runtime may provide the tactic adapter; the generic branch engine belongs to
+  [[id:20260603T094138.285453][Correlators]].
+
+* Tests To Add With The Implementation
+
+The tests should protect concepts, not syntax.
+
+- \(dX dX\) on the sphere emits one final term with no residual local
+  operators from the pair.
+- \(dX e^{ikX}\) emits the derivative coordinate/tensor factors while the
+  exponential remains visible to the zero-mode base case.
+- \(e^{ikX}e^{iqX}\) emits a Green-exponential pair factor without consuming
+  either exponential, and the pair is applied once.
+- a normal-ordered product preserves occurrence order through Wick recursion.
+- boundary free-boson pair terms resolve config-backed Neumann/Dirichlet
+  projectors without correlator-side projector logic.
+- \(bc\) sphere base cases distinguish saturated from unsaturated
+  \(c\)-ghost zero modes.
+- a four-operator input recursively composes Wick-expression branches, rather
+  than independently emitting every pair event.
+
+* Sign-Off Points
+
+Before coding, the domain decisions I need sign-off on are:
+
+1. For the first implementation, is a residual-operator event that references
+   existing input operators enough, with genuine replacement operators left
+   for a later extension?
+2. For future profile replacement behavior, should replacement residuals be
+   emitted as new local-operator handles, or can all first-pass profile changes
+   remain coefficient/action factors plus existing residual operators?
+3. Where should parity metadata live in generated CFT data so the correlator
+   can compute fermion signs without knowing sector names?
+4. Should the first implementation expose a cheap =canPair= tactic query, or
+   simply call =emitPairTerms= and use the emitted count?
+
+These are algorithm-shape questions.  None should introduce a
+theory-specific branch inside the generic correlator.

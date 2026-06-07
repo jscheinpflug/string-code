@@ -1,0 +1,69 @@
+:PROPERTIES:
+:ID:       20260604T083119.372970
+:END:
+#+title: Coefficient
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/expressions/coefficient.zig :mkdirp yes
+
+#+interface:
+
+#+begin_src zig
+const tensor = @import("tensor-code");
+#+end_src
+
+A coefficient is a rational function multiplied by tensor structures from [[id:20260605T075909.433647][Tensor-Code]].
+#+begin_src zig
+/// A coefficient is a sum of rational functions multiplied by a tensor structure
+pub const Coeff = struct {
+    summands: []const CoeffSummand,
+};
+
+const CoeffSummand = struct {
+    rational_function: RationalFunction,
+    tensor_structure: tensor.symmetry.TensorStructure,
+};
+
+#+end_src
+
+A rational function can be written as a product of polynomial factors raised to a power.
+#+begin_src zig
+const RationalFunction = struct {
+    factors: []const Factor,
+};
+
+const Factor = struct {
+    base: Polynomial,
+    exponent: i16,
+};
+#+end_src
+
+A polynomial is a sum of monomial terms.
+
+#+begin_src zig
+const Polynomial = struct {
+    terms: []const PolynomialTerm,
+};
+
+const PolynomialTerm = struct {
+    monomial_coefficient: Scalar,
+    monomial: Monomial,
+};
+
+const Scalar = f32;
+
+const Monomial = struct {
+    terms: []const MonomialTerm,
+};
+
+const MonomialTerm = struct {
+   variable: Variable,
+   power: u16,
+};
+#+end_src
+
+Variables are internally assigned a numeric identifier.
+
+#+begin_src zig
+/// Variables are internally assigned numeric identifiers
+pub const Variable = u32;
+#+end_src

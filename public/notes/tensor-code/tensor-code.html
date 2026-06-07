@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor-Code</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor-Code</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org774ebb1">Public API Glossary</a></li>
+</ul>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">API</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#SimpleLieAlgebra"><code>SimpleLieAlgebra = symmetry.SimpleLieAlgebra</code></a></dt>
+<dd>SimpleLieAlgebra stores the simple family and rank.</dd>
+<dt><a href="#LieFamily"><code>LieFamily = symmetry.LieFamily</code></a></dt>
+<dd>LieFamily names the supported simple Lie families.</dd>
+<dt><a href="#QuantumNumbers"><code>QuantumNumbers = symmetry.QuantumNumbers</code></a></dt>
+<dd>QuantumNumbers is the tensor-product list of representation ids.</dd>
+<dt><a href="#RepresentationId"><code>RepresentationId = symmetry.RepresentationId</code></a></dt>
+<dd>RepresentationId names a representation in a representation store.</dd>
+<dt><a href="#TensorStructure"><code>TensorStructure = symmetry.TensorStructure</code></a></dt>
+<dd>TensorStructure stores simple built-in tensor structures.</dd>
+<dt><a href="#AlgebraHandle"><code>AlgebraHandle = store.AlgebraHandle</code></a></dt>
+<dd>AlgebraHandle names a registered Lie algebra in a tensor context.</dd>
+<dt><a href="#IrrepHandle"><code>IrrepHandle = store.IrrepHandle</code></a></dt>
+<dd>IrrepHandle names an abstract irreducible representation.</dd>
+<dt><a href="#RealizationHandle"><code>RealizationHandle = realization.RealizationHandle</code></a></dt>
+<dd>RealizationHandle names a concrete index realization of an irrep.</dd>
+<dt><a href="#RealizationChannel"><code>RealizationChannel = realization.RealizationChannel</code></a></dt>
+<dd>RealizationChannel selects one irrep copy inside a realization product.</dd>
+<dt><a href="#BasisHandle"><code>BasisHandle = coupling.BasisHandle</code></a></dt>
+<dd>BasisHandle names a generated invariant basis.</dd>
+<dt><a href="#InvariantHandle"><code>InvariantHandle = coupling.InvariantHandle</code></a></dt>
+<dd>InvariantHandle names one invariant inside a basis.</dd>
+<dt><a href="#Context"><code>Context = context.Context</code></a></dt>
+<dd>Context is an opaque handle to tensor-code stores and caches.</dd>
+<dt><a href="#ContextOptions"><code>ContextOptions = context.ContextOptions</code></a></dt>
+<dd>ContextOptions configures algebra and rendering defaults.</dd>
+<dt><a href="#AlgebraConventions"><code>AlgebraConventions = root_data.AlgebraConventions</code></a></dt>
+<dd>AlgebraConventions selects configurable exact-algebra normalizations.</dd>
+<dt><a href="#AlgebraSpec"><code>AlgebraSpec = store.AlgebraSpec</code></a></dt>
+<dd>AlgebraSpec describes a requested algebra before it is interned.</dd>
+<dt><a href="#IrrepSpec"><code>IrrepSpec = store.IrrepSpec</code></a></dt>
+<dd>IrrepSpec describes a requested representation before it is interned.</dd>
+<dt><a href="#ExternalLeg"><code>ExternalLeg = realization.ExternalLeg</code></a></dt>
+<dd>ExternalLeg describes a public invariant leg with named free indices.</dd>
+<dt><a href="#RealizationSpec"><code>RealizationSpec = realization.RealizationSpec</code></a></dt>
+<dd>RealizationSpec describes a primitive or projected external index model.</dd>
+<dt><a href="#InvariantBasisRequest"><code>InvariantBasisRequest = coupling.InvariantBasisRequest</code></a></dt>
+<dd>InvariantBasisRequest is the CFT-facing request for invariant tensors.</dd>
+<dt><a href="#TensorExpansionTerm"><code>TensorExpansionTerm = coupling.TensorExpansionTerm</code></a></dt>
+<dd>TensorExpansionTerm stores a CFT coefficient attached to one invariant id.</dd>
+<dt><a href="#RenderOptions"><code>RenderOptions = rendering.RenderOptions</code></a></dt>
+<dd>RenderOptions controls streamed invariant rendering.</dd>
+<dt><a href="#EvalOptions"><code>EvalOptions = rendering.EvalOptions</code></a></dt>
+<dd>EvalOptions controls component evaluation of one invariant.</dd>
+<dt><a href="#SymbolicTerm"><code>SymbolicTerm = rendering.SymbolicTerm</code></a></dt>
+<dd>SymbolicTerm stores one streamed coefficient times symbolic atoms.</dd>
+<dt><a href="#SymbolicAtom"><code>SymbolicAtom = rendering.SymbolicAtom</code></a></dt>
+<dd>SymbolicAtom stores one symbolic invariant contraction atom.</dd>
+<dt><a href="#TensorExprId"><code>TensorExprId = kernel.TensorExprId</code></a></dt>
+<dd>TensorExprId names a tensor expression stored by tensor-code.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+This module handles finite-dimensional representation data for the symmetry
+algebras used by the other modules.  For a Lie algebra \(\mathfrak g\), the
+central problem is to construct bases of
+\[
+  \operatorname{Hom}_{\mathfrak g}
+  \left(T,\;R_1\otimes\cdots\otimes R_k\right),
+\]
+usually with \(T=\mathbf 1\).  These bases are Clebsch-Gordan data and
+invariant tensors.  Concrete index notation, such as gamma matrices, Young
+symmetrizers, metrics, epsilons, or structure constants, is a rendering layer
+over this representation-theoretic basis.
+</p>
+
+<p>
+The public module exposes named declarations directly.  Source files such as
+<a href="/notes/tensor-code/symmetry.html">Symmetry</a> and <a href="/notes/tensor-code/kernel.html">Tensor Kernel</a>
+organize implementation and prose, but clients should import this node and use
+the individual public declarations below.  The caller-facing object is <code>Context</code>:
+it registers algebras, irreps, and realizations, then returns compact handles
+for invariant bases and rendered/evaluated output streams.
+</p>
+
+<a id="SimpleLieAlgebra"></a>
+<a id="LieFamily"></a>
+<a id="QuantumNumbers"></a>
+<a id="RepresentationId"></a>
+<a id="TensorStructure"></a>
+<a id="AlgebraHandle"></a>
+<a id="IrrepHandle"></a>
+<a id="RealizationHandle"></a>
+<a id="RealizationChannel"></a>
+<a id="BasisHandle"></a>
+<a id="InvariantHandle"></a>
+<a id="Context"></a>
+<a id="ContextOptions"></a>
+<a id="AlgebraConventions"></a>
+<a id="AlgebraSpec"></a>
+<a id="IrrepSpec"></a>
+<a id="ExternalLeg"></a>
+<a id="RealizationSpec"></a>
+<a id="InvariantBasisRequest"></a>
+<a id="TensorExpansionTerm"></a>
+<a id="RenderOptions"></a>
+<a id="EvalOptions"></a>
+<a id="SymbolicTerm"></a>
+<a id="SymbolicAtom"></a>
+<a id="TensorExprId"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org85cfa4f"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">context</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"context.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coupling</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"coupling.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"kernel.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"realization.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rendering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rendering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"root-data.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// SimpleLieAlgebra stores the simple family and rank.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SimpleLieAlgebra</span> = symmetry.SimpleLieAlgebra;
+<span style="color: #e0d3b9; font-style: italic;">/// LieFamily names the supported simple Lie families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LieFamily</span> = symmetry.LieFamily;
+<span style="color: #e0d3b9; font-style: italic;">/// QuantumNumbers is the tensor-product list of representation ids.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumNumbers</span> = symmetry.QuantumNumbers;
+<span style="color: #e0d3b9; font-style: italic;">/// RepresentationId names a representation in a representation store.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RepresentationId</span> = symmetry.RepresentationId;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorStructure stores simple built-in tensor structures.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorStructure</span> = symmetry.TensorStructure;
+
+<span style="color: #e0d3b9; font-style: italic;">/// AlgebraHandle names a registered Lie algebra in a tensor context.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraHandle</span> = store.AlgebraHandle;
+<span style="color: #e0d3b9; font-style: italic;">/// IrrepHandle names an abstract irreducible representation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepHandle</span> = store.IrrepHandle;
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationHandle names a concrete index realization of an irrep.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationHandle</span> = realization.RealizationHandle;
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationChannel selects one irrep copy inside a realization product.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationChannel</span> = realization.RealizationChannel;
+<span style="color: #e0d3b9; font-style: italic;">/// BasisHandle names a generated invariant basis.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisHandle</span> = coupling.BasisHandle;
+<span style="color: #e0d3b9; font-style: italic;">/// InvariantHandle names one invariant inside a basis.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InvariantHandle</span> = coupling.InvariantHandle;
+<span style="color: #e0d3b9; font-style: italic;">/// Context is an opaque handle to tensor-code stores and caches.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Context</span> = context.Context;
+<span style="color: #e0d3b9; font-style: italic;">/// ContextOptions configures algebra and rendering defaults.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContextOptions</span> = context.ContextOptions;
+<span style="color: #e0d3b9; font-style: italic;">/// AlgebraConventions selects configurable exact-algebra normalizations.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraConventions</span> = root_data.AlgebraConventions;
+<span style="color: #e0d3b9; font-style: italic;">/// AlgebraSpec describes a requested algebra before it is interned.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraSpec</span> = store.AlgebraSpec;
+<span style="color: #e0d3b9; font-style: italic;">/// IrrepSpec describes a requested representation before it is interned.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepSpec</span> = store.IrrepSpec;
+<span style="color: #e0d3b9; font-style: italic;">/// ExternalLeg describes a public invariant leg with named free indices.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExternalLeg</span> = realization.ExternalLeg;
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationSpec describes a primitive or projected external index model.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationSpec</span> = realization.RealizationSpec;
+<span style="color: #e0d3b9; font-style: italic;">/// InvariantBasisRequest is the CFT-facing request for invariant tensors.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InvariantBasisRequest</span> = coupling.InvariantBasisRequest;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorExpansionTerm stores a CFT coefficient attached to one invariant id.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorExpansionTerm</span> = coupling.TensorExpansionTerm;
+<span style="color: #e0d3b9; font-style: italic;">/// RenderOptions controls streamed invariant rendering.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderOptions</span> = rendering.RenderOptions;
+<span style="color: #e0d3b9; font-style: italic;">/// EvalOptions controls component evaluation of one invariant.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EvalOptions</span> = rendering.EvalOptions;
+<span style="color: #e0d3b9; font-style: italic;">/// SymbolicTerm stores one streamed coefficient times symbolic atoms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SymbolicTerm</span> = rendering.SymbolicTerm;
+<span style="color: #e0d3b9; font-style: italic;">/// SymbolicAtom stores one symbolic invariant contraction atom.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SymbolicAtom</span> = rendering.SymbolicAtom;
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorExprId names a tensor expression stored by tensor-code.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorExprId</span> = kernel.TensorExprId;
+</pre>
+</div>
+
+<p>
+This root block is the public tensor-code API for now.  The compatibility
+exports <code>QuantumNumbers</code>, <code>RepresentationId</code>, and <code>TensorStructure</code> come from
+<a href="/notes/tensor-code/symmetry.html">Symmetry</a>, while <code>TensorExprId</code> comes from
+<a href="/notes/tensor-code/kernel.html">Tensor Kernel</a>.  They exist because CFT data
+structures currently store compact tensor and representation ids.
+</p>
+
+<p>
+The central workflow is:
+</p>
+
+<ol class="org-ol">
+<li>register an algebra with <code>Context.registerAlgebra</code>;</li>
+<li>register abstract irreps by Dynkin labels with <code>Context.registerIrrep</code>;</li>
+<li>optionally register concrete index models with <code>Context.registerRealization</code>;</li>
+<li>request a basis with <code>Context.invariantBasis</code>;</li>
+<li>stream a concrete convention with <code>Context.renderInvariant</code> or
+<code>Context.evaluateInvariant</code>.</li>
+</ol>
+
+<p>
+The constructors are deliberately on the public data records, so callers do not
+need to import implementation helpers:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> tensor.Context.init(allocator);
+<span style="color: #fb4934; font-weight: bold;">defer</span> ctx.deinit();
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.registerIrrep(algebra, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 1 } });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">leg</span> = tensor.ExternalLeg.primitive(spinor, &amp;.{
+    .init(.spinor, <span style="color: #b8bb26; font-style: italic;">"a"</span>),
+});
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.invariantBasis(.{
+    .algebra = algebra,
+    .external_legs = &amp;.{leg},
+});
+</pre>
+</div>
+
+<p>
+Conventions are configurable at context construction:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> tensor.Context.initWithOptions(allocator, .{
+    .algebra_conventions = .{
+        .quadratic_casimir_scale = .{ .numerator = 1, .denominator = 1 },
+    },
+    .default_signature = .complex,
+});
+<span style="color: #fb4934; font-weight: bold;">defer</span> ctx.deinit();
+</pre>
+</div>
+
+<p>
+Helper enums inside requests and render options are intentionally not root
+exports; callers can use inferred literals such as <code>.singlet</code>, <code>.auto</code>,
+<code>.vector</code>, and <code>.complex</code>.  Cache handles, decomposition handles, channel
+handles, stream sources, schema records, and backend capability tables stay
+behind this boundary until a caller needs them.
+</p>
+<div id="outline-container-org774ebb1" class="outline-2">
+<h2 id="org774ebb1">Public API Glossary</h2>
+<div class="outline-text-2" id="text-org774ebb1">
+<ul class="org-ul">
+<li>Lie algebra \(\mathfrak g\): the symmetry algebra, such as \(A_n\), \(D_n\),
+or \(E_8\).  Tensor-code uses \(\mathfrak g\) to decide which tensor
+structures are invariant.</li>
+
+<li>Root datum: the Cartan matrix, simple roots, coroots, and weight lattice
+conventions used internally for \(\mathfrak g\).  CFT code should not handle
+this directly.</li>
+
+<li>Irrep: an irreducible representation of \(\mathfrak g\).  For simple Lie
+algebras this is identified by Dynkin labels, not by dimension.</li>
+
+<li>Dynkin label: the integer highest-weight label of an irrep.  It is the
+stable representation id used by the mathematics layer.</li>
+
+<li>Tensor product decomposition: the expansion
+\[
+  R\otimes S = \bigoplus_T m_T T
+\]
+into irreps \(T\) with multiplicities \(m_T\).  Tensor-code caches this
+compactly; it does not expand component tensors during decomposition.</li>
+
+<li>Multiplicity: the number of independent copies of the same irrep inside a
+product.  A dimension is never enough to distinguish these copies.</li>
+
+<li>Channel: one copy of an irrep inside a tensor product.  If
+\(R\otimes S\) contains two copies of \(T\), those two copies have the same
+irrep but different channel copy labels.</li>
+
+<li>Realization: a concrete index model for an irrep.  A realization may be
+primitive, such as one spinor index, or constrained, such as a traceless or
+projected tensor product.</li>
+
+<li>Backend: the internal family-specific capability table described in
+<a href="/notes/tensor-code/backend.html">Tensor Backend</a>.  It supplies decomposition,
+local projector, primitive invariant, and rendering routines for a Lie
+family without changing the public request flow.</li>
+
+<li>Primitive realization: a representation whose public indices are already
+the natural storage indices, such as a vector index, spinor index,
+fundamental index, or adjoint index.</li>
+
+<li>Constrained realization: a representation embedded in a larger ambient
+tensor product, such as the \(144\subset 10\otimes 16\) gamma-traceless
+channel.  Tensor-code records the boundary projector once and then treats the
+leg as the irrep, not as the full ambient product at every internal step.</li>
+
+<li>Index: a caller-named free slot in a realization.  An index name is not a
+representation by itself.</li>
+
+<li>External leg: one field/operator tensor slot supplied by a caller.  It has
+an irrep, a realization, and named free indices.</li>
+
+<li>Intertwiner: a \(\mathfrak g\)-equivariant map between representations.
+Clebsch-Gordan coefficients are component formulas for such maps.</li>
+
+<li>Invariant: a basis vector in
+\[
+  \operatorname{Hom}_{\mathfrak g}
+  \left(T,\;R_1\otimes\cdots\otimes R_k\right).
+\]
+Usually \(T=\mathbf 1\), so the invariant is a singlet tensor.</li>
+
+<li>Coupling path: the compact internal description of one invariant as a tree
+of local Clebsch-Gordan maps.</li>
+
+<li>Projector: an idempotent intertwiner selecting one channel or constrained
+realization from an ambient product.  Projectors may be rendered as named
+operators, block formulas, or fully expanded symbolic terms.</li>
+
+<li>Renderer: the procedure that turns an invariant id into concrete notation,
+such as \(\delta\)'s, \(\epsilon\)'s, Young symmetrizers, gamma matrices, or
+structure constants.</li>
+
+<li>Signature convention: the metric and Clifford-algebra convention used when
+rendering or evaluating components.  Complex, Euclidean, and Lorentzian
+signatures are conventions on the same abstract representation data.</li>
+
+<li>Tensor expansion: the object CFT code carries: rational-function ids times
+tensor invariant ids.  It does not require expanded tensor formulas.</li>
+</ul>
+</div>
+</div>
+</div>
+</body>
+</html>

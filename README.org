@@ -1,0 +1,273 @@
+#+title: String-Code Notes — Publishing Workflow
+
+* Overview
+
+String-Code is a literate Zig programming system for worldsheet string theory calculations. Org-roam source files in =org/= serve as the single source of truth: code blocks are tangled to =src/= as Zig source, HTML pages with syntax highlighting and aggregated API references are published to =public/notes/=, a combined PDF is compiled via LaTeX with engrave-faces color rendering, and an interactive knowledge graph is built from the org-roam database. The project is organized into six modules — CFT-Code, Tensor-Code, On-Shell-Code, SFT-Code, NLSM-Code, and Pure-Spinor-Code — each covering a distinct area of string theory computation.
+
+* Project Layout
+
+#+begin_src
+string-code/
+  org/                    — source org files (edit these)
+    overview.org           — project overview and bibliography
+    ordering.org           — root table of contents, links to subdirectories
+    refs.bib               — citations (org-cite/biblatex)
+    cft-code/
+      cft-code.org         — main module file with #+auto_tangle: t
+      ordering.org         — submodule ordering
+      normal-ordering/
+      ope/
+      correlators/
+      operators/
+    tensor-code/
+    on-shell-code/
+    sft-code/
+    nlsm-code/
+    pure-spinor-code/
+  src/                    — tangled Zig source (generated, do not edit)
+  public/                 — published website (generated)
+    index.html             — main table of contents
+    notes/                 — individual note pages
+    api/                   — aggregated API reference
+    graph/                 — org-roam interactive knowledge graph
+    all-notes.pdf          — combined PDF
+    style.css, sidebar.js, theme.js
+  publish/                — publishing pipeline scripts
+    publish.el             — HTML export, API injection, index generation
+    master-gen.el          — assembles all-notes-master.org for PDF
+    pdf-config.el          — LaTeX/engrave-faces color and typography config
+    roam-sync.el           — syncs org-roam database for graph build
+    style.css, sidebar.js, theme.js — website styling and UI
+  publish.sh              — main build script (entry point)
+  roam.el                 — Emacs commands (my/roam-new, my/update-api-section, etc.)
+  README.org              — this file
+  .publish-logs/          — build logs directory
+#+end_src
+
+* Writing Notes
+
+** The Three File Types
+
+There are three kinds of files in =org/=, each with a distinct role.
+
+- *Note files* (e.g. =ope/ope-intro.org=) — prose and math with optional non-tangled code snippets. Each has a =:PROPERTIES:= block with an =:ID:= (timestamp format) assigned by org-roam. Math uses =\(...\)= for inline and =\[...\]= or =\begin{equation}= for display; rendered with KaTeX. Cross-references use =[[id:UUID][Text]]= for inter-note links and =[[name][~sig~]]= for API entry links.
+
+- *Code files* (e.g. =cft-code/cft-code.org=) — literate Zig source. Must include:
+  #+begin_src org
+  #+auto_tangle: t
+  #+PROPERTY: header-args:zig :tangle PATH :mkdirp yes
+  #+end_src
+  Zig functions and types preceded by =///= doc comments and declared =pub= are auto-collected into an =* API= section on publish. Use =:tangle no= on example blocks to display code without tangling it.
+
+- *Ordering files* (=ordering.org=) — pure navigation, no prose content, no org-roam ID. Each entry is a single top-level link:
+  #+begin_src org
+  * [[file:subdir/][Module Name]]
+  * [[id:UUID][Note Title]]
+  #+end_src
+  The root =org/ordering.org= determines the top-level TOC order and PDF chapter structure. Sub-folder =ordering.org= files follow the same structure and are auto-created when a folder contains notes.
+
+** overview.org
+
+=org/overview.org= is an optional project-level prose introduction. It becomes the opening section of the combined PDF. Place the bibliography declaration at the top:
+
+#+begin_src org
+#+bibliography: refs.bib
+#+end_src
+
+** Citations
+
+Add entries to =org/refs.bib= in BibTeX format. Reference them in any org file with org-cite syntax:
+
+#+begin_src org
+[cite:@key]
+#+end_src
+
+Place the bibliography at the end of a file with:
+
+#+begin_src org
+#+print_bibliography:
+#+end_src
+
+HTML export uses the numeric-html processor (=[1]=, =[2]=, ...). PDF export uses biblatex.
+
+** Creating Files with my/roam-new
+
+=my/roam-new= (defined in [[file:roam.el][roam.el]]) creates note, code, or ordering files with the correct template and automatically appends a link to the parent =ordering.org=. Invoke it from Emacs with =M-x my/roam-new=.
+
+Additional commands in =roam.el=:
+
+- =my/roam-note-to-code= — converts an existing note file into a tangle-enabled code file.
+- =my/roam-rename= — updates a note's title and refreshes the org-roam database entry.
+- =my/update-api-section= — re-scans =pub= declarations and refreshes the =* API= section in a code file.
+- =my/check-links= — validates all =id:= and =file:= links across the =org/= tree.
+- =my/roam-normalize-orderings= — audits all =ordering.org= files to ensure every note in a directory is linked and links point to existing files.
+
+* Building
+
+The entry point for all build operations is [[file:publish.sh][publish.sh]].
+
+| Command                                       | Effect                                              |
+|-----------------------------------------------+-----------------------------------------------------|
+| =bash publish.sh=                             | Full build: tangle + HTML + PDF + graph             |
+| =bash publish.sh --nopdf=                     | Tangle + HTML + graph (skip PDF)                    |
+| =bash publish.sh --nohtml=                    | Tangle + PDF only (skip HTML)                       |
+| =bash publish.sh --nograph=                   | Tangle + HTML + PDF (skip graph and DB sync)        |
+| =bash publish.sh --watch=                     | Watch mode: rebuild on =.org= changes (HTML + PDF, no graph) |
+| =bash publish.sh --watch --nopdf=             | Watch mode: HTML-only rebuilds                      |
+
+To serve the site locally after building:
+
+#+begin_src sh
+python3 -m http.server 8000 -d public
+#+end_src
+
+To enable full-text search, install [[https://pagefind.app][pagefind]] before building:
+
+#+begin_src sh
+npm install -g pagefind
+# or
+cargo install pagefind
+#+end_src
+
+Build logs are written to =.publish-logs/=.
+
+* Pipeline Details
+
+** Phase 1 — Flag Parsing and Initialization
+
+=publish.sh= parses =--nograph=, =--nopdf=, =--nohtml=, and =--watch= flags to determine which phases to skip, then locates =org/=, =ordering.org=, =overview.org=, and the org-roam database.
+
+** Phase 2 — Code Tangling
+
+All =.org= files containing =#+auto_tangle: t= are discovered and tangled. Code blocks are extracted to the paths specified in their =header-args= and written under =src/=. The =src/= tree is generated output; do not edit files there directly.
+
+** Phase 3 — HTML Export
+
+[[file:publish/publish.el][publish.el]] runs in Emacs batch mode and:
+
+- Exports every note to =public/notes/= as a self-contained HTML page with collapsible sidebar navigation.
+- Injects citation markup using the org-cite numeric-html processor.
+- Scans code files for =pub= Zig declarations preceded by =///= doc comments and injects them into the file's =* API= section; the aggregated API reference is written to =public/api/=.
+- Generates =public/index.html= as the main table of contents, reflecting the order in =ordering.org=.
+- Applies Gruvbox syntax highlighting via htmlize.
+
+If pagefind is installed, a search index is built in =public/pagefind/= at this stage.
+
+** Phase 4 — PDF Generation
+
+[[file:publish/master-gen.el][master-gen.el]] assembles =all-notes-master.org=:
+
+1. =org/overview.org= is included first, becoming the introductory section.
+2. =org/ordering.org= is followed recursively — each linked sub-=ordering.org= contributes a chapter, and each linked note becomes a section within it.
+3. LaTeX labels and cross-reference names are injected for every =pub= Zig block.
+
+[[file:publish/pdf-config.el][pdf-config.el]] configures the LaTeX backend:
+
+- *engrave-faces* provides code syntax highlighting in the PDF using doom-gruvbox colors, matching the HTML theme.
+- *biblatex* processes citations and renders the bibliography.
+- Typography packages (=geometry=, =booktabs=, =enumitem=) set page layout and list/table styling.
+
+The master org file is exported to LaTeX and compiled to =public/all-notes.pdf=.
+
+** Phase 5 — Org-Roam Graph
+
+Unless =--nograph= is passed:
+
+1. [[file:publish/roam-sync.el][roam-sync.el]] force-syncs the org-roam database (=org-roam.db= or =org-roam.sqlite=) so all nodes and links are indexed.
+2. =publish-org-roam-ui= builds the interactive knowledge graph from the synced database.
+3. Graph output is copied to =public/graph/= and shared assets (=_next=, =static=, etc.) are copied to =public/=.
+
+** Watch Mode
+
+With =--watch=, =publish.sh= monitors =org/= for =.org= file changes and reruns tangle → HTML → PDF → DB sync on each change. The graph is not rebuilt in watch mode.
+
+* Adding a New Section
+
+Follow these steps to add a new module or subsection to the project.
+
+1. Create the directory under =org/=:
+   #+begin_src sh
+   mkdir org/my-new-section/
+   #+end_src
+
+2. Create an =ordering.org= for the new directory (either manually or via =my/roam-new=):
+   #+begin_src org
+   #+title: My New Section
+   #+end_src
+   This file has no =:ID:= property and no prose — only =* [[...][...]]= links added as you create notes.
+
+3. Link the new section from its parent =ordering.org= (e.g. =org/ordering.org=):
+   #+begin_src org
+   * [[file:my-new-section/][My New Section]]
+   #+end_src
+
+4. Create notes inside =org/my-new-section/= using =M-x my/roam-new=. Each note receives an org-roam =:ID:= and is automatically appended to =org/my-new-section/ordering.org=.
+
+5. To add a code file with tangle output, use =my/roam-new= and select the code template, or convert an existing note with =my/roam-note-to-code=. Set the tangle path in the file's =PROPERTY= line:
+   #+begin_src org
+   #+PROPERTY: header-args:zig :tangle ../../src/my-new-section/main.zig :mkdirp yes
+   #+end_src
+
+6. Run =bash publish.sh= to tangle, export, and publish the new content.
+
+* Key Files
+
+| File                         | Role                                                                                                 |
+|------------------------------+------------------------------------------------------------------------------------------------------|
+| [[file:publish.sh][publish.sh]]                   | Main build script. Orchestrates tangle, HTML, PDF, and graph phases; parses flags; manages logs.    |
+| [[file:publish/publish.el][publish/publish.el]]           | HTML export engine. Handles org-cite (numeric-html), API injection, index and API page generation, Gruvbox highlighting. |
+| [[file:publish/master-gen.el][publish/master-gen.el]]        | PDF master file generator. Assembles =all-notes-master.org= from =overview.org= and =ordering.org= chains; injects LaTeX labels for Zig pub blocks. |
+| [[file:publish/pdf-config.el][publish/pdf-config.el]]        | LaTeX/PDF export configuration. Sets up engrave-faces with doom-gruvbox colors, biblatex, geometry, booktabs, enumitem. |
+| [[file:publish/roam-sync.el][publish/roam-sync.el]]         | Org-roam database synchronization. Force-syncs the database before graph generation.                |
+| [[file:roam.el][roam.el]]                      | Emacs project commands: =my/roam-new=, =my/roam-note-to-code=, =my/roam-rename=, =my/update-api-section=, =my/check-links=, =my/roam-normalize-orderings=. |
+| [[file:org/overview.org][org/overview.org]]             | Project overview prose; opening section of PDF; contains =#+bibliography: refs.bib=.               |
+| [[file:org/ordering.org][org/ordering.org]]             | Root table of contents. Determines module order in TOC and PDF chapter structure.                    |
+| [[file:org/refs.bib][org/refs.bib]]                 | Shared bibliography (BibTeX). Referenced via =#+bibliography:= in org files; cited with =[cite:@key]=. |
+| [[file:publish/style.css][publish/style.css]]            | Website stylesheet. Page layout, Gruvbox code colors, KaTeX math rendering, light/dark theme colors. |
+| [[file:publish/sidebar.js][publish/sidebar.js]]           | Collapsible sidebar UI behavior. Manages navigation sidebar open/close state on HTML pages.          |
+| [[file:publish/theme.js][publish/theme.js]]             | Light/dark theme toggle. Implements sun/moon button in nav bar; persists preference to localStorage. |
+
+* Emacs Snippets
+
+Two yasnippets for org-mode live in =~/.config/doom/snippets/org-mode/=.  They
+require the =:tools snippets= module in your Doom =init.el=.  After adding or
+editing them, reload with =M-x yas-reload-all=.
+
+** =src= — source block with language chooser
+
+File: =~/.config/doom/snippets/org-mode/src=
+
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: src block
+# key: src
+# --
+#+begin_src `(completing-read "Language: " '("zig" "c" "cpp" "rust" "go" "python" "haskell" "lua" "nix" "sh" "js" "ts" "ocaml" "scheme"))`
+$0
+#+end_src
+#+end_src
+
+Trigger: type =src= then =TAB= in an org buffer.  A =completing-read= prompt
+appears immediately with the language list; pick one and the cursor lands inside
+the block.  The backtick syntax evaluates the Elisp at expansion time, so the
+prompt fires before any text is inserted.
+
+** =zig= — Zig block without prompt
+
+File: =~/.config/doom/snippets/org-mode/zig=
+
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: zig block
+# key: zig
+# --
+#+begin_src zig
+$0
+#+end_src
+#+end_src
+
+Trigger: type =zig= then =TAB=.  Drops a Zig block immediately with the cursor
+inside; no prompt.  Useful when you know the language without thinking about it.
+
+Both snippets intentionally omit =:tangle= — tangling is handled by
+=#+auto_tangle: t= at the file level, not per-block.

@@ -1,0 +1,424 @@
+:PROPERTIES:
+:ID:       20260605T090102.250727
+:END:
+#+title: Theory
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/theory/theory.zig :mkdirp yes
+
+#+interface:
+
+A theory declaration says what it means to specify a CFT or BCFT before any
+runtime correlator is evaluated.  This module is not the executor: it is the
+compact vocabulary of ids, sectors, operator families, conformal structures,
+presentations, Wick and zero-mode rule names, boundary data, and local
+correlator configs used by [[id:20260603T094138.285453][Correlators]] and [[id:20260603T094112.928043][OPE]].  [[id:20260606T150002.000000][CFT Kernel]]
+consumes this data as =comptime= preset data.
+
+#+begin_src zig
+const operators = @import("../expressions/operators.zig");
+const tensor = @import("tensor-code");
+#+end_src
+
+* Identifier Namespace
+
+Most theory objects are referenced by compact integer ids.  Keeping them in
+one namespace avoids a flat module full of unrelated public aliases while
+still making the table layout explicit.
+
+#+begin_src zig
+/// Id groups compact handles used by CFT and BCFT presets.
+pub const Id = struct {
+    const Sector = u16;
+    const Strategy = u16;
+    const StatisticsRule = u16;
+    const SectorPresentation = u16;
+    const ConformalStructure = u16;
+    const QuantumRule = u16;
+    const StrategySupportRule = u16;
+    const WickRuleSet = u16;
+    const Pairing = u16;
+    const InversePairing = u16;
+    const PairingData = u16;
+    const ZeroModeRuleSet = u16;
+    const CorrelatorConfig = u16;
+    const LocalOpeConfig = u16;
+    const CocycleTable = u16;
+    /// FiniteProjection names finite projections used by public basis queries.
+    pub const FiniteProjection = u16;
+    const Lattice = u16;
+    const LatticeVector = u32;
+    /// ModeAlgebra names a mode algebra used by public descendant filters.
+    pub const ModeAlgebra = u16;
+    const ModeActionRule = u16;
+    const LabelSchema = u16;
+    /// LabelSpan names a compact slice of runtime body labels accepted by body builders.
+    pub const LabelSpan = u32;
+    const Extra = u32;
+    const ConventionSet = u16;
+    const WeightRule = u16;
+    const CFT = u16;
+    const LabelMap = u16;
+    const BoundaryCondition = u16;
+    const BoundaryStack = u16;
+    const BoundarySpinData = u16;
+    const ChanPatonMatrixUnit = u32;
+    const Grading = u16;
+};
+#+end_src
+
+* Bulk And Boundary Specifications
+
+The bulk CFT spec owns only bulk data: [[id:20260603T094125.997360][Operators]], sectors, quantum labels,
+presentations, and rule tables.  A BCFT is a separate extension built from
+bulk data plus boundary conditions, boundary stacks, boundary operator
+families, and Wick/zero-mode configs compiled for the boundary problem.
+
+#+begin_src zig
+/// Spec groups bulk CFT and BCFT preset declarations.
+pub const Spec = struct {
+    const Sector = struct {
+        name: []const u8,
+        tactic_preference: []const Id.Strategy,
+        statistics_rule: Id.StatisticsRule,
+        presentations: []const Id.SectorPresentation,
+    };
+
+    /// CFT is the compile-time declaration of a bulk CFT preset.
+    pub const CFT = struct {
+        sectors: []const Sector,
+        bulk_operator_kinds: []const operators.OperatorKind,
+        conformal_structure: Id.ConformalStructure,
+        conformal_structures: []const ConformalStructure,
+        quantum_names: []const Label.QuantumName,
+        label_schemas: []const Label.Schema,
+        conventions: []const Rule.ConventionSet,
+        weight_rules: []const Rule.Weight,
+        quantum_rules: []const Rule.Quantum,
+        statistics_rules: []const Rule.Statistics,
+        strategy_support_rules: []const Rule.StrategySupport,
+        wick_rule_sets: []const Rule.WickSet,
+        pairing_data: []const Rule.PairingData,
+        zero_mode_rule_sets: []const Rule.ZeroModeSet,
+        correlator_configs: []const Runtime.CorrelatorConfig,
+        local_ope_configs: []const Runtime.LocalOpeConfig,
+        cocycle_tables: []const Rule.CocycleTable,
+        presentations: []const Presentation.Sector,
+        finite_projections: []const Rule.FiniteProjection,
+        lattices: []const Presentation.Lattice,
+        mode_algebras: []const Mode.Algebra,
+        mode_action_rules: []const Mode.ActionRule,
+    };
+
+    const ConformalStructure = struct {
+        stress_tensor: Runtime.OperatorRef,
+        susy: WorldsheetSusy,
+        supercurrents: []const Runtime.OperatorRef,
+        r_currents: []const Runtime.OperatorRef,
+    };
+
+    const WorldsheetSusy = enum {
+        none,
+        n1_1,
+        n2_2,
+        n1_chiral,
+        n2_chiral,
+        custom,
+    };
+
+    /// BCFT extends a bulk preset with boundary operator and Wick data.
+    pub const BCFT = struct {
+        name: []const u8,
+        bulk: Id.CFT,
+        boundary_conditions: []const Boundary.Condition,
+        boundary_stacks: []const Boundary.Stack,
+        boundary_stress_tensor: Runtime.OperatorRef,
+        boundary_spin: []const Boundary.SpinData,
+        boundary_operator_kinds: []const operators.OperatorKindId,
+        boundary_changing_kinds: []const Boundary.ChangingKind,
+        wick_rule_sets: []const Rule.WickSet,
+        pairing_data: []const Rule.PairingData,
+        zero_mode_rule_sets: []const Rule.ZeroModeSet,
+        correlator_configs: []const Runtime.CorrelatorConfig,
+        local_ope_configs: []const Runtime.LocalOpeConfig,
+    };
+};
+#+end_src
+
+* Boundary Namespace
+
+Boundary conditions are not part of the bulk CFT.  They enter only when a
+BCFT extension is formed.  Stacks encode direct sums of boundary conditions;
+Chan-Paton multiplicity is label data on boundary bodies.
+
+#+begin_src zig
+/// Boundary groups boundary-condition, stack, and Chan-Paton data.
+pub const Boundary = struct {
+    const Condition = struct {
+        name: []const u8,
+        simple_data: Id.Extra,
+    };
+
+    const Stack = struct {
+        name: []const u8,
+        entries: []const StackEntry,
+    };
+
+    const StackEntry = struct {
+        boundary: Id.BoundaryCondition,
+        multiplicity: u32,
+    };
+
+    /// ChangingKind identifies a boundary-local kind from one condition to another.
+    pub const ChangingKind = struct {
+        from: Id.BoundaryCondition,
+        to: Id.BoundaryCondition,
+        kind: operators.OperatorKindId,
+    };
+
+    const SpinData = struct {
+        id: Id.BoundarySpinData,
+    };
+
+    const ChanPatonLabel = struct {
+        endpoints: ChanPatonEndpoints,
+        factor: ChanPatonFactor,
+    };
+
+    const ChanPatonEndpoints = struct {
+        from_stack: Id.BoundaryStack,
+        to_stack: Id.BoundaryStack,
+        from_entry: u32,
+        to_entry: u32,
+    };
+
+    const ChanPatonFactor = union(enum) {
+        matrix_unit: ChanPatonMatrixUnit,
+        tensor_factor: tensor.TensorExprId,
+    };
+
+    const ChanPatonMatrixUnit = struct {
+        row: u32,
+        col: u32,
+    };
+};
+#+end_src
+
+* Labels And Rules
+
+Labels carry runtime [[id:20260603T094125.997360][operator]] body data such as momenta, picture charge,
+lattice vectors, derivative orders, and Chan-Paton endpoints.  Rule
+declarations name client or preset procedures without storing their large
+payloads here.
+
+#+begin_src zig
+/// Label groups quantum-number and operator-label schema declarations.
+pub const Label = struct {
+    const QuantumName = struct {
+        name: []const u8,
+    };
+
+    /// QuantumFilter constrains one named quantum-number value.
+    pub const QuantumFilter = struct {
+        name: u16,
+        value: i64,
+    };
+
+    const Schema = struct {
+        name: []const u8,
+        fields: []const Field,
+    };
+
+    const Field = struct {
+        name: []const u8,
+        kind: FieldKind,
+    };
+
+    const FieldKind = enum {
+        integer,
+        rational,
+        lattice_vector,
+        tensor_expr,
+        opaque_data,
+    };
+};
+#+end_src
+
+#+begin_src zig
+const Rule = struct {
+    const ConventionSet = struct {
+        name: []const u8,
+    };
+
+    const Weight = struct {
+        name: []const u8,
+    };
+
+    const Quantum = struct {
+        name: []const u8,
+    };
+
+    const Statistics = struct {
+        name: []const u8,
+    };
+
+    const StrategySupport = struct {
+        name: []const u8,
+    };
+
+    const WickSet = struct {
+        name: []const u8,
+        conventions: Id.ConventionSet,
+    };
+
+    const ZeroModeSet = struct {
+        name: []const u8,
+    };
+
+    const CocycleTable = struct {
+        name: []const u8,
+    };
+
+    const FiniteProjection = struct {
+        name: []const u8,
+    };
+
+    const PairingData = struct {
+        sector: Id.Sector,
+        pairing: Id.Pairing,
+        inverse_pairing: Id.InversePairing,
+    };
+};
+#+end_src
+
+* Presentations, Lattices, And Modes
+
+Presentations say how sectors are computed: direct fields, first-order
+systems, [[id:20260606T064118.058500][bosonized]] lattices, current algebras, or abstract conformal data.
+Lattices cover free bosons, RNS bosonized charges, SO(32) bosonization, and
+E8xE8/Narain current-lattice presentations.
+
+#+begin_src zig
+const Presentation = struct {
+    const Sector = struct {
+        sectors: []const Id.Sector,
+        name: []const u8,
+        operator_map: []const Map,
+        lattice: ?Id.Lattice,
+        weight_rule: ?Id.WeightRule,
+        wick_rules: ?Id.WickRuleSet,
+    };
+
+    const Map = struct {
+        from: operators.OperatorKindId,
+        to: operators.OperatorKindId,
+        label_map: Id.LabelMap,
+    };
+
+    const Lattice = struct {
+        name: []const u8,
+        rank: u16,
+        bilinear_form: Id.Extra,
+        cocycles: ?Id.CocycleTable,
+    };
+};
+#+end_src
+
+Modes are stored as operator-body data before evaluation.  This covers
+free-field modes, Virasoro descendants, beta-gamma modes, and Kac-Moody
+current modes for affine-module spectra generated by [[id:20260606T063253.759714][Basis-Generation]].
+
+#+begin_src zig
+const Mode = struct {
+    const Algebra = struct {
+        name: []const u8,
+        generators: []const Generator,
+        action_rule: Id.ModeActionRule,
+    };
+
+    const Generator = struct {
+        name: []const u8,
+        indices: []const IndexSlot,
+        statistics: StatisticsData,
+    };
+
+    const ActionRule = struct {
+        name: []const u8,
+    };
+
+    const IndexSlot = struct {
+        representation: tensor.RepresentationId,
+    };
+
+    const StatisticsData = struct {
+        parity: u1,
+    };
+
+    const Descendant = struct {
+        algebra: Id.ModeAlgebra,
+        generator: u16,
+        mode_number: Runtime.Rational,
+        target: operators.OperatorBodyId,
+        labels: Id.LabelSpan,
+    };
+};
+#+end_src
+
+* Runtime Config Data
+
+Surface and spin-structure declarations compile to small correlator configs.
+The runtime correlator receives only a pointer to such a config; OPE selects
+one of these local configs for sphere or disk computations.
+
+#+begin_src zig
+/// Runtime groups small data passed to generic runtime procedures.
+pub const Runtime = struct {
+    /// CorrelatorConfig selects the Wick and zero-mode rules for a correlator call.
+    pub const CorrelatorConfig = struct {
+        wick_rules: Id.WickRuleSet,
+        zero_modes: Id.ZeroModeRuleSet,
+    };
+
+    /// LocalOpeConfig selects the local correlator model used internally by OPE.
+    pub const LocalOpeConfig = struct {
+        domain: OperatorDomain,
+        support: ChiralSupport,
+        correlator_config: Id.CorrelatorConfig,
+    };
+
+    /// OperatorDomain identifies whether an operator body is bulk or boundary data.
+    pub const OperatorDomain = enum {
+        bulk,
+        boundary,
+        boundary_changing,
+    };
+
+    /// ChiralSupport records the chiral support of candidates and OPE targets.
+    pub const ChiralSupport = enum {
+        holomorphic,
+        antiholomorphic,
+        mixed,
+        boundary,
+    };
+
+    const OperatorRef = struct {
+        kind: operators.OperatorKindId,
+        labels: Id.LabelSpan,
+    };
+
+    /// ConformalWeights stores holomorphic and antiholomorphic weights.
+    pub const ConformalWeights = struct {
+        h: ?Rational,
+        hbar: ?Rational,
+    };
+
+    /// LevelBound limits descendant level in basis or OPE generation.
+    pub const LevelBound = struct {
+        max: Rational,
+    };
+
+    const Rational = struct {
+        numerator: i64,
+        denominator: i64,
+    };
+};
+#+end_src

@@ -1,0 +1,485 @@
+#+title: Operator Design Decision
+
+* Goal
+
+This note records the two main design options for runtime operators.
+The question is:
+
+- should composite free-field operators be first-class runtime operator identities?
+- or should runtime operators stay atomic, with composite structure handled in generated evaluation code?
+
+These are called Option A and Option B below.
+
+* Shared Theory Assumptions
+
+Both options share the same theory-level assumptions.
+
+A theory consists of sectors.
+Each sector defines a finite set of atomic operator kinds.
+
+#+begin_src zig
+pub const Theory = struct {
+    sectors: []const Sector,
+};
+
+pub const Sector = struct {
+    operator_kinds: []const OperatorKind,
+    tactic: CorrelatorTactic,
+};
+
+pub const SectorId = u16;
+pub const OperatorKindId = u16;
+
+pub const OperatorKindRef = struct {
+    sector: SectorId,
+    kind: OperatorKindId,
+};
+
+pub const OperatorKind = struct {
+    holomorphicity: Holomorphicity,
+    field_kind: FieldKind,
+    weights: WeightRule,
+    tensor_type: ?TensorType,
+};
+
+pub const FieldKind = enum {
+    free_field,
+    ordinary_operator,
+};
+
+pub const Holomorphicity = enum {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+pub const ConformalWeights = struct {
+    h: ?coefficient.Scalar,
+    hbar: ?coefficient.Scalar,
+};
+
+pub const WeightRule = union(enum) {
+    fixed: ConformalWeights,
+    computed,
+};
+
+pub const TensorType = enum {
+    scalar,
+    vector,
+};
+
+pub const CorrelatorTactic = enum {
+    abstract,
+    wick,
+};
+#+end_src
+
+Runtime insertion data is also shared.
+
+#+begin_src zig
+pub const OperatorInsertion = union(enum) {
+    single: struct {
+        position: coefficient.Variable,
+        derivatives: u8,
+    },
+    pair: struct {
+        z: coefficient.Variable,
+        zbar: coefficient.Variable,
+        dz: u8,
+        dzbar: u8,
+    },
+};
+
+pub const OperatorExtraId = u32;
+#+end_src
+
+The difference between A and B is only in how the runtime operator identity is represented.
+
+* Option A: Composite Operators Are First-Class Runtime Objects
+
+In Option A, a runtime operator can be either atomic or a composite free-field object.
+
+#+begin_src zig
+pub const Operator = struct {
+    insertion: OperatorInsertion,
+    head: OperatorHeadId,
+    extra: OperatorExtraId,
+};
+
+pub const OperatorHeadId = u32;
+
+pub const OperatorHead = union(enum) {
+    atomic: OperatorKindRef,
+    free_composite: []const FreeCompositeFactor,
+};
+
+pub const FreeCompositeFactor = struct {
+    kind: OperatorKindRef,
+    extra_projection: ExtraProjection,
+};
+
+pub const ExtraProjection = union(enum) {
+    none,
+    inherit,
+    slot: u8,
+};
+#+end_src
+
+Interpretation:
+
+- `atomic` means a direct atomic operator kind from the theory
+- `free_composite` means a local operator built from an ordered list of atomic free-field factors
+
+This makes composite free-field operators first-class runtime identities.
+
+** Example A1: `b(z)`
+
+#+begin_src zig
+const b_head_id: OperatorHeadId = 0;
+
+const b_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = b_head_id,
+    .extra = no_extra,
+};
+#+end_src
+
+** Example A2: `:bc:(z)`
+
+Define a head for the composite:
+
+#+begin_src zig
+const bc_head = OperatorHead{
+    .free_composite = &[_]FreeCompositeFactor{
+        .{ .kind = b_ref, .extra_projection = .inherit },
+        .{ .kind = c_ref, .extra_projection = .inherit },
+    },
+};
+
+const bc_head_id: OperatorHeadId = 1;
+#+end_src
+
+Then the runtime operator is:
+
+#+begin_src zig
+const bc_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = bc_head_id,
+    .extra = no_extra,
+};
+#+end_src
+
+** Example A3: `:dX^mu dX^nu:(z)`
+
+Define a head for the composite:
+
+#+begin_src zig
+const dXdX_head = OperatorHead{
+    .free_composite = &[_]FreeCompositeFactor{
+        .{ .kind = dX_ref, .extra_projection = .{ .slot = 0 } },
+        .{ .kind = dX_ref, .extra_projection = .{ .slot = 1 } },
+    },
+};
+
+const dXdX_head_id: OperatorHeadId = 2;
+#+end_src
+
+Then the runtime operator is:
+
+#+begin_src zig
+const dXdX_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .head = dXdX_head_id,
+    .extra = dXdX_mu_nu_extra,
+};
+#+end_src
+
+Interpretation:
+
+- `extra` carries the pair `(mu, nu)` at runtime
+- the composite head explains how the two child `dX` factors get their respective index payloads
+
+** What Option A Gives You
+
+- composite free-field operators are explicit runtime objects
+- residual operators such as the `expX` left over from a `dX-expX` contraction can remain ordinary runtime operators naturally
+- free-field structure is present in the runtime identity itself
+
+** What Option A Forces Later
+
+If you choose A, then later you must settle:
+
+1. how `free_composite` heads are stored and interned
+2. how quantum numbers are derived or cached for composite heads
+3. how equality and hashing of operator identities works for composite heads
+4. how nested composites are flattened or normalized
+5. how `extra_projection` is interpreted by generated theory code
+
+So A is expressive, but it pushes composite structure directly into the hot runtime path.
+
+* Option B: Runtime Operators Stay Atomic
+
+In Option B, a runtime operator is always atomic.
+Composite structure is not part of runtime operator identity.
+Instead, free-field realization is handled by generated evaluation code.
+
+#+begin_src zig
+pub const Operator = struct {
+    kind: OperatorKindRef,
+    insertion: OperatorInsertion,
+    extra: OperatorExtraId,
+};
+#+end_src
+
+This is the smallest and fastest runtime operator representation.
+
+** Example B1: `b(z)`
+
+#+begin_src zig
+const b_at_z = Operator{
+    .kind = b_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = no_extra,
+};
+#+end_src
+
+** Example B2: `dX^mu(z)`
+
+#+begin_src zig
+const dX_mu_at_z = Operator{
+    .kind = dX_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = dX_mu_extra,
+};
+#+end_src
+
+** Example B3: What about `:bc:(z)`?
+
+Under B, `:bc:` is *not* a first-class runtime operator by default.
+Instead, the theory generator knows how to expand a particular atomic operator kind into free fields when needed for Wick evaluation.
+
+So if the theory declares some ordinary operator kind `bc_no_ref`, generated code may know:
+
+#+begin_src text
+bc_no_ref  ->  : b c :
+#+end_src
+
+but the runtime operator itself is still only:
+
+#+begin_src zig
+const bc_no_at_z = Operator{
+    .kind = bc_no_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = no_extra,
+};
+#+end_src
+
+The free-field structure is carried only in generated evaluation logic, not in the operator value.
+
+** Example B4: `:dX^mu dX^nu:(z)`
+
+Same idea:
+
+#+begin_src zig
+const dXdX_no_at_z = Operator{
+    .kind = dXdX_no_ref,
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .extra = dXdX_mu_nu_extra,
+};
+#+end_src
+
+Generated code knows that `dXdX_no_ref` should be treated as `:dX^mu dX^nu:` when the chosen tactic needs that realization.
+
+** What Option B Gives You
+
+- smallest runtime operator
+- simplest copying, storage, hashing, and comparison
+- theory-agnostic algorithms operate on very lean objects
+- best fit for huge streamed calculations
+
+** What Option B Forces Later
+
+If you choose B, then later you must settle:
+
+1. how generated theory code expands certain ordinary operator kinds into free-field constituents
+2. how residual operators from contractions are represented when composite structure matters
+3. whether all useful composite operators need an atomic theory-level kind name to be referenced at runtime
+4. how to avoid baking too much theory-specific logic into the generated runtime evaluator
+
+So B is leaner and faster, but it makes composite structure more operational and less first-class.
+
+* Explicit Comparison On One Example
+
+Take the free-field composite:
+
+#+begin_src text
+:dX^mu dX^nu:(z)
+#+end_src
+
+Under A:
+
+- runtime operator carries a head id for a composite
+- that composite head explicitly stores two `dX` factors
+- the runtime object itself knows it is composite
+
+Under B:
+
+- runtime operator carries only one atomic-like kind reference, say `dXdX_no_ref`
+- generated theory code knows how to treat that kind as `:dX^mu dX^nu:` when using Wick
+- the runtime object itself does not know it is composite
+
+So A stores more structure in the runtime value. B stores less structure in the runtime value and pushes more responsibility into generated evaluation code.
+
+* Performance Comparison
+
+Option B is more performant.
+
+Why:
+
+- the runtime operator is smaller
+- no composite-head lookup is needed in the common hot path unless theory code explicitly chooses to expand
+- storage and hashing of operators are simpler
+- very large streamed calculations benefit from the reduced runtime footprint
+
+Option A is more expressive.
+
+Why:
+
+- free-field composites are first-class runtime objects
+- residual composite operators are easier to represent explicitly
+- runtime manipulation of composites is more data-driven and less operational
+
+So the practical tradeoff is:
+
+- choose A for expressiveness and clarity of free-field composites
+- choose B for lean runtime performance
+
+* What Each Option Implies For Wick
+
+** Under A
+
+`Theory.wick(left, right)` can inspect composite heads directly.
+If a head is composite, Wick can recurse into its factors using runtime data.
+
+This makes the runtime evaluator more structural and data-driven.
+
+** Under B
+
+`Theory.wick(left, right)` works primarily on atomic kinds.
+If a kind has a free-field realization, the generated theory code expands it internally before contracting.
+
+This keeps the runtime surface smaller, but the evaluator becomes more specialized to each theory.
+
+* What Each Option Implies For Interacting Theories
+
+Take Ising `sigma`.
+
+Under A:
+
+- `sigma` is an atomic kind
+- you simply never build a free-composite head from `sigma` unless the theory explicitly allows it
+
+Under B:
+
+- `sigma` is also an atomic kind
+- since composite structure is not first-class anyway, nothing special is needed
+
+So both A and B can handle interacting theories.
+The real difference is only in how free-field composite structure is represented.
+
+* Recommendation
+
+If the main priority is:
+
+- huge streamed calculations
+- minimal memory footprint
+- theory-agnostic runtime algorithms
+
+then Option B is the better choice.
+
+If the main priority is:
+
+- explicit representation of free-field composites
+- direct runtime manipulation of residual composites
+- data-driven structural evaluation
+
+then Option A is the better choice.
+
+A pragmatic recommendation is:
+
+- start with Option B if performance is the dominant concern
+- move toward A only if explicit runtime composite structure becomes genuinely necessary
+
+* Summary
+
+Option A:
+
+#+begin_src text
+Operator = insertion + head + extra
+Head = atomic kind | free composite
+#+end_src
+
+Pros:
+
+- composites are first-class runtime objects
+- more expressive and structural
+
+Cons:
+
+- larger runtime objects
+- more runtime complexity
+- more metadata and normalization work later
+
+Option B:
+
+#+begin_src text
+Operator = atomic kind + insertion + extra
+#+end_src
+
+Pros:
+
+- smallest runtime representation
+- best performance
+- simplest theory-agnostic hot path
+
+Cons:
+
+- composite structure is not explicit in runtime values
+- generated theory code must carry more operational knowledge
+
+This is the main operator-design decision still remaining.

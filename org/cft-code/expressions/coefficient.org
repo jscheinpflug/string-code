@@ -1,0 +1,150 @@
+:PROPERTIES:
+:ID:       20260604T083119.372970
+:END:
+#+title: Coefficient
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/expressions/coefficient.zig :mkdirp yes
+
+#+interface:
+
+#+begin_src zig
+const tensor = @import("tensor-code");
+#+end_src
+
+A coefficient is a rational function multiplied by tensor structures from
+[[id:20260605T075909.433647][Tensor-Code]].  The full expression store will grow
+later, but Wick evaluation already needs a small exact vocabulary for scalar
+multipliers and coordinate kernels.  These records are deliberately plain
+values so primitive contractions can pass them around without allocation.
+
+#+begin_src zig
+/// Rational stores one normalized exact rational number.
+pub const Rational = struct {
+    numerator: i64,
+    denominator: i64,
+};
+
+fn absInt(value: i64) u64 {
+    if (value == @import("std").math.minInt(i64)) return @as(u64, 1) << 63;
+    return if (value < 0) @intCast(-value) else @intCast(value);
+}
+
+fn gcd(first: u64, second: u64) u64 {
+    var a = first;
+    var b = second;
+    while (b != 0) {
+        const rem = a % b;
+        a = b;
+        b = rem;
+    }
+    return if (a == 0) 1 else a;
+}
+
+/// rational constructs a normalized exact rational number.
+pub fn rational(numerator: i64, denominator: i64) ?Rational {
+    if (denominator == 0) return null;
+    var num = numerator;
+    var den = denominator;
+    if (den < 0) {
+        num = -num;
+        den = -den;
+    }
+    const factor: i64 = @intCast(gcd(absInt(num), absInt(den)));
+    return .{
+        .numerator = @divExact(num, factor),
+        .denominator = @divExact(den, factor),
+    };
+}
+
+/// integer constructs an exact rational integer.
+pub fn integer(value: i64) Rational {
+    return .{ .numerator = value, .denominator = 1 };
+}
+#+end_src
+
+Coordinate kernels are the coordinate-dependent pieces produced by Wick
+contractions.  They are not a simplifier; they are the compact output of a
+single primitive contraction after insertion derivatives have acted where the
+Wick rule requested them.
+
+#+begin_src zig
+/// CoordinateDifference stores one ordered coordinate difference.
+pub const CoordinateDifference = struct {
+    left: Variable,
+    right: Variable,
+};
+
+/// CoordinateKernel stores one coordinate-dependent kernel factor.
+pub const CoordinateKernel = union(enum) {
+    difference_power: struct { coordinate: CoordinateDifference, exponent: i16 },
+    logarithm: CoordinateDifference,
+    green_kernel: struct { name: []const u8, coordinate: CoordinateDifference, left_derivatives: u8 = 0, right_derivatives: u8 = 0 },
+    green_exponential: CoordinateDifference,
+};
+
+/// CoordinateFactor stores a coordinate kernel with its rational derivative multiplier.
+pub const CoordinateFactor = struct {
+    scalar: Rational = .{ .numerator = 1, .denominator = 1 },
+    kernel: CoordinateKernel,
+};
+#+end_src
+
+The older coefficient shell is kept because higher layers already refer to a
+coefficient as a sum of tensor-weighted rational functions.  Its internals
+remain private until the real simplifier exists.
+
+#+begin_src zig
+/// A coefficient is a sum of rational functions multiplied by a tensor structure
+pub const Coeff = struct {
+    summands: []const CoeffSummand,
+};
+
+const CoeffSummand = struct {
+    rational_function: RationalFunction,
+    tensor_structure: tensor.TensorStructure,
+};
+
+#+end_src
+
+A rational function can be written as a product of polynomial factors raised to a power.
+#+begin_src zig
+const RationalFunction = struct {
+    factors: []const Factor,
+};
+
+const Factor = struct {
+    base: Polynomial,
+    exponent: i16,
+};
+#+end_src
+
+A polynomial is a sum of monomial terms.
+
+#+begin_src zig
+const Polynomial = struct {
+    terms: []const PolynomialTerm,
+};
+
+const PolynomialTerm = struct {
+    monomial_coefficient: Scalar,
+    monomial: Monomial,
+};
+
+const Scalar = f32;
+
+const Monomial = struct {
+    terms: []const MonomialTerm,
+};
+
+const MonomialTerm = struct {
+   variable: Variable,
+   power: u16,
+};
+#+end_src
+
+Variables are internally assigned a numeric identifier.
+
+#+begin_src zig
+/// Variables are internally assigned numeric identifiers
+pub const Variable = u32;
+#+end_src

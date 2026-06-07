@@ -1,0 +1,12 @@
+:PROPERTIES:
+:ID:       20260603T094112.928043
+:END:
+#+title: OPE
+#+auto_tangle: t
+#+PROPERTY: header-args :tangle ../../../src/cft-code/ope/ope.zig :mkdirp yes
+
+#+interface:
+
+This module defines the notion of an OPE, which takes symbolic [[id:20260605T082209.767536][Expressions]] and computes their OPE (again [[id:20260605T082209.767536][Expressions]]) via several possible tactics inferred from the definition of the [[id:20260605T090102.250727][Theory]] involved.
+
+Since the OPE is a local expression, we evaluate it via the definition of the theory on the Riemann sphere. When the user defines a non-degenerate pairing (for a unitary CFT, can be the usual BPZ pairing) on the basis of [[id:20260603T094125.997360][Operators]], we can evaluate the OPE by writing out all [[id:20260603T094125.997360][Operators]] that can appear in the OPE (we know the quantum numbers of the inputs so we know the quantum numbers of the output, being in their tensor product) via [[id:20260606T063253.759714][Basis-Generation]] and compute their coefficients by combining the pairing with [[id:20260603T094138.285453][Correlators]]. This way, we can immediately transfer optimizations of [[id:20260603T094138.285453][Correlators]] and [[id:20260606T063253.759714][Basis-Generation]] to an optimized [[id:20260603T094112.928043][OPE]].

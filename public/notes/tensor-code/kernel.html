@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Kernel</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Kernel</h1>
+<p>
+Tensor-code supplies compact handles for tensor structures that appear in CFT
+coefficients.  The expensive work is generation and selection of invariant
+tensors, so those procedures should stream candidates rather than building a
+large expression tree inside the kernel.
+</p>
+
+<p>
+An invariant source represents basis elements in
+\[
+  \operatorname{Hom}_{\mathfrak g}(T,\otimes_i R_i)
+\]
+by handles.  Rendering into a concrete notation is backend-dependent: \(A_n\)
+may render through Young symmetrizers and \(\epsilon/\delta\) tensors, \(D_n\)
+through metric, epsilon, and spinorial gamma data, and exceptional algebras
+through their available primitive invariant tensors.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coupling</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"coupling.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"realization.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
+</pre>
+</div>
+
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#TensorExprId"><code>TensorExprId = u32</code></a></dt>
+<dd>TensorExprId names a tensor expression stored by tensor-code.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+The basic ids are deliberately small.  They name entries in stores owned by a
+preset, a tensor generator, or a client.
+</p>
+
+<a id="TensorExprId"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgf53a28e"><span style="color: #e0d3b9; font-style: italic;">/// TensorExprId names a tensor expression stored by tensor-code.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorExprId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorTermId names one term inside a tensor expression store.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorTermId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// BasisPathId names one compact coupling path in an invariant basis.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisPathId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// RenderedTermId names one streamed symbolic tensor term.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderedTermId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionTermId names one coefficient in a target invariant basis.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionTermId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// InvariantFamilyId names a family of invariant tensor candidates.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InvariantFamilyId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// AlgebraSchemaId names a Lie or superalgebra schema.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraSchemaId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// GradingId names a grading attached to a tensor algebra schema.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GradingId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+</pre>
+</div>
+
+<p>
+Invariant generation should be pull-based.  A caller can feed the source to an
+independent-basis selector without materializing every candidate first.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// TensorExprSource streams tensor expression ids from a generator.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorExprSource</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_fn</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) ?TensorExprId,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// next returns the next generated tensor expression id.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">next</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorExprSource</span>) ?TensorExprId {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.next_fn(self.state);
+    }
+};
+</pre>
+</div>
+
+<p>
+Basis paths and rendered terms are streamed separately.  This lets CFT code
+attach invariant ids to rational functions without asking tensor-code to
+expand concrete tensor expressions during ordinary simplification.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// BasisPathSource streams invariant ids from a generated basis.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisPathSource</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_fn</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) ?coupling.InvariantHandle,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// next returns the next invariant in the basis.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">next</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisPathSource</span>) ?coupling.InvariantHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.next_fn(self.state);
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RenderedTermSource streams symbolic terms for one invariant rendering.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderedTermSource</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_fn</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) ?RenderedTermId,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// next returns the next rendered symbolic term.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">next</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RenderedTermSource</span>) ?RenderedTermId {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.next_fn(self.state);
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionTermSource streams coefficients in a chosen invariant basis.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionTermSource</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_fn</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) ?ReductionTermId,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// next returns the next reduction coefficient term.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">next</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ReductionTermSource</span>) ?ReductionTermId {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.next_fn(self.state);
+    }
+};
+</pre>
+</div>
+
+<p>
+An invariant family says which algebra and external representations define the
+candidate space.  The actual candidates are produced by a generator.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// InvariantFamily declares the tensor-invariant problem to generate.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InvariantFamily</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSchemaId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">external_representations</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.RepresentationId</span>,
+};
+</pre>
+</div>
+
+<p>
+The new invariant request keeps external leg names and realizations.  The old
+family type remains for compatibility with early kernel sketches.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// InvariantRequest records a named public invariant-basis request.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InvariantRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">external_legs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.ExternalLeg</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.TargetIrrep</span> = .singlet,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tree_policy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.TreePolicy</span> = .auto,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis_policy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.BasisPolicy</span> = .default,
+};
+</pre>
+</div>
+
+<p>
+The algebra schema stores only compact references to core tensors such as a
+metric or structure constants.  This is enough for CFT coefficient code to
+refer to a symmetry algebra without owning its full tensor simplifier.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// AlgebraSchema records the compact tensor data of a symmetry algebra.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraSchema</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SymmetryId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">grading</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GradingId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metric</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorExprId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">structure_constants</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorExprId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+</div>
+</body>
+</html>

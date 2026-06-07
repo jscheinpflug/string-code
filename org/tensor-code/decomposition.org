@@ -1,0 +1,122 @@
+:PROPERTIES:
+:ID:       20260606T210002.000000
+:END:
+#+title: Tensor Decomposition
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/decomposition.zig :mkdirp yes
+
+A tensor-product decomposition is the compact statement
+\[
+  R\otimes S=\bigoplus_T m_T T.
+\]
+This module stores that statement as flat product terms.  It does not compute
+the decomposition; the family backend will do that and intern the result here.
+
+#+begin_src zig
+const std = @import("std");
+const coupling = @import("coupling.zig");
+const store = @import("representation-store.zig");
+
+/// ProductDecompositionHandle names a cached binary decomposition.
+pub const ProductDecompositionHandle = struct {
+    value: u32,
+
+    /// init constructs a product-decomposition handle.
+    pub fn init(value: u32) ProductDecompositionHandle {
+        return .{ .value = value };
+    }
+};
+
+/// ProductKey identifies a cached tensor-product decomposition.
+pub const ProductKey = struct {
+    left: store.IrrepHandle,
+    right: store.IrrepHandle,
+};
+
+/// ProductTerm stores one channel and its multiplicity in a product.
+pub const ProductTerm = struct {
+    irrep: store.IrrepHandle,
+    multiplicity: u16,
+};
+
+/// ProductTermSpan stores a flat range of product terms.
+pub const ProductTermSpan = struct {
+    offset: u32,
+    len: u32,
+};
+
+/// Store owns cached binary tensor-product decomposition records.
+pub const Store = struct {
+    allocator: std.mem.Allocator,
+    decompositions: std.ArrayList(ProductDecomposition) = .empty,
+    terms: std.ArrayList(ProductTerm) = .empty,
+    product_index: std.AutoHashMap(u64, ProductDecompositionHandle),
+
+    /// init constructs an empty decomposition store.
+    pub fn init(allocator: std.mem.Allocator) Store {
+        return .{
+            .allocator = allocator,
+            .product_index = std.AutoHashMap(u64, ProductDecompositionHandle).init(allocator),
+        };
+    }
+
+    /// deinit releases decomposition-store memory.
+    pub fn deinit(self: *Store) void {
+        self.product_index.deinit();
+        self.terms.deinit(self.allocator);
+        self.decompositions.deinit(self.allocator);
+        self.* = Store.init(self.allocator);
+    }
+
+    /// findProduct returns a cached product handle if present.
+    pub fn findProduct(self: Store, key: ProductKey) ?ProductDecompositionHandle {
+        return self.product_index.get(productKeyBits(key));
+    }
+
+    /// internProduct stores a binary product decomposition.
+    pub fn internProduct(self: *Store, key: ProductKey, terms: []const ProductTerm) !ProductDecompositionHandle {
+        if (self.findProduct(key)) |handle| return handle;
+
+        const offset: u32 = @intCast(self.terms.items.len);
+        try self.terms.appendSlice(self.allocator, terms);
+        errdefer self.terms.shrinkRetainingCapacity(offset);
+
+        const handle = ProductDecompositionHandle.init(@intCast(self.decompositions.items.len));
+        try self.decompositions.append(self.allocator, .{
+            .key = key,
+            .terms = .{ .offset = offset, .len = @intCast(terms.len) },
+        });
+        errdefer _ = self.decompositions.pop();
+
+        try self.product_index.put(productKeyBits(key), handle);
+        return handle;
+    }
+
+    /// productTerms returns the cached term span for a product handle.
+    pub fn productTerms(self: Store, handle: ProductDecompositionHandle) ?[]const ProductTerm {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.decompositions.items.len) return null;
+        const span = self.decompositions.items[index].terms;
+        const start: usize = @intCast(span.offset);
+        const end = start + span.len;
+        return self.terms.items[start..end];
+    }
+};
+
+/// ProductDecomposition stores a flat range of product terms.
+const ProductDecomposition = struct {
+    key: ProductKey,
+    terms: ProductTermSpan,
+};
+
+/// SingletCountRequest records a generic invariant-counting problem.
+const SingletCountRequest = struct {
+    algebra: store.AlgebraHandle,
+    factors: []const store.IrrepHandle,
+    target: coupling.TargetIrrep = .singlet,
+};
+
+fn productKeyBits(key: ProductKey) u64 {
+    return (@as(u64, key.left.value) << 32) | @as(u64, key.right.value);
+}
+#+end_src

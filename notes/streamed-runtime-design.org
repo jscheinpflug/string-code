@@ -1,0 +1,480 @@
+#+title: Streamed Runtime Design
+
+* Goal
+
+The runtime should be limited mainly by final output size, not by intermediate symbolic expressions.
+
+The correct approach is:
+
+- recursive or stack-based Wick/OPE search
+- shared scratch storage
+- rollback on backtracking
+- immediate emission of completed terms
+- optional aggregation of equal output terms
+
+This note summarizes what that implies for the operator and coefficient runtime types, and what needs to be implemented now versus later.
+
+* Main Principle
+
+Do not build a fresh owned symbolic expression at every recursive step.
+
+Instead:
+
+- keep one small search state
+- keep one reusable algebra scratch state
+- extend it while descending recursion
+- rollback when backtracking
+- emit completed terms immediately
+
+This makes memory proportional to:
+
+- recursion depth
+- scratch capacity
+- chosen output retention strategy
+
+rather than to the total number of intermediate branches.
+
+* Runtime Search State
+
+The search state should stay small.
+For Wick contractions, it should contain only things like:
+
+- remaining operators to contract
+- parity or sign state if needed
+- recursion depth or explicit stack position
+- scratch rollback marks
+
+It should not contain owned `Expr` trees.
+
+* Runtime Operator Type
+
+The runtime operator should be lean and carry only the data needed to identify one concrete insertion.
+
+#+begin_src zig
+pub const Operator = struct {
+    family: OperatorFamilyId,
+    insertion: OperatorInsertion,
+    extra: OperatorExtraId,
+};
+
+pub const OperatorInsertion = union(enum) {
+    single: struct {
+        position: Variable,
+        derivatives: u8,
+    },
+    pair: struct {
+        z: Variable,
+        zbar: Variable,
+        dz: u8,
+        dzbar: u8,
+    },
+};
+#+end_src
+
+This is the right shape because:
+
+- `family` is globally unique within the compiled theory, so a separate sector id is redundant
+- `insertion` keeps position and derivative data structurally consistent
+- `extra` is only a handle into side data; most operators need no extra payload
+
+Examples of what `extra` may point to later:
+
+- tensor indices for vector-valued fields such as `dX`
+- momentum data such as `k` and `k^2` for `expX`
+- other family-specific runtime payloads
+
+* Theory-Specific Extra Data
+
+The runtime operator should not be burdened with optional inline parameter unions.
+Extra data should live in a side store.
+
+#+begin_src zig
+pub const OperatorExtraId = u32;
+
+pub const TheoryExtraStore = struct {
+    // generated per theory as needed
+};
+#+end_src
+
+The generated theory code interprets `extra` according to `family`.
+
+Examples:
+
+- for `b` and `c`, `extra` may be empty
+- for `dX`, `extra` may hold tensor indices
+- for `expX`, `extra` may hold `k` and `k^2`
+
+Then weights are computed by a theory-generated function such as:
+
+#+begin_src zig
+Theory.weight(op, extras) ConformalWeights
+#+end_src
+
+So fixed-weight operators remain cheap, while parameterized operators still carry what they need.
+
+* Coefficient Runtime Type
+
+The runtime coefficient should be the actual algebraic storage form, not an AST.
+The additive structure belongs inside `Coeff`.
+
+#+begin_src zig
+pub const Coeff = struct {
+    summands: []const CoeffSummand,
+};
+
+pub const CoeffSummand = struct {
+    rational_function: RationalFunction,
+    tensor_structure: TensorStructure,
+};
+
+pub const RationalFunction = struct {
+    factors: []const Factor,
+};
+
+pub const Factor = struct {
+    base: Polynomial,
+    exponent: i16,
+};
+
+pub const Polynomial = struct {
+    terms: []const PolynomialTerm,
+};
+
+pub const PolynomialTerm = struct {
+    monomial_coefficient: Scalar,
+    monomial: Monomial,
+};
+
+pub const Monomial = struct {
+    terms: []const MonomialTerm,
+};
+
+pub const MonomialTerm = struct {
+    variable: Variable,
+    power: u16,
+};
+#+end_src
+
+This is the right runtime form because:
+
+- addition of rational/tensor pieces is explicit in `Coeff`
+- denominator structure is explicit in `Factor`
+- it matches Wick/OPE output much better than a syntax tree
+
+* Tensor Runtime Type
+
+Tensor structure should be independent of the rational part.
+It should eventually become compositional, but the first runtime layer can stay modest.
+
+#+begin_src zig
+pub const TensorStructure = union(enum) {
+    none,
+    kronecker_delta: struct {
+        left: TensorIndex,
+        right: TensorIndex,
+    },
+    // later: products, invariant tensors, epsilon, metrics, etc.
+};
+#+end_src
+
+The important structural point is that `CoeffSummand` already separates:
+
+- rational function
+- tensor structure
+
+so the tensor layer can grow later without changing the whole coefficient model.
+
+* Expression Type
+
+There are two additive layers:
+
+- `Coeff` may be a sum for one fixed operator
+- `Expr` must be able to represent sums of different operators
+
+So the runtime expression type should be:
+
+#+begin_src zig
+pub const Expr = struct {
+    terms: []const ExprTerm,
+};
+
+pub const ExprTerm = struct {
+    coeff: Coeff,
+    operator: Operator,
+};
+#+end_src
+
+This is a borrowed view in the streamed design, not necessarily an owned allocation.
+
+* Scratch-Based Building
+
+For streamed calculations, `Expr` should usually be a view into reusable scratch storage.
+Likewise for `Coeff`.
+
+A builder should own reusable buffers such as:
+
+- expression terms
+- coefficient summands
+- rational-function factors
+- polynomial terms
+- monomial terms
+
+A minimal shape is:
+
+#+begin_src zig
+pub const Scratch = struct {
+    expr_terms: std.ArrayList(ExprTerm),
+    coeff_summands: std.ArrayList(CoeffSummand),
+    factors: std.ArrayList(Factor),
+    polynomial_terms: std.ArrayList(PolynomialTerm),
+    monomial_terms: std.ArrayList(MonomialTerm),
+};
+#+end_src
+
+Each emitted expression should be built into these arrays, returned as borrowed views, then the arrays should be reused.
+
+* Rollback Marks
+
+To support recursive backtracking without allocations, the scratch store should support marks.
+
+#+begin_src zig
+pub const ScratchMark = struct {
+    expr_terms_len: u32,
+    coeff_summands_len: u32,
+    factors_len: u32,
+    polynomial_terms_len: u32,
+    monomial_terms_len: u32,
+};
+#+end_src
+
+And methods:
+
+#+begin_src zig
+fn mark(self: *Scratch) ScratchMark
+fn rollback(self: *Scratch, m: ScratchMark) void
+#+end_src
+
+The runtime algorithm then does:
+
+1. record a mark
+2. extend the accumulated coefficient / expression state
+3. recurse
+4. rollback on return
+
+This is the key mechanism that avoids materializing owned intermediates.
+
+* Emission Model
+
+At a recursion leaf, the runtime should emit completed terms immediately.
+
+A good minimal interface is:
+
+#+begin_src zig
+pub fn emit(term: ExprTerm) !void
+#+end_src
+
+Possible sinks:
+
+- callback sink
+- in-memory vector sink
+- grouped aggregation sink
+- file-backed sink
+
+The runtime core should not assume all output is retained in RAM.
+
+* Aggregation Strategy
+
+If many branches produce the same operator structure, a sink may choose to aggregate them by key.
+
+Examples:
+
+- exact `Operator` match
+- `Operator` plus normalized tensor structure
+
+Then the sink can combine `Coeff`s instead of storing many duplicate `ExprTerm`s.
+
+If output is too large for RAM, aggregation can later be externalized to disk.
+
+* Wick Runtime Interface
+
+The runtime algorithm should only call one theory-specific method:
+
+#+begin_src zig
+Theory.wick(left, right, extras) ?Coeff
+#+end_src
+
+The internals of that method are generated at comptime from the theory preset.
+It may read:
+
+- positions from `OperatorInsertion`
+- derivative orders from `OperatorInsertion`
+- family-specific payloads from `TheoryExtraStore`
+
+But the recursive correlator code itself stays theory-agnostic.
+
+* What Must Be Implemented Now
+
+Before settling the full comptime generation story, the following runtime pieces should be implemented clearly.
+
+** 1. Operator runtime type
+
+Settle:
+
+- `Operator`
+- `OperatorInsertion`
+- `OperatorExtraId`
+
+This should be finalized early.
+
+** 2. Expression runtime type
+
+Settle:
+
+- `Expr`
+- `ExprTerm`
+
+with the understanding that in the streamed design these are borrowed views.
+
+** 3. Coeff runtime type
+
+Settle:
+
+- `Coeff`
+- `CoeffSummand`
+- `RationalFunction`
+- `Factor`
+- `Polynomial`
+- `Monomial`
+
+This is the core algebra storage format.
+
+** 4. Tensor runtime type
+
+Settle the initial `TensorStructure` form, even if it is small at first.
+
+** 5. Scratch storage
+
+Implement:
+
+- scratch arrays
+- `mark`
+- `rollback`
+- borrowed-view finishing
+
+This is essential for scaling.
+
+** 6. Theory extra store
+
+Define the basic pattern:
+
+- operator extra handle
+- theory-specific side data
+- generated lookup/weight functions
+
+The exact family payloads can come later, but the shape should be fixed.
+
+* What Should Be Implemented Soon After
+
+Once the runtime storage story is stable, the next important pieces are:
+
+** 1. Theory-generated weight lookup
+
+The compiled theory should provide:
+
+#+begin_src zig
+Theory.weight(op, extras) ConformalWeights
+#+end_src
+
+This should interpret:
+
+- fixed-weight families directly
+- parameterized families through side data
+
+** 2. Theory-generated Wick
+
+The compiled theory should provide:
+
+#+begin_src zig
+Theory.wick(left, right, extras) ?Coeff
+#+end_src
+
+This is the main runtime hook used by the recursive correlator engine.
+
+** 3. Small internal coefficient constructors
+
+Not as a user-facing DSL, but as internal helpers for generated code:
+
+- construct `difference(z, w)`
+- construct `1 / poly^n`
+- scale a coefficient
+- attach tensor structure
+
+Generated theory code can use these directly.
+
+** 4. Recursive correlator engine
+
+Implement the Wick recursion using:
+
+- remaining operators
+- accumulated coefficient state
+- scratch marks
+- immediate emission at leaves
+
+This is where the memory model pays off.
+
+* Down the Line
+
+After the runtime core is stable, these are the natural extensions.
+
+** 1. Richer tensor structures
+
+The tensor layer should grow to support:
+
+- products of tensor factors
+- metrics
+- epsilon tensors
+- general invariant tensors from `tensor-code`
+
+** 2. Composite local operators
+
+The current `Operator` type can stay atomic initially.
+Later, one will likely need a local composite-operator layer for objects such as:
+
+- `e^{-phi} psi^mu`
+- normal-ordered products
+- more general superstring vertex operators
+
+That layer should be added carefully without burdening the atomic runtime operator.
+
+** 3. External aggregation/output
+
+If outputs become too large for RAM, add:
+
+- file-backed sinks
+- external sorting/grouping
+- merge passes on emitted terms
+
+That is how the runtime stays limited by output size rather than memory churn.
+
+** 4. Generated theory code
+
+Once the runtime target is stable, comptime generation can safely target:
+
+- family metadata tables
+- weight functions
+- Wick dispatchers
+- other theory-specific operations
+
+* Summary
+
+To make large streamed calculations scale, the runtime should be built around:
+
+- lean `Operator`
+- explicit algebraic `Coeff`
+- `Expr` as a borrowed view of term buffers
+- reusable scratch storage
+- rollback-based recursion
+- immediate output emission
+- theory-generated `weight` and `wick`
+
+This is the right design if the goal is to be limited mostly by final output size, not by intermediate symbolic expressions.

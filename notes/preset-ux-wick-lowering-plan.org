@@ -1,0 +1,414 @@
+:PROPERTIES:
+:ID:       20260606T173000.000000
+:END:
+#+title: Preset UX And Wick Lowering Improvement Plan
+#+date: 2026-06-06
+#+PROPERTY: header-args:zig :tangle no
+
+* Goal
+
+This note joins the deficiencies of the current [[file:../org/cft-code/presets/presets.org][Presets]] skeleton into one
+coherent improvement plan.  The current code gives us a checked public shape,
+but it is not yet the right user experience and it does not encode real Wick
+rules.
+
+The target is:
+
+- users write physics objects, not ids;
+- operator builders preserve labels;
+- presets lower to [[file:../org/cft-code/theory/theory.org][Theory]] data;
+- [[file:../org/cft-code/correlators/wick.org][Wick]] rules and zero-mode rules are compact generated tables;
+- [[file:../org/cft-code/correlators/correlators.org][Correlators]] still receive only local operators, a compiled config, and a
+  sink.
+
+* Current Limitations
+
+The preset layer is now structurally complete for the first pass.  One
+execution gap remains beyond this layer.
+
+1. The streaming correlator emits matched Wick and zero-mode coefficient
+   templates, but those templates are not yet simplified into final coefficient
+   output.
+
+The first UX pass has resolved the raw-handle and label-loss problems in the
+ordinary path: handles are typed tokens, and =Local= builders now freeze
+label-preserving =MultiOp= values.  The second pass has resolved placeholder
+config ids and hard-coded product/boundary namespaces at the preset declaration
+level.  The third pass has added the first streaming correlator boundary.
+
+* UX Boundary
+
+There should be three layers.
+
+1. The user-facing physics layer has typed values such as =Index=, =Momentum=,
+   =Profile=, =TargetPoint=, and =BoundaryStack=.  These are opaque enum tokens,
+   not aliases.
+2. The generated builder layer interns those values into a compact label store
+   and builds local operators.
+3. The lowered runtime layer sees only small ids, label spans, Wick-rule tables,
+   zero-mode tables, and coefficient streams.
+
+The user should write code like this:
+
+#+begin_src zig
+const X = cft.presets.freeBoson(.{ .dimension = 10, .alpha_prime = .one });
+
+var local = X.local(allocator);
+const mu = try local.index("mu");
+const k = try local.momentum("k");
+const z = try local.coord("z");
+const zb = try local.coord("zb");
+
+const ops = try local.ops(.{
+    try local.dX(mu, 0, z),
+    try local.expX(k, z, zb),
+});
+
+try X.correlator(&X.config.sphere, ops, sink);
+#+end_src
+
+This does not introduce a correlator context.  =local= is a short-lived builder
+and label arena for the operator collection.  The correlator still receives a
+config, a collection of local operators, and a sink.
+
+* Opaque Physics Values
+
+The public aliases in =Handle= have been replaced by generated typed tokens.
+The internal integer remains, but ordinary user code never needs to type it or
+read it.  In Zig this is represented as a non-exhaustive integer-backed enum,
+with private generated helpers for extraction.
+
+#+begin_src zig
+pub const Index = enum(u32) { _ };
+pub const Momentum = enum(u32) { _ };
+pub const Profile = enum(u32) { _ };
+pub const TargetPoint = enum(u32) { _ };
+pub const BoundaryStack = enum(u32) { _ };
+#+end_src
+
+These tokens are cheap to copy and easy for the optimizer.  They also prevent
+passing a momentum where an index is required.
+
+For boundary data, the user-facing shape should be similarly physical:
+
+#+begin_src zig
+const brane = cft.presets.freeBosonBoundary(.{
+    .neumann = X.target.subspace(.{ 0, 1, 2, 3 }),
+    .dirichlet = X.target.complement(.{ 0, 1, 2, 3 }),
+    .dirichlet_position = try local.point("x0"),
+    .chan_paton = cp.stack("N"),
+});
+#+end_src
+
+The projectors and Chan-Paton tensors may lower to [[file:../org/tensor-code/tensor-code.org][Tensor-Code]] handles, but
+the user should not manually provide those handles in ordinary code.
+
+* Local Builder And Label Store
+
+The generated =local= builder owns a compact label arena.  Operator builders
+write label records to that arena and return local operators that point to
+label spans.
+
+#+begin_src zig
+const LocalOp = struct {
+    insertion: OperatorInsertion,
+    kind: OperatorKindId,
+    labels: LabelSpan,
+};
+
+const MultiOp = struct {
+    operators: []const LocalOp,
+    labels: *const LabelStore,
+};
+#+end_src
+
+This keeps the runtime call narrow while preserving labels.  A =MultiOp= is
+still just a collection of local operators; it carries the label store because
+the collection is not meaningful without the labels.
+
+The builder should append small fixed-width label records.  It should not
+allocate expression trees.
+
+#+begin_src zig
+const LabelValue = union(enum) {
+    integer: i64,
+    rational: Rational,
+    tensor: tensor.kernel.TensorExprId,
+    symbol: SymbolId,
+};
+#+end_src
+
+For common labels such as vector indices, derivative labels, momenta, and
+profile ids, the records are tiny.  Larger physics objects remain behind
+handles owned by the preset, tensor-code, or the client.
+
+* Operator Builders
+
+Operator builders should stop returning a kind-only body.  They should emit a
+local operator with the appropriate label span.
+
+#+begin_src zig
+pub fn expX(self: *Local, k: Momentum, z: Coord, zbar: Coord) !LocalOp {
+    const labels = try self.labels.append(.{ .momentum = raw(k) });
+    return self.op(.exp_x, .bulk(z, zbar), labels);
+}
+#+end_src
+
+The same pattern covers =dX(mu,n,z)=, =profile(f,z,zb)=,
+=dXBoundary(mu,n,y)=, and =cBoundary(n,y)=.  The generated builder knows the
+schema; the user only sees the typed arguments.
+
+* User-Side Wick Definitions
+
+The preset author should define primitive Wick rules in physics names.  They
+should not write operator-kind ids, coordinate-factor ids, or coefficient-store
+records by hand.  The right-hand side should be an explicit coefficient
+template returned by a function.  A template is a sum of terms, and each term is
+a product of scalar factors, coordinate factors, and tensor factors.
+
+#+begin_src zig
+pub const wick = cft.presets.wick;
+
+fn freeBosonDxDx() wick.Expr {
+    return wick.pole(.{ .symbol = "alpha_prime_over_2" }, .{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }, wick.difference(wick.coord(.left, .position), wick.coord(.right, .position)), -2);
+}
+
+fn bcBC() wick.Expr {
+    return wick.pole(.one, .none, wick.difference(wick.coord(.left, .position), wick.coord(.right, .position)), -1);
+}
+
+const free_boson_sphere_wick_rules = [_]wick.Rule{
+    wick.rule(wick.dX(), wick.dX(), freeBosonDxDx()),
+    wick.rule(wick.dXt(), wick.dXt(), freeBosonDxtDxt()),
+    wick.rule(wick.dX(), wick.expX(), freeBosonDxExpX()),
+    wick.rule(wick.dXt(), wick.expX(), freeBosonDxtExpX()),
+    wick.rule(wick.expX(), wick.expX(), freeBosonExpXExpX()),
+};
+
+const bc_sphere_wick_rules = [_]wick.Rule{
+    wick.rule(wick.b(), wick.c(), bcBC()),
+    wick.rule(wick.bt(), wick.ct(), bcBtCt()),
+};
+
+const free_boson_disk_wick_rules = [_]wick.Rule{
+    wick.rule(wick.dXBoundary(), wick.dXBoundary(), boundaryFreeBosonDxDx()),
+    wick.rule(wick.dXBoundary(), wick.expXBoundary(), boundaryFreeBosonDxExpX()),
+    wick.rule(wick.expXBoundary(), wick.expXBoundary(), boundaryFreeBosonExpXExpX()),
+    wick.rule(wick.dX(), wick.dXBoundary(), mixedFreeBosonDxDxBoundary()),
+    wick.rule(wick.dXt(), wick.dXBoundary(), mixedFreeBosonDxtDxBoundary()),
+    wick.rule(wick.dX(), wick.expXBoundary(), mixedFreeBosonDxExpXBoundary()),
+    wick.rule(wick.dXt(), wick.expXBoundary(), mixedFreeBosonDxtExpXBoundary()),
+    wick.rule(wick.expX(), wick.expXBoundary(), mixedFreeBosonExpXExpXBoundary()),
+};
+
+const bc_disk_wick_rules = [_]wick.Rule{
+    wick.rule(wick.bBoundary(), wick.cBoundary(), bcBC()),
+    wick.rule(wick.b(), wick.cBoundary(), bcBC()),
+    wick.rule(wick.c(), wick.bBoundary(), bcBC()),
+    wick.rule(wick.bt(), wick.cBoundary(), bcBtCt()),
+    wick.rule(wick.ct(), wick.bBoundary(), bcBtCt()),
+};
+#+end_src
+
+The expression functions are still declarative: they name coordinate slots,
+label slots, convention factors, cocycle/sign scalar factors, and tensor
+factors.  The lowering step maps these templates to compact
+[[file:../org/cft-code/theory/theory.org][Theory]] rule sets.  At runtime the lowered evaluator reads the two local
+operators, their labels from the =MultiOp= label store, the selected convention
+data, and the relevant coordinate slots.
+
+* Wick Rule Encoding
+
+The current code does not encode Wick rules.  The replacement should be a
+sparse rule table per =CorrelatorConfig=.  The table should carry lowered
+coefficient-expression templates, not user-visible evaluator ids.
+
+#+begin_src zig
+const WickRule = struct {
+    left: OperatorKindId,
+    right: OperatorKindId,
+    expression: WickExpression,
+};
+
+const WickRuleSet = struct {
+    rules: []const WickRule,
+};
+#+end_src
+
+Lowering turns the preset-authored expression template into a compact runtime
+form.  The generic evaluator reads that form together with two local operators
+and the =MultiOp= label store.
+
+#+begin_src zig
+const WickExpression = struct {
+    terms: []const WickTerm,
+};
+
+const WickTerm = struct {
+    scalars: []const ScalarFactor,
+    coordinates: []const CoordinateFactor,
+    tensors: []const TensorFactor,
+};
+#+end_src
+
+The runtime pair evaluator receives only what it needs: the lowered expression,
+two local operators, the label store, and an output sink.
+
+#+begin_src zig
+fn evalPair(
+    expression: WickExpression,
+    left: LocalOp,
+    right: LocalOp,
+    labels: *const LabelStore,
+    sink: anytype,
+) !void;
+#+end_src
+
+For the first presets, the expression constructors should cover:
+
+- free-boson derivative/derivative pairings;
+- free-boson derivative/exponential pairings;
+- free-boson exponential/exponential multiplicative factors;
+- profile rewrites before Wick evaluation;
+- \(bc\) first-order pairings;
+- boundary free-boson and mixed bulk-boundary kernels;
+- boundary \(bc\) and mixed bulk-boundary \(bc\) kernels.
+
+* Zero-Mode Rules
+
+Zero-mode rules should be separate from pairwise Wick rules.  They consume the
+residual uncontracted local operators after Wick recursion.
+
+#+begin_src zig
+const ZeroModeRule = struct {
+    sector: SectorId,
+    evaluator: ZeroModeEvaluator,
+    data: RuleDataId,
+};
+
+const ZeroModeRuleSet = struct {
+    rules: []const ZeroModeRule,
+};
+#+end_src
+
+For the first presets, the generated zero-mode evaluators should cover:
+
+- free-boson noncompact momentum conservation;
+- explicit zero-mode integrals for position-space profiles;
+- Neumann projected momentum conservation;
+- Dirichlet evaluation at the brane position;
+- sphere \(bc\) top-form saturation;
+- disk boundary \(bc\) top-form saturation.
+
+Momentum deltas, profile integrals, and brane-position phases should be
+coefficient factor families.  They should not add new branches to the
+correlator algorithm.
+
+* Correlator Config
+
+A config now points to actual rule declarations, not placeholder ids.
+
+#+begin_src zig
+pub const CorrelatorConfig = struct {
+    wick_rules: []const wick.Rule,
+    zero_modes: []const zero_mode.Rule,
+};
+#+end_src
+
+The runtime call remains:
+
+#+begin_src zig
+try Theory.correlator(&Theory.config.sphere, ops, sink);
+#+end_src
+
+Here =ops= already carries its label store.  The config chooses the Wick and
+zero-mode tables.  No surface object or boundary-condition object is passed at
+runtime.
+
+* Product And Boundary Composition
+
+Product and boundary namespaces now compose from the supplied factors and
+extensions.
+
+The rule is simple:
+
+- =product(.{ X, bc })= exposes only builders contributed by =X= and =bc=;
+- =boundary(Bulk, .{ freeBosonBoundary(...) })= exposes only the selected
+  boundary free-boson builders;
+- adding =bcDiskBoundary(.{})= exposes boundary ghosts and mixed ghost rules;
+- Chan-Paton stacks remain labels on boundary operators and may point to
+  tensor-code data.
+
+This avoids a generic runtime registry.  Composition is a compile-time lowering
+step over a small tuple of factors.
+
+* Implementation Order
+
+1. Lower streamed Wick templates to coefficient output on the sphere.
+2. Lower zero-mode templates for free-boson momentum/profile rules and \(bc\)
+   top forms.
+3. Extend the same event-to-coefficient lowering to disk free-boson BCFT and
+   boundary \(bc\).
+4. Add simplification filters over the streamed coefficient output.
+
+* Tests Worth Keeping
+
+Tests should check design invariants, not syntax.
+
+- =expX(k1,...)= and =expX(k2,...)= preserve distinct momentum labels.
+- =dX(mu,n,z)= preserves the vector index label and derivative insertion data.
+- =product(.{X,bc})= exposes exactly the expected bulk builders.
+- =boundary(...freeBosonBoundary...)= exposes boundary free-boson builders and
+  does not expose boundary ghosts unless =bcDiskBoundary= is present.
+- sphere \(bc\) top form evaluates the three-\(c\) correlator normalization.
+- free-boson sphere zero modes emit a momentum-conservation factor for plane
+  waves.
+
+The first two tests should be written before any Wick evaluator.  They protect
+the UX/data boundary that is currently broken.
+
+* What Not To Do
+
+Do not add a general runtime "context" object to correlator calls.  The operator
+collection can carry labels; the config can carry Wick and zero-mode tables.
+That is enough.
+
+Do not make coefficient-code learn about every physics case.  Momentum deltas,
+profile integrals, Chan-Paton traces, pure-spinor measures, and lattice theta
+factors should remain factor families.
+
+Do not implement a broad plugin registry or reflection-heavy namespace merger
+before the first free-boson/\(bc\) presets work.  The compile-time tuple of
+factors is sufficient for now.
+
+Do not make Wick rules allocate full expanded expressions.  Rule evaluators
+stream coefficient factors and residual local operators into sinks.
+
+* AGENTS Audit
+
+This plan is aligned with =AGENTS.md=.
+
+- Data-oriented: labels are compact arena records; local operators point to
+  spans; Wick and zero-mode rules are sparse tables.
+- Minimal runtime data: correlator receives a config, a local-operator
+  collection, and a sink.
+- Memory discipline: rule evaluators stream terms and do not materialize large
+  symbolic trees.
+- Parallelizable flow: sectors and independent Wick branches can be streamed
+  independently once the label store is immutable.
+- Minimal public API: users see typed physics builders; ids, label spans,
+  evaluator ids, and rule data stay private.
+- Literate structure: this note links to the relevant literate modules; the
+  implementation should happen in [[file:../org/cft-code/presets/presets.org][Presets]], [[file:../org/cft-code/theory/theory.org][Theory]],
+  [[file:../org/cft-code/kernel/cft-kernel.org][CFT Kernel]], [[file:../org/cft-code/correlators/wick.org][Wick]], and
+  [[file:../org/cft-code/correlators/correlators.org][Correlators]].
+- Test discipline: the proposed tests protect label preservation, namespace
+  selection, zero-mode rules, and first real physics checks.
+
+The approved design point is that =MultiOp= carries a pointer to its immutable
+label store.  It preserves the principle that correlator does not receive a
+separate context, while making the operator collection self-contained enough for
+fast runtime evaluation.

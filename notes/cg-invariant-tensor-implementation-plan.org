@@ -1,0 +1,1166 @@
+#+title: Clebsch-Gordan Invariant Tensor Implementation Plan
+#+date: 2026-06-06
+
+* Goal
+
+Implement a tensor-code engine that constructs invariant tensors and
+Clebsch-Gordan maps for \(SO(N)\), \(Spin(N)\), \(SU(N)\), and an adjoint-first
+\(E_8\) backend.
+
+The immediate physics use case is CFT and spin-field output of the form
+\[
+  \sum_i R_i(z_a,k_a,\ldots)\,T_i(\text{external indices}),
+\]
+where the \(R_i\) are rational functions owned by cft-code and the \(T_i\) are
+tensor invariants owned by tensor-code.
+
+The engine must support concrete symbolic rendering, for example products of
+antisymmetrized gamma matrices, metrics, epsilons, block antisymmetrizers, and
+rational coefficients.  It must not rely on dense tensors or global
+overcomplete gamma-expression probing.
+
+* Non-Negotiable Constraints
+
+1. Irreps are identified by Dynkin labels, never by dimension.
+
+2. A channel identity is not just an irrep.  It is:
+
+   #+begin_example
+   Channel = (IrrepId, local multiplicity copy)
+   #+end_example
+
+3. An occurrence identity records the embedding used in a concrete tensor
+   expression:
+
+   #+begin_example
+   Occurrence = (ChannelId, parent product or external leg, projector kernel)
+   #+end_example
+
+4. Realized reps such as \(144\subset 10\otimes16\) are not carried as ambient
+   tensor products through the full calculation.  Derive the realization
+   projector once, then compute internally with the irreducible representation.
+
+5. Signature is a convention layer.  Complex \(D_5\) representation data,
+   decomposition, coupling paths, and abstract recoupling are shared by
+   Euclidean and Lorentzian render/evaluation conventions.
+
+6. The kernel stores flat arrays with offsets.  No dense invariant tensors, no
+   large nested symbolic expression trees, and no global candidate-signature
+   matrices.
+
+7. Expanded output is a stream of terms.  Rendering all basis elements must not
+   require holding all rendered terms in memory.
+
+* Architecture
+
+The engine has five core stores.
+
+#+begin_example
+AlgebraStore
+  root data
+  Weyl group data
+  positive roots
+  invariant degrees
+
+IrrepStore
+  Dynkin labels
+  dimension
+  dual map
+  Casimir signatures
+  weight data cache
+
+ProductCache
+  key: (left IrrepId, right IrrepId)
+  value: decomposition as channel records
+
+KernelCache
+  key: (left OccurrenceKind, right OccurrenceKind, target Channel, convention hash)
+  value: local projector or CG kernel
+
+BasisStore
+  coupling paths
+  external leg realizations
+  tree policy and convention hashes
+#+end_example
+
+The public runtime API should stay small:
+
+#+begin_example
+count_invariants(algebra, external_irreps, target) -> Integer
+
+build_invariant_basis(algebra, external_legs, target, options) -> BasisHandle
+
+iterate_basis_paths(BasisHandle) -> stream CouplingPath
+
+render_invariant(BasisHandle, invariant_id, render_options, writer)
+
+evaluate_component(BasisHandle, invariant_id, component_indices, convention) -> Scalar
+#+end_example
+
+Cache entries should be divided into signature-independent and
+signature-dependent data:
+
+#+begin_example
+signature-independent:
+  Dynkin data
+  product decompositions
+  coupling paths
+  abstract channel multiplicities
+  rational recoupling matrices
+
+signature-dependent:
+  explicit gamma component tables
+  metric signs
+  epsilon orientation
+  Hodge-star signs
+  lowered/raised component evaluation kernels
+#+end_example
+
+* Core Data Types
+
+The implementation should use compact integer ids and flat buffers.
+
+#+begin_example
+AlgebraId = u16
+IrrepId = u32
+ChannelId = u32
+OccurrenceId = u32
+KernelId = u32
+
+Irrep:
+  algebra: AlgebraId
+  dynkin_offset: u32
+  dynkin_len: u8
+  dimension: BigIntId or u64
+  dual: IrrepId
+
+Channel:
+  irrep: IrrepId
+  multiplicity_copy: u16
+
+Occurrence:
+  channel: ChannelId
+  source_kind: External | ProductNode | Realization
+  source_id: u32
+  kernel: KernelId or none
+
+CouplingNode:
+  left: OccurrenceId
+  right: OccurrenceId
+  output: OccurrenceId
+  kernel: KernelId
+
+CouplingPath:
+  external_occurrence_offset: u32
+  node_offset: u32
+  node_len: u16
+#+end_example
+
+Symbolic output is term-based:
+
+#+begin_example
+GammaBlock:
+  spinor_slot_left: u16
+  spinor_slot_right: u16
+  vector_block: IndexBlockId
+  gamma_rank: u8
+  chirality_tag: u8
+  duality_tag: none | self_dual | anti_self_dual
+
+DiagramAtom:
+  metric_pair(IndexRef, IndexRef)
+  generalized_delta(upper_block, lower_block)
+  epsilon(block)
+  hodge_star(input_block, output_block)
+  antisymmetrizer(block)
+
+Term:
+  coefficient: RationalId
+  gamma_offset: u32
+  gamma_len: u16
+  atom_offset: u32
+  atom_len: u16
+
+Expression:
+  term_offset: u32
+  term_len: u32
+#+end_example
+
+* Phase 0: Root Data And Irrep Store
+
+Implement the representation-theory base.
+
+** Required Features
+
+- root datum for \(A_n\), \(B_n\), \(C_n\), \(D_n\), and \(E_8\);
+- Dynkin-label interning;
+- Weyl vector, positive roots, simple roots;
+- dual/conjugate map;
+- dimension formula;
+- quadratic Casimir;
+- higher Casimir eigenvalue signatures where cheap;
+- sparse character data.
+
+** Pseudocode
+
+#+begin_example
+function intern_irrep(algebra, dynkin):
+    key = (algebra, dynkin)
+    if key in irrep_cache:
+        return irrep_cache[key]
+
+    irrep = allocate Irrep
+    irrep.algebra = algebra
+    irrep.dynkin = store_dynkin(dynkin)
+    irrep.dimension = compute_dimension(algebra, dynkin)
+    irrep.dual = compute_dual(algebra, dynkin)
+    cache irrep
+    return irrep.id
+#+end_example
+
+#+begin_example
+function decompose_product(left, right):
+    key = ordered_pair(left, right)
+    if key in product_cache:
+        return product_cache[key]
+
+    char_product = multiply_characters(character(left), character(right))
+    decomposition = highest_weight_subtract(char_product)
+    product_cache[key] = decomposition
+    return decomposition
+#+end_example
+
+** Complexity
+
+Let \(W_R\) be the number of distinct weights in an irrep.
+
+#+begin_example
+character multiply: O(W_left * W_right) before merging
+decomposition:      O(number of dominant weights encountered)
+storage:            O(total cached weights)
+#+end_example
+
+** Bottlenecks
+
+- large \(E_8\) weight systems;
+- repeated decompositions during path enumeration;
+- exact integer growth in dimensions and multiplicities.
+
+** Mitigation
+
+- decomposition cache is mandatory;
+- store weights in sorted flat arrays;
+- use arena workspaces for temporary character multiplication;
+- defer full weight data until a solver actually needs it.
+
+* Phase 1: Generic Local Projector Solver
+
+This is the correctness backstop.  Every family-specific shortcut must agree
+with this solver on small cases.
+
+** Purpose
+
+Given \(U\otimes V\) and a target channel \(R\), derive a local projector or CG
+kernel from representation data, not from hand-entered identities.
+
+** Pseudocode
+
+#+begin_example
+function derive_local_projectors(U, V):
+    decomposition = decompose_product(U, V)
+    omega = try_build_quadratic_casimir_operator(U, V)
+
+    if omega available:
+        groups = group_by_casimir_signature(decomposition, [degree 2])
+        projectors = []
+
+        for group in groups:
+            if group has one irrep and multiplicity is one:
+                P = spectral_projector(omega, group, groups)
+                projectors.append(P)
+            else:
+                projectors.extend(split_residual_group(U, V, group, omega))
+
+        return projectors
+
+    return highest_weight_projectors(U, V, decomposition)
+#+end_example
+
+#+begin_example
+function split_residual_group(U, V, group, omega):
+    signatures = higher_casimir_signatures(group)
+    subgroups = split_by_signature(group, signatures)
+
+    result = []
+    for subgroup in subgroups:
+        if subgroup is one irrep with multiplicity one:
+            result.append(projector_from_signature_operators(subgroup))
+        else:
+            result.extend(local_idempotent_split(U, V, subgroup))
+
+    return result
+#+end_example
+
+#+begin_example
+function local_idempotent_split(U, V, subgroup):
+    basis = build_local_commutant_or_diagram_basis(U, V, subgroup)
+    product_table = multiply_and_reduce(basis)
+    idempotents = solve_primitive_idempotents(product_table)
+    assign idempotents to channel copies
+    return idempotents
+#+end_example
+
+** Complexity
+
+For a local product:
+
+#+begin_example
+B = local diagram/commutant basis size
+W = relevant highest-weight slice size
+
+Casimir-separated case:  diagram polynomial arithmetic
+Residual diagram split: O(B^3) dense fallback, local only
+Highest-weight fallback: sparse modular linear algebra in W columns
+#+end_example
+
+** Acceptance Tests
+
+For every derived projector \(P_i\):
+
+#+begin_example
+P_i^2 = P_i
+P_i P_j = 0 for i != j
+sum_i P_i = identity on U x V
+trace(P_i) = multiplicity_i * dimension(irrep_i)
+component samples agree across two independent construction paths
+#+end_example
+
+* Phase 2: Realization Projectors
+
+Representations can be primitive or realized inside ambient tensor products.
+
+** Primitive Realizations
+
+#+begin_example
+10:
+  primitive vector slot
+
+16:
+  primitive spinor slot
+
+16bar:
+  primitive conjugate/opposite-chirality spinor slot
+#+end_example
+
+Primitive reps have identity realization projectors.
+
+** Constrained Realizations
+
+Examples:
+
+#+begin_example
+126:
+  self-dual 5-form in Lambda^5 V
+
+144:
+  gamma-traceless vector-spinor in V x S
+#+end_example
+
+** Pseudocode
+
+#+begin_example
+function derive_realization_projector(realization):
+    if realization.kind == primitive:
+        return identity_kernel(realization.irrep)
+
+    ambient_tree = choose_realization_tree(realization.ambient_factors)
+    ambient_basis = build_channel_basis(ambient_tree)
+    decomposition = channels_at_root(ambient_basis)
+
+    target_channels = find_channels_by_irrep(decomposition, realization.target_irrep)
+    if target_channels is empty:
+        fail "invalid realization"
+
+    if target_channels has multiple copies:
+        require realization.multiplicity_selector
+
+    projectors = derive_projectors_along_realization_tree(ambient_tree)
+    return projectors[target_channel]
+#+end_example
+
+The common first targets have two-factor ambient spaces, but the algorithm
+should allow larger ambient realizations.  The same coupling-tree machinery
+selects the target irrep inside the ambient product.
+
+** Hard Rule
+
+Do not compute with the ambient tensor product after the realization projector
+has been derived.
+
+Correct:
+
+#+begin_example
+derive P_144 from 10 x 16 once
+compute Hom(1, 144^6)
+insert P_144 only during rendering or component evaluation
+#+end_example
+
+Incorrect:
+
+#+begin_example
+compute Hom(1, (10 x 16)^6)
+project all external factors at the end
+#+end_example
+
+The incorrect method is mathematically valid but computationally unacceptable.
+
+* Phase 3: Coupling Basis Generation
+
+Generate bases as coupling paths, not expanded tensors.
+
+** Pseudocode
+
+#+begin_example
+function build_invariant_basis(external_legs, target, tree_policy):
+    tree = choose_tree(external_legs, target, tree_policy)
+    reachable = compute_backward_reachability(tree, target)
+
+    state_stream = initial_leaf_occurrences(external_legs)
+
+    for node in tree.postorder:
+        next_stream = empty stream
+
+        for partial_path in state_stream:
+            left = occurrence_at(partial_path, node.left)
+            right = occurrence_at(partial_path, node.right)
+
+            for channel in decompose_product(left.irrep, right.irrep):
+                if not reachable[node].contains(channel.irrep):
+                    continue
+
+                kernel = kernel_cache.get_or_derive(left, right, channel)
+                next_stream.emit(extend_path(partial_path, node, channel, kernel))
+
+        state_stream = next_stream
+
+    return paths whose root irrep equals target
+#+end_example
+
+** Complexity
+
+#+begin_example
+m = output multiplicity
+d = internal tree nodes
+K = distinct local products used
+
+path storage:    O(m*d)
+enumeration:     O(reachable channel paths)
+kernel work:     sum over K local projector derivations
+#+end_example
+
+** Bottlenecks
+
+- tree choice creates huge intermediate reps;
+- local projector cache misses;
+- insufficient pruning.
+
+** Mitigation
+
+- estimate tree cost by intermediate dimensions and channel counts;
+- compute backward reachability before kernel derivation;
+- derive kernels only when a channel can still reach the target.
+
+* Phase 4: Symbolic Rendering And Evaluation
+
+Rendering and evaluation are consumers of coupling paths.  They are not part of
+basis generation.
+
+** Renderer Pseudocode
+
+#+begin_example
+function render_invariant(path, render_options, writer):
+    expr = identity_expression()
+
+    for external_leg in path.external_legs:
+        realization = realization_of(external_leg)
+        expr = compose(expr, render_realization(realization, render_options))
+        expr = reduce_expression(expr)
+
+    for node in path.nodes:
+        kernel_expr = render_kernel(node.kernel, render_options)
+        expr = substitute_node(expr, node, kernel_expr)
+        expr = reduce_expression(expr)
+
+    stream_terms(expr, writer)
+#+end_example
+
+** Evaluator Pseudocode
+
+#+begin_example
+function evaluate_component(path, component_indices, convention):
+    values = initialize_leaf_values(path.external_legs, component_indices, convention)
+
+    for external_leg in path.external_legs:
+        values[external_leg] = apply_realization_projector_if_needed(values[external_leg])
+
+    for node in path.nodes:
+        kernel = numeric_kernel(node.kernel, convention)
+        values[node.output] = apply_sparse_kernel(kernel, values[node.left], values[node.right])
+
+    return values[path.root]
+#+end_example
+
+** Rendering Levels
+
+#+begin_example
+level 1:
+  gamma blocks plus named derived projectors
+
+level 2:
+  gamma blocks plus expanded metric/epsilon/antisymmetrizer projectors
+
+level 3:
+  fully streamed term export
+#+end_example
+
+* Phase 5: \(SO(N)\) And \(Spin(N)\)
+
+This is the first major backend because spin fields require gamma invariants.
+
+** Implement
+
+- vector diagram atoms: \(\eta\), epsilon, generalized deltas;
+- Brauer algebra operations;
+- Clifford/Fock spinor basis for \(Spin(2m)\);
+- sparse gamma action by bit operations;
+- antisymmetrized gamma products;
+- Hodge star and middle-form duality;
+- gamma-traceless tensor-spinor realizations;
+- local Fierz derivation.
+
+** Generic \(SO/Spin\) Pseudocode
+
+#+begin_example
+function spin_form_realization(rank, duality):
+    ambient = antisymmetric_form(rank)
+    if duality == none:
+        return primitive_or_form_realization(ambient)
+
+    star = hodge_star_operator(rank)
+    P = (identity + sign(duality) * star) / 2
+    return realization(target_irrep, ambient, P)
+#+end_example
+
+#+begin_example
+function vector_spinor_realization(vector, spinor, target):
+    ambient = [vector, spinor]
+    projectors = derive_local_projectors(vector, spinor)
+    return projectors[channel_with_irrep(target)]
+#+end_example
+
+** \(Spin(10)\) Milestones
+
+#+begin_example
+1. derive 16 x 16 = 10 + 120 + 126
+2. derive 10 x 16 = 16bar + 144
+3. verify P_144 is gamma-traceless
+4. derive 16^4 Fierz table
+5. complete <=78 second-layer audit for 16^12
+6. generate 16^8 and 16^12 coupling paths
+#+end_example
+
+** Complexity
+
+- primitive gamma tables for \(Spin(10)\): at most \(65536\) entries before
+  sparsity for \(\Gamma^{[1]},\Gamma^{[3]},\Gamma^{[5]+}\);
+- vector diagram algebra scales with diagram count and tensor rank;
+- high-arity spinor invariants scale with coupling paths and local kernels.
+
+** Main Bottlenecks
+
+- local multiplicity projectors;
+- second-layer \(Spin(10)\) projector audit;
+- fully expanded projector rendering.
+
+** Shattering Strategy
+
+- use Dynkin labels and copy labels;
+- quadratic Casimir first;
+- higher \(D_5\) signatures as block splitters;
+- Brauer/Jucys-Murphy elements for vector-index tensor products;
+- residual local idempotent splitting;
+- all caches keyed by convention hash.
+
+* Phase 6: \(SU(N)\)
+
+\(SU(N)\) should use its own combinatorics.
+
+** Implement
+
+- partition and Dynkin-label conversion;
+- Littlewood-Richardson decomposition;
+- standard tableaux;
+- Young symmetrizers kept factored;
+- Jucys-Murphy labels for multiplicity separation;
+- optional Gelfand-Tsetlin basis for numeric CG coefficients.
+
+** Pseudocode
+
+#+begin_example
+function decompose_su_product(left, right):
+    if left/right have partition realizations:
+        return littlewood_richardson(left.partition, right.partition)
+    return generic_decompose_product(left, right)
+#+end_example
+
+#+begin_example
+function su_projector(tableau_path):
+    expr = factored_young_symmetrizer(tableau_path)
+    if render_options.require_expanded:
+        return stream_expand_symmetrizer(expr)
+    return expr
+#+end_example
+
+** Complexity
+
+- LR cost scales with number of admissible tableaux/hives;
+- naive Young symmetrizer expansion can be factorial;
+- Gelfand-Tsetlin enumeration scales with number of patterns.
+
+** Shattering Strategy
+
+- keep symmetrizers factored;
+- use standard tableaux as multiplicity labels;
+- use Jucys-Murphy eigenvalues for path separation;
+- stream expansion only at the boundary.
+
+* Phase 7: \(E_8\)
+
+\(E_8\) begins adjoint-first.
+
+** Implement
+
+- \(E_8\) root system;
+- sparse adjoint basis;
+- Killing form;
+- structure constants;
+- decomposition by character/highest-weight subtraction;
+- local projector solver for adjoint products.
+
+** Initial Target
+
+#+begin_example
+248 x 248 = 1 + 248 + 3875 + 27000 + 30380
+#+end_example
+
+** Complexity
+
+- adjoint sparse operations are manageable;
+- arbitrary high irreps are dominated by weight multiplicity generation;
+- expanded higher-Casimir tensor formulas are not a good primary form.
+
+** Shattering Strategy
+
+- keep support adjoint-focused first;
+- cache \(248\)-channel projectors;
+- use modular local solvers;
+- use higher Casimir eigenvalues as signatures and checks;
+- render with Killing form and structure constants rather than dense tensors.
+
+* CFT Integration
+
+The CFT layer should not manipulate tensor expressions directly.
+
+** Workflow API
+
+The workflow should let a caller describe external representation legs with
+named free indices, then request invariant tensors in a chosen output basis.
+
+Example problem:
+
+#+begin_example
+10 x 16 = 16 + 144
+
+External object:
+  six gamma-traceless vector-spinors
+
+Request:
+  singlets in 144^6
+
+Free indices supplied by caller:
+  vector: m1, m2, m3, m4, m5, m6
+  spinor: A1, A2, A3, A4, A5, A6
+
+Output:
+  list/stream of invariant expressions with those free indices
+#+end_example
+
+The exposed API should look conceptually like this:
+
+#+begin_example
+ctx = TensorContext(.spin, 10)
+
+V  = ctx.irrep(.dynkin, [1,0,0,0,0])     # 10
+Sp = ctx.irrep(.dynkin, [0,0,0,0,1])     # 16+
+Sbar = ctx.irrep(.dynkin, [0,0,0,1,0])   # 16-
+
+VS = ctx.tensor_product([V, Sp])
+decomp = ctx.decompose(VS)
+# returns [(Sbar, copy 0), (R144, copy 0)]
+
+R144 = ctx.find_channel(decomp, .not_irrep(Sbar), .copy(0))
+
+vecspin144 = ctx.realization(.{
+    .target = R144,
+    .ambient = [V, Sp],
+    .free_indices = [.vector, .spinor],
+})
+
+legs = [
+    ctx.external_leg(vecspin144, .{ .vector = "m1", .spinor = "A1" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m2", .spinor = "A2" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m3", .spinor = "A3" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m4", .spinor = "A4" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m5", .spinor = "A5" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m6", .spinor = "A6" }),
+]
+
+basis = ctx.invariant_basis(.{
+    .external_legs = legs,
+    .target = ctx.singlet(),
+    .tree_policy = .auto,
+})
+
+for invariant in basis.iterate():
+    ctx.render(invariant, .{
+        .format = .gamma_terms,
+        .projectors = .expanded,
+        .signature = .lorentzian_mostly_plus,
+    }, writer)
+#+end_example
+
+This API does three separate things:
+
+1. =decompose= discovers that \(144\) occurs in \(10\otimes16\).  The caller
+   does not enter the decomposition by hand.
+
+2. =realization= derives and caches the projector from \(10\otimes16\) onto
+   \(144\).  The coupling engine still computes \(144^6\), not
+   \((10\otimes16)^6\).
+
+3. =render= inserts the six realization projectors so the final expressions
+   have exactly the caller's free indices:
+
+   #+begin_example
+   T_i^{m1...m6}_{A1...A6}
+   #+end_example
+
+The same basis can be rendered in Euclidean or Lorentzian conventions because
+signature is a render/evaluate option, not part of the irrep identity.
+
+** Minimal Public Types
+
+The public API should expose handles, not internal arrays.
+
+#+begin_example
+TensorContext
+IrrepHandle
+TensorProductHandle
+DecompositionHandle
+RealizationHandle
+ExternalLeg
+BasisHandle
+InvariantHandle
+RenderOptions
+#+end_example
+
+The caller should not construct =Channel=, =Occurrence=, or =Kernel= records
+directly.  Those are internal data-oriented structures.
+
+** API Operations
+
+#+begin_example
+irrep(ctx, dynkin) -> IrrepHandle
+
+tensor_product(ctx, []IrrepHandle) -> TensorProductHandle
+
+decompose(ctx, TensorProductHandle) -> DecompositionHandle
+
+find_channel(decomposition, dynkin, copy) -> IrrepHandle or ChannelHandle
+
+find_channel(decomposition, predicate, copy) -> IrrepHandle or ChannelHandle
+
+realization(ctx, target, ambient, index_layout, options) -> RealizationHandle
+
+external_leg(ctx, realization_or_irrep, named_indices) -> ExternalLeg
+
+invariant_basis(ctx, external_legs, target, options) -> BasisHandle
+
+count(basis) -> Integer
+
+iterate(basis) -> stream InvariantHandle
+
+render(ctx, invariant, render_options, writer) -> void
+
+evaluate(ctx, invariant, component_indices, eval_options) -> Scalar
+#+end_example
+
+For primitive external reps, =external_leg= accepts an irrep directly:
+
+#+begin_example
+ctx.external_leg(Sp, .{ .spinor = "A" })
+ctx.external_leg(V,  .{ .vector = "m" })
+#+end_example
+
+For constrained reps, =external_leg= accepts a realization:
+
+#+begin_example
+ctx.external_leg(vecspin144, .{ .vector = "m", .spinor = "A" })
+#+end_example
+
+** Render Result Shape
+
+The render output for \(144^6\) should be a stream of symbolic terms, not one
+large in-memory expression.
+
+Conceptually:
+
+#+begin_example
+Invariant i:
+  sum_t c_t
+    GammaBlock_t(...)
+    Metric/Epsilon/DeltaAtoms_t(...)
+    with free indices m1,A1,...,m6,A6
+#+end_example
+
+Machine stream:
+
+#+begin_example
+RenderedInvariant:
+  invariant_id
+  term_count if known
+  terms:
+    coefficient
+    gamma blocks
+    diagram atoms
+#+end_example
+
+Text renderer:
+  writes one term at a time
+#+end_example
+
+This is the form cft-code can attach to rational functions while keeping
+tensor expressions out of ordinary rational-function simplification.
+
+** Tensor Request
+
+#+begin_example
+TensorRequest:
+  algebra
+  external legs with IrrepId and optional RealizationId
+  target irrep
+  basis policy
+  render/evaluation convention
+#+end_example
+
+** Tensor Expansion
+
+#+begin_example
+TensorExpansion:
+  basis_handle
+  terms:
+    rational_function_id
+    invariant_id
+    scalar coefficient
+#+end_example
+
+For a spin-field correlator:
+
+#+begin_example
+sum_i R_i(z_a,z_b,...)
+      * GammaInvariant_i(A1,A2,...)
+#+end_example
+
+The tensor invariant is a basis id.  Rendering to gamma matrices is optional
+and streamed.
+
+The CFT simplifier should combine only terms with the same rational-function
+key and the same tensor invariant id.  It should not try to rediscover tensor
+identities.  Tensor reduction is an explicit tensor-code operation:
+
+#+begin_example
+cft side:
+  collect_by(rational_function_id, invariant_id)
+
+tensor side:
+  reduce_tensor_expression(expression, target_basis) -> coefficient stream
+#+end_example
+
+This keeps ordinary OPE/correlator simplification cheap.  Expensive Fierz or
+projector reductions happen only when a tensor expression must be converted to
+a chosen invariant basis.
+
+* Build Order
+
+1. Root data, Dynkin interning, dimensions, duals, decompositions.
+
+2. \(Spin(10)\) Clifford/Fock primitive spinors and gamma bilinears.
+
+3. Generic local projector solver with quadratic Casimir and residual local
+   idempotent splitting.
+
+4. Realization projectors, starting with \(126\) and \(144\).
+
+5. \(16^4\) Fierz derivation and verification.
+
+6. \(16^{12}\) second-layer feasibility audit.
+
+7. Coupling-path basis generation for \(16^8\), \(16^{12}\), and a nontrivial
+   \(144\) target.
+
+8. CFT =TensorExpansion= integration.
+
+9. \(SU(N)\) LR/tableau backend.
+
+10. \(E_8\) adjoint backend.
+
+* Generalization Boundary
+
+The implementation must keep the reusable ADE/core logic separate from
+\(SO(10)\)-specific gamma technology.  The following parts are generic for
+all simple Lie algebras, including all ADE algebras.
+
+** Fully Generic Core
+
+These modules should not mention gamma matrices, vector indices, Young
+diagrams, or \(SO(10)\).
+
+#+begin_example
+RootDatum:
+  Cartan matrix
+  simple roots
+  positive roots
+  Weyl group data
+  Weyl vector
+  invariant degrees
+
+IrrepStore:
+  Dynkin labels
+  dimension
+  dual/conjugate map
+  Casimir eigenvalue signatures
+  weight multiplicity cache
+
+CharacterEngine:
+  Weyl character construction
+  character multiplication
+  highest-weight subtraction
+  singlet counting
+
+ProductCache:
+  decompose_product(left, right)
+  multiplicity-aware channel records
+
+CouplingEngine:
+  tree selection
+  backward reachability pruning
+  coupling-path enumeration
+  multiplicity-copy bookkeeping
+
+LocalSolver:
+  highest-weight slice enumeration
+  raising-operator constraints
+  sparse modular nullspace
+  rational reconstruction when requested
+
+BasisStore:
+  invariant ids
+  coupling paths
+  occurrence ids
+  kernel ids
+
+ScalarDomain:
+  modular primes
+  integers
+  rationals
+  optional algebraic normalization layer
+#+end_example
+
+These modules are the reusable center of the project.  They apply to:
+
+#+begin_example
+A_n = su(n+1)
+D_n = so(2n)
+E_6, E_7, E_8
+and also B_n, C_n if we keep non-ADE support
+#+end_example
+
+** Generic But Backend-Assisted
+
+These concepts are generic, but their efficient realization depends on the
+family.
+
+#+begin_example
+Realization:
+  primitive irrep
+  irrep as a channel inside an ambient product
+  constrained tensor realization
+
+ProjectorKernel:
+  abstract local projector id
+  optional symbolic renderer
+  optional numeric evaluator
+
+Recoupling:
+  change of coupling tree
+  local F-move / 6j-like data
+  multiplicity-space matrices
+
+TensorReduction:
+  reduce expression to chosen invariant basis
+#+end_example
+
+The generic rule is:
+
+#+begin_example
+derive the channel abstractly by Dynkin-label decomposition;
+derive or validate the projector using the generic local solver;
+use a family backend only to render/evaluate it efficiently.
+#+end_example
+
+** Family-Specific Presentation Backends
+
+These are not generic and should be isolated behind interfaces.
+
+#+begin_example
+SO/Spin backend:
+  vector metric/epsilon diagrams
+  Brauer algebra
+  Clifford/Fock spinors
+  antisymmetrized gamma matrices
+  Hodge star and self-duality
+  gamma-traceless tensor-spinor realizations
+
+SU backend:
+  partitions
+  Littlewood-Richardson tableaux/hives
+  Young symmetrizers
+  epsilon/delta invariant rendering
+  Gelfand-Tsetlin basis
+  Jucys-Murphy tableau separation
+
+E backend:
+  root-basis sparse adjoint action
+  Killing form
+  structure constants
+  adjoint-channel projectors
+  no general compact index diagram language assumed
+#+end_example
+
+** ADE Coverage Strategy
+
+For ADE specifically:
+
+#+begin_example
+A_n:
+  generic root/character/coupling core
+  plus SU-specific tableau backend for speed and rendering
+
+D_n:
+  generic root/character/coupling core
+  plus SO/Spin gamma/Brauer backend for concrete tensors
+
+E_6, E_7, E_8:
+  generic root/character/coupling core
+  plus sparse root-basis/adjoin-focused renderers
+#+end_example
+
+The first implementation should not make \(SO(10)\) assumptions in the core
+data model.  \(Spin(10)\) is a stress-test backend, not the architecture.
+
+** Reuse Expectations
+
+Approximate reuse by subsystem:
+
+#+begin_example
+Root datum / Dynkin / dimensions:        100% reusable across ADE
+Character decomposition / counting:      100% reusable across ADE
+Coupling paths / multiplicity labels:    100% reusable across ADE
+Local highest-weight solver:             100% reusable across ADE
+Modular sparse linear algebra:           100% reusable across ADE
+Realization abstraction:                 reusable, backend-filled
+Projector cache API:                     reusable, backend-filled
+Symbolic term store:                     partially reusable
+SO gamma/Brauer renderer:                D/B-family specific
+SU tableau renderer:                     A-family specific
+E adjoint renderer:                      E-family specific
+#+end_example
+
+The goal is that adding \(E_6\) or \(E_7\) requires new root data and perhaps
+new presentation atoms, not a new invariant-basis engine.
+
+** Hard Separation Rule
+
+The following imports must be one-way:
+
+#+begin_example
+generic representation core
+  imports nothing from SO/SU/E presentation backends
+
+coupling engine
+  imports only generic decomposition and kernel interfaces
+
+family backend
+  may import generic core
+  may implement renderer/evaluator/projector hooks
+
+CFT code
+  imports only public tensor-code handles and render/evaluate functions
+#+end_example
+
+This prevents \(SO(10)\) gamma choices from leaking into the ADE-wide
+representation engine.
+
+* Open Questions
+
+1. Normalization: unnormalized rational/integer maps, rational projectors, or
+   orthonormal CG coefficients?
+
+2. Default \(Spin(10)\) chirality and gamma normalization conventions.
+
+3. Whether default spin-field bases should be fixed-pairing bases or OPE
+   channel-adapted bases.
+
+4. Whether antisymmetric block deltas are acceptable in "expanded" output.
+
+5. Whether \(SU(N)\) use cases are mostly fundamentals/antisymmetrics or
+   arbitrary Dynkin labels.
+
+6. Whether \(E_8\) target is adjoint-only at first.
+
+7. Persistent derived cache format and invalidation policy.
+
+* Acceptance Criteria
+
+The implementation is credible only when these pass:
+
+1. \(16\otimes16=10\oplus120\oplus126\) derived, not entered.
+
+2. \(10\otimes16=16\oplus144\) derived, not entered.
+
+3. \(P_{144}\) is derived and verified gamma-traceless.
+
+4. \(16^4\) Fierz table is derived from gamma contractions.
+
+5. \(16^{12}\) second-layer audit reports local product families,
+   multiplicity blocks, Casimir collisions, and residual block sizes.
+
+6. \(16^8\) basis generation works end-to-end with streamed rendering.
+
+7. A CFT spin-field correlator can return rational functions times invariant
+   ids without expanding tensor expressions.
+
+8. \(SU(3)\) and \(SU(4)\) tableau decompositions agree with generic
+   decomposition on small examples.
+
+9. \(E_8\) adjoint product decomposition is derived and validated.

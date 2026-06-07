@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coefficient</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Coefficient</h1>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#rational"><code>rational(numerator: i64, denominator: i64) ?Rational</code></a></dt>
+<dd>rational constructs a normalized exact rational number.</dd>
+<dt><a href="#integer"><code>integer(value: i64) Rational</code></a></dt>
+<dd>integer constructs an exact rational integer.</dd>
+</dl>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#Rational"><code>Rational (struct)</code></a></dt>
+<dd>Rational stores one normalized exact rational number.</dd>
+<dt><a href="#CoordinateDifference"><code>CoordinateDifference (struct)</code></a></dt>
+<dd>CoordinateDifference stores one ordered coordinate difference.</dd>
+<dt><a href="#CoordinateKernel"><code>CoordinateKernel (union)</code></a></dt>
+<dd>CoordinateKernel stores one coordinate-dependent kernel factor.</dd>
+<dt><a href="#CoordinateFactor"><code>CoordinateFactor (struct)</code></a></dt>
+<dd>CoordinateFactor stores a coordinate kernel with its rational derivative multiplier.</dd>
+<dt><a href="#Coeff"><code>Coeff (struct)</code></a></dt>
+<dd>A coefficient is a sum of rational functions multiplied by a tensor structure</dd>
+<dt><a href="#Variable"><code>Variable = u32</code></a></dt>
+<dd>Variables are internally assigned numeric identifiers</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>);
+</pre>
+</div>
+
+<p>
+A coefficient is a rational function multiplied by tensor structures from
+<a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>.  The full expression store will grow
+later, but Wick evaluation already needs a small exact vocabulary for scalar
+multipliers and coordinate kernels.  These records are deliberately plain
+values so primitive contractions can pass them around without allocation.
+</p>
+
+<a id="Rational"></a>
+<a id="rational"></a>
+<a id="integer"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org2d23adb"><span style="color: #e0d3b9; font-style: italic;">/// Rational stores one normalized exact rational number.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Rational</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">absInt</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (value == <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).math.minInt(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, 1) &lt;&lt; 63;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (value &lt; 0) <span style="color: #fe8019; font-weight: bold;">@intCast</span>(-value) <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(value);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">gcd</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">first</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">second</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">a</span> = first;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">b</span> = second;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (b != 0) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rem</span> = a % b;
+        a = b;
+        b = rem;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (a == 0) 1 <span style="color: #fb4934; font-weight: bold;">else</span> a;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rational constructs a normalized exact rational number.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rational</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>) ?Rational {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (denominator == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">num</span> = numerator;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">den</span> = denominator;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (den &lt; 0) {
+        num = -num;
+        den = -den;
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(gcd(absInt(num), absInt(den)));
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .numerator = <span style="color: #fe8019; font-weight: bold;">@divExact</span>(num, factor),
+        .denominator = <span style="color: #fe8019; font-weight: bold;">@divExact</span>(den, factor),
+    };
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// integer constructs an exact rational integer.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">integer</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>) Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .numerator = value, .denominator = 1 };
+}
+</pre>
+</div>
+
+<p>
+Coordinate kernels are the coordinate-dependent pieces produced by Wick
+contractions.  They are not a simplifier; they are the compact output of a
+single primitive contraction after insertion derivatives have acted where the
+Wick rule requested them.
+</p>
+
+<a id="CoordinateDifference"></a>
+<a id="CoordinateKernel"></a>
+<a id="CoordinateFactor"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgec895a0"><span style="color: #e0d3b9; font-style: italic;">/// CoordinateDifference stores one ordered coordinate difference.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateDifference</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Variable</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Variable</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateKernel stores one coordinate-dependent kernel factor.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateKernel</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">difference_power</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateDifference</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">exponent</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">logarithm</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateDifference</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">green_kernel</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateDifference</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0 },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">green_exponential</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateDifference</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateFactor stores a coordinate kernel with its rational derivative multiplier.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateFactor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span> = .{ .numerator = 1, .denominator = 1 },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateKernel</span>,
+};
+</pre>
+</div>
+
+<p>
+The older coefficient shell is kept because higher layers already refer to a
+coefficient as a sum of tensor-weighted rational functions.  Its internals
+remain private until the real simplifier exists.
+</p>
+
+<a id="Coeff"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgf7a36ce"><span style="color: #e0d3b9; font-style: italic;">/// A coefficient is a sum of rational functions multiplied by a tensor structure
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Coeff</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">summands</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoeffSummand</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoeffSummand</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rational_function</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalFunction</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_structure</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.TensorStructure</span>,
+};
+
+</pre>
+</div>
+
+<p>
+A rational function can be written as a product of polynomial factors raised to a power.
+</p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RationalFunction</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Factor</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Factor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">base</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Polynomial</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">exponent</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>,
+};
+</pre>
+</div>
+
+<p>
+A polynomial is a sum of monomial terms.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Polynomial</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PolynomialTerm</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PolynomialTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">monomial_coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Scalar</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">monomial</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Monomial</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Scalar</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">f32</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Monomial</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MonomialTerm</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">MonomialTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+   <span style="color: #83a598; font-weight: bold; font-style: italic;">variable</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Variable</span>,
+   <span style="color: #83a598; font-weight: bold; font-style: italic;">power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+</pre>
+</div>
+
+<p>
+Variables are internally assigned a numeric identifier.
+</p>
+
+<a id="Variable"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org5fa39f0"><span style="color: #e0d3b9; font-style: italic;">/// Variables are internally assigned numeric identifiers
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Variable</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+</pre>
+</div>
+</div>
+</body>
+</html>

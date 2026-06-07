@@ -1,0 +1,1010 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-05 Fri 07:42 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Streamed Runtime Design</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Streamed Runtime Design</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org76747ed">1. Goal</a></li>
+<li><a href="#orgcaf81d1">2. Main Principle</a></li>
+<li><a href="#orgf3e2676">3. Runtime Search State</a></li>
+<li><a href="#org93f8e27">4. Runtime Operator Type</a></li>
+<li><a href="#org03d59a6">5. Theory-Specific Extra Data</a></li>
+<li><a href="#org359c201">6. Coefficient Runtime Type</a></li>
+<li><a href="#orgeec53bf">7. Tensor Runtime Type</a></li>
+<li><a href="#org0476132">8. Expression Type</a></li>
+<li><a href="#org5f03cf1">9. Scratch-Based Building</a></li>
+<li><a href="#orgcc572f8">10. Rollback Marks</a></li>
+<li><a href="#org45ac614">11. Emission Model</a></li>
+<li><a href="#orgd01d7d0">12. Aggregation Strategy</a></li>
+<li><a href="#org3ea0409">13. Wick Runtime Interface</a></li>
+<li><a href="#orgc339d34">14. What Must Be Implemented Now</a>
+<ul>
+<li><a href="#org29b1bd3">14.1. 1. Operator runtime type</a></li>
+<li><a href="#orgab712c0">14.2. 2. Expression runtime type</a></li>
+<li><a href="#orgccbc4bb">14.3. 3. Coeff runtime type</a></li>
+<li><a href="#org6cb1959">14.4. 4. Tensor runtime type</a></li>
+<li><a href="#orgd56feb6">14.5. 5. Scratch storage</a></li>
+<li><a href="#org62c0b60">14.6. 6. Theory extra store</a></li>
+</ul>
+</li>
+<li><a href="#org36a5cfd">15. What Should Be Implemented Soon After</a>
+<ul>
+<li><a href="#org9637fc5">15.1. 1. Theory-generated weight lookup</a></li>
+<li><a href="#org53fa984">15.2. 2. Theory-generated Wick</a></li>
+<li><a href="#org850b4b2">15.3. 3. Small internal coefficient constructors</a></li>
+<li><a href="#org65eb37d">15.4. 4. Recursive correlator engine</a></li>
+</ul>
+</li>
+<li><a href="#orgd8491cf">16. Down the Line</a>
+<ul>
+<li><a href="#org63b0ee2">16.1. 1. Richer tensor structures</a></li>
+<li><a href="#orgf8d59cc">16.2. 2. Composite local operators</a></li>
+<li><a href="#orgc140c74">16.3. 3. External aggregation/output</a></li>
+<li><a href="#org3b2631e">16.4. 4. Generated theory code</a></li>
+</ul>
+</li>
+<li><a href="#orgfcfd88d">17. Summary</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org76747ed" class="outline-2">
+<h2 id="org76747ed"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The runtime should be limited mainly by final output size, not by intermediate symbolic expressions.
+</p>
+
+<p>
+The correct approach is:
+</p>
+
+<ul class="org-ul">
+<li>recursive or stack-based Wick/OPE search</li>
+<li>shared scratch storage</li>
+<li>rollback on backtracking</li>
+<li>immediate emission of completed terms</li>
+<li>optional aggregation of equal output terms</li>
+</ul>
+
+<p>
+This note summarizes what that implies for the operator and coefficient runtime types, and what needs to be implemented now versus later.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcaf81d1" class="outline-2">
+<h2 id="orgcaf81d1"><span class="section-number-2">2.</span> Main Principle</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Do not build a fresh owned symbolic expression at every recursive step.
+</p>
+
+<p>
+Instead:
+</p>
+
+<ul class="org-ul">
+<li>keep one small search state</li>
+<li>keep one reusable algebra scratch state</li>
+<li>extend it while descending recursion</li>
+<li>rollback when backtracking</li>
+<li>emit completed terms immediately</li>
+</ul>
+
+<p>
+This makes memory proportional to:
+</p>
+
+<ul class="org-ul">
+<li>recursion depth</li>
+<li>scratch capacity</li>
+<li>chosen output retention strategy</li>
+</ul>
+
+<p>
+rather than to the total number of intermediate branches.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf3e2676" class="outline-2">
+<h2 id="orgf3e2676"><span class="section-number-2">3.</span> Runtime Search State</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The search state should stay small.
+For Wick contractions, it should contain only things like:
+</p>
+
+<ul class="org-ul">
+<li>remaining operators to contract</li>
+<li>parity or sign state if needed</li>
+<li>recursion depth or explicit stack position</li>
+<li>scratch rollback marks</li>
+</ul>
+
+<p>
+It should not contain owned `Expr` trees.
+</p>
+</div>
+</div>
+<div id="outline-container-org93f8e27" class="outline-2">
+<h2 id="org93f8e27"><span class="section-number-2">4.</span> Runtime Operator Type</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The runtime operator should be lean and carry only the data needed to identify one concrete insertion.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Operator</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">family</span>: <span style="color: #fabd2f;">OperatorFamilyId</span>,
+    <span style="color: #83a598;">insertion</span>: <span style="color: #fabd2f;">OperatorInsertion</span>,
+    <span style="color: #83a598;">extra</span>: <span style="color: #fabd2f;">OperatorExtraId</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorInsertion</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">single</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">position</span>: <span style="color: #fabd2f;">Variable</span>,
+        <span style="color: #83a598;">derivatives</span>: <span style="color: #fabd2f;">u8</span>,
+    },
+    <span style="color: #83a598;">pair</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Variable</span>,
+        <span style="color: #83a598;">zbar</span>: <span style="color: #fabd2f;">Variable</span>,
+        <span style="color: #83a598;">dz</span>: <span style="color: #fabd2f;">u8</span>,
+        <span style="color: #83a598;">dzbar</span>: <span style="color: #fabd2f;">u8</span>,
+    },
+};
+</code></pre>
+</div>
+
+<p>
+This is the right shape because:
+</p>
+
+<ul class="org-ul">
+<li>`family` is globally unique within the compiled theory, so a separate sector id is redundant</li>
+<li>`insertion` keeps position and derivative data structurally consistent</li>
+<li>`extra` is only a handle into side data; most operators need no extra payload</li>
+</ul>
+
+<p>
+Examples of what `extra` may point to later:
+</p>
+
+<ul class="org-ul">
+<li>tensor indices for vector-valued fields such as `dX`</li>
+<li>momentum data such as `k` and `k<sup>2</sup>` for `expX`</li>
+<li>other family-specific runtime payloads</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org03d59a6" class="outline-2">
+<h2 id="org03d59a6"><span class="section-number-2">5.</span> Theory-Specific Extra Data</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The runtime operator should not be burdened with optional inline parameter unions.
+Extra data should live in a side store.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorExtraId</span> = <span style="color: #fabd2f;">u32</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TheoryExtraStore</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #928374;">// </span><span style="color: #928374;">generated per theory as needed
+</span>};
+</code></pre>
+</div>
+
+<p>
+The generated theory code interprets `extra` according to `family`.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>for `b` and `c`, `extra` may be empty</li>
+<li>for `dX`, `extra` may hold tensor indices</li>
+<li>for `expX`, `extra` may hold `k` and `k<sup>2</sup>`</li>
+</ul>
+
+<p>
+Then weights are computed by a theory-generated function such as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>Theory.weight(op, extras) ConformalWeights
+</code></pre>
+</div>
+
+<p>
+So fixed-weight operators remain cheap, while parameterized operators still carry what they need.
+</p>
+</div>
+</div>
+<div id="outline-container-org359c201" class="outline-2">
+<h2 id="org359c201"><span class="section-number-2">6.</span> Coefficient Runtime Type</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The runtime coefficient should be the actual algebraic storage form, not an AST.
+The additive structure belongs inside `Coeff`.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Coeff</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">summands</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CoeffSummand</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CoeffSummand</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">rational_function</span>: <span style="color: #fabd2f;">RationalFunction</span>,
+    <span style="color: #83a598;">tensor_structure</span>: <span style="color: #fabd2f;">TensorStructure</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">RationalFunction</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">factors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Factor</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Factor</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">base</span>: <span style="color: #fabd2f;">Polynomial</span>,
+    <span style="color: #83a598;">exponent</span>: <span style="color: #fabd2f;">i16</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Polynomial</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">PolynomialTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">PolynomialTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">monomial_coefficient</span>: <span style="color: #fabd2f;">Scalar</span>,
+    <span style="color: #83a598;">monomial</span>: <span style="color: #fabd2f;">Monomial</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Monomial</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">MonomialTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">MonomialTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">variable</span>: <span style="color: #fabd2f;">Variable</span>,
+    <span style="color: #83a598;">power</span>: <span style="color: #fabd2f;">u16</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is the right runtime form because:
+</p>
+
+<ul class="org-ul">
+<li>addition of rational/tensor pieces is explicit in `Coeff`</li>
+<li>denominator structure is explicit in `Factor`</li>
+<li>it matches Wick/OPE output much better than a syntax tree</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgeec53bf" class="outline-2">
+<h2 id="orgeec53bf"><span class="section-number-2">7.</span> Tensor Runtime Type</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Tensor structure should be independent of the rational part.
+It should eventually become compositional, but the first runtime layer can stay modest.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TensorStructure</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    none,
+    <span style="color: #83a598;">kronecker_delta</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">TensorIndex</span>,
+        <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">TensorIndex</span>,
+    },
+    <span style="color: #928374;">// </span><span style="color: #928374;">later: products, invariant tensors, epsilon, metrics, etc.
+</span>};
+</code></pre>
+</div>
+
+<p>
+The important structural point is that `CoeffSummand` already separates:
+</p>
+
+<ul class="org-ul">
+<li>rational function</li>
+<li>tensor structure</li>
+</ul>
+
+<p>
+so the tensor layer can grow later without changing the whole coefficient model.
+</p>
+</div>
+</div>
+<div id="outline-container-org0476132" class="outline-2">
+<h2 id="org0476132"><span class="section-number-2">8.</span> Expression Type</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+There are two additive layers:
+</p>
+
+<ul class="org-ul">
+<li>`Coeff` may be a sum for one fixed operator</li>
+<li>`Expr` must be able to represent sums of different operators</li>
+</ul>
+
+<p>
+So the runtime expression type should be:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Expr</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">ExprTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ExprTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">coeff</span>: <span style="color: #fabd2f;">Coeff</span>,
+    <span style="color: #83a598;">operator</span>: <span style="color: #fabd2f;">Operator</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is a borrowed view in the streamed design, not necessarily an owned allocation.
+</p>
+</div>
+</div>
+<div id="outline-container-org5f03cf1" class="outline-2">
+<h2 id="org5f03cf1"><span class="section-number-2">9.</span> Scratch-Based Building</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+For streamed calculations, `Expr` should usually be a view into reusable scratch storage.
+Likewise for `Coeff`.
+</p>
+
+<p>
+A builder should own reusable buffers such as:
+</p>
+
+<ul class="org-ul">
+<li>expression terms</li>
+<li>coefficient summands</li>
+<li>rational-function factors</li>
+<li>polynomial terms</li>
+<li>monomial terms</li>
+</ul>
+
+<p>
+A minimal shape is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Scratch</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">expr_terms</span>: <span style="color: #fabd2f;">std.ArrayList</span>(ExprTerm),
+    <span style="color: #83a598;">coeff_summands</span>: <span style="color: #fabd2f;">std.ArrayList</span>(CoeffSummand),
+    <span style="color: #83a598;">factors</span>: <span style="color: #fabd2f;">std.ArrayList</span>(Factor),
+    <span style="color: #83a598;">polynomial_terms</span>: <span style="color: #fabd2f;">std.ArrayList</span>(PolynomialTerm),
+    <span style="color: #83a598;">monomial_terms</span>: <span style="color: #fabd2f;">std.ArrayList</span>(MonomialTerm),
+};
+</code></pre>
+</div>
+
+<p>
+Each emitted expression should be built into these arrays, returned as borrowed views, then the arrays should be reused.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcc572f8" class="outline-2">
+<h2 id="orgcc572f8"><span class="section-number-2">10.</span> Rollback Marks</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+To support recursive backtracking without allocations, the scratch store should support marks.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ScratchMark</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">expr_terms_len</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">coeff_summands_len</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">factors_len</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">polynomial_terms_len</span>: <span style="color: #fabd2f;">u32</span>,
+    <span style="color: #83a598;">monomial_terms_len</span>: <span style="color: #fabd2f;">u32</span>,
+};
+</code></pre>
+</div>
+
+<p>
+And methods:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">mark</span>(<span style="color: #83a598;">self</span>: *<span style="color: #fabd2f;">Scratch</span>) ScratchMark
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">rollback</span>(<span style="color: #83a598;">self</span>: *<span style="color: #fabd2f;">Scratch</span>, <span style="color: #83a598;">m</span>: <span style="color: #fabd2f;">ScratchMark</span>) <span style="color: #fabd2f;">void</span>
+</code></pre>
+</div>
+
+<p>
+The runtime algorithm then does:
+</p>
+
+<ol class="org-ol">
+<li>record a mark</li>
+<li>extend the accumulated coefficient / expression state</li>
+<li>recurse</li>
+<li>rollback on return</li>
+</ol>
+
+<p>
+This is the key mechanism that avoids materializing owned intermediates.
+</p>
+</div>
+</div>
+<div id="outline-container-org45ac614" class="outline-2">
+<h2 id="org45ac614"><span class="section-number-2">11.</span> Emission Model</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+At a recursion leaf, the runtime should emit completed terms immediately.
+</p>
+
+<p>
+A good minimal interface is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">emit</span>(<span style="color: #83a598;">term</span>: <span style="color: #fabd2f;">ExprTerm</span>) !<span style="color: #fabd2f;">void</span>
+</code></pre>
+</div>
+
+<p>
+Possible sinks:
+</p>
+
+<ul class="org-ul">
+<li>callback sink</li>
+<li>in-memory vector sink</li>
+<li>grouped aggregation sink</li>
+<li>file-backed sink</li>
+</ul>
+
+<p>
+The runtime core should not assume all output is retained in RAM.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd01d7d0" class="outline-2">
+<h2 id="orgd01d7d0"><span class="section-number-2">12.</span> Aggregation Strategy</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+If many branches produce the same operator structure, a sink may choose to aggregate them by key.
+</p>
+
+<p>
+Examples:
+</p>
+
+<ul class="org-ul">
+<li>exact `Operator` match</li>
+<li>`Operator` plus normalized tensor structure</li>
+</ul>
+
+<p>
+Then the sink can combine `Coeff`s instead of storing many duplicate `ExprTerm`s.
+</p>
+
+<p>
+If output is too large for RAM, aggregation can later be externalized to disk.
+</p>
+</div>
+</div>
+<div id="outline-container-org3ea0409" class="outline-2">
+<h2 id="org3ea0409"><span class="section-number-2">13.</span> Wick Runtime Interface</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+The runtime algorithm should only call one theory-specific method:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>Theory.wick(left, right, extras) ?Coeff
+</code></pre>
+</div>
+
+<p>
+The internals of that method are generated at comptime from the theory preset.
+It may read:
+</p>
+
+<ul class="org-ul">
+<li>positions from `OperatorInsertion`</li>
+<li>derivative orders from `OperatorInsertion`</li>
+<li>family-specific payloads from `TheoryExtraStore`</li>
+</ul>
+
+<p>
+But the recursive correlator code itself stays theory-agnostic.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc339d34" class="outline-2">
+<h2 id="orgc339d34"><span class="section-number-2">14.</span> What Must Be Implemented Now</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+Before settling the full comptime generation story, the following runtime pieces should be implemented clearly.
+</p>
+</div>
+<div id="outline-container-org29b1bd3" class="outline-3">
+<h3 id="org29b1bd3"><span class="section-number-3">14.1.</span> 1. Operator runtime type</h3>
+<div class="outline-text-3" id="text-14-1">
+<p>
+Settle:
+</p>
+
+<ul class="org-ul">
+<li>`Operator`</li>
+<li>`OperatorInsertion`</li>
+<li>`OperatorExtraId`</li>
+</ul>
+
+<p>
+This should be finalized early.
+</p>
+</div>
+</div>
+<div id="outline-container-orgab712c0" class="outline-3">
+<h3 id="orgab712c0"><span class="section-number-3">14.2.</span> 2. Expression runtime type</h3>
+<div class="outline-text-3" id="text-14-2">
+<p>
+Settle:
+</p>
+
+<ul class="org-ul">
+<li>`Expr`</li>
+<li>`ExprTerm`</li>
+</ul>
+
+<p>
+with the understanding that in the streamed design these are borrowed views.
+</p>
+</div>
+</div>
+<div id="outline-container-orgccbc4bb" class="outline-3">
+<h3 id="orgccbc4bb"><span class="section-number-3">14.3.</span> 3. Coeff runtime type</h3>
+<div class="outline-text-3" id="text-14-3">
+<p>
+Settle:
+</p>
+
+<ul class="org-ul">
+<li>`Coeff`</li>
+<li>`CoeffSummand`</li>
+<li>`RationalFunction`</li>
+<li>`Factor`</li>
+<li>`Polynomial`</li>
+<li>`Monomial`</li>
+</ul>
+
+<p>
+This is the core algebra storage format.
+</p>
+</div>
+</div>
+<div id="outline-container-org6cb1959" class="outline-3">
+<h3 id="org6cb1959"><span class="section-number-3">14.4.</span> 4. Tensor runtime type</h3>
+<div class="outline-text-3" id="text-14-4">
+<p>
+Settle the initial `TensorStructure` form, even if it is small at first.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd56feb6" class="outline-3">
+<h3 id="orgd56feb6"><span class="section-number-3">14.5.</span> 5. Scratch storage</h3>
+<div class="outline-text-3" id="text-14-5">
+<p>
+Implement:
+</p>
+
+<ul class="org-ul">
+<li>scratch arrays</li>
+<li>`mark`</li>
+<li>`rollback`</li>
+<li>borrowed-view finishing</li>
+</ul>
+
+<p>
+This is essential for scaling.
+</p>
+</div>
+</div>
+<div id="outline-container-org62c0b60" class="outline-3">
+<h3 id="org62c0b60"><span class="section-number-3">14.6.</span> 6. Theory extra store</h3>
+<div class="outline-text-3" id="text-14-6">
+<p>
+Define the basic pattern:
+</p>
+
+<ul class="org-ul">
+<li>operator extra handle</li>
+<li>theory-specific side data</li>
+<li>generated lookup/weight functions</li>
+</ul>
+
+<p>
+The exact family payloads can come later, but the shape should be fixed.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org36a5cfd" class="outline-2">
+<h2 id="org36a5cfd"><span class="section-number-2">15.</span> What Should Be Implemented Soon After</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+Once the runtime storage story is stable, the next important pieces are:
+</p>
+</div>
+<div id="outline-container-org9637fc5" class="outline-3">
+<h3 id="org9637fc5"><span class="section-number-3">15.1.</span> 1. Theory-generated weight lookup</h3>
+<div class="outline-text-3" id="text-15-1">
+<p>
+The compiled theory should provide:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>Theory.weight(op, extras) ConformalWeights
+</code></pre>
+</div>
+
+<p>
+This should interpret:
+</p>
+
+<ul class="org-ul">
+<li>fixed-weight families directly</li>
+<li>parameterized families through side data</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org53fa984" class="outline-3">
+<h3 id="org53fa984"><span class="section-number-3">15.2.</span> 2. Theory-generated Wick</h3>
+<div class="outline-text-3" id="text-15-2">
+<p>
+The compiled theory should provide:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>Theory.wick(left, right, extras) ?Coeff
+</code></pre>
+</div>
+
+<p>
+This is the main runtime hook used by the recursive correlator engine.
+</p>
+</div>
+</div>
+<div id="outline-container-org850b4b2" class="outline-3">
+<h3 id="org850b4b2"><span class="section-number-3">15.3.</span> 3. Small internal coefficient constructors</h3>
+<div class="outline-text-3" id="text-15-3">
+<p>
+Not as a user-facing DSL, but as internal helpers for generated code:
+</p>
+
+<ul class="org-ul">
+<li>construct `difference(z, w)`</li>
+<li>construct `1 / poly<sup>n</sup>`</li>
+<li>scale a coefficient</li>
+<li>attach tensor structure</li>
+</ul>
+
+<p>
+Generated theory code can use these directly.
+</p>
+</div>
+</div>
+<div id="outline-container-org65eb37d" class="outline-3">
+<h3 id="org65eb37d"><span class="section-number-3">15.4.</span> 4. Recursive correlator engine</h3>
+<div class="outline-text-3" id="text-15-4">
+<p>
+Implement the Wick recursion using:
+</p>
+
+<ul class="org-ul">
+<li>remaining operators</li>
+<li>accumulated coefficient state</li>
+<li>scratch marks</li>
+<li>immediate emission at leaves</li>
+</ul>
+
+<p>
+This is where the memory model pays off.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd8491cf" class="outline-2">
+<h2 id="orgd8491cf"><span class="section-number-2">16.</span> Down the Line</h2>
+<div class="outline-text-2" id="text-16">
+<p>
+After the runtime core is stable, these are the natural extensions.
+</p>
+</div>
+<div id="outline-container-org63b0ee2" class="outline-3">
+<h3 id="org63b0ee2"><span class="section-number-3">16.1.</span> 1. Richer tensor structures</h3>
+<div class="outline-text-3" id="text-16-1">
+<p>
+The tensor layer should grow to support:
+</p>
+
+<ul class="org-ul">
+<li>products of tensor factors</li>
+<li>metrics</li>
+<li>epsilon tensors</li>
+<li>general invariant tensors from `tensor-code`</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgf8d59cc" class="outline-3">
+<h3 id="orgf8d59cc"><span class="section-number-3">16.2.</span> 2. Composite local operators</h3>
+<div class="outline-text-3" id="text-16-2">
+<p>
+The current `Operator` type can stay atomic initially.
+Later, one will likely need a local composite-operator layer for objects such as:
+</p>
+
+<ul class="org-ul">
+<li>`e<sup>-phi</sup> psi<sup>mu</sup>`</li>
+<li>normal-ordered products</li>
+<li>more general superstring vertex operators</li>
+</ul>
+
+<p>
+That layer should be added carefully without burdening the atomic runtime operator.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc140c74" class="outline-3">
+<h3 id="orgc140c74"><span class="section-number-3">16.3.</span> 3. External aggregation/output</h3>
+<div class="outline-text-3" id="text-16-3">
+<p>
+If outputs become too large for RAM, add:
+</p>
+
+<ul class="org-ul">
+<li>file-backed sinks</li>
+<li>external sorting/grouping</li>
+<li>merge passes on emitted terms</li>
+</ul>
+
+<p>
+That is how the runtime stays limited by output size rather than memory churn.
+</p>
+</div>
+</div>
+<div id="outline-container-org3b2631e" class="outline-3">
+<h3 id="org3b2631e"><span class="section-number-3">16.4.</span> 4. Generated theory code</h3>
+<div class="outline-text-3" id="text-16-4">
+<p>
+Once the runtime target is stable, comptime generation can safely target:
+</p>
+
+<ul class="org-ul">
+<li>family metadata tables</li>
+<li>weight functions</li>
+<li>Wick dispatchers</li>
+<li>other theory-specific operations</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-orgfcfd88d" class="outline-2">
+<h2 id="orgfcfd88d"><span class="section-number-2">17.</span> Summary</h2>
+<div class="outline-text-2" id="text-17">
+<p>
+To make large streamed calculations scale, the runtime should be built around:
+</p>
+
+<ul class="org-ul">
+<li>lean `Operator`</li>
+<li>explicit algebraic `Coeff`</li>
+<li>`Expr` as a borrowed view of term buffers</li>
+<li>reusable scratch storage</li>
+<li>rollback-based recursion</li>
+<li>immediate output emission</li>
+<li>theory-generated `weight` and `wick`</li>
+</ul>
+
+<p>
+This is the right design if the goal is to be limited mostly by final output size, not by intermediate symbolic expressions.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2026-06-05 Fri 07:42</p>
+</div>
+</body>
+</html>

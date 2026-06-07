@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Reference</title>
+  <link rel="stylesheet" href="../style.css">
+  <script src="/theme.js"></script>
+  <script defer src="/sidebar.js"></script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div class="page-content">
+<h1>API Reference</h1>
+<div class="toc-nav api-section">
+<div class="toc-section">
+  <div class="toc-row"><span class="toc-toggle open"></span><a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a></div>
+  <div class="toc-entries">
+<dl>
+  <dt><a href="/notes/cft-code/cft-code.html#Handle"><code>Handle = presets.Handle</code></a></dt>
+  <dd>Handle groups compact ids used by generated preset operator builders.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#scalars"><code>scalars = presets.scalars</code></a></dt>
+  <dd>scalars exposes scalar atoms and exact scalar helpers used in convention choices.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#FreeBoson"><code>FreeBoson = presets.FreeBoson</code></a></dt>
+  <dd>FreeBoson groups the public free-boson preset constructors and configs.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#Bc"><code>Bc = presets.Bc</code></a></dt>
+  <dd>Bc groups the public bc-ghost preset constructors and configs.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#product"><code>product = presets.product</code></a></dt>
+  <dd>product builds the generated preset type for a product of independent bulk presets.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#boundary"><code>boundary = presets.boundary</code></a></dt>
+  <dd>boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.</dd>
+</dl>
+  </div>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+  <div class="toc-row"><span class="toc-toggle open"></span><a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a></div>
+  <div class="toc-entries">
+<dl>
+  <dt><a href="/notes/tensor-code/tensor-code.html#SimpleLieAlgebra"><code>SimpleLieAlgebra = symmetry.SimpleLieAlgebra</code></a></dt>
+  <dd>SimpleLieAlgebra stores the simple family and rank.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#LieFamily"><code>LieFamily = symmetry.LieFamily</code></a></dt>
+  <dd>LieFamily names the supported simple Lie families.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#QuantumNumbers"><code>QuantumNumbers = symmetry.QuantumNumbers</code></a></dt>
+  <dd>QuantumNumbers is the tensor-product list of representation ids.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RepresentationId"><code>RepresentationId = symmetry.RepresentationId</code></a></dt>
+  <dd>RepresentationId names a representation in a representation store.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#TensorStructure"><code>TensorStructure = symmetry.TensorStructure</code></a></dt>
+  <dd>TensorStructure stores simple built-in tensor structures.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#AlgebraHandle"><code>AlgebraHandle = store.AlgebraHandle</code></a></dt>
+  <dd>AlgebraHandle names a registered Lie algebra in a tensor context.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#IrrepHandle"><code>IrrepHandle = store.IrrepHandle</code></a></dt>
+  <dd>IrrepHandle names an abstract irreducible representation.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RealizationHandle"><code>RealizationHandle = realization.RealizationHandle</code></a></dt>
+  <dd>RealizationHandle names a concrete index realization of an irrep.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RealizationChannel"><code>RealizationChannel = realization.RealizationChannel</code></a></dt>
+  <dd>RealizationChannel selects one irrep copy inside a realization product.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#BasisHandle"><code>BasisHandle = coupling.BasisHandle</code></a></dt>
+  <dd>BasisHandle names a generated invariant basis.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#InvariantHandle"><code>InvariantHandle = coupling.InvariantHandle</code></a></dt>
+  <dd>InvariantHandle names one invariant inside a basis.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#Context"><code>Context = context.Context</code></a></dt>
+  <dd>Context is an opaque handle to tensor-code stores and caches.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ContextOptions"><code>ContextOptions = context.ContextOptions</code></a></dt>
+  <dd>ContextOptions configures algebra and rendering defaults.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#AlgebraConventions"><code>AlgebraConventions = root_data.AlgebraConventions</code></a></dt>
+  <dd>AlgebraConventions selects configurable exact-algebra normalizations.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#AlgebraSpec"><code>AlgebraSpec = store.AlgebraSpec</code></a></dt>
+  <dd>AlgebraSpec describes a requested algebra before it is interned.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#IrrepSpec"><code>IrrepSpec = store.IrrepSpec</code></a></dt>
+  <dd>IrrepSpec describes a requested representation before it is interned.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ExternalLeg"><code>ExternalLeg = realization.ExternalLeg</code></a></dt>
+  <dd>ExternalLeg describes a public invariant leg with named free indices.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RealizationSpec"><code>RealizationSpec = realization.RealizationSpec</code></a></dt>
+  <dd>RealizationSpec describes a primitive or projected external index model.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#InvariantBasisRequest"><code>InvariantBasisRequest = coupling.InvariantBasisRequest</code></a></dt>
+  <dd>InvariantBasisRequest is the CFT-facing request for invariant tensors.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#TensorExpansionTerm"><code>TensorExpansionTerm = coupling.TensorExpansionTerm</code></a></dt>
+  <dd>TensorExpansionTerm stores a CFT coefficient attached to one invariant id.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RenderOptions"><code>RenderOptions = rendering.RenderOptions</code></a></dt>
+  <dd>RenderOptions controls streamed invariant rendering.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#EvalOptions"><code>EvalOptions = rendering.EvalOptions</code></a></dt>
+  <dd>EvalOptions controls component evaluation of one invariant.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#SymbolicTerm"><code>SymbolicTerm = rendering.SymbolicTerm</code></a></dt>
+  <dd>SymbolicTerm stores one streamed coefficient times symbolic atoms.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#SymbolicAtom"><code>SymbolicAtom = rendering.SymbolicAtom</code></a></dt>
+  <dd>SymbolicAtom stores one symbolic invariant contraction atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#TensorExprId"><code>TensorExprId = kernel.TensorExprId</code></a></dt>
+  <dd>TensorExprId names a tensor expression stored by tensor-code.</dd>
+</dl>
+  </div>
+</div>
+</div>
+</div>
+</body>
+</html>

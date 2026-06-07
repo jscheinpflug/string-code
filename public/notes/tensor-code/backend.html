@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Backend</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Backend</h1>
+<p>
+Backends are internal family-specific providers.  The public workflow should
+not depend on an ADE, gamma-matrix, Young-symmetrizer, or exceptional-algebra
+implementation detail.  A backend validates support, supplies representation
+metadata, decomposes binary products, constructs local projector ids, and
+streams concrete symbolic terms when rendering is requested.
+</p>
+
+<a id="BackendId"></a>
+<a id="PrimitiveInvariantSpan"></a>
+<a id="RenderConvention"></a>
+<a id="Capabilities"></a>
+<a id="Record"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb8ea05e"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decomposition</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"decomposition.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"projector.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rendering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rendering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"root-data.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// BackendId names one registered Lie-family backend.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackendId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// PrimitiveInvariantSpan names backend-owned primitive invariant descriptors.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PrimitiveInvariantSpan</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RenderConvention records the concrete rendering convention passed to a backend.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderConvention</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.RenderOptions</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Capabilities is the internal contract every Lie-family backend must satisfy.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Capabilities</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">validate_algebra</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, symmetry.SimpleLieAlgebra) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep_metadata</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, store.AlgebraHandle, store.IrrepHandle) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!store.IrrepMetadata,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">decompose_product</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, decomposition.ProductKey, *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_projector</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, projector.ProjectorKey) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!projector.ProjectorId,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_invariants</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span>.IrrepHandle) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!PrimitiveInvariantSpan,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">render_projector</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, projector.ProjectorId, RenderConvention, *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Record stores one backend state pointer and capability table.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Record</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackendId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.LieFamily</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">root_conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">capabilities</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Capabilities</span>,
+};
+</pre>
+</div>
+</div>
+</body>
+</html>

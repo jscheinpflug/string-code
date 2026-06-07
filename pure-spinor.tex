@@ -1,0 +1,1333 @@
+\documentclass[12pt]{article}
+%\usepackage{amssymb,epsf,graphicx}
+\usepackage{amsmath,amssymb,bm,epsf,epsfig,graphicx,hyperref,physics, cleveref, subfig, slashed, stmaryrd, tensor}
+\usepackage[backend=bibtex,natbib,style=numeric-comp,sorting=none, doi=false, isbn=false,url=false]{biblatex}
+\addbibresource{refs}
+\input epsf.sty
+\topmargin -.5cm \textheight 21cm \oddsidemargin -.125cm
+\textwidth 17cm
+
+\usepackage[]{todonotes}
+
+\usepackage[weather, alpine]{ifsym}
+
+\definecolor{bisque}{rgb}{1.0, 0.89, 0.77}
+\definecolor{forestgreen(web)}{rgb}{0.13, 0.55, 0.13}
+
+\def\be{\begin{equation}}
+\def\ee{\end{equation}}
+\def\bea{\begin{eqnarray}}
+\def\eea{\end{eqnarray}}
+\def\ie{\begin{equation}\begin{aligned}}
+\def\fe{\end{aligned}\end{equation}}
+\numberwithin{equation}{section}
+\def\mt{\bar}
+
+
+\renewcommand{\title}[1]{\vbox{\center\LARGE{#1}}\vspace{5mm}}
+\renewcommand{\author}[1]{\vbox{\center#1}\vspace{5mm}}
+\newcommand{\address}[1]{\vbox{\center\em#1}}
+\newcommand{\email}[1]{\vbox{\center\tt#1}\vspace{5mm}}
+
+
+\newcommand{\fixme}[1]{{\bf {\color{red}[#1]}}}
+\newcommand{\A}{{\alpha}}
+
+
+\newcommand{\jg}[1]{\todo[color=forestgreen(web)!30, size=\scriptsize, bordercolor=forestgreen(web)!30]{JG: #1}}
+
+\newcommand{\mc}[1]{\todo[color=lightgray!50, size=\scriptsize, bordercolor=lightgray]{MC: #1}}
+
+\newcommand{\js}[1]{\todo[color=bisque!30, size=\scriptsize, bordercolor=bisque!30]{JS: #1}}
+
+\newcommand{\h}[1]{\hat{#1}}
+\newcommand{\B}[1]{\bar{#1}}
+
+
+\begin{document}
+
+\unitlength = .8mm
+
+\begin{titlepage}
+
+\begin{center}
+
+\hfill \\
+\hfill \\
+\vskip 1cm
+
+\title{The $AdS_5 \cross S^5$ string theory in the pure spinor formalism}
+
+\author{Jaroslav Scheinpflug}
+
+\address{Jefferson Physical Laboratory, Harvard University,
+Cambridge, MA 02138 USA
+}
+
+\email{jscheinpflug@g.harvard.edu}
+
+\end{center}
+
+\abstract{This is a PHYSICS 287A (Introduction to String Theory) term paper that reviews some of the progress in understanding the supercoset worldsheet sigma model of the $AdS_5 \cross S^5$ pure spinor superstring.}
+
+\vfill
+
+\end{titlepage}
+
+\eject
+
+\begingroup
+\hypersetup{linkcolor=black}
+
+\tableofcontents
+
+\endgroup
+
+
+\section{Introduction}
+Superstring field theory based on the RNS (Ramond-Neveu-Schwarz) formalism provides a complete formulation of superstring perturbation theory. Despite this, it has a few issues. Its formulation requires a worldsheet SCFT, capturing arbitrary NSNS backgrounds. Backgrounds with RR flux on the other hand can only be treated perturbatively in the flux since they are not captured by worldsheet SCFTs. To see this, note that in the presence of RR flux the worldsheet SCFT becomes nonlocal and ceases to exist in the usual sense. This is because an RR deformation is performed via an insertion of a pair of spin fields connected to one another via a defect line together with a PCO. In the end, one can trace these difficulties to the absence of manifest target space supersymmetry. Indeed, the SUSY algebra closes only up to picture changing.
+
+An attempt at overcoming these problems is the pure spinor formalism \cite{Berkovits:2000fe, Berkovits:2000wm, Berkovits:2002zk}, see \cite{Berkovits:2022fth, Mafra:2022wml} for recent reviews. One can intuitively think of the formalism as the manifestly supersymmetric GS (Green-Schwarz) effective string with a suitable gauge fixing of $\kappa$-symmetry that allows for an exact worldsheet CFT formulation, although we are not aware of a precise general correspondence between the two. Since its inception, the pure spinor formalism has been used to compute various nontrivial scattering amplitudes in flat space (even ones not computed in RNS) and was explicitly formulated at the worldsheet level in a few nontrivial RR backgrounds such as the pp-wave \cite{Berkovits:2002zv} and $AdS_5 \cross S^5$ \cite{Berkovits:2000fe, Berkovits:2000wm, Berkovits:2000yr, Berkovits:2004xu, Berkovits:2008ga, Mazzucato:2011jt, Berkovits:2019rwq}. The latter importantly extends the Green-Schwarz supercoset sigma model of Metsaev-Tseytlin \cite{Metsaev:1998it}, allowing for a perturbative quantization in the large radius regime.
+
+In this term paper, we review some of the progress in understanding the pure spinor supercoset sigma model describing the classical $AdS_5 \cross S^5$ background of IIB superstring theory. We begin by reviewing some of the basics of the IIB flat space pure spinor string in section (\ref{flatReview}). Following \cite{Berkovits:2001ue}, we then review the construction of the IIB pure spinor worldsheet sigma model in arbitrary 10d curved IIB SUGRA backgrounds in section (\ref{genCurved}). Finally, we focus on the rather special $AdS_5 \cross S^5$ case in section (\ref{pureAdS}). After constructing the relevant supercoset sigma model in (\ref{fourone}), we explicitly demonstrate its quantum consistency at one loop in (\ref{fourtwo}), a result for which we then argue on general grounds in (\ref{fourthree}). We then conclude by explicitly showing that the worldsheet central charge remains zero at one loop in (\ref{fourfour}) as expected and perform an explicit example calculation of tree-level OPE of the matter supercurrents in (\ref{fourfive}). We work with $\alpha' = 2$.
+
+
+
+\section{Brief review of the flat space pure spinor superstring}
+\label{flatReview}
+The worldsheet theory of the flat space IIB superstring in the minimal pure spinor formalism has the matter variables $(X^m, \theta^\alpha,\bar{\theta}^{\bar{\alpha}}, p_\alpha, \bar{p}_{\bar{\alpha}})$, where the bosonic $p_\alpha, \bar{p}_{\bar{\alpha}}$ are the conjugate momenta to the fermionic $\theta^\alpha, \bar{\theta}^{\bar{\alpha}}$. These momenta were originally introduced as an independent variable to remove the GS constraint $d_\alpha = 0$ and its conjugate with
+\be
+d_\alpha = p_\alpha -\frac{1}{2}\big(\partial X^m + \frac{1}{4}(\theta \gamma^m \partial \theta)\big)(\gamma_m \theta)_\alpha,
+\ee
+the generator of GS $\kappa$ symmetry.
+The ghost variables are $(\lambda^\alpha, w_\alpha, \bar{\lambda}^{\bar{\alpha}}, \bar{w}_{\bar{\alpha}})$ with the fermion $w_\alpha$ conjugate to the bosonic ghost $\lambda^\alpha$. Note that $(\partial X^m, p_\alpha, \bar{p}_{\bar{\alpha}}, w_\alpha, \bar{w}_{\bar{\alpha}})$ have weight 1 and $(\theta^\alpha, \bar{\theta}^{\bar{\alpha}}, \lambda^\alpha, \bar{\lambda}^{\bar{\alpha}})$ have weight 0, which are all integer, allowing for the absence of GSO (the theory is then an analogue of the bosonic string, possibly obtained by some integrating out of odd supermoduli). The bosonic ghosts $\lambda^\alpha, \bar{\lambda}^{\bar{\alpha}}$ are interacting and satisfy the pure spinor constraints
+\be
+\label{lambdaConstraints}
+\lambda \gamma^m \lambda = \bar{\lambda} \gamma^m \bar{\lambda} = 0,
+\ee
+which means that the bosonic ghosts form a curved $\beta\gamma$ system.
+These constraints can be standardly solved in a specific parametrization for the $\lambda$, which preserves $U(5)$ symmetry. One finds that out the $16 \to 1 + 10 + 5$ ghosts there are only $1 + 10 = 11$ independent ones.
+
+We can write down the worldsheet CFT action
+\be
+\label{actionFlat}
+S = \frac{1}{2\pi} \int \dd^2 z \big(\frac{1}{2}\partial X^m \bar{\partial} X_m + p_\alpha \bar{\partial} \theta^\alpha + \bar{p}_{\bar{\alpha}} \partial \bar{\theta}^{\bar{\alpha}} - w_\alpha \bar{\partial} \lambda^\alpha - \bar{w}_{\bar{\alpha}} \partial \bar{\lambda}^{\bar{\alpha}}\big),
+\ee
+which looks deceptively simple, but the ghost part is interacting because of the constraints (\ref{lambdaConstraints}). Note that by using the form of (\ref{actionFlat}), we see that the momenta $w_\alpha$ can only appear in combinations gauge invariant under the gauge transform $\delta w_\alpha = \Omega_m (\gamma^m \lambda)_\alpha$.
+Under a target space supersymmetry transformation with generator $\varepsilon^\alpha$, we have
+\begin{align}
+	&\delta X^m = \frac{1}{2} \varepsilon \gamma^m \theta  \\
+	& \delta \theta^\alpha = \varepsilon^\alpha \\
+	& \delta p_\alpha = -\frac{1}{2} (\varepsilon \gamma^m)_\alpha \partial X_m + \frac{1}{8} (\varepsilon \gamma_m \theta)(\partial \theta \gamma^m)_\alpha
+\end{align}
+and its conjugate. This leaves the action (\ref{actionFlat}) invariant since the variation is proportional to $\varepsilon \gamma^m \partial \theta \bar{\partial} X_m - \varepsilon \gamma^m \bar{\partial}\theta \partial X^m + \frac{1}{2} \varepsilon \gamma_m \theta \partial \theta \gamma^m \bar{\partial}\theta$, which is a total derivative. The holomorphic supercharges are
+\be
+\mathcal{Q}_\alpha = \oint \dd z \big( p_\alpha + \frac{1}{2}(\partial X^m + \frac{1}{12} \theta \gamma^m \partial \theta)(\gamma_m \theta)_\alpha \big)
+\ee
+which satisfy the expected supercharge algebra $\acomm{\mathcal{Q}_\alpha}{\mathcal{Q}_\beta} = \gamma^m_{\alpha \beta} \oint \dd z \partial X_m$.
+
+The stress-tensors are
+\begin{align}
+	T &= -\frac{1}{2}\partial X^m \partial X_m - p_\alpha \partial \theta^\alpha + w_\alpha \partial \lambda^\alpha \\
+	\bar{T} &= -\frac{1}{2}\bar{\partial} X^m \bar{\partial} X_m - \bar{p}_\alpha \bar{\partial} \bar{\theta}^\alpha + \bar{w}_\alpha \bar{\partial} \bar{\lambda}^\alpha,
+\end{align}
+where the ghost central charge is $c_\lambda = 22$, which gets cancelled by $c_X + c_{p, \theta} = 10 - 32 = -22$ leading to a Weyl invariant theory. The matter central charge is easily calculated by noting the free-field OPEs
+\begin{align}
+&\partial X^m(z) \partial X^n(w) \sim - \frac{\eta^{mn}}{(z-w)^2} \\
+&p_\alpha(z) \theta^\beta(w) \sim \frac{\delta^{\beta}_\alpha }{z-w},
+\end{align}
+whereas the calculation of the ghost OPEs requires one to solve the pure spinor constraint for example by employing the $U(5)$ parametrization noted above. To be more precise, for the stress tensor $T_\lambda = w_\alpha \partial \lambda^\alpha$, ghost current $J_\lambda = w_\alpha \lambda^\alpha$ and Lorentz current $N_{nm} = \frac{1}{2} w\gamma^{ m n}\lambda$, we have the following OPEs
+\be
+\begin{aligned}
+	\label{OPEs}
+	& N^{mn}(z) \lambda^\alpha(w) \sim \frac{1}{2} \frac{(\gamma^{mn}\lambda)^\alpha(w)}{z-w}, \hspace{1cm} J_\lambda(z) \lambda^\alpha(w) \sim \frac{\lambda^\alpha(w)}{z-w}, \\
+	& N^{mn}(z) J_\lambda (w) \sim \text{regular}, \hspace{2.22cm}J_\lambda(z) J_\lambda(w) \sim -\frac{4}{(z-w)^2}, \\
+	& N_{mn}(z) T_\lambda(w) \sim \frac{N_{mn}(w)}{z-w}, \hspace{2cm}J_\lambda(z) T_\lambda(w) \sim -\frac{8}{(z-w)^3} + \frac{J_\lambda(w)}{(z-w)^2} \\
+	& N^{mn}(z)N_{pq}(w) \sim \frac{N^m_p\delta^n_q - N^n_p \delta^m_q + N^n_q\delta^m_p-N^m_q \delta^n_p}{z-w} - 3\frac{\delta^n_p\delta^m_q - \delta^n_q \delta^m_p}{(z-w)^2} \\
+	& T_\lambda(z)T_\lambda(w) \sim \frac{11}{(z-w)^4} + \frac{2T_\lambda(w)}{(z-w)^2} + \frac{\partial T_\lambda(w)}{z-w}.
+\end{aligned}
+\ee
+Apart from $c_\lambda = 22$, the level $-3$ in the OPE of two Lorentz currents is important since then the total Lorentz current $M_{mn} = \Sigma_{mn} + N_{mn}$ with $\Sigma_{mn} = -\frac{1}{2} p \gamma^{mn}\theta$ has the correct OPE
+\be
+ M^{mn}(z) M_{pq}(w) \sim \frac{M^m_p\delta^n_q - M^n_p \delta^m_q + M^n_q\delta^m_p-M^m_q \delta^n_p}{z-w} + \frac{\delta^n_p\delta^m_q - \delta^n_q \delta^m_p}{(z-w)^2}.
+\ee
+
+We continue by defining the physical spectrum of the theory. This spectrum is defined as the ghost number BRST cohomology of $Q_B = Q + \bar{Q}$ with
+\be
+Q = \oint d_\alpha \lambda^\alpha,
+\ee
+which is easily seen to be nilpotent by using
+\be
+d_\alpha(z)d_\beta(w) \sim -\frac{\gamma^m_{\alpha \beta}\Pi_m(w)}{z-w}
+\ee
+and the pure spinor constraint. Here the supersymmetric momentum $\Pi_m$ is defined via $\Pi_m = \partial X^m + \frac{1}{2}\theta \gamma^m \partial \theta$ and obeys
+\begin{align}
+	&d_\alpha(z) \Pi^m(w) \sim \frac{\big(\gamma^m \partial \theta(w)\big)_\alpha}{z-w} \\
+	& \Pi^m(z) \Pi^n(w) \sim -\frac{\delta^{mn}}{(z-w)^2}.
+\end{align}
+The form of the unintegrated ghost number 2 vertex operator is $U = \lambda^\alpha \bar{\lambda}^{\bar{\beta}} A_{\alpha \bar{\beta}}(X, \theta, \bar{\theta})$. Using
+\begin{align}
+	&d_\alpha(z) f(X, \theta, \bar{\theta})(w) \sim \frac{D_\alpha f(X, \theta, \bar{\theta})(w)}{z-w} \\
+	&\Pi^m(z) f(X, \theta, \bar{\theta})(w) \sim - \frac{\partial^m f(X, \theta, \bar{\theta})(w)}{z-w},
+\end{align}
+where the $N=2$ $d=10$ superderivative is $D_\alpha = \pdv{}{\theta^\alpha} + \frac{1}{2} (\gamma^m\theta)_\alpha \partial_m$, we get that BRST closure implies the linearized equations of motion
+\begin{align}
+	\gamma^{\alpha \beta}_{mnpqr} D_\alpha A_{\beta \bar{\gamma}} = \gamma^{\bar{\alpha} \bar{\gamma}}_{mnpqr} \bar{D}_{\bar{\alpha}} A_{\beta \bar{\gamma}} = 0.
+\end{align}
+Note that we used that $\lambda^\alpha \lambda^\beta \sim (\lambda \gamma^{mnpqr}\lambda)\gamma^{\alpha \beta}_{mnpqr}$ since any symmetric bispinor in 10d can be decomposed into a vector and 5-form part, with the vector part dropping out since $\lambda^\alpha$ are pure spinors.
+The linearized gauge transformations with the ghost number 1 generators $\Omega, \Bar{\Omega}$ are $\delta A_{\alpha \bar{\beta}} = D_\alpha \bar{\Omega}_{\bar{\beta}} + \bar{D}_{\bar{\beta}} \Omega_\alpha$. These are the expected linearized equations and gauge invariances for the IIB supergravity multiplet \cite{Howe:1983sra} as can be checked in superspace components. The integrated vertex operator $\int V$ in RNS would be obtained by anticommuting with the $b$-ghost, but there is no fundamental $b$-ghost in the pure spinor. One way to get the integrated vertex operator is to solve the relation $Q_B V = \partial U$ in the open string case and square the result \cite{Berkovits:2000fe}. This gives the integrated vertex operator
+\be
+\begin{aligned}
+	\label{integratedOp}
+	V = \int \dd^2 z \Big[&\partial \theta^\alpha \bar{\partial}\bar{\theta}^{\bar{\beta}} A_{\alpha \bar{\beta}} + \partial \theta^\alpha \bar{\Pi}^m A_{\alpha m} + \Pi^m \bar{\partial}\bar{\theta}^{\bar{\alpha}} A_{m\bar{\alpha}} + \Pi^m \bar{\Pi}^n A_{mn} + \\ & d_\alpha(\bar{\partial}\bar{\theta}^{\bar{\beta}} E^\alpha_{\bar{\beta}} + \bar{\Pi}^m E^\alpha_m) + \bar{d}_{\bar{\alpha}}(\partial \theta^\beta E^{\bar{\alpha}}_\beta + \Pi^m E^{\bar{\alpha}}_m) + \\
+			      & \frac{1}{2} N_{mn}(\bar{\partial}\bar{\theta}^{\bar{\beta}} \Omega^{mn}_{\bar{\beta}} + \bar{\Pi}^p \Omega_p^{mn}) + \frac{1}{2} \bar{N}_{mn}(\partial \theta^\beta \bar{\Omega}^{mn}_\beta + \Pi^p \bar{\Omega}_p^{mn}) + \\
+			      & d_\alpha \bar{d}_{\bar{\beta}} P^{\alpha \bar{\beta}} + N_{mn} \bar{d}_{\bar{\alpha}} C^{mn\bar{\alpha}} + d_\alpha \bar{N}_{mn} \bar{C}^{\alpha mn} + N_{mn}\bar{N}_{pq} S^{mnpq}\Big]
+\end{aligned}
+\ee
+and $Q_B V = 0$ allows one to determine all the superfields that appear in terms of the top component $A_{\alpha \beta}$. Tree-level amplitudes are computed in the same way as in RNS i.e. one inserts three unintegrated vertex operators and any number of integrated ones. One then computes the matter correlator using OPEs (\ref{OPEs}) and analyticity, and is finally left with evaluating the zero-mode correlator $\langle (\lambda \gamma^m \theta)(\lambda \gamma^n \theta)(\lambda \gamma^p \theta)(\theta \gamma_{mnp}\theta)\rangle$, which is pure normalization. Note that this correlator arises since its argument is the only operator in the zero-momentum ghost number 3 $Q$-cohomology. Note that at loop level, the absence of the $b$-ghost becomes a problem since we need something to couple to Beltrami differentials. One resolution of this problem employs the so-called non-minimal pure spinor formalism \cite{Berkovits:2005bt}.
+
+
+\section{Pure spinor superstring in general ten-dimensional IIB curved SUGRA backgrounds}
+\label{genCurved}
+
+In this section, we briefly summarize results of Berkovits-Howe \cite{Berkovits:2001ue}, who formulated the type IIB pure spinor superstring in an arbitrary ten-dimensional curved IIB SUGRA background (see \cite{Guttenberg:2007vba, Mazzucato:2011jt} for useful reviews).
+
+At leading order in $\alpha'$, the IIB pure spinor sigma model can be constructed by adding the linearized deformation (\ref{integratedOp}) to the flat space action (\ref{actionFlat}) and covariantizing while adding the Fradkin-Tseytlin term (important for $\alpha'$ corrections) or by writing down the most general action constructed from the flat space worldsheet variables that is classically conformal invariant. This results in the superspace sigma model action
+\be
+\begin{aligned}
+	\label{sigmaS}
+	S = \frac{1}{2\pi}\int \dd^2 z \Big(& \frac{1}{2}(G_{MN}(Z) + B_{MN}(Z))\partial Z^M \bar{\partial}Z^N +  E^\alpha_M(Z) d_\alpha \bar{\partial} Z^M + E^{\hat{\alpha}}_M(Z) \bar{d}_{\hat{\alpha}} \partial Z^M + \\& \Omega_{M\alpha}^\beta(Z) \lambda^\alpha w_\beta \bar{\partial} Z^M + \bar{\Omega}_{M\hat{\alpha}}^{\hat{\beta}}(Z) \bar{\lambda}^{\hat{\alpha}} \bar{w}_{\hat{\beta}} \partial Z^M + P^{\alpha \hat{\beta}}(Z) d_\alpha \bar{d}_{\hat{\beta}} + C_\alpha^{\beta \hat{\gamma}}(Z) \lambda^\alpha w_\beta \bar{d}_{\hat{\gamma}} + \\&\bar{C}_\alpha^{\hat{\beta} \gamma}(Z) \bar{\lambda}^{\hat{\alpha}} \bar{w}_{\hat{\beta}} d_\gamma +  S^{\beta \hat{\delta}}_{\alpha \hat{\gamma}}(Z) \lambda^\alpha w_\beta \bar{\lambda}^{\hat{\alpha}} \bar{w}_{\hat{\delta}} + \Phi(Z) R - w_\alpha \bar{\partial} \lambda^\alpha - \bar{w}_{\hat{\alpha}} \partial \bar{\lambda}^{\hat{\alpha}} \Big),
+\end{aligned}
+\ee
+where $M = (m, \mu, \hat{\mu})$ are curved superspace indices, $Z^M = (X^m, \theta^\mu, \bar{\theta}^{\hat{\mu}})$ and $A=(a, \alpha, \hat{\alpha})$ are tangent superspace spinor indices. It is clear that generically, this sigma model couples matter and ghosts. Moreover, it even couples the holomorphic and antiholomorphic sectors, which is why we swapped the barred index for the hatted index. The interpretation of the various superfields is as follows.
+
+The supervielbein is $E^A_M = (E^a_M, E^\alpha_M, E^{\hat{\alpha}}_M)$ with the metric being given by $G_{MN} = E^a_M E^b_N \eta_{ab}$ (the bosonic structure group is Lorentz), $B_{MN}$ is the Kalb-Ramond two-form superfield, $\Phi$ is the dilaton superfield, $P^{\alpha \hat{\beta}}$ is the superfield, whose bottom components are the RR field strengths, the $C_\alpha^{\beta \hat{\gamma}}, \bar{C}_\alpha^{\hat{\beta}\gamma}$ are related to the dilatino and gravitino field strengths.  Since $w_\alpha, \bar{w}_{\hat{\alpha}}$ only appear in combinations, which commute with the pure spinor constraint, we have
+\be
+(\gamma^{bcde})^\alpha_\beta \Omega_{M\alpha}^\beta = (\gamma^{bcde})^\alpha_\beta \bar{\Omega}_{M\hat{\alpha}}^{\hat{\beta}} =  (\gamma^{bcde})^\alpha_\beta C_\alpha^{\beta \hat{\gamma}} = (\gamma^{bcde})^{\hat{\alpha}}_{\hat{\beta}} \bar{C}_{\hat{\alpha}}^{\hat{\beta}\gamma} = (\gamma^{bcde})^\alpha_\beta S^{\beta \hat{\delta}}_{\alpha \hat{\gamma}} = (\gamma^{bcde})^{\hat{\gamma}}_{\hat{\delta}} S^{\beta \hat{\delta}}_{\alpha \hat{\gamma}} = 0.
+\ee
+This allows us to write the decomposition
+\be
+\Omega_{M\alpha}^\beta = \Omega^{(s)}_M \delta^\beta_\alpha + \frac{1}{2}\Omega^{cd}_M (\gamma_{cd})_\alpha^\beta
+\ee
+and its conjugate, from which we recognize that $\Omega_{M\alpha}^\beta, \bar{\Omega}^{\hat{\beta}}_{M\hat{\alpha}}$ break up into the scale and spin connections. That is, the existence of pure spinors implies that the fermionic structure group is the spin group times scale transformations. Lastly, the superfield $S^{\beta \hat{\delta}}_{\alpha \hat{\gamma}}$ is related to the curvature of the above connection (the term it gives is similar to the RNS $4-\psi$ term, which sees the Riemann curvature, but now for ghosts).
+
+
+
+Note that the sigma model action (\ref{sigmaS}) has the following gauge invariance
+\be
+\begin{aligned}
+	&\delta E^b_M = \eta_{cd} \Lambda^{bc} E^d_M, \hspace{1cm} \delta E^\alpha_M = \Sigma^\alpha_\beta E^\beta_M, \hspace{1cm}\delta E^{\hat{\alpha}}_M = \bar{\Sigma}^{\hat{\alpha}}_{\hat{\beta}} E^{\hat{\beta}}_M, \\
+	&\delta\Omega_{M\alpha}^\beta = \partial_M \Sigma^\beta_\alpha + \Sigma^\gamma_\alpha \Omega_{M\gamma}^\beta - \Sigma_\gamma^\beta \Omega_{M\alpha}^\gamma, \hspace{1cm} \delta\bar{\Omega}_{M\hat{\alpha}}^{\hat{\beta}} = \partial_M \bar{\Sigma}^{\hat{\beta}}_{\hat{\alpha}} + \bar{\Sigma}^{\hat{\gamma}}_{\hat{\alpha}} \bar{\Omega}_{M\hat{\gamma}}^{\hat{\beta}} - \bar{\Sigma}_{\hat{\gamma}}^{\hat{\beta}} \bar{\Omega}_{M\hat{\alpha}}^{\hat{\gamma}} \\
+	& \delta \lambda^\alpha = \Sigma^\alpha_\gamma \lambda^\gamma, \hspace{1cm} \delta w_\alpha = - \Sigma^\gamma_\alpha w_\gamma, \hspace{1cm}\delta \bar{\lambda}^{\hat{\alpha}} = \bar{\Sigma}^{\hat{\alpha}}_{\hat{\gamma}}\bar{\lambda}^{\hat{\gamma}}, \hspace{1cm}\delta \bar{w}_{\hat{\alpha}} = - \bar{\Sigma}^{\hat{\gamma}}_{\hat{\alpha}} \bar{w}_{\hat{\gamma}},
+\end{aligned}
+\ee
+and the background superfields $(P^{\alpha \hat{\alpha}}, C_\alpha^{\beta \hat{\gamma}}, \bar{C}_{\hat{\alpha}}^{\hat{\beta}\gamma}, S_{\alpha \hat{\gamma}}^{\beta \hat{\delta}})$ transform with $\Sigma^\beta_\alpha, \bar{\Sigma}^{\hat{\beta}}_{\hat{\alpha}}$ according to their spinor indices (the $\Lambda^{bc}, \Sigma^\beta_\alpha, \bar{\Sigma}^{\hat{\beta}}_{\hat{\alpha}}$ generate local Lorentz transforms).
+
+
+The pure spinor has an important difference with respect to the NSNS sigma models of RNS, in which conformal invariance (absence of poles in the OPE of $T$ and the integrated $V$) implies the full set of equations of motion coming from $Q_B^2 = 0$. In the pure spinor, one has to impose the nilpotency of $Q_B$ directly (which to leading order is $Q_B V = 0$) and moreover, one has to impose that $Q$ remains holomorphic and $\bar{Q}$ antiholomorphic under the deformation. This is reminiscent of what happens in string field theory, where the equations of motion are deformed $Q_B^2 = 0$, which is especially important in the type II RNS superstring, where general backgrounds do not correspond to CFTs. We now explicitly write down the IIB nilpotency constraints. Defining the canonical momenta $P_M = \pdv{L}{(\partial_0 Z^M)}$, we can write
+\be
+d_\alpha = E^M_\alpha\big(P_M + \frac{1}{2} B_{MN}(\partial Z^N - \bar{\partial} Z^N) - \Omega_{M\beta}^\gamma \lambda^\beta w_\gamma - \bar{\Omega}_{M\hat{\beta}}^{\hat{\gamma}}\bar{\lambda}^{\hat{\beta}}\bar{w}_{\hat{\gamma}}\big)
+\ee
+and its conjugate. Using the canonical commutation relations
+\be
+\comm{P_M}{Z^N} = \delta^N_M, \hspace{1cm} \comm{w_\alpha}{\lambda^\beta} = \delta^\beta_\alpha, \hspace{1cm} \comm{\bar{w}_{\hat{\alpha}}}{\bar{\lambda}^{\hat{\beta}}}=\delta^{\hat{\beta}}_{\hat{\alpha}},
+\ee
+and a bit of Cartan calculus, one obtains
+\be
+\begin{aligned}
+	\label{Qsq}
+	&\acomm{Q}{Q} = \oint \lambda^\alpha \lambda^\beta \big[T_{\alpha \beta}^C D_C + \frac{1}{2} H_{\alpha \beta N}(\partial Z^N - \bar{\partial} Z^N) - R_{\alpha\beta\gamma}^\delta \lambda^\gamma w_\delta - \bar{R}_{\alpha \beta \hat{\gamma}}^{\hat{\delta}} \bar{\lambda}^{\hat{\gamma}} \bar{w}_{\hat{\delta}}\big] \\
+	&\acomm{\bar{Q}}{\bar{Q}} = \oint \bar{\lambda}^{\hat{\alpha}} \bar{\lambda}^{\hat{\beta}} \big[T_{\hat{\alpha} \hat{\beta}}^C D_C + \frac{1}{2} H_{\hat{\alpha} \hat{\beta} N}(\partial Z^N - \bar{\partial} Z^N) - R_{\hat{\alpha}\hat{\beta}\gamma}^\delta \lambda^\gamma w_\delta - \bar{R}_{\hat{\alpha} \hat{\beta} \hat{\gamma}}^{\hat{\delta}} \bar{\lambda}^{\hat{\gamma}} \bar{w}_{\hat{\delta}} \big]\\
+	&\acomm{Q}{\bar{Q}} = \oint \lambda^\alpha \bar{\lambda}^{\hat{\beta}} \big[T_{\alpha \hat{\beta}}^C D_C + \frac{1}{2} H_{\alpha \hat{\beta} N}(\partial Z^N - \bar{\partial} Z^N) - R_{\alpha\hat{\beta}\gamma}^\delta \lambda^\gamma w_\delta - \bar{R}_{\alpha \hat{\beta} \hat{\gamma}}^{\hat{\delta}} \bar{\lambda}^{\hat{\gamma}} \bar{w}_{\hat{\delta}} \big],
+\end{aligned}
+\ee
+where
+\begin{align}
+&D_C = E^M_C(P_M - \Omega_{M\alpha}^\beta \lambda^\alpha w_\beta - \bar{\Omega}_{M\hat{\alpha}}^{\hat{\beta}} \bar{\lambda}^{\hat{\alpha}} \bar{w}_{\hat{\beta}})\\
+& H_{ABC} = 3 E^M_A E^N_B E^P_C \, \partial_[{_M} B_{NP}{_]}
+\end{align} and
+the torsion $T_{AB}^\alpha$, curvature $R_{AB\beta}^\gamma$ are defined using the $\Omega_{M\beta}^\gamma$ spin connection (and analogously for their conjugates). This means that
+\be
+\comm{\nabla_A}{\nabla_B} = T_{AB}^C \nabla_C + R_{AB}^{(S)} S + R_{AB}^{ab} M_{ab},
+\ee
+where $\nabla_A = E^M_A(\partial_M + \Omega^{(s)}_M S + \Omega_M^{ab} M_{ab})$, $S$ is the scale generator rescaling the spinorial part of the supervielbein $E^M_\alpha$, $M_{ab}$ is the Lorentz generator and $R_{AB \beta}^\gamma = R_{AB}^{(s)}\delta_\beta^\gamma + \frac{1}{2} R_{AB}^{cd}(\gamma_{cd})_\beta^\gamma$. Using the Bianchi identities, one can show that the only independent constraints coming from (\ref{Qsq}) are
+\begin{align}
+&\lambda^\alpha \lambda^\beta T_{\alpha \beta}^C = \bar{\lambda}^{\hat{\alpha}}\bar{\lambda}^{\hat{\beta}} T_{\hat{\alpha}\hat{\beta}}^C = \lambda^\alpha \bar{\lambda}^{\hat{\beta}} T_{\alpha\hat{\beta}}^C = 0 \\
+&  \lambda^\alpha \lambda^\beta H_{\alpha \beta C} = \bar{\lambda}^{\hat{\alpha}} \bar{\lambda}^{\hat{\beta}} H_{\hat{\alpha} \hat{\beta} C} = \lambda^{\alpha} \bar{\lambda}^{\hat{\beta}} H_{\alpha \hat{\beta} C} = 0
+\end{align}
+and are the essential constraints of IIB SUGRA.
+
+
+The holomorphicity constraints for say $Q$ can be derived by computing the equations of motion for $\bar{\partial}\lambda^\alpha$ and $\bar{\partial} d_\alpha$ coming from the action (\ref{sigmaS}) and then demanding $\bar{\partial}(\lambda^\alpha d_\alpha) = 0$. This leads to a further list of constraints, only this time they are not essential, but conventional and remove redundant degrees of freedom. The upshot is that with the help of the conventional constraints, all superfields (apart from $H_{ABC}$) appearing in (\ref{sigmaS}) can be expressed in terms of the spinor components of the supervielbein $E_\alpha^M$ and $E^M_{\hat{\alpha}}$, which are put on-shell once the torsion constraints
+\begin{align}
+	&T_{\alpha \beta}^c = i(\gamma^c)_{\alpha \beta} \\
+	&T_{\hat{\alpha}\hat{\beta}}^c = i(\gamma^c)_{\hat{\alpha}\hat{\beta}} \\
+	& T_{\alpha\hat{\beta}}^c = 0
+\end{align}
+are satisfied.
+The NSNS flux satisfies the analogous
+\begin{align}
+	&\eta^{cd} H_{\alpha \beta d} = -i(\gamma^c)_{\alpha \beta} \\
+	&\eta^{cd} H_{\hat{\alpha}\hat{\beta}d} = i(\gamma^c)_{\hat{\alpha}\hat{\beta}} \\
+	& H_{\alpha \hat{\beta} c} = 0.
+\end{align}
+Note that in determining the right hand sides of these equations, local spinor Lorentz and scale transformations were gauge fixed.
+
+Note that generically one starts by knowing only the bosonic part of the supervielbein and it is difficult to disentangle the torsion constraints in order to obtain the form of the full supervielbein. Nevertheless, there are backgrounds, for which the full supergeometry is known, the $AdS_5 \cross S^5$ of the next section being the prime example.
+
+
+\section{Pure spinor superstring in $AdS_5 \cross S^5$}
+\label{pureAdS}
+In this section, we review the construction of the IIB pure spinor superstring in $AdS_5 \cross S^5$,  attempts at proving its quantum consistency and some calculations regarding its central charge and current algebra. See \cite{Mazzucato:2011jt} for a useful review.
+
+\subsection{Supercoset sigma model construction}
+\label{fourone}
+Since the supergeometry of $AdS_5 \cross S^5$ is known thanks to
+\be
+AdS_5 \cross S^5  = \frac{SO(4,2) \cross SO(6)}{SO(4,1)\cross SO(5)} \subset \frac{PSU(2,2|4)}{SO(4,1)\cross SO(5)}
+\ee
+at the level of the bosonic part i.e. the torsion constraints are automatically solved (the torsions coincide with the supergroup structure constants), we could follow the analysis of the previous section and plug in the values of the various superfields to (\ref{sigmaS}). Instead of going through the conventional constraints, we follow the quicker way of \cite{Berkovits:2002zk, Berkovits:2008ga} and fix the sigma model by requiring the correct superisometries and BRST invariance. This is in the same spirit as the  Metsaev-Tseytlin construction \cite{Metsaev:1998it}, where the $AdS_5 \cross S^5$ GS action was fixed by symmetries and the matching with the flat space GS action. Note that this calculation is done in some detail for example in the recent paper \cite{Martins:2024zud} or the review \cite{Mazzucato:2011jt}.
+
+
+As noted above, one can solve the torsion constraints by constructing the supervielbein $E^A_M$ out of the Metsaev-Tseytlin left-invariant currents $J^{\tilde{A}} = (g^{-1} \partial g)^{\tilde{A}}$, where
+\be
+g(Z) = e^{X^m P_m + \theta^\mu Q_\mu + \bar{\theta}^{\hat{\mu}} \bar{Q}_{\hat{\mu}}}
+\ee
+takes values in the supercoset and $\tilde{A} = ([ab], A)$ is the Lie algebra index ($A$ is the usual superspace index and $[ab]$ labels the $SO(4,1)\cross SO(5)$ Lorentz generators), ranges over $2\cdot \frac{5 \cdot 4}{2} + 10 = 30$ bosonic and $2\cdot 16 = 32$ fermionic values. By explicitly evaluating the Metsaev-Tseytlin currents, one obtains
+\be
+\label{currents}
+J^A = E^A_M(Z) \partial Z^M, \hspace{0.5cm} J^{[ab]} = \Omega_M^{[ab]}(Z) \partial Z^M.
+\ee
+Note that by construction, these satisfy the Maurer-Cartan equations $\dd J + J \wedge J = 0$, which are like Ward identities for the supergroup symmetry and are written out in components in (\ref{mau1})-(\ref{mau4}).
+In \cite{Berkovits:1999zq}, it was shown that the $B$-field for this background should have nontrivial spinor components
+\be
+B_{\alpha \hat{\beta}} = B_{\hat{\beta}\alpha} = \frac{1}{2} (\gamma^{01234})_{\alpha \hat{\beta}} \equiv \frac{1}{2} \eta_{\alpha \hat{\beta}},
+\ee
+which is not surprising since thanks to the torsion constraints for $H$-flux, spinorial components of the $B$-field are nonzero even in flat superspace.
+Using the definition (\ref{currents}), one can then immediately write down the GS part of the sigma model action and thus the nontrivial guesswork is in the rest of the terms. The guess one makes is that the relevant superfields only appear through their bottom components i.e. in the simplest form possible. Then the guess for the sigma model action is
+\be
+\begin{aligned}
+	S = \frac{R^2}{2\pi}\int \dd^2z \Biggr(&\frac{1}{2}\eta_{ab}J^a \bar{J}^b + \frac{1}{4} \eta_{\alpha \hat{\beta}}(J^\alpha \bar{J}^{\hat{\beta}} - \bar{J}^\alpha J^{\hat{\beta}})  - d_\alpha \bar{J}^\alpha + \bar{d}_{\hat{\alpha}} J^{\hat{\alpha}} + d_\alpha \bar{d}_{\hat{\beta}} F^{\alpha \hat{\beta}} - \\
+					     & w_\alpha (\overline{\nabla}\lambda)^\alpha + \bar{w}_{\hat{\alpha}} (\nabla \bar{\lambda})^{\hat{\alpha}} + R_{abcd} N^{ab} \bar{N}^{cd}  \Biggr),
+\end{aligned}
+\ee
+where we defined the spin-covariant derivative
+\be
+(\overline{\nabla}\lambda)^\alpha \equiv \bar{\partial}\lambda^\alpha + \frac{1}{2} \bar{J}^{[ab]}(\gamma_{ab} \lambda)^\alpha, \hspace{1cm} (\nabla \bar{\lambda})^{\hat{\alpha}} \equiv \partial \bar{\lambda}^{\hat{\alpha}} + \frac{1}{2} J^{[ab]} (\gamma_{ab} \bar{\lambda})^{\hat{\alpha}}
+\ee
+and $R$ is the $AdS_5$ radius.
+Here the simplifications compared to the general (\ref{sigmaS}) are that
+\begin{align}
+&P^{\alpha \hat{\beta}}(Z) \to F^{\alpha \hat{\beta}} = (\gamma_{01234})^{\alpha \hat{\beta}} = \eta^{\alpha \hat{\beta}} \\
+&S_{\alpha \hat{\gamma}}^{\beta \hat{\delta}}(Z) \to R^{\beta \hat{\delta}}_{\alpha \hat{\gamma}} = \frac{1}{4} R_{abcd} (\gamma^{ab})_\alpha ^{\beta} (\gamma^{cd})_{\hat{\gamma}}^{\hat{\delta}},
+\end{align}
+with $R_{abcd} = -\eta_{[ab][cd]}$,
+the connection superfield $\Omega_{M\alpha}^\beta$ reducing to the spin connection currents and the Fradkin-Tseytlin term being ommited since the dilaton is constant over $AdS_5 \cross S^5$. In the end, the real test of whether what one writes down makes sense is that the action respects the superisometries and is BRST-invariant given the usual definition of the pure spinor BRST charge. Note that since the flux is nonzero, we can integrate out the auxiliary fields
+\be
+d_\alpha = \eta_{\alpha \hat{\alpha}} J^{\hat{\alpha}}, \hspace{1cm} \bar{d}_{\hat{\alpha}} = \eta_{\alpha \hat{\alpha}} \bar{J}^\alpha
+\ee
+and obtain
+\be
+\begin{aligned}
+\label{SAds}
+S &= \frac{R^2}{2\pi}\int \dd^2 z \Biggr(\frac{1}{2}\eta_{ab} J^a \bar{J}^b + \eta_{\alpha \hat{\beta}} \big(\frac{3}{4} \bar{J}^\alpha J^{\hat{\beta}}  + \frac{1}{4} J^\alpha\bar{J}^{\hat{\beta}} \big) - w_\alpha \overline{\nabla} \lambda^\alpha + \bar{w}_{\hat{\alpha}} \nabla \bar{\lambda}^{\hat{\alpha}} - \eta_{[ab][cd]} N^{ab} \bar{N}^{cd}\Biggr) \\
+  &=\frac{R^2}{2\pi}\int \dd^2 z \Biggr(\frac{1}{2}\big(\eta_{ab} J^a \bar{J}^b + \eta_{\alpha \hat{\beta}} J^\alpha \bar{J}^{\hat{\beta}} + \eta_{\alpha \hat{\beta}} \bar{J}^\alpha J^{\hat{\beta}} \big) - \frac{1}{4}\eta_{\alpha \hat{\beta}} \big(J^\alpha\bar{J}^{\hat{\beta}} - \bar{J}^\alpha J^{\hat{\beta}}  \big) - \\
+  &\hspace{2.65cm}w_\alpha \overline{\nabla} \lambda^\alpha + \bar{w}_{\hat{\alpha}} \nabla \bar{\lambda}^{\hat{\alpha}} - \eta_{[ab][cd]} N^{ab} \bar{N}^{cd}\Biggr).
+\end{aligned}
+\ee
+The action (\ref{SAds}) is manifestly left invariant under global $PSU(2,2|4)$ transformations, which act on $g$ from the left since it is written in terms of the Metsaev-Tseytlin currents. It is also left invariant under local $SO(4,1) \cross SO(5)$ rotations since the spin-covariant connection is used and the ghosts transform as target space spinors. By looking at the second line of (\ref{SAds}), it is clear that integrating out $d_\alpha, \bar{d}_{\hat{\alpha}}$ was essential to give a nontrivial kinetic term to the fermionic currents, which is key for quantization. It thus remains to verify that $S$ is BRST-invariant with $Q_B^2 = 0$, where
+\be
+Q_B = \oint d_\alpha \lambda^\alpha + \oint \bar{d}_{\hat{\alpha}} \bar{\lambda}^{\hat{\alpha}} = \oint \eta_{\alpha \hat{\alpha}}  J^{\hat{\alpha}} \lambda^\alpha + \oint \eta_{\alpha \hat{\alpha}} \bar{J}^\alpha \bar{\lambda}^{\hat{\alpha}}.
+\ee
+
+
+We begin by computing the BRST-variation of the Metsaev-Tseytlin currents. By its definition, the supergroup element $g$ transforms as $Q_B g = (\lambda^\alpha \nabla_\alpha + \bar{\lambda}^{\hat{\alpha}} \bar{\nabla}_{\hat{\alpha}})g =  g(\lambda^\alpha T_\alpha + \bar{\lambda}^{\hat{\alpha}} T_{\hat{\alpha}})$ and by using this, we can read off how the supercurrents $J = g^{-1} \partial g$ transform. The relevant calculation is
+\be
+\begin{aligned}
+	Q_B(g^{-1} \partial g) &= Q_B(g^{-1}) \partial g + g^{-1} \partial (Q_B g) = -g^{-1} (Q_B g) g^{-1} \partial g + g^{-1} \partial (Q_B g) \\
+			     &= - \lambda^\alpha T_\alpha g^{-1} \partial g + g^{-1} \partial g \lambda^\alpha T_\alpha + \partial \lambda^\alpha T_\alpha = \comm{g^{-1} \partial g}{\lambda^\alpha T_\alpha} + \partial \lambda^\alpha T_\alpha \\
+			     &= \lambda^\alpha j^B \comm{T_B}{T_\alpha} + \nabla \lambda^\alpha T_\alpha \\
+			     &= \lambda^\alpha j^B T\indices{_{B\alpha}^C} T_C - \frac{1}{2} \lambda^\alpha j^B R\indices{_{B\alpha}^{ab}} T_{ab} + \nabla \lambda^\alpha T_\alpha
+\label{Qg}
+\end{aligned}
+\ee
+so that
+\begin{align}
+	&Q_B J^\alpha = \nabla \lambda^\alpha + \bar{\lambda}^{\hat{\alpha}} J^a T\indices{_{a\hat{\alpha}}^\alpha}, \,\,\,\,\, Q J^{\hat{\alpha}} = \nabla \bar{\lambda}^{\hat{\alpha}} + \lambda^\alpha J^a T\indices{_{a \alpha}^{\hat{\alpha}}} \\
+	& Q_B J^a = \lambda^\beta J^\alpha T\indices{_{\beta \alpha}^a} + \bar{\lambda}^{\hat{\beta}} J^{\hat{\alpha}} T\indices{_{\hat{\beta} \hat{\alpha}}^a} \\
+	& Q_B J^{ab} =  -\lambda^\alpha J^{\hat{\alpha}} R\indices{_{\hat{\alpha}\alpha}^{ab}} - \bar{\lambda}^{\hat{\alpha}} J^\alpha R\indices{_{\alpha \hat{\alpha}}^{ab}}.
+\end{align}
+Plugging in the explicit values (\ref{struct}) for the torsion and curvature gives
+\begin{align}
+	&Q_B J^\alpha = \nabla \lambda^\alpha - \eta^{\alpha \hat{\alpha}} (\gamma_a \bar{\lambda})_{\hat{\alpha}} J^a , \,\,\,\,\, Q_B J^{\hat{\alpha}} = \nabla \bar{\lambda}^{\hat{\alpha}} +  \eta^{\alpha \hat{\alpha}} (\gamma _a\lambda)_{\alpha} J^a \\
+	& Q_B J^a = (\gamma^a \lambda)_\alpha J^\alpha + (\gamma^a \bar{\lambda})_{\hat{\alpha}} J^{\hat{\alpha}}\\
+	& Q_B J^{ab} =  \frac{1}{2}\eta^{[ab][cd]}\eta_{\alpha \hat{\alpha}} \big(J^{\hat{\alpha}}(\gamma_{cd}\lambda)^\alpha - J^\alpha (\gamma_{cd} \hat{\lambda})^{\hat{\alpha}}\big).
+\end{align}
+Apart from the variations of the supercurrents, we have the simple variations of the ghosts (remember that they are conjugate)
+\be
+Q_B w_\alpha = \eta_{\alpha \hat{\alpha}} J^{\hat{\alpha}}, \,\, Q_B \bar{w}_{\hat{\alpha}} = \eta_{\alpha \hat{\alpha}} \bar{J}^\alpha, \, \, Q_B \lambda^\alpha = 0, \, \, Q_B \bar{\lambda}^{\hat{\alpha}} = 0.
+\label{Qw}
+\ee
+The kinetic term for currents of (\ref{SAds}) then varies as
+\be
+Q_B \frac{1}{2} \big(\eta_{ab} J^a \bar{J}^b + \eta_{\alpha \hat{\beta}} J^\alpha \bar{J}^{\hat{\beta}} + \eta_{\alpha \hat{\beta}} \bar{J}^\alpha J^{\hat{\beta}} \big) = \frac{1}{2} \eta_{\alpha \hat{\alpha}} \big(J^{\hat{\alpha}} \bar{\nabla} \lambda^\alpha + \bar{J}^{\hat{\alpha}} \nabla \lambda^\alpha - J^\alpha \bar{\nabla} \bar{\lambda}^{\hat{\alpha}} - \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}}\big).
+\label{step1}
+\ee
+We continue by varying the second term in (\ref{SAds})
+\be
+\begin{aligned}
+	Q_B \big[ - \frac{1}{4}\eta_{\alpha \hat{\beta}} \big(J^\alpha\bar{J}^{\hat{\beta}} - \bar{J}^\alpha J^{\hat{\beta}}  \big)\big] =
+	&\frac{1}{4} \eta_{\alpha \hat{\alpha}} (J^{\hat{\alpha}}\bar{\nabla} \lambda^\alpha - \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}} + J^\alpha \bar{\nabla} \bar{\lambda}^{\hat{\alpha}}- \bar{J}^{\hat{\alpha}} \nabla \lambda^\alpha) + \\
+	& \frac{1}{4}(\gamma_a\lambda)_\alpha(\bar{J}^a J^\alpha - J^a \bar{J}^\alpha) - \frac{1}{4} (\gamma_a \bar{\lambda})_{\hat{\alpha}}(\bar{J}^a J^{\hat{\alpha}} - J^a \bar{J}^{\hat{\alpha}}) \\
+	=& \frac{1}{4} \eta_{\alpha \hat{\alpha}} (J^{\hat{\alpha}}\bar{\nabla} \lambda^\alpha - \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}} + J^\alpha \bar{\nabla} \bar{\lambda}^{\hat{\alpha}}- \bar{J}^{\hat{\alpha}} \nabla \lambda^\alpha) + \\
+	 & \frac{1}{4} \eta_{\alpha \hat{\alpha}} (\nabla \bar{J}^{\hat{\alpha}} - \bar{\nabla} J^{\hat{\alpha}} )\lambda^\alpha + \frac{1}{4}\eta_{\alpha \hat{\alpha}} (\nabla \bar{J}^\alpha - \bar{\nabla} J^\alpha) \bar{\lambda}^{\hat{\alpha}},
+\end{aligned}
+\ee
+where in the last line we used the Maurer-Cartan identites (\ref{mau1}) and (\ref{mau2}).
+It is then clear that one can form a total derivative
+\be
+\begin{aligned}
+	Q_B \big[-\frac{1}{4}\eta_{\alpha \hat{\beta}} \big(J^{\hat{\beta}} \bar{J}^\alpha -  \bar{J}^{\hat{\beta}} J^\alpha\big)\big] = &\frac{1}{2} \eta_{\alpha \hat{\alpha}} (J^{\hat{\alpha}}\bar{\nabla} \lambda^\alpha - \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}} + J^\alpha \bar{\nabla} \bar{\lambda}^{\hat{\alpha}}- \bar{J}^{\hat{\alpha}} \nabla \lambda^\alpha) + \\
+																       & \frac{1}{4}\eta_{\alpha \hat{\alpha}}\big[\nabla\big(\bar{J}^{\hat{\alpha}} \lambda^\alpha + \bar{J}^\alpha \bar{\lambda}^{\hat{\alpha}}\big) - \bar{\nabla}\big( J^{\hat{\alpha}} \lambda^\alpha + J^\alpha \bar{\lambda}^{\hat{\alpha}} \big)\big].
+																       \label{step2}
+\end{aligned}
+\ee
+In continuing the calculation, it is useful to compute
+\be
+\begin{aligned}
+\label{usefulto}
+&Q_B(\bar{\nabla} \lambda^\alpha) = Q_B(\bar{\partial} \lambda^\alpha + \frac{1}{2} \bar{J}^{[ab]}[\gamma_{ab} \lambda]^\alpha) =   \frac{1}{4} \eta^{[ab][cd]} \eta_{\beta \hat{\beta}} \big(\bar{J}^{\hat{\beta}}(\gamma_{cd} \lambda)^\beta - \bar{J}^\alpha (\gamma_{cd} \bar{\lambda})^{\hat{\beta}}\big) (\gamma_{ab} \lambda)^{\alpha} \\
+&\hspace{6.60cm} = -\frac{1}{4} \eta^{[ab][cd]} \eta_{\beta \hat{\beta}} \bar{J}^{\beta}(\gamma_{cd} \bar{\lambda})^{\hat{\beta}} (\gamma_{ab} \lambda)^{\alpha}  \\
+& Q_B(\nabla \bar{\lambda}^{\hat{\alpha}}) = Q_B(\partial \bar{\lambda}^{\hat{\alpha}} + \frac{1}{2} J^{[ab]} [\gamma_{ab} \bar{\lambda}]^{\hat{\alpha}}) =  \frac{1}{4} \eta^{[ab][cd]} \eta_{\beta \hat{\beta}} \big(J^{\hat{\beta}}(\gamma_{cd} \lambda)^\beta - J^\beta (\gamma_{cd} \bar{\lambda})^{\hat{\beta}}\big) (\gamma_{ab} \bar{\lambda})^{\hat{\alpha}} \\
+&\hspace{6.60cm} = \frac{1}{4} \eta^{[ab][cd]} \eta_{\beta \hat{\beta}} J^{\hat{\beta}}(\gamma_{cd} \lambda)^\beta (\gamma_{ab} \bar{\lambda})^{\hat{\alpha}} ,
+\end{aligned}
+\ee
+	where we used that (the Riemann curvature of $AdS_5$ and $S^5$ have opposite signs, allowing us to commute the $\eta_{\alpha \h{\alpha}}$)
+	\be
+	(\gamma^{[a} \eta \gamma^{b]} \lambda)_{\hat{\beta}} (\gamma_{ab} \lambda)_{\beta} \sim ([\gamma^a \eta \gamma^b  - \gamma^b \eta \gamma^a]\lambda)_{\hat{\beta}} (\gamma_{ab} \lambda)_{\beta} \sim (\gamma^a \eta \gamma^b \lambda)_{\hat{\beta}} (\gamma_a \gamma_b \lambda)_\beta =  0
+	\ee
+	and its antiholomorphic counterpart, which hold by $\gamma^a \eta \gamma_a = 0$ and $(\gamma_b \lambda)_\alpha (\gamma^b \lambda)_\beta = 0$. The last identity follows from
+	\be
+	(\gamma^a)_{\alpha \beta} (\gamma_a)_{\gamma \delta} + (\gamma^a)_{\alpha \gamma} (\gamma_a)_{\delta \beta}  + (\gamma^a)_{\alpha \delta} (\gamma_a)_{\beta \gamma}  = 0
+	\label{cyclic}
+	\ee
+	and the pure spinor constraint. We then finally have
+	\be
+	\begin{aligned}
+		&Q_B\big(- w_\alpha \bar{\nabla} \lambda^\alpha + \bar{w}_{\hat{\alpha}} \nabla \bar{\lambda}^{\hat{\alpha}} - \frac{1}{4} \eta^{[ab][cd]} w\gamma_{ab} \lambda \bar{w} \gamma_{cd} \bar{\lambda}\big) = \\
+		& -\eta_{\alpha \hat{\alpha}} J^{\hat{\alpha}} \bar{\nabla} \lambda^\alpha + \eta_{\alpha \hat{\alpha}} \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}} - w_\alpha Q_B(\bar{\nabla} \lambda^\alpha) + \bar{w}_{\hat{\alpha}} Q_B(\nabla \bar{\lambda}^{\hat{\alpha}}) - \\
+		& -\frac{1}{4} \eta^{[ab][cd]} \big([\eta J]\gamma_{ab} \lambda \bar{w} \gamma_{cd} \bar{\lambda} + w \gamma_{ab} \lambda [\eta \bar{J}] \gamma_{cd} \bar{\lambda}\big) = \\
+		& -\eta_{\alpha \hat{\alpha}}(J^{\hat{\alpha}} \bar{\nabla} \lambda^\alpha - \bar{J}^\alpha \nabla \bar{\lambda}^{\hat{\alpha}})
+		\label{step3}
+	\end{aligned}
+	\ee
+	and by adding the variations (\ref{step1}), (\ref{step2}) and (\ref{step3}) we get a total derivative, which integrates to zero, proving that the action (\ref{SAds}) is BRST-invariant.
+
+	We continue by showing the nilpotency $Q_B^2 = 0$. We begin by computing
+	\be
+	Q_B^2 g = g (\lambda^\beta T_\beta + \bar{\lambda}^{\hat{\beta}} T_{\hat{\beta}})(\lambda^\alpha T_\alpha + \bar{\lambda}^{\hat{\alpha}} T_{\hat{\alpha}}) = g h^{ab} T_{ab},
+	\label{qsg}
+	\ee
+	where we used the superalgebra relations (\ref{struct}) to write
+	\begin{align}
+		&\lambda^\alpha \lambda^\beta \acomm{T_\alpha}{T_\beta} = \lambda^\alpha \lambda^\beta \gamma_{\alpha \beta}^m T_m = 0
+		\\
+		&\lambda^\alpha \bar{\lambda}^{\hat{\alpha}} \acomm{T_\alpha}{T_{\hat{\alpha}}} = \frac{1}{2} \eta_{\alpha \hat{\alpha}} (\gamma^{ab} \bar{\lambda})^{\hat{\alpha}} \lambda^\alpha T_{ab}
+	\end{align}
+	and defined
+	\be
+	h^{ab} \equiv \frac{1}{2} \eta_{\alpha \hat{\alpha}} \lambda^\alpha (\gamma^{ab}\bar{\lambda})^{\hat{\alpha}}.
+	\ee
+	Next, we have potential nontrivial action on the ghost supermomenta
+	\be
+	\begin{aligned}
+		&Q_B^2 w_\alpha = \eta_{\alpha \hat{\alpha}} \nabla \bar{\lambda}^{\hat{\alpha}} + (\lambda \gamma_a)_\alpha J^a \\
+		& Q_B^2 \bar{w}_{\hat{\alpha}} = \eta_{\alpha \hat{\alpha}} \bar{\nabla} \lambda^\alpha - \big( \bar{\lambda}\gamma_a)_{\hat{\alpha}} \bar{J}^a ,
+	\end{aligned}
+	\ee
+	which can be rewritten as
+	\be
+	\begin{aligned}
+		&Q_B^2 w_\alpha = \frac{1}{2}(\gamma_{ab} w)_\alpha h^{ab} + (\lambda \gamma_a)_\alpha \xi^a + \eta_{\alpha \hat{\alpha}} \pdv{L}{\bar{w}_{\hat{\alpha}}} \\
+		& Q_B^2 \bar{w}_{\hat{\alpha}} = \frac{1}{2}(\gamma_{ab}\bar{w})_{\hat{\alpha}} h^{ab} + (\bar{\lambda}\gamma_a)_{\hat{\alpha}}\bar{\xi}^a - \eta_{\alpha \hat{\alpha}} \pdv{L}{w_\alpha}
+		\label{wshift}
+	\end{aligned}
+	\ee
+	with
+	\be
+	\xi^a = J^a - \eta^{\alpha \hat{\alpha}} w_\alpha (\gamma^a \bar{\lambda})_{\hat{\alpha}}, \,\,\,\, \bar{\xi}^a = -\bar{J}^a + \eta^{\alpha \hat{\alpha}} \bar{w}_{\hat{\alpha}} (\gamma^a \lambda)_\alpha
+	\ee
+	and the equations of motion coming from (\ref{SAds})
+	\be
+	\pdv{L}{\bar{w}_{\hat{\alpha}}} = \nabla \bar{\lambda}^{\hat{\alpha}} - \frac{1}{4} \eta^{[ab][cd]} (w\gamma_{ab} \lambda)(\gamma_{cd}\bar{\lambda})^{\hat{\alpha}}, \,\,\,\, \pdv{L}{w_\alpha} = -\bar{\nabla} \lambda^\alpha - \frac{1}{4} \eta^{[ab][cd]} (\gamma_{ab} \lambda)^\alpha (\bar{w} \gamma_{cd} \bar{\lambda}).
+	\ee
+	To see this, we need to show that
+\be
+\frac{1}{2} (\gamma_{ab} w)_\alpha (\lambda \gamma^{a} \eta \gamma^b \B{\lambda}) - (\lambda \gamma_a)_\alpha (w \eta\gamma^a \bar{\lambda}) - \frac{1}{4} \eta^{[ab][cd]} \eta_{\alpha \hat{\alpha}} (w \gamma_{ab} \lambda)(\gamma_{cd} \bar{\lambda})^{\hat{\alpha}} = 0,
+\ee
+which can be done using the rearrangement
+\be
+\begin{aligned}
+	(\gamma^a \gamma^b w)_\alpha (\lambda \gamma^a \eta \gamma^b \bar{\lambda}) &= -(\gamma^a \lambda)_\alpha (\bar{\lambda} \gamma^b \eta \gamma^a \gamma^b w) - (\gamma^a \eta \gamma^b \bar{\lambda})_\alpha (w\gamma_b \gamma_a \lambda)\\
+										    & = +2 (\lambda \gamma_a)_\alpha (w\eta\gamma^a \bar{\lambda})  + (\gamma^a \eta \gamma^b \bar{\lambda})_\alpha (w \gamma_a \gamma_b \lambda) ,
+\end{aligned}
+\ee
+as follows from the cyclicity of gamma matrices (\ref{cyclic}) and simplifying
+\be
+- \frac{1}{4} \eta^{[ab][cd]} \eta_{\alpha \hat{\alpha}} (w \gamma_{ab} \lambda)(\gamma_{cd} \bar{\lambda})^{\hat{\alpha}} = -\frac{1}{2} (\gamma^a \eta \gamma^b \bar{\lambda})_\alpha (w\gamma_a \gamma_b \lambda).
+\ee
+
+
+When we take into account that $Q_B$ has to be nilpotent only on $SO(4,1) \cross SO(5)$ invariant states and those invariant under the usual pure spinor gauge translations of ghost supermomenta (the first two terms of each line in (\ref{wshift}) are those rotations and translations and (\ref{qsg}) is a rotation), we have that $Q_B^2 = 0$ up to the equations of motion. For this to hold even off-shell, we introduce the fermionic antifields $w_\alpha^*, \bar{w}_{\hat{\alpha}}^*$ constrained via
+\be
+\eta_{\alpha \hat{\alpha}} (w^* \gamma^a)^\alpha \bar{\lambda}^{\hat{\alpha}} = 0, \,\,\,\, \eta_{\alpha \hat{\alpha}} (\bar{w}^* \gamma^a)^{\hat{\alpha}} \lambda^\alpha = 0
+\label{anticonstraint}
+\ee
+and transforming as
+\be
+Q_B w_\alpha^* = -\eta_{\alpha \hat{\alpha}} \pdv{L}{\bar{w}_{\hat{\alpha}}}, \,\,\,\,\, Q_B \bar{w}_{\hat{\alpha}}^* = \eta_{\alpha \hat{\alpha}} \pdv{L}{w_\alpha},
+\label{antifieldQ}
+\ee
+modifying the transformation law of the ghost supermomenta
+\be
+Q_B w_\alpha \to Q_B w_\alpha + w_\alpha^*, \,\,\,\, Q_B \bar{w}_{\hat{\alpha}} \to Q_B \bar{w}_{\hat{\alpha}} + \bar{w}_{\hat{\alpha}}^*
+\ee
+and contributing $ \int \dd^2 z \, \eta^{\alpha \hat{\alpha}} w_\alpha^* \bar{w}_{\hat{\alpha}}^*$ to the action, which is easily seen to preserve its BRST invariance and the nilpotency of the BRST charge.
+
+
+Note that the action (\ref{SAds}) is often written in a form, which makes the $\mathbb{Z}_4$ grading of $PSU(2,2|4)$ (see appendix (\ref{algprop})) a bit more explicit i.e. we decompose $J = J_0 + J_1 + J_2 + J_3$ with $J_k \in \mathfrak{g}^{(k)}$ and write
+\be
+\begin{aligned}
+	S &= \frac{R^2}{2\pi} \int \dd^2z \text{STr}\big(\frac{1}{2} J_2 \bar{J}_2 + \frac{1}{4} J_1 \bar{J}_3 + \frac{3}{4} \bar{J}_1 J_3  + w \bar{\nabla} \lambda + \bar{w} \nabla \bar{\lambda} - N \bar{N}\big) \\
+	  &= \frac{R^2}{2\pi} \int \dd^2 z \text{STr}\big(\frac{1}{2} (J_2 \bar{J}_2 + J_1 \bar{J}_3 + \bar{J}_1 J_3) - \frac{1}{4}(J_1 \bar{J}_3 - \bar{J}_1 J_3 ) + w\bar{\nabla} \lambda + \bar{w} \nabla \bar{\lambda} - N \bar{N}\big),
+	  \label{Sind}
+\end{aligned}
+\ee
+where in this notation $N = -\acomm{w}{\lambda}$ with $\lambda = \lambda^\alpha T_\alpha, w = w_\alpha \eta^{\alpha \h{\alpha}} T_{\h{\alpha}}$ and so on. For example, in this language the pure spinor constraint is $\acomm{\lambda}{\lambda} = 0$ and the BRST charge can be written as $Q_B = -\oint \text{STr} (\lambda J_3) + \oint \text{STr} (\bar{\lambda} \bar{J}_1)$.
+
+
+
+\subsection{Quantum consistency at one loop: an explicit calculation}
+\label{fourtwo}
+In this section, we will compute the one-loop 1PI effective action of the $AdS_5 \cross S^5$ pure spinor and show that the $\beta$-function vanishes (at one loop this is expected from tree-level BRST invariance) and more nontrivially that there is no gauge or BRST anomaly and that the $AdS_5$ radius $R$ does not get renormalized.
+
+We compute the 1PI action by expanding around a classical background (in our case, this is a large $R$ limit i.e. the flat space pure spinor) and perform the semi-classical path integral over the fluctuations. We thus expand (here we renamed $\frac{R}{\sqrt{2\pi}} \to R$ to avoid factors of $2\pi$)
+\begin{align}
+	&g \to \tilde{g} e^{\frac{X}{R}} \\
+	&(w, \lambda) \to (W + w, L + \lambda) \\
+	& (\bar{w}, \bar{\lambda}) \to (\bar{W} + \bar{w}, \bar{L} + \bar{\lambda})
+\end{align}
+and so the matter currents
+\be
+J = g^{-1} \dd g = e^{-\frac{X}{R}} \tilde{J} e^{\frac{X}{R}} + e^{-\frac{X}{R}} \dd e^{\frac{X}{R}}
+\ee
+are expanded as (to avoid components, we use the graded notation defined at the end of last section)
+\be
+J_i = \tilde{J}_i + \frac{1}{R}\big(\dd X  + \comm{\tilde{J}}{X}\big) \big\rvert_i + \frac{1}{2R^2} \comm{dX + \comm{\tilde{J}}{X}}{X} \big\rvert_i + \ldots,
+\ee
+while the ghost currents
+\be
+N = N_0 + \frac{1}{R} N_1 + \frac{1}{R^2} N_2, \,\,\, \bar{N} = \bar{N}_0 + \frac{1}{R} \bar{N}_1 + \frac{1}{R^2} \bar{N}_2
+\ee
+are expanded as
+\be
+\begin{aligned}
+	&N_1 = -\acomm{W}{\lambda} - \acomm{w}{L}, \,\,\,\,\,\, N_2 = -\acomm{w}{\lambda}, \\
+	&\bar{N}_1 = -\acomm{\bar{W}}{\bar{\lambda}} - \acomm{\bar{w}}{\bar{L}}, \,\,\, \bar{N}_2 = -\acomm{\bar{w}}{\bar{\lambda}}.
+\end{aligned}
+\ee
+Since the $SO(4,1) \cross SO(5)$ rotations are gauged, we can go to a gauge where $X_0 = 0$ and we now write the expansion of the action to quadratic order in the fluctuations, splitting
+\be
+S_2 = S_2^m + S_2^{gh}
+\ee
+with $S_2^m = S_2^{m, kin} + S_2^{m, int}$ and $S_2^{gh} = S_2^{gh, kin} + S_2^{gh, int}$.
+The matter kinetic term is
+\be
+S_2^{m, kin} = \frac{1}{2\pi} \int \dd^2 z \text{STr} \big(\frac{1}{2} \partial X_2 \bar{\partial} X_2 + \frac{1}{4} \partial X_1 \bar{\partial} X_3 + \frac{3}{4} \bar{\partial} X_1 \partial X_3\big)
+\ee
+with the connection restricted to its background value so that we have the free field correlators
+\begin{align}
+	&\langle X_2^\mu(z) X_2^\nu(w) \rangle = -\eta^{\mu \nu} \ln \abs{z-w}^2 \\
+	& \langle X_1^{\alpha}(z) X_3^{\h{\alpha}}(w) \rangle = -\eta^{ \h{\alpha} \alpha} \ln \abs{z-w}^2 \\
+	& \langle X_3^{\h{\alpha}}(z) X_1^\alpha(w) \rangle = -\eta^{\alpha\h{\alpha}} \ln \abs{z-w}^2
+\end{align}
+and the ghost kinetic term is
+\be
+S_2^{gh, kin} = \frac{1}{2\pi} \int \dd^2 z \text{STr}\big(w \bar{\partial}\lambda + \bar{w} \partial \bar{\lambda}\big)
+\ee
+so that at the level of free OPE
+\be
+\langle \lambda^\beta(z) w_\alpha(w)\rangle = \frac{\delta^\beta_\alpha}{z-w}, \,\,\, \langle \bar{\lambda}^{\h{\beta}}(z) \bar{w}_{\h{\alpha}}(w)\rangle = -\frac{\delta^{\h{\beta}}_{\h{\alpha}}}{\bar{z}-\bar{w}}.
+\label{freeGhost}
+\ee
+To get the rest of the terms, we split $dX + \comm{\tilde{J}}{X}$ into different gradings
+\be
+\begin{aligned}
+	\dd X + \comm{\tilde{J}}{X} = &\biggr(\comm{\tilde{J}_1}{X_3} + \comm{\tilde{J}_3}{X_1} + \comm{\tilde{J}_2}{X_2}\biggr)+ \biggr(\nabla X_1 + \comm{\tilde{J}_2}{X_3} + \comm{\tilde{J}_3}{X_2}\biggr) + \\& \biggr(\nabla X_2 + \comm{\tilde{J}_1}{X_1} + \comm{\tilde{J}_3}{X_3}\biggr) +
+	\biggr(\nabla X_3  + \comm{\tilde{J}_1}{X_2} + \comm{\tilde{J}_2}{X_1}\biggr)
+\end{aligned}
+\ee
+so that the currents are expanded as
+\be
+\begin{aligned}
+	\label{currentExp}
+J_0 = &\tilde{J}_0 + \frac{1}{R} \biggr(\comm{\tilde{J}_1}{X_3} + \comm{\tilde{J}_3}{X_1} + \comm{\tilde{J}_2}{X_2}\biggr) + \frac{1}{2R^2} \Biggr(\comm{\nabla X_1 + \comm{\tilde{J}_2}{X_3} + \comm{\tilde{J}_3}{X_2}}{X_3} + \\
+      & + \comm{\nabla X_2 +\comm{\tilde{J}_1}{X_1} + \comm{\tilde{J}_3}{X_3}}{X_2} + \comm{\nabla X_3  + \comm{\tilde{J}_1}{X_2} + \comm{\tilde{J}_2}{X_1}}{X_1} \Biggr) + \ldots\\
+J_1 = &\tilde{J}_1 + \frac{1}{R}\biggr(\nabla X_1 + \comm{\tilde{J}_2}{X_3} + \comm{\tilde{J}_3}{X_2}\biggr) + \frac{1}{2R^2}\Biggr(\comm{\comm{\tilde{J}_1}{X_3} + \comm{\tilde{J}_3}{X_1} + \comm{\tilde{J}_2}{X_2}}{X_1} + \\
+      & + \comm{\nabla X_2 +\comm{\tilde{J}_1}{X_1} + \comm{\tilde{J}_3}{X_3}}{X_3} + \comm{\nabla X_3  + \comm{\tilde{J}_1}{X_2} + \comm{\tilde{J}_2}{X_1}}{X_2}\Biggr) + \ldots\\
+J_2 = &\tilde{J}_2 + \frac{1}{R}\biggr(\nabla X_2 +\comm{\tilde{J}_1}{X_1} + \comm{\tilde{J}_3}{X_3}\biggr) + \frac{1}{2R^2}\Biggr(\comm{\comm{\tilde{J}_1}{X_3} + \comm{\tilde{J}_3}{X_1} + \comm{\tilde{J}_2}{X_2}}{X_2} + \\
+      &+\comm{\nabla X_1 + \comm{\tilde{J}_2}{X_3} + \comm{\tilde{J}_3}{X_2}}{X_1} + \comm{\nabla X_3  + \comm{\tilde{J}_1}{X_2} + \comm{\tilde{J}_2}{X_1}}{X_3}\Biggr) + \ldots\\
+J_3 = &\tilde{J}_3 + \frac{1}{R}\biggr(\nabla X_3  + \comm{\tilde{J}_1}{X_2} + \comm{\tilde{J}_2}{X_1}\biggr) + \frac{1}{2R^2} \Biggr(\comm{\comm{\tilde{J}_1}{X_3} + \comm{\tilde{J}_3}{X_1} + \comm{\tilde{J}_2}{X_2}}{X_3} +\\ &+ \comm{\nabla X_1 + \comm{\tilde{J}_2}{X_3} + \comm{\tilde{J}_3}{X_2}}{X_2} + \comm{\nabla X_2 +\comm{\tilde{J}_1}{X_1} + \comm{\tilde{J}_3}{X_3}}{X_1}\Biggr)
+ + \ldots,
+\end{aligned}
+\ee
+giving us at second order (we now drop the tilde)
+{\allowdisplaybreaks
+\begin{align}
+\frac{1}{2} J_2 \bar{J}_2 \to &\frac{1}{2}\biggr(\nabla X_2 +\comm{J_1}{X_1} + \comm{J_3}{X_3}\biggr) \biggr(\bar{\nabla} X_2 +\comm{\bar{J}_1}{X_1} + \comm{\bar{J}_3}{X_3}\biggr) + \nonumber \\
+		& \frac{1}{4} J_2 \Biggr(\comm{\comm{\bar{J}_1}{X_3} + \comm{\bar{J}_3}{X_1} + \comm{\bar{J}_2}{X_2}}{X_2} +
+\comm{\bar{\nabla} X_1 + \comm{\bar{J}_2}{X_3} + \comm{\bar{J}_3}{X_2}}{X_1} + \nonumber \\ &+ \comm{\bar{\nabla} X_3  + \comm{\bar{J}_1}{X_2} + \comm{\bar{J}_2}{X_1}}{X_3}\Biggr) +
+\frac{1}{4}\Biggr(\comm{\comm{J_1}{X_3} + \comm{J_3}{X_1} + \comm{J_2}{X_2}}{X_2} \nonumber \\ & +
+\comm{\nabla X_1 + \comm{J_2}{X_3} + \comm{J_3}{X_2}}{X_1} +  \comm{\nabla X_3  + \comm{J_1}{X_2} + \comm{J_2}{X_1}}{X_3}\Biggr) \bar{J}_2 \nonumber \\
+=& \frac{1}{2} \nabla X_2 \bar{\nabla} X_2 + \frac{1}{2} \nabla X_2 \comm{\bar{J}_1}{X_1} + \frac{1}{2} \nabla X_2 \comm{\bar{J}_3}{X_3} + \frac{1}{2} \comm{J_1}{X_1} \bar{\nabla} X_2 +
+\frac{1}{2} \comm{J_1}{X_1}\comm{\bar{J}_1}{X_1} + \nonumber \\ &\frac{1}{2} \comm{J_1}{X_1}\comm{\bar{J}_3}{X_3} + \frac{1}{2} \comm{J_3}{X_3} \bar{\nabla} X_2 + \frac{1}{2} \comm{J_3}{X_3} \comm{\bar{J}_1}{X_1} + \frac{1}{2} \comm{J_3}{X_3} \comm{\bar{J}_3}{X_3} + \nonumber \\
+						      & \frac{1}{4} J_2 \comm{\comm{\bar{J}_1}{X_3}}{X_2} + \frac{1}{4} J_2 \comm{\comm{\bar{J}_3}{X_1}}{X_2}
+						      + \frac{1}{4} J_2 \comm{\comm{\bar{J}_2}{X_2}}{X_2} + \frac{1}{4} J_2 \comm{\bar{\nabla}X_1}{X_1} + \nonumber \\
+						      &\frac{1}{4} J_2 \comm{\comm{\bar{J}_2}{X_3}}{X_1} + \frac{1}{4} J_2 \comm{\comm{\bar{J}_3}{X_2}}{X_1} + \frac{1}{4} J_2 \comm{\bar{\nabla} X_3}{X_3} + \frac{1}{4} J_2 \comm{\comm{\bar{J}_1}{X_2}}{X_3} + \nonumber \\
+						      &\frac{1}{4} J_2 \comm{\comm{\bar{J}_2}{X_1}}{X_3} + \frac{1}{4}\comm{\comm{J_1}{X_3}}{X_2} \bar{J}_2 + \frac{1}{4} \comm{\comm{J_3}{X_1}}{X_2} \bar{J}_2 + \frac{1}{4} \comm{\comm{J_2}{X_2}}{X_2} \bar{J}_2 + \nonumber \\&
+						      \frac{1}{4} \comm{\nabla X_1}{X_1} \bar{J}_2 + \frac{1}{4}\comm{\comm{J_2}{X_3}}{X_1} \bar{J}_2 + \frac{1}{4}\comm{\comm{J_3}{X_2}}{X_1}\bar{J}_2 +\frac{1}{4} \comm{\nabla X_3}{X_3} \bar{J}_2 \nonumber \\
+						      & \frac{1}{4} \comm{\comm{J_1}{X_2}}{X_3}\bar{J}_2 + \frac{1}{4} \comm{\comm{J_2}{X_1}}{X_3} \bar{J}_2
+\end{align}
+
+\begin{align}
+\frac{1}{4} J_1 \bar{J}_3 \to &\frac{1}{4} \biggr(\nabla X_1 + \comm{J_2}{X_3} + \comm{J_3}{X_2}\biggr) \biggr(\bar{\nabla} X_3  + \comm{\bar{J}_1}{X_2} + \comm{\bar{J}_2}{X_1}\biggr) + \nonumber \\
+			      &\frac{1}{8} J_1 \Biggr(\comm{\comm{\bar{J}_1}{X_3} + \comm{\bar{J}_3}{X_1} + \comm{\bar{J}_2}{X_2}}{X_3} + \comm{\bar{\nabla} X_1 + \comm{\bar{J}_2}{X_3} + \comm{\bar{J}_3}{X_2}}{X_2} +\nonumber \\& \comm{\bar{\nabla} X_2 +\comm{\bar{J}_1}{X_1} + \comm{\bar{J}_3}{X_3}}{X_1}\Biggr) 			     + \frac{1}{8} \Biggr(\comm{\comm{J_1}{X_3} + \comm{J_3}{X_1} + \comm{J_2}{X_2}}{X_1} + \nonumber \\
+			      & + \comm{\nabla X_2 +\comm{J_1}{X_1} + \comm{J_3}{X_3}}{X_3} + \comm{\nabla X_3  + \comm{J_1}{X_2} + \comm{J_2}{X_1}}{X_2}\Biggr) \bar{J}_3 \nonumber \\
+=& \frac{1}{4}\nabla X_1 \bar{\nabla} X_3 + \frac{1}{4}\nabla X_1 \comm{\bar{J}_1}{X_2} + \frac{1}{4} \nabla X_1 \comm{\bar{J}_2}{X_1} + \frac{1}{4} \comm{J_2}{X_3} \bar{\nabla} X_3 + \frac{1}{4} \comm{J_2}{X_3} \comm{\bar{J}_1}{X_2} + \nonumber \\
+ &\frac{1}{4} \comm{J_2}{X_3} \comm{\bar{J}_2}{X_1} + \frac{1}{4}\comm{J_3}{X_2} \bar{\nabla} X_3 + \frac{1}{4} \comm{J_3}{X_2}\comm{\bar{J}_1}{X_2} + \frac{1}{4} \comm{J_3}{X_2} \comm{\bar{J}_2}{X_1} + \nonumber \\
+ &\frac{1}{8} J_1 \comm{\comm{\bar{J}_1}{X_3}}{X_3} + \frac{1}{8} J_1 \comm{\comm{\bar{J}_3}{X_1}}{X_3} + \frac{1}{8} J_1 \comm{\comm{\bar{J}_2}{X_2}}{X_3} + \frac{1}{8} J_1 \comm{\bar{\nabla} X_1}{X_2} + \nonumber \\
+ &\frac{1}{8} J_1 \comm{\comm{\bar{J}_2}{X_3}}{X_2} + \frac{1}{8} J_1 \comm{\comm{\bar{J}_3}{X_2}}{X_2} + \frac{1}{8} J_1 \comm{\bar{\nabla }X_2}{X_1} + \frac{1}{8} J_1 \comm{\comm{\bar{J}_1}{X_1}}{X_1} + \nonumber \\
+ &\frac{1}{8} J_1 \comm{\comm{\bar{J}_3}{X_3}}{X_1} + \frac{1}{8}\comm{\comm{J_1}{X_3}}{X_1} \bar{J}_3 + \frac{1}{8}\comm{\comm{
+ J_3}{X_1}}{X_1}\bar{J}_3 + \frac{1}{8}\comm{\comm{J_2}{X_2}}{X_1}\bar{J}_3 \nonumber \\
+ & \frac{1}{8}\comm{\nabla X_2}{X_3} \bar{J}_3 + \frac{1}{8}\comm{\comm{J_1}{X_1}}{X_3} \bar{J}_3 + \frac{1}{8}\comm{\comm{J_3}{X_3}}{X_3} \bar{J}_3 + \frac{1}{8}\comm{\nabla X_3}{X_2}\bar{J}_3 +\nonumber \\
+ &\frac{1}{8}\comm{\comm{J_1}{X_2}}{X_2} \bar{J}_3 + \frac{1}{8}\comm{\comm{J_2}{X_1}}{X_2} \bar{J}_3
+\end{align}
+
+\begin{align}
+\frac{3}{4} \bar{J}_1 J_3 \to &\frac{3}{4} \biggr(\bar{\nabla} X_1 + \comm{\bar{J}_2}{X_3} + \comm{\bar{J}_3}{X_2}\biggr)\biggr(\nabla X_3  + \comm{J_1}{X_2} + \comm{J_2}{X_1}\biggr) + \nonumber \\
+			      &\frac{3}{8} \bar{J}_1 \Biggr(\comm{\comm{J_1}{X_3} + \comm{J_3}{X_1} + \comm{J_2}{X_2}}{X_3} + \comm{\nabla X_1 + \comm{J_2}{X_3} + \comm{J_3}{X_2}}{X_2} + \\& \comm{\nabla X_2 +\comm{J_1}{X_1} + \comm{J_3}{X_3}}{X_1}\Biggr)
+			      + \frac{3}{8}  \Biggr(\comm{\comm{\bar{J}_1}{X_3} + \comm{\bar{J}_3}{X_1} + \comm{\bar{J}_2}{X_2}}{X_1} + \nonumber \\
+			      & + \comm{\bar{\nabla} X_2 +\comm{\bar{J}_1}{X_1} + \comm{\bar{J}_3}{X_3}}{X_3} + \comm{\bar{\nabla} X_3  + \comm{\bar{J}_1}{X_2} + \comm{\bar{J}_2}{X_1}}{X_2}\Biggr) J_3 \nonumber \\
+=& \frac{3}{4} \bar{\nabla} X_1 \nabla X_3 + \frac{3}{4} \bar{\nabla} X_1 \comm{J_1}{X_2} + \frac{3}{4} \bar{\nabla} X_1 \comm{J_2}{X_1} + \frac{3}{4} \comm{\bar{J}_2}{X_3} \nabla X_3 + \frac{3}{4} \comm{\bar{J}_2}{X_3} \comm{J_1}{X_2} + \nonumber \\
+ &\frac{3}{4} \comm{\bar{J}_2}{X_3}\comm{J_2}{X_1} +  \frac{3}{4} \comm{\bar{J}_3}{X_2} \nabla X_3 +  \frac{3}{4} \comm{\bar{J}_3}{X_2} \comm{J_1}{X_2} +  \frac{3}{4} \comm{\bar{J}_3}{X_2}\comm{J_2}{X_1} + \nonumber \\
+ & \frac{3}{8} \bar{J}_1 \comm{\comm{J_1}{X_3}}{X_3} + \frac{3}{8} \bar{J}_1 \comm{\comm{J_3}{X_1}}{X_3} + \frac{3}{8} \bar{J}_1 \comm{\comm{J_2}{X_2}}{X_3} + \frac{3}{8} \bar{J}_1 \comm{\nabla X_1}{X_2} +  \frac{3}{8} \bar{J}_1 \comm{\comm{J_2}{X_3}}{X_2} + \nonumber \\&\frac{3}{8} \bar{J}_1 \comm{\comm{J_3}{X_2}}{X_2} + \frac{3}{8} \bar{J}_1 \comm{\nabla X_2}{X_1} + \frac{3}{8} \bar{J}_1 \comm{\comm{J_1}{X_1}}{X_1} + \frac{3}{8} \bar{J}_1 \comm{\comm{J_3}{X_3}}{X_1} + \nonumber \\
+ &\frac{3}{8}\comm{\comm{\bar{J_1}}{X_3}}{X_1}J_3 +  \frac{3}{8}\comm{\comm{\bar{J_3}}{X_1}}{X_1} J_3 + \frac{3}{8}\comm{\comm{\bar{J_2}}{X_2}}{X_1} J_3 + \frac{3}{8}\comm{\bar{\nabla} X_2}{X_3}J_3 + \nonumber \\& \frac{3}{8}\comm{\comm{\bar{J_1}}{X_1}}{X_3} J_3 + \frac{3}{8}\comm{\comm{\bar
+ {J_3}}{X_3}}{X_3} J_3 + \frac{3}{8}\comm{\bar{\nabla}X_3}{X_2}J_3 + \frac{3}{8}\comm{\comm{\bar{J}_1}{X_2}}{X_2} J_3 +\nonumber \\
+ &\frac{3}{8} \comm{\comm{\bar{J}_2}{X_1}}{X_2}J_3
+\end{align}
+}
+so that after a rather lengthy regrouping of terms (using supercyclicity of supertrace to move the commutators), we can write
+$S_2^{m, int} = S^{I} + S^{II} + S^{III} + S^{IV} + S^V$ with the individual pieces
+{\allowdisplaybreaks
+\begin{align}
+	S^{I} =  \int\dd^2z \text{STr}\big(&\frac{1}{2}J_2\comm{X_1}{\bar{\partial} X_1} + \frac{1}{2}\bar{J}_2\comm{X_3}{\partial X_3} + \frac{1}{4} J_2 \comm{\comm{\bar{J}_2}{X_1}}{X_3} - \frac{1}{4} J_2 \comm{\comm{\bar{J}_2}{X_3}}{X_1} + \nonumber \\
+							 &\frac{1}{2} J_2 \comm{\comm{\bar{J}_2}{X_2}}{X_2}\big) \nonumber \\
+	S^{II} = \int\dd^2z \text{STr}\big(& \frac{3}{8} J_1\comm{X_1}{\bar{\partial} X_2} + \frac{5}{8} J_1 \comm{X_2}{\bar{\partial}X_1} + \frac{3}{8} \bar{J}_3 \comm{X_3}{\partial X_2} + \frac{5}{8} \bar{J}_3 \comm{X_2}{\partial X_3} - \nonumber \\
+							  & \frac{1}{2} J_1 \comm{\comm{\bar{J}_3}{X_2}}{X_2} + \frac{1}{4} J_1 \comm{\comm{\bar{J}_3}{X_1}}{X_3} - \frac{1}{4} J_1 \comm{\comm{\bar{J}_3}{X_3}}{X_1}\big) \nonumber \\
+		S^{III} =  \int\dd^2z \text{STr}\big(&\frac{1}{8} \bar{J}_1\comm{X_1}{\partial X_2} - \frac{1}{8} \bar{J}_1 \comm{X_2}{\partial X_1} + \frac{1}{8} J_3 \comm{X_3}{\bar{\partial} X_2} - \frac{1}{8} J_3 \comm{X_2}{\bar{\partial} X_3} + \nonumber \\
+								   & \frac{1}{2} \bar{J}_1 \comm{\comm{J_3}{X_2}}{X_2} + \frac{3}{4} \bar{J}_1 \comm{\comm{J_3}{X_1}}{X_3} + \frac{1}{4} \bar{J}_1 \comm{\comm{J_3}{X_3}}{X_1}\big) \nonumber \\
+			S^{IV} =  \int\dd^2z \text{STr}\big(& \frac{1}{2} \comm{J_0}{X_2} \bar{\partial} X_2 + \frac{1}{2} \partial X_2 \comm{\bar{J}_0}{X_2} + \frac{1}{4} \comm{J_0}{X_1} \bar{\partial} X_3 + \frac{1}{4} \partial X_1 \comm{\bar{J}_0}{X_3} + \nonumber \\
+							    & \frac{3}{4} \comm{\bar{J}_0}{X_1} \partial X_3 + \frac{3}{4} \bar{\partial} X_1 \comm{J_0}{X_3} + \frac{1}{2} \comm{J_0}{X_2} \comm{\bar{J}_0}{X_2} + \frac{1}{4} \comm{J_0}{X_1}\comm{\bar{J}_0}{X_3} + \nonumber \\
+							    & \frac{3}{4} \comm{J_0}{X_3} \comm{\bar{J}_0}{X_1}\big) \nonumber \\
+			S^{V} =  \int\dd^2z \text{STr}\big(&\frac{1}{2}\comm{J_3}{X_1}\comm{X_1}{\bar{J}_3} + \frac{1}{2}\comm{J_1}{X_3}\comm{X_3}{\bar{J}_1} + \frac{3}{8} \comm{J_2}{X_2}\comm{X_1}{\bar{J}_3} - \frac{3}{8}\comm{J_2}{X_1} \comm{X_2}{\bar{J}_3} + \nonumber \\
+									  & \frac{3}{8} \comm{J_3}{X_2}\comm{X_1}{\bar{J}_2} + \frac{5}{8} \comm{J_3}{X_1} \comm{X_2}{\bar{J}_2} + \frac{3}{8}\comm{J_2}{X_3} \comm{X_2}{\bar{J}_1} + \frac{5}{8} \comm{J_2}{X_2}\comm{X_3}{\bar{J}_1} + \nonumber \\
+									  &\frac{3}{8} \comm{J_1}{X_3}\comm{X_2}{\bar{J}_2} - \frac{3}{8}\comm{J_1}{X_2}\comm{X_3}{\bar{J}_2} + \frac{1}{2} J_2 \comm{X_1}{\comm{\bar{J}_0}{X_1}} + \frac{1}{2} \bar{J}_2 \comm{X_3}{\comm{J_0}{X_3}} + \nonumber \\
+									  & \frac{3}{8} J_1 \comm{X_1}{\comm{\bar{J}_0}{X_2}} + \frac{5}{8} J_1 \comm{X_2}{\comm{\bar{J}_0}{X_1}} + \frac{3}{8} \bar{J}_3 \comm{X_3}{\comm{J_0}{X_2}} + \frac{5}{8} \bar{J}_3 \comm{X_2}{\comm{J_0}{X_3}} + \nonumber \\
+									  & \frac{1}{8} \bar{J}_1 \comm{X_1}{\comm{J_0}{X_2}} - \frac{1}{8} \bar{J}_1 \comm{X_2}{\comm{J_0}{X_1}} + \frac{1}{8} J_3 \comm{X_3}{\comm{\bar{J}_0}{X_2}} - \frac{1}{8} J_3 \comm{X_2}{\comm{\bar{J}_0}{X_3}} \big)
+\label{exp1}
+\end{align}
+}
+Note that the last term of $S^I$ was ommited in the same expression in the review \cite{Mazzucato:2011jt} and \cite{Mazzucato:2009fv}, but then was correctly accounted for later.
+
+As far as the action for ghosts is concerned, we have to expand the ghost Lagrangian $\text{STr}\big(w\bar{\nabla}\lambda + \bar{w}\nabla \bar{\lambda} - N\bar{N}\big)$. After reshuffling the commutator, interaction terms of $S_2^{gh, int}$ come from expanding $\text{STr}\big(N \bar{J}_0 + \bar{N} J_0 - N\bar{N}\big)$. We then have
+{\allowdisplaybreaks
+\begin{align}
+	N \bar{J}_0 \to \frac{1}{2}N_0\big(&\comm{\bar{\nabla} X_1}{X_3} + \comm{\comm{\bar{J}_2}{X_3}}{X_3} + \comm{\comm{\bar{J}_3}{X_2}}{X_3} + \comm{\bar{\nabla} X_2}{X_2} +  \comm{\comm{\bar{J}_1}{X_1}}{X_2} + \nonumber \\& \comm{\comm{\bar{J}_3}{X_3}}{X_2} + \comm{\bar{\nabla} X_3}{X_1} + \comm{\comm{\bar{J}_1}{X_2}}{X_1} + \comm{\comm{\bar{J}_2}{X_1}}{X_1}\big) + \nonumber \\
+	N_1\big(&\comm{\bar{J}_1}{X_3} + \comm{\bar{J}_3}{X_1} + \comm{\bar{J}_2}{X_2} \big) +	N_2 \bar{J}_0 \nonumber \\
+	\bar{N} J_0 \to \frac{1}{2}\bar{N}_0\big(&\comm{\nabla X_1}{X_3} + \comm{\comm{J_2}{X_3}}{X_3} + \comm{\comm{J_3}{X_2}}{X_3} + \comm{\nabla X_2}{X_2} +  \comm{\comm{J_1}{X_1}}{X_2} + \nonumber \\& \comm{\comm{J_3}{X_3}}{X_2} + \comm{\nabla X_3}{X_1} + \comm{\comm{J_1}{X_2}}{X_1} + \comm{\comm{J_2}{X_1}}{X_1}\big) + \nonumber \\
+	\bar{N}_1\big(&\comm{J_1}{X_3} + \comm{J_3}{X_1} + \comm{J_2}{X_2} \big) +	\bar{N}_2 J_0 \nonumber \\
+	N\bar{N} \to N_2 \bar{N}_0& + \bar{N}_2 N_0 + N_1 \bar{N}_1
+\end{align}
+}
+so that we can write $S_2^{gh, int} = S^{VI} + S^{VII}$ with
+\be
+\begin{aligned}
+	S^{VI} = \int \dd^2z\text{STr}\big(& \frac{1}{2}N_0\big(\comm{\bar{\nabla} X_3}{X_1} + \comm{\bar{\nabla}X_2}{X_2} + \comm{\bar{\nabla}X_1}{X_3}\big) + \\
+						       &\frac{1}{2}\bar{N}_0\big(\comm{\nabla X_3}{X_1} + \comm{\nabla X_2}{X_2} + \comm{\nabla X_2}{X_3}\big) - \\
+						       & N_1 \bar{N}_1 + N_2(\bar{J}_0 - \bar{N}_0) + (J_0 - N_0)\bar{N}_2\big) \\
+		S^{VII} = \int\dd^2z \text{STr}\big(&\frac{1}{2} N_0 \big(\comm{\comm{\bar{J}_1}{X_2}}{X_1} + \comm{\comm{\bar{J}_2}{X_1}}{X_1} + \comm{\comm{\bar{J}_1}{X_1}}{X_2} + \comm{\comm{\bar{J}_3}{X_3}}{X_2} + \\
+								 & \comm{\comm{\bar{J}_2}{X_3}}{X_3} + \comm{\comm{\bar{J}_3}{X_2}}{X_3} \big)+ \frac{1}{2}\bar{N}_0\big(\comm{\comm{J_1}{X_2}}{X_1} + \comm{\comm{J_2}{X_1}}{X_1} \\ &
+						 \comm{\comm{J_1}{X_1}}{X_2} + \comm{\comm{J_3}{X_3}}{X_2} + \comm{\comm{J_2}{X_3}}{X_3} + \comm{\comm{J_3}{X_2}}{X_3}\big)+ \\
+								 & N_1\big(\comm{\bar{J}_1}{X_3} + \comm{\bar{J}_2}{X_2} + \comm{\bar{J}_3}{X_1}\big) + \bar{N}_1\big(\comm{J_1}{X_3} + \comm{J_2}{X_2} + \comm{J_3}{X_1}\big)\big).
+\label{exp2}
+\end{aligned}
+\ee
+
+Having written out the expansions (\ref{exp1}) and (\ref{exp2}), we can now finally compute the one-loop determinant. Looking at the possible free field contractions one can make, it is clear that $S^{V}$ and $S^{VII}$ do not contribute a divergent part. This is good since they would contribute terms which break gauge invariance since the gradings of background currents in these terms do not sum to zero. To compute the one-loop determinant, we have to write out $S^{I}, S^{II}, S^{III}, S^{IV}$ and $S^{VI}$ in components. This is not difficult to do and one obtains
+{\allowdisplaybreaks
+\begin{align}
+	S^I = \int \dd^2 z \big(&\frac{1}{2} J_2^a \bar{\partial} X^\alpha_1 X_1^\beta f_{a \alpha \beta} + \frac{1}{2} \bar{J}_2^a \partial X_3^{\h{\alpha}} X_3^{\h{\beta}} f_{a \h{\alpha}\h{\beta}} + \\ &\frac{1}{2} J_2^a \bar{J}_2^b \big(X_2^c X_2^d f_{bc}^{[ef]} f_{a [ef] d} + \frac{1}{2} X_1^\alpha X_3^{\h{\alpha}} (f_{b\alpha}^{\h{\beta}} f_{a \h{\beta} \h{\alpha}} - f^\beta_{b\h{\alpha}} f_{a\beta \alpha} \big) \big)\big) \nonumber \\
+	S^{II} = \int \dd^2 z \big(&J_1^\alpha f_{\beta a}^{\h{\beta}} \eta_{\alpha \h{\beta}}\big(\frac{3}{8} X_1^\beta \bar{\partial} X_2^a -\frac{5}{8} \bar{\partial} X_1^\beta X_2^a\big) + \bar{J}_3^{\h{\alpha}} f_{\h{\beta} a}^\alpha \eta_{\h{\alpha}\alpha}\big(\frac{3}{8} X_3^{\h{\beta}} \partial X_2^a - \frac{5}{8} \partial X_3^{\h{\beta}} X_2^a \big) + \nonumber \\
+						  &\frac{1}{2} J_1^\alpha \bar{J}_3^{\h{\alpha}} \big(-X_2^a X_2^b f_{\h{\alpha}a}^\beta f_{\beta b}^{\h{\beta}} \eta_{\alpha \h{\beta}} + \frac{1}{2} X_1^\beta X_3^{\h{\beta}}\big(f_{\h{\alpha}\beta}^{[ab]} f_{[ab]\h{\beta}}^{\h{\gamma}} \eta_{\alpha \h{\gamma}} - f_{\h{\alpha}\h{\beta}}^a f_{a\beta}^{\h{\gamma}} \eta_{\alpha \h{\gamma}} \big)\big)\big) \nonumber \\
+		S^{III} = \int \dd^2 z \big(& \frac{1}{8}\bar{J}_1^\alpha  f_{\beta a}^{\h{\beta}} \eta_{\alpha \h{\beta}} \big(X_1^\beta \partial X_2^a + \partial X_1^\beta X_2^a \big) + \frac{1}{8} J_3^{\h{\alpha}} f_{\h{\beta} a}^\beta \eta_{\h{\alpha}\beta} \big(X_3^{\h{\beta}} \bar{\partial} X_2^a + \bar{\partial} X_3^{\h{\beta}} X_2^a\big) + \nonumber \\
+							   & \frac{1}{2} \bar{J}_1^\alpha J_3^{\h{\alpha}}\big(X_2^a X_2^b f_{\h{\alpha}a}^\beta f_{\beta b}^{\h{\beta}} \eta_{\alpha \h{\beta}} + X_1^\beta X_3^{\h{\beta}} \big(\frac{3}{2}f_{\h{\alpha}\beta}^{[ab]} f_{[ab]\h{\beta}}^{\h{\gamma}} \eta_{\alpha \h{\gamma}} +\frac{1}{2} f_{\h{\alpha}\h{\beta}}^a f_{a \beta}^{\h{\gamma}} \eta_{\alpha \h{\gamma}}  \big)\big)\big) \nonumber \\
+			S^{IV} = \int \dd^2 z \big(&\frac{1}{2} J_0^{[ab]} X_2^c \bar{\partial} X_2^d f_{[ab]cd}  + \frac{1}{2} \bar{J}_0^{[ab]} X_2^c \partial X_2^d f_{[ab]cd} + \frac{1}{4}J_0^{[ab]}   f_{[ab]\alpha \h{\alpha}} \big(X_1^\alpha \bar{\partial} X_3^{\h{\alpha}} + 3\bar{\partial} X_1^\alpha X_3^{\h{\alpha}}\big) + \nonumber \\
+						   &\frac{1}{4} \bar{J}_0^{[ab]} f_{[ab]\alpha \h{\alpha}}  \big(\partial X_1^\alpha X_3^{\h{\alpha}} + 3 X_1^\alpha \partial X_3^{\h{\alpha}}\big) - J_0^{[ab]} \bar{J}_0^{[cd]} \big(\frac{1}{2} X_2^e X_2^f f_{[cd] e}^g f_{g f [ab]} + \nonumber \\
+						   &\frac{1}{4} X_1^\alpha X_3^{\h{\alpha}} [f_{[cd]\h{\alpha}}^{\h{\beta}} f_{\h{\beta} \alpha [ab]} + 3 f_{[cd] \alpha}^{\beta} f_{\beta \h{\alpha} [ab]}] \big) \big) +  \nonumber \\
+			S^{VI} = \int \dd^2 z \big(& \frac{1}{2} N_0^{[ab]} \big(\bar{\partial} X_3^{\h{\alpha}} X_1^\alpha f_{\h{\alpha} \alpha}^{[cd]} \eta_{[ab][cd]} + X_3^{\h{\alpha}} \bar{\partial} X_1^\alpha f_{\alpha \h{\alpha}}^{[cd]} \eta_{[ab][cd]} + \bar{\partial} X_2^c X_2^d f_{cd}^{[ef]} \eta_{[ab][ef]}\big) +\nonumber \\
+								 & \frac{1}{2}\bar{N}_0^{[ab]}\big(\partial X_3^{\h{\alpha}} X_1^\alpha f_{\h{\alpha} \alpha}^{[cd]} \eta_{[ab][cd]} + X_3^{\h{\alpha}} \partial X_1^\alpha f_{\alpha \h{\alpha}}^{[cd]} \eta_{[ab][cd]} + \partial X_2^c X_2^d f_{cd}^{[ef]} \eta_{[ab][ef]}\big) +
+								 \nonumber \\
+								 &\frac{1}{2}N_0^{[ab]}\bar{J}_0^{[cd]} \big(X_2^e X_2^f f_{[cd]e}^g f_{gf[ab]} + X_1^\alpha X_3^{\h{\alpha}}\big(f_{[cd]\h{\alpha}}^{\h{\beta}} f_{[ab]\h{\beta}\alpha} + f_{[cd]\alpha}^\beta f_{[ab]\beta \h{\alpha}}
+									\big) + \nonumber \\
+								 &\frac{1}{2}\bar{N}_0^{[ab]}J_0^{[cd]} \big(X_2^e X_2^f f_{[cd]e}^g f_{gf[ab]} + X_1^\alpha X_3^{\h{\alpha}}\big(f_{[cd]\h{\alpha}}^{\h{\beta}} f_{[ab]\h{\beta}\alpha} + f_{[cd]\alpha}^\beta f_{[ab]\beta \h{\alpha}}
+									\big)\big)- \nonumber \\
+								 &\big(N_1^{[ab]} \bar{N}_1^{[cd]} + N_2^{[ab]}(\bar{J}_0-\bar{N}_0)^{[cd]} + (J_0 - N_0)^{[ab]} \bar{N}_2^{[cd]}\big) \eta_{[ab][cd]}\big).
+\label{actionComp}
+\end{align}
+}
+It is clear that as far as the contributions of $S^{I}, S^{II}, S^{III}$ and $S^{IV}$ go, we only care about diagrams with two external background current insertions since those potentially renormalize the renormalizable matter part of the action. The diagrams we can draw coming from expanding $e^{-S^I}$ and so on are then a self-energy diagram coming from $\langle S^I \rangle$ and so on or a fish diagram coming from $\langle S^I S^I \rangle$ and so on. Note that there are nontrivial fish diagrams combining for example terms from $S^{II}$ and $S^{III}$, but those do not for example contribute to the potential renormalization of the radius and so the analysis of \cite{Mazzucato:2009fv} holds even in the presence of these cross terms.
+
+We now continue by evaluating all the self-energy divergent diagrams. Using the identity $f_{\h{\alpha}a}^\beta f^a_{\alpha \beta} = -f^a_{\hat{\alpha}\h{\beta}} f^{\h{\beta}}_{\alpha a}$ and $f_{[ab]\h{\alpha}}^{\h{\beta}} f_{[cd]\h{\beta}}^{\h{\alpha}} = f_{[ab]\alpha}^\beta f_{[cd]\beta}^\alpha$, we easily get that the self-energy contributions are
+\be
+\begin{aligned}
+&\langle S^I \rangle = \int \dd^2z \frac{1}{2} J_2^a \bar{J}_2^b [-\ln(0)]\big( \frac{1}{2} f_{a\beta}^{\h{\alpha}} f^\beta_{b\h{\alpha}} - \frac{1}{2} f^{\h{\beta}}_{b\alpha} f^{\alpha}_{a\h{\beta}} + f^c_{a[ef]} f^{[ef]}_{bc}\big) \\
+&\langle S^{II} \rangle = \int \dd^2z \frac{1}{4}J_1^\alpha\bar{J}_3^{\h{\alpha}}[-\ln(0)] (3 f^\beta_{\h{\alpha}a} f^a_{\alpha \beta} +  f^{[ab]}_{\h{\alpha}\beta} f_{\alpha [ab]}^\beta) \\
+&\langle S^{III} \rangle =  \int \dd^2z \frac{3}{4} \bar{J}_1^\alpha J_3^{\h{\alpha}}[-\ln(0)]\big( f^a_{\h{\alpha}\h{\beta}} f^{\h{\beta}}_{\alpha \beta} + f_{\h{\alpha}\beta}^{[ab]} f_{\alpha [ab]}^\beta\big) \\
+&\langle S^{IV} \rangle =  \int \dd^2z J_0^{[ab]} \bar{J}_0^{[cd]} [-\ln(0)]\big(f_{[ab]\alpha}^\beta f^\alpha_{[cd] \beta} -\frac{1}{2} f_{[ab] e}^f f^e_{[cd] f} \big).
+\end{aligned}
+\ee
+
+
+We continue by computing all the fish diagrams:
+{\allowdisplaybreaks
+\begin{align}
+	-\frac{1}{2}\langle S^I S^I \rangle &= -\frac{1}{4} \int \dd^2z \int \dd^2 w J_2^a(z) \bar{J}_2^b(w) f_{a\alpha \beta} f_{b\h{\alpha}\h{\beta}} \langle \bar{\partial} X_1^\alpha X_1^\beta(z) \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}(w)\rangle \nonumber \\
+					    &= -\frac{1}{4} \int \dd^2 z \int \dd^2 w J_2^a(z) \bar{J}_2^b(w) f^{\h{\beta}}_{a \alpha} f^\alpha_{b\h{\beta}}\big(-\frac{1}{\abs{z-w}^2} + \delta(z-w) \ln\abs{z-w}^2\big) \nonumber \\
+					    &\to 8 \int \dd^2z \text{STr} (J_2 \bar{J}_2) \nonumber \\
+-\frac{1}{2} \langle S^{II} S^{II} \rangle &= 	-\frac{1}{64}\int \dd^2 z \int \dd^2 w J_1^\alpha(z) \bar{J}_3^{\h{\alpha}} f_{a \alpha \beta} f_{b \h{\alpha} \h{\beta}} \biggr(9 \langle X_1^\beta \bar{\partial} X_2^a(z) X_3^{\h{\beta}} \partial X_2^b(w) \rangle + \nonumber \\
+					   &25 \langle \bar{\partial} X_1^\beta X_2^a(z) \partial X_3^{\h{\beta}} X_2^b(w)\rangle -
+					     15 \langle X_1^\beta \bar{\partial} X_2^a(z) \partial X_3^{\h{\beta}} X_2^b(w)\rangle - 15 \langle \bar{\partial} X_1^\beta X_2^a(z) X_3^{\h{\beta}} \partial X_2^b(w)\rangle \biggr)					  \nonumber \\
+					   &=\frac{1}{64} \int \dd^2 z \int \dd^2 w J_1^\alpha(z) \bar{J}_3^{\h{\alpha}}(w) f^\beta_{\h{\alpha} a } f^a_{\alpha \beta} \biggr(34 \delta(z-w)\ln\abs{z-w}^2 - 30 \frac{1}{\abs{z-w}^2}\biggr) \nonumber \\
+					   &\to\big(-1 - \frac{1}{\epsilon}\big)\int \dd^2 z J_1^\alpha \bar{J}_3^{\h{\alpha}} f_{\h{\alpha}a}^\beta f^a_{\alpha \beta} \nonumber \\
+					   &= -10 \int \dd^2z \text{STr}(J_1 \bar{J}_3) - \frac{1}{\epsilon} \int \dd^2 z  J_1^\alpha \bar{J}_3^{\h{\alpha}} f_{\h{\alpha}a}^\beta f^a_{\alpha \beta} \nonumber \\
+-\frac{1}{2}\langle S^{III} S^{III} \rangle &= -\frac{1}{64} \int \dd^2z \int \dd^2 w \bar{J}_1^\alpha(z) J_3^{\h{\alpha}}(w) f_{a \alpha \beta} f_{b \h{\alpha}\h{\beta}} \biggr(\langle X_1^\beta \partial X_2^a(z) X_3^{\h{\beta}} \bar{\partial} X_2^b(w)\rangle +\nonumber \\
+					    &\langle X_1^\beta \partial X_2^a(z) \bar{\partial} X_3^{\h{\beta}} X_2^b(w)\rangle + \langle \partial X_1^\beta X_2^a(z) X_3^{\h{\beta}} \bar{\partial} X_2^b(w)\rangle + \langle \partial X_1^\beta X_2^a(z) \bar{\partial}X_3^{\h{\beta}} X_2^b(w)\rangle\biggr) \nonumber \\
+					    &=\frac{1}{32} \int \dd^2 z \int \dd^2 z \bar{J}_1^{\alpha}(z) J_3^{\h{\alpha}}(w) f^\beta_{\h{\alpha}a} f^a_{\alpha \beta}\biggr(\delta(z-w) \ln\abs{z-w}^2 + \frac{1}{\abs{z-w}^2} \biggr) \nonumber \\
+					    &\to 0, \nonumber \\
+-\frac{1}{2}\langle S^{IV} S^{IV} \rangle &= -\frac{1}{4} \int \dd^2z \int \dd^2 w J_0^{[ab]}(z) \bar{J}^{[cd]}_0(w) \big(f_{[ab] ef} f_{[cd] gh} \langle X_2^e \bar{\partial} X_2^f(z) X_2^g \partial X_2^h(w) \rangle + \nonumber \\
+					  &\frac{1}{4} f_{[ab] \alpha \h{\alpha}} f_{[cd] \beta \h{\beta}} \big(\langle X_1^\alpha \bar{\partial} X_3^{\h{\alpha}}(z) \partial X_1^\beta X_3^{\h{\beta}}(w)\rangle + 3\langle \bar{\partial} X_1^\alpha X_3^{\h{\alpha}}(z) \partial X_1^\beta X_3^{\h{\beta}}(w)\rangle + \nonumber \\
+					  &3 \langle X_1^\alpha \bar{\partial} X_3^{\h{\alpha}}(z) X_1^\beta \partial X_3^{\h{\beta}}(w)\rangle + 9 \langle \bar{\partial} X_1^\alpha X_3^{\h{\alpha}}(z) X_1^\beta \partial X_3^{\h{\beta}}(w)\rangle \big)\big) \nonumber \\
+					  &=\frac{1}{4} \int \dd^2z \int \dd^2 w J_0^{[ab]}(z) \bar{J}^{[cd]}_0(w) \Biggr[f_{[ab]e}^f f_{[cd]f}^e \Biggr(\frac{1}{\abs{z-w}^2} - \delta(z-w) \ln \abs{z-w}^2\Biggr) + \nonumber \\
+					  & f_{[ab]\alpha}^\beta f_{[cd]\beta}^\alpha \Biggr(\frac{9+1}{4} \delta(z-w)\ln \abs{z-w}^2 - \frac{3+3}{4} \frac{1}{\abs{z-w}^2}\Biggr)\Biggr] \nonumber \\
+					  &\to \big(1+ \frac{1}{\epsilon}\big) \int \dd^2 z J_0^{[ab]} \bar{J}_0^{[cd]} \big(\frac{1}{2} f_{[ab]e}^f f_{[cd]f}^e - f_{[ab]\alpha}^\beta f_{[cd]\beta}^\alpha\big),
+\end{align}
+}
+where in the last steps of calculating each diagram, we used the dimensional regularization dictionary of appendix (\ref{fourDict}) and the explicit values of structure constants (\ref{struct}) (dropping the IR regulator since it is not relevant for the renormalization of the radius and reexpressing everything in position space). Using that $[-\ln(0)] \to \frac{1}{\epsilon}$, we can now add the self-energy and fish diagrams and finally we obtain the contribution of matter to the 1PI effective action:
+\be
+\begin{aligned}
+&\langle S^I \rangle + \langle S^{II} \rangle + \langle S^{III} \rangle -\frac{1}{2}\langle S^I S^I \rangle -\frac{1}{2} \langle S^{II} S^{II} \rangle -\frac{1}{2}\langle S^{III} S^{III} \rangle  = \\
+&-\frac{C_2(G)}{2} \frac{1}{\epsilon} S^m_{tree} + \int \dd^2 z \text{STr}\big(-\frac{1}{2}\big(C_2(G)-C_2(H)\big) J_0\bar{J}_0 + 8 J_2 \bar{J}_2 - 10 J_1 \bar{J}_3\big).
+\end{aligned}
+\ee
+Note that the divergent contribution coming from $S^{IV}$ has cancelled out i.e. there are no divergent $J_0 \bar{J}_0$ terms and we have used the identity
+\be
+2 f_{[ab]\alpha}^\beta f^\alpha_{[cd]\beta} - f^e_{[ab]f} f^f_{[cd]e} = \big(C_2(G) - C_2(H)\big) \eta_{[ab][cd]}
+\label{c2h}
+\ee
+with $C_2(H)$ being the dual Coxeter number for the $H = SO(4,1) \cross SO(5)$ subgroup (in the sum, the propagation of rotation generators is left out).
+Since $C_2(G) = 0$ for $G = PSU(2,2|4)$ (see (\ref{curvSec}) for the detailed calculation), we have that the contributions from matter do not make the $AdS_5$ radius run i.e. the $\beta$-function induced by the regulator vanishes. Note that the remaining finite piece is local. This is not automatic since the 1PI action is generically nonlocal as can be seen in the rules of (\ref{fourDict}).
+
+Having seen that matter itself induces a vanishing beta function and no radius shift or gauge anomalies, we proceed by computing the effect of couplings to the ghosts and their interactions. To do this, we first compute the fish diagram arising from the first two lines of $S^{VI}$ in (\ref{actionComp}) and obtain
+\be
+\begin{aligned}
+	&\frac{1}{4}\int \dd^2 z \int \dd^2 w N_0^{[ab]}(z) \bar{N}_0^{[cd]}(w) \big(f_{[ab]\h{\alpha}\alpha} f_{[cd] \h{\beta}\beta} \big[ \langle \bar{\partial} X_3^{\h{\alpha}} X_1^\alpha(z) \partial X_3^{\h{\beta}} X_1^\beta(w) \rangle + \langle \bar{\partial} X_3^{\h{\alpha}} X_1^\alpha(z) X_3^{\h{\beta}} \partial X_1^\alpha(w) \rangle \\
+	&+ \langle X_3^{\h{\alpha}} \bar{\partial} X_1^\alpha(z) \partial X_3^{\h{\beta}} X_1^\beta(w)\rangle + \langle X_3^{\h{\alpha}} \bar{\partial} X_1^\alpha(z) X_3^{\h{\beta}} \partial X_1^\beta(w)\rangle\big] + f_{ef[ab]}f_{gh[cd]} \langle \bar{\partial} X_2^e X_2^f(z) \partial X_2^g X_2^h (w)\rangle \big) = \\
+	&\frac{1}{4}\int \dd^2 z \int \dd^2z N_0^{[ab]}(z) \bar{N}_0^{[cd]}(w)\big(2 f_{[ab]\alpha}^\beta f^\alpha_{[cd]\beta} - f^e_{[ab]f} f^f_{[cd]e}\big)\biggr(\delta(z-w)\ln\abs{z-w}^2 - \frac{1}{\abs{z-w}^2}\biggr)= \\
+	&\frac{C_2(G)-C_2(H)}{4} \int \dd^2 z \int \dd^2 w \, \text{STr} \big(N_0 \bar{N_0}\big) \biggr(\delta(z-w)\ln\abs{z-w}^2 - \frac{1}{\abs{z-w}^2}\biggr) \to \\
+	&-\frac{C_2(G) - C_2(H)}{2} \big(1+\frac{1}{\epsilon}\big) \int \dd^2 z \text{STr}\big(N_0 \bar{N}_0\big),
+\end{aligned}
+\ee
+where we again used the identity (\ref{c2h}). We continue by evaluating the other terms contributing to the $N_0 \bar{N}_0$ term in the 1PI effective action. To evaluate the relevant diagrams, it turns out that we can use the free field OPE (\ref{freeGhost}) since the terms coming from ghost interactions do not contribute to the divergences.
+These terms are coming from the fish diagrams one draws from the terms in the last line of $S^{VI}$ (apart from the terms involving $J_0$ and $\bar{J}_0$). To get an idea what terms contribute, we expand $N_1 \bar{N}_1$
+\be
+N_1 \bar{N}_1 = \acomm{W}{\lambda} \acomm{\bar{W}}{\bar{\lambda}} + \acomm{W}{\lambda}\acomm{\bar{w}}{\bar{L}} + \acomm{w}{L}\acomm{\bar{W}}{\bar{\lambda}} + \acomm{w}{L} \acomm{\bar{w}}{\bar{L}}
+\ee
+and we see that in the fish diagram obtained by contracting a pair of $N_1 \bar{N}_1$, there are terms which have external line structure like $W \bar{W}(z) L \bar{L}(w)$ and $W \bar{L}(z) \bar{W}{L}(w)$. Contributions of the latter type also potentially come from fish diagrams involving $-N_2 \bar{N}_0$ and $-\bar{N}_2 N_0$. Those do not contribute since at the free ghost level, the two-point function of ghost Lorentz currents vanishes as can be seen in (\ref{OPEs}). Note that these vertices also do not contract with the $N_1 \bar{N}_1$ vertex to make a fish.
+For the relevant diagrams, we then obtain
+\be
+\begin{aligned}
+	&-\frac{1}{2}\int \dd^2 z \int \dd^2 w \, \eta_{[ab][cd]} \eta_{[ef][gh]} \text{STr} \big(\langle \acomm{W}{\lambda}^{[ab]} \acomm{\bar{W}}{\bar{\lambda}}^{[cd]}(z) \acomm{w}{L}^{[ef]} \acomm{\bar{w}}{\bar{L}}^{[gh]}(w) \rangle + \\
+		&\langle \acomm{W}{\lambda}^{[ab]} \acomm{\bar{w}}{\bar{L}}^{[cd]}(z) \acomm{w}{L}^{[ef]} \acomm{\bar{W}}{\bar{\lambda}}^{[gh]}(w) \rangle + \langle \acomm{w}{L}^{[ef]} \acomm{\bar{W}}{\bar{\lambda}}^{[gh]}(z) \acomm{W}{\lambda}^{[ab]} \acomm{\bar{w}}{\bar{L}}^{[cd]}(w)\rangle + \\
+		&\langle \acomm{w}{L}\acomm{\bar{w}}{\bar{L}}(z) \acomm{W}{\lambda}\acomm{\bar{W}}{\bar{\lambda}}(w)\rangle + \langle \acomm{w}{\lambda}^{[ab]} \acomm{\bar{W}}{\bar{L}}^{[cd]}(z) \acomm{w}{\lambda}^{[ef]} \acomm{\bar{W}}{\bar{L}}^{[gh]}(w) \rangle \big) =
+	      \\& \int \dd^2 z \int \dd^2 w \frac{1}{\abs{z-w}^2} \eta^{[ab][cd]} \eta^{[ef][gh]} f_{[cd]\beta}^\alpha f_{[gh]\rho}^\beta \\&
+	      \Big(W_\alpha \bar{W}_{\h{\gamma}}(z) L^\rho \bar{L}^{\h{\rho}}(w) f^{\h{\gamma}}_{[ab]\h{\delta}} f^{\h{\delta}}_{[ef]\h{\rho}} - W_\alpha \bar{L}^{\h{\rho}}(z)\bar{W}_{\h{\gamma}} L^\rho(w) f^{\h{\delta}}_{[ab]\h{\rho}} f^{\h{\gamma}}_{[ef]\h{\delta}}\Big).
+\end{aligned}
+\ee
+We use the identities
+\begin{align}
+\label{idone}
+&f_{[ab]\h{\delta}}^{\h{\gamma}} f^{\h{\delta}}_{[cd]\h{\rho}} - f^{\h{\gamma}}_{[cd]\h{\delta}} f^{\h{\delta}}_{[ab]\h{\rho}} = f_{[ab][cd]}^{[uv]} f_{[uv]\h{\rho}}^{\h{\gamma}} \\
+&f_{[ab]\delta}^{\gamma} f^{\delta}_{[cd]\rho} - f^{\gamma}_{[cd]\delta} f^{\delta}_{[ab] \rho} = f_{[ab][cd]}^{[uv]} f_{[uv]\rho}^{\gamma}
+\label{idsec}
+\end{align}
+and the definition of the super Ricci tensor for the subgroup $H$: $R_{[ab][cd]}(H) = -\frac{1}{4} f_{[ab][ef]}^{[gh]} f^{[gh]}_{[cd][ef]} = \frac{C_2(H)}{4} \eta_{[ab][cd]}$ to simplify the above regularized expression as (we first regularize to place the external fields at the same point and use (\ref{idone}))
+\be
+-\frac{C_2(H)}{2} \big(1 + \frac{1}{\epsilon}\big) \int \dd^2z\, \text{STr}\, (N_0 \bar{N}_0),
+\ee
+where the factor of $\frac{1}{2}$ comes from the $\frac{1}{4}$ from the Ricci tensor, $\frac{1}{2}$ for antisymmetrization in using the second identity (\ref{idsec}) and $4$ for grouping the external fields into two ghost Lorentz currents. Thus, the total $N_0 \bar{N}_0$ contribution to the 1PI effective action is
+\be
+-\frac{C_2(G)}{2} \big(1+\frac{1}{\epsilon}\big) \int \dd^2z\,  \text{STr}\,\big(N_0\bar{N}_0\big),
+\ee
+which vanishes since $PSU(2,2|4)$ is super Ricci flat.
+
+The last pieces in the 1PI effective action we have to compute are $N_0\bar{J}_0$ and $\bar{N}_0 J_0$. We compute the former since the latter is related by parity. These get a self-energy contribution from the covariant derivative terms in $S^{VI}$ but also a fish diagram one can make with the derivative terms in $S^{VI}$ and $S^{IV}$. We first compute the self-energy contribution
+\be
+\begin{aligned}
+&\frac{1}{2}\int \dd^2z N_0^{[ab]}\bar{J}_0^{[cd]}[-\ln(0)]\big(f_{[cd]e}^g f^e_{g[ab]} - f_{[cd]\h{\alpha}}^{\h{\beta}} f_{[ab]\h{\beta}}^{\h{\alpha}} - f_{[cd]\alpha}^\beta f_{[ab]\beta}^\alpha\big) = \\
+&-\frac{C_2(G)-C_2(H)}{2} \int \dd^2 z [-\ln(0)] \,\text{STr} \big(N_0 \bar{J}_0\big),
+\end{aligned}
+\ee
+where we have used the identity (\ref{c2h}) and use it again in computing the fish diagrams
+\be
+\begin{aligned}
+&-\frac{1}{4}\int \dd^2 z \int \dd^2 w N_0^{[ab]} \bar{J}_0^{[cd]} \big(f_{[ab]ef}f_{[cd]gh} \langle \bar{\partial} X_2^e X_2^f(z) X_2^g \partial X_2^h(w)\rangle + \\
+& \frac{1}{2} f_{[ab]\h{\alpha}\alpha}f_{[cd]\beta \h{\beta}} \big(\langle \bar{\partial} X_3^{\h{\alpha} }X_1^\alpha(z) \partial X_1^\beta X_3^{\h{\beta}}(w)\rangle + 3 \langle \bar{\partial} X_3^{\h{\alpha}} X_1^\alpha(z) X_1^\beta \partial X_3^{\h{\beta}}(w)\rangle \big) + \\
+&\frac{1}{2}  f_{[ab]\alpha\h{\alpha}}f_{[cd]\beta \h{\beta}} \big(\langle X_3^{\h{\alpha}}\bar{\partial}X_1^\alpha(z) \partial X_1^\beta X_3^{\h{\beta}}(w)\rangle + 3 \langle X_3^{\h{\alpha}}\bar{\partial}X_1^\alpha(z)  X_1^\beta\partial X_3^{\h{\beta}}(w)\rangle \big)\big) =\\
+&\frac{1}{4} \int\dd^2 z \int \dd^2 w N_0^{[ab]} \bar{J}_0^{[cd]} \big(f_{[ab]e}^f f_{[cd]f}^e - f_{[ab]\alpha}^\beta f_{[cd]\beta}^\alpha - f_{[ab]\h{\alpha}}^{\h{\beta}} f_{[cd]\h{\beta}}^{\h{\alpha}}\big) \biggr(\frac{1}{\abs{z-w}^2} - \delta(z-w) \ln\abs{z-w}^2\biggr) = \\
+&\frac{C_2(G)-C_2(H)}{4} \int \dd^2 z \int \dd^2 w \text{STr}\big(N_0(z) \bar{J}_0(w)\big) \biggr(\frac{1}{\abs{z-w}^2} - \delta(z-w) \ln\abs{z-w}^2\biggr) \to \\
+&\frac{C_2(G)-C_2(H)}{2} \big(1 + \frac{1}{\epsilon}\big) \int \dd^2 z \text{STr}\big(N_0 \bar{J}_0\big)
+\end{aligned}
+\ee
+so that the divergent part cancels with the self-energy diagram, concluding the calculation.
+
+In total, we have thus found the following contributions to the one-loop 1PI effective action
+\be
+-\frac{C_2(G)}{2} \frac{1}{\epsilon} S_{tree} + \int \dd^2 z \text{STr}\big(-\frac{1}{2}\big(C_2(G)-C_2(H)\big) (J_0\bar{J}_0 - N_0\bar{J}_0 - \bar{N}_0 J_0) + 8 J_2 \bar{J}_2 - 10 J_1 \bar{J}_3\big),
+\ee
+where the divergent piece cancels out because of super Ricci flatness of $PSU(2,2|4)$ i.e. $C_2(G) = 0$. The rest of the terms can be absorbed into adding local counterterms to the deformation. This means for example that there is no BRST or gauge anomaly so that we do not have to correct the transformation properties of our fields at this order. Also, the radius does neither run (logarithms come in pairs that comine into a logarithm of a dimensionless quantity and so when there are no logarithms of a regulator, there is no scale dependence) or get a finite shift (the shift is of course scheme dependent).
+
+
+
+
+
+\subsection{Quantum consistency to all loops: a general argument}
+\label{fourthree}
+In the last section, we showed that at one loop there are no gauge, BRST or scale anomalies. In this section we argue that this situation persists to all loops. This was first shown in \cite{Berkovits:2004xu}.
+
+\subsubsection{Quantum rotation invariance}
+
+We first show that the $SO(4,1) \cross SO(5)$ gauge symmetry is preserved i.e. that the anomalous gauge variation of the 1PI action can be compensated by adding a local counterterm. The anomalous gauge variation with generator $\Lambda$ of the 1PI action shows up as the local expression
+\be
+\delta_\Lambda S_{\text{1PI}} = \int \dd^2 z \big(f_{[ab]} \bar{\partial} \Lambda^{[ab]} + \bar{f}_{[ab]} \partial \Lambda^{[ab]}\big),
+\ee
+where the derivatives come from the fact that global rotation invariance is manifest. The operators $f_{[ab]}$ and $\bar{f}_{[ab]}$ must have weight 1 and so the only candidates are $N_{ab}, J_{ab}$ and $\bar{N}_{ab}, \bar{J}_{ab}$, giving us
+\be
+\delta_\Lambda S_{\text{1PI}} = \int \dd^2z \text{STr}\big(c_1 N \bar{\partial}\Lambda + \bar{c}_1 \bar{N}\partial\Lambda + c_2 J_0 \bar{\partial} \Lambda + \bar{c}_2 \bar{J}_0 \partial \Lambda\big).
+\ee
+We can add the local counterterm
+\be
+S_c = -\int \dd^2 z \text{STr}\big(c_1 N \bar{J}_0 + \bar{c}_1 \bar{N} J_0 + \frac{1}{2} (c_2 + \bar{c}_2) J_0 \bar{J}_0\big)
+\ee
+so that ($N$ does not vary since the only free indices come from a gamma matrix, not fields)
+\be
+\delta_\Lambda S_c = -\frac{1}{2}(c_2 + \bar{c}_2) \big(J_0 \bar{\partial} \Lambda + \bar{J}_0 \partial \Lambda\big) - c_1 N \bar{\partial} \Lambda - \bar{c}_1 \bar{N} \partial \Lambda
+\ee
+so that
+\be
+\delta_\Lambda(S_{\text{1PI}} + S_c) =\frac{1}{2}(c_2 - \bar{c}_2) \int \dd^2z \text{STr}\big(J_0 \bar{\partial} \Lambda - \bar{J}_0 \partial \Lambda\big).
+\ee
+Since exchanging all the left and right moving fields leaves the action (\ref{SAds}) invariant, we have $c_1 = \bar{c}_1$ and $c_2 = \bar{c}_2$, giving us that $\delta_\Lambda(S_{\text{1PI}} + S_c) = 0$, meaning that the gauged rotation invariance is preserved at the quantum level.
+
+
+\subsubsection{Quantum BRST invariance}
+\label{quantumBRST}
+
+Since the BRST charge is gauge invariant, it commutes with the local rotations. This means that the BRST anomaly must be captured by some gauge invariant local operator of ghost number 1. If one shows that the BRST cohomology at ghost number 1 is empty, this anomaly can be removed by a BRST variation of a local operator at ghost number 0. We now show that this is indeed the case by first showing this with the tree-level BRST charge and then we extend this to all orders using algebraic techniques. The most general gauge variation (up to the Maurer-Cartan identites and pure spinor constraints that make for example $\comm{N}{\epsilon \lambda}$ vanish) at ghost number 1 and weight 2 has the form $\int \dd^2 z \,\mathcal{O}^{(1)}$ with
+\be
+\begin{aligned}
+	\mathcal{O}^{(1)} = \text{STr}\big(&a_1 \bar{J}_2 \comm{J_3}{\epsilon \bar{\lambda}}+\bar{a}_1 J_2 \comm{\bar{J}_1}{\epsilon \lambda} + a_2 \bar{J}_2 \comm{J_1}{\epsilon \lambda} + \bar{a}_2 J_2 \comm{\bar{J}_3}{\epsilon\bar{\lambda}} + \\
+					   &a_3 J_3 \comm{\bar{N}}{\epsilon \lambda} + \bar{a}_3 \bar{J}_1 \comm{N}{\epsilon \bar{\lambda}} + a_4 J_3 \bar{\nabla}(\epsilon \lambda) + \bar{a}_4 \bar{J}_1 \nabla (\epsilon \bar{\lambda})\big).
+\end{aligned}
+\ee
+To compute the BRST variation of this term, we recast (\ref{Qg}) and (\ref{Qw}) to the index-free form
+\begin{align}
+	\label{ind1}
+	&\epsilon Q_B \cdot J_0 = \comm{J_3}{\epsilon \lambda} + \comm{J_1}{\epsilon \bar{\lambda}} \\
+	&\epsilon Q_B \cdot J_1 = \nabla (\epsilon \lambda) + \comm{J_2}{\epsilon \bar{\lambda}} \\
+	& \epsilon Q_B \cdot J_2 = \comm{J_1}{\epsilon \lambda} + \comm{J_3}{\epsilon \bar{\lambda}} \\
+	& \epsilon Q_B \cdot J_3 = \nabla(\epsilon \bar{\lambda}) + \comm{J_2}{\epsilon \lambda}
+	\label{ind4}
+\end{align}
+and
+\be
+\epsilon Q_B \cdot w = -J_3 \epsilon, \,\,\, \epsilon Q_B \cdot \bar{w} =-\bar{J}_1 \epsilon, \,\,\, \epsilon Q_B \cdot \lambda = \epsilon Q_B \cdot \bar{\lambda} = 0,
+\ee
+which implies that
+\be
+\epsilon Q_B \cdot N = \comm{J_3}{\epsilon \lambda}, \,\,\, \epsilon Q_B \cdot \bar{N} = \comm{\bar{J}_1}{\epsilon \bar{\lambda}}.
+\ee
+Using this, we get
+\be
+\begin{aligned}
+	\epsilon' Q_B \cdot \mathcal{O}^{(1)} = \text{STr}\biggr(&a_1 \comm{\bar{J}_1}{\epsilon'\lambda}\comm{J_3}{\epsilon \bar{\lambda}} + a_1 \bar{J}_2 \comm{\nabla(\epsilon ' \bar{\lambda})}{\epsilon \bar{\lambda}} + a_1 \bar{J}_2 \comm{\comm{J_2}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} + a_1 \comm{\bar{J}_3}{\epsilon'\bar{\lambda}}\comm{J_3}{\epsilon \bar{\lambda}}+ \\
+					&\bar{a}_1 \comm{J_1}{\epsilon'\lambda}\comm{\bar{J}_1}{\epsilon \lambda} + \bar{a}_1 \comm{J_3}{\epsilon'\bar{\lambda}}\comm{\bar{J}_1}{\epsilon \lambda} + \bar{a}_1 J_2 \comm{\bar{\nabla}(\epsilon'\lambda)}{\epsilon\lambda} + \bar{a}_1 J_2 \comm{\comm{\bar{J}_2}{\epsilon' \bar{\lambda}}}{\epsilon \lambda} + \\
+					&a_2 \comm{\bar{J}_1}{\epsilon'\lambda}\comm{J_1}{\epsilon \lambda} + a_2\comm{\bar{J}_3}{\epsilon'\bar{\lambda}}\comm{J_1}{\epsilon \lambda} + a_2 \bar{J}_2 \comm{\nabla (\epsilon'\lambda)}{\epsilon \lambda} + a_2 \bar{J}_2 \comm{\comm{J_2}{\epsilon' \bar{\lambda}}}{\epsilon \lambda} + \\
+					&\bar{a}_2 \comm{J_1}{\epsilon'\lambda}\comm{\bar{J}_3}{\epsilon\bar{\lambda}} + \bar{a}_2 \comm{J_3}{\epsilon '\bar{\lambda}}\comm{\bar{J}_3}{\epsilon \bar{\lambda}} + \bar{a}_2 J_2 \comm{\bar{\nabla}(\epsilon'\bar{\lambda})}{\epsilon\bar{\lambda}}+ \bar{a}_2 J_2 \comm{\comm{\bar{J}_2}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} + \\
+					&a_3 \nabla(\epsilon'\bar{\lambda})\comm{\bar{N}}{\epsilon \lambda} + a_3 \comm{J_2}{\epsilon'\lambda}\comm{\bar{N}}{\epsilon\lambda}+ a_3 J_3 \comm{\comm{\bar{J}_1}{\epsilon' \bar{\lambda}}}{\epsilon \lambda} + \\
+					& \bar{a}_3 \bar{\nabla}(\epsilon'\lambda)\comm{N}{\epsilon \bar{\lambda}} + \bar{a}_3 \comm{\bar{J}_2}{\epsilon' \bar{\lambda}}\comm{N}{\epsilon \bar{\lambda}} + \bar{a}_3 \bar{J}_1 \comm{\comm{J_3}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} + \\
+					& a_4 \nabla(\epsilon' \bar{\lambda})\bar{\nabla}(\epsilon \lambda) + a_4 \comm{J_2}{\epsilon \lambda}\bar{\nabla}(\epsilon \lambda) + a_4 J_3 \comm{\comm{\bar{J}_3}{\epsilon'\lambda}}{\epsilon \lambda} + a_4 J_3 \comm{\comm{\bar{J}_1}{\epsilon'\bar{\lambda}}}{\epsilon \lambda} + \\
+					&\bar{a}_4 \bar{\nabla}(\epsilon'\lambda)\nabla(\epsilon \bar{\lambda}) + \bar{a}_4\comm{\bar{J}_2}{\epsilon' \bar{\lambda}} \nabla(\epsilon \bar{\lambda}) + \bar{a}_4 \bar{J}_1 \comm{\comm{J_3}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} + \bar{a}_4 \bar{J}_1 \comm{\comm{J_1}{\epsilon'\bar{\lambda}}}{\epsilon \bar{\lambda}}
+				\biggr),
+\end{aligned}
+\ee
+which after using the ghost equations of motion
+\be
+\bar{\nabla}\lambda = \comm{\bar{N}}{\lambda}, \,\,\, \nabla \bar{\lambda} = \comm{N}{\bar{\lambda}}
+\ee
+and commuting the two constant spinors, getting for example
+\be
+\begin{aligned}
+&\text{STr}\big(a_3 \nabla(\epsilon'\bar{\lambda})\comm{\bar{N}}{\epsilon \lambda} + \bar{a}_3 \bar{\nabla}(\epsilon'\lambda)\comm{N}{\epsilon \bar{\lambda}}+ a_4 \nabla(\epsilon' \bar{\lambda})\bar{\nabla}(\epsilon \lambda) + \bar{a}_4 \bar{\nabla}(\epsilon'\lambda)\nabla(\epsilon \bar{\lambda}) \big)= \\
+& \text{STr}\big(a_3 \nabla(\epsilon'\bar{\lambda})\bar{\nabla}(\epsilon \lambda) + \bar{a}_3 \bar{\nabla}(\epsilon'\lambda)\nabla(\epsilon \bar{\lambda}) + a_4 \nabla(\epsilon' \bar{\lambda})\bar{\nabla}(\epsilon \lambda) + \bar{a}_4 \bar{\nabla}(\epsilon'\lambda)\nabla(\epsilon \bar{\lambda}) \big)= \\
+& (a_3 + a_4 - \bar{a}_3 - \bar{a}_4) \text{STr}\big(\bar{\nabla}(\epsilon \lambda)\nabla(\epsilon'\bar{\lambda})\big)
+\end{aligned}
+\ee
+and using the above commutation and the supercyclicity of the supertrace, getting another example
+\be
+\begin{aligned}
+	&\text{STr}\biggr(a_1 \comm{\bar{J}_1}{\epsilon'\lambda}\comm{J_3}{\epsilon \bar{\lambda}}  + \bar{a}_1 \comm{J_3}{\epsilon'\bar{\lambda}}\comm{\bar{J}_1}{\epsilon \lambda} + a_3 J_3 \comm{\comm{\bar{J}_1}{\epsilon' \bar{\lambda}}}{\epsilon \lambda}  +  \bar{a}_3 \bar{J}_1 \comm{\comm{J_3}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} + \\& a_4 J_3 \comm{\comm{\bar{J}_1}{\epsilon'\bar{\lambda}}}{\epsilon \lambda} + \bar{a}_4 \bar{J}_1 \comm{\comm{J_3}{\epsilon'\lambda}}{\epsilon \bar{\lambda}} \biggr) = (a_1 - \bar{a}_1 + a_3 + a_4 - \bar{a}_3 - \bar{a}_4) \text{STr} \comm{\bar{J}_1}{\epsilon'\lambda}\comm{J_3}{\epsilon \bar{\lambda}}
+\end{aligned}
+\ee
+we get the variation $\epsilon' Q \cdot \mathcal{O}^{(1)} = \Omega_1 + \Omega_2 + \Omega_3$ (up to pure gauge terms) with
+\be
+\begin{aligned}
+	\Omega_1 = &(a_3 + a_4 - \bar{a}_3 - \bar{a}_4) \text{STr}\big(\bar{\nabla}(\epsilon \lambda)\nabla(\epsilon'\bar{\lambda})\big) \\
+	\Omega_2 = &(a_1 - \bar{a}_1 + a_3 + a_4 - \bar{a}_3 - \bar{a}_4) \text{STr} \comm{\bar{J}_1}{\epsilon'\lambda}\comm{J_3}{\epsilon \bar{\lambda}} - (a_1 - \bar{a}_1 + a_2 - \bar{a}_2) \text{STr} \comm{J_2}{\epsilon'\lambda}\comm{\bar{J}_2}{\epsilon \bar{\lambda}} + \\
+		   &(a_2 - \bar{a}_2) \text{STr} \comm{\bar{J}_3}{\epsilon'\bar{\lambda}}\comm{J_1}{\epsilon \lambda} \\
+	\Omega_3 =&(a_2+\bar{a}_1)\text{STr} \comm{\bar{J}_1}{\epsilon' \lambda}\comm{J_1}{\epsilon \lambda} + (a_1 + \bar{a}_2)\comm{J_3}{\epsilon \bar{\lambda}}\comm{\bar{J}_3}{\epsilon'\bar{\lambda}} -
+		 a_4 \comm{J_3}{\epsilon \lambda}\comm{\bar{J}_3}{\epsilon'\lambda}-\\
+		  &\bar{a}_4\comm{\bar{J}_1}{\epsilon \bar{\lambda}}\comm{J_1}{\epsilon'\bar{\lambda}}.
+\end{aligned}
+\ee
+It is easy to see that $\Omega_3 = 0$ by gamma matrix algebra since say the first term of $\Omega_3$ is proportional to $\lambda^\alpha \lambda^\beta \text{STr}\big(\comm{T_\delta}{T_\alpha}\comm{T_\rho}{T_\beta}\big) \sim (\gamma^a \lambda \lambda \gamma_a)_{\delta \rho}$ and $\lambda^\alpha \lambda^\beta \sim (\lambda \gamma^{mnpqr}\lambda) \gamma^{\alpha\beta}_{mnpqr}$ with $\gamma^a \gamma_{mnpqr} \gamma_a = 0$. So $\mathcal{O}^{(1)}$ is closed if and only if
+\be
+a_1 = \bar{a}_1, \,\,\, a_2 =\bar{a}_2, \,\,\, a_3 + a_4 = \bar{a}_3 + \bar{a}_4,
+\ee
+that is if it is of the form
+\be
+\begin{aligned}
+	\mathcal{O}^{(1)} = \text{STr}\big(&a_1 \bar{J}_2 \comm{J_3}{\epsilon \bar{\lambda}}+a_1 J_2 \comm{\bar{J}_1}{\epsilon \lambda} + a_2 \bar{J}_2 \comm{J_1}{\epsilon \lambda} + a_2 J_2 \comm{\bar{J}_3}{\epsilon\bar{\lambda}} + \\
+					   &a_3 J_3 \comm{\bar{N}}{\epsilon \lambda} + (a_3 + a_3 - \bar{a}_4) \bar{J}_1 \comm{N}{\epsilon \bar{\lambda}} + a_4 J_3 \bar{\nabla}(\epsilon \lambda) + \bar{a}_4 \bar{J}_1 \nabla (\epsilon \bar{\lambda})\big).
+\end{aligned}
+\ee
+Operator of exactly this form can be written as $\epsilon Q_B \cdot \Sigma$ with
+\be
+\Sigma = \text{STr}\Big(a_2 J_2 \bar{J}_2 + (a_1 - a_2) \bar{J}_1 J_3 + (a_3 - \bar{a}_4 + a_2 - a_1) N\bar{N} + (a_4 + a_1 - a_2) w \bar{\nabla}\lambda + (\bar{a}_4 + a_1 - a_2)\bar{w}\nabla \bar{\lambda}\Big),
+\ee
+as can be seen by computing (we use the cancellation (\ref{usefulto}))
+\be
+\begin{aligned}
+&\epsilon Q_B \cdot J_2 \bar{J}_2 = \comm{J_1}{\epsilon \lambda} \bar{J}_2 + \comm{J_3}{\epsilon \bar{\lambda}} \bar{J}_2 + J_2 \comm{\bar{J}_1}{\epsilon \lambda} + J_2 \comm{\bar{J}_3}{\epsilon \bar{\lambda}} \\
+& \epsilon Q_B \cdot \bar{J}_1 J_3 = \bar{\nabla}(\epsilon \lambda)J_3 + \comm{\bar{J}_2}{\epsilon \bar{\lambda}} J_3 + \bar{J}_1 \nabla(\epsilon \bar{\lambda}) + \bar{J}_1 \comm{J_2}{\epsilon \lambda} \\
+& \epsilon Q_B \cdot N\bar{N} = \comm{J_3}{\epsilon \lambda}\bar{N} + N\comm{\bar{J}_1}{\epsilon \bar{\lambda}} \\
+& \epsilon Q_B \cdot w\bar{\nabla}\lambda = -J_3 \bar{\nabla}(\epsilon \lambda) + w\comm{\comm{\bar{J_1}}{\epsilon \bar{\lambda}}}{\lambda} \\
+& \epsilon Q_B \cdot \bar{w}\nabla \bar{\lambda} = -\bar{J}_1\nabla (\epsilon \bar{\lambda}) + \bar{w}\comm{\comm{J_3}{\epsilon \lambda}}{\bar{\lambda}},
+\end{aligned}
+\ee
+that is all closed operators at ghost number 1 are exact and so the ghost number 1 cohomology is empty.
+
+Assuming that the quantum BRST charge squares to zero (there is no conserved ghost number 2 current that can deform the nilpotency), we now prove that the 1PI effective action is BRST invariant by induction. Suppose it is invariant at the $(n-1)$-th order i.e.
+\be
+\tilde{Q}_B(S_{\text{1PI}}) = \frac{1}{R^n} \Omega + O\Big(\frac{1}{R^{n+1}}\Big)
+\ee
+for a local ghost number 1 operator $\Omega$ with the deformed quantum BRST charge being $\tilde{Q}_B = Q_B + \delta Q_B$. Since $\tilde{Q}_B^2 = 0$, we have that $Q\Omega = 0$, but then $\Omega = Q \Sigma$, giving us that $\tilde{S}_{\text{1PI}} = S_{\text{1PI}} - \frac{1}{R^n} \Sigma$ is BRST invariant at the $n$-th order i.e. we can always add a local counterterm, which cancels the BRST variation of the 1PI effective action at a given order, completing the proof.
+
+\subsubsection{Quantum scale invariance}
+
+Having shown that the gauge and BRST anomalies can be compensated by a local counterterm, we now do so for the scale anomaly i.e. we show that the $\beta$-function vanishes to all orders in perturbation theory. The trick of \cite{Berkovits:1999im} we use to do this is to enlarge the $\mathfrak{psu}(2,2|4)$ algebra to $\mathfrak{u}(2,2|4)$ (for a definition see appendix (\ref{algprop})), adding back in the hypercharge $Y$ (an outer automorphism) and the diagonal generator $D$ (a central element) so that
+\be
+\comm{Y}{T_A} = c_A^B T_B, \,\,\, \comm{T_A}{T_B} = f_{AB}^C T_C + d_{AB} D, \,\,\, \comm{D}{T_A} = \comm{D}{Y} = 0,
+\label{newStruct}
+\ee
+with $f_{AB}^C$ the $\mathfrak{psu}(2,2|4)$ structure constants (\ref{struct}), $c_\alpha^{\h{\beta}} = \delta_\alpha^{\h{\beta}}, c_{\h{\alpha}}^\beta = -\delta_{\h{\alpha}}^\beta, d_{\alpha \beta} = \gamma_{\alpha \beta}^{01234}$ and $d_{\h{\alpha}\h{\beta}} = \gamma_{\h{\alpha}\h{\beta}}^{01234}$. Now, parametrize
+\be
+h(x,\theta,\h{\theta},u,v) = \exp(u D + v Y) g(x,\theta, \h{\theta})
+\ee
+and define the left-invariant currents $K = h^{-1} \partial h, \bar{K} = h^{-1} \bar{\partial} h$, which decompose as $K = K_D + K_Y + K_0 + K_1 + K_2 + K_3 + K_4$ with
+\be
+\begin{aligned}
+	&K_D = (h^{-1} \partial h)^D D = \big(\partial u + (g^{-1} (\partial v Y g))^D + (g^{-1} \partial g)^D\big)D, \\
+	&K_Y = (h^{-1} \partial h)^Y Y = \partial v Y. \\
+	&K_0 + K_1 + K_2 + K_3 = (h^{-1}\partial h)^A T_A = \big((g^{-1}(\partial v Y)g)^A + (g^{-1}\partial g)^A \big)T_A
+	\label{Kdecomp}
+\end{aligned}
+\ee
+and an analogous antiholomorphic part.
+The deformed BRST transform $\epsilon Q_B' \cdot h = h(\epsilon \lambda + \epsilon \bar{\lambda})$ explicitly reads
+\begin{align}
+&\epsilon Q_B' \cdot K_D = \comm{K_3}{\epsilon \bar{\lambda}} + \comm{K_1}{\epsilon \lambda} \\
+&\epsilon Q_B' \cdot K_Y = 0 \\
+& \epsilon Q_B' \cdot K_0 = \comm{K_3}{\epsilon \lambda} + \comm{K_1}{\epsilon \bar{\lambda}} \\
+& \epsilon Q_B' \cdot K_1 = \nabla (\epsilon \lambda) +\comm{K_2}{\epsilon \bar{\lambda}} +  \comm{K_Y}{\epsilon \bar{\lambda}} \\
+& \epsilon Q_B' \cdot K_2 = \comm{K_1}{\epsilon \lambda} + \comm{K_3}{\epsilon \bar{\lambda}} \\
+& \epsilon Q_B' \cdot K_3 = \nabla (\epsilon \bar{\lambda}) + \comm{K_2}{\epsilon \lambda} + \comm{K_Y}{\epsilon \lambda}
+\end{align}
+as one can easily see by comparing with (\ref{ind1})-(\ref{ind4}) and using (\ref{Qg}) with the deformed commutation relations (\ref{newStruct}). One then forms the deformed action
+\be
+S' = \frac{1}{2\pi} \int \dd^2z \text{STr}\big(\frac{1}{2} K_D \bar{K}_Y + \frac{1}{2}\bar{K}_D K_Y\big) + S_0',
+\label{Sdef}
+\ee
+where $S_0'$ is the original action (\ref{Sind}) with the replacement $J_A \to K_A$. This action is manifestly invariant under the full global $U(2,2|4)$ transformations as one can see by using that the only new nonvanishing component of the supermetric is $\eta_{DY}$ since $\text{STr}(D Y) \neq 0$, which is clear since the hypercharge $Y$ carries the supertrace and $Y^2 = D$. Using the deformed Maurer-Cartan equations
+\begin{align}
+	&\nabla \bar{K}_3 - \bar{\nabla} K_3 = -\comm{K_1}{\bar{K}_2} - \comm{K_2}{\bar{K}_1} - \comm{K_Y}{\bar{K}_1} - \comm{K_1}{\bar{K}_Y}, \\
+	&\nabla \bar{K}_1 - \bar{\nabla} K_1 =-\comm{K_3}{\bar{K}_2} - \comm{K_2}{\bar{K}_3} - \comm{K_Y}{\bar{K}_3} - \comm{K_3}{\bar{K}_Y},
+\end{align}
+it is easy to show that the deformed action (\ref{Sdef}) is BRST invariant with respect to the deformed BRST charge. In particular, one gets that
+{\allowdisplaybreaks
+\begin{align}
+	&\epsilon Q' \cdot \big[\text{STr}\big(\frac{1}{2} K_D \bar{K}_Y + \frac{1}{2} \bar{K}_D K_Y\big)\big] =\nonumber \\\nonumber
+	&\text{STr}\Biggr(+\frac{1}{2}\comm{K_3}{\epsilon \bar{\lambda}} \bar{K}_Y + \frac{1}{2}\comm{K_1}{\epsilon \lambda} \bar{K}_Y +
+\frac{1}{2} \comm{\bar{K}_3}{\epsilon \bar{\lambda}} K_Y + \frac{1}{2}\comm{\bar{K}_1}{\epsilon \lambda} K_Y \Biggr)\\
+	&\epsilon Q' \cdot \big[\text{STr}\big(\frac{1}{2} K_1\bar{K}_3 + \frac{1}{2} \bar{K}_1 K_3\big) \big]= \nonumber \\
+	&\text{STr}\Biggr(+\frac{1}{2} \comm{K_Y}{\epsilon \bar{\lambda}} \bar{K}_3 + \frac{1}{2} K_1 \comm{\bar{K}_Y}{\epsilon \lambda} + \frac{1}{2} \comm{\bar{K}_Y}{\epsilon \bar{\lambda}} K_3 + \frac{1}{2} \bar{K}_1 \comm{K_Y}{\epsilon \lambda} + \nonumber \\
+											  &+\frac{1}{2}\nabla(\epsilon \lambda)\bar{K}_3 + \frac{1}{2}\comm{K_2}{\epsilon \bar{\lambda}} \bar{K}_3 + \frac{1}{2}K_1 \bar{\nabla}(\epsilon \bar{\lambda} )+ \frac{1}{2} K_1 \comm{\bar{K}_2}{\epsilon \lambda}+ \nonumber \\
+											  &+\frac{1}{2} \bar{\nabla}(\epsilon \lambda)K_3 + \frac{1}{2}\comm{\bar{K}_2}{\epsilon \bar{\lambda}} K_3 + \frac{1}{2}\bar{K}_1 \nabla(\epsilon \bar{\lambda}) + \frac{1}{2} \bar{K}_1 \comm{K_2}{\epsilon \lambda}\Biggr) \nonumber \\
+											  &\epsilon Q'\cdot \big[\text{STr}\big(-\frac{1}{4} K_1 \bar{K}_3 + \frac{1}{4} \bar{K}_1 K_3\big)\big] = \nonumber \\
+											  &\text{STr}\Biggr( -\frac{1}{4}\comm{K_Y}{\epsilon \bar{\lambda}} \bar{K}_3 - \frac{1}{4} K_1 \comm{\bar{K}_Y}{\epsilon \lambda} + \frac{1}{4} \comm{\bar{K}_Y}{\epsilon \bar{\lambda}} K_3 + \frac{1}{4} \bar{K_1} \comm{K_Y}{\epsilon \lambda} - \nonumber \\
+											  &-\frac{1}{4}\nabla(\epsilon \lambda)\bar{K}_3 -\frac{1}{4}\comm{K_2}{\epsilon \bar{\lambda}} \bar{K}_3 - \frac{1}{4} K_1 \bar{\nabla}(\epsilon \bar{\lambda}) - \frac{1}{4} K_1 \comm{\bar{K}_2}{\epsilon \lambda} + \nonumber \\
+											  &+\frac{1}{4} \bar{\nabla}(\epsilon \lambda) K_3 + \frac{1}{4} \comm{\bar{K}_2}{\epsilon \bar{\lambda}} K_3 + \frac{1}{4} \bar{K}_1 \nabla(\epsilon \bar{\lambda}) + \frac{1}{4} \bar{K}_1 \comm{K_2}{\epsilon \lambda}\Biggr) = \nonumber \\
+											  &	\text{STr}\Biggr(-\frac{1}{4}\nabla(\epsilon \lambda) \bar{K}_3 - \frac{1}{4} K_1 \bar{\nabla}(\epsilon \bar{\lambda}) + \frac{1}{4}\bar{\nabla}(\epsilon \lambda)K_3 + \frac{1}{4} \bar{K}_1 \nabla(\epsilon \bar{\lambda}) - \nonumber \\
+	 &-\frac{1}{4} \big(\comm{K_Y}{\bar{K}_1} + \comm{K_1}{\bar{K}_Y}+\comm{K_1}{\bar{K}_2} + \comm{K_2}{\bar{K}_1}\big)\epsilon \lambda + \nonumber \\
+	 &+\frac{1}{4}\big(\comm{K_Y}{\bar{K}_3} + \comm{K_3}{\bar{K}_Y} - \comm{K_3}{\bar{K}_2} - \comm{K_2}{\bar{K}_3}\big)\epsilon \bar{\lambda}\Biggr),
+\end{align}
+from which one sees how the deformed Maurer-Cartan identites are used and how the deformations of kinetic terms cancel out because of the supercyclicity of the supertrace. Similar arguments to those of the last subsection (\ref{quantumBRST}) can be used to prove that the deformed 1PI effective action is also BRST invariant under the deformed quantum BRST charge.} We are now done setting up the necessary background for the main argument of scale invariance that follows.
+
+Writing the deformed action (\ref{Sdef}) more explicitly using (\ref{Kdecomp}), we get
+\be
+S' = S_0 + \frac{1}{2\pi} \int \dd^2 z \big(\partial u \bar{\partial} v + j(x, \theta, \bar{\theta}) \bar{\partial} v + \bar{j}(x,\theta,\bar{\theta})\partial v + k(x,\theta,\bar{\theta})\partial v \bar{\partial} v\big)
+\ee
+and writing out the kinetic terms in matrix form and inverting, we get $\langle u u\rangle, \langle u v\rangle$ and $\langle v u \rangle$ propagators, but no $\langle v v \rangle$ propagator. This means that all diagrams with external $PSU(2,2|4)$ lines are the same as for the undeformed 1PI effective action. This means that
+\be
+\label{ezrels}
+S'_{\text{1PI}}\rvert_{v=0} = S_{\text{1PI}}
+\ee
+so that if the deformed 1PI action is scale invariant, the undeformed one is scale invariant as well.
+
+To show this, as a lemma, we now prove that
+\be
+\comm{\tilde{Q}'}{\delta_s} = 0
+\ee
+with $\delta_s$ a scale transformation. The proof is again algebraic and proceeds by induction. Suppose that one has
+\be
+\comm{\tilde{Q}'}{\delta_s} = \frac{1}{R^n} \delta' + \ldots.
+\ee Then since $\acomm{Q}{\delta'} = 0$, we have by the triviality of ghost number 1 cohomology that $\delta' = -\comm{Q}{\delta_q}$ so that $\delta_s + \frac{1}{R^n} \delta_q$ is a good scale transformation at the next order.
+
+We then use this lemma to argue that $Q'(\delta_s S'_{\text{1PI}}) = 0$ so that the scale variation of $S'_{\text{1PI}}$ is BRST invariant and local (it comes from a UV regulator). Extending the arguments of the previous subsection (\ref{quantumBRST}), one shows that the only $U(2,2|4)$ invariant local operator at ghost number 0 is the deformed classical action (\ref{Sdef}) itself so that
+\be
+\delta_s S'_{\text{1PI}} \sim S'.
+\label{ezrel}
+\ee
+But the kinetic term $\int \dd^2z \partial u \bar{\partial} v$ cannot receive quantum corrections since one cannot draw loop diagrams with the relevant external legs because the $u$ field does not interact. This means that the deformed action cannot run since this running would necessarily change the kinetic term because of the relation (\ref{ezrel}) and so because of (\ref{ezrels}) the original action cannot run either, completing the proof of scale invariance.
+
+\subsection{Computation of the central charge}
+\label{fourfour}
+In this section, we compute the central charge of the pure spinor superstring at tree level and more importantly at one loop, showing that it vanishes as dictated by anomaly cancellation on the worldsheet. We will compute the holomorphic central charge (the antiholomorphic one is obviously the same) by studying the two-point correlator of stress-tensors $\langle T(z) T(0) \rangle = \frac{c}{2} \frac{1}{z^4}$, where
+\be
+T = -\text{STr} \big(\frac{1}{2} J_2 J_2 + J_1 J_3 + w\nabla \lambda\big),
+\ee
+as can be easily seen by varying the action (\ref{Sind}) with a position-dependent translation as usual. We compute the correlation function at one loop using the free field OPEs and the expansion (\ref{currentExp}) with external fields set to zero i.e. we use
+\be
+\begin{aligned}
+J_1 =&\frac{1}{R} \partial X_1+ \frac{1}{2R^2}\Biggr( \comm{\partial X_2}{X_3} + \comm{\partial X_3}{X_2}\Biggr) + \ldots\\
+J_2 = &\frac{1}{R}\partial X_2 + \frac{1}{2R^2}\Biggr(\comm{\partial X_1 }{X_1} + \comm{\partial X_3}{X_3}\Biggr) + \ldots\\
+J_3 = &\frac{1}{R}\partial X_3   +\frac{1}{2R^2} \Biggr(\comm{\partial X_1}{X_2} + \comm{\partial X_2}{X_1}\Biggr).
+ + \ldots,
+\end{aligned}
+\ee
+so that we can then write out the current bilinears in components
+\be
+\begin{aligned}
+	&\text{STr} \big(J_2 J_2\big) = \text{STr} \Big(\frac{1}{R^2} \partial X_2 \partial X_2 + \frac{1}{R^3} \big(\partial X_2 \comm{\partial X_1}{X_1} + \partial X_2 \comm{\partial X_3}{X_3} \big) + \ldots = \\
+	& \frac{1}{R^2} \eta_{ab} \partial X_2^a \partial X_2^b + \frac{1}{R^3} \big(f_{a\alpha \beta} \partial X_2^a \partial X_1^\alpha X_1^\beta + f_{a\h{\alpha}\h{\beta}} \partial X_2^a \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}\big) + \ldots \\
+	&\text{STr} \big(J_1 J_3\big) = \text{STr} \Big(\frac{1}{R^2} \partial X_1 \partial X_3 + \frac{1}{2R^3} \big(\partial X_1 \comm{\partial X_1}{X_2} + \partial X_1 \comm{\partial X_2}{X_1}  + \\
+	&\partial X_3 \comm{\partial X_2}{X_3} + \partial X_3 \comm{\partial X_3}{X_2}\big) + \ldots = \\
+	& \frac{1}{R^2} \eta_{\alpha \h{\alpha}} \partial X_1^{\alpha} \partial X_3^{\h{\alpha}} + \frac{1}{2R^3}\big(\eta_{\alpha \h{\alpha}} f_{\beta a}^{\h{\alpha}}\partial X_1^\alpha \partial X_1^\beta X_2^a + \eta_{\alpha \h{\alpha}} f_{a \beta}^{\h{\alpha}} \partial X_1^\alpha X_1^\beta \partial X_2^a + \eta_{\h{\alpha}\alpha} f_{a \h{\beta}}^\alpha\partial X_3^{\h{\alpha}} X_3^{\h{\beta}} \partial X_2^a\+ \\
+	& \eta_{\h{\alpha}\alpha} f^\alpha_{\h{\beta} a} \partial X_3^{\h{\alpha}} \partial X_3^{\h{\beta}} X_2^a\big) + \ldots,
+\end{aligned}
+\ee
+where we only kept the terms that will contribute to the one-loop two-point correlator of current bilinears. We then easily obtain the one-loop correlators
+{\allowdisplaybreaks
+\begin{align}
+	&\langle \frac{1}{2} \text{STr} J_2 J_2(z) \frac{1}{2} \text{STr} J_2 J_2(0) \rangle = \frac{1}{4R^4}  \eta_{ab} \eta_{cd} \langle\partial X_2^a \partial X_2^b(z) \partial X_2^c \partial X_2^d(0)\rangle + \nonumber \\
+	&\frac{1}{2R^6} f_{a\alpha \beta} f_{b \h{\alpha}\h{\beta}} \langle \partial X_2^a \partial X_1^\alpha X_1^\beta(z) \partial X_2^b \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}(0) \rangle + \ldots = \frac{1}{R^4} \frac{1}{z^4} \Big( \frac{10}{2} - \frac{1}{2 R^2} \big(1 + \ln \abs{z}^2\big) \eta^{ab} f_{a \alpha}^{\h{\alpha}} f^\alpha_{b \h{\alpha}}\Big) + \ldots\nonumber \\
+	&\langle \text{STr} J_1 J_3(z) \text{STr} J_1 J_3(0) \rangle = \frac{1}{R^4} \eta_{\alpha \h{\alpha}} \eta_{\beta \h{\beta}} \langle \partial X_1^\alpha \partial X_3^{\h{\alpha}}(z) \partial X_1^\beta \partial X_3^{\h{\beta}}(0) \rangle + \nonumber \\
+	&\frac{1}{2R^6}\big(\eta_{\alpha \h{\alpha}} \eta_{\h{\gamma}\gamma} f_{\beta a}^{\h{\alpha}} f_{b\h{\beta}}^\gamma \langle \partial X_1^\alpha \partial X_1^\beta X_2^a(z) \partial X_3^{\h{\gamma}} X_3^{\h{\beta}} \partial X_2^b(0) \rangle + \eta_{\alpha \h{\alpha}} \eta_{\h{\gamma}\gamma} f_{a \beta}^{\h{\alpha}} f_{b\h{\beta}}^\gamma \langle \partial X_1^\alpha X_1^\beta \partial X_2^a(z) \partial X_3^{\h{\gamma}} X_3^{\h{\beta}} \partial X_2^b(0) \rangle + \nonumber \\
+	& \eta_{\alpha \h{\alpha}} \eta_{\h{\gamma}\gamma} f_{\beta a}^{\h{\alpha}} f_{\h{\beta}b}^\gamma \langle \partial X_1^\alpha \partial X_1^\beta X_2^a(z) \partial X_3^{\h{\gamma}} \partial X_3^{\h{\beta}} X_2^b(0) \rangle + \eta_{\alpha \h{\alpha}} \eta_{\h{\gamma}\gamma} f_{a \beta}^{\h{\alpha}} f_{\h{\beta}b}^\gamma \langle \partial X_1^\alpha X_1^\beta \partial X_2^a(z) \partial X_3^{\h{\gamma}} \partial X_3^{\h{\beta}} X_2^b(0) \rangle\big) + \ldots = \nonumber \\
+	&-\frac{1}{R^4} \frac{1}{z^4}\Big(\frac{32}{2} - \frac{1}{2R^2} \big(1 + \ln \abs{z}^2\big) \eta^{ab} f_{a \alpha}^{\h{\alpha}} f^\alpha_{b \h{\alpha}}\Big) + \ldots\nonumber \\
+	&\langle \text{STr} J_2 J_2(z) \text{STr} J_1 J_3(0) \rangle = \frac{1}{R^4} \eta_{ab} \eta_{\alpha \h{\alpha}} \langle \partial X_2^a \partial X_2^b(z) \partial X_1^\alpha \partial X_3^{\h{\alpha}} \rangle + \nonumber \\
+	&\frac{1}{2 R^6} \big(f_{a\alpha \beta} \eta_{\h{\alpha}\gamma}f^{\gamma}_{b\h{\beta}} \langle \partial X_2^a \partial X_1^\alpha X_1^\beta(z) \partial X_3^{\h{\alpha}} X_3^{\h{\beta}} \partial X_2^b(0)\rangle + f_{a\alpha \beta} \eta_{\h{\alpha}\gamma}f^{\gamma}_{\h{\beta}b} \langle \partial X_2^a \partial X_1^\alpha X_1^\beta(z) \partial X_3^{\h{\alpha}} \partial X_3^{\h{\beta}} X_2^b(0)\rangle + \nonumber \\
+	& f_{a\h{\alpha}\h{\beta}} \eta_{\alpha \h{\gamma}} f^{\h{\gamma}}_{\gamma b} \langle \partial X_2^a \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}(z) \partial X_1^\alpha \partial X_1^\gamma X_2^b(0)\rangle  + f_{a\h{\alpha}\h{\beta}} \eta_{\alpha \h{\gamma}} f^{\h{\gamma}}_{b \gamma} \langle \partial X_2^a \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}(z) \partial X_1^\alpha X_1^\gamma \partial X_2^b(0)\rangle \big) + \ldots = \nonumber \\
+	&-\frac{1}{R^6}\frac{1}{z^4}\big(1+ \ln\abs{z}^2\big) \eta^{ab} f_{a \alpha}^{\h{\alpha}} f^\alpha_{b \h{\alpha}}\Big) + \ldots
+\end{align}
+}
+Note that we do not have to take into account the corrections to the action since at leading order the only terms without external fields are the kinetic terms. It is then easy to add up the above terms to obtain the matter stress tensor correlator
+\be
+\langle T_m(z) T_m(0) \rangle = -\frac{1}{R^4} \frac{22}{2z^4},
+\ee
+which is just the flat space answer.
+Since we gauge fixed $X_0 = 0$, the first term in $w\comm{J_0}{\lambda}$ that does not involve any external currents starts at $\frac{1}{R^4}$ so that the ghost stress tensor correlator also is the same as in flat space i.e.
+\be
+\langle T_{gh}(z) T_{gh}(0) \rangle = +\frac{1}{R^4} \frac{22}{2z^4}.
+\ee
+This means that $c = 0$ (and $\bar{c} = 0$) at the one loop order in sigma model perturbation theory as required by worldsheet anomaly cancellation. This was of course anticipated in light of the results of the previous sections.
+\iffalse
+\be
+\begin{aligned}
+	&\text{STr} \big(J_2 J_2\big) = \text{STr} \Big(\frac{1}{R^2} \partial X_2 \partial X_2 + \frac{1}{R^3} \big(\partial X_2 \comm{\partial X_1}{X_1} + \partial X_2 \comm{\partial X_3}{X_3} \big) +\\&
+	\frac{1}{4 R^4} \big(\comm{\partial X_1}{X_1} \comm{\partial X_1}{X_1} + 2\comm{\partial X_1}{X_1}\comm{\partial X_3}{X_3} + \comm{\partial X_3}{X_3} \comm{\partial X_3}{X_3} \big)\Big) + \ldots = \\
+	& \frac{1}{R^2} \eta_{ab} \partial X_2^a \partial X_2^b + \frac{1}{R^3} \big(f_{a\alpha \beta} \partial X_2^a \partial X_1^\alpha X_1^\beta + f_{a\h{\alpha}\h{\beta}} \partial X_2^a \partial X_3^{\h{\alpha}} X_3^{\h{\beta}}\big) + \\
+	& \frac{1}{4R^4}\big(f^a_{\alpha \beta} f_{a \gamma \delta} \partial X_1^\alpha X_1^\beta \partial X_1^\gamma X_1^\delta + 2 f^a_{\alpha \beta} f_{a \h{\alpha}\h{\beta}} \partial X_1^\alpha X_1^\beta \partial X_3^{\h{\alpha}} X_3^{\h{\beta}} \big)\\
+	&\text{STr} \big(J_1 J_3\big) = \text{STr} \Big(\frac{1}{R^2} \partial X_1 \partial X_3 + \frac{1}{2R^3} \big(\partial X_1 \comm{\partial X_1}{X_2} + \partial X_1 \comm{\partial X_2}{X_1}  + \\
+	&\partial X_3 \comm{\partial X_2}{X_3} + \partial X_3 \comm{\partial X_3}{X_2}\big) + \frac{1}{4R^4} \big(\comm{\partial X_2}{X_3}\comm{\partial X_1}{X_2} + \comm{\partial X_2}{X_3} \comm{\partial X_2}{X_1} + \\
+	&\comm{\partial X_3}{X_2}\comm{\partial X_1}{X_2} + \comm{\partial X_3}{X_2} \comm{\partial X_2}{X_1}\big)\Big) + \ldots\\
+\end{aligned}
+\ee
+\fi
+
+\subsection{Algebra of Metsaev-Tseytlin currents at tree level}
+\label{fourfive}
+To compute the OPE algebra of the Metsaev-Tseytlin currents at leading i.e. $\frac{1}{R^2}$ order as considered in \cite{Bianchi:2006im, Puletti:2006vb, Mikhailov:2007mr}, we keep the first term in the expansion(\ref{currentExp}) since the classical currents do not contract and compute a free field OPE in the presence of the deformation $e^{-S^{int.}}$, where at leading order $S^{int.}$ is given by summing up the terms in (\ref{actionComp}). For dimensional reasons, we do not have to keep the entire exponential to obtain singular contributions to the OPE, but it suffices to keep $e^{-S^{int.}} \sim 1 - S^{int.} + \ldots$ i.e. there are no loops at this order. We now work out an example OPE in detail
+{\allowdisplaybreaks
+\begin{align}
+	&R^2 J_2^a(z) J_2^b(0) \sim \partial X_2^a(z) \partial X_2^b(w) - \nonumber \\
+	&\frac{1}{2\pi} \partial X_2^a(z) \partial X_2^b(w) \int \dd^2 \sigma \frac{1}{2} \big[(N_0 + J_0)^{[cd]} \bar{\partial} X_2^e X_2 ^f f_{[cd]ef} + (\bar{N}_0 + \bar{J}_0)^{[cd]} \partial X_2^e X_2 ^f f_{[cd]ef}\big]  - \nonumber \\
+	&\frac{2}{2\pi}f^{b}_{\alpha \beta} \partial X_2^a(z) J_1^\alpha X_1^\beta(w) \int \dd^2 \sigma \big[\bar{J}_3^{\h{\alpha}} f_{\h{\beta} c}^\alpha \eta_{\h{\alpha}\alpha}\big(\frac{3}{8} X_3^{\h{\beta}} \partial X_2^c - \frac{5}{8} \partial X_3^{\h{\beta}} X_2^c \big)  + \frac{1}{8} J_3^{\h{\alpha}} f_{\h{\beta} c}^\beta \eta_{\h{\alpha}\beta} \big(X_3^{\h{\beta}} \bar{\partial} X_2^c + \bar{\partial} X_3^{\h{\beta}} X_2^c\big) \big] - \nonumber \\
+	&\frac{2}{2\pi} f^b_{\h{\alpha}\h{\beta}} \partial X_2^a(z) J_3^{\h{\alpha}} X_3^{\h{\beta}}(w) \int \dd^2 \sigma \big[J_1^\alpha f_{\beta c}^{\h{\beta}} \eta_{\alpha \h{\beta}}\big(\frac{3}{8} X_1^\beta \bar{\partial} X_2^c -\frac{5}{8} \bar{\partial} X_1^\beta X_2^c\big)  + \frac{1}{8}\bar{J}_1^\alpha  f_{\beta c}^{\h{\beta}} \eta_{\alpha \h{\beta}} \big(X_1^\beta \partial X_2^c + \partial X_1^\beta X_2^c \big) \big] - \nonumber \\
+	& \frac{2}{2\pi} f^b_{[ef] c} \partial X_2^a(z) J_0^{[ef]} X_2^c(w) \int \dd^2 \sigma \big[\frac{1}{2} J_0^{[ab]} X_2^c \bar{\partial} X_2^d f_{[ab]cd}  + \frac{1}{2} \bar{J}_0^{[ab]} X_2^c \partial X_2^d f_{[ab]cd}\big] \sim
+	\nonumber \\& - \frac{\eta^{ab}}{(z-w)^2} - \frac{1}{2\pi} \frac{1}{2} \int \dd^2\sigma \big[(N_0 + J_0)^{[cd]} f_{[cd] ef}\big(\frac{\eta^{a e} \eta^{b f} 2\pi \delta(z-\sigma)}{w-\sigma} + \frac{\eta^{a f}\eta^{be} 2\pi \delta(0-\sigma)}{z-\sigma}\big) + \nonumber \\
+		    & (\bar{N}_0 + \bar{J}_0)^{[cd]} f_{[cd] ef} \big(\frac{\eta^{ae} \eta^{bf}}{(z-\sigma)^2 (w-\sigma)} + \frac{\eta^{a f}\eta^{be}}{(z-\sigma)(w-\sigma)^2}\big)\big] -\nonumber \\
+		    &\frac{2}{2\pi} f^b_{\alpha \beta} f^\gamma_{\h{\beta} c} \eta_{\h{\alpha}\gamma}  \eta^{\h{\beta}\beta} \eta^{ac} J_1^\alpha(w) \int \dd^2\sigma \big[\bar{J}_3^{\h{\alpha}}\big(\frac{3}{8}\frac{\ln \abs{w-\sigma}^2}{(z-\sigma)^2} - \frac{5}{8} \frac{1}{(z-\sigma)^2}\big) + \nonumber \\
+		    &\frac{1}{8}J_3^{\h{\alpha}}\big(\ln \abs{w-\sigma}^2 2\pi \delta(z-\sigma) - \frac{1}{(\bar{w}-\bar{\sigma})(z-\sigma)}\big)\big] - \nonumber \\
+		    &\frac{2}{2\pi} f^{b}_{\h{\alpha}\h{\beta}} f^{\h{\gamma}}_{\beta c} \eta_{\alpha \h{\gamma}} \eta^{\h{\beta}\beta} \eta^{ac} J_3^{\h{\alpha}} \int \dd^2\sigma\big[J_1^\alpha\big(\frac{3}{8}\ln\abs{w-\sigma}^2 2\pi \delta(z-\sigma) + \frac{5}{8} \frac{1}{(z-\sigma)(\bar{w}-\bar{\sigma})})\big) + \nonumber \\
+		    &\frac{1}{8} \bar{J}_1^\alpha \big(\frac{\ln \abs{w-\sigma}^2}{(z-\sigma)^2} + \frac{1}{(z-\sigma)(w-\sigma)}\big)\big] - \frac{2}{2\pi} f^b_{[ef] g} f_{[ab] cd} J_0^{[ef]} \frac{1}{2} \int \dd^2\sigma\big[J_0^{[ab]} \big(\frac{\eta^{ac} \eta^{gd}}{(z-\sigma)(\bar{w}-\bar{\sigma})} +\nonumber\\& \eta^{a d}\eta^{gc}2\pi \delta(z-\sigma)\ln\abs{w-\sigma}^2\big) + \bar{J}_0^{[ab]} \big(\frac{\eta^{ac} \eta^{gd}}{(z-\sigma)(w-\sigma)} + \frac{\eta^{ad}\eta^{gc}}{(z-\sigma)^2}\ln\abs{w-\sigma}^2\big)\big] \sim
+		  \nonumber \\& -\frac{\eta^{ab}}{z^2} - \frac{1}{z}f^{ab}_{[cd]}\big((N_0 + J_0)^{[cd]} - \frac{\bar{z}}{z} (\bar{N}_0 + \bar{J}_0)^{[cd]}\big)
+\end{align}
+}
+where we evaluated (this is essentially the regularization prescription in the appendix (\ref{fourDict}), but keeping everything in position space and again dropping the IR cutoff)
+\begin{align}
+&\int \frac{\dd^2 \sigma}{(z-\sigma)(\bar{w}-\bar{\sigma})} = -2\pi \ln \abs{z-w}^2 \\
+&\int \frac{\dd^2 \sigma}{(\sigma-w)^2 (\sigma-z)} = -2\pi \frac{\bar{z}-\bar{w}}{(z-w)^2} \\
+\label{eqthree}
+&\int \frac{\dd^2 \sigma}{(\sigma -z)(\sigma-w)} = -2\pi \frac{\bar{z}-\bar{w}}{z-w} \\
+& \int \dd^2\sigma \frac{\ln \abs{w-\sigma}^2}{(z-\sigma)^2} = -2\pi \frac{z-w}{\bar{z}-\bar{w}}
+\end{align}
+and only kept the singular terms.
+Note that we were careful in keeping the potential logarithmic contributions to the OPE involving two currents and they cancelled out. On that note, above we did not list some of the contributions to $J_2 \bar{J_2}, \bar{J}_1 J_3, J_1 \bar{J}_3, J_0 \bar{J}_0, \bar{N}_0 J_0$ and $N_0 \bar{J}_0$ since they are easily seen to contribute with (\ref{eqthree}), which is finite in the contact limit. Also note that the the above authors and \cite{Mazzucato:2009fv} do not include the $J_0, \bar{J}_0$ contributions to the OPE since these currents are being gauged away and are not present in the 1PI effective action.
+The review \cite{Mazzucato:2009fv} keeps track of the logarithmic contributions (as opposed to the original papers, which do not seem to write down any logarithmic contributions to the OPE) and states the results (dropping the overall $R^2$ factor on the left-hand side)
+\be
+\begin{aligned}
+	&J_2^a(z) J_2^b(0) \sim -\frac{\eta^{ab}}{z^2} - \frac{1}{z} f^{ab}_{[cd]}\big(N^{[cd]} - \frac{\bar{z}}{z} \bar{N}^{[cd]}\big), \\
+	&J_2^a(z) \bar{J}_2^b(0) \sim 2\pi \delta(z) \eta^{ab} - f^{ab}_{[cd]} \big(\frac{N^{[cd]}}{\bar{z}} + \frac{\bar{N}^{[cd]}}{z} + \frac{1}{2} \ln \abs{z}^2 (\partial \bar{N}^{[cd]} - \bar{\partial} N^{[cd]})\big), \\
+	&J_2^a(z) J_1^\alpha(0) \sim -\frac{f^{a\alpha}_{\h{\alpha}}}{z}\big(2J_3^{\h{\alpha}}+\frac{\bar{z}}{z} \bar{J}_3^{\h{\alpha}}\big), \\
+	&J_2^a(z) \bar{J}_1^\alpha(0) \sim -f^{a\alpha}_{\h{\alpha}} \big(\frac{J_3^{\h{\alpha}}}{\bar{z}} + \frac{1}{8} \ln \abs{z}^2 (\partial \bar{J}_3^{\h{\alpha}} + \bar{\partial} J_3^{\h{\alpha}})\big), \\
+	& J_2^a(z) J_3^{\h{\alpha}}(0) \sim -\frac{f_\alpha^{a\h{\alpha}}}{z} J_1^\alpha ,\\
+	& J_2^a(z) \bar{J}_3^{\h{\alpha}} \sim -f^{a \h{\alpha}}_\alpha \big(\frac{\bar{J}_1^\alpha}{z} + \frac{1}{4} \ln \abs{z}^2 (\bar{\partial} J_1^\alpha + \partial \bar{J}_1^\alpha)\big), \\
+	&J_1^\alpha(z) J_1^\beta(0) \sim -\frac{f^{\alpha \beta}_a}{z} \big(2 J_2^a + \frac{\bar{z}}{z} \bar{J}_2^a\big) ,\\
+	& J_1^\alpha(z) \bar{J}_1^\beta \sim -f^{\alpha \beta}_a \big(\frac{J_2^a}{\bar{z}} - \frac{1}{4} \ln \abs{z}^2 (\partial \bar{J}_2^a + \bar{\partial} J_2^a)\big), \\
+	& J_1^\alpha(z) J_3^{\h{\alpha}}(0) \sim \frac{\eta^{\alpha \h{\alpha}}}{z^2} - \frac{f^{\alpha \h{\alpha}}_{[cd]}}{z}\big(N^{[cd]} - \frac{\bar{z}}{z} \bar{N}^{[cd]}\big), \\
+	& J_1^\alpha(z) \bar{J}_3^{\h{\alpha}}(0) \sim -2\pi \delta(z) \eta^{\alpha \h{\alpha}} - f^{\alpha \h{\alpha}}_{[cd]}\big(\frac{N^{[cd]}}{\bar{z}} + \frac{\bar{N}^{[cd]}}{z} - \frac{1}{2} \ln \abs{z}^2 (\bar{\partial} N^{[cd]} - \partial \bar{N}^{[cd]})\big), \\
+	&\bar{J}_1^\alpha(z) J_3^{\h{\alpha}}(0) \sim -2\pi \delta(z) \eta^{\alpha \h{\alpha}} - f^{\alpha \h{\alpha}}_{[cd]} \big(\frac{N^{[cd]}}{\bar{z}} + \frac{\bar{N}^{[cd]}}{z} + \frac{1}{2} \ln \abs{z}^2 (\partial \bar{N}^{[cd]} - \bar{\partial} N^{[cd]})\big) ,\\
+	& J_3^{\h{\alpha}}(z) J_3^{\h{\beta}}(0)\sim f^{\h{\alpha}\h{\beta}}_a \frac{J_2^a}{z} ,\\
+	& J_3^{\h{\alpha}} (z)\bar{J}_3^{\h{\beta}}(0)\sim -f^{\h{\alpha}\h{\beta}}_a\big(\frac{\bar{J}_2^a}{z} + \frac{1}{4} \ln \abs{z}^2(\partial \bar{J}_2^a + \bar{\partial} J_2^a)\big)
+\end{aligned}
+\ee
+where bilinears of the Metsaev-Tseytlin currents were traded for their derivatives using the Maurer-Cartan identities (\ref{mau1})-(\ref{mau4}). The rest of the OPEs is obtained by parity. One sees that the algebra is nonchiral and mixes the matter and ghost currents. Note that the non-logarithmic coefficients in the above algebra have been bootstrapped in \cite{Benichou:2011ch} by imposing compatibility with reparametrization invariance of the action and compatibility with the Maurer-Cartan equations. It would be interesting to similarly bootstrap the quantum current algebra \cite{Bedoya:2010av}, see \cite{Benichou:2010rk} for an attempt at this in the context of general supergroup WZW models.
+
+\appendix
+
+\section{Some properties of the $\mathfrak{psu}(2,2|4)$ superalgebra}
+\label{algprop}
+In this appendix, we review some important properties of the $\mathfrak{psu}(2,2|4)$ superalgebra with a useful resource being the review \cite{Mazzucato:2011jt}.
+
+\subsection{Definition of the superalgebra}
+We begin with some generalities about the $U(n|n)$ supergroup. The elements  of its superalgebra $\mathfrak{gl}(n|n)$ can be represented as $m|m$ complex unitary supermatrices
+\be
+M= \begin{pmatrix}
+    A & X\\
+    Y & B
+  \end{pmatrix},
+\ee
+where for $M$ even, $A,B$ are bosonic matrices and $X, Y$ are fermionic matrices and for $M$ odd, $A,B$ are fermionic matrices and $X,Y$ are bosonic matrices. We then define the supertrace $\text{STr} M = \Tr A - (-1)^{\abs{M}} \Tr B$ with $\abs{M} = 0$ for $M$ even and $\abs{M} = 1$ for $M$ odd. The superalgebra $\mathfrak{gl}(n|n)$ is not simple since the supergroup decomposes as $U(m|m) = PSU(m|m) \cross U(1)_Y \cross U(1)_D$, where the generators $T_A$ of $PSU(m|m)$ are traceless and supertraceless at the same time, meaning we throw out the ideals formed by the hypercharge and diagonal generators
+\be
+Y = \begin{pmatrix}
+	I_m & 0 \\
+	0 & -I_m
+\end{pmatrix}, \,\,\,\,\, D = \begin{pmatrix}
+	I_m & 0 \\
+	0 & I_m
+\end{pmatrix}.
+\ee
+The above traceless condition on $\mathfrak{psu}(m|m)$ cannot be expressed in a superinvariant way (it involves the ordinary trace) and so the algebra does not have a simple supermatrix representation, but still can be realized as the coset indicated above. The superalgebra $\mathfrak{g} = \mathfrak{psu}(2n|2n)$ has an automorphism generated by
+\be
+\Omega(M) = \begin{pmatrix}
+	J A^T J & -J Y^T J \\
+	J X^T J & J B^T J
+	\end{pmatrix}, \,\,\,\,\, J = \begin{pmatrix}
+	0 & -I_n \\
+	I_n & 0
+\end{pmatrix},
+\ee
+from which we see that $\Omega^4 = 1$.
+The automorphism $\Omega$ thus induces a $\mathbb{Z}_4$ grading
+\be
+\mathfrak{g} = \mathfrak{g}^{(0)} \oplus \mathfrak{g}^{(1)} \oplus \mathfrak{g}^{(2)} \oplus \mathfrak{g}^{(3)},
+\ee
+defined by $\Omega(\mathfrak{g}^{(k)}) = i^k \mathfrak{g}^{(k)}$ such that $\comm{\mathfrak{g}^{(j)}}{\mathfrak{g}^{(k)}} \subset \mathfrak{g}^{(j+k)} \mod 4 $. The invariant locus $\mathfrak{g}^{(0)}$ is easily seen to correspond to the bosonic subalgebra $\mathfrak{usp}(2n) \oplus \mathfrak{usp}(2n)$ i.e. the subalgebra of two independent rotations, which motivates us to introduce the following notation for the generators in each of these subspaces
+\begin{align}
+	&\mathfrak{g}^{(0)} = \text{span}(T_{ab}) \\
+	&\mathfrak{g}^{(1)} = \text{span}(T_\alpha) \\
+	&\mathfrak{g}^{(2)} = \text{span}(T_a) \\
+	&\mathfrak{g}^{(3)} = \text{span}(T_{\h{\alpha}}).
+\end{align}
+
+
+In our case the relevant supergroup will be $PSU(2,2|4)$ since at the bosonic level
+\be
+AdS_5 \cross S^5 = \frac{SO(4,2) \cross SO(6)}{SO(4,1) \cross SO(5)} \subset \frac{PSU(2,2|4)}{SO(4,1)\cross SO(5)},
+\ee
+which has mixed signature. This mixed signature means that the bosonic generators will further split into two groups i.e. those along $AdS_5$ and those along $S^5$. We thus need to be careful to write $g^{(0)} = \text{span}(T_{ab}, T_{a'b'})$, where $T_{ab}$ rotates the $AdS_5$ and $T_{a'b'}$ rotates the $S^5$ and similarly $g^{(2)} = \text{span}(T_a, T_{a'})$ (we sometimes won't distinguish them in the cases where it does not matter to save space, but include the explicit signs where they matter).  In this case, the indices run as follows: $[ab] = 1, \ldots 10; [a'b'] = 1, \ldots 10; a = 0, \ldots 4; a' = 5, \ldots, 9; \alpha, \h{\alpha} = 1,\ldots 16$ i.e. there are 30 bosonic generators and 32 fermionic generators. In the text, these sometimes go under $T_a \to P_a, T_\alpha \to Q_\alpha, T_{\h{\alpha}} \to \bar{Q}_{\h{\alpha}}$. We see that the $PSU(2,2|4)$ is gauged by $SO(4,1) \cross SO(5)$, and since the relevant $\mathbb{Z}_4$-invariant locus has an $\mathfrak{usp}(4) \simeq \mathfrak{so}(5)$ part, it is the $\mathbb{Z}_4$-invariant locus itself that is being gauged away here i.e. the rotations are made local.
+
+
+With the above notation commutation relations have the form
+\be
+\begin{aligned}
+&	\acomm{T_\alpha}{T_\beta} = \gamma^a_{\alpha \beta} \,T_a, \,\,\, \acomm{T_{\hat{\alpha}}}{T_{\h{\beta}}} = \gamma^a_{\h{\alpha} \h{\beta}} \,T_a \\
+& \acomm{T_\alpha}{T_{\h{\alpha}}} = \frac{1}{2} (\gamma^{ab} \eta)_{\alpha \h{\alpha}} \,T_{ab}, \,\,\, \acomm{T_\alpha}{T_{\h{\alpha}}}= -\frac{1}{2} (\gamma^{a'b'} \eta)_{\alpha \h{\alpha}} \, T_{a'b'} \\
+& \comm{T_\alpha}{T_a} = -(\gamma_a \eta)_\alpha^{\h{\beta}}\, T_{\h{\beta}}, \,\,\, \comm{T_{\h{\alpha}}}{T_a} = (\gamma_a \eta)_{\h{\alpha}}^{\beta}\, T_{\beta} \\
+&\comm{T_a}{T_b} = T_{ab},\,\,\, \comm{T_{a'}}{T_{b'}} = -T_{a'b'} \\
+& \comm{T_{ab}}{T_{cd}} = \frac{1}{2}(\eta_{ac} T_{bd} - \eta_{ad} T_{bc} + \eta_{bd} T_{ac} - \eta_{bc} T_{ad}) \\
+& \comm{T_{ab}}{T_c} = \eta_{ca} T_b - \eta_{cb} T_a \\
+& \comm{T_{ab}}{T_\alpha} = \frac{1}{2}(\gamma_{ab})_\alpha^\beta T_\beta, \,\,\, \comm{T_{ab}}{T_{\h{\alpha}}}= \frac{1}{2}(\gamma_{ab})_{\h{\alpha}}^{\h{\beta}} T_{\h{\beta}}
+\label{commut}
+\end{aligned}
+\ee
+which can be translated into the structure constants
+\be
+\begin{aligned}
+	&f_{\alpha \beta}^a = \gamma^a_{\alpha \beta}, \,\,\, f^a_{\hat{\alpha}\hat{\beta}} = \gamma^a_{\h{\alpha}\h{\beta}}, \\
+	& f^{[ab]}_{\alpha \h{\beta}} = \frac{1}{2}(\gamma^{ab})_{\alpha}^\gamma \eta_{\gamma \h{\beta}}, \,\,\, f^{[a' b']}_{\alpha \h{\beta}} = - \frac{1}{2}(\gamma^{a' b'})_{\alpha}^\gamma \eta_{\gamma \h{\beta}}, \\
+	& f_{\alpha a}^{\h{\beta}} = - (\gamma_a)_{\alpha \beta} \eta^{\beta \h{\beta}} = \gamma_a^{\h{\alpha} \h{\beta}} \eta_{\alpha \h{\alpha}}, \,\,\, f^\beta_{\h{\alpha} a} = (\gamma_a)_{\h{\alpha}\h{\beta}} \eta^{\beta \h{\beta}} = -\gamma_a^{\alpha \beta} \eta_{\alpha \h{\alpha}} \\
+	& f^{[ab]}_{cd} = \delta^{[a}_c \delta^{b]}_d, \,\,\, f^{[a'b']}_{c'd'} = -\delta^{[a'}_{c'}\delta^{b']}_{d'}, \\
+	& f^{[ab]}_{[cd][ef]} = \frac{1}{2}(\eta_{ce} \delta^{[a}_d \delta^{b]}_f - \eta_{cf} \delta^{[a}_d \delta^{b]}_e + \eta_{df} \delta^{[a}_c \delta^{b]}_e - \eta_{de} \delta^{[a}_c \delta^{b]}_f), \\
+	& f^d_{[ab] c} = 2\eta_{c [a} \delta_{b]}^d, \,\,\, f^\beta_{[ab]\alpha} = \frac{1}{2} (\gamma_{ab})_\alpha^\beta, \,\,\, f_{{[ab]}\h{\alpha}}^{\h{\beta}} = \frac{1}{2} (\gamma_{ab})_{\h{\alpha}}^{\h{\beta}}.
+	\label{struct}
+\end{aligned}
+\ee
+
+\subsection{Curvature of the associated supergroup}
+\label{curvSec}
+We define the supermetric $\text{STr} \,T_A T_B = \eta_{AB}$ with the supertrace in the fundamental, which explicitly reads
+\be
+\begin{aligned}
+	&\text{STr} \,T_a T_b = \eta_{ab}, \\
+	&\text{STr} \,T_{ab} T_{cd} = \frac{1}{2}(\eta_{ac} \eta_{bd} - \eta_{ad} \eta_{bc}), \,\,\, \text{STr} \,T_{a'b'} T_{c'd'} = -\frac{1}{2}(\delta_{a'c'} \delta_{b'd'} - \delta_{a'd'} \delta_{b'c'}), \\
+	&\text{STr} \,T_\alpha T_{\h{\alpha}} = \eta_{\alpha \h{\alpha}} = (\gamma_{01234})_{\alpha \h{\alpha}}.
+\end{aligned}
+\ee
+It is with respect to this metric that the structure constants $f_{ABC} = \eta_{AD} f^D_{BC}$ are totally antisymmetric. The Killing form $K_{MN}$ on the other hand is defined as the supertrace in the adjoint representation so that we have the explicit formula in terms of the structure constants (the generators now act by their ad-action inside the supertrace)
+\be
+K_{MN} = (-1)^{\abs{T_P}} f^S_{PM} f^P_{SN}.
+\ee
+The Killing form is proportional to the supermetric up to the second casimir of the supergroup $C_2(G)$
+\be
+K_{MN} = -C_2(G) \eta_{MN}
+\ee
+and by defining the super-Ricci tensor of the supergroup via
+\be
+R_{MN}(G) = -\frac{1}{4} (-1)^{\abs{T_Q}} f^P_{MQ} f^Q_{NP},
+\ee
+we get
+\be
+R_{MN}(G) = \frac{1}{4} C_2(G) \,\eta_{MN}.
+\ee
+We refer to \cite{Berkovits:1999zq} for the motivation of this definition of the super-Ricci tensor. One might be motivated a posteriori since the super-Ricci tensor plays the role of the usual Ricci tensor of bosonic sigma models when computing say the one-loop $\beta$-function.
+
+We now wish to show that the $PSU(2,2|4)$ supergroup is super-Ricci flat i.e. we want to show that $C_2(PSU(2,2|4)) = 0$. The bosonic analogue of this is not possible for a simple $G$ (the Killing form is degenerate only on ideals by using ad-invariance of the Killing form), making supergroup sigma models quite special. There are general vanishing results \cite{Babichenko:2006uc}, but to convince ourselves, we do the explicit calculation:
+{\allowdisplaybreaks
+\begin{align}
+	K_{\alpha \hat{\alpha}} &= (-1)^{\abs{T_P}} f^S_{P \alpha} f^P_{S \h{\alpha}} = -f^a_{\beta \alpha} f^{\beta}_{a \h{\alpha}} + f^{\h{\beta}}_{a\alpha} f_{\h{\beta}\h{\alpha}}^a- f^{[ab]}_{\h{\beta} \alpha} f^{\h{\beta}}_{[ab]\h{\alpha}} + f^{\beta}_{[ab]\alpha}f_{\beta\h{\alpha}}^{[ab]} + [ab] \leftrightarrow [a'b'] \nonumber\\
+				&= \gamma^a_{\beta \alpha} \gamma_a^{\alpha \beta} \eta_{\alpha \h{\alpha}} - \gamma^{\h{\alpha}\h{\beta}}_a  \gamma^a_{\h{\beta}\h{\alpha}} \eta_{\alpha \h{\alpha}}- \frac{1}{4} (\gamma^{ab})^\gamma_{\alpha} (\gamma_{ab})^{\h{\beta}}_{\h{\alpha}} \eta_{\gamma \h{\beta}} + \frac{1}{4} (\gamma_{ab})_\alpha^\beta (\gamma^{ab})^\gamma_\beta \eta_{\gamma \h{\alpha}} + [ab] \leftrightarrow [a'b'] = 0 \nonumber \\
+	K_{\alpha \beta} &= (-1)^{\abs{T_P}} f^S_{P \alpha} f^P_{S \beta} = 0 \nonumber \\
+	K_{a \alpha} &= (-1)^{\abs{T_P}} f^S_{P a} f^P_{S \alpha} = 0 \nonumber \\
+	K_{[ab] \alpha} &= (-1)^{\abs{T_P}} f^S_{P [ab]} f^P_{S \alpha} = 0  \nonumber \\
+	K_{ab} &= (-1)^{\abs{T_P}} f^S_{P a} f^P_{S b} = -f^\beta_{\h{\beta} a} f^{\h{\beta}}_{\beta b} - f^{\h{\beta}}_{\beta a} f^\beta_{\h{\beta} b} + 2\cdot f^{[ce]}_{d a} f^{d}_{[ce] b} + 2\cdot f_{[ce] a}^d f^{[ce]}_{d b}  \nonumber \\
+	       &= \gamma_a^{\alpha \beta} \eta_{\alpha \h{\beta}} \gamma_b^{\h{\delta}\h{\beta}} \eta_{\beta \h{\delta}} +  \gamma_a^{\h{\alpha} \h{\beta}}\eta_{\beta \h{\alpha}} \gamma_b^{\delta \beta}\eta_{\delta \h{\beta}} - 2\cdot 2\delta^{[c}_d \delta^{e]}_a (\eta_{bc}\delta^d_e - \eta_{b e}\delta^d_c) - 2\cdot 2\delta^{[c}_d \delta^{e]}_b (\eta_{ac}\delta^d_e - \eta_{a e}\delta^d_c) \nonumber \\
+	       &= (32 + 2\cdot 4(1-5))\eta_{ab} = 0 \nonumber \\
+	K_{[ab][cd]} &= (-1)^{\abs{T_P}} f^S_{P [ab]} f^P_{S [cd]} = - f^\alpha_{\beta [ab]} f^{\beta}_{\alpha [cd]} - f^{\h{\alpha}}_{\h{\beta} [ab]} f^{\h{\beta}}_{\h{\alpha} [cd]} +2\cdot f_{[ef][ab]}^{[gh]} f^{[ef]}_{[gh][cd]} + 2\cdot f^e_{f[ab]} f^{f}_{e[cd]} \nonumber \\
+		     &= -\frac{1}{4} (\gamma_{ab})_\beta^\alpha (\gamma_{cd})_\alpha^\beta - \frac{1}{4}(\gamma_{ab})_{\h{\beta}}^{\h{\alpha}} (\gamma_{cd})_{\h{\alpha}}^{\h{\beta}} + \nonumber \\
+		     &\hspace{0.5cm}+2\cdot\frac{1}{4}(\eta_{e a}\delta^{[g}_f \delta^{h]}_b - \eta_{e b}\delta^{[g}_f \delta^{h]}_a + \eta_{e f}\delta^{[g}_a \delta^{h]}_b  - \eta_{e b}\delta^{[g}_a \delta^{h]}_f)(\eta_{gc} \delta^{[e}_h \delta^{f]}_d - \eta_{gd} \delta^{[e}_h \delta^{f]}_c + \eta_{hc} \delta^{[e}_g \delta^{f]}_d - \eta_{hd} \delta^{[e}_g \delta^{f]}_c)  \nonumber \\
+		     &\hspace{0.5cm}+ 2\cdot 4\eta_{f[a}\delta^e_{b]} \eta_{e[c}\delta^f_{d]}\nonumber \\
+		     &\hspace{0.5cm} = \big(-\frac{32}{4} + 2\cdot \frac{8}{4} + 2\cdot 2\big)\eta_{[ab][cd]} = 0 \nonumber \\
+	K_{[ab] c} &= (-1)^{\abs{T_P}} f^S_{P [ab]} f^P_{S c} = 0.
+\end{align}
+}
+Note that in writing this, we have used the identity \cite{Berkovits:1999zq}
+\be
+f^M_{AQ}f^Q_{BE} (-1)^{\abs{M}} = f^E_{AD} f^D_{BE} (-1)^{\abs{E}} + 2 f^I_{AD}f^D_{BI}(-1)^{\abs{I}},
+\ee
+which decomposes the sum over intermediate channels of $G$ (indices $M, Q$) into a sum over channels in the coset $G/H$ (indices $E, D$) and the subgroup $H$ (index $I$).
+
+
+\subsection{Maurer-Cartan identities}
+Now, we explicitly write out the Maurer-Cartan identities $\dd J + J \wedge J = 0$ for $J = g^{-1} d g$ with $g$ a supercoset element. We write this in worldsheet components
+\be
+\begin{aligned}
+\partial_{[i} J_{j]} = \partial_{[i} (g^{-1} \partial_{j]} g) = \partial_{[i} g^{-1} \partial_{j]} g = -(g^{-1} \partial_{[i} g)(g^{-1} \partial_{j]} g) = -\comm{g^{-1} \partial_i g}{g^{-1} \partial_j g} = -\comm{J_i}{J_j},
+\end{aligned}
+\ee
+from which we get (note that here $J$ means even its $[ab]$ components, giving a covariant derivative)
+\begin{align}
+&\nabla \bar{J}^A - \bar{\nabla} J^A = J^B \bar{J}^C T\indices{_{CB}^A} \\
+&\nabla \bar{J}^{ab} - \bar{\nabla} J^{ab} = -J^B \bar{J}^A R\indices{_{BA}^{ab}}.
+\end{align}
+Using the structure constants (\ref{struct}), we can write this out more explicitly
+\begin{align}
+	\label{mau1}
+	&\nabla \bar{J}^\alpha - \bar{\nabla} J^\alpha = (J^a \bar{J}^{\hat{\beta}} - J^{\hat{\beta}} \bar{J}^a) T\indices{_{a \hat{\beta}}^\alpha} = - \gamma^{\alpha \beta}_a \eta_{\beta \hat{\beta}} (J^{\hat{\beta}} \bar{J}^a-J^a \bar{J}^{\hat{\beta}}) \\
+	\label{mau2}
+	&\nabla \bar{J}^{\hat{\alpha}} - \bar{\nabla} J^{\hat{\alpha}} = (J^a \bar{J}^{\beta} - J^{\beta} \bar{J}^a) T\indices{_{a \beta}^{\hat{\alpha}}} = \gamma_a^{\hat{\alpha}\hat{\beta}} \eta_{\beta \hat{\beta}} (J^\beta \bar{J}^a - \bar{J}^\beta J^a) \\
+	\label{mau3}
+	& \nabla \bar{J}^a - \bar{\nabla} J^a = J^\alpha \bar{J}^{\beta} T\indices{_{\alpha \beta}^a} + J^{\hat{\alpha}} \bar{J}^{\hat{\beta}} T\indices{_{\hat{\alpha} \hat{\beta}}^a} = \gamma^a_{\alpha \beta} J^\alpha \bar{J}^{\beta} + \gamma^a_{\hat{\alpha}\hat{\beta}} J^{\hat{\alpha}} \bar{J}^{\hat{\beta}} \\
+	\label{mau4}
+	& \nabla \bar{J}^{ab} - \bar{\nabla} J^{ab} = -(J^\alpha \bar{J}^{\hat{\alpha}} - J^{\hat{\alpha}} \bar{J}^\alpha) R\indices{_{\alpha \hat{\alpha}}^{ab}} - J^c \bar{J}^d R\indices{_{cd}^{ab}} = -\frac{1}{2} (\gamma^{ab})_{\alpha}^\gamma \eta_{\gamma \hat{\alpha}} (J^\alpha \bar{J}^{\hat{\alpha}} - J^{\hat{\alpha}} \bar{J}^\alpha) - \delta_c^{[a} \delta_d^{b]} J^c \bar{J}^d.
+\end{align}
+
+\section{Fourier transform between position and momentum space: a dictionary}
+\label{fourDict}
+In this appendix, we summarize the dictionary of \cite{deWit:1993qv, deBoer:1996kt, Mazzucato:2009fv} between position and momentum space after dimensional regularization in two dimensions:
+\be
+\begin{aligned}
+	\frac{1}{(z-w)^2} &\leftrightarrow -\frac{p}{\bar{p}}, \\
+	\frac{1}{(\bar{z}-\bar{w})^2} &\leftrightarrow -\frac{\bar{p}}{p}, \\
+\frac{\ln\abs{z-w}^2}{(z-w)^2} &\leftrightarrow -\frac{\bar{p}}{p}\biggr(1+2\ln (\frac{\abs{p}^2}{\mu^2})\biggr), \\
+\frac{\ln\abs{z-w}^2}{(\bar{z}-\bar{w})^2} &\leftrightarrow -\frac{p}{\bar{p}}\biggr(1+2\ln (\frac{\abs{p}^2}{\mu^2})\biggr), \\
+\frac{1}{\abs{z-w}^2} &\leftrightarrow 1 + \frac{1}{\epsilon} - 2\ln\big(\frac{\abs{p}^2}{\mu^2}\big), \\
+-\ln\abs{z-w}^2 \delta(z-w) &\leftrightarrow 1 + \frac{1}{\epsilon}, \\
+-\ln(0) &\leftrightarrow \frac{1}{\epsilon},
+\end{aligned}
+\ee
+where $\epsilon$ is a UV cutoff given by continuing to $d = 2 - 2\epsilon$ dimensions and $\mu$ is an IR cutoff.
+\clearpage
+\printbibliography
+\end{document}
+\bye

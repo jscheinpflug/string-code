@@ -1,0 +1,77 @@
+:PROPERTIES:
+:ID:       20260606T150001.000000
+:END:
+#+title: Tensor Kernel
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/kernel.zig :mkdirp yes
+
+Tensor-code supplies compact handles for tensor structures that appear in CFT
+coefficients.  The expensive work is generation and selection of invariant
+tensors, so those procedures should stream candidates rather than building a
+large expression tree inside the kernel.
+
+#+begin_src zig
+const symmetry = @import("symmetry.zig");
+#+end_src
+
+#+interface:
+
+The basic ids are deliberately small.  They name entries in stores owned by a
+preset, a tensor generator, or a client.
+
+#+begin_src zig
+/// TensorExprId names a tensor expression stored by tensor-code.
+pub const TensorExprId = u32;
+/// TensorTermId names one term inside a tensor expression store.
+pub const TensorTermId = u32;
+/// InvariantFamilyId names a family of invariant tensor candidates.
+pub const InvariantFamilyId = u16;
+/// AlgebraSchemaId names a Lie or superalgebra schema.
+pub const AlgebraSchemaId = u16;
+/// GradingId names a grading attached to a tensor algebra schema.
+pub const GradingId = u16;
+#+end_src
+
+Invariant generation should be pull-based.  A caller can feed the source to an
+independent-basis selector without materializing every candidate first.
+
+#+begin_src zig
+/// TensorExprSource streams tensor expression ids from a generator.
+pub const TensorExprSource = struct {
+    next_fn: *const fn (*anyopaque) ?TensorExprId,
+    state: *anyopaque,
+
+    /// next returns the next generated tensor expression id.
+    pub fn next(self: *TensorExprSource) ?TensorExprId {
+        return self.next_fn(self.state);
+    }
+};
+#+end_src
+
+An invariant family says which algebra and external representations define the
+candidate space.  The actual candidates are produced by a generator.
+
+#+begin_src zig
+/// InvariantFamily declares the tensor-invariant problem to generate.
+pub const InvariantFamily = struct {
+    name: []const u8,
+    algebra: AlgebraSchemaId,
+    external_representations: []const symmetry.RepresentationId,
+};
+#+end_src
+
+The algebra schema stores only compact references to core tensors such as the
+metric and structure constants.  This is enough for CFT coefficient code to
+refer to \(SO(10)\), \(SO(32)\), \(E_8\), or superalgebra data without owning
+their full simplifier.
+
+#+begin_src zig
+/// AlgebraSchema records the compact tensor data of a symmetry algebra.
+pub const AlgebraSchema = struct {
+    name: []const u8,
+    symmetry: symmetry.SymmetryId,
+    grading: ?GradingId = null,
+    metric: ?TensorExprId = null,
+    structure_constants: ?TensorExprId = null,
+};
+#+end_src

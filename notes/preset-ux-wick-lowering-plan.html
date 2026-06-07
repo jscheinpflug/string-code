@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 17:33 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Preset UX And Wick Lowering Improvement Plan</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Preset UX And Wick Lowering Improvement Plan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org6e44b12">1. Goal</a></li>
+<li><a href="#org41c1103">2. Current Deficiencies</a></li>
+<li><a href="#org11fb75d">3. UX Boundary</a></li>
+<li><a href="#orga53e714">4. Opaque Physics Values</a></li>
+<li><a href="#org067274b">5. Local Builder And Label Store</a></li>
+<li><a href="#org36907e1">6. Operator Builders</a></li>
+<li><a href="#org06ef290">7. User-Side Wick Definitions</a></li>
+<li><a href="#org094db8a">8. Wick Rule Encoding</a></li>
+<li><a href="#org7715180">9. Zero-Mode Rules</a></li>
+<li><a href="#orgd293fa2">10. Correlator Config</a></li>
+<li><a href="#org5a63034">11. Product And Boundary Composition</a></li>
+<li><a href="#org8b00d69">12. Implementation Order</a></li>
+<li><a href="#orge6addb2">13. Tests Worth Keeping</a></li>
+<li><a href="#org3f1f906">14. What Not To Do</a></li>
+<li><a href="#org0a1b1aa">15. AGENTS Audit</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org6e44b12" class="outline-2">
+<h2 id="org6e44b12"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note joins the deficiencies of the current <a href="../org/cft-code/presets/presets.html">Presets</a> skeleton into one
+coherent improvement plan.  The current code gives us a checked public shape,
+but it is not yet the right user experience and it does not encode real Wick
+rules.
+</p>
+
+<p>
+The target is:
+</p>
+
+<ul class="org-ul">
+<li>users write physics objects, not ids;</li>
+<li>operator builders preserve labels;</li>
+<li>presets lower to <a href="../org/cft-code/theory/theory.html">Theory</a> data;</li>
+<li><a href="../org/cft-code/correlators/wick.html">Wick</a> rules and zero-mode rules are compact generated tables;</li>
+<li><a href="../org/cft-code/correlators/correlators.html">Correlators</a> still receive only local operators, a compiled config, and a
+sink.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org41c1103" class="outline-2">
+<h2 id="org41c1103"><span class="section-number-2">2.</span> Current Deficiencies</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The present implementation has six important gaps.
+</p>
+
+<ol class="org-ol">
+<li><code>Handle.Index</code>, <code>Handle.Momentum</code>, <code>Handle.Profile</code>, and related values are
+naked integer aliases.  That leaks storage details into the physics API.</li>
+<li>Operator builders discard the labels they receive.  <code>expX(k,z,zb)</code> and
+<code>expX(k2,z,zb)</code> currently produce the same body id.</li>
+<li><code>config.sphere</code> and <code>config.disk</code> contain placeholder Wick and zero-mode ids.</li>
+<li>All preset <code>correlator</code> functions return <code>error.NotImplemented</code>.</li>
+<li><code>product</code> and <code>boundary</code> expose hard-coded wrapper builders for the current
+milestone rather than selecting namespaces from supplied factors.</li>
+<li>Boundary extensions are accepted as data, but the generated boundary builder
+does not yet enforce which extensions are present.</li>
+</ol>
+
+<p>
+The core mistake is not that ids exist.  The mistake is that the user-facing
+surface suggests users might type those ids by hand.  Ids should be assigned by
+generated stores and used only by lowering/runtime code.
+</p>
+</div>
+</div>
+<div id="outline-container-org11fb75d" class="outline-2">
+<h2 id="org11fb75d"><span class="section-number-2">3.</span> UX Boundary</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+There should be three layers.
+</p>
+
+<ol class="org-ol">
+<li>The user-facing physics layer has typed values such as <code>Index</code>, <code>Momentum</code>,
+<code>Profile</code>, <code>TargetPoint</code>, and <code>BoundaryStack</code>.  These are opaque structs, not
+aliases.</li>
+<li>The generated builder layer interns those values into a compact label store
+and builds local operators.</li>
+<li>The lowered runtime layer sees only small ids, label spans, Wick-rule tables,
+zero-mode tables, and coefficient streams.</li>
+</ol>
+
+<p>
+The user should write code like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">X</span> = cft.presets.freeBoson(.{ .dimension = 10, .alpha_prime = .one });
+
+<span style="color: #fb4934;">var</span> <span style="color: #83a598;">local</span> = X.local(allocator);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">mu</span> = <span style="color: #fb4934;">try</span> local.index(<span style="color: #b8bb26;">"mu"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">k</span> = <span style="color: #fb4934;">try</span> local.momentum(<span style="color: #b8bb26;">"k"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">z</span> = <span style="color: #fb4934;">try</span> local.coord(<span style="color: #b8bb26;">"z"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">zb</span> = <span style="color: #fb4934;">try</span> local.coord(<span style="color: #b8bb26;">"zb"</span>);
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ops</span> = <span style="color: #fb4934;">try</span> local.ops(.{
+    local.op.dX(mu, 0, z),
+    local.op.expX(k, z, zb),
+});
+
+<span style="color: #fb4934;">try</span> X.correlator(X.config.sphere, ops, sink);
+</code></pre>
+</div>
+
+<p>
+This does not introduce a correlator context.  <code>local</code> is a short-lived builder
+and label arena for the operator collection.  The correlator still receives a
+config, a collection of local operators, and a sink.
+</p>
+</div>
+</div>
+<div id="outline-container-orga53e714" class="outline-2">
+<h2 id="orga53e714"><span class="section-number-2">4.</span> Opaque Physics Values</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The public aliases in <code>Handle</code> should be replaced by generated typed tokens.
+The internal integer remains, but ordinary user code never needs to type it or
+read it.  In Zig this can be represented as a non-exhaustive integer-backed
+enum, with private generated helpers for extraction.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Index</span> = <span style="color: #fb4934;">enum</span>(<span style="color: #fabd2f;">u32</span>) { _ };
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Momentum</span> = <span style="color: #fb4934;">enum</span>(<span style="color: #fabd2f;">u32</span>) { _ };
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Profile</span> = <span style="color: #fb4934;">enum</span>(<span style="color: #fabd2f;">u32</span>) { _ };
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">TargetPoint</span> = <span style="color: #fb4934;">enum</span>(<span style="color: #fabd2f;">u32</span>) { _ };
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">BoundaryStack</span> = <span style="color: #fb4934;">enum</span>(<span style="color: #fabd2f;">u32</span>) { _ };
+</code></pre>
+</div>
+
+<p>
+These tokens are cheap to copy and easy for the optimizer.  They also prevent
+passing a momentum where an index is required.
+</p>
+
+<p>
+For boundary data, the user-facing shape should be similarly physical:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">brane</span> = cft.presets.freeBosonBoundary(.{
+    .neumann = X.target.subspace(.{ 0, 1, 2, 3 }),
+    .dirichlet = X.target.complement(.{ 0, 1, 2, 3 }),
+    .dirichlet_position = <span style="color: #fb4934;">try</span> local.point(<span style="color: #b8bb26;">"x0"</span>),
+    .chan_paton = cp.stack(<span style="color: #b8bb26;">"N"</span>),
+});
+</code></pre>
+</div>
+
+<p>
+The projectors and Chan-Paton tensors may lower to <a href="../org/tensor-code/tensor-code.html">Tensor-Code</a> handles, but
+the user should not manually provide those handles in ordinary code.
+</p>
+</div>
+</div>
+<div id="outline-container-org067274b" class="outline-2">
+<h2 id="org067274b"><span class="section-number-2">5.</span> Local Builder And Label Store</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The generated <code>local</code> builder owns a compact label arena.  Operator builders
+write label records to that arena and return local operators that point to
+label spans.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">LocalOp</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">insertion</span>: <span style="color: #fabd2f;">OperatorInsertion</span>,
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">labels</span>: <span style="color: #fabd2f;">LabelSpan</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">MultiOp</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">operators</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LocalOp</span>,
+    <span style="color: #83a598;">labels</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LabelStore</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This keeps the runtime call narrow while preserving labels.  A <code>MultiOp</code> is
+still just a collection of local operators; it carries the label store because
+the collection is not meaningful without the labels.
+</p>
+
+<p>
+The builder should append small fixed-width label records.  It should not
+allocate expression trees.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">LabelValue</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">integer</span>: <span style="color: #fabd2f;">i64</span>,
+    <span style="color: #83a598;">rational</span>: <span style="color: #fabd2f;">Rational</span>,
+    <span style="color: #83a598;">tensor</span>: <span style="color: #fabd2f;">tensor.kernel.TensorExprId</span>,
+    <span style="color: #83a598;">symbol</span>: <span style="color: #fabd2f;">SymbolId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For common labels such as vector indices, derivative labels, momenta, and
+profile ids, the records are tiny.  Larger physics objects remain behind
+handles owned by the preset, tensor-code, or the client.
+</p>
+</div>
+</div>
+<div id="outline-container-org36907e1" class="outline-2">
+<h2 id="org36907e1"><span class="section-number-2">6.</span> Operator Builders</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Operator builders should stop returning a kind-only body.  They should emit a
+local operator with the appropriate label span.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">expX</span>(<span style="color: #83a598;">self</span>: *<span style="color: #fabd2f;">Local</span>, <span style="color: #83a598;">k</span>: <span style="color: #fabd2f;">Momentum</span>, <span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Coord</span>, <span style="color: #83a598;">zbar</span>: <span style="color: #fabd2f;">Coord</span>) !LocalOp {
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">labels</span> = <span style="color: #fb4934;">try</span> self.labels.append(.{ .momentum = raw(k) });
+    <span style="color: #fb4934;">return</span> self.op(.exp_x, .bulk(z, zbar), labels);
+}
+</code></pre>
+</div>
+
+<p>
+The same pattern covers <code>dX(mu,n,z)</code>, <code>profile(f,z,zb)</code>,
+<code>dXBoundary(mu,n,y)</code>, and <code>cBoundary(n,y)</code>.  The generated builder knows the
+schema; the user only sees the typed arguments.
+</p>
+</div>
+</div>
+<div id="outline-container-org06ef290" class="outline-2">
+<h2 id="org06ef290"><span class="section-number-2">7.</span> User-Side Wick Definitions</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+The preset author should define primitive Wick rules in physics names.  They
+should not write operator-kind ids, coordinate-factor ids, or coefficient-store
+records by hand.  The built-in presets should contain definitions of this
+form:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">wick</span> = cft.presets.wick;
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">free_boson_sphere_wick_rules</span> = [_]wick.Rule{
+    wick.rule(wick.dX(), wick.dX(), .{ .generated = .free_boson_dx_dx }),
+    wick.rule(wick.dXt(), wick.dXt(), .{ .generated = .free_boson_dxt_dxt }),
+    wick.rule(wick.dX(), wick.expX(), .{ .generated = .free_boson_dx_exp_x }),
+    wick.rule(wick.dXt(), wick.expX(), .{ .generated = .free_boson_dxt_exp_x }),
+    wick.rule(wick.expX(), wick.expX(), .{ .generated = .free_boson_exp_x_exp_x }),
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_sphere_wick_rules</span> = [_]wick.Rule{
+    wick.rule(wick.b(), wick.c(), .{ .generated = .bc_b_c }),
+    wick.rule(wick.bt(), wick.ct(), .{ .generated = .bc_bt_ct }),
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">free_boson_disk_wick_rules</span> = [_]wick.Rule{
+    wick.rule(wick.dXBoundary(), wick.dXBoundary(), .{ .generated = .boundary_free_boson_dx_dx }),
+    wick.rule(wick.dXBoundary(), wick.expXBoundary(), .{ .generated = .boundary_free_boson_dx_exp_x }),
+    wick.rule(wick.expXBoundary(), wick.expXBoundary(), .{ .generated = .boundary_free_boson_exp_x_exp_x }),
+    wick.rule(wick.dX(), wick.dXBoundary(), .{ .generated = .mixed_free_boson_dx_dx_boundary }),
+    wick.rule(wick.dXt(), wick.dXBoundary(), .{ .generated = .mixed_free_boson_dxt_dx_boundary }),
+    wick.rule(wick.dX(), wick.expXBoundary(), .{ .generated = .mixed_free_boson_dx_exp_x_boundary }),
+    wick.rule(wick.dXt(), wick.expXBoundary(), .{ .generated = .mixed_free_boson_dxt_exp_x_boundary }),
+    wick.rule(wick.expX(), wick.expXBoundary(), .{ .generated = .mixed_free_boson_exp_x_exp_x_boundary }),
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc_disk_wick_rules</span> = [_]wick.Rule{
+    wick.rule(wick.bBoundary(), wick.cBoundary(), .{ .generated = .boundary_bc_b_c }),
+    wick.rule(wick.b(), wick.cBoundary(), .{ .generated = .mixed_bc_b_c_boundary }),
+    wick.rule(wick.c(), wick.bBoundary(), .{ .generated = .mixed_bc_c_b_boundary }),
+    wick.rule(wick.bt(), wick.cBoundary(), .{ .generated = .mixed_bc_bt_c_boundary }),
+    wick.rule(wick.ct(), wick.bBoundary(), .{ .generated = .mixed_bc_ct_b_boundary }),
+};
+</code></pre>
+</div>
+
+<p>
+The generated evaluator tags are still physics-facing.  The lowering step maps
+these templates to compact <a href="../org/cft-code/theory/theory.html">Theory</a> rule sets.  At runtime the evaluator reads
+the two local operators, their labels from the <code>MultiOp</code> label store, the
+selected convention data, and the relevant coordinate slots.  This keeps the
+user-side definition readable while keeping the hot path table-driven.
+</p>
+</div>
+</div>
+<div id="outline-container-org094db8a" class="outline-2">
+<h2 id="org094db8a"><span class="section-number-2">8.</span> Wick Rule Encoding</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+The current code does not encode Wick rules.  The replacement should be a
+sparse rule table per <code>CorrelatorConfig</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">OperatorKindId</span>,
+    <span style="color: #83a598;">evaluator</span>: <span style="color: #fabd2f;">WickEvaluator</span>,
+    <span style="color: #83a598;">data</span>: <span style="color: #fabd2f;">RuleDataId</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickRuleSet</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">WickRule</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The evaluator should be either a small generated tag for built-in fast paths or
+a client-supplied procedure for genuinely custom theories.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickEvaluator</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">generated</span>: <span style="color: #fabd2f;">GeneratedWickEvaluator</span>,
+    <span style="color: #83a598;">custom</span>: <span style="color: #fabd2f;">CustomWickEvaluator</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The evaluator receives only what it needs: two local operators, the label
+store, rule data, and an output sink.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">evalPair</span>(
+    <span style="color: #83a598;">rule_data</span>: <span style="color: #fabd2f;">RuleDataId</span>,
+    <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOp</span>,
+    <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOp</span>,
+    <span style="color: #83a598;">labels</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LabelStore</span>,
+    <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">anytype</span>,
+) !<span style="color: #fabd2f;">void</span>;
+</code></pre>
+</div>
+
+<p>
+For the first presets, the generated evaluator tags should cover:
+</p>
+
+<ul class="org-ul">
+<li>free-boson derivative/derivative pairings;</li>
+<li>free-boson derivative/exponential pairings;</li>
+<li>free-boson exponential/exponential multiplicative factors;</li>
+<li>profile rewrites before Wick evaluation;</li>
+<li>\(bc\) first-order pairings;</li>
+<li>boundary free-boson and mixed bulk-boundary kernels;</li>
+<li>boundary \(bc\) and mixed bulk-boundary \(bc\) kernels.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org7715180" class="outline-2">
+<h2 id="org7715180"><span class="section-number-2">9.</span> Zero-Mode Rules</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+Zero-mode rules should be separate from pairwise Wick rules.  They consume the
+residual uncontracted local operators after Wick recursion.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">ZeroModeRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">evaluator</span>: <span style="color: #fabd2f;">ZeroModeEvaluator</span>,
+    <span style="color: #83a598;">data</span>: <span style="color: #fabd2f;">RuleDataId</span>,
+};
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">ZeroModeRuleSet</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">ZeroModeRule</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For the first presets, the generated zero-mode evaluators should cover:
+</p>
+
+<ul class="org-ul">
+<li>free-boson noncompact momentum conservation;</li>
+<li>explicit zero-mode integrals for position-space profiles;</li>
+<li>Neumann projected momentum conservation;</li>
+<li>Dirichlet evaluation at the brane position;</li>
+<li>sphere \(bc\) top-form saturation;</li>
+<li>disk boundary \(bc\) top-form saturation.</li>
+</ul>
+
+<p>
+Momentum deltas, profile integrals, and brane-position phases should be
+coefficient factor families.  They should not add new branches to the
+correlator algorithm.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd293fa2" class="outline-2">
+<h2 id="orgd293fa2"><span class="section-number-2">10.</span> Correlator Config</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+A config should point to actual tables, not placeholder ids.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorConfig</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">wick_rules</span>: <span style="color: #fabd2f;">WickRuleSetId</span>,
+    <span style="color: #83a598;">zero_modes</span>: <span style="color: #fabd2f;">ZeroModeRuleSetId</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The runtime call remains:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">try</span> Theory.correlator(Theory.config.sphere, ops, sink);
+</code></pre>
+</div>
+
+<p>
+Here <code>ops</code> already carries its label store.  The config chooses the Wick and
+zero-mode tables.  No surface object or boundary-condition object is passed at
+runtime.
+</p>
+</div>
+</div>
+<div id="outline-container-org5a63034" class="outline-2">
+<h2 id="org5a63034"><span class="section-number-2">11.</span> Product And Boundary Composition</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+The current hard-coded product/boundary wrapper is acceptable as a temporary
+scaffold, but the improved lowering should merge generated namespaces from the
+supplied factors and extensions.
+</p>
+
+<p>
+The rule is simple:
+</p>
+
+<ul class="org-ul">
+<li><code>product(.{ X, bc })</code> exposes only builders contributed by <code>X</code> and <code>bc</code>;</li>
+<li><code>boundary(Bulk, .{ freeBosonBoundary(...) })</code> exposes only the selected
+boundary free-boson builders;</li>
+<li>adding <code>bcDiskBoundary(.{})</code> exposes boundary ghosts and mixed ghost rules;</li>
+<li>Chan-Paton stacks remain labels on boundary operators and may point to
+tensor-code data.</li>
+</ul>
+
+<p>
+This avoids a generic runtime registry.  Composition is a compile-time lowering
+step over a small tuple of factors.
+</p>
+</div>
+</div>
+<div id="outline-container-org8b00d69" class="outline-2">
+<h2 id="org8b00d69"><span class="section-number-2">12.</span> Implementation Order</h2>
+<div class="outline-text-2" id="text-12">
+<ol class="org-ol">
+<li>Replace public naked <code>Handle</code> aliases in <a href="../org/cft-code/presets/presets.html">Presets</a> with generated opaque
+physics structs.</li>
+<li>Add a generated <code>Local</code> builder with a compact label arena and typed
+constructors for coordinates, indices, momenta, profiles, target points,
+subspaces, and Chan-Paton stacks.</li>
+<li>Change operator builders to preserve label spans in <code>LocalOp</code>.</li>
+<li>Replace placeholder <code>CorrelatorConfig</code> ids with real <code>WickRuleSet</code> and
+<code>ZeroModeRuleSet</code> ids.</li>
+<li>Implement generated Wick evaluator tags for free boson and \(bc\) on the
+sphere.</li>
+<li>Implement generated zero-mode evaluators for free-boson momentum/profile
+rules and \(bc\) top forms.</li>
+<li>Extend the same lowering to disk free-boson BCFT and boundary \(bc\).</li>
+<li>Replace hard-coded product/boundary wrappers with compile-time namespace
+composition over supplied factors.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orge6addb2" class="outline-2">
+<h2 id="orge6addb2"><span class="section-number-2">13.</span> Tests Worth Keeping</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+Tests should check design invariants, not syntax.
+</p>
+
+<ul class="org-ul">
+<li><code>expX(k1,...)</code> and <code>expX(k2,...)</code> preserve distinct momentum labels.</li>
+<li><code>dX(mu,n,z)</code> preserves both the vector index and derivative label.</li>
+<li><code>product(.{X,bc})</code> exposes exactly the expected bulk builders.</li>
+<li><code>boundary(...freeBosonBoundary...)</code> exposes boundary free-boson builders and
+does not expose boundary ghosts unless <code>bcDiskBoundary</code> is present.</li>
+<li>sphere \(bc\) top form evaluates the three-\(c\) correlator normalization.</li>
+<li>free-boson sphere zero modes emit a momentum-conservation factor for plane
+waves.</li>
+</ul>
+
+<p>
+The first two tests should be written before any Wick evaluator.  They protect
+the UX/data boundary that is currently broken.
+</p>
+</div>
+</div>
+<div id="outline-container-org3f1f906" class="outline-2">
+<h2 id="org3f1f906"><span class="section-number-2">14.</span> What Not To Do</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+Do not add a general runtime &ldquo;context&rdquo; object to correlator calls.  The operator
+collection can carry labels; the config can carry Wick and zero-mode tables.
+That is enough.
+</p>
+
+<p>
+Do not make coefficient-code learn about every physics case.  Momentum deltas,
+profile integrals, Chan-Paton traces, pure-spinor measures, and lattice theta
+factors should remain factor families.
+</p>
+
+<p>
+Do not implement a broad plugin registry or reflection-heavy namespace merger
+before the first free-boson/\(bc\) presets work.  The compile-time tuple of
+factors is sufficient for now.
+</p>
+
+<p>
+Do not make Wick rules allocate full expanded expressions.  Rule evaluators
+stream coefficient factors and residual local operators into sinks.
+</p>
+</div>
+</div>
+<div id="outline-container-org0a1b1aa" class="outline-2">
+<h2 id="org0a1b1aa"><span class="section-number-2">15.</span> AGENTS Audit</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+This plan is aligned with <code>AGENTS.md</code>.
+</p>
+
+<ul class="org-ul">
+<li>Data-oriented: labels are compact arena records; local operators point to
+spans; Wick and zero-mode rules are sparse tables.</li>
+<li>Minimal runtime data: correlator receives a config, a local-operator
+collection, and a sink.</li>
+<li>Memory discipline: rule evaluators stream terms and do not materialize large
+symbolic trees.</li>
+<li>Parallelizable flow: sectors and independent Wick branches can be streamed
+independently once the label store is immutable.</li>
+<li>Minimal public API: users see typed physics builders; ids, label spans,
+evaluator ids, and rule data stay private.</li>
+<li>Literate structure: this note links to the relevant literate modules; the
+implementation should happen in <a href="../org/cft-code/presets/presets.html">Presets</a>, <a href="../org/cft-code/theory/theory.html">Theory</a>,
+<a href="../org/cft-code/kernel/cft-kernel.html">CFT Kernel</a>, <a href="../org/cft-code/correlators/wick.html">Wick</a>, and
+<a href="../org/cft-code/correlators/correlators.html">Correlators</a>.</li>
+<li>Test discipline: the proposed tests protect label preservation, namespace
+selection, zero-mode rules, and first real physics checks.</li>
+</ul>
+
+<p>
+The approved design point is that <code>MultiOp</code> carries a pointer to its immutable
+label store.  It preserves the principle that correlator does not receive a
+separate context, while making the operator collection self-contained enough for
+fast runtime evaluation.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 17:33</p>
+</div>
+</body>
+</html>

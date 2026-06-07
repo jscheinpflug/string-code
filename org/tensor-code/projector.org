@@ -1,0 +1,138 @@
+:PROPERTIES:
+:ID:       20260606T210003.000000
+:END:
+#+title: Tensor Projector
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/projector.zig :mkdirp yes
+
+A projector is an idempotent intertwiner.  It can select a channel in
+\(R\otimes S\), impose a boundary realization such as a gamma-traceless
+subspace, or change between invariant-basis conventions.  This module stores
+projector identities and derivation labels; it does not construct formulas.
+
+#+begin_src zig
+const std = @import("std");
+const realization = @import("realization.zig");
+const rendering = @import("rendering.zig");
+const store = @import("representation-store.zig");
+
+/// ProjectorId names one local projector or Clebsch-Gordan kernel.
+pub const ProjectorId = u32;
+
+/// ProjectorConvention records configurable projector-rendering choices.
+pub const ProjectorConvention = struct {
+    render_mode: rendering.ProjectorRenderMode = .named,
+    signature: rendering.SignatureConvention = .complex,
+    normalization_id: u32 = 0,
+};
+
+/// ProjectorRole records what mathematical object a projector selects.
+pub const ProjectorRole = union(enum) {
+    product_channel: ProductChannelKey,
+    boundary_realization: realization.RealizationHandle,
+    basis_change: BasisChangeKey,
+};
+
+/// ProductChannelKey identifies one target channel inside a binary product.
+pub const ProductChannelKey = struct {
+    left: store.IrrepHandle,
+    right: store.IrrepHandle,
+    target: store.ChannelHandle,
+};
+
+/// BasisChangeKey identifies a change of invariant-basis convention.
+pub const BasisChangeKey = struct {
+    source_basis: u32,
+    target_basis: u32,
+};
+
+/// Store owns projector identities and compact emitted-term spans.
+pub const Store = struct {
+    allocator: std.mem.Allocator,
+    records: std.ArrayList(ProjectorRecord) = .empty,
+
+    /// init constructs an empty projector store.
+    pub fn init(allocator: std.mem.Allocator) Store {
+        return .{ .allocator = allocator };
+    }
+
+    /// deinit releases projector-store memory.
+    pub fn deinit(self: *Store) void {
+        self.records.deinit(self.allocator);
+        self.* = Store.init(self.allocator);
+    }
+
+    /// internProjector returns a stable id for a projector identity.
+    pub fn internProjector(self: *Store, key: ProjectorKey, kind: ProjectorKind) !ProjectorId {
+        for (self.records.items, 0..) |record, index| {
+            if (projectorKeyEql(record.key, key)) return @intCast(index);
+        }
+        try self.records.append(self.allocator, .{
+            .key = key,
+            .kind = kind,
+            .term_offset = 0,
+            .term_len = 0,
+        });
+        return @intCast(self.records.items.len - 1);
+    }
+};
+
+/// ProjectorKey identifies one projector in one convention.
+pub const ProjectorKey = struct {
+    role: ProjectorRole,
+    convention: ProjectorConvention,
+};
+
+/// ProjectorKind records how a local projector was derived.
+pub const ProjectorKind = enum {
+    identity,
+    quadratic_casimir,
+    higher_casimir_signature,
+    local_idempotent_split,
+    highest_weight_solver,
+    backend_specific_verified,
+};
+
+/// ProjectorRecord stores one local kernel and its derivation kind.
+const ProjectorRecord = struct {
+    key: ProjectorKey,
+    kind: ProjectorKind,
+    term_offset: u32,
+    term_len: u32,
+};
+
+/// ProjectorAudit stores local splitting diagnostics for feasibility studies.
+const ProjectorAudit = struct {
+    product: ProductChannelKey,
+    channel_count: u32,
+    quadratic_collision_count: u32,
+    true_multiplicity_count: u32,
+    residual_block_max: u32,
+};
+
+fn projectorKeyEql(left: ProjectorKey, right: ProjectorKey) bool {
+    return projectorRoleEql(left.role, right.role) and
+        left.convention.render_mode == right.convention.render_mode and
+        left.convention.signature == right.convention.signature and
+        left.convention.normalization_id == right.convention.normalization_id;
+}
+
+fn projectorRoleEql(left: ProjectorRole, right: ProjectorRole) bool {
+    return switch (left) {
+        .product_channel => |left_key| switch (right) {
+            .product_channel => |right_key| left_key.left.value == right_key.left.value and
+                left_key.right.value == right_key.right.value and
+                left_key.target.value == right_key.target.value,
+            else => false,
+        },
+        .boundary_realization => |left_handle| switch (right) {
+            .boundary_realization => |right_handle| left_handle.value == right_handle.value,
+            else => false,
+        },
+        .basis_change => |left_key| switch (right) {
+            .basis_change => |right_key| left_key.source_basis == right_key.source_basis and left_key.target_basis == right_key.target_basis,
+            else => false,
+        },
+    };
+}
+#+end_src

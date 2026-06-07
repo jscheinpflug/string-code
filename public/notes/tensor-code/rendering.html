@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Rendering</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Rendering</h1>
+<p>
+Rendering turns compact invariant ids into concrete notation.  Signature is a
+rendering/evaluation convention, not a different abstract representation.  The
+symbolic output is streamed one term at a time so a large expanded projector
+does not become one large allocation.
+</p>
+
+<a id="SignatureConvention"></a>
+<a id="ProjectorRenderMode"></a>
+<a id="RenderFormat"></a>
+<a id="RenderOptions"></a>
+<a id="EvalOptions"></a>
+<a id="IndexRef"></a>
+<a id="IndexBlockId"></a>
+<a id="RationalId"></a>
+<a id="DualityTag"></a>
+<a id="SymbolicAtom"></a>
+<a id="SymbolicTerm"></a>
+<a id="emitTerm"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org2a4f654"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coupling</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"coupling.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// SignatureConvention selects the metric convention for rendering/evaluation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SignatureConvention</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    complex,
+    euclidean,
+    lorentzian_mostly_plus,
+    lorentzian_mostly_minus,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorRenderMode controls how much derived projector data is expanded.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorRenderMode</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    named,
+    expanded_blocks,
+    expanded_terms,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RenderFormat selects the output syntax level.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderFormat</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    symbolic_terms,
+    text,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RenderOptions controls streamed invariant rendering.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderOptions</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">format</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RenderFormat</span> = .symbolic_terms,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">projectors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorRenderMode</span> = .named,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SignatureConvention</span> = .complex,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">preserve_caller_index_names</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// EvalOptions controls component evaluation of one invariant.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EvalOptions</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SignatureConvention</span> = .complex,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// IndexRef names one symbolic index in a rendered term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexRef</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// IndexBlockId names a compact antisymmetric or ordered index block.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexBlockId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// RationalId names an exact rational coefficient in the scalar store.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RationalId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// GammaBlock stores one internal antisymmetrized gamma factor.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GammaBlock</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">vector_block</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">chirality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">duality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DualityTag</span> = .none,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// DualityTag records middle-form self-duality data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DualityTag</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    none,
+    self_dual,
+    anti_self_dual,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SymbolicAtom stores one symbolic invariant contraction atom.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SymbolicAtom</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metric_pair</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">generalized_delta</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">upper</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">lower</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">epsilon</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">block</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge_star</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">antisymmetrizer</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">block</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexBlockId</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">named_operator</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">first_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> },
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SymbolicTerm stores one streamed coefficient times symbolic atoms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SymbolicTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalId</span>,
+    <span style="color: #e0d3b9; font-style: italic;">/// atoms is borrowed and valid only until the sink returns.
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SymbolicAtom</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// emitTerm sends one symbolic term to a caller-provided sink.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitTerm</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SymbolicTerm</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> sink.emitTerm(term);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// RenderedTermSpan stores a compact range of already emitted terms.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RenderedTermSpan</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionTerm stores one coefficient of an invariant in a target basis.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalId</span>,
+};
+</pre>
+</div>
+</div>
+</body>
+</html>

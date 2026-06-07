@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bc Preset</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">bc Preset</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org59c0bc4">Sphere Preset</a></li>
+<li><a href="#org3feff3e">Rules</a></li>
+<li><a href="#orga307070">Disk Boundary</a></li>
+</ul>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#bcSphere"><code>bcSphere(comptime cfg: BcSphereConfig) type</code></a></dt>
+<dd>bcSphere builds the generated preset type for the sphere bc ghost CFT.</dd>
+<dt><a href="#boundaryExtension"><code>boundaryExtension(comptime cfg: BcDiskConfig) BoundaryExtension</code></a></dt>
+<dd>boundaryExtension declares boundary and mixed bulk-boundary bc rules on the disk.</dd>
+</dl>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#BcSphereConfig"><code>BcSphereConfig (struct)</code></a></dt>
+<dd>BcSphereConfig declares the holomorphic bc system and optional antiholomorphic copy.</dd>
+<dt><a href="#BcDiskConfig"><code>BcDiskConfig (struct)</code></a></dt>
+<dd>BcDiskConfig declares the disk boundary extension for the bc ghost system.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+This node defines the \(bc\) ghost preset on the sphere and its disk boundary
+extension.  It is independent of the matter CFT and uses the shared
+operator/Wick vocabulary from <a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a>.
+</p>
+
+<p>
+The local OPE is
+\[
+  b(z)c(0)\sim {1\over z},
+\]
+with weights \(h_b=2\), \(h_c=-1\).  The sphere top form requires three
+\(c\)-ghost insertions in each chiral copy <a href="#ref-1" class="cite">[1]</a>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">shared</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"shared.zig"</span>);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../kernel.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Handle</span> = shared.Handle;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CorrelatorConfig</span> = shared.CorrelatorConfig;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundaryExtension</span> = shared.BoundaryExtension;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Local</span> = shared.Local;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RuleScalar</span> = shared.RuleScalar;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = shared.wick;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode</span> = shared.zero_mode;
+</pre>
+</div>
+
+<p>
+The ghost preset owns the \(b,c\) operator vocabulary.  It uses a separate id
+block from the free boson and derives each concrete kind id from the enum tag,
+so this file names physics families without maintaining numeric ids per
+operator.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">namespace</span> = <span style="color: #b8bb26; font-style: italic;">"bc"</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Family</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    b,
+    c,
+    bt,
+    ct,
+    b_boundary,
+    c_boundary,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroSector</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    sphere,
+    disk,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>) operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">return</span> shared.familyKind(namespace, family);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">zeroSector</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sector</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroSector</span>) zero_mode.Sector {
+    <span style="color: #fb4934; font-weight: bold;">return</span> shared.sectorId(namespace, sector);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rawToken</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(value);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">token</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">T</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) T {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@enumFromInt</span>(<span style="color: #fb4934; font-weight: bold;">if</span> (id == 0) 1 <span style="color: #fb4934; font-weight: bold;">else</span> id);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">coordVariable</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">coord</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> rawToken(coord);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">singleInsertion</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) operators.OperatorInsertion {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .single = .{
+        .position = coordVariable(z),
+        .derivatives = derivatives,
+    } };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryCoord</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) Handle.Coord {
+    <span style="color: #fb4934; font-weight: bold;">return</span> token(Handle.Coord, rawToken(y));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bcPattern</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">support</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Support</span>) wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.pattern(kind(family), support);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.b, .holomorphic);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.c, .holomorphic);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">btPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.bt, .antiholomorphic);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ctPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.ct, .antiholomorphic);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bBoundaryPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.b_boundary, .boundary);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cBoundaryPattern</span>() wick.Pattern {
+    <span style="color: #fb4934; font-weight: bold;">return</span> bcPattern(.c_boundary, .boundary);
+}
+
+</pre>
+</div>
+<div id="outline-container-org59c0bc4" class="outline-2">
+<h2 id="org59c0bc4">Sphere Preset</h2>
+<div class="outline-text-2" id="text-org59c0bc4">
+<p>
+The sphere preset exposes a holomorphic copy and, by default, an
+antiholomorphic copy.  The config flag changes both the builder namespace and
+the emitted rule slice at compile time.
+</p>
+
+<a id="BcSphereConfig"></a>
+<a id="bcSphere"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga84ea99"><span style="color: #e0d3b9; font-style: italic;">/// BcSphereConfig declares the holomorphic bc system and optional antiholomorphic copy.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BcSphereConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">top_form_normalization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span> = .one,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// bcSphere builds the generated preset type for the sphere bc ghost CFT.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bcSphere</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// is_bc_sphere_preset identifies this generated type for composition.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">is_bc_sphere_preset</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// op exposes bc ghost local operator builders.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = BcSphereOp(cfg.include_antiholomorphic_copy);
+        <span style="color: #e0d3b9; font-style: italic;">/// config exposes named correlator configs for this preset.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = BcSphereCorrelatorConfig(cfg);
+        <span style="color: #e0d3b9; font-style: italic;">/// rules exposes the preset-authored Wick rule templates.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = BcSphereRules(cfg.include_antiholomorphic_copy);
+
+        <span style="color: #e0d3b9; font-style: italic;">/// local constructs a label-preserving local-operator builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Local {
+            <span style="color: #fb4934; font-weight: bold;">return</span> Local.init(allocator);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator streams rule matches for bc insertions.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfig</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+</pre>
+</div>
+
+<p>
+Derivative labels mean \(\partial^n b\), \(\partial^n c\), and their
+antiholomorphic copies.  No ghost-number bookkeeping is performed here; that is
+part of theory data and later basis or correlator evaluation.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BcSphereOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holomorphic</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// b builds a holomorphic b-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">b</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !kernel.Call.LocalOp {
+            <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.b), singleInsertion(z, n), &amp;.{});
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// c builds a holomorphic c-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">c</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !kernel.Call.LocalOp {
+            <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.c), singleInsertion(z, n), &amp;.{});
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> Holomorphic;
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// b builds a holomorphic b-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">b</span> = Holomorphic.b;
+        <span style="color: #e0d3b9; font-style: italic;">/// c builds a holomorphic c-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">c</span> = Holomorphic.c;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// bt builds an antiholomorphic b-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bt</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !kernel.Call.LocalOp {
+            <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.bt), singleInsertion(zbar, n), &amp;.{});
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// ct builds an antiholomorphic c-ghost insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ct</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !kernel.Call.LocalOp {
+            <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.ct), singleInsertion(zbar, n), &amp;.{});
+        }
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org3feff3e" class="outline-2">
+<h2 id="org3feff3e">Rules</h2>
+<div class="outline-text-2" id="text-org3feff3e">
+<p>
+The \(bc\) Wick rules have no tensor numerator.  Their zero-mode rule records
+the top-form saturation separately from pairwise contractions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">holomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">antiholomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bcBC</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .none, holomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bcBtCt</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .none, antiholomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_wick_storage</span> = [_]wick.Rule{
+    wick.rule(bPattern(), cPattern(), bcBC()),
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_wick_storage</span> = sphere_holomorphic_wick_storage ++ [_]wick.Rule{
+    wick.rule(btPattern(), ctPattern(), bcBtCt()),
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcSphereConfig</span>) <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_antiholomorphic_copy) [2]zero_mode.Rule <span style="color: #fb4934; font-weight: bold;">else</span> [1]zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span> = zero_mode.rule(zeroSector(.sphere), .{ .bc_top_form = .{
+        .support = .sphere_holomorphic,
+        .c_kind_ids = &amp;.{kind(.c)},
+        .normalization = cfg.top_form_normalization,
+    } });
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!cfg.include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> [_]zero_mode.Rule{holomorphic};
+    <span style="color: #fb4934; font-weight: bold;">return</span> [_]zero_mode.Rule{
+        holomorphic,
+        zero_mode.rule(zeroSector(.sphere), .{ .bc_top_form = .{
+            .support = .sphere_antiholomorphic,
+            .c_kind_ids = &amp;.{kind(.ct)},
+            .normalization = cfg.top_form_normalization,
+        } }),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BcSphereRules</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_wick</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) sphere_full_wick_storage <span style="color: #fb4934; font-weight: bold;">else</span> sphere_holomorphic_wick_storage;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// sphere_wick lists the primitive bc Wick rules on the sphere.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;selected_wick;
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BcSphereCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = BcSphereRules(cfg.include_antiholomorphic_copy);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_zero_storage</span> = sphereZeroStorage(cfg);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick_index_storage</span> = shared.wickRuleIndexStorage(rules.sphere_wick);
+
+        <span style="color: #e0d3b9; font-style: italic;">/// sphere selects bc sphere Wick and zero-mode rules.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = CorrelatorConfig{
+            .wick_rules = rules.sphere_wick,
+            .wick_rule_index = &amp;sphere_wick_index_storage,
+            .zero_modes = &amp;sphere_zero_storage,
+        };
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga307070" class="outline-2">
+<h2 id="orga307070">Disk Boundary</h2>
+<div class="outline-text-2" id="text-orga307070">
+<p>
+The disk extension adds boundary-local \(b,c\) operators and mixed
+bulk-boundary contractions.  It is an extension chosen by a BCFT composition,
+not a modification of the bulk \(bc\) preset.
+</p>
+
+<a id="BcDiskConfig"></a>
+<a id="boundaryExtension"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org484ff06"><span style="color: #e0d3b9; font-style: italic;">/// BcDiskConfig declares the disk boundary extension for the bc ghost system.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BcDiskConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_mixed_bulk_boundary</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">top_form_normalization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span> = .one,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BcDiskBoundaryOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// bBoundary builds a boundary b-ghost insertion.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bBoundary</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !kernel.Call.LocalOp {
+        <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.b_boundary), singleInsertion(boundaryCoord(y), n), &amp;.{});
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// cBoundary builds a boundary c-ghost insertion.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cBoundary</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !kernel.Call.LocalOp {
+        <span style="color: #fb4934; font-weight: bold;">return</span> local.op(kind(.c_boundary), singleInsertion(boundaryCoord(y), n), &amp;.{});
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// boundaryExtension declares boundary and mixed bulk-boundary bc rules on the disk.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryExtension</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcDiskConfig</span>) BoundaryExtension {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">data</span> = BcDiskData(cfg);
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .kind = shared.extensionKind(<span style="color: #b8bb26; font-style: italic;">"bc_disk"</span>),
+        .op = BcDiskBoundaryOp,
+        .wick_rules = <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_mixed_bulk_boundary) &amp;disk_full_wick_storage <span style="color: #fb4934; font-weight: bold;">else</span> &amp;disk_boundary_wick_storage,
+        .zero_modes = data.disk_zero_modes,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_boundary_wick_storage</span> = [_]wick.Rule{
+    wick.rule(bBoundaryPattern(), cBoundaryPattern(), bcBC()),
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_full_wick_storage</span> = disk_boundary_wick_storage ++ [_]wick.Rule{
+    wick.rule(bPattern(), cBoundaryPattern(), bcBC()),
+    wick.rule(cPattern(), bBoundaryPattern(), bcBC()),
+    wick.rule(btPattern(), cBoundaryPattern(), bcBtCt()),
+    wick.rule(ctPattern(), bBoundaryPattern(), bcBtCt()),
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">diskZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcDiskConfig</span>) [1]zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">return</span> [_]zero_mode.Rule{
+        zero_mode.rule(zeroSector(.disk), .{ .bc_top_form = .{
+            .support = .disk_doubled,
+            .c_kind_ids = &amp;.{ kind(.c), kind(.ct), kind(.c_boundary) },
+            .normalization = cfg.top_form_normalization,
+        } }),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BcDiskData</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BcDiskConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_zero_storage</span> = diskZeroStorage(cfg);
+
+        <span style="color: #e0d3b9; font-style: italic;">/// disk_zero_modes lists doubled chiral bc zero-mode rules on the disk.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_zero_modes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = &amp;disk_zero_storage;
+    };
+}
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

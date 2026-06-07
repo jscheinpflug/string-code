@@ -1,0 +1,460 @@
+:PROPERTIES:
+:ID:       20260606T230001.000000
+:END:
+#+title: Tensor Root Data
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/root-data.zig :mkdirp yes
+
+Root data is the finite combinatorial description of a semisimple Lie algebra:
+simple roots, the Cartan matrix, Dynkin labels, and the positive roots.  For a
+highest weight \(\lambda\), the Dynkin labels are the integers
+\(\lambda_i=\langle \lambda,\alpha_i^\vee\rangle\).  Weyl's dimension formula
+uses the positive roots:
+\[
+  \dim V_\lambda =
+  \prod_{\alpha>0}
+  \frac{\langle \lambda+\rho,\alpha^\vee\rangle}
+       {\langle \rho,\alpha^\vee\rangle}.
+\]
+For ADE all roots have the same length.  For \(B_n\), used by odd orthogonal
+algebras, the short-root length is handled by exact rational root scales.  The
+quadratic Casimir is computed in the configurable normalization
+\[
+  C_2(\lambda)=\frac{(\lambda,\lambda+2\rho)}{2}
+\]
+times =quadratic_casimir_scale=.
+
+#+begin_src zig
+const std = @import("std");
+const symmetry = @import("symmetry.zig");
+
+const max_rank = 256;
+
+/// Rational stores a normalized exact rational number.
+pub const Rational = struct {
+    numerator: i128 = 0,
+    denominator: i128 = 1,
+
+    /// init constructs and normalizes a rational number.
+    pub fn init(numerator: i128, denominator: i128) !Rational {
+        if (denominator == 0) return error.ZeroDenominator;
+        var out = Rational{ .numerator = numerator, .denominator = denominator };
+        out.normalize();
+        return out;
+    }
+
+    /// one returns the rational number 1.
+    pub fn one() Rational {
+        return .{ .numerator = 1, .denominator = 1 };
+    }
+
+    fn normalize(self: *Rational) void {
+        if (self.numerator == 0) {
+            self.denominator = 1;
+            return;
+        }
+        if (self.denominator < 0) {
+            self.numerator = -self.numerator;
+            self.denominator = -self.denominator;
+        }
+        const divisor = gcdI128(absI128(self.numerator), absI128(self.denominator));
+        self.numerator = @divExact(self.numerator, divisor);
+        self.denominator = @divExact(self.denominator, divisor);
+    }
+};
+
+/// AlgebraConventions selects configurable exact-algebra normalizations.
+pub const AlgebraConventions = struct {
+    quadratic_casimir_scale: Rational = .{ .numerator = 1, .denominator = 1 },
+};
+
+/// RootDatum stores a simple algebra with its normalization conventions.
+pub const RootDatum = struct {
+    algebra: symmetry.SimpleLieAlgebra,
+    conventions: AlgebraConventions,
+
+    /// init validates a supported algebra and returns its root datum.
+    pub fn init(algebra: symmetry.SimpleLieAlgebra, conventions: AlgebraConventions) !RootDatum {
+        try validateSimple(algebra);
+        return .{ .algebra = algebra, .conventions = conventions };
+    }
+
+    /// rank returns the number of simple roots.
+    pub fn rank(self: RootDatum) u8 {
+        return self.algebra.rank;
+    }
+
+    /// cartan returns one Cartan matrix entry.
+    pub fn cartan(self: RootDatum, row: usize, col: usize) !i16 {
+        return cartanEntry(self.algebra, row, col);
+    }
+};
+
+/// validateSimple rejects unsupported or rank-inconsistent simple algebras.
+pub fn validateSimple(algebra: symmetry.SimpleLieAlgebra) !void {
+    if (algebra.rank > max_rank) return error.RankTooLarge;
+    switch (algebra.family) {
+        .a => if (algebra.rank < 1) return error.InvalidRank,
+        .b => if (algebra.rank < 2) return error.InvalidRank,
+        .d => if (algebra.rank < 4) return error.InvalidRank,
+        .e6 => if (algebra.rank != 6) return error.InvalidRank,
+        .e7 => if (algebra.rank != 7) return error.InvalidRank,
+        .e8 => if (algebra.rank != 8) return error.InvalidRank,
+        else => return error.UnsupportedAlgebraFamily,
+    }
+}
+
+/// dualDynkin returns the highest weight of the dual irrep.
+pub fn dualDynkin(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra, label: []const i16) ![]i16 {
+    try validateDynkinLabel(algebra, label);
+    const out = try allocator.dupe(i16, label);
+    switch (algebra.family) {
+        .a => {
+            for (0..label.len) |i| out[i] = label[label.len - 1 - i];
+        },
+        .b => {},
+        .d => {
+            if ((algebra.rank % 2) == 1) {
+                const left = algebra.rank - 2;
+                const right = algebra.rank - 1;
+                out[left] = label[right];
+                out[right] = label[left];
+            }
+        },
+        .e6 => {
+            out[0] = label[4];
+            out[1] = label[3];
+            out[3] = label[1];
+            out[4] = label[0];
+        },
+        .e7, .e8 => {},
+        else => unreachable,
+    }
+    return out;
+}
+
+/// dimension computes the Weyl dimension for a supported highest weight.
+pub fn dimension(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra, label: []const i16) !u128 {
+    try validateDynkinLabel(algebra, label);
+    var roots = try PositiveRoots.init(allocator, algebra);
+    defer roots.deinit(allocator);
+
+    var product = Rational.one();
+    for (0..roots.len) |root_index| {
+        const root = roots.root(root_index);
+        const top = try rootCorootPairing(algebra, root, label);
+        const bottom = try rootCorootPairing(algebra, root, null);
+        product = try mul(product, try div(top, bottom));
+    }
+    return rationalToU128(product);
+}
+
+/// quadraticCasimir computes \(C_2(\lambda)=(\lambda,\lambda+2\rho)/2\).
+pub fn quadraticCasimir(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra, label: []const i16, conventions: AlgebraConventions) !Rational {
+    try validateDynkinLabel(algebra, label);
+    const rank_value: usize = algebra.rank;
+    const inverse = try inverseCartan(allocator, algebra);
+    defer allocator.free(inverse);
+
+    var total = Rational{};
+    for (0..rank_value) |i| {
+        for (0..rank_value) |j| {
+            const weight = @as(i128, label[i]) * @as(i128, label[j] + 2);
+            if (weight == 0) continue;
+            const gram = try mul(simpleRootScale(algebra, i), inverse[i * rank_value + j]);
+            total = try add(total, try mulInt(gram, weight));
+        }
+    }
+    total = try divInt(total, 2);
+    return try mul(total, conventions.quadratic_casimir_scale);
+}
+
+fn validateDynkinLabel(algebra: symmetry.SimpleLieAlgebra, label: []const i16) !void {
+    try validateSimple(algebra);
+    if (label.len != algebra.rank) return error.InvalidDynkinRank;
+    for (label) |entry| {
+        if (entry < 0) return error.InvalidDynkinLabel;
+    }
+}
+
+fn cartanEntry(algebra: symmetry.SimpleLieAlgebra, row: usize, col: usize) !i16 {
+    try validateSimple(algebra);
+    const rank_value: usize = algebra.rank;
+    if (row >= rank_value or col >= rank_value) return error.CartanIndexOutOfRange;
+    if (row == col) return 2;
+    return switch (algebra.family) {
+        .a => if (adjacent(row, col)) -1 else 0,
+        .b => bCartan(rank_value, row, col),
+        .d => if (dConnected(rank_value, row, col)) -1 else 0,
+        .e6, .e7, .e8 => if (eConnected(algebra.rank, row, col)) -1 else 0,
+        else => unreachable,
+    };
+}
+
+fn bCartan(rank_value: usize, row: usize, col: usize) i16 {
+    if (!adjacent(row, col)) return 0;
+    if (row == rank_value - 2 and col == rank_value - 1) return -1;
+    if (row == rank_value - 1 and col == rank_value - 2) return -2;
+    return -1;
+}
+
+fn adjacent(row: usize, col: usize) bool {
+    return row + 1 == col or col + 1 == row;
+}
+
+fn dConnected(rank_value: usize, row: usize, col: usize) bool {
+    if (rank_value < 4) return false;
+    const branch = rank_value - 3;
+    if (row <= branch and col <= branch) return adjacent(row, col);
+    return (row == branch and (col == rank_value - 2 or col == rank_value - 1)) or
+        (col == branch and (row == rank_value - 2 or row == rank_value - 1));
+}
+
+fn eConnected(rank_value: usize, row: usize, col: usize) bool {
+    if (edge(row, col, 0, 1) or edge(row, col, 1, 2) or edge(row, col, 2, 3) or edge(row, col, 3, 4)) return true;
+    if (rank_value >= 7 and edge(row, col, 4, 5)) return true;
+    if (rank_value >= 8 and edge(row, col, 5, 6)) return true;
+    return edge(row, col, 2, rank_value - 1);
+}
+
+fn edge(row: usize, col: usize, left: usize, right: usize) bool {
+    return (row == left and col == right) or (row == right and col == left);
+}
+
+const PositiveRoots = struct {
+    rank: usize,
+    roots: []u8,
+    len: usize = 0,
+
+    fn init(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra) !PositiveRoots {
+        const rank_value: usize = algebra.rank;
+        const capacity = positiveRootCapacity(algebra);
+        var out = PositiveRoots{
+            .rank = rank_value,
+            .roots = try allocator.alloc(u8, capacity * rank_value),
+        };
+        @memset(out.roots, 0);
+        errdefer allocator.free(out.roots);
+
+        if (algebra.family == .b) {
+            try out.addBPositiveRoots();
+            return out;
+        }
+
+        for (0..rank_value) |i| {
+            var simple = [_]u8{0} ** max_rank;
+            simple[i] = 1;
+            try out.add(simple[0..rank_value]);
+        }
+
+        var cursor: usize = 0;
+        while (cursor < out.len) : (cursor += 1) {
+            const current = out.root(cursor);
+            for (0..rank_value) |i| {
+                if (pairing(algebra, current, i) >= 0) continue;
+                var candidate = [_]u8{0} ** max_rank;
+                @memcpy(candidate[0..rank_value], current);
+                candidate[i] += 1;
+                try out.add(candidate[0..rank_value]);
+            }
+        }
+        return out;
+    }
+
+    fn addBPositiveRoots(self: *PositiveRoots) !void {
+        for (0..self.rank) |i| {
+            var short = [_]u8{0} ** max_rank;
+            for (i..self.rank) |k| short[k] = 1;
+            try self.add(short[0..self.rank]);
+
+            for (i + 1..self.rank) |j| {
+                var difference = [_]u8{0} ** max_rank;
+                for (i..j) |k| difference[k] = 1;
+                try self.add(difference[0..self.rank]);
+
+                var sum = [_]u8{0} ** max_rank;
+                for (i..j) |k| sum[k] = 1;
+                for (j..self.rank) |k| sum[k] = 2;
+                try self.add(sum[0..self.rank]);
+            }
+        }
+    }
+
+    fn deinit(self: *PositiveRoots, allocator: std.mem.Allocator) void {
+        allocator.free(self.roots);
+        self.* = undefined;
+    }
+
+    fn root(self: PositiveRoots, index: usize) []const u8 {
+        const start = index * self.rank;
+        return self.roots[start .. start + self.rank];
+    }
+
+    fn add(self: *PositiveRoots, root_value: []const u8) !void {
+        if (self.contains(root_value)) return;
+        if (self.len * self.rank >= self.roots.len) return error.PositiveRootOverflow;
+        const start = self.len * self.rank;
+        @memcpy(self.roots[start .. start + self.rank], root_value);
+        self.len += 1;
+    }
+
+    fn contains(self: PositiveRoots, root_value: []const u8) bool {
+        for (0..self.len) |i| {
+            if (std.mem.eql(u8, self.root(i), root_value)) return true;
+        }
+        return false;
+    }
+};
+
+fn positiveRootCapacity(algebra: symmetry.SimpleLieAlgebra) usize {
+    const rank_value: usize = algebra.rank;
+    return switch (algebra.family) {
+        .a => rank_value * (rank_value + 1) / 2,
+        .b => rank_value * rank_value,
+        .d => rank_value * (rank_value - 1),
+        .e6 => 36,
+        .e7 => 63,
+        .e8 => 120,
+        else => unreachable,
+    };
+}
+
+fn pairing(algebra: symmetry.SimpleLieAlgebra, root: []const u8, coroot_index: usize) i16 {
+    var out: i16 = 0;
+    for (root, 0..) |coefficient, j| {
+        const entry = cartanEntry(algebra, coroot_index, j) catch unreachable;
+        out += @as(i16, @intCast(coefficient)) * entry;
+    }
+    return out;
+}
+
+fn inverseCartan(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra) ![]Rational {
+    const rank_value: usize = algebra.rank;
+    const width = rank_value * 2;
+    var matrix = try allocator.alloc(Rational, rank_value * width);
+    errdefer allocator.free(matrix);
+
+    for (0..rank_value) |row| {
+        for (0..width) |col| {
+            matrix[row * width + col] = Rational{};
+        }
+        for (0..rank_value) |col| {
+            matrix[row * width + col] = try Rational.init(try cartanEntry(algebra, row, col), 1);
+        }
+        matrix[row * width + rank_value + row] = Rational.one();
+    }
+
+    for (0..rank_value) |col| {
+        var pivot = col;
+        while (pivot < rank_value and matrix[pivot * width + col].numerator == 0) : (pivot += 1) {}
+        if (pivot == rank_value) return error.SingularCartanMatrix;
+        if (pivot != col) {
+            for (0..width) |j| {
+                std.mem.swap(Rational, &matrix[col * width + j], &matrix[pivot * width + j]);
+            }
+        }
+
+        const pivot_value = matrix[col * width + col];
+        for (0..width) |j| matrix[col * width + j] = try div(matrix[col * width + j], pivot_value);
+
+        for (0..rank_value) |row| {
+            if (row == col) continue;
+            const factor = matrix[row * width + col];
+            if (factor.numerator == 0) continue;
+            for (0..width) |j| {
+                matrix[row * width + j] = try sub(matrix[row * width + j], try mul(factor, matrix[col * width + j]));
+            }
+        }
+    }
+
+    var out = try allocator.alloc(Rational, rank_value * rank_value);
+    errdefer allocator.free(out);
+    for (0..rank_value) |row| {
+        for (0..rank_value) |col| {
+            out[row * rank_value + col] = matrix[row * width + rank_value + col];
+        }
+    }
+    allocator.free(matrix);
+    return out;
+}
+
+fn rootCorootPairing(algebra: symmetry.SimpleLieAlgebra, root: []const u8, label: ?[]const i16) !Rational {
+    var inner = Rational{};
+    for (root, 0..) |coefficient, i| {
+        const dynkin = if (label) |values| values[i] + 1 else 1;
+        inner = try add(inner, try mulInt(simpleRootScale(algebra, i), @as(i128, coefficient) * @as(i128, dynkin)));
+    }
+    return try div(try mulInt(inner, 2), try rootLengthSquared(algebra, root));
+}
+
+fn rootLengthSquared(algebra: symmetry.SimpleLieAlgebra, root: []const u8) !Rational {
+    var out = Rational{};
+    for (root, 0..) |left_coefficient, i| {
+        if (left_coefficient == 0) continue;
+        for (root, 0..) |right_coefficient, j| {
+            if (right_coefficient == 0) continue;
+            const entry = try cartanEntry(algebra, i, j);
+            const factor = @as(i128, left_coefficient) * @as(i128, right_coefficient) * @as(i128, entry);
+            out = try add(out, try mulInt(simpleRootScale(algebra, i), factor));
+        }
+    }
+    return out;
+}
+
+fn simpleRootScale(algebra: symmetry.SimpleLieAlgebra, index: usize) Rational {
+    return switch (algebra.family) {
+        .b => if (index == algebra.rank - 1)
+            .{ .numerator = 1, .denominator = 2 }
+        else
+            Rational.one(),
+        else => Rational.one(),
+    };
+}
+
+fn rationalToU128(value: Rational) !u128 {
+    if (value.denominator != 1) return error.NonIntegralDimension;
+    if (value.numerator < 0) return error.NegativeDimension;
+    return std.math.cast(u128, value.numerator) orelse error.DimensionOverflow;
+}
+
+fn add(left: Rational, right: Rational) !Rational {
+    return Rational.init(try std.math.add(i128, try std.math.mul(i128, left.numerator, right.denominator), try std.math.mul(i128, right.numerator, left.denominator)), try std.math.mul(i128, left.denominator, right.denominator));
+}
+
+fn sub(left: Rational, right: Rational) !Rational {
+    return Rational.init(try std.math.sub(i128, try std.math.mul(i128, left.numerator, right.denominator), try std.math.mul(i128, right.numerator, left.denominator)), try std.math.mul(i128, left.denominator, right.denominator));
+}
+
+fn mul(left: Rational, right: Rational) !Rational {
+    return Rational.init(try std.math.mul(i128, left.numerator, right.numerator), try std.math.mul(i128, left.denominator, right.denominator));
+}
+
+fn div(left: Rational, right: Rational) !Rational {
+    if (right.numerator == 0) return error.DivisionByZero;
+    return Rational.init(try std.math.mul(i128, left.numerator, right.denominator), try std.math.mul(i128, left.denominator, right.numerator));
+}
+
+fn mulInt(value: Rational, factor: i128) !Rational {
+    return Rational.init(try std.math.mul(i128, value.numerator, factor), value.denominator);
+}
+
+fn divInt(value: Rational, divisor: i128) !Rational {
+    return Rational.init(value.numerator, try std.math.mul(i128, value.denominator, divisor));
+}
+
+fn absI128(value: i128) i128 {
+    return if (value < 0) -value else value;
+}
+
+fn gcdI128(left: i128, right: i128) i128 {
+    var a = left;
+    var b = right;
+    while (b != 0) {
+        const next = @mod(a, b);
+        a = b;
+        b = next;
+    }
+    return a;
+}
+
+#+end_src

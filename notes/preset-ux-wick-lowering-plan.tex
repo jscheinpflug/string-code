@@ -1,0 +1,401 @@
+% Created 2026-06-06 Sat 17:22
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\date{2026-06-06}
+\title{Preset UX And Wick Lowering Improvement Plan}
+\hypersetup{
+ pdfauthor={},
+ pdftitle={Preset UX And Wick Lowering Improvement Plan},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 30.2 (Org mode 9.7.11)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Goal}
+\label{sec:org71835f3}
+
+This note joins the deficiencies of the current \href{../org/cft-code/presets/presets.org}{Presets} skeleton into one
+coherent improvement plan.  The current code gives us a checked public shape,
+but it is not yet the right user experience and it does not encode real Wick
+rules.
+
+The target is:
+
+\begin{itemize}
+\item users write physics objects, not ids;
+\item operator builders preserve labels;
+\item presets lower to \href{../org/cft-code/theory/theory.org}{Theory} data;
+\item \href{../org/cft-code/correlators/wick.org}{Wick} rules and zero-mode rules are compact generated tables;
+\item \href{../org/cft-code/correlators/correlators.org}{Correlators} still receive only local operators, a compiled config, and a
+sink.
+\end{itemize}
+\section{Current Deficiencies}
+\label{sec:orge1366ab}
+
+The present implementation has six important gaps.
+
+\begin{enumerate}
+\item \texttt{Handle.Index}, \texttt{Handle.Momentum}, \texttt{Handle.Profile}, and related values are
+naked integer aliases.  That leaks storage details into the physics API.
+\item Operator builders discard the labels they receive.  \texttt{expX(k,z,zb)} and
+\texttt{expX(k2,z,zb)} currently produce the same body id.
+\item \texttt{config.sphere} and \texttt{config.disk} contain placeholder Wick and zero-mode ids.
+\item All preset \texttt{correlator} functions return \texttt{error.NotImplemented}.
+\item \texttt{product} and \texttt{boundary} expose hard-coded wrapper builders for the current
+milestone rather than selecting namespaces from supplied factors.
+\item Boundary extensions are accepted as data, but the generated boundary builder
+does not yet enforce which extensions are present.
+\end{enumerate}
+
+The core mistake is not that ids exist.  The mistake is that the user-facing
+surface suggests users might type those ids by hand.  Ids should be assigned by
+generated stores and used only by lowering/runtime code.
+\section{UX Boundary}
+\label{sec:orgb013518}
+
+There should be three layers.
+
+\begin{enumerate}
+\item The user-facing physics layer has typed values such as \texttt{Index}, \texttt{Momentum},
+\texttt{Profile}, \texttt{TargetPoint}, and \texttt{BoundaryStack}.  These are opaque structs, not
+aliases.
+\item The generated builder layer interns those values into a compact label store
+and builds local operators.
+\item The lowered runtime layer sees only small ids, label spans, Wick-rule tables,
+zero-mode tables, and coefficient streams.
+\end{enumerate}
+
+The user should write code like this:
+
+\begin{verbatim}
+const X = cft.presets.freeBoson(.{ .dimension = 10, .alpha_prime = .one });
+
+var local = X.local(allocator);
+const mu = try local.index("mu");
+const k = try local.momentum("k");
+const z = try local.coord("z");
+const zb = try local.coord("zb");
+
+const ops = try local.ops(.{
+    local.op.dX(mu, 0, z),
+    local.op.expX(k, z, zb),
+});
+
+try X.correlator(X.config.sphere, ops, sink);
+\end{verbatim}
+
+This does not introduce a correlator context.  \texttt{local} is a short-lived builder
+and label arena for the operator collection.  The correlator still receives a
+config, a collection of local operators, and a sink.
+\section{Opaque Physics Values}
+\label{sec:orgc5ce9e7}
+
+The public aliases in \texttt{Handle} should be replaced by generated typed tokens.
+The internal integer remains, but ordinary user code never needs to type it or
+read it.  In Zig this can be represented as a non-exhaustive integer-backed
+enum, with private generated helpers for extraction.
+
+\begin{verbatim}
+pub const Index = enum(u32) { _ };
+pub const Momentum = enum(u32) { _ };
+pub const Profile = enum(u32) { _ };
+pub const TargetPoint = enum(u32) { _ };
+pub const BoundaryStack = enum(u32) { _ };
+\end{verbatim}
+
+These tokens are cheap to copy and easy for the optimizer.  They also prevent
+passing a momentum where an index is required.
+
+For boundary data, the user-facing shape should be similarly physical:
+
+\begin{verbatim}
+const brane = cft.presets.freeBosonBoundary(.{
+    .neumann = X.target.subspace(.{ 0, 1, 2, 3 }),
+    .dirichlet = X.target.complement(.{ 0, 1, 2, 3 }),
+    .dirichlet_position = try local.point("x0"),
+    .chan_paton = cp.stack("N"),
+});
+\end{verbatim}
+
+The projectors and Chan-Paton tensors may lower to \href{../org/tensor-code/tensor-code.org}{Tensor-Code} handles, but
+the user should not manually provide those handles in ordinary code.
+\section{Local Builder And Label Store}
+\label{sec:orga9187b6}
+
+The generated \texttt{local} builder owns a compact label arena.  Operator builders
+write label records to that arena and return local operators that point to
+label spans.
+
+\begin{verbatim}
+const LocalOp = struct {
+    insertion: OperatorInsertion,
+    kind: OperatorKindId,
+    labels: LabelSpan,
+};
+
+const MultiOp = struct {
+    operators: []const LocalOp,
+    labels: *const LabelStore,
+};
+\end{verbatim}
+
+This keeps the runtime call narrow while preserving labels.  A \texttt{MultiOp} is
+still just a collection of local operators; it carries the label store because
+the collection is not meaningful without the labels.
+
+The builder should append small fixed-width label records.  It should not
+allocate expression trees.
+
+\begin{verbatim}
+const LabelValue = union(enum) {
+    integer: i64,
+    rational: Rational,
+    tensor: tensor.kernel.TensorExprId,
+    symbol: SymbolId,
+};
+\end{verbatim}
+
+For common labels such as vector indices, derivative labels, momenta, and
+profile ids, the records are tiny.  Larger physics objects remain behind
+handles owned by the preset, tensor-code, or the client.
+\section{Operator Builders}
+\label{sec:org5e49211}
+
+Operator builders should stop returning a kind-only body.  They should emit a
+local operator with the appropriate label span.
+
+\begin{verbatim}
+pub fn expX(self: *Local, k: Momentum, z: Coord, zbar: Coord) !LocalOp {
+    const labels = try self.labels.append(.{ .momentum = raw(k) });
+    return self.op(.exp_x, .bulk(z, zbar), labels);
+}
+\end{verbatim}
+
+The same pattern covers \texttt{dX(mu,n,z)}, \texttt{profile(f,z,zb)},
+\texttt{dXBoundary(mu,n,y)}, and \texttt{cBoundary(n,y)}.  The generated builder knows the
+schema; the user only sees the typed arguments.
+\section{Wick Rule Encoding}
+\label{sec:org9c120bc}
+
+The current code does not encode Wick rules.  The replacement should be a
+sparse rule table per \texttt{CorrelatorConfig}.
+
+\begin{verbatim}
+const WickRule = struct {
+    left: OperatorKindId,
+    right: OperatorKindId,
+    evaluator: WickEvaluator,
+    data: RuleDataId,
+};
+
+const WickRuleSet = struct {
+    rules: []const WickRule,
+};
+\end{verbatim}
+
+The evaluator should be either a small generated tag for built-in fast paths or
+a client-supplied procedure for genuinely custom theories.
+
+\begin{verbatim}
+const WickEvaluator = union(enum) {
+    generated: GeneratedWickEvaluator,
+    custom: CustomWickEvaluator,
+};
+\end{verbatim}
+
+The evaluator receives only what it needs: two local operators, the label
+store, rule data, and an output sink.
+
+\begin{verbatim}
+fn evalPair(
+    rule_data: RuleDataId,
+    left: LocalOp,
+    right: LocalOp,
+    labels: *const LabelStore,
+    sink: anytype,
+) !void;
+\end{verbatim}
+
+For the first presets, the generated evaluator tags should cover:
+
+\begin{itemize}
+\item free-boson derivative/derivative pairings;
+\item free-boson derivative/exponential pairings;
+\item free-boson exponential/exponential multiplicative factors;
+\item profile rewrites before Wick evaluation;
+\item \(bc\) first-order pairings;
+\item boundary free-boson and mixed bulk-boundary kernels;
+\item boundary \(bc\) and mixed bulk-boundary \(bc\) kernels.
+\end{itemize}
+\section{Zero-Mode Rules}
+\label{sec:org3fcd188}
+
+Zero-mode rules should be separate from pairwise Wick rules.  They consume the
+residual uncontracted local operators after Wick recursion.
+
+\begin{verbatim}
+const ZeroModeRule = struct {
+    sector: SectorId,
+    evaluator: ZeroModeEvaluator,
+    data: RuleDataId,
+};
+
+const ZeroModeRuleSet = struct {
+    rules: []const ZeroModeRule,
+};
+\end{verbatim}
+
+For the first presets, the generated zero-mode evaluators should cover:
+
+\begin{itemize}
+\item free-boson noncompact momentum conservation;
+\item explicit zero-mode integrals for position-space profiles;
+\item Neumann projected momentum conservation;
+\item Dirichlet evaluation at the brane position;
+\item sphere \(bc\) top-form saturation;
+\item disk boundary \(bc\) top-form saturation.
+\end{itemize}
+
+Momentum deltas, profile integrals, and brane-position phases should be
+coefficient factor families.  They should not add new branches to the
+correlator algorithm.
+\section{Correlator Config}
+\label{sec:orgd717ccc}
+
+A config should point to actual tables, not placeholder ids.
+
+\begin{verbatim}
+pub const CorrelatorConfig = struct {
+    wick_rules: WickRuleSetId,
+    zero_modes: ZeroModeRuleSetId,
+};
+\end{verbatim}
+
+The runtime call remains:
+
+\begin{verbatim}
+try Theory.correlator(Theory.config.sphere, ops, sink);
+\end{verbatim}
+
+Here \texttt{ops} already carries its label store.  The config chooses the Wick and
+zero-mode tables.  No surface object or boundary-condition object is passed at
+runtime.
+\section{Product And Boundary Composition}
+\label{sec:orgd61e59b}
+
+The current hard-coded product/boundary wrapper is acceptable as a temporary
+scaffold, but the improved lowering should merge generated namespaces from the
+supplied factors and extensions.
+
+The rule is simple:
+
+\begin{itemize}
+\item \texttt{product(.\{ X, bc \})} exposes only builders contributed by \texttt{X} and \texttt{bc};
+\item \texttt{boundary(Bulk, .\{ freeBosonBoundary(...) \})} exposes only the selected
+boundary free-boson builders;
+\item adding \texttt{bcDiskBoundary(.\{\})} exposes boundary ghosts and mixed ghost rules;
+\item Chan-Paton stacks remain labels on boundary operators and may point to
+tensor-code data.
+\end{itemize}
+
+This avoids a generic runtime registry.  Composition is a compile-time lowering
+step over a small tuple of factors.
+\section{Implementation Order}
+\label{sec:orgc2c2dcb}
+
+\begin{enumerate}
+\item Replace public naked \texttt{Handle} aliases in \href{../org/cft-code/presets/presets.org}{Presets} with generated opaque
+physics structs.
+\item Add a generated \texttt{Local} builder with a compact label arena and typed
+constructors for coordinates, indices, momenta, profiles, target points,
+subspaces, and Chan-Paton stacks.
+\item Change operator builders to preserve label spans in \texttt{LocalOp}.
+\item Replace placeholder \texttt{CorrelatorConfig} ids with real \texttt{WickRuleSet} and
+\texttt{ZeroModeRuleSet} ids.
+\item Implement generated Wick evaluator tags for free boson and \(bc\) on the
+sphere.
+\item Implement generated zero-mode evaluators for free-boson momentum/profile
+rules and \(bc\) top forms.
+\item Extend the same lowering to disk free-boson BCFT and boundary \(bc\).
+\item Replace hard-coded product/boundary wrappers with compile-time namespace
+composition over supplied factors.
+\end{enumerate}
+\section{Tests Worth Keeping}
+\label{sec:org017d4c1}
+
+Tests should check design invariants, not syntax.
+
+\begin{itemize}
+\item \texttt{expX(k1,...)} and \texttt{expX(k2,...)} preserve distinct momentum labels.
+\item \texttt{dX(mu,n,z)} preserves both the vector index and derivative label.
+\item \texttt{product(.\{X,bc\})} exposes exactly the expected bulk builders.
+\item \texttt{boundary(...freeBosonBoundary...)} exposes boundary free-boson builders and
+does not expose boundary ghosts unless \texttt{bcDiskBoundary} is present.
+\item sphere \(bc\) top form evaluates the three-\(c\) correlator normalization.
+\item free-boson sphere zero modes emit a momentum-conservation factor for plane
+waves.
+\end{itemize}
+
+The first two tests should be written before any Wick evaluator.  They protect
+the UX/data boundary that is currently broken.
+\section{What Not To Do}
+\label{sec:orgd4175c1}
+
+Do not add a general runtime "context" object to correlator calls.  The operator
+collection can carry labels; the config can carry Wick and zero-mode tables.
+That is enough.
+
+Do not make coefficient-code learn about every physics case.  Momentum deltas,
+profile integrals, Chan-Paton traces, pure-spinor measures, and lattice theta
+factors should remain factor families.
+
+Do not implement a broad plugin registry or reflection-heavy namespace merger
+before the first free-boson/\(bc\) presets work.  The compile-time tuple of
+factors is sufficient for now.
+
+Do not make Wick rules allocate full expanded expressions.  Rule evaluators
+stream coefficient factors and residual local operators into sinks.
+\section{AGENTS Audit}
+\label{sec:orgc7e7f0d}
+
+This plan is aligned with \texttt{AGENTS.md}.
+
+\begin{itemize}
+\item Data-oriented: labels are compact arena records; local operators point to
+spans; Wick and zero-mode rules are sparse tables.
+\item Minimal runtime data: correlator receives a config, a local-operator
+collection, and a sink.
+\item Memory discipline: rule evaluators stream terms and do not materialize large
+symbolic trees.
+\item Parallelizable flow: sectors and independent Wick branches can be streamed
+independently once the label store is immutable.
+\item Minimal public API: users see typed physics builders; ids, label spans,
+evaluator ids, and rule data stay private.
+\item Literate structure: this note links to the relevant literate modules; the
+implementation should happen in \href{../org/cft-code/presets/presets.org}{Presets}, \href{../org/cft-code/theory/theory.org}{Theory},
+\href{../org/cft-code/kernel/cft-kernel.org}{CFT Kernel}, \href{../org/cft-code/correlators/wick.org}{Wick}, and
+\href{../org/cft-code/correlators/correlators.org}{Correlators}.
+\item Test discipline: the proposed tests protect label preservation, namespace
+selection, zero-mode rules, and first real physics checks.
+\end{itemize}
+
+The one design point that needs explicit sign-off is whether \texttt{MultiOp} carrying
+a pointer to its label store is acceptable terminology.  It preserves the
+principle that correlator does not receive a separate context, but it makes the
+operator collection self-contained enough for fast runtime evaluation.
+\end{document}

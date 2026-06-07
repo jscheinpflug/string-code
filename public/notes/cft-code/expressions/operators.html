@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Operators</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Operators</h1>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#Operator"><code>Operator (struct)</code></a></dt>
+<dd>A local operator inserted at a point</dd>
+<dt><a href="#OperatorBodyId"><code>OperatorBodyId = u32</code></a></dt>
+<dd>An identifier for operator body</dd>
+<dt><a href="#OperatorBody"><code>OperatorBody (union)</code></a></dt>
+<dd>An operator body is either atomic or normal-ordered</dd>
+<dt><a href="#AtomicBody"><code>AtomicBody (struct)</code></a></dt>
+<dd>An atomic operator body comes in different kinds and can carry extra information</dd>
+<dt><a href="#OperatorKindId"><code>OperatorKindId = u32</code></a></dt>
+<dd>An identifier for operator kind</dd>
+<dt><a href="#OperatorExtraId"><code>OperatorExtraId = u32</code></a></dt>
+<dd>An identifier for operator extra information</dd>
+<dt><a href="#OperatorKind"><code>OperatorKind (struct)</code></a></dt>
+<dd>Defines the various kinds of operators</dd>
+<dt><a href="#Holomorphicity"><code>Holomorphicity (enum)</code></a></dt>
+<dd>Determines whether an operator is holomorphic/antiholomorphic or both</dd>
+<dt><a href="#ConformalWeights"><code>ConformalWeights (union)</code></a></dt>
+<dd>ConformalWeights stores fixed weights or a rule for computing them.</dd>
+<dt><a href="#FixedConformalWeights"><code>FixedConformalWeights (struct)</code></a></dt>
+<dd>FixedConformalWeights stores optional left and right conformal weights.</dd>
+<dt><a href="#WeightRuleId"><code>WeightRuleId = u16</code></a></dt>
+<dd>WeightRuleId names a rule that computes conformal weights from labels.</dd>
+<dt><a href="#CorrelatorTactic"><code>CorrelatorTactic (enum)</code></a></dt>
+<dd>A tactic for the the evaluation of correlators</dd>
+<dt><a href="#OperatorInsertion"><code>OperatorInsertion (union)</code></a></dt>
+<dd>Operator insertion data are specified by a position and a number of derivatives</dd>
+</dl>
+</div>
+</div>
+</div>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"coefficient.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>);
+</pre>
+</div>
+
+<p>
+A local operator can be inserted at a point and carry extra information captured in the code by its body.
+</p>
+
+<a id="Operator"></a>
+<a id="OperatorBodyId"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb7409f8"><span style="color: #e0d3b9; font-style: italic;">/// A local operator inserted at a point
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Operator</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorInsertion</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">body</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorBodyId</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// An identifier for operator body
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorBodyId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+</pre>
+</div>
+
+<p>
+An operator body can either be that of the identity, a generic atomic operator or a normal-ordered product of operator bodies (in free field theory).
+</p>
+<a id="OperatorBody"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org04ed702"><span style="color: #e0d3b9; font-style: italic;">/// An operator body is either atomic or normal-ordered
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorBody</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    identity,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atomic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AtomicBody</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">normal_ordered</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorBodyId</span>,
+};
+</pre>
+</div>
+
+<p>
+An atomic operator body can come in different kinds specified when defining the <a href="/notes/cft-code/theory/theory.html">Theory</a> and can carry extra runtime information.
+</p>
+<a id="AtomicBody"></a>
+<a id="OperatorKindId"></a>
+<a id="OperatorExtraId"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org70965f5"><span style="color: #e0d3b9; font-style: italic;">/// An atomic operator body comes in different kinds and can carry extra information
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AtomicBody</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorKindId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">extra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorExtraId</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// An identifier for operator kind
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorKindId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #e0d3b9; font-style: italic;">/// An identifier for operator extra information
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorExtraId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+</pre>
+</div>
+
+<p>
+An operator kind contains what is required to define a local operator at the CFT level.
+</p>
+<a id="OperatorKind"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgcdc0a66"><span style="color: #e0d3b9; font-style: italic;">/// Defines the various kinds of operators
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorKind</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Holomorphicity</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">conformal_weights</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ConformalWeights</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_numbers</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.QuantumNumbers</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">supported_correlator_tactics</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorTactic</span>,
+};
+</pre>
+</div>
+
+<p>
+In the case of interest, that means definining whether the operator is holomorphic/antiholomorphic or both,
+</p>
+<a id="Holomorphicity"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org9365ce7"><span style="color: #e0d3b9; font-style: italic;">/// Determines whether an operator is holomorphic/antiholomorphic or both
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holomorphicity</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    holomorphic,
+    antiholomorphic,
+    both,
+};
+</pre>
+</div>
+
+<p>
+its conformal weight(s) that can either be fixed at compile time or computed at runtime
+</p>
+<a id="ConformalWeights"></a>
+<a id="FixedConformalWeights"></a>
+<a id="WeightRuleId"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org2c1cf70"><span style="color: #e0d3b9; font-style: italic;">/// ConformalWeights stores fixed weights or a rule for computing them.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConformalWeights</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">fixed</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FixedConformalWeights</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">computed</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeightRuleId</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// FixedConformalWeights stores optional left and right conformal weights.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FixedConformalWeights</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">h</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">f16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hbar</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">f16</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// WeightRuleId names a rule that computes conformal weights from labels.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightRuleId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+</pre>
+</div>
+
+<p>
+and lastly what quantum numbers supported by <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a> it carries and what tactics of correlator computation it supports.
+</p>
+
+<p>
+Currently, the supported correlator tactics are to either keep the correlator abstract (only return zero if selection rule is no met, otherwise keep in abstract form), evaluate it via Wick contractions of input operators or bosonize the input operators first and then evaluate via Wick contractions.
+</p>
+
+<a id="CorrelatorTactic"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org32491c9"><span style="color: #e0d3b9; font-style: italic;">/// A tactic for the the evaluation of correlators
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CorrelatorTactic</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    abstract,
+    wick,
+    bosonize,
+};
+</pre>
+</div>
+
+
+<p>
+The operator insertion point be denoted by a single point such as \(z\) or \(\bar{z}\), or both \(z, \bar{z}\), which are typed as variables from <a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a>. We bundle the derivatives of a local operator with the insertion point.
+</p>
+
+<a id="OperatorInsertion"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org35cb419"><span style="color: #e0d3b9; font-style: italic;">/// Operator insertion data are specified by a position and a number of derivatives
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorInsertion</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">single</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">position</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coefficient.Variable</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic_position</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coefficient.Variable</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic_position</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coefficient.Variable</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    },
+};
+</pre>
+</div>
+</div>
+</body>
+</html>

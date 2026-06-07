@@ -1,0 +1,1055 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-04 Thu 16:46 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFT Specification Sketches</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">CFT Specification Sketches</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgd1089ef">1. Goal</a></li>
+<li><a href="#orgdc38804">2. Minimal Theory Structure</a></li>
+<li><a href="#org176e102">3. Operator Families</a></li>
+<li><a href="#orgaa97dba">4. Weights</a></li>
+<li><a href="#org9426b80">5. Quantum Numbers</a></li>
+<li><a href="#orgc5e05c3">6. Runtime Operator Representation</a></li>
+<li><a href="#orga5d9a4a">7. Coeff Representation In Wick Rules</a></li>
+<li><a href="#orgd31c48b">8. Correlator Tactics</a></li>
+<li><a href="#org9fd7fdf">9. Compile-Time Wick Construction</a></li>
+<li><a href="#org50ed4f5">10. Building A Theory Type At Comptime</a></li>
+<li><a href="#org4d0081c">11. Concrete Rules</a></li>
+<li><a href="#org262c7d7">12. What `comptime` Means In Zig</a></li>
+<li><a href="#orgccfe676">13. Why Use Comptime</a></li>
+<li><a href="#orgc6795cf">14. Example Presets</a>
+<ul>
+<li><a href="#orgc34aba2">14.1. bc sector with Wick tactic</a></li>
+<li><a href="#org007da66">14.2. free boson sector with Wick tactic</a></li>
+</ul>
+</li>
+<li><a href="#org963e00e">15. Tensor Product Helper</a></li>
+<li><a href="#org722fe39">16. How Presets Are Loaded</a></li>
+<li><a href="#org76519a7">17. Compile-Time Flow</a></li>
+<li><a href="#orgb6f63fa">18. Summary</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd1089ef" class="outline-2">
+<h2 id="orgd1089ef"><span class="section-number-2">1.</span> Goal</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+The theory should be declared at comptime as a small set of presets.
+A preset should contain only theory-level data.
+</p>
+
+<p>
+The design should cover:
+</p>
+
+<ul class="org-ul">
+<li>elementary sectors</li>
+<li>tensor product theories</li>
+<li>local operator families</li>
+<li>the distinction between fundamental fields and ordinary operator families</li>
+<li>correlator tactics such as Wick</li>
+<li>the concrete rules needed by those tactics</li>
+</ul>
+
+<p>
+The main implementation goal is to use metaprogramming so that runtime code is as theory-agnostic as possible.
+That means runtime code should call theory operations such as `Theory.wick(left, right)` without carrying around a generic theory object.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdc38804" class="outline-2">
+<h2 id="orgdc38804"><span class="section-number-2">2.</span> Minimal Theory Structure</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The smallest useful compile-time structure is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CFTSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sectors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">SectorSpec</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">SectorSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">operators</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OperatorFamilySpec</span>,
+    <span style="color: #83a598;">correlator_tactic</span>: <span style="color: #fabd2f;">CorrelatorTactic</span>,
+    <span style="color: #83a598;">wick_spec</span>: ?<span style="color: #fabd2f;">WickSpec</span>,
+    <span style="color: #83a598;">rules</span>: <span style="color: #fabd2f;">RuleSet</span>,
+};
+</code></pre>
+</div>
+
+<p>
+A full theory is just a list of sectors.
+So `bc tensor free boson` is represented by two sector presets inside one `CFTSpec`.
+</p>
+</div>
+</div>
+<div id="outline-container-org176e102" class="outline-2">
+<h2 id="org176e102"><span class="section-number-2">3.</span> Operator Families</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+A theory-level operator should be represented as a family.
+This covers both:
+</p>
+
+<ul class="org-ul">
+<li>fixed operators such as `b` and `c`</li>
+<li>parameterized operators such as `expX`</li>
+</ul>
+
+<p>
+A family should contain only intrinsic data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Holomorphicity</span> = <span style="color: #fb4934;">enum</span> {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorKind</span> = <span style="color: #fb4934;">enum</span> {
+    fundamental_field,
+    ordinary_operator,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorFamilySpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">kind</span>: <span style="color: #fabd2f;">OperatorKind</span>,
+    <span style="color: #83a598;">holomorphicity</span>: <span style="color: #fabd2f;">Holomorphicity</span>,
+    <span style="color: #83a598;">weights</span>: <span style="color: #fabd2f;">WeightSpec</span>,
+    <span style="color: #83a598;">quantum_numbers</span>: <span style="color: #fabd2f;">QuantumNumbers</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The point of `kind` is simple:
+</p>
+
+<ul class="org-ul">
+<li>fundamental fields are the objects from which the later local composite-field layer may build normal-ordered products and descendants</li>
+<li>ordinary operators are legal operator families in the theory, but they are not automatic generators for that composite-field layer</li>
+</ul>
+
+<p>
+So the restriction is structural. One does not need an extra permission flag saying whether `:S &part; S:` is allowed. Normal-ordered composite construction is simply defined later only for fundamental fields.
+</p>
+</div>
+</div>
+<div id="outline-container-orgaa97dba" class="outline-2">
+<h2 id="orgaa97dba"><span class="section-number-2">4.</span> Weights</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Every family must specify weights.
+Either the weights are fixed by the family, or they must be supplied when a concrete insertion is created.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">WeightSpec</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">fixed</span>: <span style="color: #fabd2f;">ConformalWeights</span>,
+    supplied_at_construction,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ConformalWeights</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">h</span>: ?<span style="color: #fabd2f;">Scalar</span>,
+    <span style="color: #83a598;">hbar</span>: ?<span style="color: #fabd2f;">Scalar</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is enough for:
+</p>
+
+<ul class="org-ul">
+<li>`b`: fixed `h = 2`, `hbar = null`</li>
+<li>`c`: fixed `h = -1`, `hbar = null`</li>
+<li>`expX`: weights supplied when the concrete operator is inserted</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org9426b80" class="outline-2">
+<h2 id="org9426b80"><span class="section-number-2">5.</span> Quantum Numbers</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Keep this small at first.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">QuantumNumbers</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">ghost_number</span>: <span style="color: #fabd2f;">i16</span> = 0,
+};
+</code></pre>
+</div>
+
+<p>
+Conformal weights are already handled separately. More elaborate tensor or Lie algebra data can be added later through `tensor-code`.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc5e05c3" class="outline-2">
+<h2 id="orgc5e05c3"><span class="section-number-2">6.</span> Runtime Operator Representation</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The runtime symbolic layer should stay lightweight.
+It should refer back to the preset rather than duplicating theory data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">SectorId</span> = <span style="color: #fabd2f;">u16</span>;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">OperatorFamilyId</span> = <span style="color: #fabd2f;">u32</span>;
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Symbol</span> = <span style="color: #fabd2f;">u32</span>;
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">PositionData</span> = <span style="color: #fb4934;">union</span>(<span style="color: #fb4934;">enum</span>) {
+    <span style="color: #83a598;">single</span>: <span style="color: #fabd2f;">Symbol</span>,
+    <span style="color: #83a598;">pair</span>: <span style="color: #fb4934;">struct</span> {
+        <span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>,
+        <span style="color: #83a598;">zbar</span>: <span style="color: #fabd2f;">Symbol</span>,
+    },
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">LocalOperator</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">family</span>: <span style="color: #fabd2f;">OperatorFamilyId</span>,
+    <span style="color: #83a598;">position</span>: <span style="color: #fabd2f;">PositionData</span>,
+    <span style="color: #83a598;">weights</span>: <span style="color: #fabd2f;">ConformalWeights</span>,
+    <span style="color: #83a598;">dz</span>: <span style="color: #fabd2f;">u8</span> = 0,
+    <span style="color: #83a598;">dzbar</span>: <span style="color: #fabd2f;">u8</span> = 0,
+};
+</code></pre>
+</div>
+
+<p>
+The family tells us the holomorphicity. So at runtime:
+</p>
+
+<ul class="org-ul">
+<li>holomorphic family: `single` means `z`</li>
+<li>antiholomorphic family: `single` means `zbar`</li>
+<li>generic family: use `pair`</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orga5d9a4a" class="outline-2">
+<h2 id="orga5d9a4a"><span class="section-number-2">7.</span> Coeff Representation In Wick Rules</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+Wick evaluators should return explicit `Coeff` values built from the coefficient data model.
+They should not return undefined placeholders like `simplePole(&hellip;)`.
+</p>
+
+<p>
+A small constructor layer is enough to keep those expressions readable.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Coeff</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">summands</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CoeffSummand</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CoeffSummand</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">rational_function</span>: <span style="color: #fabd2f;">RationalFunction</span>,
+    <span style="color: #83a598;">tensor_structure</span>: <span style="color: #fabd2f;">TensorStructure</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">RationalFunction</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">factors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">Factor</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Factor</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">base</span>: <span style="color: #fabd2f;">Polynomial</span>,
+    <span style="color: #83a598;">exponent</span>: <span style="color: #fabd2f;">i16</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Polynomial</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">PolynomialTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">PolynomialTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">monomial_coefficient</span>: <span style="color: #fabd2f;">Scalar</span>,
+    <span style="color: #83a598;">monomial</span>: <span style="color: #fabd2f;">Monomial</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Monomial</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">terms</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">MonomialTerm</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">MonomialTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">variable</span>: <span style="color: #fabd2f;">Symbol</span>,
+    <span style="color: #83a598;">power</span>: <span style="color: #fabd2f;">u16</span>,
+};
+</code></pre>
+</div>
+
+<p>
+For writing common Wick coefficients, add a few small helpers:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">variable</span>(<span style="color: #83a598;">sym</span>: <span style="color: #fabd2f;">Symbol</span>) Polynomial {
+    <span style="color: #fb4934;">return</span> .{
+        .terms = &amp;[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &amp;[_]MonomialTerm{
+                        .{ .variable = sym, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">difference</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Polynomial {
+    <span style="color: #fb4934;">return</span> .{
+        .terms = &amp;[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &amp;[_]MonomialTerm{
+                        .{ .variable = z, .power = 1 },
+                    },
+                },
+            },
+            .{
+                .monomial_coefficient = -1,
+                .monomial = .{
+                    .terms = &amp;[_]MonomialTerm{
+                        .{ .variable = w, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">oneOver</span>(<span style="color: #83a598;">poly</span>: <span style="color: #fabd2f;">Polynomial</span>) Coeff {
+    <span style="color: #fb4934;">return</span> .{
+        .summands = &amp;[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &amp;[_]Factor{
+                        .{ .base = poly, .exponent = -1 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">oneOverSquared</span>(<span style="color: #83a598;">poly</span>: <span style="color: #fabd2f;">Polynomial</span>) Coeff {
+    <span style="color: #fb4934;">return</span> .{
+        .summands = &amp;[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &amp;[_]Factor{
+                        .{ .base = poly, .exponent = -2 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+</code></pre>
+</div>
+
+<p>
+These helpers are still explicit in terms of the actual `Coeff` representation. They just remove the boilerplate.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd31c48b" class="outline-2">
+<h2 id="orgd31c48b"><span class="section-number-2">8.</span> Correlator Tactics</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+A sector should say how correlators are evaluated.
+Keep this explicit.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorTactic</span> = <span style="color: #fb4934;">enum</span> {
+    abstract,
+    wick,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickFn</span> = <span style="color: #fb4934;">fn</span> (<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff;
+</code></pre>
+</div>
+
+<p>
+The important point is that runtime correlator code should call one theory-specific function:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">maybe_coeff</span> = Theory.wick(left_op, right_op);
+</code></pre>
+</div>
+
+<p>
+not sector-specific names such as `bc<sub>wick</sub>`, and not a generic function that carries a runtime `theory` argument.
+</p>
+</div>
+</div>
+<div id="outline-container-org9fd7fdf" class="outline-2">
+<h2 id="org9fd7fdf"><span class="section-number-2">9.</span> Compile-Time Wick Construction</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+A Wick rule should not store a finished `Coeff`, because the coefficient depends on the concrete runtime operators: positions, derivatives, labels, and so on.
+</p>
+
+<p>
+Instead, a Wick rule should store:
+</p>
+
+<ul class="org-ul">
+<li>which family pair it applies to</li>
+<li>which runtime evaluator computes the coefficient for that pair</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">OperatorFamilyId</span>,
+    <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">OperatorFamilyId</span>,
+    <span style="color: #83a598;">eval</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">WickFn</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">WickRule</span>,
+};
+</code></pre>
+</div>
+
+<p>
+A compile-time helper builds a sector-local dispatcher from the rule table:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">buildWickFn</span>(<span style="color: #fb4934;">comptime</span> <span style="color: #83a598;">spec</span>: <span style="color: #fabd2f;">WickSpec</span>) *<span style="color: #fb4934;">const</span> <span style="color: #83a598;">WickFn</span> {
+    <span style="color: #fb4934;">return</span> &amp;<span style="color: #fb4934;">struct</span> {
+        <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">call</span>(<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff {
+            <span style="color: #fb4934;">inline</span> <span style="color: #fb4934;">for</span> (spec.rules) |rule| {
+                <span style="color: #fb4934;">if</span> (left.family == rule.left <span style="color: #fb4934;">and</span> right.family == rule.right) {
+                    <span style="color: #fb4934;">return</span> rule.eval(left, right);
+                }
+            }
+            <span style="color: #fb4934;">return</span> <span style="color: #d3869b;">null</span>;
+        }
+    }.call;
+}
+</code></pre>
+</div>
+
+<p>
+This gives one Wick dispatcher per Wick-enabled sector. Those dispatchers are then used by a higher-level compile-time theory builder.
+</p>
+</div>
+</div>
+<div id="outline-container-org50ed4f5" class="outline-2">
+<h2 id="org50ed4f5"><span class="section-number-2">10.</span> Building A Theory Type At Comptime</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+The full theory preset should be lowered at comptime into a theory-specific Zig type.
+That generated type exposes the operations that runtime code uses.
+</p>
+
+<p>
+A minimal sketch is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">buildTheory</span>(<span style="color: #fb4934;">comptime</span> <span style="color: #83a598;">spec</span>: <span style="color: #fabd2f;">CFTSpec</span>) <span style="color: #fabd2f;">type</span> {
+    <span style="color: #fb4934;">return</span> <span style="color: #fb4934;">struct</span> {
+        <span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">wick</span>(<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff {
+            <span style="color: #fb4934;">if</span> (left.sector != right.sector) <span style="color: #fb4934;">return</span> <span style="color: #d3869b;">null</span>;
+
+            <span style="color: #fb4934;">const</span> <span style="color: #83a598;">sector</span> = spec.sectors[left.sector];
+            <span style="color: #fb4934;">return</span> <span style="color: #fb4934;">switch</span> (sector.correlator_tactic) {
+                .abstract =&gt; <span style="color: #d3869b;">null</span>,
+                .wick =&gt; buildWickFn(sector.wick_spec.?)(left, right),
+            };
+        }
+    };
+}
+</code></pre>
+</div>
+
+<p>
+This is the key metaprogramming step.
+The preset is compile-time data. `buildTheory` uses it to generate a theory-specific namespace with a concrete `wick(left, right)` implementation.
+</p>
+
+<p>
+So runtime code does not carry a `theory` value around. It just calls the generated method.
+</p>
+</div>
+</div>
+<div id="outline-container-org4d0081c" class="outline-2">
+<h2 id="org4d0081c"><span class="section-number-2">11.</span> Concrete Rules</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+For now, keep the non-Wick rule layer minimal.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">RuleSet</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">ope_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">OPERule</span>,
+    <span style="color: #83a598;">bosonization_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">BosonizationRule</span>,
+};
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org262c7d7" class="outline-2">
+<h2 id="org262c7d7"><span class="section-number-2">12.</span> What `comptime` Means In Zig</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+In Zig, `comptime` means that a value or computation happens during compilation rather than during ordinary program execution.
+</p>
+
+<p>
+In this design, `comptime` is used in two ways.
+</p>
+
+<p>
+First, presets themselves are compile-time constants.
+Second, those presets are used to generate a theory-specific type with methods such as `wick`.
+</p>
+
+<p>
+For example:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">predefined</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-presets.zig"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">cft</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-spec.zig"</span>);
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Theory</span> = <span style="color: #fb4934;">comptime</span> cft.buildTheory(predefined.bc_free_boson);
+</code></pre>
+</div>
+
+<p>
+Here Zig runs `buildTheory(&hellip;)` while compiling the program.
+The result is a concrete Zig type, here called `Theory`, whose methods are specialized to that preset.
+</p>
+
+<p>
+So `comptime` is not only building constant data. It is also generating theory-specific code from the preset.
+</p>
+
+<p>
+OPEs, correlators, insertions, and symbolic expressions themselves remain runtime.
+</p>
+</div>
+</div>
+<div id="outline-container-orgccfe676" class="outline-2">
+<h2 id="orgccfe676"><span class="section-number-2">13.</span> Why Use Comptime</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+The point of comptime here is not just to make things static. It lets the preset be the single source of truth and uses metaprogramming to generate the theory-specific runtime interface.
+</p>
+
+<p>
+From the preset, the library can derive:
+</p>
+
+<ul class="org-ul">
+<li>allowed position shape from holomorphicity</li>
+<li>whether a family has fixed weights or requires runtime-supplied weights</li>
+<li>which families are fundamental fields and which are ordinary operators</li>
+<li>sector-specific Wick dispatchers</li>
+<li>the final public `Theory.wick(left, right)` entry point</li>
+<li>lookup tables for sectors and families</li>
+</ul>
+
+<p>
+Without comptime, the library author would have to keep those pieces in sync by hand and would likely end up with more theory-dependent runtime code.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc6795cf" class="outline-2">
+<h2 id="orgc6795cf"><span class="section-number-2">14.</span> Example Presets</h2>
+<div class="outline-text-2" id="text-14">
+</div>
+<div id="outline-container-orgc34aba2" class="outline-3">
+<h3 id="orgc34aba2"><span class="section-number-3">14.1.</span> bc sector with Wick tactic</h3>
+<div class="outline-text-3" id="text-14-1">
+<p>
+The example below writes the Wick coefficient explicitly in the `Coeff` model.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">b_id</span>: <span style="color: #fabd2f;">OperatorFamilyId</span> = 0;
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">c_id</span>: <span style="color: #fabd2f;">OperatorFamilyId</span> = 1;
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">bcContraction</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Coeff {
+    <span style="color: #fb4934;">return</span> oneOver(difference(z, w));
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">bcDerivativeContraction</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Coeff {
+    <span style="color: #fb4934;">return</span> oneOverSquared(difference(z, w));
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">cbContraction</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Coeff {
+    <span style="color: #fb4934;">return</span> oneOver(difference(w, z));
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">evalBC</span>(<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff {
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">z</span> = left.position.single;
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">w</span> = right.position.single;
+
+    <span style="color: #fb4934;">if</span> (left.dz == 0 <span style="color: #fb4934;">and</span> right.dz == 0) {
+        <span style="color: #fb4934;">return</span> bcContraction(z, w);
+    }
+    <span style="color: #fb4934;">if</span> (left.dz == 0 <span style="color: #fb4934;">and</span> right.dz == 1) {
+        <span style="color: #fb4934;">return</span> bcDerivativeContraction(z, w);
+    }
+
+    <span style="color: #fb4934;">return</span> <span style="color: #d3869b;">null</span>;
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">evalCB</span>(<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff {
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">z</span> = left.position.single;
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">w</span> = right.position.single;
+
+    <span style="color: #fb4934;">if</span> (left.dz == 0 <span style="color: #fb4934;">and</span> right.dz == 0) {
+        <span style="color: #fb4934;">return</span> cbContraction(z, w);
+    }
+
+    <span style="color: #fb4934;">return</span> <span style="color: #d3869b;">null</span>;
+}
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">bc</span> = SectorSpec{
+    .name = <span style="color: #b8bb26;">"bc"</span>,
+    .operators = &amp;[_]OperatorFamilySpec{
+        .{
+            .name = <span style="color: #b8bb26;">"b"</span>,
+            .kind = .fundamental_field,
+            .holomorphicity = .holomorphic,
+            .weights = .{ .fixed = .{ .h = 2, .hbar = <span style="color: #d3869b;">null</span> } },
+            .quantum_numbers = .{ .ghost_number = -1 },
+        },
+        .{
+            .name = <span style="color: #b8bb26;">"c"</span>,
+            .kind = .fundamental_field,
+            .holomorphicity = .holomorphic,
+            .weights = .{ .fixed = .{ .h = -1, .hbar = <span style="color: #d3869b;">null</span> } },
+            .quantum_numbers = .{ .ghost_number = 1 },
+        },
+    },
+    .correlator_tactic = .wick,
+    .wick_spec = .{
+        .rules = &amp;[_]WickRule{
+            .{ .left = b_id, .right = c_id, .eval = &amp;evalBC },
+            .{ .left = c_id, .right = b_id, .eval = &amp;evalCB },
+        },
+    },
+    .rules = .{
+        .ope_rules = &amp;[_]OPERule{},
+        .bosonization_rules = &amp;[_]BosonizationRule{},
+    },
+};
+</code></pre>
+</div>
+
+<p>
+So:
+</p>
+
+<ul class="org-ul">
+<li>`b(z)` with `c(w)` returns `oneOver(difference(z, w))`, representing `1 / (z - w)`</li>
+<li>`b(z)` with `&part; c(w)` returns `oneOverSquared(difference(z, w))`, representing `1 / (z - w)<sup>2</sup>`</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org007da66" class="outline-3">
+<h3 id="org007da66"><span class="section-number-3">14.2.</span> free boson sector with Wick tactic</h3>
+<div class="outline-text-3" id="text-14-2">
+<p>
+For the free boson, it is useful to add one more coefficient helper for a logarithmic term.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">logDifference</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Coeff {
+    <span style="color: #fb4934;">return</span> .{
+        .summands = &amp;[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &amp;[_]Factor{
+                        .{ .base = difference(z, w), .exponent = 0 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">x_id</span>: <span style="color: #fabd2f;">OperatorFamilyId</span> = 0;
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">xxContraction</span>(<span style="color: #83a598;">z</span>: <span style="color: #fabd2f;">Symbol</span>, <span style="color: #83a598;">w</span>: <span style="color: #fabd2f;">Symbol</span>) Coeff {
+    <span style="color: #fb4934;">return</span> logDifference(z, w);
+}
+
+<span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">evalXX</span>(<span style="color: #83a598;">left</span>: <span style="color: #fabd2f;">LocalOperator</span>, <span style="color: #83a598;">right</span>: <span style="color: #fabd2f;">LocalOperator</span>) ?Coeff {
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">left_pos</span> = left.position.pair;
+    <span style="color: #fb4934;">const</span> <span style="color: #83a598;">right_pos</span> = right.position.pair;
+
+    <span style="color: #fb4934;">if</span> (left.dz == 0 <span style="color: #fb4934;">and</span> right.dz == 0 <span style="color: #fb4934;">and</span> left.dzbar == 0 <span style="color: #fb4934;">and</span> right.dzbar == 0) {
+        _ = left_pos.zbar;
+        _ = right_pos.zbar;
+        <span style="color: #fb4934;">return</span> xxContraction(left_pos.z, right_pos.z);
+    }
+
+    <span style="color: #fb4934;">return</span> <span style="color: #d3869b;">null</span>;
+}
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">free_boson</span> = SectorSpec{
+    .name = <span style="color: #b8bb26;">"free_boson"</span>,
+    .operators = &amp;[_]OperatorFamilySpec{
+        .{
+            .name = <span style="color: #b8bb26;">"X"</span>,
+            .kind = .fundamental_field,
+            .holomorphicity = .generic,
+            .weights = .{ .fixed = .{ .h = 0, .hbar = 0 } },
+            .quantum_numbers = .{},
+        },
+        .{
+            .name = <span style="color: #b8bb26;">"expX"</span>,
+            .kind = .ordinary_operator,
+            .holomorphicity = .generic,
+            .weights = .supplied_at_construction,
+            .quantum_numbers = .{},
+        },
+    },
+    .correlator_tactic = .wick,
+    .wick_spec = .{
+        .rules = &amp;[_]WickRule{
+            .{ .left = x_id, .right = x_id, .eval = &amp;evalXX },
+        },
+    },
+    .rules = .{
+        .ope_rules = &amp;[_]OPERule{},
+        .bosonization_rules = &amp;[_]BosonizationRule{},
+    },
+};
+</code></pre>
+</div>
+
+<p>
+The exact internal representation of logarithms may later need its own extension beyond the rational-function layer. The point here is that even this example is written through explicit `Coeff` constructors, not an undefined placeholder.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org963e00e" class="outline-2">
+<h2 id="org963e00e"><span class="section-number-2">15.</span> Tensor Product Helper</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+A compile-time helper can stay trivial:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">tensorProduct</span>(<span style="color: #fb4934;">comptime</span> <span style="color: #83a598;">sectors</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">SectorSpec</span>) CFTSpec {
+    <span style="color: #fb4934;">return</span> .{ .sectors = sectors };
+}
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org722fe39" class="outline-2">
+<h2 id="org722fe39"><span class="section-number-2">16.</span> How Presets Are Loaded</h2>
+<div class="outline-text-2" id="text-16">
+<p>
+Presets are plain Zig constants.
+A project loads them by import, then lowers them at comptime into a theory-specific type.
+</p>
+
+<p>
+For a named theory preset:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">predefined</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-presets.zig"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">cft</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-spec.zig"</span>);
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Theory</span> = <span style="color: #fb4934;">comptime</span> cft.buildTheory(predefined.bc_free_boson);
+</code></pre>
+</div>
+
+<p>
+Or the project assembles a theory at compile time from sector presets first:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">predefined</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-presets.zig"</span>);
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">cft</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"cft-spec.zig"</span>);
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">spec</span> = <span style="color: #fb4934;">comptime</span> cft.tensorProduct(&amp;[_]cft.SectorSpec{
+    predefined.bc,
+    predefined.free_boson,
+});
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">Theory</span> = <span style="color: #fb4934;">comptime</span> cft.buildTheory(spec);
+</code></pre>
+</div>
+
+<p>
+Once `Theory` is built, runtime code stays theory-agnostic:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">maybe_coeff</span> = Theory.wick(left_op, right_op);
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org76519a7" class="outline-2">
+<h2 id="org76519a7"><span class="section-number-2">17.</span> Compile-Time Flow</h2>
+<div class="outline-text-2" id="text-17">
+<div class="org-src-container">
+<pre class="src src-text"><code>predefined sector presets
+    |
+    +----&gt; comptime buildWickFn(...) for Wick-enabled sectors
+    |
+    +----&gt; comptime buildTheory(...)
+    |
+    v
+final theory-specific type: Theory
+    |
+    v
+runtime insertions and calculations
+    |
+    v
+Theory.wick(left_op, right_op) -&gt; ?Coeff
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb6f63fa" class="outline-2">
+<h2 id="orgb6f63fa"><span class="section-number-2">18.</span> Summary</h2>
+<div class="outline-text-2" id="text-18">
+<p>
+A simple but sufficient design is:
+</p>
+
+<ul class="org-ul">
+<li>`CFTSpec` is a list of sectors</li>
+<li>each `SectorSpec` declares operator families, one correlator tactic, optional Wick specification, and rule tables</li>
+<li>each `OperatorFamilySpec` declares whether it is a fundamental field or an ordinary operator, together with holomorphicity, weights, and quantum numbers</li>
+<li>comptime lowers the preset into a theory-specific type such as `Theory`</li>
+<li>runtime correlator code calls theory methods such as `Theory.wick(left, right)` and stays largely theory-agnostic</li>
+</ul>
+
+<p>
+This keeps the structure small while using metaprogramming in exactly the place where it is most valuable.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2026-06-04 Thu 16:46</p>
+</div>
+</body>
+</html>

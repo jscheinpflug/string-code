@@ -1,0 +1,121 @@
+:PROPERTIES:
+:ID:       20260603T094125.997360
+:END:
+#+title: Operators
+#+auto_tangle: t
+#+PROPERTY: header-args :tangle ../../../src/cft-code/expressions/operators.zig :mkdirp yes
+
+#+interface:
+
+#+begin_src zig
+const coefficient = @import("coefficient.zig");
+const tensor = @import("tensor-code");
+#+end_src
+
+A local operator can be inserted at a point and carry extra information captured in the code by its body.
+
+#+begin_src zig
+/// A local operator inserted at a point
+pub const Operator = struct {
+    insertion: OperatorInsertion,
+    body: OperatorBodyId,
+};
+
+/// An identifier for operator body
+pub const OperatorBodyId = u32;
+#+end_src
+
+An operator body can either be that of the identity, a generic atomic operator or a normal-ordered product of operator bodies (in free field theory).
+#+begin_src zig
+/// An operator body is either atomic or normal-ordered
+pub const OperatorBody = union(enum) {
+    identity,
+    atomic: AtomicBody,
+    normal_ordered: []const OperatorBodyId,
+};
+#+end_src
+
+An atomic operator body can come in different kinds specified when defining the [[id:20260605T090102.250727][Theory]] and can carry extra runtime information.
+#+begin_src zig
+/// An atomic operator body comes in different kinds and can carry extra information
+pub const AtomicBody = struct {
+    kind: OperatorKindId,
+    extra: OperatorExtraId,
+};
+
+/// An identifier for operator kind
+pub const OperatorKindId = u32;
+/// An identifier for operator extra information
+pub const OperatorExtraId = u32;
+#+end_src
+
+An operator kind contains what is required to define a local operator at the CFT level.
+#+begin_src zig
+/// Defines the various kinds of operators
+pub const OperatorKind = struct {
+    holomorphicity: Holomorphicity,
+    conformal_weights: ConformalWeights,
+    quantum_numbers: tensor.QuantumNumbers,
+    supported_correlator_tactics: []const CorrelatorTactic,
+};
+#+end_src
+
+In the case of interest, that means definining whether the operator is holomorphic/antiholomorphic or both,
+#+begin_src zig
+/// Determines whether an operator is holomorphic/antiholomorphic or both
+pub const Holomorphicity = enum {
+    holomorphic,
+    antiholomorphic,
+    both,
+};
+#+end_src
+
+its conformal weight(s) that can either be fixed at compile time or computed at runtime
+#+begin_src zig
+/// ConformalWeights stores fixed weights or a rule for computing them.
+pub const ConformalWeights = union(enum) {
+    fixed: FixedConformalWeights,
+    computed: WeightRuleId,
+};
+
+/// FixedConformalWeights stores optional left and right conformal weights.
+pub const FixedConformalWeights = struct {
+    h: ?f16,
+    hbar: ?f16,
+};
+
+/// WeightRuleId names a rule that computes conformal weights from labels.
+pub const WeightRuleId = u16;
+#+end_src
+
+and lastly what quantum numbers supported by [[id:20260605T075909.433647][Tensor-Code]] it carries and what tactics of correlator computation it supports.
+
+Currently, the supported correlator tactics are to either keep the correlator abstract (only return zero if selection rule is no met, otherwise keep in abstract form), evaluate it via Wick contractions of input operators or bosonize the input operators first and then evaluate via Wick contractions.
+
+#+begin_src zig
+/// A tactic for the the evaluation of correlators
+pub const CorrelatorTactic = enum {
+    abstract,
+    wick,
+    bosonize,
+};
+#+end_src
+
+
+The operator insertion point be denoted by a single point such as \(z\) or \(\bar{z}\), or both \(z, \bar{z}\), which are typed as variables from [[id:20260604T083119.372970][Coefficient]]. We bundle the derivatives of a local operator with the insertion point.
+
+#+begin_src zig
+/// Operator insertion data are specified by a position and a number of derivatives
+pub const OperatorInsertion = union(enum) {
+    single: struct {
+        position: coefficient.Variable,
+        derivatives: u8,
+        },
+    pair: struct {
+        holomorphic_position: coefficient.Variable,
+        antiholomorphic_position: coefficient.Variable,
+        holomorphic_derivatives: u8,
+        antiholomorphic_derivatives: u8,
+    },
+};
+#+end_src

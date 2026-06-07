@@ -1,0 +1,1000 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 10:21 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Abstraction Sufficiency Assessment</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Abstraction Sufficiency Assessment</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org3bed273">1. Scope</a></li>
+<li><a href="#org68e7cde">2. Bottom Line</a></li>
+<li><a href="#org2e5ed5a">3. Prototype-Calibrated Target</a></li>
+<li><a href="#org42f41eb">4. Kernel Design Stance</a>
+<ul>
+<li><a href="#org8c97ce6">4.1. Tensor-Code</a></li>
+<li><a href="#orga7de599">4.2. CFT-Code</a></li>
+<li><a href="#org0496297">4.3. Client Layers</a></li>
+</ul>
+</li>
+<li><a href="#org2ddcc35">5. Spectrum Projections And Boundary Conditions</a>
+<ul>
+<li><a href="#org31c9017">5.1. Missing From The Current Specs</a></li>
+<li><a href="#org2dc7334">5.2. Minimal Generic Design</a></li>
+<li><a href="#org2081516">5.3. Free Boson D-Brane Check</a></li>
+<li><a href="#orgcf82441">5.4. Free Fermion And Beta-Gamma D-Brane Check</a></li>
+<li><a href="#orgfab2de0">5.5. Consequence</a></li>
+</ul>
+</li>
+<li><a href="#org2b153ba">6. Book-Derived Requirements</a>
+<ul>
+<li><a href="#org2e0c004">6.1. On-shell bosonic string amplitudes</a></li>
+<li><a href="#orgb13a9b6">6.2. Superstring perturbation theory</a></li>
+<li><a href="#orgbabc802">6.3. String field theory</a></li>
+<li><a href="#org1518883">6.4. Weakly curved backgrounds / NLSM quantization</a></li>
+</ul>
+</li>
+<li><a href="#org8657eb4">7. Current Project Abstractions</a>
+<ul>
+<li><a href="#org1b7e3c5">7.1. CFT-Code</a></li>
+<li><a href="#org73bd55e">7.2. Tensor-Code</a></li>
+<li><a href="#org91bff9d">7.3. SFT-Code, NLSM-Code, On-Shell-Code, Pure-Spinor-Code</a></li>
+</ul>
+</li>
+<li><a href="#org223a6e3">8. Sufficiency By Target</a>
+<ul>
+<li><a href="#org24ab532">8.1. Superstring perturbation theory</a></li>
+<li><a href="#orgc18ab8b">8.2. String field theory</a></li>
+<li><a href="#org88ddf67">8.3. Weakly curved backgrounds / NLSM quantization</a></li>
+</ul>
+</li>
+<li><a href="#org0f6ecdd">9. What Is Promising</a></li>
+<li><a href="#org02d575a">10. Highest-Priority Kernel Abstractions</a></li>
+<li><a href="#org3ab71ea">11. Conclusion</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org3bed273" class="outline-2">
+<h2 id="org3bed273"><span class="section-number-2">1.</span> Scope</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note assesses whether the abstractions currently defined in <code>org/</code>, mainly <code>cft-code</code> and <code>tensor-code</code>, are sufficient for:
+</p>
+
+<ul class="org-ul">
+<li>superstring perturbation theory,</li>
+<li>bosonic and super string field theory,</li>
+<li>string theory on weakly curved backgrounds, i.e. perturbative quantization of nonlinear sigma models.</li>
+</ul>
+
+<p>
+I read the relevant project notes in <code>org/</code>, the tangled Zig source in <code>src/</code>, and the local stringbook source at <code>stringbook/texsource/string notes.tex</code>.
+</p>
+
+<p>
+After the first pass, I also read <code>prototype-string-code/</code> to calibrate the target more precisely. The prototype should be treated as evidence for the workflows we need to support, not as the abstraction model to copy. The target is not a full formal implementation of supermoduli geometry, BV geometry, or general string perturbation theory as mathematical objects. The target is a performant, extensible symbolic-algebra kernel, centered on <code>tensor-code</code> and <code>cft-code</code>, that can later support ghost-number, picture, bracket, amplitude, and SFT-specific logic as client layers.
+</p>
+</div>
+</div>
+<div id="outline-container-org68e7cde" class="outline-2">
+<h2 id="org68e7cde"><span class="section-number-2">2.</span> Bottom Line</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The current abstractions are <b>not yet sufficient</b> for the intended performant kernel, but the missing pieces are more concrete and narrower than a full theory-geometry stack.
+</p>
+
+<p>
+There is a reasonable seed for a symbolic worldsheet CFT kernel: local operators, normal-ordered operator bodies, rational coordinate coefficients, a sectorized theory object, and a tensor-structure slot in coefficients. The design notes also identify several right extension points: streaming Wick/OPE evaluation, generated theory-specific Wick rules, picture number, richer tensor expressions, PCO contours, and local-coordinate data.
+</p>
+
+<p>
+However, the implemented abstractions are still too skeletal for the actual computational workflows suggested by <code>prototype-string-code/</code>. They do not yet model a sufficiently generic field/operator registry, a lean normal-product representation, generic quantum-number bookkeeping, a contraction/OPE mechanism that can return residual operators, projected OPE/Taylor expansion, or the tensor-structure solver needed for Type II spin-field calculations.
+</p>
+
+<p>
+For the intended package, we do <b>not</b> need to encode every global construction from the book as first-class data. We do need enough hooks to let a concrete bracket or amplitude prescription provide local coordinate maps, finite PCO zero-mode actions, projection targets, and surface-dependent zero-mode rules.
+</p>
+</div>
+</div>
+<div id="outline-container-org2e5ed5a" class="outline-2">
+<h2 id="org2e5ed5a"><span class="section-number-2">3.</span> Prototype-Calibrated Target</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The prototype&rsquo;s <code>README.md</code> describes a Mathematica package for algebraic worldsheet calculations: normal-ordered products, Wick contractions, OPEs, brackets, BRST action, Type IIB superstring support, flat-space/minimal-model backgrounds, and CFT-specific field data.
+</p>
+
+<p>
+The detailed <code>ALGORITHMS.md</code> makes the target architecture especially clear:
+</p>
+
+<ul class="org-ul">
+<li>A metadata-driven field registry via <code>DefineField</code> stores statistics, simple/composite status, holomorphicity, index status, collapsability, factorizability, pairings, ghost number, weights, picture, and GSO parity.</li>
+<li><code>R[...]</code> is a normal-ordered product with graded canonicalization, scalar stripping, multilinearity, nilpotency of regular fermions, and Type II bosonized-exponential merge rules.</li>
+<li>Wick is split into <code>Wick</code>, <code>SWick</code>, and <code>MWick</code>, with <code>DWick</code> providing shared recursion over normal-ordered products.</li>
+<li><code>OPE</code> has a two-layer structure: it handles multilinearity and collapsable/non-collapsable splitting, while <code>OPEWick</code> performs free-field recursion on the collapsable sector.</li>
+<li><code>OPEProjected</code> rescales insertion positions, reads off powers, and Taylor-expands to a target conformal weight.</li>
+<li><code>TaylorAtOrder</code> rewrites fields around a target point, including field-specific rules for exponentials, profiles, superghost exponentials, and spin fields.</li>
+<li><code>Bracket</code> uses supplied local-coordinate maps, conformal placement, curly-\(B\) construction, b-ghost mode action, projected OPE, and Type II PCO zero-mode actions.</li>
+<li>Type II spin-field projected OPE uses a basis-generation and tensor-structure solving pipeline rather than pure Wick recursion.</li>
+</ul>
+
+<p>
+The new Zig/literate design should therefore aim to express these workflows in a type-driven, streamable, extensible way. It should <b>not</b> mechanically reproduce the prototype&rsquo;s public heads or its split into <code>Wick</code>, <code>SWick</code>, and <code>MWick</code>. A cleaner kernel can use a single contraction operation whose result is a symbolic expression, possibly containing residual operators. Likewise, the normal-ordered product should be a lean canonical product representation, not a heavy recursive tree copied from Mathematica syntax. That is a different bar from representing the full supermoduli or BV geometry.
+</p>
+</div>
+</div>
+<div id="outline-container-org42f41eb" class="outline-2">
+<h2 id="org42f41eb"><span class="section-number-2">4.</span> Kernel Design Stance</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The kernel boundary should be <code>tensor-code</code> plus <code>cft-code</code>.
+</p>
+</div>
+<div id="outline-container-org8c97ce6" class="outline-3">
+<h3 id="org8c97ce6"><span class="section-number-3">4.1.</span> Tensor-Code</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+<code>Tensor-Code</code> should know about abstract symmetry data, representations, indices, invariant tensors, tensor expressions, canonicalization, and evaluation/probing of tensor structures. It should not know about string amplitudes, brackets, or picture-changing.
+</p>
+
+<p>
+For Type II flat-space work, the first serious target is still concrete: spinor/vector tensor structures built from deltas, charge-conjugation matrices, antisymmetrized gamma products, epsilon-like structures when needed, and linear independence selection. The abstractions should be general enough that this is an instance of invariant-tensor generation and manipulation, not a hardcoded “Type II spin projection” subsystem.
+</p>
+</div>
+</div>
+<div id="outline-container-orga7de599" class="outline-3">
+<h3 id="orga7de599"><span class="section-number-3">4.2.</span> CFT-Code</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+<code>CFT-Code</code> should know about local fields/operators, local products, insertion positions, derivatives, conformal weights, generic quantum numbers, OPE/contraction rules, Taylor/projection logic, and correlator/OPE algorithms.
+</p>
+
+<p>
+It should <b>not</b> know that a certain \(U(1)\) charge is “ghost number” or “picture number”. Those are just named/additive quantum numbers to the CFT layer. Later string-specific layers may impose interpretations such as ghost-number anomaly, picture balance, GSO projection, or physical-state constraints.
+</p>
+
+<p>
+The CFT kernel should therefore support:
+</p>
+
+<ul class="org-ul">
+<li>named/additive quantum numbers with selection-rule hooks;</li>
+<li>operator families with generic metadata, not string-specific flags;</li>
+<li>generic contraction/OPE rules that may return scalar coefficients, residual operators, or sums of both;</li>
+<li>lean local-product canonicalization with statistics/sign rules supplied by the CFT;</li>
+<li>basis generation by weight and quantum numbers;</li>
+<li>projection to target weights by local Taylor expansion;</li>
+<li>streaming emission of terms rather than owned expression-tree blowup.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org0496297" class="outline-3">
+<h3 id="org0496297"><span class="section-number-3">4.3.</span> Client Layers</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+Ghost-number constraints, picture-changing, string brackets, amplitude prescriptions, boundary/orientifold logic, and SFT propagators should be clients of the kernel. They can request CFT operations, inspect generic quantum numbers by name, and supply extra rule tables, but they should not force the CFT core to bake in their physical semantics.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2ddcc35" class="outline-2">
+<h2 id="org2ddcc35"><span class="section-number-2">5.</span> Spectrum Projections And Boundary Conditions</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+The current CFT specs are also not yet sufficient for two concrete operations we should expect early:
+</p>
+
+<ul class="org-ul">
+<li>take an already-defined operator/state spectrum and project it by a finite symmetry, such as an orbifold, GSO-like parity, or orientifold action;</li>
+<li>compute correlators with a boundary once boundary-condition data has been supplied.</li>
+</ul>
+
+<p>
+Both can be added with small, generic abstractions. They do not require <code>CFT-Code</code> to know what an orientifold, D-brane, ghost number, or picture number means.
+</p>
+</div>
+<div id="outline-container-org31c9017" class="outline-3">
+<h3 id="org31c9017"><span class="section-number-3">5.1.</span> Missing From The Current Specs</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+The existing specs talk about operator families, quantum numbers, Wick rules, and projected OPEs. That is the right core, but the following data is missing:
+</p>
+
+<ol class="org-ol">
+<li><b>A first-class operator spectrum view.</b>
+Basis generation should produce a list or stream of candidate local bodies/states with weight, named quantum numbers, tensor labels, sector labels, and descendant data. A projection cannot be applied cleanly if the spectrum is only implicit inside ad hoc generator code.</li>
+
+<li><b>Linear actions on operators and states.</b>
+A projection needs an action \(g\cdot O_i=\sum_j M_{ji}(g)O_j\), not just predicates on metadata. The action must be able to map sectors, operator families, extras, tensor indices, quantum numbers, and possibly chirality/left-right factors.</li>
+
+<li><b>Projector construction.</b>
+Given a finite action, the kernel should build
+\[
+     P_\chi O = {|G|}^{-1}\sum_{g\in G}\chi(g)^{-1} g\cdot O
+   \]
+and reduce the result in the generated basis. For a simple even/odd projection this is just \((1\pm g)/2\). For a full orbifold, twisted sectors and twist fields are extra spectrum data; the projection machinery itself only needs a group action on whatever spectrum has been supplied.</li>
+
+<li><b>Orientation-reversing actions.</b>
+Orientifolds are not just internal symmetry projections: they can exchange holomorphic and antiholomorphic sectors and act on insertion coordinates. The minimal abstraction is still generic: an action may be orientation-preserving or orientation-reversing, and may map an insertion/body to a linear combination of insertions/bodies.</li>
+
+<li><b>Boundary condition data as gluing data.</b>
+Boundary correlators require a gluing map from antiholomorphic fields to holomorphic image fields, plus zero-mode rules. This is not present in the current CFT spec.</li>
+
+<li><b>Boundary-local insertions.</b>
+A boundary operator is not the same runtime insertion shape as a bulk \((z,\bar z)\) operator. The runtime layer needs a boundary insertion position, a boundary-condition label or brane-pair label, and a body expressed in boundary generators or in doubled chiral fields.</li>
+
+<li><b>Surface context for correlators.</b>
+A correlator on the plane is not the same operation as a correlator on the upper half-plane/disk. The correlator call needs a small context containing the surface kind, boundary condition labels, zero-mode prescription, and image/doubling map.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2dc7334" class="outline-3">
+<h3 id="org2dc7334"><span class="section-number-3">5.2.</span> Minimal Generic Design</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+The smallest design that seems enough is the following.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">SpectrumTerm</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">body</span>: <span style="color: #fabd2f;">OperatorBodyId</span>,
+    <span style="color: #83a598;">weight</span>: <span style="color: #fabd2f;">ConformalWeights</span>,
+    <span style="color: #83a598;">quantum_numbers</span>: <span style="color: #fabd2f;">QuantumVector</span>,
+    <span style="color: #83a598;">sector</span>: <span style="color: #fabd2f;">SectorId</span>,
+    <span style="color: #83a598;">coeff</span>: <span style="color: #fabd2f;">Coeff</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">SymmetryActionSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">orientation</span>: <span style="color: #fb4934;">enum</span> { preserving, reversing },
+    <span style="color: #83a598;">order</span>: <span style="color: #fabd2f;">u16</span>,
+    <span style="color: #83a598;">action_on_body</span>: <span style="color: #fabd2f;">BodyActionFn</span>,
+    <span style="color: #83a598;">action_on_insertion</span>: <span style="color: #fabd2f;">InsertionActionFn</span>,
+    <span style="color: #83a598;">action_on_extra</span>: <span style="color: #fabd2f;">ExtraActionFn</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">ProjectionSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">action</span>: <span style="color: #fabd2f;">SymmetryActionId</span>,
+    <span style="color: #83a598;">character</span>: <span style="color: #fabd2f;">CharacterFn</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">BoundaryConditionSpec</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">name</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">u8</span>,
+    <span style="color: #83a598;">gluing</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">GluingRule</span>,
+    <span style="color: #83a598;">zero_modes</span>: <span style="color: #fabd2f;">ZeroModeRuleSet</span>,
+    <span style="color: #83a598;">boundary_families</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">BoundaryOperatorFamilySpec</span>,
+};
+
+<span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">const</span> <span style="color: #83a598;">GluingRule</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">anti_family</span>: <span style="color: #fabd2f;">OperatorFamilyId</span>,
+    <span style="color: #83a598;">image_expr</span>: <span style="color: #fabd2f;">GluingImageTemplate</span>,
+};
+</code></pre>
+</div>
+
+<p>
+The actual functions should be generated at comptime from declarative specs. Runtime code should only call fixed operations such as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>Theory.projectSpectrum(projection, spectrum, sink);
+Theory.doubleBulkInsertion(boundary_condition, bulk_op, sink);
+Theory.boundaryCorrelator(context, insertions, sink);
+</code></pre>
+</div>
+
+<p>
+The critical rule is that the DSL supplies data for known algorithms. It should not generate new runtime algorithms. Projection is linear algebra over a generated basis; boundary correlators use gluing/doubling plus the ordinary chiral correlator engine.
+</p>
+</div>
+</div>
+<div id="outline-container-org2081516" class="outline-3">
+<h3 id="org2081516"><span class="section-number-3">5.3.</span> Free Boson D-Brane Check</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+For a flat free boson CFT with
+\[
+  X^\mu(z,\bar z)=X_L^\mu(z)+X_R^\mu(\bar z),
+\]
+a D\(p\)-brane is specified locally by a reflection matrix
+\[
+  R^&mu;<sub>&nu;</sub> =
+</p>
+\begin{cases}
+  +\delta^\mu{}_\nu & \mu,\nu \text{ tangent to the brane},\\
+  -\delta^\mu{}_\nu & \mu,\nu \text{ normal to the brane}.
+\end{cases}
+<p>
+\]
+</p>
+
+<p>
+The boundary condition data is just the gluing rule
+\[
+  \bar\partial X^\mu(\bar z) \mapsto R^\mu{}_\nu \partial X^\nu(\bar z).
+\]
+</p>
+
+<p>
+Then <code>boundaryCorrelator</code> on the upper half-plane reduces every antiholomorphic insertion to a holomorphic image insertion and calls the ordinary chiral free-boson Wick engine. For example:
+</p>
+
+<p>
+\[
+  \langle \partial X^\mu(z)\bar\partial X^\nu(\bar w)\rangle_B
+  =
+  -{\alpha'\over 2}
+  {R^\nu{}_\rho\eta^{\mu\rho}\over (z-\bar w)^2}.
+\]
+</p>
+
+<p>
+Neumann and Dirichlet zero modes are not CFT metadata; they belong to the boundary condition:
+</p>
+
+<ul class="org-ul">
+<li>Neumann directions integrate zero modes and impose momentum conservation along the brane.</li>
+<li>Dirichlet directions fix the zero mode to the brane position and produce position-dependent phases for momentum-carrying bulk operators.</li>
+</ul>
+
+<p>
+Boundary open-string operators on a single brane are represented as boundary-local products of the doubled chiral fields at \(x\in\mathbb R\), with Chan-Paton labels as optional external labels. Boundary-changing operators between different branes are <b>not</b> derivable from the gluing map alone; their spectrum and bulk-boundary OPE constants must be supplied as additional boundary CFT data.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcf82441" class="outline-3">
+<h3 id="orgcf82441"><span class="section-number-3">5.4.</span> Free Fermion And Beta-Gamma D-Brane Check</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+For the NSR matter fermions, the D-brane supplies the same reflection matrix together with a spin-structure/sign label \(\eta_B=\pm1\):
+</p>
+
+<p>
+\[
+  \tilde\psi^\mu(\bar z) \mapsto \eta_B R^\mu{}_\nu \psi^\nu(\bar z).
+\]
+</p>
+
+<p>
+The ordinary holomorphic free-fermion rule
+\[
+  \psi^\mu(z)\psi^\nu(w)\sim {\eta^{\mu\nu}\over z-w}
+\]
+then immediately gives the mixed boundary contraction
+\[
+  \langle \psi^\mu(z)\tilde\psi^\nu(\bar w)\rangle_B
+  =
+  {\eta_B R^\nu{}_\rho\eta^{\mu\rho}\over z-\bar w}.
+\]
+</p>
+
+<p>
+For the \(\beta\gamma\) system, the boundary condition is another gluing automorphism:
+</p>
+
+<p>
+\[
+  \tilde\beta(\bar z)\mapsto \lambda_\beta\beta(\bar z),
+  \qquad
+  \tilde\gamma(\bar z)\mapsto \lambda_\gamma\gamma(\bar z),
+  \qquad
+  \lambda_\beta\lambda_\gamma=1.
+\]
+</p>
+
+<p>
+In bosonized variables this is equivalently a rule for \(\tilde\phi,\tilde\eta,\tilde\xi\) that preserves the OPEs and the chosen PCO/BRST convention. The CFT kernel does not need to know why these fields are superghosts. It only checks that the gluing map preserves the declared OPEs, weights, and any named quantum numbers the client asks it to preserve.
+</p>
+
+<p>
+With these rules, mixed bulk-boundary correlators involving \(e^{q\phi}\), \(\eta\), \(\xi\), \(\beta\), \(\gamma\), and matter fermions are computed by the same doubled chiral correlator/OPE engine used for bulk free-field calculations. String-specific layers can later decide which picture, GSO parity, or BRST constraints are physically allowed.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfab2de0" class="outline-3">
+<h3 id="orgfab2de0"><span class="section-number-3">5.5.</span> Consequence</h3>
+<div class="outline-text-3" id="text-5-5">
+<p>
+This reinforces the earlier conclusion: the CFT kernel should expose generic spectra, linear actions, projectors, gluing maps, boundary insertions, zero-mode prescriptions, and surface correlator contexts. Orbifold/orientifold and D-brane physics can then be implemented as data and client-side interpretation. Without these additions, the current specs cannot project a spectrum or derive boundary correlators in a controlled way.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2b153ba" class="outline-2">
+<h2 id="org2b153ba"><span class="section-number-2">6.</span> Book-Derived Requirements</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+This section records what the book says the physical calculations come from. For the package design, these should be read as sources of <b>local symbolic requirements</b>, not as a claim that every global object must be implemented as a complete formal abstraction.
+</p>
+</div>
+<div id="outline-container-org2e0c004" class="outline-3">
+<h3 id="org2e0c004"><span class="section-number-3">6.1.</span> On-shell bosonic string amplitudes</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+The stringbook formulates genus-\(h\), \(n\)-point amplitudes as CFT correlators integrated over \({\cal M}_{h,n}\), with \(b\)-ghost insertions tied to moduli and \(c\)-ghost insertions at punctures. Vertex operators must be regularized primaries of weight \((1,1)\), and the correlator is a top-degree form on moduli space (<code>string notes.tex</code> lines 1637&ndash;1650).
+</p>
+
+<p>
+This requires abstractions for:
+</p>
+
+<ul class="org-ul">
+<li>Concrete local-coordinate maps and their derivatives with respect to finite moduli used in a chosen bracket/amplitude prescription.</li>
+<li>\(b\)-ghost measure insertions as symbolic mode actions or finite contour-mode expansions.</li>
+<li>BRST-closed vertex operators and physical-state constraints.</li>
+<li>Regularized local operators and surface-dependent zero-mode selection rules.</li>
+<li>Optional degeneration/factorization metadata only insofar as it drives effective brackets and propagator/projector insertions.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgb13a9b6" class="outline-3">
+<h3 id="orgb13a9b6"><span class="section-number-3">6.2.</span> Superstring perturbation theory</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+The superstring path integral introduces even moduli, odd supermoduli, spin structures, superghosts, analytic delta insertions \(\delta({\cal B}_\nu)\), and matter+ghost supercurrent insertions (<code>string notes.tex</code> lines 3767&ndash;3803). The book then replaces odd-moduli integration by PCO insertions, with a BRST-regularized PCO \({\cal X}(z)\), PCO positions forming a bundle over moduli space, and an integrand containing \({\cal X}-d\xi\) (<code>string notes.tex</code> lines 4225&ndash;4264).
+</p>
+
+<p>
+It also emphasizes spurious singularities and the need for patchwise/vertical integration: the determinant \(\det(f_a(z_b))\) can vanish, and no global section generally avoids this; one must break the integration contour into patches and interpolate (<code>string notes.tex</code> lines 4338&ndash;4385).
+</p>
+
+<p>
+This requires abstractions for:
+</p>
+
+<ul class="org-ul">
+<li>NS/R sectors, spin structures, GSO projections, and fermion parity signs.</li>
+<li>Picture number, small/large Hilbert spaces, \(\beta\gamma\) or \((\phi,\eta,\xi)\) superghost systems.</li>
+<li>PCOs as concrete algebraic operators and zero-mode actions, especially residue extraction by OPE plus Taylor expansion.</li>
+<li>Enough PCO bookkeeping to know how many PCOs to apply and in which chiral sector; full vertical integration can be supplied externally unless doing global amplitude integration.</li>
+<li>Ramond spin fields, spinor cocycles, and excited spin-field OPE/correlator machinery.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgbabc802" class="outline-3">
+<h3 id="orgbabc802"><span class="section-number-3">6.3.</span> String field theory</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+For bosonic closed SFT, the book defines the string field space by \(b_0^-\Psi=L_0^-\Psi=0\), notes that this space is not closed under the ordinary OPE, and replaces OPE closure with string-field brackets (<code>string notes.tex</code> lines 2383&ndash;2393). Off-shell amplitudes live on a bundle \({\cal P}_{h,n}\) whose fiber contains local coordinate maps at punctures, and the amplitude is an integral over chains \(S_{h,n}\) satisfying symmetry and boundary compatibility conditions (<code>string notes.tex</code> lines 2393&ndash;2440). Factorization requires plumbing compatibility and gives Siegel-gauge propagators \(b_0^+b_0^-/L_0^+\) (<code>string notes.tex</code> lines 2464&ndash;2494).
+</p>
+
+<p>
+For super SFT, the book adds GSO-projected NS/R string-field spaces, auxiliary Ramond picture \(-3/2\) fields, a bundle \({\cal Q}_{h,n}\) with spin structures and PCO locations, chains whose boundaries are vertical slits, Ramond-plumbing PCO insertions, picture-adjusted propagators, and a BV master equation (<code>string notes.tex</code> lines 5510&ndash;5688).
+</p>
+
+<p>
+This requires abstractions for:
+</p>
+
+<ul class="org-ul">
+<li>Local operators or basis states carrying enough grading/weight data to act as string-field components.</li>
+<li>BRST charge, BPZ pairing, \(b_0^\pm,c_0^\pm,L_0^\pm\), Siegel gauge, and propagators.</li>
+<li>Local-coordinate maps \(f_i(w_i)\), finite moduli symbols, b-mode expansions, and conformal placement.</li>
+<li>String products/brackets as concrete algorithms over <code>MultiOp</code>, projected OPE, projectors, and propagators.</li>
+<li>Super SFT-specific picture-adjusted propagator/projector operations where needed by effective bracket calculations.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org1518883" class="outline-3">
+<h3 id="org1518883"><span class="section-number-3">6.4.</span> Weakly curved backgrounds / NLSM quantization</h3>
+<div class="outline-text-3" id="text-6-4">
+<p>
+The book treats strings in backgrounds through a generalized Polyakov action with \(G_{\mu\nu}(X)\), \(B_{\mu\nu}(X)\), \(T(X)\), and \(\Phi(X)R(g)\), preserving perturbative renormalizability with up to two-derivative couplings (<code>string notes.tex</code> lines 1331&ndash;1339). Quantization uses background-field expansion in Riemann normal coordinates, covariant fluctuation fields \(\xi^\mu\), curvature expansions of \(G_{\mu\nu}(X)\), \(H=dB\), functional determinants, dimensional regularization, beta functions, and Weyl-anomaly cancellation equations (<code>string notes.tex</code> lines 1341&ndash;1414).
+</p>
+
+<p>
+This requires abstractions for:
+</p>
+
+<ul class="org-ul">
+<li>Target manifolds, metrics, connections, curvature tensors, \(B\)-fields, \(H\)-flux, dilaton profiles, and tachyon/background potentials.</li>
+<li>Background-field splitting \(X=X_0+\xi+\cdots\) in Riemann normal coordinates.</li>
+<li>Covariant worldsheet actions and regularization schemes.</li>
+<li>Counterterms, renormalized couplings, beta functions, Weyl-anomaly conditions, and field-redefinition/scheme dependence.</li>
+<li>Composite operators defined inside a regulated path integral, not only free-field normal-ordered products.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org8657eb4" class="outline-2">
+<h2 id="org8657eb4"><span class="section-number-2">7.</span> Current Project Abstractions</h2>
+<div class="outline-text-2" id="text-7">
+</div>
+<div id="outline-container-org1b7e3c5" class="outline-3">
+<h3 id="org1b7e3c5"><span class="section-number-3">7.1.</span> CFT-Code</h3>
+<div class="outline-text-3" id="text-7-1">
+<p>
+The current project overview says <code>CFT-Code</code> is intended to handle local operators, OPEs, and correlators on various Riemann surfaces (<code>org/overview.org</code> lines 7&ndash;13). Its specific physical goal is covariant R-sector OPE/correlators for GSO-projected free fermion plus ghost theories, at all mass levels and practical speed (<code>org/overview.org</code> lines 16&ndash;17).
+</p>
+
+<p>
+The implemented Zig source currently provides:
+</p>
+
+<ul class="org-ul">
+<li><code>Operator = insertion + body</code>, where bodies may be <code>identity</code>, <code>atomic</code>, or <code>normal_ordered</code> (<code>src/cft-code/expressions/operators.zig</code> lines 5&ndash;19).</li>
+<li>Atomic operator bodies with a kind id and extra-data handle (<code>operators.zig</code> lines 21&ndash;30).</li>
+<li>Operator-kind metadata for holomorphicity, conformal weights, quantum numbers, and correlator tactics (<code>operators.zig</code> lines 32&ndash;65).</li>
+<li>Insertions with a single position or holomorphic/anti-holomorphic pair and derivative counts (<code>operators.zig</code> lines 67&ndash;79).</li>
+<li>Expressions as sums of coefficient times one operator (<code>src/cft-code/expressions/expressions.zig</code>).</li>
+<li>Theory as a list of sectors, each with operator kinds and one correlator tactic (<code>src/cft-code/theory/theory.zig</code> lines 3&ndash;12).</li>
+</ul>
+
+<p>
+The <code>org</code> notes define intended correlator tactics: abstract selection-rule filtering, Wick contraction with surface-dependent propagators and zero modes, and bosonization by tensor-structure matching (<code>org/cft-code/correlators/correlators.org</code> lines 8&ndash;13). The OPE note proposes deriving OPEs from a basis, a nondegenerate pairing/BPZ-like pairing, and correlators (<code>org/cft-code/ope/ope.org</code> lines 8&ndash;10).
+</p>
+
+<p>
+Assessment:
+</p>
+
+<ul class="org-ul">
+<li>The operator-body split is a good abstraction for free-field composite local operators such as \(e^{-\phi}\psi^\mu\), \(:bc:\), and \(:\partial X^\mu\partial X^\nu:\).</li>
+<li>It is not yet enough for the required workflows because there is no generic operator-family registry equivalent in power to <code>DefineField</code>: statistics/sign behavior, holomorphicity, index payload shape, rule-participation tags, pairings/contractions, weights, generic charges, and discrete labels.</li>
+<li>More importantly, the future registry should be <b>more generic</b> than the prototype: ghost number, picture, and GSO-like data should be encoded as generic named quantum numbers or discrete labels, not privileged CFT concepts.</li>
+<li>The present <code>Expr</code> type carries a single <code>operators.Operator</code> per term, so it does not yet represent <code>R[...]</code> as a list-valued normal-ordered local product, nor <code>MultiOp[...]</code> as a multi-local product. Both are central in the prototype.</li>
+<li>The code has no abstraction for a concrete algebraic rule table. This need not copy <code>Wick/SWick/MWick</code>; a single contraction/OPE rule interface that returns a symbolic expression with scalar and operator pieces is likely cleaner.</li>
+<li>The source has unresolved type/import issues: <code>CorrelatorTactics</code> is used but only <code>CorrelatorTactic</code> is defined, <code>TensorIndexId</code> is used but not defined, and several imports omit the visible file layout. So the current implementation is not yet an executable abstraction layer.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org73bd55e" class="outline-3">
+<h3 id="org73bd55e"><span class="section-number-3">7.2.</span> Tensor-Code</h3>
+<div class="outline-text-3" id="text-7-2">
+<p>
+The project goal for <code>Tensor-Code</code> is ambitious: quickly generate independent invariant tensors in tensor products of representations, because R-sector amplitudes may require extremely large invariant-tensor spaces (<code>org/overview.org</code> lines 18&ndash;22 and 31&ndash;34).
+</p>
+
+<p>
+The implemented source currently provides:
+</p>
+
+<ul class="org-ul">
+<li>Symmetries as \(u(1)\) or simple Lie algebras with Dynkin-family labels (<code>src/tensor-code/tensor-code.zig</code> lines 1&ndash;26).</li>
+<li>Representation ids and representation labels as rational \(u(1)\) charge or Dynkin labels (<code>tensor-code.zig</code> lines 28&ndash;46).</li>
+<li>Tensor indices and a <code>TensorStructure</code> that is only <code>none</code> or one Kronecker delta (<code>tensor-code.zig</code> lines 48&ndash;59).</li>
+</ul>
+
+<p>
+Assessment:
+</p>
+
+<ul class="org-ul">
+<li>This is not sufficient for the tensor algebra needed in superstring amplitudes or weakly curved backgrounds.</li>
+<li>Against the prototype, the immediate missing pieces are products of tensor factors, delta contractions, gamma antisymmetric products, spinor/vector index domains, chirality, exact gamma-matrix evaluation, tensor candidate enumeration, independent-subset selection, sparse/dense probe evaluation, and symbolic coefficient solving.</li>
+<li>More general invariant tensors and representation theory are still important, but the first target should cover the Type II flat-space tensor-structure pipeline currently under <code>OPE/TypeII/FlatSpace/TensorStructures</code> and <code>SpinProjection</code>.</li>
+<li>The design notes correctly say tensor structure should become its own symbolic language and not be hardcoded to Kronecker deltas, but the implemented <code>TensorStructure</code> has not reached that design.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org91bff9d" class="outline-3">
+<h3 id="org91bff9d"><span class="section-number-3">7.3.</span> SFT-Code, NLSM-Code, On-Shell-Code, Pure-Spinor-Code</h3>
+<div class="outline-text-3" id="text-7-3">
+<p>
+The module notes are currently mostly high-level declarations:
+</p>
+
+<ul class="org-ul">
+<li><code>SFT-Code</code> claims it will define brackets and vertices using local-coordinate data, OPE/correlators, abstract moduli chains, and PCO insertions (<code>org/sft-code/sft-code.org</code> line 6).</li>
+<li><code>NLSM-Code</code> is only an overview stub (<code>org/nlsm-code/nlsm-code.org</code> line 6).</li>
+<li><code>On-Shell-Code</code> claims support for all five superstrings, open/closed/open-closed sectors, ghost-system theories, boundary conditions, and GSO projections (<code>org/on-shell-code/on-shell-code.org</code> line 6).</li>
+<li><code>Pure-Spinor-Code</code> claims a regularized pure-spinor NLSM on \(PSU(2,2|4)\) (<code>org/pure-spinor-code/pure-spinor-code.org</code> line 6).</li>
+</ul>
+
+<p>
+These are requirements statements, not implemented abstractions. They do not currently close the sufficiency gaps.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org223a6e3" class="outline-2">
+<h2 id="org223a6e3"><span class="section-number-2">8.</span> Sufficiency By Target</h2>
+<div class="outline-text-2" id="text-8">
+</div>
+<div id="outline-container-org24ab532" class="outline-3">
+<h3 id="org24ab532"><span class="section-number-3">8.1.</span> Superstring perturbation theory</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+Current status: <b>insufficient</b>.
+</p>
+
+<p>
+The current CFT abstraction can begin to represent local free-field ingredients, but it lacks the structures that make superstring perturbation theory well-defined:
+</p>
+
+<ul class="org-ul">
+<li>NS/R sector typing and spin structures.</li>
+<li>GSO projections and fermion parity signs.</li>
+<li>Picture number and \(\beta\gamma\)/\((\phi,\eta,\xi)\) Hilbert-space distinctions.</li>
+<li>PCOs and vertical-integration chains.</li>
+<li>Spurious singularity detection/avoidance.</li>
+<li>Worldsheet supermoduli or their PCO-contour replacement.</li>
+<li>Spin fields, cocycles, and gamma-matrix/tensor identities.</li>
+</ul>
+
+<p>
+For the concrete symbolic package, the actionable subset is smaller:
+</p>
+
+<ul class="org-ul">
+<li>generic charge/parity/sector metadata on fields and products, with string layers interpreting some charges as picture or ghost number;</li>
+<li>explicit PCO operators and zero-mode actions implemented as ordinary CFT operations plus residue/Taylor extraction;</li>
+<li>spin-field OPE projection through basis generation and tensor solving;</li>
+<li>gamma/tensor algebra sufficient for 10D Type II flat-space spinor-vector structures.</li>
+</ul>
+
+<p>
+The correlator tactic sketch is directionally right, especially the bosonization tactic for R-sector spin-field correlators. But without a tensor engine capable of spinor invariants and without explicit picture/PCO bookkeeping, it cannot yet reproduce the prototype&rsquo;s Type II workflows.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc18ab8b" class="outline-3">
+<h3 id="orgc18ab8b"><span class="section-number-3">8.2.</span> String field theory</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+Current status: <b>insufficient</b>.
+</p>
+
+<p>
+<code>SFT-Code</code> correctly identifies local coordinates, moduli chains, brackets, vertices, and PCO insertions as necessary. The current CFT/OPE abstractions are only a dependency for SFT; they are not a substitute for SFT-specific geometry and algebra.
+</p>
+
+<p>
+Missing core abstractions include:
+</p>
+
+<ul class="org-ul">
+<li>constrained string-field state spaces \({\cal H}_0\), auxiliary Ramond spaces, and ghost/picture grading;</li>
+<li>BRST and BPZ operations;</li>
+<li>local-coordinate-map objects and their conformal action on operators/states;</li>
+<li>moduli-space chains, plumbing fixtures, and compatibility/geometric master equations;</li>
+<li>string brackets/products and \(L_\infty/A_\infty\) identities;</li>
+<li>BV symplectic form, field/antifield splitting, propagators, and gauge fixing.</li>
+</ul>
+
+<p>
+For the prototype-calibrated package, the first SFT layer should be much more concrete:
+</p>
+
+<ul class="org-ul">
+<li><code>Bracket</code> over local <code>R</code> or <code>MultiOp</code> inputs;</li>
+<li>local-coordinate data supplied by a bracket preset;</li>
+<li>conformal placement using field weights;</li>
+<li>finite curly-\(B\) construction and b-mode action;</li>
+<li>projection by local OPE/Taylor;</li>
+<li>held/projector/propagator operations for effective brackets.</li>
+</ul>
+
+<p>
+The existing local operator model is useful for CFT insertions inside SFT vertices, but it needs <code>MultiOp</code>, local-coordinate placement, b-mode action, projected OPE, and PCO-zero-mode hooks before it can replace the prototype.
+</p>
+</div>
+</div>
+<div id="outline-container-org88ddf67" class="outline-3">
+<h3 id="org88ddf67"><span class="section-number-3">8.3.</span> Weakly curved backgrounds / NLSM quantization</h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+Current status: <b>insufficient</b>.
+</p>
+
+<p>
+The current abstractions are free-CFT-oriented. The book&rsquo;s weak-background calculation is instead a covariant perturbative path integral with a chosen regulator, target-space geometry, background-field expansion, counterterms, and beta functions.
+</p>
+
+<p>
+Missing core abstractions include:
+</p>
+
+<ul class="org-ul">
+<li>target manifolds, coordinate charts, metric/connection/curvature, \(B\)-field and \(H=dB\), dilaton and tachyon profiles;</li>
+<li>Riemann-normal-coordinate background-field expansion;</li>
+<li>covariant worldsheet actions and fluctuation operators;</li>
+<li>dimensional regularization or point-splitting schemes;</li>
+<li>counterterm and beta-function machinery;</li>
+<li>scheme-dependent field redefinitions;</li>
+<li>composite operators as regulated path-integral insertions.</li>
+</ul>
+
+<p>
+<code>Tensor-Code</code> will be needed here, but the current representation-theory focus is not enough. NLSM quantization needs differential geometry and perturbative QFT abstractions, not just invariant tensors.
+</p>
+
+<p>
+For a concrete symbolic package, NLSM support can begin with a narrower feature set: <code>ProfileX</code> style composite operators, symbolic target-index derivatives, covariant/tensor-valued coefficient payloads, background-field vertices, and rule-driven Wick contractions around a chosen weak-background expansion.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org0f6ecdd" class="outline-2">
+<h2 id="org0f6ecdd"><span class="section-number-2">9.</span> What Is Promising</h2>
+<div class="outline-text-2" id="text-9">
+<ul class="org-ul">
+<li>The <code>Operator = insertion + body_id</code> direction is a good base for local CFT expressions and normal-ordered free-field composites.</li>
+<li>Separating coefficient rational functions from tensor structures is the right coefficient architecture.</li>
+<li>The project already recognizes that large Wick/OPE calculations must stream results rather than materialize all intermediate expressions.</li>
+<li>The design notes correctly identify that richer tensor expressions, generated theory-specific Wick rules, and external aggregation are needed.</li>
+<li>The CFT module has a plausible role as the shared kernel for on-shell amplitudes and SFT vertices, provided it exposes generic operator, charge, OPE, projection, and tensor hooks that later string-specific layers can interpret.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org02d575a" class="outline-2">
+<h2 id="org02d575a"><span class="section-number-2">10.</span> Highest-Priority Kernel Abstractions</h2>
+<div class="outline-text-2" id="text-10">
+<ol class="org-ol">
+<li><b>Make the current source coherent and executable.</b>
+Define missing ids/types, fix imports, expose the intended modules, and add a minimal test theory such as \(bc + X^\mu + \psi^\mu + \beta\gamma\).</li>
+
+<li><b>Implement a generic operator-family registry.</b>
+This should drive predicates and rule dispatch for statistics/sign behavior, holomorphicity, index payload shape, weight rules, generic quantum numbers, and rule participation. It should avoid baking in string-specific meanings like “ghost number” or “picture”.</li>
+
+<li><b>Make lean local products first-class.</b>
+A local product should be compact, canonicalizable, and stream-friendly. It must support ordered factors, sign/canonicalization rules, scalar separation, additive quantum-number queries, and theory-supplied merge/nilpotency hooks. It should not be a direct Mathematica-style tree.</li>
+
+<li><b>Use a single generic contraction/OPE rule interface.</b>
+Do not require separate <code>Wick</code>, <code>SWick</code>, and <code>MWick</code> concepts in the core. A contraction between two operator factors or products should be able to return zero, a scalar coefficient, a residual operator/product, or a sum of such terms. The algorithm can then recurse uniformly.</li>
+
+<li><b>Implement projected OPE as a core operation.</b>
+This includes collapsable/non-collapsable splitting, factorization of mixed-chirality fields, scaling-parameter projection, Taylor expansion to target weights, and memoized/streamed OPE recursion.</li>
+
+<li><b>Add spectrum and linear-projection support.</b>
+Basis generation should expose a spectrum stream/list with weights, sectors, named quantum numbers, tensor labels, and bodies. Projection should be a generic finite linear action on this spectrum, capable of preserving or reversing orientation, exchanging chiral sectors, acting on tensor extras, and reducing the projected result in a generated basis. Orbifold, orientifold, GSO-like, and parity projections should all be client data over this mechanism.</li>
+
+<li><b>Add boundary-condition and boundary-correlator hooks.</b>
+A boundary condition should be a gluing automorphism plus zero-mode prescription and optional boundary-operator spectrum. For free theories this is enough to implement the doubling trick: rewrite antiholomorphic fields as holomorphic image fields and call the ordinary chiral Wick/OPE/correlator engine. Boundary-changing sectors and bulk-boundary OPE constants must be supplied as extra boundary CFT data when needed.</li>
+
+<li><b>Upgrade Tensor-Code to support the Type II spin-projection workflow.</b>
+Add tensor-expression products, delta factors, invariant factors, gamma antisymmetric products as one concrete invariant family, spinor chirality, vector/spinor domains, exact/sparse evaluation, candidate enumeration, independent-subset selection, and coefficient solving.</li>
+
+<li><b>Expose extension hooks for later string-specific logic.</b>
+Brackets, amplitudes, PCOs, propagators, and ghost/picture constraints should be built outside the CFT kernel but must be able to call kernel operations, inspect named quantum numbers, and define additional operator families/rules.</li>
+
+<li><b>Add a minimal weak-background/NLSM symbolic layer.</b>
+Start with <code>ProfileX</code>-like operators, target derivative symbols, covariant tensor coefficients, background-field expansion vertices, and scheme-labeled counterterm/beta-function outputs. Full geometric automation can come later.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org3ab71ea" class="outline-2">
+<h2 id="org3ab71ea"><span class="section-number-2">11.</span> Conclusion</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+The existing abstractions are a useful start for a future worldsheet CFT kernel, but they are not sufficient for the intended performant symbolic-algebra package. The gap is not mainly a matter of adding more operator kinds, and the answer is not to copy the prototype&rsquo;s exact Mathematica heads. The missing pieces are more abstract kernel capabilities: generic operator-family metadata, named quantum numbers, lean canonical local products, a uniform contraction/OPE rule interface that can return residual operators, projected OPE/Taylor, streamable spectrum generation, finite linear projections, boundary gluing/doubling data, streaming term emission, and a substantially stronger tensor algebra engine.
+</p>
+
+<p>
+The most pragmatic next milestone is not full SFT or NLSM support. It is a compiling <code>tensor-code</code> and <code>cft-code</code> kernel that can express \(bc+X+\psi+\phi\eta\xi\) as ordinary CFT data, compute nontrivial OPEs with residual operators through one generic contraction mechanism, project to target weights by Taylor expansion, project a small generated spectrum under a finite action, derive upper-half-plane correlators from a supplied D-brane gluing map, and generate/solve a small Type II spinor-vector tensor-structure problem. That milestone would test the abstractions that matter most while keeping ghost number, picture, brackets, amplitudes, and SFT logic as later client layers.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 10:21</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,679 @@
+#+title: Tensor-Code ADE API Proposal
+#+date: 2026-06-06
+
+* Goal
+
+Define the user-facing API for tensor-code invariant generation across ADE
+algebras.  The API must answer:
+
+- what the user inputs;
+- what an index means;
+- what a representation means;
+- what an invariant means;
+- how concrete tensor output is requested without forcing the kernel to store
+  huge expanded expressions.
+
+The motivating workflow is:
+
+#+begin_example
+Given:
+  a tensor product of known representations with named free indices
+
+Example:
+  10 x 16 = 16 + 144
+  choose six external 144 vector-spinors
+  free vector indices: m1,...,m6
+  free spinor indices: A1,...,A6
+
+Request:
+  all singlets in 144^6
+
+Output:
+  a stream/list of invariant tensors with those free indices,
+  renderable as gamma/metric/epsilon/projector-expanded terms.
+#+end_example
+
+* Current Tensor-Code Coverage
+
+Current [[file:../org/tensor-code/symmetry.org][Symmetry]] already has the right beginning:
+
+- simple Lie families \(A,B,C,D,E_6,E_7,E_8,F_4,G_2\);
+- Dynkin-label representations;
+- representation ids;
+- abstract tensor indices with a representation id and label.
+
+Current [[file:../org/tensor-code/kernel.org][Tensor Kernel]] also has useful
+beginnings:
+
+- tensor expression ids;
+- streamed tensor expression sources;
+- invariant-family declarations;
+- algebra schemas with optional metric and structure constants.
+
+This is not enough for ADE invariant generation.  Missing concepts:
+
+- irrep identity versus channel copy;
+- occurrence identity;
+- concrete index realization;
+- constrained realizations such as \(144\subset10\otimes16\);
+- invariant basis handles;
+- coupling paths;
+- render/evaluate convention layer;
+- streamable symbolic term output.
+
+* Concepts
+
+** Algebra
+
+An algebra is a compact label for a simple Lie algebra or a \(U(1)\).  For ADE:
+
+#+begin_example
+A_n
+D_n
+E_6, E_7, E_8
+#+end_example
+
+The algebra determines:
+
+- rank;
+- Cartan matrix;
+- roots and weights;
+- Dynkin-label length;
+- Weyl group;
+- dual/conjugation behavior;
+- Casimir signatures.
+
+** Representation
+
+A representation is an abstract irrep of an algebra.
+
+For simple algebras, a representation is keyed by Dynkin label:
+
+#+begin_example
+Irrep = (AlgebraId, DynkinLabel)
+#+end_example
+
+For \(U(1)\), a representation is a rational charge.
+
+Dimensions are derived metadata only.  They are never ids.  Two different
+irreps can have the same dimension, and one product can contain several copies
+of the same irrep.
+
+** Channel
+
+A channel is an occurrence of an irrep inside one local tensor-product
+decomposition.
+
+#+begin_example
+Channel = (IrrepId, multiplicity_copy)
+#+end_example
+
+Example:
+
+#+begin_example
+120 x 120 contains 2 * (0,0,0,1,1)
+#+end_example
+
+Both copies have the same Dynkin label.  They require different channel copy
+labels.
+
+** Realization
+
+A realization tells tensor-code how an abstract irrep is exposed as concrete
+indices.
+
+Examples:
+
+#+begin_example
+primitive spinor:
+  16 with one spinor slot
+
+primitive vector:
+  10 with one vector slot
+
+self-dual form:
+  126 as self-dual Lambda^5 V
+
+gamma-traceless vector-spinor:
+  144 as the projected channel in 10 x 16
+#+end_example
+
+Realizations are for rendering and component evaluation.  They are not the
+state space used for internal high-arity coupling once their projector is
+derived.
+
+** Index
+
+An index is a named slot in a realization.  It is not the representation
+itself.
+
+Examples:
+
+#+begin_example
+Spin(10) vector:
+  index m attached to vector slot of 10
+
+Spin(10) spinor:
+  index A attached to spinor slot of 16
+
+Spin(10) vector-spinor 144:
+  indices (m, A) attached to slots of the realization 144 subset 10 x 16
+
+SU(N) fundamental:
+  index i attached to fundamental slot
+
+SU(N) adjoint:
+  index a attached to adjoint slot or to a realized traceless fundamental-antifundamental pair
+
+E8 adjoint:
+  index a attached to adjoint/root-basis slot
+#+end_example
+
+The same irrep may have multiple possible realizations.  The index layout
+belongs to the realization chosen by the caller.
+
+** External Leg
+
+An external leg is what the invariant request sees.
+
+#+begin_example
+ExternalLeg =
+  realization or primitive irrep
+  named free indices
+  optional leg name
+#+end_example
+
+The coupling engine sees the leg's irreducible representation.  The renderer
+sees the leg's realization and named indices.
+
+** Invariant
+
+An invariant is a basis vector in
+\[
+  \operatorname{Hom}_G(T, R_1\otimes\cdots\otimes R_k)
+\]
+where \(T\) is usually the singlet.
+
+Internally, an invariant is a coupling path:
+
+#+begin_example
+Invariant =
+  external irreps
+  binary tree
+  intermediate channel ids
+  local projector/CG kernel ids
+#+end_example
+
+Rendered output expands this path into a symbolic term stream with the
+external free indices supplied by the caller.
+
+* Proposed Public API
+
+The API should expose handles, not internal stores.
+
+#+begin_example
+TensorContext
+AlgebraHandle
+IrrepHandle
+TensorProductHandle
+DecompositionHandle
+ChannelHandle
+RealizationHandle
+ExternalLegHandle
+BasisHandle
+InvariantHandle
+RenderOptions
+EvalOptions
+#+end_example
+
+There are two API layers:
+
+1. The CFT-facing public API.  This is the narrow interface used by cft-code
+   during OPEs, correlators, and basis reductions.
+
+2. The tensor-construction API.  This is used by tensor-code presets,
+   notebooks, tests, cache builders, and advanced users who need to inspect
+   decompositions or create realizations.
+
+The CFT-facing layer must not expose decomposition algorithms, projector
+construction, local solver controls, or mutable tensor internals.
+
+* CFT-Facing Public API
+
+CFT code should call only these operations.
+
+#+begin_example
+tensor_context(theory_or_preset) -> TensorContext
+
+external_leg(ctx, irrep_or_realization_name, named_indices) -> ExternalLegHandle
+
+invariant_basis(ctx, external_legs, target, options) -> BasisHandle
+
+basis_count(ctx, basis) -> Integer
+
+invariant_id(ctx, basis, ordinal) -> InvariantHandle
+
+tensor_term(ctx, rational_function_id, invariant_id, scalar) -> TensorExpansionTerm
+
+render_invariant(ctx, invariant_id, render_options, writer) -> void
+
+evaluate_invariant(ctx, invariant_id, component_indices, eval_options) -> Scalar
+
+reduce_tensor_expression(ctx, expression, target_basis) -> coefficient stream
+#+end_example
+
+For a spin-field correlator, cft-code should produce:
+
+#+begin_example
+TensorExpansion:
+  basis_handle
+  terms:
+    rational_function_id
+    invariant_id
+    scalar coefficient
+#+end_example
+
+Ordinary CFT simplification collects only by:
+
+#+begin_example
+(rational_function_id, invariant_id)
+#+end_example
+
+It does not expand gamma matrices or run Fierz reduction unless explicitly
+asked to reduce a tensor expression to a target basis.
+
+** CFT Example
+
+#+begin_example
+legs = &.{
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m1", .spinor = "A1" }),
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m2", .spinor = "A2" }),
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m3", .spinor = "A3" }),
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m4", .spinor = "A4" }),
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m5", .spinor = "A5" }),
+    tensor.external_leg("Spin10.VectorSpinor144", .{ .vector = "m6", .spinor = "A6" }),
+}
+
+basis = tensor.invariant_basis(.{
+    .external_legs = legs,
+    .target = "singlet",
+    .basis_policy = .default,
+})
+
+term = tensor.tensor_term(rational_fn_id, tensor.invariant_id(basis, 0), scalar)
+#+end_example
+
+This public path assumes that a preset has already registered the
+=Spin10.VectorSpinor144= realization.  CFT code should not need to know that it
+was derived from \(10\otimes16\).
+
+* Tensor-Construction API
+
+The construction API is still public to tensor-code users, but it is not the
+interface cft-code should use during ordinary correlator evaluation.
+
+It includes:
+
+#+begin_example
+ctx.algebra(...)
+ctx.irrep(...)
+ctx.tensor_product(...)
+ctx.decompose(...)
+ctx.find_channel(...)
+ctx.realization(...)
+ctx.derive_projector(...)
+ctx.audit_product(...)
+ctx.audit_basis(...)
+ctx.register_realization(name, realization)
+ctx.register_basis_preset(name, request)
+#+end_example
+
+This layer is where one defines:
+
+- \(Spin(10)\) vector, spinors, forms, \(144\), \(126\);
+- \(SU(N)\) tableaux and projected tensor realizations;
+- \(E_8\) adjoint primitive realization;
+- cache-building jobs;
+- feasibility audits.
+
+The construction API can expose detailed data such as decompositions and
+channel copies.  The CFT-facing API should receive stable names and handles
+registered by this layer.
+
+* Internal Capabilities
+
+The following capabilities are internal implementation details.  They should
+not be called directly from cft-code:
+
+#+begin_example
+RootDatum construction
+Weyl group enumeration
+weight multiplicity generation
+Weyl character multiplication
+highest-weight subtraction internals
+raising/lowering generator edge construction
+modular sparse nullspace
+rational reconstruction
+Casimir operator construction
+higher Casimir signature computation
+local commutant basis construction
+primitive idempotent splitting
+diagram algebra multiplication
+epsilon/delta canonicalization internals
+gamma table generation
+Brauer/Jucys-Murphy internals
+Young symmetrizer expansion internals
+Gelfand-Tsetlin generator actions
+E8 root-basis structure constant generation
+cache serialization internals
+#+end_example
+
+These capabilities support the construction API and cache builders.  Keeping
+them internal prevents CFT code from depending on unstable representation
+algorithm details.
+
+** Construction Examples
+
+The following examples use the tensor-construction API, not the narrow
+CFT-facing API.
+
+*** Context And Algebra
+
+#+begin_example
+ctx = TensorContext.init(allocator)
+
+spin10 = ctx.algebra(.{ .family = .d, .rank = 5 })
+su5    = ctx.algebra(.{ .family = .a, .rank = 4 })
+e8     = ctx.algebra(.{ .family = .e8 })
+#+end_example
+
+The algebra handle is used to intern irreps and choose a backend.
+
+*** Irreps
+
+#+begin_example
+V10 = ctx.irrep(spin10, .dynkin(&.{1,0,0,0,0}))
+S16 = ctx.irrep(spin10, .dynkin(&.{0,0,0,0,1}))
+S16bar = ctx.dual(S16)
+
+fund5 = ctx.irrep(su5, .dynkin(&.{1,0,0,0}))
+adjE8 = ctx.adjoint(e8)
+#+end_example
+
+Convenience constructors may exist, but they should lower to Dynkin labels:
+
+#+begin_example
+ctx.spinor(spin10, .chiral)
+ctx.vector(spin10)
+ctx.fundamental(su5)
+ctx.adjoint(e8)
+#+end_example
+
+*** Tensor Product Decomposition
+
+The caller should not enter decompositions by hand.
+
+#+begin_example
+prod = ctx.tensor_product(&.{ V10, S16 })
+decomp = ctx.decompose(prod)
+
+for channel in decomp.channels():
+    print(channel.irrep(), channel.copy())
+#+end_example
+
+For \(10\otimes16\), this discovers the \(16\) and \(144\) channels.
+
+Channel selection should support exact Dynkin labels and predicates:
+
+#+begin_example
+trace16 = ctx.find_channel(decomp, .irrep(S16bar), .copy(0))
+R144    = ctx.find_channel(decomp, .not_irrep(S16bar), .copy(0))
+#+end_example
+
+*** Realizations
+
+Primitive external legs can use an irrep directly:
+
+#+begin_example
+spin_leg = ctx.external_leg(.{
+    .irrep = S16,
+    .indices = .{ .spinor = "A" },
+})
+#+end_example
+
+Constrained or composite index layouts use a realization:
+
+#+begin_example
+vecspin144 = ctx.realization(.{
+    .target = R144.irrep(),
+    .ambient = &.{ V10, S16 },
+    .channel = R144,
+    .index_layout = &.{
+        .{ .kind = .vector, .name = "m" },
+        .{ .kind = .spinor, .name = "A" },
+    },
+})
+#+end_example
+
+The realization call derives and caches the projector onto \(144\).  The
+coupling engine still uses the irrep \(144\), not the ambient product.
+
+For \(SU(N)\), realizations may include tableaux or projected tensor slots:
+
+#+begin_example
+two_form = ctx.realization(.{
+    .target = ctx.irrep(su5, .dynkin(&.{0,1,0,0})),
+    .ambient = &.{ fund5, fund5 },
+    .symmetry = .antisymmetric,
+    .index_layout = &.{ .fundamental, .fundamental },
+})
+#+end_example
+
+For \(E_8\), the first realization is primitive adjoint:
+
+#+begin_example
+e8_adj_leg = ctx.external_leg(.{
+    .irrep = adjE8,
+    .indices = .{ .adjoint = "a" },
+})
+#+end_example
+
+*** External Legs
+
+For \(144^6\):
+
+#+begin_example
+legs = &.{
+    ctx.external_leg(vecspin144, .{ .vector = "m1", .spinor = "A1" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m2", .spinor = "A2" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m3", .spinor = "A3" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m4", .spinor = "A4" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m5", .spinor = "A5" }),
+    ctx.external_leg(vecspin144, .{ .vector = "m6", .spinor = "A6" }),
+}
+#+end_example
+
+The names are caller-controlled.  The renderer must preserve them as free
+indices.
+
+*** Invariant Basis Request
+
+#+begin_example
+basis = ctx.invariant_basis(.{
+    .external_legs = legs,
+    .target = ctx.singlet(spin10),
+    .tree_policy = .auto,
+    .basis_policy = .coupling_paths,
+})
+
+count = basis.count()
+#+end_example
+
+The basis request generates paths in \(144^6\).  It does not generate paths in
+\((10\otimes16)^6\).
+
+*** Rendering
+
+#+begin_example
+options = RenderOptions{
+    .format = .symbolic_terms,
+    .projectors = .expanded,
+    .signature = .lorentzian_mostly_plus,
+    .index_names = .caller_supplied,
+}
+
+for inv in basis.iterate():
+    ctx.render(inv, options, writer)
+#+end_example
+
+Output shape:
+
+#+begin_example
+Invariant i:
+  sum_t c_t
+    GammaBlock_t(...)
+    Metric/Epsilon/DeltaAtoms_t(...)
+    free indices: m1,A1,...,m6,A6
+#+end_example
+
+Rendering must be stream-based.
+
+*** Component Evaluation
+
+#+begin_example
+value = ctx.evaluate(inv, .{
+    .indices = component_assignment,
+    .signature = .euclidean,
+})
+#+end_example
+
+Evaluation applies external realization projectors, then the local sparse
+coupling kernels along the path.
+
+* What Generalizes Across ADE
+
+The following inputs and outputs are ADE-generic:
+
+#+begin_example
+Input:
+  algebra family and rank
+  external irreps by Dynkin label
+  optional realizations of irreps as projected ambient tensor products
+  named free index slots
+  target irrep, usually singlet
+  basis/rendering policy
+
+Output:
+  invariant basis handle
+  invariant ids
+  coupling paths
+  optional symbolic term streams
+  optional component evaluators
+#+end_example
+
+The invariant engine itself is generic:
+
+- decompose products;
+- track multiplicities;
+- choose coupling paths;
+- derive local projectors;
+- reduce/render through backend hooks.
+
+Family-specific pieces are only the presentation and accelerated local
+projector machinery:
+
+#+begin_example
+A_n:
+  SU(N) tableaux, Young symmetrizers, epsilon/delta rendering
+
+D_n:
+  SO/Spin gamma matrices, Brauer diagrams, Hodge star, spinor realizations
+
+E_n:
+  root-basis, Killing form, structure constants, adjoint-focused rendering
+#+end_example
+
+* Proposed Improvements To Current Tensor-Code
+
+Current =symmetry.org= should evolve from:
+
+#+begin_example
+RepresentationId
+TensorIndex { representation, label }
+TensorStructure { none, kronecker_delta }
+#+end_example
+
+to the following conceptual layers:
+
+#+begin_example
+IrrepId:
+  algebra + Dynkin label
+
+ChannelId:
+  irrep + multiplicity copy
+
+RealizationId:
+  irrep + concrete index layout + projector kernel
+
+ExternalLegId:
+  realization or primitive irrep + caller index names
+
+InvariantBasisId:
+  target + external legs + tree/basis policy
+
+InvariantId:
+  one coupling path inside a basis
+#+end_example
+
+Current =kernel.org= should evolve from a generic =TensorExprSource= to
+specialized streamed sources:
+
+#+begin_example
+BasisPathSource:
+  streams invariant ids / coupling paths
+
+RenderedTermSource:
+  streams symbolic terms for one invariant
+
+ReductionSource:
+  streams coefficients of an expression in a target basis
+#+end_example
+
+The old =InvariantFamily= only stores external representations.  The new
+invariant request must store external legs with realizations and names:
+
+#+begin_example
+InvariantRequest:
+  algebra
+  external_legs
+  target
+  tree_policy
+  basis_policy
+  convention
+#+end_example
+
+This is the minimal upgrade needed for the rest of the codebase to request
+objects like \(144^6\) singlets and receive gamma-matrix tensor structures
+with the correct free indices.
+
+* API Acceptance Criteria
+
+1. The user can request \(10\otimes16\) decomposition without entering the
+   result.
+
+2. The user can select the \(144\) channel and create a vector-spinor
+   realization with free index names.
+
+3. The user can request singlets in \(144^6\) and receive an invariant basis
+   handle.
+
+4. Rendering an invariant produces terms with exactly the supplied free
+   indices.
+
+5. The coupling engine computes in \(144^6\), not in \((10\otimes16)^6\).
+
+6. The same API works for \(SU(N)\) tableau realizations and \(E_8\) adjoint
+   realizations.
+
+7. CFT code can store only invariant ids next to rational functions and ask
+   tensor-code to render or evaluate them later.

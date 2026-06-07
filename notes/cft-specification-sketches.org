@@ -1,0 +1,637 @@
+#+title: CFT Specification Sketches
+
+* Goal
+
+The theory should be declared at comptime as a small set of presets.
+A preset should contain only theory-level data.
+
+The design should cover:
+
+- elementary sectors
+- tensor product theories
+- local operator families
+- the distinction between fundamental fields and ordinary operator families
+- correlator tactics such as Wick
+- the concrete rules needed by those tactics
+
+The main implementation goal is to use metaprogramming so that runtime code is as theory-agnostic as possible.
+That means runtime code should call theory operations such as `Theory.wick(left, right)` without carrying around a generic theory object.
+
+* Minimal Theory Structure
+
+The smallest useful compile-time structure is:
+
+#+begin_src zig
+pub const CFTSpec = struct {
+    sectors: []const SectorSpec,
+};
+
+pub const SectorSpec = struct {
+    name: []const u8,
+    operators: []const OperatorFamilySpec,
+    correlator_tactic: CorrelatorTactic,
+    wick_spec: ?WickSpec,
+    rules: RuleSet,
+};
+#+end_src
+
+A full theory is just a list of sectors.
+So `bc tensor free boson` is represented by two sector presets inside one `CFTSpec`.
+
+* Operator Families
+
+A theory-level operator should be represented as a family.
+This covers both:
+
+- fixed operators such as `b` and `c`
+- parameterized operators such as `expX`
+
+A family should contain only intrinsic data.
+
+#+begin_src zig
+pub const Holomorphicity = enum {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+pub const OperatorKind = enum {
+    fundamental_field,
+    ordinary_operator,
+};
+
+pub const OperatorFamilySpec = struct {
+    name: []const u8,
+    kind: OperatorKind,
+    holomorphicity: Holomorphicity,
+    weights: WeightSpec,
+    quantum_numbers: QuantumNumbers,
+};
+#+end_src
+
+The point of `kind` is simple:
+
+- fundamental fields are the objects from which the later local composite-field layer may build normal-ordered products and descendants
+- ordinary operators are legal operator families in the theory, but they are not automatic generators for that composite-field layer
+
+So the restriction is structural. One does not need an extra permission flag saying whether `:S \partial S:` is allowed. Normal-ordered composite construction is simply defined later only for fundamental fields.
+
+* Weights
+
+Every family must specify weights.
+Either the weights are fixed by the family, or they must be supplied when a concrete insertion is created.
+
+#+begin_src zig
+pub const WeightSpec = union(enum) {
+    fixed: ConformalWeights,
+    supplied_at_construction,
+};
+
+pub const ConformalWeights = struct {
+    h: ?Scalar,
+    hbar: ?Scalar,
+};
+#+end_src
+
+This is enough for:
+
+- `b`: fixed `h = 2`, `hbar = null`
+- `c`: fixed `h = -1`, `hbar = null`
+- `expX`: weights supplied when the concrete operator is inserted
+
+* Quantum Numbers
+
+Keep this small at first.
+
+#+begin_src zig
+pub const QuantumNumbers = struct {
+    ghost_number: i16 = 0,
+};
+#+end_src
+
+Conformal weights are already handled separately. More elaborate tensor or Lie algebra data can be added later through `tensor-code`.
+
+* Runtime Operator Representation
+
+The runtime symbolic layer should stay lightweight.
+It should refer back to the preset rather than duplicating theory data.
+
+#+begin_src zig
+pub const SectorId = u16;
+pub const OperatorFamilyId = u32;
+pub const Symbol = u32;
+
+pub const PositionData = union(enum) {
+    single: Symbol,
+    pair: struct {
+        z: Symbol,
+        zbar: Symbol,
+    },
+};
+
+pub const LocalOperator = struct {
+    sector: SectorId,
+    family: OperatorFamilyId,
+    position: PositionData,
+    weights: ConformalWeights,
+    dz: u8 = 0,
+    dzbar: u8 = 0,
+};
+#+end_src
+
+The family tells us the holomorphicity. So at runtime:
+
+- holomorphic family: `single` means `z`
+- antiholomorphic family: `single` means `zbar`
+- generic family: use `pair`
+
+* Coeff Representation In Wick Rules
+
+Wick evaluators should return explicit `Coeff` values built from the coefficient data model.
+They should not return undefined placeholders like `simplePole(...)`.
+
+A small constructor layer is enough to keep those expressions readable.
+
+#+begin_src zig
+pub const Coeff = struct {
+    summands: []const CoeffSummand,
+};
+
+pub const CoeffSummand = struct {
+    rational_function: RationalFunction,
+    tensor_structure: TensorStructure,
+};
+
+pub const RationalFunction = struct {
+    factors: []const Factor,
+};
+
+pub const Factor = struct {
+    base: Polynomial,
+    exponent: i16,
+};
+
+pub const Polynomial = struct {
+    terms: []const PolynomialTerm,
+};
+
+pub const PolynomialTerm = struct {
+    monomial_coefficient: Scalar,
+    monomial: Monomial,
+};
+
+pub const Monomial = struct {
+    terms: []const MonomialTerm,
+};
+
+pub const MonomialTerm = struct {
+    variable: Symbol,
+    power: u16,
+};
+#+end_src
+
+For writing common Wick coefficients, add a few small helpers:
+
+#+begin_src zig
+fn variable(sym: Symbol) Polynomial {
+    return .{
+        .terms = &[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = sym, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+fn difference(z: Symbol, w: Symbol) Polynomial {
+    return .{
+        .terms = &[_]PolynomialTerm{
+            .{
+                .monomial_coefficient = 1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = z, .power = 1 },
+                    },
+                },
+            },
+            .{
+                .monomial_coefficient = -1,
+                .monomial = .{
+                    .terms = &[_]MonomialTerm{
+                        .{ .variable = w, .power = 1 },
+                    },
+                },
+            },
+        },
+    };
+}
+
+fn oneOver(poly: Polynomial) Coeff {
+    return .{
+        .summands = &[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &[_]Factor{
+                        .{ .base = poly, .exponent = -1 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+
+fn oneOverSquared(poly: Polynomial) Coeff {
+    return .{
+        .summands = &[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &[_]Factor{
+                        .{ .base = poly, .exponent = -2 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+#+end_src
+
+These helpers are still explicit in terms of the actual `Coeff` representation. They just remove the boilerplate.
+
+* Correlator Tactics
+
+A sector should say how correlators are evaluated.
+Keep this explicit.
+
+#+begin_src zig
+pub const CorrelatorTactic = enum {
+    abstract,
+    wick,
+};
+
+pub const WickFn = fn (left: LocalOperator, right: LocalOperator) ?Coeff;
+#+end_src
+
+The important point is that runtime correlator code should call one theory-specific function:
+
+#+begin_src zig
+const maybe_coeff = Theory.wick(left_op, right_op);
+#+end_src
+
+not sector-specific names such as `bc_wick`, and not a generic function that carries a runtime `theory` argument.
+
+* Compile-Time Wick Construction
+
+A Wick rule should not store a finished `Coeff`, because the coefficient depends on the concrete runtime operators: positions, derivatives, labels, and so on.
+
+Instead, a Wick rule should store:
+
+- which family pair it applies to
+- which runtime evaluator computes the coefficient for that pair
+
+#+begin_src zig
+pub const WickRule = struct {
+    left: OperatorFamilyId,
+    right: OperatorFamilyId,
+    eval: *const WickFn,
+};
+
+pub const WickSpec = struct {
+    rules: []const WickRule,
+};
+#+end_src
+
+A compile-time helper builds a sector-local dispatcher from the rule table:
+
+#+begin_src zig
+pub fn buildWickFn(comptime spec: WickSpec) *const WickFn {
+    return &struct {
+        fn call(left: LocalOperator, right: LocalOperator) ?Coeff {
+            inline for (spec.rules) |rule| {
+                if (left.family == rule.left and right.family == rule.right) {
+                    return rule.eval(left, right);
+                }
+            }
+            return null;
+        }
+    }.call;
+}
+#+end_src
+
+This gives one Wick dispatcher per Wick-enabled sector. Those dispatchers are then used by a higher-level compile-time theory builder.
+
+* Building A Theory Type At Comptime
+
+The full theory preset should be lowered at comptime into a theory-specific Zig type.
+That generated type exposes the operations that runtime code uses.
+
+A minimal sketch is:
+
+#+begin_src zig
+pub fn buildTheory(comptime spec: CFTSpec) type {
+    return struct {
+        pub fn wick(left: LocalOperator, right: LocalOperator) ?Coeff {
+            if (left.sector != right.sector) return null;
+
+            const sector = spec.sectors[left.sector];
+            return switch (sector.correlator_tactic) {
+                .abstract => null,
+                .wick => buildWickFn(sector.wick_spec.?)(left, right),
+            };
+        }
+    };
+}
+#+end_src
+
+This is the key metaprogramming step.
+The preset is compile-time data. `buildTheory` uses it to generate a theory-specific namespace with a concrete `wick(left, right)` implementation.
+
+So runtime code does not carry a `theory` value around. It just calls the generated method.
+
+* Concrete Rules
+
+For now, keep the non-Wick rule layer minimal.
+
+#+begin_src zig
+pub const RuleSet = struct {
+    ope_rules: []const OPERule,
+    bosonization_rules: []const BosonizationRule,
+};
+#+end_src
+
+* What `comptime` Means In Zig
+
+In Zig, `comptime` means that a value or computation happens during compilation rather than during ordinary program execution.
+
+In this design, `comptime` is used in two ways.
+
+First, presets themselves are compile-time constants.
+Second, those presets are used to generate a theory-specific type with methods such as `wick`.
+
+For example:
+
+#+begin_src zig
+const predefined = @import("cft-presets.zig");
+const cft = @import("cft-spec.zig");
+
+pub const Theory = comptime cft.buildTheory(predefined.bc_free_boson);
+#+end_src
+
+Here Zig runs `buildTheory(...)` while compiling the program.
+The result is a concrete Zig type, here called `Theory`, whose methods are specialized to that preset.
+
+So `comptime` is not only building constant data. It is also generating theory-specific code from the preset.
+
+OPEs, correlators, insertions, and symbolic expressions themselves remain runtime.
+
+* Why Use Comptime
+
+The point of comptime here is not just to make things static. It lets the preset be the single source of truth and uses metaprogramming to generate the theory-specific runtime interface.
+
+From the preset, the library can derive:
+
+- allowed position shape from holomorphicity
+- whether a family has fixed weights or requires runtime-supplied weights
+- which families are fundamental fields and which are ordinary operators
+- sector-specific Wick dispatchers
+- the final public `Theory.wick(left, right)` entry point
+- lookup tables for sectors and families
+
+Without comptime, the library author would have to keep those pieces in sync by hand and would likely end up with more theory-dependent runtime code.
+
+* Example Presets
+
+** bc sector with Wick tactic
+
+The example below writes the Wick coefficient explicitly in the `Coeff` model.
+
+#+begin_src zig
+const b_id: OperatorFamilyId = 0;
+const c_id: OperatorFamilyId = 1;
+
+fn bcContraction(z: Symbol, w: Symbol) Coeff {
+    return oneOver(difference(z, w));
+}
+
+fn bcDerivativeContraction(z: Symbol, w: Symbol) Coeff {
+    return oneOverSquared(difference(z, w));
+}
+
+fn cbContraction(z: Symbol, w: Symbol) Coeff {
+    return oneOver(difference(w, z));
+}
+
+fn evalBC(left: LocalOperator, right: LocalOperator) ?Coeff {
+    const z = left.position.single;
+    const w = right.position.single;
+
+    if (left.dz == 0 and right.dz == 0) {
+        return bcContraction(z, w);
+    }
+    if (left.dz == 0 and right.dz == 1) {
+        return bcDerivativeContraction(z, w);
+    }
+
+    return null;
+}
+
+fn evalCB(left: LocalOperator, right: LocalOperator) ?Coeff {
+    const z = left.position.single;
+    const w = right.position.single;
+
+    if (left.dz == 0 and right.dz == 0) {
+        return cbContraction(z, w);
+    }
+
+    return null;
+}
+
+pub const bc = SectorSpec{
+    .name = "bc",
+    .operators = &[_]OperatorFamilySpec{
+        .{
+            .name = "b",
+            .kind = .fundamental_field,
+            .holomorphicity = .holomorphic,
+            .weights = .{ .fixed = .{ .h = 2, .hbar = null } },
+            .quantum_numbers = .{ .ghost_number = -1 },
+        },
+        .{
+            .name = "c",
+            .kind = .fundamental_field,
+            .holomorphicity = .holomorphic,
+            .weights = .{ .fixed = .{ .h = -1, .hbar = null } },
+            .quantum_numbers = .{ .ghost_number = 1 },
+        },
+    },
+    .correlator_tactic = .wick,
+    .wick_spec = .{
+        .rules = &[_]WickRule{
+            .{ .left = b_id, .right = c_id, .eval = &evalBC },
+            .{ .left = c_id, .right = b_id, .eval = &evalCB },
+        },
+    },
+    .rules = .{
+        .ope_rules = &[_]OPERule{},
+        .bosonization_rules = &[_]BosonizationRule{},
+    },
+};
+#+end_src
+
+So:
+
+- `b(z)` with `c(w)` returns `oneOver(difference(z, w))`, representing `1 / (z - w)`
+- `b(z)` with `\partial c(w)` returns `oneOverSquared(difference(z, w))`, representing `1 / (z - w)^2`
+
+** free boson sector with Wick tactic
+
+For the free boson, it is useful to add one more coefficient helper for a logarithmic term.
+
+#+begin_src zig
+fn logDifference(z: Symbol, w: Symbol) Coeff {
+    return .{
+        .summands = &[_]CoeffSummand{
+            .{
+                .rational_function = .{
+                    .factors = &[_]Factor{
+                        .{ .base = difference(z, w), .exponent = 0 },
+                    },
+                },
+                .tensor_structure = .{},
+            },
+        },
+    };
+}
+
+const x_id: OperatorFamilyId = 0;
+
+fn xxContraction(z: Symbol, w: Symbol) Coeff {
+    return logDifference(z, w);
+}
+
+fn evalXX(left: LocalOperator, right: LocalOperator) ?Coeff {
+    const left_pos = left.position.pair;
+    const right_pos = right.position.pair;
+
+    if (left.dz == 0 and right.dz == 0 and left.dzbar == 0 and right.dzbar == 0) {
+        _ = left_pos.zbar;
+        _ = right_pos.zbar;
+        return xxContraction(left_pos.z, right_pos.z);
+    }
+
+    return null;
+}
+
+pub const free_boson = SectorSpec{
+    .name = "free_boson",
+    .operators = &[_]OperatorFamilySpec{
+        .{
+            .name = "X",
+            .kind = .fundamental_field,
+            .holomorphicity = .generic,
+            .weights = .{ .fixed = .{ .h = 0, .hbar = 0 } },
+            .quantum_numbers = .{},
+        },
+        .{
+            .name = "expX",
+            .kind = .ordinary_operator,
+            .holomorphicity = .generic,
+            .weights = .supplied_at_construction,
+            .quantum_numbers = .{},
+        },
+    },
+    .correlator_tactic = .wick,
+    .wick_spec = .{
+        .rules = &[_]WickRule{
+            .{ .left = x_id, .right = x_id, .eval = &evalXX },
+        },
+    },
+    .rules = .{
+        .ope_rules = &[_]OPERule{},
+        .bosonization_rules = &[_]BosonizationRule{},
+    },
+};
+#+end_src
+
+The exact internal representation of logarithms may later need its own extension beyond the rational-function layer. The point here is that even this example is written through explicit `Coeff` constructors, not an undefined placeholder.
+
+* Tensor Product Helper
+
+A compile-time helper can stay trivial:
+
+#+begin_src zig
+pub fn tensorProduct(comptime sectors: []const SectorSpec) CFTSpec {
+    return .{ .sectors = sectors };
+}
+#+end_src
+
+* How Presets Are Loaded
+
+Presets are plain Zig constants.
+A project loads them by import, then lowers them at comptime into a theory-specific type.
+
+For a named theory preset:
+
+#+begin_src zig
+const predefined = @import("cft-presets.zig");
+const cft = @import("cft-spec.zig");
+
+pub const Theory = comptime cft.buildTheory(predefined.bc_free_boson);
+#+end_src
+
+Or the project assembles a theory at compile time from sector presets first:
+
+#+begin_src zig
+const predefined = @import("cft-presets.zig");
+const cft = @import("cft-spec.zig");
+
+const spec = comptime cft.tensorProduct(&[_]cft.SectorSpec{
+    predefined.bc,
+    predefined.free_boson,
+});
+
+pub const Theory = comptime cft.buildTheory(spec);
+#+end_src
+
+Once `Theory` is built, runtime code stays theory-agnostic:
+
+#+begin_src zig
+const maybe_coeff = Theory.wick(left_op, right_op);
+#+end_src
+
+* Compile-Time Flow
+
+#+begin_src text
+predefined sector presets
+    |
+    +----> comptime buildWickFn(...) for Wick-enabled sectors
+    |
+    +----> comptime buildTheory(...)
+    |
+    v
+final theory-specific type: Theory
+    |
+    v
+runtime insertions and calculations
+    |
+    v
+Theory.wick(left_op, right_op) -> ?Coeff
+#+end_src
+
+* Summary
+
+A simple but sufficient design is:
+
+- `CFTSpec` is a list of sectors
+- each `SectorSpec` declares operator families, one correlator tactic, optional Wick specification, and rule tables
+- each `OperatorFamilySpec` declares whether it is a fundamental field or an ordinary operator, together with holomorphicity, weights, and quantum numbers
+- comptime lowers the preset into a theory-specific type such as `Theory`
+- runtime correlator code calls theory methods such as `Theory.wick(left, right)` and stays largely theory-agnostic
+
+This keeps the structure small while using metaprogramming in exactly the place where it is most valuable.

@@ -1,0 +1,595 @@
+#+title: Theory And Operator Summary
+
+* Goal
+
+Keep the runtime and theory types minimal, finite, and coherent.
+
+The clean model is:
+
+- a theory defines only finite atomic operator kinds
+- a runtime operator is an insertion together with a body id
+- a body is either atomic or a normal-ordered product of other body ids
+- quantum numbers of normal-ordered products are derived from their constituents
+
+This avoids two bad extremes:
+
+- pretending that every normal-ordered product is a new theory-level kind
+- baking free-field presentation into the core definition of what an operator is
+
+* Runtime Operator
+
+At runtime, an operator occurrence should be:
+
+#+begin_src zig
+pub const Operator = struct {
+    insertion: OperatorInsertion,
+    body: OperatorBodyId,
+};
+#+end_src
+
+The insertion bundles position and derivatives together.
+
+#+begin_src zig
+pub const OperatorInsertion = union(enum) {
+    single: struct {
+        position: coefficient.Variable,
+        derivatives: u8,
+    },
+    pair: struct {
+        z: coefficient.Variable,
+        zbar: coefficient.Variable,
+        dz: u8,
+        dzbar: u8,
+    },
+};
+#+end_src
+
+This is the whole runtime operator surface:
+
+- `insertion` says where the operator is inserted and how many derivatives act on it
+- `body` says what local operator sits at that insertion
+
+* Operator Body
+
+The body of a local operator is separate from its insertion.
+A body is either atomic or normal ordered.
+
+#+begin_src zig
+pub const OperatorBodyId = u32;
+pub const OperatorExtraId = u32;
+
+pub const OperatorBody = union(enum) {
+    atomic: AtomicBody,
+    normal_ordered: []const OperatorBodyId,
+};
+
+pub const AtomicBody = struct {
+    kind: OperatorKindRef,
+    extra: OperatorExtraId,
+};
+#+end_src
+
+Interpretation:
+
+- `atomic` means one atomic operator kind from the theory, possibly carrying extra runtime data
+- `normal_ordered` means an ordered list of local operator bodies at the same insertion point
+
+So:
+
+- `b(z)` is one `Operator` whose `body` points to one atomic body
+- `:bc:(z)` is one `Operator` whose `body` points to one normal-ordered body containing two atomic children
+- `:dX^mu dX^nu:(z)` is one `Operator` whose `body` points to one normal-ordered body containing two atomic `dX` children with different extras
+
+This is the key structural choice.
+A normal-ordered product is a constructor on bodies.
+
+* Body Store
+
+Because `OperatorBody` is recursive, it should be stored indirectly through ids.
+
+#+begin_src zig
+pub const OperatorBodyStore = struct {
+    bodies: []const OperatorBody,
+};
+#+end_src
+
+The runtime operator only stores `OperatorBodyId`, not a whole recursive tree inline.
+
+This keeps the runtime surface small and makes the recursion well-defined.
+
+* Theory Metadata
+
+A theory consists of sectors, and each sector defines its own finite atomic operator kinds.
+
+#+begin_src zig
+pub const Theory = struct {
+    sectors: []const Sector,
+};
+
+pub const Sector = struct {
+    operator_kinds: []const OperatorKind,
+    tactic: CorrelatorTactic,
+};
+#+end_src
+
+Atomic kinds are referenced by sector-local ids.
+
+#+begin_src zig
+pub const SectorId = u16;
+pub const OperatorKindId = u16;
+
+pub const OperatorKindRef = struct {
+    sector: SectorId,
+    kind: OperatorKindId,
+};
+#+end_src
+
+Each atomic operator kind carries theory-level meaning.
+
+#+begin_src zig
+pub const OperatorKind = struct {
+    holomorphicity: Holomorphicity,
+    field_kind: FieldKind,
+    weights: WeightRule,
+    tensor_type: ?TensorType,
+};
+#+end_src
+
+Supporting types:
+
+#+begin_src zig
+pub const FieldKind = enum {
+    free_field,
+    ordinary_operator,
+};
+
+pub const Holomorphicity = enum {
+    holomorphic,
+    antiholomorphic,
+    generic,
+};
+
+pub const ConformalWeights = struct {
+    h: ?coefficient.Scalar,
+    hbar: ?coefficient.Scalar,
+};
+
+pub const WeightRule = union(enum) {
+    fixed: ConformalWeights,
+    computed,
+};
+
+pub const TensorType = enum {
+    scalar,
+    vector,
+};
+
+pub const CorrelatorTactic = enum {
+    abstract,
+    wick,
+};
+#+end_src
+
+Interpretation:
+
+- `free_field` means the kind participates directly in Wick contractions
+- `ordinary_operator` means the kind may appear in the theory but is not itself a primitive Wick field
+- `computed` weight means the generated theory code reads runtime extra data when computing weights
+
+* Extra Runtime Data
+
+Atomic leaves may carry runtime labels through `extra`.
+
+Examples:
+
+- tensor indices for `dX^mu`
+- momentum data such as `k` and `k^2` for `expX`
+- picture or other family-specific runtime payloads
+
+The core runtime type only stores the handle:
+
+#+begin_src zig
+pub const OperatorExtraId = u32;
+#+end_src
+
+The generated theory code interprets it according to the atomic kind.
+
+* Normal-Ordered Product As A Constructor
+
+A normal-ordered product is not a theory-level operator kind by default.
+It is a runtime body constructor:
+
+#+begin_src text
+normal_ordered : [OperatorBodyId] -> OperatorBody
+#+end_src
+
+The resulting body inherits its metadata from its factors.
+
+For a normal-ordered product `:A_1 ... A_n:`:
+
+- conformal weights are derived from the constituent bodies
+- additive quantum numbers are derived by summing those of the constituents
+- tensor structure/type is derived from the constituent bodies
+
+This is exactly why we should not force such objects into the finite atomic kind table.
+
+* Bottom-To-Top Example: Atomic Bodies
+
+Suppose one sector has the atomic kinds:
+
+- `b`
+- `c`
+- `dX`
+- `expPhi`
+- `psi`
+
+First define some concrete runtime variables and extra handles used in the examples:
+
+#+begin_src zig
+const z: coefficient.Variable = 1;
+const w: coefficient.Variable = 2;
+
+const no_extra: OperatorExtraId = 0;
+const dX_mu_extra: OperatorExtraId = 1;
+const dX_nu_extra: OperatorExtraId = 2;
+const expPhi_minus_one_extra: OperatorExtraId = 3;
+const psi_mu_extra: OperatorExtraId = 4;
+#+end_src
+
+Then define kind references within one sector:
+
+#+begin_src zig
+const matter_sector_id: SectorId = 0;
+
+const b_ref = OperatorKindRef{ .sector = matter_sector_id, .kind = 0 };
+const c_ref = OperatorKindRef{ .sector = matter_sector_id, .kind = 1 };
+const dX_ref = OperatorKindRef{ .sector = matter_sector_id, .kind = 2 };
+const expPhi_ref = OperatorKindRef{ .sector = matter_sector_id, .kind = 3 };
+const psi_ref = OperatorKindRef{ .sector = matter_sector_id, .kind = 4 };
+#+end_src
+
+Now define atomic bodies:
+
+#+begin_src zig
+const body_b = OperatorBody{
+    .atomic = .{
+        .kind = b_ref,
+        .extra = no_extra,
+    },
+};
+
+const body_c = OperatorBody{
+    .atomic = .{
+        .kind = c_ref,
+        .extra = no_extra,
+    },
+};
+
+const body_dX_mu = OperatorBody{
+    .atomic = .{
+        .kind = dX_ref,
+        .extra = dX_mu_extra,
+    },
+};
+
+const body_dX_nu = OperatorBody{
+    .atomic = .{
+        .kind = dX_ref,
+        .extra = dX_nu_extra,
+    },
+};
+
+const body_expPhi_minus_one = OperatorBody{
+    .atomic = .{
+        .kind = expPhi_ref,
+        .extra = expPhi_minus_one_extra,
+    },
+};
+
+const body_psi_mu = OperatorBody{
+    .atomic = .{
+        .kind = psi_ref,
+        .extra = psi_mu_extra,
+    },
+};
+#+end_src
+
+Then store them in a body store and refer to them by ids:
+
+#+begin_src zig
+const body_store = OperatorBodyStore{
+    .bodies = &[_]OperatorBody{
+        body_b,               // id 0
+        body_c,               // id 1
+        body_dX_mu,           // id 2
+        body_dX_nu,           // id 3
+        body_expPhi_minus_one,// id 4
+        body_psi_mu,          // id 5
+    },
+};
+
+const body_b_id: OperatorBodyId = 0;
+const body_c_id: OperatorBodyId = 1;
+const body_dX_mu_id: OperatorBodyId = 2;
+const body_dX_nu_id: OperatorBodyId = 3;
+const body_expPhi_minus_one_id: OperatorBodyId = 4;
+const body_psi_mu_id: OperatorBodyId = 5;
+#+end_src
+
+A concrete runtime operator such as `b(z)` is then:
+
+#+begin_src zig
+const b_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .body = body_b_id,
+};
+#+end_src
+
+A concrete runtime operator such as `dX^mu(z)` is:
+
+#+begin_src zig
+const dX_mu_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .body = body_dX_mu_id,
+};
+#+end_src
+
+* Bottom-To-Top Example: :bc:
+
+First define the child list for the normal-ordered body:
+
+#+begin_src zig
+const body_bc_children = [_]OperatorBodyId{
+    body_b_id,
+    body_c_id,
+};
+#+end_src
+
+Then define the composite body itself:
+
+#+begin_src zig
+const body_bc = OperatorBody{
+    .normal_ordered = &body_bc_children,
+};
+#+end_src
+
+Store it and give it an id:
+
+#+begin_src zig
+const body_bc_id: OperatorBodyId = 6;
+#+end_src
+
+A concrete occurrence of `:bc:(z)` is then:
+
+#+begin_src zig
+const bc_no_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .body = body_bc_id,
+};
+#+end_src
+
+This is already the full representation. No separate theory-level `:bc:` kind is required.
+
+* Bottom-To-Top Example: :dX^mu dX^nu:
+
+First define the child list:
+
+#+begin_src zig
+const body_dXdX_children = [_]OperatorBodyId{
+    body_dX_mu_id,
+    body_dX_nu_id,
+};
+#+end_src
+
+Then define the body:
+
+#+begin_src zig
+const body_dXdX = OperatorBody{
+    .normal_ordered = &body_dXdX_children,
+};
+#+end_src
+
+Store it and assign an id:
+
+#+begin_src zig
+const body_dXdX_id: OperatorBodyId = 7;
+#+end_src
+
+A concrete occurrence of `:dX^mu dX^nu:(z)` is then:
+
+#+begin_src zig
+const dXdX_no_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .body = body_dXdX_id,
+};
+#+end_src
+
+This is the desired structure:
+
+- one insertion point
+- one body id
+- two atomic constituents with distinct runtime extras
+
+* Bottom-To-Top Example: e^{-phi} psi^mu
+
+The same structure works for mixed composites.
+
+First define the child list:
+
+#+begin_src zig
+const body_expPhiPsi_children = [_]OperatorBodyId{
+    body_expPhi_minus_one_id,
+    body_psi_mu_id,
+};
+#+end_src
+
+Then define the body:
+
+#+begin_src zig
+const body_expPhiPsi = OperatorBody{
+    .normal_ordered = &body_expPhiPsi_children,
+};
+#+end_src
+
+Store it and assign an id:
+
+#+begin_src zig
+const body_expPhiPsi_id: OperatorBodyId = 8;
+#+end_src
+
+Then the concrete operator at `z` is:
+
+#+begin_src zig
+const expPhiPsi_at_z = Operator{
+    .insertion = .{
+        .single = .{
+            .position = z,
+            .derivatives = 0,
+        },
+    },
+    .body = body_expPhiPsi_id,
+};
+#+end_src
+
+This is a more natural representation of superstring-style local operators than forcing them into extra theory-level atomic kinds.
+
+* Example Theory Layout
+
+A small theory with one sector can then be:
+
+#+begin_src zig
+const theory = Theory{
+    .sectors = &[_]Sector{
+        .{
+            .operator_kinds = &[_]OperatorKind{
+                .{
+                    .holomorphicity = .holomorphic,
+                    .field_kind = .free_field,
+                    .weights = .{ .fixed = .{ .h = 2, .hbar = null } },
+                    .tensor_type = .scalar,
+                },
+                .{
+                    .holomorphicity = .holomorphic,
+                    .field_kind = .free_field,
+                    .weights = .{ .fixed = .{ .h = -1, .hbar = null } },
+                    .tensor_type = .scalar,
+                },
+                .{
+                    .holomorphicity = .holomorphic,
+                    .field_kind = .free_field,
+                    .weights = .{ .fixed = .{ .h = 1, .hbar = null } },
+                    .tensor_type = .vector,
+                },
+                .{
+                    .holomorphicity = .holomorphic,
+                    .field_kind = .free_field,
+                    .weights = .computed,
+                    .tensor_type = .scalar,
+                },
+                .{
+                    .holomorphicity = .holomorphic,
+                    .field_kind = .free_field,
+                    .weights = .{ .fixed = .{ .h = 0.5, .hbar = null } },
+                    .tensor_type = .vector,
+                },
+            },
+            .tactic = .wick,
+        },
+    },
+};
+#+end_src
+
+So the theory declares only atomic kinds.
+Composite local operators are built at runtime out of body ids.
+
+* Practical Consequences
+
+This design gives a clean split.
+
+** Runtime operator
+
+A runtime operator occurrence is always:
+
+- one insertion
+- one body id
+
+** Atomic kinds
+
+The theory knows only about finite atomic kinds.
+Those kinds carry:
+
+- holomorphicity
+- free-field vs ordinary status
+- weight rule
+- tensor type
+
+** Composite operators
+
+Composite local operators are runtime bodies built from atomic or other composite bodies.
+No fake extra theory-level kind is needed just to encode a normal-ordered product.
+
+** Free-field evaluation
+
+If a correlator tactic uses Wick contractions, the generated theory code can recursively inspect an operator body:
+
+- if it is atomic and free-field, apply the sector's primitive Wick rules
+- if it is normal-ordered, recurse into its children
+
+So the recursive evaluation works directly on the body tree.
+
+** Quantum numbers
+
+Quantum numbers of a normal-ordered body are derived from its constituents.
+Examples:
+
+- conformal weights add
+- ghost number adds
+- other additive charges add
+
+So one does not need a separate infinite theory-level table for these composites.
+
+* Summary
+
+The cleanest setup is:
+
+- runtime `Operator = insertion + body_id`
+- runtime `OperatorBody = atomic | normal_ordered(children)`
+- theory `Sector` defines only finite atomic `OperatorKind`s
+- indices, momenta, and similar runtime labels live only on atomic leaves through `extra`
+- normal-ordered products are body constructors whose metadata is derived from constituents
+
+This keeps the theory finite, the runtime model coherent, and normal-ordered operators such as `:bc:`, `:dX^mu dX^nu:`, and `e^{-phi} psi^mu` natural to represent.
+
+
+;; Setup oglot
+
+(after! org
+  (use-package! oglot
+    :after (org eglot)
+    :config
+    (setq oglot-maybe-ensure-modes
+          '(zig-mode zig-ts-mode)))
+
+  (defun org-babel-edit-prep:zig (_babel-info)
+    (when (require 'oglot nil 'noerror)
+      (oglot-org-babel-edit-prep))))

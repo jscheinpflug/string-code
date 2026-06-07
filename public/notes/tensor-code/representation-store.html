@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Representation Store</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Representation Store</h1>
+<p>
+This module owns the abstract representation data.  A Lie algebra and an
+irrep are interned once, then every downstream system carries small typed
+handles.  That keeps tensor generation independent of how a representation is
+eventually rendered as indices, matrices, or symbolic projectors.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"root-data.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
+</pre>
+</div>
+
+<p>
+Handles are public because other modules need stable references.  The records
+behind them stay private.
+</p>
+
+<a id="AlgebraHandle"></a>
+<a id="IrrepHandle"></a>
+<a id="ChannelHandle"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga77c190"><span style="color: #e0d3b9; font-style: italic;">/// AlgebraHandle names a registered Lie algebra in a tensor context.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraHandle</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an algebra handle from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) AlgebraHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// IrrepHandle names an abstract irreducible representation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepHandle</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an irrep handle from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ChannelHandle names one irrep copy inside a local product.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChannelHandle</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs a channel handle from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ChannelHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+</pre>
+</div>
+
+<p>
+Specs are caller-owned construction data.  Interning clones only the slices we
+must retain.
+</p>
+
+<a id="AlgebraSpec"></a>
+<a id="IrrepSpec"></a>
+<a id="IrrepMetadata"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb5dbfd6"><span style="color: #e0d3b9; font-style: italic;">/// AlgebraSpec describes a requested algebra before it is interned.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraSpec</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// IrrepSpec describes a requested representation before it is interned.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepSpec</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">u1_charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.U1ChargeRational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// IrrepMetadata stores derived representation data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepMetadata</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dual</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quadratic_casimir</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.Rational</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+
+<p>
+The store is intentionally simple: linear lookup first, then append.  The first
+implementation has few registered algebras and irreps compared with the later
+coupling search, so this avoids prematurely adding hash table machinery.  If
+profiles show this store in the hot path, the record layout can stay fixed
+while we add an index.
+</p>
+
+<a id="Store"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org8973989"><span style="color: #e0d3b9; font-style: italic;">/// Store owns interned algebra and irrep records.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Store</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebras</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(AlgebraRecord) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irreps</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(IrrepRecord) = .empty,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty representation store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>) Store {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .allocator = allocator, .conventions = conventions };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases all representation-store memory.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.irreps.items) |record| {
+            <span style="color: #fb4934; font-weight: bold;">switch</span> (record.label) {
+                .dynkin =&gt; |label| self.allocator.free(label),
+                .u1_charge =&gt; {},
+            }
+        }
+        self.irreps.deinit(self.allocator);
+        self.algebras.deinit(self.allocator);
+        self.* = Store.init(self.allocator, self.conventions);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internAlgebra returns the stable handle for an algebra spec.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>) !AlgebraHandle {
+        <span style="color: #fb4934; font-weight: bold;">try</span> validateAlgebraSpec(spec);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.algebras.items, 0..) |record, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (algebraSpecEql(record.spec, spec)) {
+                <span style="color: #fb4934; font-weight: bold;">return</span> AlgebraHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index));
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.algebras.append(self.allocator, .{
+            .spec = spec,
+            .root_data = <span style="color: #fb4934; font-weight: bold;">try</span> makeRootDatum(spec, self.conventions),
+        });
+        <span style="color: #fb4934; font-weight: bold;">return</span> AlgebraHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.algebras.items.len - 1));
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// containsAlgebra returns whether an algebra handle belongs to this store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">containsAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.algebraRecord(handle) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internIrrep returns the stable handle for an irrep spec in an algebra.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepSpec</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra_record</span> = self.algebraRecord(algebra) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownAlgebra;
+        <span style="color: #fb4934; font-weight: bold;">try</span> validateIrrepSpec(algebra_record.spec, spec);
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.irreps.items, 0..) |record, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (handleEql(record.algebra, algebra) <span style="color: #fb4934; font-weight: bold;">and</span> irrepLabelSpecEql(record.label, spec)) {
+                <span style="color: #fb4934; font-weight: bold;">return</span> IrrepHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index));
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = <span style="color: #fb4934; font-weight: bold;">try</span> cloneIrrepSpec(self.allocator, spec);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> freeIrrepLabel(self.allocator, label);
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.irreps.append(self.allocator, .{
+            .algebra = algebra,
+            .label = label,
+            .metadata = .{},
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.irreps.pop();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = IrrepHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.irreps.items.len - 1));
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.fillIrrepMetadata(handle);
+        <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// dualIrrep returns the handle for the dual irrep, interning it if requested.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dualIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.irreps.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.irreps.items[index].metadata.dual) |dual| <span style="color: #fb4934; font-weight: bold;">return</span> dual;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.irreps.items[index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dual</span> = <span style="color: #fb4934; font-weight: bold;">switch</span> (record.label) {
+            .u1_charge =&gt; |charge| <span style="color: #fb4934; font-weight: bold;">try</span> self.internIrrep(record.algebra, .{ .u1_charge = .{
+                .numerator = -charge.numerator,
+                .denominator = charge.denominator,
+            } }),
+            .dynkin =&gt; |label| <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">dual:</span> {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span> = self.algebraRecord(record.algebra) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownAlgebra;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dual_label</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.dualDynkin(self.allocator, algebra.spec.simple, label);
+                <span style="color: #fb4934; font-weight: bold;">defer</span> self.allocator.free(dual_label);
+                <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:dual</span> <span style="color: #fb4934; font-weight: bold;">try</span> self.internIrrep(record.algebra, .{ .dynkin = dual_label });
+            },
+        };
+
+        self.irreps.items[index].metadata.dual = dual;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dual_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(dual.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (dual_index &lt; self.irreps.items.len) self.irreps.items[dual_index].metadata.dual = handle;
+        <span style="color: #fb4934; font-weight: bold;">return</span> dual;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// containsIrrep returns whether an irrep handle belongs to this store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">containsIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.irrepRecord(handle) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// irrepMetadata returns derived metadata for an irrep handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepMetadata</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) ?IrrepMetadata {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.irrepRecord(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> record.metadata;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// irrepAlgebra returns the algebra that owns an irrep handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) ?AlgebraHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.irrepRecord(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> record.algebra;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">algebraRecord</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>) ?AlgebraRecord {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.algebras.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.algebras.items[index];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepRecord</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) ?IrrepRecord {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.irreps.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.irreps.items[index];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fillIrrepMetadata</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.irreps.items[index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span> = self.algebraRecord(record.algebra) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownAlgebra;
+
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (record.label) {
+            .u1_charge =&gt; |charge| {
+                self.irreps.items[index].metadata.dimension = 1;
+                self.irreps.items[index].metadata.quadratic_casimir = <span style="color: #fb4934; font-weight: bold;">try</span> u1QuadraticCasimir(charge);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (charge.numerator == 0) self.irreps.items[index].metadata.dual = handle;
+            },
+            .dynkin =&gt; |label| {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span> = algebra.spec.simple;
+                self.irreps.items[index].metadata.dimension = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.dimension(self.allocator, simple, label);
+                self.irreps.items[index].metadata.quadratic_casimir = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.quadraticCasimir(self.allocator, simple, label, self.conventions);
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dual_label</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.dualDynkin(self.allocator, simple, label);
+                <span style="color: #fb4934; font-weight: bold;">defer</span> self.allocator.free(dual_label);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, dual_label)) {
+                    self.irreps.items[index].metadata.dual = handle;
+                } <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fb4934; font-weight: bold;">if</span> (self.findIrrep(record.algebra, .{ .dynkin = dual_label })) |dual| {
+                    self.irreps.items[index].metadata.dual = dual;
+                }
+            },
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">findIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepSpec</span>) ?IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.irreps.items, 0..) |record, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (handleEql(record.algebra, algebra) <span style="color: #fb4934; font-weight: bold;">and</span> irrepLabelSpecEql(record.label, spec)) {
+                <span style="color: #fb4934; font-weight: bold;">return</span> IrrepHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index));
+            }
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+};
+</pre>
+</div>
+
+<p>
+Private records carry derived metadata, root data, and future product-channel
+occurrences.  They are not exported because callers should not depend on the
+storage layout.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AlgebraRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepLabel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metadata</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepMetadata</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IrrepLabel</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">u1_charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.U1ChargeRational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChannelRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OccurrenceKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    external_leg,
+    product_node,
+    realization,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OccurrenceRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ChannelHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OccurrenceKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">source_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+
+<p>
+Interning equality is structural and allocation-free.  Validation happens before
+interning: a simple-algebra irrep must have one non-negative Dynkin label per
+rank, and a U(1) irrep must be a rational charge.  Unknown dimension and dual
+data is represented by <code>null</code>, never by a fake handle.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">handleEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> left.value == right.value;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateAlgebraSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (spec) {
+        .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; {},
+        .simple =&gt; |simple| <span style="color: #fb4934; font-weight: bold;">try</span> root_data.validateSimple(simple),
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">makeRootDatum</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>) !?root_data.RootDatum {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (spec) {
+        .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+        .simple =&gt; |simple| <span style="color: #fb4934; font-weight: bold;">try</span> root_data.RootDatum.init(simple, conventions),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">algebraSpecEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (left) {
+        .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+            .simple =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        },
+        .simple =&gt; |left_simple| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+            .simple =&gt; |right_simple| left_simple.family == right_simple.family <span style="color: #fb4934; font-weight: bold;">and</span> left_simple.rank == right_simple.rank,
+        },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateIrrepSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AlgebraSpec</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepSpec</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (algebra) {
+        .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span> =&gt; <span style="color: #fb4934; font-weight: bold;">switch</span> (spec) {
+            .u1_charge =&gt; |charge| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (charge.denominator == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidU1Charge;
+            },
+            .dynkin =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidIrrepForAlgebra,
+        },
+        .simple =&gt; |simple| <span style="color: #fb4934; font-weight: bold;">switch</span> (spec) {
+            .u1_charge =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidIrrepForAlgebra,
+            .dynkin =&gt; |label| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (label.len != simple.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+                <span style="color: #fb4934; font-weight: bold;">for</span> (label) |entry| {
+                    <span style="color: #fb4934; font-weight: bold;">if</span> (entry &lt; 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinLabel;
+                }
+            },
+        },
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">u1QuadraticCasimir</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.U1ChargeRational</span>) !root_data.Rational {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, charge.numerator) * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, charge.numerator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, charge.denominator) * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, charge.denominator);
+    <span style="color: #fb4934; font-weight: bold;">return</span> root_data.Rational.init(numerator, denominator);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepLabelSpecEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepLabel</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepSpec</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (left) {
+        .u1_charge =&gt; |left_charge| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .u1_charge =&gt; |right_charge| left_charge.numerator == right_charge.numerator <span style="color: #fb4934; font-weight: bold;">and</span> left_charge.denominator == right_charge.denominator,
+            .dynkin =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        },
+        .dynkin =&gt; |left_dynkin| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
+            .u1_charge =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+            .dynkin =&gt; |right_dynkin| std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, left_dynkin, right_dynkin),
+        },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cloneIrrepSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepSpec</span>) !IrrepLabel {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (spec) {
+        .u1_charge =&gt; |charge| .{ .u1_charge = charge },
+        .dynkin =&gt; |label| .{ .dynkin = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.dupe(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label) },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeIrrepLabel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IrrepLabel</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (label) {
+        .dynkin =&gt; |dynkin| allocator.free(dynkin),
+        .u1_charge =&gt; {},
+    }
+}
+</pre>
+</div>
+</div>
+</body>
+</html>

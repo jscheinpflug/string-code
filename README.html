@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 14:21 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>String-Code Notes — Publishing Workflow</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">String-Code Notes — Publishing Workflow</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgcc77c8c">1. Overview</a></li>
+<li><a href="#orga791747">2. Project Layout</a></li>
+<li><a href="#orgd4bd918">3. Writing Notes</a>
+<ul>
+<li><a href="#orga1587d1">3.1. The Three File Types</a></li>
+<li><a href="#org1f1fac6">3.2. overview.org</a></li>
+<li><a href="#org132e336">3.3. Citations</a></li>
+<li><a href="#orge436d10">3.4. Creating Files with my/roam-new</a></li>
+</ul>
+</li>
+<li><a href="#org4a42f50">4. Building</a></li>
+<li><a href="#orgeca7be6">5. Pipeline Details</a>
+<ul>
+<li><a href="#orgd21befb">5.1. Phase 1 — Flag Parsing and Initialization</a></li>
+<li><a href="#org5d97c05">5.2. Phase 2 — Code Tangling</a></li>
+<li><a href="#org398b299">5.3. Phase 3 — HTML Export</a></li>
+<li><a href="#org3aad52e">5.4. Phase 4 — PDF Generation</a></li>
+<li><a href="#org92b7a9d">5.5. Phase 5 — Org-Roam Graph</a></li>
+<li><a href="#org2282827">5.6. Watch Mode</a></li>
+</ul>
+</li>
+<li><a href="#org496a3b7">6. Adding a New Section</a></li>
+<li><a href="#org2419267">7. Key Files</a></li>
+<li><a href="#orgb65e0d2">8. Emacs Snippets</a>
+<ul>
+<li><a href="#orgbc470c4">8.1. <code>src</code> — source block with language chooser</a></li>
+<li><a href="#org7eaa613">8.2. <code>zig</code> — Zig block without prompt</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgcc77c8c" class="outline-2">
+<h2 id="orgcc77c8c"><span class="section-number-2">1.</span> Overview</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+String-Code is a literate Zig programming system for worldsheet string theory calculations. Org-roam source files in <code>org/</code> serve as the single source of truth: code blocks are tangled to <code>src/</code> as Zig source, HTML pages with syntax highlighting and aggregated API references are published to <code>public/notes/</code>, a combined PDF is compiled via LaTeX with engrave-faces color rendering, and an interactive knowledge graph is built from the org-roam database. The project is organized into six modules — CFT-Code, Tensor-Code, On-Shell-Code, SFT-Code, NLSM-Code, and Pure-Spinor-Code — each covering a distinct area of string theory computation.
+</p>
+</div>
+</div>
+<div id="outline-container-orga791747" class="outline-2">
+<h2 id="orga791747"><span class="section-number-2">2.</span> Project Layout</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+<pre class="src src-nil"><code>string-code/
+  org/                    — source org files (edit these)
+    overview.org           — project overview and bibliography
+    ordering.org           — root table of contents, links to subdirectories
+    refs.bib               — citations (org-cite/biblatex)
+    cft-code/
+      cft-code.org         — main module file with #+auto_tangle: t
+      ordering.org         — submodule ordering
+      normal-ordering/
+      ope/
+      correlators/
+      operators/
+    tensor-code/
+    on-shell-code/
+    sft-code/
+    nlsm-code/
+    pure-spinor-code/
+  src/                    — tangled Zig source (generated, do not edit)
+  public/                 — published website (generated)
+    index.html             — main table of contents
+    notes/                 — individual note pages
+    api/                   — aggregated API reference
+    graph/                 — org-roam interactive knowledge graph
+    all-notes.pdf          — combined PDF
+    style.css, sidebar.js, theme.js
+  publish/                — publishing pipeline scripts
+    publish.el             — HTML export, API injection, index generation
+    master-gen.el          — assembles all-notes-master.org for PDF
+    pdf-config.el          — LaTeX/engrave-faces color and typography config
+    roam-sync.el           — syncs org-roam database for graph build
+    style.css, sidebar.js, theme.js — website styling and UI
+  publish.sh              — main build script (entry point)
+  roam.el                 — Emacs commands (my/roam-new, my/update-api-section, etc.)
+  README.org              — this file
+  .publish-logs/          — build logs directory
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd4bd918" class="outline-2">
+<h2 id="orgd4bd918"><span class="section-number-2">3.</span> Writing Notes</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-orga1587d1" class="outline-3">
+<h3 id="orga1587d1"><span class="section-number-3">3.1.</span> The Three File Types</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+There are three kinds of files in <code>org/</code>, each with a distinct role.
+</p>
+
+<ul class="org-ul">
+<li><b>Note files</b> (e.g. <code>ope/ope-intro.org</code>) — prose and math with optional non-tangled code snippets. Each has a <code>:PROPERTIES:</code> block with an <code>:ID:</code> (timestamp format) assigned by org-roam. Math uses <code>\(...\)</code> for inline and <code>\[...\]</code> or <code>\begin{equation}</code> for display; rendered with KaTeX. Cross-references use <code>[[id:UUID][Text]]</code> for inter-note links and <code>[[name][~sig~]]</code> for API entry links.</li>
+
+<li><p>
+<b>Code files</b> (e.g. <code>cft-code/cft-code.org</code>) — literate Zig source. Must include:
+</p>
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #928374;">  #+auto_tangle: t</span>
+<span style="color: #928374;">  #+PROPERTY: header-args:zig :tangle PATH :mkdirp yes</span>
+</code></pre>
+</div>
+<p>
+Zig functions and types preceded by <code>///</code> doc comments and declared <code>pub</code> are auto-collected into an <code>* API</code> section on publish. Use <code>:tangle no</code> on example blocks to display code without tangling it.
+</p></li>
+
+<li><p>
+<b>Ordering files</b> (<code>ordering.org</code>) — pure navigation, no prose content, no org-roam ID. Each entry is a single top-level link:
+</p>
+<div class="org-src-container">
+<pre class="src src-org"><code>  * <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;"><a href="file:subdir/">Module Name</a></span>
+  * <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;"><a href="id:UUID">Note Title</a></span>
+</code></pre>
+</div>
+<p>
+The root <code>org/ordering.org</code> determines the top-level TOC order and PDF chapter structure. Sub-folder <code>ordering.org</code> files follow the same structure and are auto-created when a folder contains notes.
+</p></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org1f1fac6" class="outline-3">
+<h3 id="org1f1fac6"><span class="section-number-3">3.2.</span> overview.org</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+<code>org/overview.org</code> is an optional project-level prose introduction. It becomes the opening section of the combined PDF. Place the bibliography declaration at the top:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #928374;">#+bibliography: refs.bib</span>
+</code></pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org132e336" class="outline-3">
+<h3 id="org132e336"><span class="section-number-3">3.3.</span> Citations</h3>
+<div class="outline-text-3" id="text-3-3">
+<p>
+Add entries to <code>org/refs.bib</code> in BibTeX format. Reference them in any org file with org-cite syntax:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #97c281;">[cite:</span><span style="color: #fb4934;">@key</span><span style="color: #97c281;">]</span>
+</code></pre>
+</div>
+
+<p>
+Place the bibliography at the end of a file with:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #928374;">#+print_bibliography:</span>
+</code></pre>
+</div>
+
+<p>
+HTML export uses the numeric-html processor (<code>[1]</code>, <code>[2]</code>, &hellip;). PDF export uses biblatex.
+</p>
+</div>
+</div>
+<div id="outline-container-orge436d10" class="outline-3">
+<h3 id="orge436d10"><span class="section-number-3">3.4.</span> Creating Files with my/roam-new</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+<code>my/roam-new</code> (defined in <a href="roam.el">roam.el</a>) creates note, code, or ordering files with the correct template and automatically appends a link to the parent <code>ordering.org</code>. Invoke it from Emacs with <code>M-x my/roam-new</code>.
+</p>
+
+<p>
+Additional commands in <code>roam.el</code>:
+</p>
+
+<ul class="org-ul">
+<li><code>my/roam-note-to-code</code> — converts an existing note file into a tangle-enabled code file.</li>
+<li><code>my/roam-rename</code> — updates a note&rsquo;s title and refreshes the org-roam database entry.</li>
+<li><code>my/update-api-section</code> — re-scans <code>pub</code> declarations and refreshes the <code>* API</code> section in a code file.</li>
+<li><code>my/check-links</code> — validates all <code>id:</code> and <code>file:</code> links across the <code>org/</code> tree.</li>
+<li><code>my/roam-normalize-orderings</code> — audits all <code>ordering.org</code> files to ensure every note in a directory is linked and links point to existing files.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-org4a42f50" class="outline-2">
+<h2 id="org4a42f50"><span class="section-number-2">4.</span> Building</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The entry point for all build operations is <a href="publish.sh">publish.sh</a>.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Command</th>
+<th scope="col" class="org-left">Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>bash publish.sh</code></td>
+<td class="org-left">Full build: tangle + HTML + PDF + graph</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>bash publish.sh --nopdf</code></td>
+<td class="org-left">Tangle + HTML + graph (skip PDF)</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>bash publish.sh --nohtml</code></td>
+<td class="org-left">Tangle + PDF only (skip HTML)</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>bash publish.sh --nograph</code></td>
+<td class="org-left">Tangle + HTML + PDF (skip graph and DB sync)</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>bash publish.sh --watch</code></td>
+<td class="org-left">Watch mode: rebuild on <code>.org</code> changes (HTML + PDF, no graph)</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>bash publish.sh --watch --nopdf</code></td>
+<td class="org-left">Watch mode: HTML-only rebuilds</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+To serve the site locally after building:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>python3 -m http.server 8000 -d public
+</code></pre>
+</div>
+
+<p>
+To enable full-text search, install <a href="https://pagefind.app">pagefind</a> before building:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>npm install -g pagefind
+<span style="color: #928374;"># </span><span style="color: #928374;">or
+</span>cargo install pagefind
+</code></pre>
+</div>
+
+<p>
+Build logs are written to <code>.publish-logs/</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgeca7be6" class="outline-2">
+<h2 id="orgeca7be6"><span class="section-number-2">5.</span> Pipeline Details</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="outline-container-orgd21befb" class="outline-3">
+<h3 id="orgd21befb"><span class="section-number-3">5.1.</span> Phase 1 — Flag Parsing and Initialization</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+<code>publish.sh</code> parses <code>--nograph</code>, <code>--nopdf</code>, <code>--nohtml</code>, and <code>--watch</code> flags to determine which phases to skip, then locates <code>org/</code>, <code>ordering.org</code>, <code>overview.org</code>, and the org-roam database.
+</p>
+</div>
+</div>
+<div id="outline-container-org5d97c05" class="outline-3">
+<h3 id="org5d97c05"><span class="section-number-3">5.2.</span> Phase 2 — Code Tangling</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+All <code>.org</code> files containing <code>#+auto_tangle: t</code> are discovered and tangled. Code blocks are extracted to the paths specified in their <code>header-args</code> and written under <code>src/</code>. The <code>src/</code> tree is generated output; do not edit files there directly.
+</p>
+</div>
+</div>
+<div id="outline-container-org398b299" class="outline-3">
+<h3 id="org398b299"><span class="section-number-3">5.3.</span> Phase 3 — HTML Export</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+<a href="publish/publish.el">publish.el</a> runs in Emacs batch mode and:
+</p>
+
+<ul class="org-ul">
+<li>Exports every note to <code>public/notes/</code> as a self-contained HTML page with collapsible sidebar navigation.</li>
+<li>Injects citation markup using the org-cite numeric-html processor.</li>
+<li>Scans code files for <code>pub</code> Zig declarations preceded by <code>///</code> doc comments and injects them into the file&rsquo;s <code>* API</code> section; the aggregated API reference is written to <code>public/api/</code>.</li>
+<li>Generates <code>public/index.html</code> as the main table of contents, reflecting the order in <code>ordering.org</code>.</li>
+<li>Applies Gruvbox syntax highlighting via htmlize.</li>
+</ul>
+
+<p>
+If pagefind is installed, a search index is built in <code>public/pagefind/</code> at this stage.
+</p>
+</div>
+</div>
+<div id="outline-container-org3aad52e" class="outline-3">
+<h3 id="org3aad52e"><span class="section-number-3">5.4.</span> Phase 4 — PDF Generation</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+<a href="publish/master-gen.el">master-gen.el</a> assembles <code>all-notes-master.org</code>:
+</p>
+
+<ol class="org-ol">
+<li><code>org/overview.org</code> is included first, becoming the introductory section.</li>
+<li><code>org/ordering.org</code> is followed recursively — each linked sub-<code>ordering.org</code> contributes a chapter, and each linked note becomes a section within it.</li>
+<li>LaTeX labels and cross-reference names are injected for every <code>pub</code> Zig block.</li>
+</ol>
+
+<p>
+<a href="publish/pdf-config.el">pdf-config.el</a> configures the LaTeX backend:
+</p>
+
+<ul class="org-ul">
+<li><b>engrave-faces</b> provides code syntax highlighting in the PDF using doom-gruvbox colors, matching the HTML theme.</li>
+<li><b>biblatex</b> processes citations and renders the bibliography.</li>
+<li>Typography packages (<code>geometry</code>, <code>booktabs</code>, <code>enumitem</code>) set page layout and list/table styling.</li>
+</ul>
+
+<p>
+The master org file is exported to LaTeX and compiled to <code>public/all-notes.pdf</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org92b7a9d" class="outline-3">
+<h3 id="org92b7a9d"><span class="section-number-3">5.5.</span> Phase 5 — Org-Roam Graph</h3>
+<div class="outline-text-3" id="text-5-5">
+<p>
+Unless <code>--nograph</code> is passed:
+</p>
+
+<ol class="org-ol">
+<li><a href="publish/roam-sync.el">roam-sync.el</a> force-syncs the org-roam database (<code>org-roam.db</code> or <code>org-roam.sqlite</code>) so all nodes and links are indexed.</li>
+<li><code>publish-org-roam-ui</code> builds the interactive knowledge graph from the synced database.</li>
+<li>Graph output is copied to <code>public/graph/</code> and shared assets (<code>_next</code>, <code>static</code>, etc.) are copied to <code>public/</code>.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2282827" class="outline-3">
+<h3 id="org2282827"><span class="section-number-3">5.6.</span> Watch Mode</h3>
+<div class="outline-text-3" id="text-5-6">
+<p>
+With <code>--watch</code>, <code>publish.sh</code> monitors <code>org/</code> for <code>.org</code> file changes and reruns tangle → HTML → PDF → DB sync on each change. The graph is not rebuilt in watch mode.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org496a3b7" class="outline-2">
+<h2 id="org496a3b7"><span class="section-number-2">6.</span> Adding a New Section</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+Follow these steps to add a new module or subsection to the project.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Create the directory under <code>org/</code>:
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><code>   <span style="color: #fabd2f;">mkdir</span> org/my-new-section/
+</code></pre>
+</div></li>
+
+<li><p>
+Create an <code>ordering.org</code> for the new directory (either manually or via <code>my/roam-new</code>):
+</p>
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #7c6f64;">   #+title:</span> <span style="color: #fb4934;">My New Section</span>
+</code></pre>
+</div>
+<p>
+This file has no <code>:ID:</code> property and no prose — only <code>* [[...][...]]</code> links added as you create notes.
+</p></li>
+
+<li><p>
+Link the new section from its parent <code>ordering.org</code> (e.g. <code>org/ordering.org</code>):
+</p>
+<div class="org-src-container">
+<pre class="src src-org"><code>   * <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;"><a href="file:my-new-section/">My New Section</a></span>
+</code></pre>
+</div></li>
+
+<li>Create notes inside <code>org/my-new-section/</code> using <code>M-x my/roam-new</code>. Each note receives an org-roam <code>:ID:</code> and is automatically appended to <code>org/my-new-section/ordering.org</code>.</li>
+
+<li><p>
+To add a code file with tangle output, use <code>my/roam-new</code> and select the code template, or convert an existing note with <code>my/roam-note-to-code</code>. Set the tangle path in the file&rsquo;s <code>PROPERTY</code> line:
+</p>
+<div class="org-src-container">
+<pre class="src src-org"><code><span style="color: #928374;">   #+PROPERTY: header-args:zig :tangle ../../src/my-new-section/main.zig :mkdirp yes</span>
+</code></pre>
+</div></li>
+
+<li>Run <code>bash publish.sh</code> to tangle, export, and publish the new content.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2419267" class="outline-2">
+<h2 id="org2419267"><span class="section-number-2">7.</span> Key Files</h2>
+<div class="outline-text-2" id="text-7">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">File</th>
+<th scope="col" class="org-left">Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><a href="publish.sh">publish.sh</a></td>
+<td class="org-left">Main build script. Orchestrates tangle, HTML, PDF, and graph phases; parses flags; manages logs.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/publish.el">publish/publish.el</a></td>
+<td class="org-left">HTML export engine. Handles org-cite (numeric-html), API injection, index and API page generation, Gruvbox highlighting.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/master-gen.el">publish/master-gen.el</a></td>
+<td class="org-left">PDF master file generator. Assembles <code>all-notes-master.org</code> from <code>overview.org</code> and <code>ordering.org</code> chains; injects LaTeX labels for Zig pub blocks.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/pdf-config.el">publish/pdf-config.el</a></td>
+<td class="org-left">LaTeX/PDF export configuration. Sets up engrave-faces with doom-gruvbox colors, biblatex, geometry, booktabs, enumitem.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/roam-sync.el">publish/roam-sync.el</a></td>
+<td class="org-left">Org-roam database synchronization. Force-syncs the database before graph generation.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="roam.el">roam.el</a></td>
+<td class="org-left">Emacs project commands: <code>my/roam-new</code>, <code>my/roam-note-to-code</code>, <code>my/roam-rename</code>, <code>my/update-api-section</code>, <code>my/check-links</code>, <code>my/roam-normalize-orderings</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="org/overview.html">org/overview.org</a></td>
+<td class="org-left">Project overview prose; opening section of PDF; contains <code>#+bibliography: refs.bib</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="org/ordering.html">org/ordering.org</a></td>
+<td class="org-left">Root table of contents. Determines module order in TOC and PDF chapter structure.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="org/refs.bib">org/refs.bib</a></td>
+<td class="org-left">Shared bibliography (BibTeX). Referenced via <code>#+bibliography:</code> in org files; cited with <code>[cite:@key]</code>.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/style.css">publish/style.css</a></td>
+<td class="org-left">Website stylesheet. Page layout, Gruvbox code colors, KaTeX math rendering, light/dark theme colors.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/sidebar.js">publish/sidebar.js</a></td>
+<td class="org-left">Collapsible sidebar UI behavior. Manages navigation sidebar open/close state on HTML pages.</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="publish/theme.js">publish/theme.js</a></td>
+<td class="org-left">Light/dark theme toggle. Implements sun/moon button in nav bar; persists preference to localStorage.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-orgb65e0d2" class="outline-2">
+<h2 id="orgb65e0d2"><span class="section-number-2">8.</span> Emacs Snippets</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+Two yasnippets for org-mode live in <code>~/.config/doom/snippets/org-mode/</code>.  They
+require the <code>:tools snippets</code> module in your Doom <code>init.el</code>.  After adding or
+editing them, reload with <code>M-x yas-reload-all</code>.
+</p>
+</div>
+<div id="outline-container-orgbc470c4" class="outline-3">
+<h3 id="orgbc470c4"><span class="section-number-3">8.1.</span> <code>src</code> — source block with language chooser</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+File: <code>~/.config/doom/snippets/org-mode/src</code>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-snippet"><code><span style="color: #928374;"># -*- mode: snippet -*-</span>
+<span style="color: #928374;"># name: src block</span>
+<span style="color: #928374;"># key: src</span>
+<span style="color: #928374;"># --</span>
+#+begin_src `(completing-read <span style="color: #b8bb26;">"Language: "</span> '(<span style="color: #b8bb26;">"zig"</span> <span style="color: #b8bb26;">"c"</span> <span style="color: #b8bb26;">"cpp"</span> <span style="color: #b8bb26;">"rust"</span> <span style="color: #b8bb26;">"go"</span> <span style="color: #b8bb26;">"python"</span> <span style="color: #b8bb26;">"haskell"</span> <span style="color: #b8bb26;">"lua"</span> <span style="color: #b8bb26;">"nix"</span> <span style="color: #b8bb26;">"sh"</span> <span style="color: #b8bb26;">"js"</span> <span style="color: #b8bb26;">"ts"</span> <span style="color: #b8bb26;">"ocaml"</span> <span style="color: #b8bb26;">"scheme"</span>))`
+<span style="color: #fb4934;">$</span><span style="color: #b8bb26;">0</span>
+</code></pre>
+</div>
+<p>
+#+end<sub>src</sub>
+</p>
+
+<p>
+Trigger: type <code>src</code> then <code>TAB</code> in an org buffer.  A <code>completing-read</code> prompt
+appears immediately with the language list; pick one and the cursor lands inside
+the block.  The backtick syntax evaluates the Elisp at expansion time, so the
+prompt fires before any text is inserted.
+</p>
+</div>
+</div>
+<div id="outline-container-org7eaa613" class="outline-3">
+<h3 id="org7eaa613"><span class="section-number-3">8.2.</span> <code>zig</code> — Zig block without prompt</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+File: <code>~/.config/doom/snippets/org-mode/zig</code>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-snippet"><code><span style="color: #928374;"># -*- mode: snippet -*-</span>
+<span style="color: #928374;"># name: zig block</span>
+<span style="color: #928374;"># key: zig</span>
+<span style="color: #928374;"># --</span>
+<span style="color: #928374;">#+begin_src zig</span>
+<span style="color: #fb4934;">$</span><span style="color: #b8bb26;">0</span>
+</code></pre>
+</div>
+<p>
+#+end<sub>src</sub>
+</p>
+
+<p>
+Trigger: type <code>zig</code> then <code>TAB</code>.  Drops a Zig block immediately with the cursor
+inside; no prompt.  Useful when you know the language without thinking about it.
+</p>
+
+<p>
+Both snippets intentionally omit <code>:tangle</code> — tangling is handled by
+<code>#+auto_tangle: t</code> at the file level, not per-block.
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2026-06-06 Sat 14:21</p>
+</div>
+</body>
+</html>

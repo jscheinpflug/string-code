@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Realization</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Realization</h1>
+<p>
+Realizations map abstract irreps to concrete index layouts.  This is where a
+field acquires caller-visible slots such as vector, spinor, fundamental, or
+adjoint indices.  The coupling search still reasons about the target irrep, so
+projected realizations like an irrep inside \(V \otimes S\) do not force every
+later step to carry the full ambient product.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+</pre>
+</div>
+
+<p>
+Public handles identify registered concrete realizations and external legs.
+</p>
+
+<a id="RealizationHandle"></a>
+<a id="ExternalLegHandle"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org8fc919d"><span style="color: #e0d3b9; font-style: italic;">/// RealizationHandle names a concrete index realization of an irrep.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationHandle</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs a realization handle from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) RealizationHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExternalLegHandle names one external leg in an invariant request.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExternalLegHandle</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an external-leg handle from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ExternalLegHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+</pre>
+</div>
+
+<p>
+Construction records are public because CFT code must be able to describe its
+free indices.  The arrays are caller-owned until they are registered in the
+context.
+</p>
+
+<a id="RealizationRef"></a>
+<a id="IndexKind"></a>
+<a id="NamedIndex"></a>
+<a id="RealizationChannel"></a>
+<a id="ExternalLeg"></a>
+<a id="RealizationSpec"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org8223928"><span style="color: #e0d3b9; font-style: italic;">/// RealizationRef identifies a primitive or registered external tensor shape.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationRef</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">registered_name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// IndexKind classifies the visible slot type of an external index.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    vector,
+    spinor,
+    conjugate_spinor,
+    fundamental,
+    anti_fundamental,
+    adjoint,
+    form,
+    custom,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// NamedIndex records one caller-supplied free index name.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NamedIndex</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs one caller-named index slot.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexKind</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) NamedIndex {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .kind = kind, .name = name };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationChannel selects one irrep copy inside a realization product.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationChannel</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs a selected irrep copy.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) RealizationChannel {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .irrep = irrep, .copy = copy };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// first selects the first copy of an irrep.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">first</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) RealizationChannel {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .irrep = irrep };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExternalLeg describes a public invariant leg with named free indices.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExternalLeg</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// primitive constructs a leg whose realization is the irrep itself.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">primitive</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) ExternalLeg {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .realization = .{ .primitive_irrep = irrep },
+            .indices = indices,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// realized constructs a leg from a registered realization handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">realized</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) ExternalLeg {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .realization = .{ .handle = realization },
+            .indices = indices,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// registered constructs a leg from a preset realization name.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">registered</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) ExternalLeg {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .realization = .{ .registered_name = name },
+            .indices = indices,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// named returns the leg with a caller-facing label attached.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">named</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExternalLeg</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) ExternalLeg {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = self;
+        out.label = label;
+        <span style="color: #fb4934; font-weight: bold;">return</span> out;
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationSpec describes a primitive or projected external index model.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationSpec</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// primitive constructs a direct index realization of an irrep.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">primitive</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) RealizationSpec {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .channel = RealizationChannel.first(target),
+            .indices = indices,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// projected constructs an irrep realization inside an ambient product.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projected</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) RealizationSpec {
+        <span style="color: #fb4934; font-weight: bold;">return</span> RealizationSpec.projectedChannel(RealizationChannel.init(target, copy), ambient, indices);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// projectedChannel constructs a realization from an explicit channel.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projectedChannel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) RealizationSpec {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .channel = channel,
+            .ambient = ambient,
+            .indices = indices,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// named returns the realization spec with a preset-facing name attached.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">named</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) RealizationSpec {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = self;
+        out.name = name;
+        <span style="color: #fb4934; font-weight: bold;">return</span> out;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// targetIrrep returns the abstract irrep realized by this index model.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">targetIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>) store.IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.channel.irrep;
+    }
+};
+</pre>
+</div>
+
+<p>
+The store owns cloned realization specs and interns repeated requests.
+</p>
+
+<a id="Store"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org039eac8"><span style="color: #e0d3b9; font-style: italic;">/// Store owns interned concrete realization records.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Store</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">specs</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(RealizationSpec) = .empty,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty realization store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Store {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .allocator = allocator };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases all realization-store memory.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.specs.items) |spec| {
+            freeRealizationSpec(self.allocator, spec);
+        }
+        self.specs.deinit(self.allocator);
+        self.* = Store.init(self.allocator);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internRealization returns the stable handle for a realization spec.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internRealization</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>) !RealizationHandle {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.specs.items, 0..) |stored, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (realizationSpecEql(stored, spec)) {
+                <span style="color: #fb4934; font-weight: bold;">return</span> RealizationHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index));
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">owned</span> = <span style="color: #fb4934; font-weight: bold;">try</span> cloneRealizationSpec(self.allocator, spec);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> freeRealizationSpec(self.allocator, owned);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.specs.append(self.allocator, owned);
+        <span style="color: #fb4934; font-weight: bold;">return</span> RealizationHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.specs.items.len - 1));
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// containsRealization returns whether a realization handle belongs to this store.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">containsRealization</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.realizationSpec(handle) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// targetIrrep returns the irrep realized by a stored realization handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">targetIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationHandle</span>) ?store.IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = self.realizationSpec(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> spec.targetIrrep();
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">realizationSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationHandle</span>) ?RealizationSpec {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.specs.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.specs.items[index];
+    }
+};
+</pre>
+</div>
+
+<p>
+These private records describe the future projector derivation path for a
+realization.  The selected channel is a single value, so future embedding
+conventions have one natural place to attach.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// IndexSlotSpec declares one slot in a realization layout.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexSlotSpec</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">default_name</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationRequest declares an irrep as a projected ambient tensor shape.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index_layout</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSlotSpec</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationKind distinguishes primitive from projected realizations.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    primitive,
+    projected_channel,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationRecord stores one concrete index layout for an irrep.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index_layout_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index_layout_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationProjectorId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationProjectorId names a derived boundary realization projector.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationProjectorId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// AmbientFactor records one irrep in an ambient realization product.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AmbientFactor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RealizationRule records the construction request for one realization.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RealizationRule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationRequest</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationProjectorId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+
+<p>
+Structural equality and clone/free helpers are private implementation details.
+They keep public construction records lightweight while making registered
+realizations stable after caller buffers go out of scope.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">realizationSpecEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> realizationChannelEql(left.channel, right.channel) <span style="color: #fb4934; font-weight: bold;">and</span>
+        optionalStringEql(left.name, right.name) <span style="color: #fb4934; font-weight: bold;">and</span>
+        irrepSliceEql(left.ambient, right.ambient) <span style="color: #fb4934; font-weight: bold;">and</span>
+        namedIndexSliceEql(left.indices, right.indices);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">realizationChannelEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationChannel</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> left.irrep.value == right.irrep.value <span style="color: #fb4934; font-weight: bold;">and</span> left.copy == right.copy;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepSliceEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (left.len != right.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (left, right) |left_item, right_item| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_item.value != right_item.value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">namedIndexSliceEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (left.len != right.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (left, right) |left_item, right_item| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_item.kind != right_item.kind) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, left_item.name, right_item.name)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">optionalStringEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (left == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">or</span> right == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span> left == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">and</span> right == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, left.?, right.?);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cloneRealizationSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>) !RealizationSpec {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.dupe(store.IrrepHandle, spec.ambient);
+    <span style="color: #fb4934; font-weight: bold;">errdefer</span> allocator.free(ambient);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span> = <span style="color: #fb4934; font-weight: bold;">try</span> cloneNamedIndices(allocator, spec.indices);
+    <span style="color: #fb4934; font-weight: bold;">errdefer</span> freeNamedIndices(allocator, indices);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (spec.name) |value| <span style="color: #fb4934; font-weight: bold;">try</span> allocator.dupe(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, value) <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">errdefer</span> <span style="color: #fb4934; font-weight: bold;">if</span> (name) |value| allocator.free(value);
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .channel = spec.channel,
+        .ambient = ambient,
+        .indices = indices,
+        .name = name,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeRealizationSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RealizationSpec</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    allocator.free(spec.ambient);
+    freeNamedIndices(allocator, spec.indices);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.name) |name| allocator.free(name);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cloneNamedIndices</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) ![]NamedIndex {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">owned</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.alloc(NamedIndex, indices.len);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">initialized</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">errdefer</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (owned[0..initialized]) |previous| allocator.free(previous.name);
+        allocator.free(owned);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (indices, owned[0..]) |source, *target| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.dupe(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, source.name);
+        target.* = .{ .kind = source.kind, .name = name };
+        initialized += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> owned;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeNamedIndices</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NamedIndex</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (indices) |index| {
+        allocator.free(index.name);
+    }
+    allocator.free(indices);
+}
+</pre>
+</div>
+</div>
+</body>
+</html>

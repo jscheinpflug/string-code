@@ -1,0 +1,2641 @@
+#+title: Tensor And CFT Kernel Interface
+#+date: 2026-06-06
+#+latex_header: \usepackage{xcolor}
+#+PROPERTY: header-args:zig :tangle no
+
+* Goal
+
+This note rewrites the proposed interface for =tensor-code= and =cft-code= in
+plain physics language.
+
+The kernel should support the worldsheet calculations needed by
+[[file:../org/overview.org][Overview]]:
+
+- free-field OPEs and correlators without storing huge intermediate sums;
+- RNS spin fields and excited Ramond-sector OPEs;
+- on-shell amplitudes and SFT brackets as clients of the same CFT operations;
+- boundary and orientifold projections;
+- weak-background/NLSM perturbation theory;
+- pure-spinor worldsheet calculations.
+
+The guiding point is simple:
+
+- =cft-code= describes local worldsheet operators and computes their OPEs,
+  projections, and correlators.
+- =tensor-code= describes spacetime/internal tensor structures that appear as
+  coefficients of those worldsheet calculations.
+
+The CFT tensor product is handled exactly as in the current direction: an
+operator carries a list of quantum-number entries.  A product theory just gives
+operators longer lists of charges, sectors, and representation labels.  There
+is no need for a separate runtime object for the tensor product of CFT sectors.
+
+* Kernel Boundary
+
+=cft-code= should know about:
+
+- local fields and local operators;
+- insertion points \(z,\bar z,x\) and derivatives;
+- normal-ordered products;
+- conformal weights;
+- quantum numbers as a list of named entries;
+- which fields can contract with which other fields;
+- which rule determines the evaluation strategies supported by each full
+  operator body;
+- the preference order of strategies in each sector;
+- projection of an OPE to a target weight;
+- OPEs and correlators of any number of local insertions;
+- the compact rule config with which a correlator is evaluated;
+- generic finite projections supplied by the theory or client, such as
+  GSO/orbifold actions and orientifold-induced actions;
+- sector-level statistics and cocycle conventions;
+=cft-code= should let a BCFT preset be built from bulk CFT data plus boundary
+data, but the bulk CFT definition itself should not mention boundaries.
+Gluing is used by the DSL to define boundary-local operators and Wick rules,
+not passed to the runtime correlator.
+
+=cft-code= should not know the physical interpretation of the entries called
+=ghost_number=, =picture=, =GSO=, =pure_spinor_ghost_number=, or any similar
+name.  They are just quantum numbers in a list.
+
+=tensor-code= should know about:
+
+- symmetry algebras such as \(SO(10)\), \(Spin(1,9)\), internal symmetry
+  algebras, Chan-Paton groups, and \(U(1)\)'s;
+- representations such as vector, spinor, conjugate spinor, adjoint, and
+  singlet;
+- abstract indices;
+- invariant tensors such as \(\eta_{\mu\nu}\), \(\delta^\mu{}_\nu\),
+  \(\epsilon_{\mu_1\ldots\mu_d}\), charge conjugation matrices,
+  antisymmetrized gamma matrices, generators, and Clebsch-Gordan coefficients;
+- linear combinations of such tensor structures;
+- generation of all allowed invariant tensors;
+- selection of an independent tensor basis;
+- solving for coefficients in that basis.
+
+=tensor-code= should not know what an OPE, a PCO, a string bracket, or a
+worldsheet ghost is.
+
+* Redline Against Current Org
+
+#+begin_export html
+<div style="color: red;">
+#+end_export
+#+begin_export latex
+\begingroup\color{red}
+#+end_export
+
+This section records where this proposal differs from, or extends, the current
+=/org= code.
+
+** Differences
+
+1. Current [[file:../org/tensor-code/symmetry.org][Symmetry]] already treats quantum numbers as a list of
+   representation labels.  This design keeps that point.  The previous draft
+   incorrectly suggested product-algebra metadata as if CFT tensor products
+   needed a separate object.  They do not.  For CFT purposes, tensor products
+   are represented by concatenating quantum-number lists.
+
+2. Current [[file:../org/tensor-code/symmetry.org][Symmetry]] uses small ids such as =u8=.  This design differs only by
+   recommending wider ids for long calculations.  This is a storage choice, not
+   a physics change.
+
+3. Current [[file:../org/tensor-code/symmetry.org][Symmetry]] has only =none= and one Kronecker delta as tensor
+   structures.  This design differs by requiring general tensor structures:
+   products and sums of metrics, deltas, epsilons, gamma matrices, generators,
+   and Clebsch-Gordan tensors.
+
+4. Current [[file:../org/cft-code/expressions/coefficient.org][Coefficient]] uses floating scalars.  This design differs by requiring
+   exact symbolic scalars for kernel data.  Conformal weights, OPE powers, and
+   spin-field branch powers are rational data, not floating-point data.
+
+5. Current [[file:../org/cft-code/expressions/coefficient.org][Coefficient]] uses integer powers in rational functions.  This design
+   differs by allowing rational powers.  Ramond spin fields and bosonized
+   exponentials naturally produce fractional powers.
+
+6. Current [[file:../org/cft-code/expressions/operators.org][Operators]] represents a local operator as an insertion and a body.
+   This design keeps that.  The difference is that the body store must have one
+   canonical constructor for normal-ordered products, so signs, repeated
+   fermions, and same-point exponential fusions are handled in one place.
+
+7. Current [[file:../org/cft-code/expressions/operators.org][Operators]] calls the theory-level object an =OperatorKind=.  This design
+   keeps that name.  The physics meaning is: \(b\), \(c\),
+  \(X^\mu\), \(\partial X^\mu\), \(\psi^\mu\), \(e^{ikX}\), \(e^{q\phi}\), and a spin
+   field \(S_A\) are operator kinds.  A normal-ordered product such as
+   \(:e^{-\phi}\psi^\mu:\) is not a new operator kind by default; it is an
+   =OperatorBody= built from already defined kinds.
+
+8. Current [[file:../org/cft-code/expressions/operators.org][Operators]] stores quantum numbers through =tensor-code=.  This design
+   keeps quantum numbers as a list, but separates their physics roles:
+   additive charges, finite cyclic \(\mathbb{Z}_N\) charges, and
+   representation labels may all occur in the list.  Only
+   representation-valued entries need tensor-code interpretation.
+
+9. Current [[file:../org/cft-code/expressions/expressions.org][Expressions]] has a coefficient times one local operator.  This design
+   differs by also requiring =MultiOp=: just a collection of local operators.
+   Before an OPE or correlator is evaluated, an amplitude or SFT bracket
+   naturally contains several local insertions at distinct points.
+
+10. Current [[file:../org/cft-code/correlators/correlators.org][Correlators]] names the tactics =abstract=, =wick=, and
+    =bosonization=.  This design keeps these tactics but makes the runtime
+    correlator inputs minimal: a =MultiOp= and a =CorrelatorConfig=.  The DSL
+    may define surfaces compositionally, but the runtime only receives the
+    Wick rules and zero-mode caveats needed to compute the correlator.
+
+11. Current [[file:../org/cft-code/ope/ope.org][OPE]] emphasizes deriving OPE coefficients from a basis and a pairing.
+    This design keeps that as one strategy, but does not make it the only
+    strategy.  For each sector, the kernel chooses the highest-ranked strategy
+    supported by all operators from that sector.  Free-field RNS and ghost
+    calculations can then use Wick directly, while abstract/interacting sectors
+    can use basis-pairing or abstract tactics.
+
+12. Current [[file:../org/cft-code/basis-generation/basis-generation.org][Basis-Generation]] is a stub.  This design differs by making basis
+    generation a stream of states/operators with weights and quantum-number
+    lists.
+
+13. Current [[file:../org/sft-code/sft-code.org][SFT-Code]] says brackets use CFT OPEs and correlators.  This design
+    keeps that, but explicitly keeps BRST, PCO placement, local coordinates,
+    propagators, and brackets outside the CFT kernel.  They are physics layers
+    that call the CFT kernel.
+
+** Extensions
+
+1. Extend [[file:../org/tensor-code/tensor-code.org][Tensor-Code]] from one delta to a full tensor-structure language:
+   sums of products of invariant tensors.
+
+2. Extend [[file:../org/tensor-code/tensor-code.org][Tensor-Code]] with antisymmetrized gamma matrices and spinor
+   bilinears.  This is the tensor part of Ramond-sector spin-field OPEs.
+
+3. Extend [[file:../org/tensor-code/tensor-code.org][Tensor-Code]] with an invariant-tensor generator and an independent-basis
+   selector.  This replaces the prototype's overcomplete enumeration followed
+   by probing with a typed kernel operation.
+
+4. Extend [[file:../org/cft-code/expressions/operators.org][Operators]] with enough =OperatorKind= data to answer physics questions:
+   statistics, conformal weights, quantum-number list, spacetime/internal
+   index type, bulk/boundary domain, chiral support, and a rule for deciding
+   which OPE/correlator strategies full bodies support.
+
+5. Extend [[file:../org/cft-code/expressions/operators.org][Operators]] with boundary insertions and boundary operator kinds, but keep
+   them outside the bulk =CFTSpec=.  A BCFT preset consumes a bulk CFT plus
+   boundary data, then compiles boundary-local kinds, boundary-changing kinds,
+   mixed bulk-boundary Wick rules, and zero-mode rules.  Any gluing rule from
+   antiholomorphic bulk fields to holomorphic image fields is compile-time DSL
+   input that produces local operator definitions and Wick rules.
+
+6. Extend [[file:../org/cft-code/ope/ope.org][OPE]] so that the public operation called =ope= is the projected OPE.
+   There should not be separate public =ope= and =projectedOpe= operations.
+   The projection data may ask for a target weight, target insertion point, and
+   truncation order.  This is needed for SFT brackets, BRST residues, PCO
+   zero-mode actions, and spin-field OPEs.
+
+7. Extend [[file:../org/cft-code/correlators/correlators.org][Correlators]] with explicit config-dependent zero-mode rules and Wick
+   rules.  For example, the \(bc\) system on the sphere and free fields on a
+   disk with a chosen boundary rule config have base cases and propagators
+   that are not determined by the operator kinds alone.
+
+8. Extend [[file:../org/cft-code/basis-generation/basis-generation.org][Basis-Generation]] with finite projections on generated spectra.
+   GSO, orbifold, and orientifold projections should act linearly on the
+   generated operator/state basis.
+
+9. Extend sector data with computational presentations.  A presentation may
+   cover one sector or a small coupled group of sectors.  This is needed so the
+   RNS \((\psi,\phi)\) spin-picture sector can remain coupled for GSO and
+   cocycles, while \((\eta,\xi)\) may remain an independent contraction sector
+   when a calculation only needs its first-order OPE.  A \(\beta\gamma\)
+   presentation can then be used for superghost state generation and mapped, if
+   desired, to the bosonized \((\phi,\eta,\xi)\) variables.  The same mechanism
+   covers heterotic \(SO(32)\) fermions, their spin fields, and the
+   \(E_8\times E_8\) lattice/current-algebra presentation whose roots,
+   weights, Kac-Moody currents, and allowed Narain operators are generated
+   through bosonized lattice Wick rules.
+
+10. Extend Wick/pairing data so cocycles live inside Wick rules.  In the
+    prototype, the bosonized exponential rule multiplies
+    \(e^{qH}(z)e^{pH}(w)\) by the cocycle phase and coordinate power in the
+    same Wick rule.  This proposal follows that pattern.
+
+11. Extend =OperatorBody= with mode descendants.  Bodies such as
+    \(\psi^\mu_{-1}\Theta_A\), \(L_{-2}{\cal O}\), and
+    \(J^a_{-1}{\cal O}\) should be representable before evaluation.  Free-field
+    strategies, current-algebra strategies, and Virasoro Ward identities can
+    then decide how to reduce them.
+
+12. Extend =tensor-code= with graded superalgebra and coset data.  The
+    pure-spinor \(AdS_5\times S^5\) sigma model needs \(PSU(2,2|4)\), its
+    \(\mathbb Z_4\) grading, the gauged
+    \(SO(4,1)\times SO(5)\) subalgebra, structure constants, invariant
+    supertrace, and graded signs.
+
+13. Do not extend the general =cft-code= kernel with pure-spinor constraints,
+    \(w\)-gauge quotients, equations of motion, Maurer-Cartan identities, or
+    regularization schemes.  Those are theory-client data.  The kernel only
+    needs to accept the ordinary operator bodies, Wick-rule outputs, and tensor
+    coefficients produced after the client chooses how to handle them.
+
+14. Do not extend the public API with perturbative sigma-model verbs.  A
+    pure-spinor or NLSM client may expand currents, insert interaction
+    vertices, and reduce by its preferred identities before calling =ope= or
+    =correlator=, or it may supply a theory-specific strategy that streams the
+    resulting terms through the same sink interface.
+
+15. Extend coordinate factors only enough to carry exact rational powers and
+    opaque symbolic kernels supplied by a client rule.  The CFT kernel should
+    not implement distributional regularization or contact-term algebra as
+    general semantics.
+
+16. Extend BCFT data with boundary-condition direct sums and Chan-Paton matrix
+    labels.  A stacked boundary condition \(B^{\oplus n}\) changes the
+    boundary operator space by tensoring with \(Mat(n,m)\) for open strings
+    stretching from \(B^{\oplus n}\) to \(B^{\oplus m}\).  The matrix label is
+    ordinary operator-body label data, and its multiplication is an OPE/Wick
+    coefficient rule, not a new correlator API.
+
+#+begin_export latex
+\endgroup
+#+end_export
+#+begin_export html
+</div>
+#+end_export
+
+* CFT Data Structures
+
+** Theory
+
+A bulk theory is a list of sectors, a list of bulk operator kinds, and a
+conformal structure naming the stress tensor and any supercurrents.
+
+Boundary CFT data is not part of this object.  It is a separate extension that
+consumes the bulk theory.
+
+Examples of sectors:
+
+- \(bc\) ghosts;
+- the RNS chiral spin-picture sector containing
+  \(\psi^\mu\), matter spin fields, and \(e^{q\phi}\);
+- the \((\eta,\xi)\) first-order system, when it is useful to keep it as an
+  independent contraction sector;
+- a \(\beta\gamma\) first-order superghost presentation, when it is useful for
+  basis generation by applying \(\beta,\gamma\) modes before bosonizing;
+- free bosons \(X^\mu\);
+- heterotic gauge fermions \(\lambda^A\);
+- Narain/lattice CFTs when the whole sector is most naturally presented that
+  way;
+- an internal minimal model;
+- an abstract interacting CFT.
+
+A sector, or a small coupled group of sectors, may have more than one
+presentation.  For example, the RNS spin-picture sector has a direct
+presentation in terms of \(\psi^\mu\), spin fields, and \(e^{q\phi}\), and also
+a bosonized lattice presentation using \(\phi\) together with the five \(H^a\)
+bosons for the \(SO(10)\) fermions.  The \((\eta,\xi)\) system may be kept as a
+separate first-order sector at sphere level.  When a calculation wants to work
+with \(\beta,\gamma\) modes instead, the superghost preset may provide a
+\(\beta\gamma\) presentation and a bosonization map into \((\phi,\eta,\xi)\)
+variables.  This presentation can involve more than one computational sector.
+
+The tensor product of sectors is reflected in the quantum-number list carried
+by each operator kind and each generated operator.  For example, an RNS vertex may
+carry entries for:
+
+- \(bc\) ghost number;
+- picture number;
+- fermion number or GSO charge as a finite cyclic \(\mathbb{Z}_N\) entry;
+- Lorentz representation;
+- internal CFT representation;
+- left/right sector labels.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const Sector = struct {
+    name: []const u8,
+    tactic_preference: []const StrategyId,
+    statistics_rule: StatisticsRuleId,
+    presentations: []const SectorPresentationId,
+};
+
+pub const CFTSpec = struct {
+    sectors: []const Sector,
+    bulk_operator_kinds: []const OperatorKind,
+    conformal_structure: ConformalStructureId,
+    conformal_structures: []const ConformalStructure,
+    quantum_names: []const QuantumName,
+    label_schemas: []const LabelSchema,
+    conventions: []const ConventionSet,
+    weight_rules: []const WeightRule,
+    quantum_rules: []const QuantumRule,
+    statistics_rules: []const StatisticsRule,
+    strategy_support_rules: []const StrategySupportRule,
+    wick_rule_sets: []const WickRuleSet,
+    pairing_data: []const PairingData,
+    zero_mode_rule_sets: []const ZeroModeRuleSet,
+    correlator_configs: []const CorrelatorConfig,
+    local_ope_configs: []const LocalOpeConfig,
+    cocycle_tables: []const CocycleTable,
+    presentations: []const SectorPresentation,
+    finite_projections: []const FiniteProjection,
+    lattices: []const Lattice,
+    mode_algebras: []const ModeAlgebra,
+    mode_action_rules: []const ModeActionRule,
+};
+#+end_src
+
+All =bulk_operator_kinds= in a =CFTSpec= must have =domain = .bulk=.  The
+=OperatorKind= type is shared with compiled BCFT data, but a bulk theory
+object does not store boundary kinds.
+
+The sector owns the physical grouping, statistics rule, and strategy
+preference.  Concrete Wick rules, pairings, and convention choices belong to
+presentations and compiled configs.  This avoids storing the same rule table in
+several places where it could drift.
+
+The =CFTSpec= shown here is best understood as a preset declaration supplied at
+=comptime=.  Built-in CFTs should compile this declaration into a generated
+kernel type.  Runtime calculation data should then be only compact ids,
+operator bodies, label values, insertion points, config handles, scratch
+buffers, and sinks.  This removes runtime function-pointer dispatch from the
+hot Wick/OPE loops without forcing generated basis states or coefficient terms
+to be known at compile time.
+
+** Operator Kind
+
+An =OperatorKind= is a physical kind of local field or primary.
+
+Examples:
+
+- \(b\), \(c\);
+- \(\partial X^\mu\);
+- \(e^{ikX}\);
+- \(\psi^\mu\);
+- \(e^{q\phi}\), \(\eta\), \(\xi\);
+- \(S_A\), an R-sector spin field;
+- a minimal-model primary \(\phi_i\);
+- a pure-spinor variable \(\lambda^\alpha\), \(w_\alpha\), or current.
+
+For each operator kind we need:
+
+- its name;
+- its sector;
+- whether this compiled local kind is bulk or boundary;
+- for bulk operators, whether it is holomorphic, antiholomorphic, or has both
+  holomorphic and antiholomorphic support;
+- for boundary operators, the support is chiral by construction;
+- the data needed by the sector's statistics rule;
+- whether repeated identical factors vanish in a regular normal product;
+- its conformal weights, fixed or computed from labels such as momentum;
+- its fixed quantum-number entries and, when needed, a rule that derives
+  label-dependent quantum numbers;
+- which spacetime/internal indices it carries;
+- which rule determines the OPE/correlator strategies supported by a full
+  body built from this kind.
+
+The phrase "which spacetime/internal indices it carries" is meant literally:
+it says what kind of free indices can appear on this operator kind.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const OperatorKind = struct {
+    name: []const u8,
+    sector: SectorId,
+    domain: OperatorDomain,
+    support: ChiralSupport,
+    label_schema: LabelSchemaId,
+    statistics: StatisticsData,
+    regular_square_zero: bool,
+    weights: WeightData,
+    fixed_quantum_numbers: []const QuantumEntry,
+    quantum_rule: ?QuantumRuleId,
+    indices: []const IndexSlot,
+    strategy_support: StrategySupportRuleId,
+};
+
+pub const OperatorDomain = enum {
+    bulk,
+    boundary,
+};
+
+pub const ChiralSupport = enum {
+    holomorphic,
+    antiholomorphic,
+    holomorphic_antiholomorphic,
+};
+#+end_src
+
+Here =indices= is physical data.  For \(\partial X^\mu\) it says "one vector
+index".  For \(S_A\) it says "one spinor index".  For \(e^{ikX}\) it says "no
+free tensor index, but extra data stores the momentum".
+
+The two axes should not be collapsed.  A bulk kind may be purely holomorphic
+like \(\partial X^\mu(z)\), purely antiholomorphic like
+\(\bar\partial X^\mu(\bar z)\), or mixed like
+\(:e^{ikX(z,\bar z)}:\).  A boundary kind lives on the boundary coordinate
+and is chiral in the boundary CFT.  Boundary conditions decide which boundary
+kinds exist; they are not encoded in =OperatorDomain= or =ChiralSupport=.
+
+The bulk =CFTSpec= contains only bulk operator kinds.  Boundary operator kinds
+are introduced only by a BCFT extension, after a boundary condition or boundary
+operator spectrum has been chosen.
+
+=statistics= is not just a fixed \(\mathbb{Z}_2\) flag.  The sector interprets
+it.  In the RNS spin-picture sector, for example, \(\psi^\mu\) is odd while
+\(e^{q\phi}\) is odd for odd integral \(q\) and even for even integral \(q\).
+In the separate \((\eta,\xi)\) sector, \(\eta\) and \(\xi\) are odd.
+Half-integral \(\phi\)-charges and spin fields need the selected presentation's
+Wick rules, including their cocycle tables, to fix phases.  This cannot be
+represented by a single boolean stored on the operator kind.
+
+Similarly, quantum numbers are not always fixed properties of the kind.  The
+kind \(e^{q\phi}\) has picture \(q\), a lattice exponential has a lattice
+charge, and a boundary operator with a Chan-Paton matrix unit has endpoint
+representation data.  Those entries are derived from the body's labels by the
+kind's =quantum_rule=.
+
+** Conventions And Weight Rules
+
+A CFT preset must make conventions easy to change without rewriting operator
+kinds.
+
+Examples:
+
+- the normalization of
+  \(\psi^\mu(z)\psi^\nu(w)\);
+- the value of \(\alpha'\);
+- the normalization of \(\partial X^\mu\partial X^\nu\);
+- the conformal-weight convention for \(e^{ikX}\);
+- the background-charge convention for \(e^{q\phi}\);
+- the normalization of lattice bilinear forms and cocycles.
+
+These are not hard-coded in =OperatorKind=.  They live in a small convention
+set referenced by Wick rules and weight rules.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const ConventionSet = struct {
+    name: []const u8,
+    entries: []const ConventionEntry,
+};
+
+pub const ConventionEntry = struct {
+    key: ConventionKeyId,
+    value: Scalar,
+};
+
+pub const WeightRule = struct {
+    name: []const u8,
+    evaluator: WeightEvaluatorId,
+    conventions: ConventionSetId,
+};
+
+pub const WeightData = union(enum) {
+    fixed: ConformalWeights,
+    rule: WeightRuleId,
+};
+#+end_src
+
+The evaluator receives only the atomic kind labels it needs and the convention
+set.  This allows runtime weight computation without changing the public API.
+
+Examples:
+
+#+begin_src text
+weight(e^{q phi})      -> -1/2 q(q+2)       using the phi background-charge convention
+weight(e^{i k X})      -> alpha_prime k^2/4 using the chosen X convention
+weight(dX^mu)          -> 1
+weight(derivative^n O) -> weight(O) + n
+#+end_src
+
+The exact formulas are preset choices.  The kernel only needs a compact
+function id and the labels \(q\), \(k\), lattice vector, or derivative order.
+Thus changing from \(\alpha'=2\) to another convention, or changing the
+normalization of \(\psi\), changes a =ConventionSet= and the corresponding
+Wick/weight rule data, not the shape of local operators.
+
+** Conformal Structure And SUSY
+
+Every CFT preset should name its stress tensor.  If the CFT is a spin CFT, the
+preset should also name the worldsheet supersymmetry algebra and the
+corresponding supercurrents.
+
+This data is structural.  It is needed for:
+
+- Virasoro and super-Virasoro mode actions;
+- Ward identities;
+- checking conformal weights;
+- identifying NS/R sectors and spin-structure dependence;
+- defining clients such as RNS, topological twists, or \((2,2)\) models.
+
+The stress tensor and supercurrents are operators in the CFT.  They do not have
+to be free-field composites.  In an abstract \((2,2)\) model, for example,
+\(G^\pm\), \(\bar G^\pm\), and the stress-tensor components can be abstract
+=OperatorKind= values with supplied OPEs and weights.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const ConformalStructure = struct {
+    name: []const u8,
+    spin: SpinCFT,
+    stress_tensor: StressTensorSpec,
+    supercurrents: []const SupercurrentSpec,
+    r_currents: []const RCurrentSpec,
+};
+
+pub const SpinCFT = union(enum) {
+    bosonic,
+    spin: WorldsheetSUSY,
+};
+
+pub const WorldsheetSUSY = union(enum) {
+    none,
+    n1_1,
+    n2_2,
+    n1_chiral,
+    n2_chiral,
+    custom: SUSYAlgebraId,
+};
+
+pub const StressTensorSpec = struct {
+    holomorphic: ?OperatorRef,
+    antiholomorphic: ?OperatorRef,
+};
+
+pub const SupercurrentSpec = struct {
+    name: []const u8,
+    support: ChiralSupport,
+    charge: ?QuantumEntry,
+    operator: OperatorRef,
+};
+
+pub const RCurrentSpec = struct {
+    name: []const u8,
+    support: ChiralSupport,
+    operator: OperatorRef,
+};
+
+pub const OperatorRef = struct {
+    kind: OperatorKindId,
+    body: ?OperatorBodyId,
+};
+#+end_src
+
+These are the chiral components of the one bulk stress tensor.  A boundary
+stress tensor, when needed, is compiled as part of a BCFT extension and is not
+stored in the bulk =ConformalStructure=.
+
+The built-in SUSY syntax is meant literally:
+
+#+begin_src text
+none        -> no worldsheet SUSY
+n1_1        -> bulk (1,1): G and Gbar
+n2_2        -> bulk (2,2): left and right N=2 algebras
+n1_chiral   -> one chiral supercurrent G
+n2_chiral   -> one chiral N=2 algebra: G+, G-, and J
+custom      -> supplied algebra
+#+end_src
+
+For a \((1,1)\) SCFT, =supercurrents= contains the usual \(G\) and \(\bar G\).
+For a chiral \(N=1\) sector, it contains \(G\).  For a chiral \(N=2\) sector,
+=supercurrents= contains \(G^+\), \(G^-\), and =r_currents= contains the
+distinguished \(U(1)\) R-current \(J\).  For a \((2,2)\) SCFT,
+=supercurrents= contains \(G^+\), \(G^-\), \(\bar G^+\), and \(\bar G^-\),
+while =r_currents= contains \(J\) and \(\bar J\).  Charges record the \(U(1)\)
+R-charge convention when the preset wants it.  For the built-in \(N=2\) cases,
+the \(U(1)\) R-current data is required.
+
+The important point is that "spin CFT" is not just a boolean.  It selects a
+worldsheet SUSY algebra and the distinguished supercurrent operators used by
+Ward identities and mode actions.
+
+** Strategy Selection
+
+There is no separate class of operators that the OPE engine tries to peel off
+before choosing an algorithm.
+
+Each operator kind names a strategy-support rule.  The rule is evaluated on
+the full =OperatorBody=, not just the atomic kind, because labels, normal
+products, and mode descendants can change which strategy is valid.  Each sector
+gives a preference order for strategies.  When the kernel is asked to evaluate
+operators from one sector, it chooses the first strategy in the sector's
+preference list that is supported by every body from that sector.
+
+Examples of strategies:
+
+- Wick;
+- bosonize then Wick;
+- basis plus pairing;
+- abstract selection-rule filtering.
+
+If an input contains operators from several sectors, the kernel groups them by
+sector, chooses the strategy independently in each sector, evaluates each
+sector factor, and then multiplies the sector results with the required signs
+and tensor/coordinate coefficients.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const StrategySupportRule = struct {
+    name: []const u8,
+    evaluator: StrategySupportEvaluatorId,
+};
+#+end_src
+
+For example, \(e^{q\phi}\), an integral-charge exponential, a half-integral
+spin-field body, and \(L_{-2}{\cal O}\) may share an atomic kind family but
+support different preferred strategies after their labels and descendant form
+are inspected.
+
+** Sector Couplings
+
+A sector is allowed to couple operator kinds that should not be split into
+independent CFT factors.
+
+The main example is the RNS spin-picture system.  The \(\phi\) charge is tied
+by GSO, statistics, and cocycles to the free fermions and spin fields.
+The admissible physical R-sector ground states are not just \(\psi\) states or
+\(\phi\) states separately, but combinations such as
+\[
+  e^{-\phi/2}\Theta_A .
+\]
+Likewise the NS vertices include objects such as
+\[
+  :e^{-\phi}\psi^\mu: .
+\]
+
+The sector must still allow subexpressions such as \(\psi^\mu\psi^\nu\) or
+\(e^{2\phi}\) to appear by themselves when a calculation asks for them.  The
+point is only that strategy choice, statistics, cocycles, and GSO projection
+are sector-level data shared by the \(\psi,\phi\), and spin-field operator
+kinds.
+
+So the RNS spin-picture sector should contain at least:
+
+- \(\psi^\mu\);
+- \(e^{q\phi}\) or an abstract \(\phi\)-exponential kind;
+- matter spin fields \(\Theta_A,\Theta_{\dot A}\);
+- their normal-ordered products as =OperatorBody= values.
+
+The \((\eta,\xi)\) system can be a separate computational sector, at least for
+sphere-level Wick contractions and any calculation that only needs
+\(\eta(z)\xi(w)\sim 1/(z-w)\).  It has trivial contractions with \(\psi\) and
+\(\phi\).  A superghost preset may nevertheless group \(\phi\) and
+\((\eta,\xi)\) together at the presentation level when it defines
+\(\beta,\gamma\), picture-changing operators, small/large Hilbert-space
+conditions, or loop/SFT forms involving \({\cal X}-d\xi\).
+
+The same principle applies to heterotic gauge sectors.  The \(SO(32)\)
+description can use \(32\) left-moving fermions \(\lambda^A\) directly, with a
+rank-16 bosonized presentation for spin fields and cocycles.  The
+\(E_8\times E_8\) description should instead be treated as the
+\(E_8\times E_8\) current algebra/lattice CFT itself.  Its currents and
+representations are generated from the \(\Gamma_8\oplus\Gamma_8\) lattice
+presentation; an \(SO(16)\times SO(16)\) subgroup may be a useful coordinate
+choice in a derivation, but it is not the kernel's representation of the
+theory.
+
+** Sector Presentations
+
+A sector presentation is a computational description of the same sector.
+
+Examples:
+
+- direct spin-picture presentation: \(\psi^\mu,\Theta_A,e^{q\phi}\);
+- independent first-order presentation: \(\eta,\xi\);
+- first-order superghost presentation: \(\beta,\gamma\);
+- bosonized lattice presentation: \(dH^i\), \(\phi\), and exponentials
+  \(e^{i Q_i H^i}\), with cocycles;
+- current-algebra presentation: currents and primary fields;
+- abstract presentation: conformal data and pairings only.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const SectorPresentation = struct {
+    sectors: []const SectorId,
+    name: []const u8,
+    operator_map: []const PresentationMap,
+    lattice: ?LatticeId,
+    weight_rule: ?WeightRuleId,
+    wick_rules: ?WickRuleSetId,
+};
+
+pub const PresentationMap = struct {
+    from: OperatorKindId,
+    to: OperatorKindId,
+    label_map: LabelMapId,
+};
+#+end_src
+
+This is the right place for bosonization rules.  The RNS spin-picture sector
+keeps \(\phi\) with \(\psi\) and the spin fields, so the =bosonize then Wick=
+strategy can use a six-charge lattice presentation for \(\phi\) plus the five
+\(SO(10)\) \(H^a\)'s.  The \((\eta,\xi)\) first-order sector can remain
+separate.  A \(\beta\gamma\) presentation may cover the superghost group
+\(\phi,\eta,\xi\), generate states by \(\beta,\gamma\) modes, and then
+bosonize to \((\phi,\eta,\xi)\) labels and bodies when that is the efficient
+basis representation.  The heterotic \(SO(32)\) gauge sector can use either
+the direct \(\lambda^A\) presentation or a rank-16 bosonized/lattice
+presentation.  The heterotic \(E_8\times E_8\) gauge sector should use the
+\(\Gamma_8\oplus\Gamma_8\) lattice presentation as primary data: \(E_8\)
+currents, allowed weights, cocycles, and other Narain-lattice operators are
+all local operators in that presentation when the chosen model admits them.
+
+** Statistics And Wick Phases
+
+Statistics are sector data evaluated on an =OperatorBody=.  They are not just
+one boolean field attached to an atomic operator.
+
+For the RNS spin-picture sector plus the optional \((\eta,\xi)\) sector:
+
+- \(\psi^\mu\), \(\eta\), and \(\xi\) are odd;
+- \(e^{q\phi}\) is odd for odd integral \(q\), even for even integral \(q\);
+- half-integral \(\phi\)-charges and spin fields use cocycle phases in their
+  Wick rules;
+- products such as \(:e^{-\phi}\psi^\mu:\) get their sign from the same
+  spin-picture sector rule, not from multiplying two independent CFT factors;
+- \(\eta,\xi\) may use their own sector statistics and Wick rules when treated
+  as an independent first-order system.
+
+For bosonized fermions and lattice exponentials, cocycles belong at the level
+of Wick rules.  This matches the prototype pattern:
+
+#+begin_src text
+expH[q](z) expH[p](w) -> cocycle(q,p) (z-w)^(q.p)
+#+end_src
+
+The rule is not a separate public operation.  It is one entry in the Wick rule
+set of the bosonized presentation.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const StatisticsRule = struct {
+    name: []const u8,
+};
+
+pub const WickRuleSet = struct {
+    name: []const u8,
+    conventions: ConventionSetId,
+    rules: []const WickRule,
+};
+
+pub const WickRule = struct {
+    left: OperatorKindId,
+    right: OperatorKindId,
+    evaluator: WickEvaluatorId,
+};
+
+pub const CocycleTable = struct {
+    name: []const u8,
+    matrix: MatrixId,
+};
+#+end_src
+
+This is deliberately small: statistics answers "does exchanging these bodies
+produce a minus sign?".  Wick rules answer "what coefficient, coordinate
+factor, tensor factor, and fused labels arise when these two atomic bodies are
+contracted in this presentation?".  A cocycle table is only data used by such a
+Wick rule.  Normalization choices such as the coefficient in
+\(\psi^\mu\psi^\nu\) or \(\partial X^\mu\partial X^\nu\) are read from the
+convention set used by the Wick evaluator.
+
+** Lattice And Bosonized Labels
+
+Some atomic bodies need labels in addition to their kind.
+
+Examples:
+
+- \(e^{q\phi}\) carries the rational label \(q\);
+- \(e^{ikX}\) carries the momentum \(k\);
+- \(e^{q\phi+i s_a H^a}\) for an RNS spin-field body carries a six-entry
+  charge vector, with one \(\phi\) charge and five \(SO(10)\) \(H\)-charges;
+- a bosonized \(SO(32)\) \(\lambda\)-sector field carries a rank-16 charge
+  vector;
+- a Narain operator \({\cal O}_k\) carries a lattice vector \(k\in\Gamma\);
+- derivatives carry derivative labels.
+
+These are labels of the atomic body, not new public API operations.  In
+storage, the =LabelSpanId= on =AtomicBody= points to a compact typed list of
+labels validated against the kind's =LabelSchema=.  This is intentionally not
+a single union field: one atomic body may need several labels, such as a
+lattice vector together with a derivative label and a Chan-Paton factor.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const LabelSchema = struct {
+    name: []const u8,
+    fields: []const LabelField,
+};
+
+pub const LabelField = struct {
+    name: LabelNameId,
+    kind: LabelValueKind,
+    required: bool,
+};
+
+pub const LabelValueKind = enum {
+    rational_charge,
+    momentum,
+    charge_vector,
+    lattice_vector,
+    derivative,
+    chan_paton,
+    tensor,
+};
+
+pub const BodyLabel = struct {
+    name: LabelNameId,
+    value: LabelValue,
+};
+
+pub const LabelValue = union(enum) {
+    rational_charge: Rational,
+    momentum: MomentumId,
+    charge_vector: ChargeVectorId,
+    lattice_vector: LatticeVectorId,
+    derivative: DerivativeLabel,
+    chan_paton: ChanPatonLabel,
+    tensor: tensor.TensorExprId,
+};
+
+pub const Lattice = struct {
+    name: []const u8,
+    rank_left: u16,
+    rank_right: u16,
+    gram: MatrixId,
+    basis_vectors: []const LatticeVectorId,
+    cocycle_table: ?CocycleTableId,
+    weight_rule: WeightRuleId,
+};
+#+end_src
+
+For a lattice presentation, =basis= enumerates allowed lattice vectors and
+oscillator decorations subject to the query.  The OPE of two lattice
+exponentials adds their lattice vectors and multiplies by the cocycle phase and
+coordinate factor.
+
+Chan-Paton labels are included here for the same reason.  A boundary operator
+on a stack \(B^{\oplus n}\to B^{\oplus m}\) may carry the matrix-unit label
+\(E_{ij}\in Mat(n,m)\).  This label has no worldsheet contraction by itself;
+the boundary OPE multiplies it with the adjacent label through the usual
+matrix-unit rule \(E_{ij}E_{k\ell}=\delta_{jk}E_{i\ell}\).  In storage this is
+just another compact label on the atomic or normal-ordered body, and the
+matrix multiplication is emitted by the selected boundary Wick/OPE rule.
+If the Chan-Paton factor is kept symbolically, the label points to a
+=tensor-code= tensor expression instead of defining a second tensor language.
+
+The =weight_rule= is needed because not every bosonized presentation has the
+same conformal-weight formula.  A true Narain lattice exponential uses the
+chosen lattice quadratic form.  The RNS \(\phi\)-direction has a background
+charge, so the \(e^{q\phi}\) part uses the \(\phi\)-system weight rule, while
+the five \(H^a\)'s use the ordinary free-boson rule.  These weights are
+computed from labels when needed by =basis=, =ope=, or filtering; they are not
+precomputed for every possible charge or momentum.
+
+** Comptime Boundary
+
+Use =comptime= for data that belongs to a preset, not for data produced by a
+calculation.
+
+Good =comptime= data:
+
+- operator-kind catalogs;
+- label schemas and label-field layouts;
+- quantum-name catalogs;
+- convention-key catalogs and default convention sets;
+- strategy preference lists;
+- evaluator dispatch tables for weights, quantum rules, statistics,
+  strategy-support rules, Wick rules, zero-mode rules, and mode actions;
+- rule-table schemas and small fixed rule tables;
+- =CorrelatorConfig= and =LocalOpeConfig= declarations for built-in surfaces
+  and BCFT presets;
+- tensor-code algebra schemas such as \(SO(10)\), \(SO(32)\),
+  \(E_8\times E_8\), and \(PSU(2,2|4)\), including fixed representation and
+  invariant-tensor family declarations.
+
+Runtime data:
+
+- insertion points;
+- operator bodies;
+- body label values such as momenta, \(\phi\)-charges, lattice vectors,
+  derivative orders, and Chan-Paton matrix entries;
+- generated basis candidates;
+- Wick/OPE/correlator coefficient streams;
+- large sparse rule payloads, large cocycle tables, and generated invariant
+  tensor candidates when they are not small fixed preset data;
+- scratch memory and work queues;
+- dynamic client-supplied opaque coordinate kernels.
+
+This gives the hot path the right shape.  A built-in preset is a generated
+type, while a calculation is a stream of runtime local operators and emitted
+terms.  Fixed configs such as sphere, disk, or a particular BCFT disk config
+can be static constants produced by the generated type and then passed by
+pointer.  The public call shape does not need a separate specialized verb.
+
+Implementation sketch:
+
+#+begin_src zig
+pub fn CFTKernel(comptime spec: CFTSpec) type { ... }
+pub fn BCFTKernel(comptime Bulk: type, comptime bcft: BCFTSpec) type { ... }
+#+end_src
+
+Rule ids remain useful as compact runtime handles, but their targets are
+resolved by comptime dispatch inside the generated kernel type.  A dynamic
+escape hatch can exist for clients that genuinely cannot declare a rule at
+compile time, but built-in presets should not pay for that on the common path.
+Do not move large generated tables or per-calculation candidate lists to
+=comptime= merely because their type is known.  They should be static slices,
+iterators, or streamed runtime data.
+
+** Quantum Numbers
+
+Quantum numbers are a list.  This is how tensor products are represented in the
+CFT layer.
+
+Each entry has a name and a value.
+
+Examples:
+
+#+begin_src text
+bc_ghost_number -> +1
+picture -> -1
+GSO -> 1 mod 2
+orbifold_sector -> 3 mod 5
+left_lorentz_rep -> chiral_spinor
+right_lorentz_rep -> vector
+chan_paton_left -> fundamental of U(n)
+chan_paton_right -> antifundamental of U(m)
+minimal_model_primary -> (r,s)
+pure_spinor_ghost_number -> +1
+#+end_src
+
+Implementation sketch:
+
+#+begin_src zig
+pub const QuantumEntry = struct {
+    name: QuantumNameId,
+    value: QuantumValue,
+};
+
+pub const QuantumValue = union(enum) {
+    integer: i32,
+    rational: Rational,
+    cyclic: CyclicCharge,
+    representation: tensor.RepresentationId,
+    label: u32,
+};
+
+pub const CyclicCharge = struct {
+    value: u32,
+    modulus: u32,
+};
+
+pub const QuantumRule = struct {
+    name: []const u8,
+    evaluator: QuantumEvaluatorId,
+};
+#+end_src
+
+The CFT kernel only adds, compares, derives, and filters these entries.  The
+physical meaning is supplied by the theory preset or by a client module.  For
+fixed kinds, =fixed_quantum_numbers= is enough.  For label-dependent kinds,
+=quantum_rule= reads only the validated labels it needs and emits the
+corresponding entries.
+
+** Local Operator
+
+A local operator is an insertion point together with a body.
+
+The body is either:
+
+- the identity;
+- one atomic operator kind with labels;
+- a normal-ordered product of bodies;
+- a mode acting on another body.
+
+Examples:
+
+- \(b(z)\);
+- \(\partial X^\mu(z)\);
+- \(e^{ikX}(z,\bar z)\);
+- \(:bc:(z)\);
+- \(:e^{-\phi}\psi^\mu:(z)\).
+- \(\psi^\mu_{-1}\Theta_A(z)\);
+- \(L_{-2}{\cal O}(z)\).
+
+Implementation sketch:
+
+#+begin_src zig
+pub const Operator = struct {
+    insertion: Insertion,
+    body: OperatorBodyId,
+};
+
+pub const OperatorBody = union(enum) {
+    identity,
+    atomic: AtomicBody,
+    normal_ordered: []const OperatorBodyId,
+    mode_descendant: ModeDescendant,
+};
+
+pub const AtomicBody = struct {
+    kind: OperatorKindId,
+    labels: LabelSpanId,
+};
+
+pub const ModeDescendant = struct {
+    mode: ModeOp,
+    target: OperatorBodyId,
+};
+
+pub const ModeOp = struct {
+    algebra: ModeAlgebraId,
+    generator: ModeGeneratorId,
+    index_data: ExtraId,
+    mode_number: Rational,
+};
+#+end_src
+
+A mode descendant is still local at the insertion point of the final
+=Operator=.  The mode records the contour action before insertion.  Examples:
+
+- \(\psi^\mu_{-1}\Theta_A\) has a fermion-mode generator with vector index
+  \(\mu\), mode number \(-1\), and target \(\Theta_A\);
+- \(L_{-2}{\cal O}\) has Virasoro generator \(L\), mode number \(-2\), and
+  target \({\cal O}\);
+- \(J^a_{-1}{\cal O}\) for a current algebra uses generator \(J\) and adjoint
+  index \(a\).
+
+Derivative labels remain the compact representation for ordinary explicit
+worldsheet derivatives.  General mode descendants are needed when the mode is
+not just an explicit \(\partial^n\) label, or when a Ward identity should be
+used instead of expanding the operator by hand.
+
+The body store must canonicalize normal products.  It should:
+
+- flatten nested normal products;
+- move fields into canonical order;
+- compute Grassmann signs;
+- kill repeated regular fermions;
+- merge same-point bosonized exponentials when the theory says they fuse.
+
+Canonicalization returns a coefficient and an optional body.  The body is null
+when the normal product vanishes, for example because a regular fermion is
+repeated.  This avoids hiding signs or zeros inside the body id.
+
+** Multi-Local Operator
+
+A multi-local operator is just a collection of local operators.
+
+It has no extra physics beyond the local operators it contains.  It is the
+natural input shape for an OPE or correlator before the algorithm has expanded
+several insertions around one target point or evaluated the vacuum expectation
+value.
+
+Examples:
+
+- \(b(z)c(w)\);
+- \(V_1(z_1,\bar z_1)V_2(z_2,\bar z_2)V_3(z_3,\bar z_3)\);
+- the set of placed puncture operators appearing inside an SFT vertex before
+  the local OPEs are taken.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const MultiOp = struct {
+    operators: []const Operator,
+};
+#+end_src
+
+The OPE and correlator APIs should accept this type.  Passing a single local
+operator is the length-one case.
+
+** Domain And Chiral Support
+
+The kernel should not use one field called =locality= for two different
+questions.
+
+The two questions are:
+
+1. Does the operator live in the bulk or on a boundary?
+2. Which chiral components does the operator use?
+
+Examples:
+
+#+begin_src text
+bulk + holomorphic                  -> b(z), psi^mu(z), dX^mu(z)
+bulk + antiholomorphic              -> bt(zbar), psit^mu(zbar), dXt^mu(zbar)
+bulk + holomorphic_antiholomorphic  -> :exp(i k X(z,zbar)):
+boundary + holomorphic              -> open-string or BCFT boundary field O(x)
+#+end_src
+
+Boundary operators are always chiral in the boundary CFT.  Bulk operators may
+be chiral, antichiral, or mixed.  BCFT gluing rules may be used by the DSL to
+compile boundary-local operator definitions and Wick rules, but the runtime
+correlator only sees the resulting local operators.
+
+Do not force a bulk CFT preset to declare boundary data.  A bulk CFT can be
+defined, queried, and used for bulk OPEs/correlators without any boundary
+objects existing at all.
+
+** Pairing And Local Data
+
+The OPE engine is built from basis generation, correlators, and pairing data.
+For free sectors, the correlator strategy may itself use local Wick kernels.
+For abstract or interacting sectors, the correlator strategy may only apply
+selection rules or supplied conformal data.
+
+Examples:
+
+\[
+  b(z)c(w) \sim {1 \over z-w},
+\]
+
+\[
+  \partial X^\mu(z)\partial X^\nu(w)
+  \sim -{\alpha' \over 2}{\eta^{\mu\nu}\over (z-w)^2},
+\]
+
+\[
+  \partial X^\mu(z)e^{ikX}(w,\bar w)
+  \sim -{i\alpha'\over 2}{k^\mu\over z-w} e^{ikX}(w,\bar w).
+\]
+
+Free-field correlator data may include short-distance kernels such as:
+
+#+begin_src text
+b c -> 1/(z-w)
+dX dX -> eta/(z-w)^2
+dX expX -> k/(z-w) paired against the same expX body
+#+end_src
+
+The pairing table inside a sector is sparse.  Being in the same sector means
+the fields share statistics, Wick phases, projections, and strategy choice; it
+does not mean every pair has a nonzero Wick contraction.  In the RNS
+spin-picture sector, for example, \(\phi\) pairs with \(\phi\), and
+\(\psi^\mu\) pairs with \(\psi^\nu\).  In the separate \((\eta,\xi)\) sector,
+\(\eta\) pairs with \(\xi\).  If a superghost presentation combines these
+sectors, the mixed \(\eta/\xi\)-with-\(\phi/\psi\) kernels are still zero.
+
+Cocycles are part of these Wick rules when the selected presentation needs
+them.  In the bosonized RNS presentation, the exponential-exponential Wick
+rule reads the six-charge labels, multiplies by the cocycle table phase, and
+returns the coordinate factor.  In a presentation that also includes
+\((\eta,\xi)\), the \(\eta\)-\(\phi\) and \(\eta\)-\(\psi\) entries are simply
+absent or zero.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const PairingData = struct {
+    sector: SectorId,
+    pairing: PairingId,
+    inverse_pairing: InversePairingId,
+};
+#+end_src
+
+** Mode Actions And Ward Identities
+
+Modes acting on local operators should be represented before they are
+evaluated.
+
+Examples:
+
+\[
+  \psi^\mu_{-1}\Theta_A,
+  \qquad
+  L_{-2}{\cal O},
+  \qquad
+  J^a_{-1}{\cal O}.
+\]
+
+The data structure should not hard-code a separate representation for every
+possible algebra.  It should store the acting mode, its indices, its integer or
+half-integer mode number after the sector has chosen the relevant spin
+structure, and the target body.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const ModeAlgebra = struct {
+    name: []const u8,
+    generators: []const ModeGenerator,
+    action_rule: ModeActionRuleId,
+};
+
+pub const ModeGenerator = struct {
+    name: []const u8,
+    indices: []const IndexSlot,
+    statistics: StatisticsData,
+};
+
+pub const ModeActionRule = struct {
+    name: []const u8,
+};
+#+end_src
+
+Evaluation is strategy-dependent:
+
+- a free fermion mode acting on a spin field can be evaluated by the
+  bosonized presentation or by a supplied spin-field mode action;
+- \(L_{-1}{\cal O}\) may be stored as a derivative label for compactness;
+- \(L_{-n}{\cal O}\) for \(n\geq 2\) can be evaluated in correlators by the
+  Virasoro Ward identity;
+- current modes can be evaluated by current-algebra Ward identities or by a
+  lattice/current presentation.
+
+For a Kac-Moody sector, =basis= should be able to generate descendants by
+acting with negative current modes on highest-weight or lattice ground states.
+The mode algebra supplies the current generators, levels, representation
+labels, and admissible mode numbers.  The selected action rule then decides
+how to evaluate those descendants: by current-algebra Ward identities, by
+commuting modes into a canonical Poincare-Birkhoff-Witt order, or by
+bosonizing the currents into lattice derivative/exponential operators and
+using the lattice Wick rules.
+
+Thus =correlator= may accept a =MultiOp= containing descendants such as
+\(L_{-2}{\cal O}\).  If the selected sector has a Ward-identity action rule,
+the descendant is reduced during correlator evaluation.  Otherwise it remains
+an abstract basis state that can still be filtered by =basis= and paired if
+pairing data is supplied.
+
+** Client-Owned Reductions
+
+The general kernel should not know how to impose theory-specific equivalences.
+It should not own:
+
+- pure-spinor constraints such as \(\lambda\gamma^m\lambda=0\);
+- the \(w\)-gauge quotient;
+- equations of motion;
+- Maurer-Cartan identities;
+- BRST cohomology or gauge fixing;
+- regularization and contact-term prescriptions;
+- background-field expansions and integrated sigma-model vertices;
+- named macro definitions for composite fields.
+
+Those belong in clients such as =pure-spinor-code=, =nlsm-code=, on-shell RNS,
+or SFT.
+
+The boundary is:
+
+- the client defines or expands the physics-specific objects it wants;
+- the client may reduce them by its own constraints, EOM, regularization, or
+  presentation choices;
+- the client then passes ordinary =OperatorBody= values, =MultiOp= values,
+  Wick-rule data, pairing data, tensor structures, and coefficient streams to
+  the CFT kernel.
+
+For example, \(N^{mn}=w\gamma^{mn}\lambda/2\), \(J_\lambda=w\lambda\),
+\(d_\alpha\), \(\Pi^m\), \(J_i\), stress-tensor components, and BRST currents do not
+need a general =OperatorDefinition= object in =cft-code=.  A client may expose
+them as named local operators in its own DSL, expand them into normal-ordered
+bodies before calling the kernel, or install a theory-specific strategy that
+emits the same local terms.
+
+This keeps the kernel tight.  It still has enough hooks for difficult theories:
+atomic bodies can carry labels, normal products are canonical bodies, mode
+descendants are bodies, sectors have presentations, Wick rules can include
+cocycles, and coefficients can carry tensor factors plus symbolic coordinate
+kernels supplied by the selected strategy.
+
+** Coefficient
+
+A coefficient in a CFT calculation is:
+
+- a scalar;
+- a function of insertion-point differences;
+- a tensor structure.
+
+Examples:
+
+\[
+  {1\over z-w},
+  \qquad
+  {\eta^{\mu\nu}\over (z-w)^2},
+  \qquad
+  (z-w)^{k_1\cdot k_2},
+  \qquad
+  K_{\rm client}(z_i,\bar z_i).
+\]
+
+Implementation sketch:
+
+#+begin_src zig
+pub const CoeffTerm = struct {
+    scalar: Scalar,
+    coordinate_factor: CoordinateFactor,
+    tensor_factor: tensor.TensorExpr,
+};
+
+pub const Coeff = struct {
+    first_term: ?CoeffTermId,
+};
+#+end_src
+
+The coordinate factor must allow exact rational powers and antiholomorphic
+powers.  It may also store an opaque symbolic coordinate kernel returned by a
+client-supplied Wick or correlator rule.  The general CFT kernel does not know
+the regularization algebra of that symbolic kernel; it only preserves and
+streams it.
+
+The streamed unit is =CoeffTerm=.  A =Coeff= value, when used internally, is
+only a small handle or view into caller-owned scratch.  It must not require
+allocating a large list of terms before emitting output.
+
+** OPE
+
+The public operation should be called =ope=, and it should be the projected OPE.
+There should not be a separate public =OPE= and =OPEProjected=.
+There is no =OpeContext=: the local OPE is selected by the operators, their
+sectors, their bulk/boundary family, the theory's strategy preferences, and
+the requested projection.
+For local OPE purposes the sphere local model is enough for bulk operators,
+and the disk local model is enough for boundary operators.
+
+The generated kernel type owns the local config choices:
+
+#+begin_src zig
+pub const LocalOpeConfig = struct {
+    domain: OperatorDomain,
+    support: ChiralSupport,
+    correlator_config: CorrelatorConfigId,
+};
+#+end_src
+
+This is not a public =OpeContext=.  It is preset data saying, for example,
+"bulk local OPE uses the sphere Wick/zero-mode config" or "boundary local OPE
+uses the disk/BCFT config".  The public =ope= call is a method on the selected
+generated kernel type and receives only a =MultiOp=, projection data, and a
+sink.  The =correlator_config= id is internal to the generated kernel; when
+the OPE path calls =correlator=, it resolves that id to a
+=*const CorrelatorConfig=.
+
+Input:
+
+- any number of local operators, usually packaged as a =MultiOp=;
+- projection data, such as the target insertion, target weights, level bound,
+  and quantum numbers.
+
+Output:
+
+- streamed local terms at the target insertion whose bodies land at the
+  requested weight and quantum numbers.
+
+The basic strategy for OPE is:
+
+1. collapse the input =MultiOp= to the requested target insertion at the level
+   of local coordinates;
+2. derive a =BasisQuery= from the projection data: target weights, quantum
+   filters, domain/support filters, and optional level bound;
+3. stream candidate output =OperatorBody= values from =basis=;
+4. for each candidate, insert its dual or pairing partner according to the
+   relevant =PairingData=;
+5. call =correlator= with the original input insertions and the dual candidate
+   insertion, using the =LocalOpeConfig= selected by the generated kernel type;
+6. apply the inverse pairing/Gram/BPZ data to solve for the coefficient of the
+   candidate;
+7. stream each nonzero =LocalTerm= without storing the full projected OPE.
+
+The OPE path therefore needs:
+
+- =basis= with comptime-dispatched weight and quantum-rule evaluation over
+  runtime labels;
+- =PairingData= for the output sector or presentation block;
+- the same =correlator= algorithm described below;
+- tensor-code coefficient solving when the unknown coefficients live in a
+  tensor basis;
+- the projection's target insertion and filters.
+
+If the input is multi-local, =ope= treats it as the product of all its local
+insertions.  There is no need to expose a separate pairwise OPE operation.
+Derivative labels are just part of the operator data used by =basis=,
+=correlator=, and the pairing.
+
+The strategy is chosen sector by sector: all bodies in the same sector must
+support the strategy used for that sector, and the sector's preference list
+decides which common strategy is tried first.
+
+This is the operation needed by:
+
+- SFT brackets;
+- BRST residues;
+- PCO zero-mode actions;
+- Ramond spin-field OPE projection;
+- effective bracket computations.
+
+** Correlator
+
+A correlator takes any number of local operators, usually packaged as a
+=MultiOp=.
+
+Its explicit inputs are:
+
+- a pointer to a =CorrelatorConfig=;
+- the =MultiOp= of local insertions.
+
+=CorrelatorConfig= is the smallest runtime data needed to evaluate the
+correlator.  It is not the whole Riemann surface, not the amplitude
+prescription, and not the full DSL object.  It contains only:
+
+- the Wick rules to use;
+- the zero-mode caveats or base-case rules to use.
+
+Boundary conditions are not an extra correlator argument.  They are encoded in
+the boundary operator kinds present in the =MultiOp= and in the selected
+=CorrelatorConfig='s Wick rules.  If a boundary computation uses doubling, the
+DSL has already reflected that in the boundary-local operator definitions and
+in the Wick rules before runtime.
+
+The generated kernel type is fixed by the call site.  It supplies the operator
+schema, convention table, sector statistics, rule dispatch, and compact stores.
+For built-in surfaces or BCFT presets, the =CorrelatorConfig= itself can be a
+static constant owned by that generated type and passed by pointer.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const CorrelatorConfig = struct {
+    wick_rules: WickRuleSetId,
+    zero_modes: ZeroModeRuleSetId,
+};
+#+end_src
+
+This keeps the correlator call small.  The operator kinds still say whether
+the inserted fields are bulk, boundary, or boundary-changing fields.  The
+config says how fields contract and which zero-mode base cases are allowed in
+this computation.
+
+The runtime algorithm is deliberately generic:
+
+1. read the local operators in the =MultiOp=;
+2. canonicalize each local body and group atomic factors by computational
+   sector or presentation block;
+3. choose the first common body-supported strategy in each sector using the
+   sector preference list;
+4. stream Wick contractions using =config.wick_rules=, allowing each Wick rule
+   to emit coefficient terms and residual body edits such as fused
+   exponentials or unchanged spectator factors;
+5. multiply sector streams by the usual graded signs and tensor/coordinate
+   coefficients without materializing the full product when a sink can consume
+   terms incrementally;
+6. stop at zero-mode/base-case checks using =config.zero_modes=;
+7. emit =CoeffTerm= values through the sink.
+
+The generic Wick recursion only needs:
+
+- the ordered local bodies and labels;
+- the sector statistics rules;
+- =config.wick_rules=;
+- =config.zero_modes=;
+- the compact stores reached through the generated kernel type.
+
+The zero-mode rule set must be allowed to inspect the remaining uncontracted
+body labels.  This is what supports \(bc\) ghost zero modes, momentum
+conservation, \(\phi\)-background charge, \(\eta\xi\) top forms, pure-spinor
+tree zero-mode normalizations supplied by a client, and BCFT zero-mode
+caveats.
+
+It should not inspect a full surface, boundary condition, orientifold action,
+or string-amplitude prescription.
+
+The same generic runtime path handles bulk-only, boundary-only, and mixed
+bulk-boundary correlators, provided the selected =CorrelatorConfig= contains
+the Wick and zero-mode rules needed for those local operators.
+
+With =LocalOpeConfig= added to the generated kernel type, the current data is
+enough for the first implementation of =correlator= and =ope=:
+
+- =correlator= has local operators, a generated kernel type, Wick rules,
+  zero-mode rules, label schemas, statistics rules, and coefficient sinks;
+- =ope= has local operators, projection data, local target data, basis
+  generation, pairing data, local correlator configs, and coefficient sinks;
+- tensor-code supplies tensor-basis generation and coefficient solving when
+  OPE coefficients are tensor-valued;
+- clients still own BRST, PCO prescriptions, moduli, regularization, and
+  theory-specific reductions.
+
+The remaining implementation choices are rule evaluator signatures and scratch
+memory layout, not new physics data structures.
+
+Surfaces should still be built compositionally in the DSL.  That is a
+definition-time layer, not the runtime correlator input.  Boundary attachments
+belong to a BCFT extension, not to the bulk surface definition.  For example:
+
+#+begin_src text
+surface disk:
+  base disk
+
+bcft disk_with_B:
+  bulk flat_bulk_cft
+  surface disk
+  boundary B
+  config disk_rules_for_B
+#+end_src
+
+The public correlator receives only a pointer to the resulting
+=CorrelatorConfig=.  Neither the surface nor the boundary attachment is a
+runtime argument.
+
+The base surfaces that should exist at the DSL layer are:
+
+- sphere: genus-zero closed surface, enough for tree-level closed-string local
+  correlators and bulk OPE normalization;
+- disk: genus-zero surface with one boundary, enough for tree-level open and
+  open-closed local correlators and boundary OPE normalization;
+- torus: genus-one closed surface with a modular parameter and spin structure;
+- annulus/cylinder: open one-loop surface with two boundary components;
+- symbolic higher-genus closed or bordered surfaces, described by period
+  matrix/prime-form-style kernels when a client supplies them.
+
+Unoriented surfaces are not standalone kernel base surfaces.  A Moebius strip,
+projective plane, Klein bottle, or crosscap amplitude only appears together
+with an orientifold/orientation-reversal action on the theory.  The
+orientifold client builds the appropriate quotient or doubled description and
+then supplies local operators and a =CorrelatorConfig= to the kernel.
+
+The CFT kernel should not own integration over moduli, PCO locations, vertical
+integration, plumbing chains, or string-field vertices.  Those are client
+layers.  The kernel only needs the already compiled config for the correlator
+being evaluated.
+
+Spin structure is part of the DSL surface data that generates the config.  It
+should be stored as cycle data, not as ad hoc names.  For a closed genus \(h\)
+surface, a chiral spin structure is the choice of periodicity around the
+\(A_i\) and \(B_i\) cycles, \(i=1,\ldots,h\).  A compact encoding is two
+bitsets:
+
+#+begin_src zig
+pub const ChiralSpinStructure = struct {
+    a_cycles: BitSetId,
+    b_cycles: BitSetId,
+    cached_parity: SpinParity,
+};
+
+pub const SpinParity = enum {
+    even,
+    odd,
+};
+
+pub const SpinStructure = struct {
+    left: ?ChiralSpinStructure,
+    right: ?ChiralSpinStructure,
+    punctures: []const PunctureSpinData,
+};
+#+end_src
+
+For a torus this reproduces the four assignments: three even spin structures
+and one odd spin structure.  The parity is determined by the cycle data; the
+stored =cached_parity= is validated derived data for fast filtering, not an
+independent DSL choice.  For type II closed strings the left and right spin
+structures may be independent.  For heterotic strings only the fermionic chiral
+side needs this data.  With NS/R punctures, the spin data records the puncture
+monodromy data when needed; the insertion positions themselves remain in the
+=MultiOp=.  For bordered surfaces, the BCFT extension records boundary spin
+signs and boundary periodicities; a boundary Ramond insertion can interpolate
+between boundary spin assignments.
+
+After this choice has selected the relevant Wick rules and zero-mode rule, the
+runtime correlator does not need to inspect the full spin-structure object
+unless the selected Wick evaluator is intentionally parametric in it.
+
+Perturbative expansions, equations of motion, and regularization choices are
+not correlator inputs.  A client that needs them either reduces the operators
+before the call or supplies a strategy whose Wick/correlator rule already
+returns the desired coefficient stream.
+
+** BCFT And Boundary Operators
+
+A boundary condition gives a BCFT extension of a bulk CFT.  It is not part of
+the bulk =CFTSpec=.
+
+The BCFT extension owns its boundary stress tensor, boundary-local operator
+kinds, and boundary-changing operator kinds.  It may also compile mixed
+bulk-boundary Wick rules.  These rules can involve bulk and boundary
+insertions at the same time, and the doubling trick is one way to produce them
+in free-field examples.
+
+For a single boundary condition \(B\), there is a boundary operator space
+\({\cal H}_{BB}\).  For a pair of boundary conditions \(B_1,B_2\), there may be
+boundary-changing operators in \({\cal H}_{B_1B_2}\).
+
+Boundary conditions also admit stacking by direct sum.  If \(B_1\) and \(B_2\)
+are boundary conditions, then \(B_1\oplus B_2\) is another boundary condition.
+For \(B^{\oplus n}\), boundary operators stretching from \(B^{\oplus n}\) to
+\(B^{\oplus m}\) are the old boundary operators tensored with \(Mat(n,m)\).
+This is the Chan-Paton structure.  In the kernel it should be represented by:
+
+- compact boundary-stack data in the =BCFTSpec=;
+- optional Chan-Paton labels on boundary operator bodies;
+- a boundary OPE/Wick coefficient rule that multiplies matrix units or uses
+  tensor-code multiplication/trace data for symbolic Chan-Paton factors.
+
+The correlator still does not receive a boundary-condition id.  The chosen
+stack and its Chan-Paton rule have already selected the boundary operator kinds
+and the =CorrelatorConfig=.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const BCFTSpec = struct {
+    name: []const u8,
+    bulk: CFTSpecId,
+    boundary_conditions: []const BoundaryCondition,
+    boundary_stacks: []const BoundaryStack,
+    boundary_stress_tensor: OperatorRef,
+    boundary_spin: []const BoundarySpinData,
+    boundary_operator_kinds: []const OperatorKindId,
+    boundary_changing_kinds: []const BoundaryChangingKind,
+    wick_rule_sets: []const WickRuleSet,
+    pairing_data: []const PairingData,
+    zero_mode_rule_sets: []const ZeroModeRuleSet,
+    correlator_configs: []const CorrelatorConfig,
+    local_ope_configs: []const LocalOpeConfig,
+};
+
+pub const BoundaryChangingKind = struct {
+    from: BoundaryConditionId,
+    to: BoundaryConditionId,
+    kind: OperatorKindId,
+};
+
+pub const BoundaryCondition = struct {
+    name: []const u8,
+    simple_data: ExtraId,
+};
+
+pub const BoundaryStack = struct {
+    name: []const u8,
+    entries: []const BoundaryStackEntry,
+};
+
+pub const BoundaryStackEntry = struct {
+    boundary: BoundaryConditionId,
+    multiplicity: u32,
+};
+
+pub const ChanPatonLabel = struct {
+    endpoints: ChanPatonEndpoints,
+    factor: ChanPatonFactor,
+};
+
+pub const ChanPatonEndpoints = struct {
+    from_stack: BoundaryStackId,
+    to_stack: BoundaryStackId,
+    from_entry: u32,
+    to_entry: u32,
+};
+
+pub const ChanPatonFactor = union(enum) {
+    matrix_unit: ChanPatonMatrixUnit,
+    tensor_factor: tensor.TensorExprId,
+};
+
+pub const ChanPatonMatrixUnit = struct {
+    row: u32,
+    col: u32,
+};
+#+end_src
+
+The boundary stress tensor is part of the BCFT extension, not the bulk
+=ConformalStructure=.  It may be an abstract boundary operator with supplied
+OPEs, or it may be compiled from the bulk stress-tensor components and gluing
+data in a free-field preset.
+
+Gluing rules are not runtime correlator data.  In a free-field BCFT preset,
+the DSL uses gluing rules to define boundary-local operators and to compile the
+boundary and mixed bulk-boundary Wick rules.
+
+The correlator does not take a boundary-condition id.  The caller selects the
+bulk and/or boundary local operators and the =CorrelatorConfig= whose Wick
+rules encode the chosen BCFT computation.
+
+For free bosons on a D-brane:
+
+\[
+  \bar\partial X^\mu(\bar z)
+  \mapsto
+  R^\mu{}_\nu \partial X^\nu(\bar z).
+\]
+
+For free fermions:
+
+\[
+  \tilde\psi^\mu(\bar z)
+  \mapsto
+  \eta_B R^\mu{}_\nu \psi^\nu(\bar z).
+\]
+
+The runtime CFT kernel does not apply the gluing rule.  It only sees the
+compiled local operators, Wick rules, and zero-mode rules, then runs the fast
+generic correlator/OPE engine.
+
+For Chan-Paton factors, the runtime kernel likewise sees only boundary
+operators carrying compact labels and a rule in the selected =WickRuleSet= or
+OPE strategy.  The endpoints record which summands of the source and target
+stacks are involved, so a direct sum such as \(B_1\oplus B_2\) is not confused
+with a single simple boundary condition.  The rule emits zero unless adjacent
+labels compose, and otherwise emits the resulting factor with the ordinary CFT
+coefficient.
+
+The source of truth is the body label.  If the factor is a concrete matrix
+unit, the kernel may multiply it directly.  If the factor is symbolic, the
+label points to a =tensor-code= tensor expression, such as a generator,
+fundamental/antifundamental index contraction, trace tensor, or another
+client-defined Chan-Paton tensor.  In that case the CFT kernel does not define
+an independent Chan-Paton tensor algebra; it only carries and composes the
+tensor-code factor according to the selected boundary rule.
+
+* Tensor-Code Data Structures
+
+** Representation And Index
+
+=tensor-code= needs to know which representation an index belongs to.
+
+Examples:
+
+- vector index \(\mu\) of \(SO(10)\);
+- chiral spinor index \(A\);
+- antichiral spinor index \(\dot A\);
+- adjoint index \(a\);
+- graded \(PSU(2,2|4)\) indices in \(\mathfrak g^{(0)},\ldots,\mathfrak g^{(3)}\);
+- Chan-Paton fundamental index \(i\).
+
+Implementation sketch:
+
+#+begin_src zig
+pub const Representation = struct {
+    symmetry: SymmetryId,
+    name: []const u8,
+    label: RepresentationLabel,
+};
+
+pub const TensorIndex = struct {
+    representation: RepresentationId,
+    name: u32,
+    variance: Variance,
+};
+#+end_src
+
+** Graded Algebra And Coset Data
+
+Pure-spinor \(AdS_5\times S^5\) needs tensor-code to understand graded
+superalgebra data, not just ordinary Lie algebras.
+
+The relevant data is:
+
+- \(G=PSU(2,2|4)\);
+- \(H=SO(4,1)\times SO(5)\) gauged locally;
+- a \(\mathbb Z_4\) grading
+  \(\mathfrak g=\mathfrak g^{(0)}\oplus\mathfrak g^{(1)}
+  \oplus\mathfrak g^{(2)}\oplus\mathfrak g^{(3)}\);
+- graded structure constants \(f_{AB}{}^C\);
+- invariant supertrace metric \(\eta_{AB}\);
+- super-sign conventions.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const GradedAlgebra = struct {
+    name: []const u8,
+    generators: []const AlgebraGenerator,
+    structure_constants: StructureConstantTableId,
+    invariant_form: InvariantFormId,
+    grading_modulus: u32,
+};
+
+pub const AlgebraGenerator = struct {
+    representation: RepresentationId,
+    grade: u32,
+    grassmann_odd: bool,
+};
+
+pub const CosetSpec = struct {
+    algebra: GradedAlgebraId,
+    gauged_subalgebra: []const RepresentationId,
+    coset_representations: []const RepresentationId,
+};
+#+end_src
+
+This is tensor data.  CFT-code uses it only through tensor expressions and
+operator labels.  For example, the Metsaev-Tseytlin current \(J_i\) carries a
+\(\mathfrak g^{(i)}\) index, while contractions and commutators use
+\(\eta_{AB}\), \(f_{AB}{}^C\), and graded signs from tensor-code.
+
+** Tensor Structure
+
+A tensor structure is a sum of products of invariant tensors.
+
+Examples:
+
+\[
+  \eta^{\mu\nu},
+  \qquad
+  (\Gamma^\mu C)_{AB},
+  \qquad
+  \eta^{\mu\nu}\eta^{\rho\sigma}
+  -\eta^{\mu\rho}\eta^{\nu\sigma},
+  \qquad
+  \epsilon_{\mu_1\ldots\mu_{10}}.
+\]
+
+Implementation sketch:
+
+#+begin_src zig
+pub const TensorExpr = struct {
+    terms: []const TensorTerm,
+};
+
+pub const TensorTerm = struct {
+    scalar: Scalar,
+    factors: []const TensorFactor,
+};
+
+pub const TensorFactor = union(enum) {
+    metric: struct { left: TensorIndexId, right: TensorIndexId },
+    delta: struct { left: TensorIndexId, right: TensorIndexId },
+    epsilon: []const TensorIndexId,
+    gamma_antisym: GammaAntisym,
+    generator: GeneratorTensor,
+    structure_constant: StructureConstantTensor,
+    invariant_form: InvariantFormTensor,
+    clebsch_gordan: ClebschGordanTensor,
+};
+#+end_src
+
+** Invariant Tensor Generation
+
+The central problem for Type II R-sector amplitudes is:
+
+Given external vector and spinor indices, generate all invariant tensors that
+can appear, then choose an independent basis.
+
+Examples:
+
+- two spinor indices and one vector index give gamma-matrix structures;
+- many spinor/vector indices give products of gamma matrices and metrics;
+- amplitude calculations may require a very large invariant basis.
+
+Implementation sketch:
+
+#+begin_src zig
+pub const InvariantProblem = struct {
+    external_indices: []const TensorIndexId,
+    required_symmetries: []const SymmetryId,
+    symmetry_conditions: []const TensorSymmetryCondition,
+};
+#+end_src
+
+The API should be:
+
+#+begin_src zig
+pub fn generateInvariants(problem: InvariantProblem, sink: Sink(TensorExpr)) !void;
+pub fn selectIndependent(problem: InvariantProblem, source: TensorExprSource, sink: Sink(TensorExpr)) !void;
+pub fn solveInBasis(basis: []const TensorExpr, target: TensorExpr) !LinearSolution;
+#+end_src
+
+The independent-basis selector consumes generated candidates incrementally.  It
+must not require all invariant tensors to be materialized before selection.
+For small problems, =TensorExprSource= can wrap an in-memory slice; for real
+spin-field or amplitude problems it should be an iterator/generator backed by
+the invariant generator.
+
+The first serious target should be ten-dimensional vector/spinor structures for
+Type II flat space.
+
+* Stress Tests
+
+These examples are the check that the data structures are broad enough without
+becoming a large public API.
+
+** RNS Chiral Sector
+
+The holomorphic RNS spin-picture sector should keep \(\phi\) grouped with
+\(\psi^\mu\) and the spin fields.  It should not split \(\psi\) from the
+\(\phi\)-charge data, because GSO, spin-field cocycles, and the physical
+picture-dressed combinations use them together.
+
+Atomic kinds:
+
+- \(\psi^\mu\), with one Lorentz-vector index;
+- \(e^{q\phi}\), with rational charge label \(q\);
+- \(\Theta_A\) and \(\Theta_{\dot A}\), with spinor index and optional
+  bosonized \(H\)-weight labels.
+
+Normal bodies:
+
+- \(:e^{-\phi}\psi^\mu:\);
+- \(e^{-\phi/2}\Theta_A\);
+- \(\psi^\mu\psi^\nu\);
+- \(e^{2\phi}\).
+
+Mode-descendant bodies:
+
+- \(\psi^\mu_{-1}\Theta_A\);
+- \(L_{-2}\Theta_A\);
+- \(G_{-1/2}{\cal O}\), when a superconformal mode action is needed.
+
+This directly matches the physics: physical RNS states are selected by a GSO
+projection involving the combined \(\psi\)-spin and \(\phi\)-picture data,
+while intermediate operator bodies may still contain only the \(\psi\) part or
+only the \(\phi\) part.
+
+The sector owns:
+
+- the Wick kernels for \(\psi^\mu\psi^\nu\) and \(\phi\phi\);
+- the statistics rule for \(\psi,e^{q\phi}\), and spin fields;
+- Wick rules whose bosonized exponential entries include cocycle phases for
+  half-integral \(\phi\) charges and spin fields;
+- a bosonized lattice presentation for \(\phi\) plus the five \(SO(10)\)
+  \(H^a\)'s, as in the prototype six-charge basis;
+- the finite GSO projection used by =basis=.
+
+No extra public operation is needed.
+
+The \((\eta,\xi)\) first-order system may be a separate sector with the sparse
+pairing \(\eta(z)\xi(w)\sim 1/(z-w)\).  It has trivial contractions with
+\(\psi\) and \(\phi\).  When the superstring preset wants to define
+\(\beta,\gamma\), PCOs, picture-changing, or the large/small Hilbert-space
+distinction, it supplies a coupled superghost presentation involving
+\(\phi\) and \((\eta,\xi)\).
+
+The direct \(\beta\gamma\) presentation should also be supported.  In many
+superstring basis calculations it is useful to start from a \(\beta\gamma\)
+picture ground state and apply \(\beta,\gamma\) modes, just as R-sector
+calculations start from a spin-field ground state and apply matter-fermion or
+Virasoro modes.  The preset can then bosonize these states into
+\((\phi,\eta,\xi)\) labels and bodies when that representation is better for
+weights, cocycles, and Wick contractions.
+
+** SO(10) Spin Fields
+
+The ten matter fermions can be bosonized by five \(H^a\)'s.  Together with
+\(\phi\), the RNS presentation uses charge vectors
+\[
+  Q=(q;s_0,\ldots,s_4).
+\]
+A spin field has weights \(s_a=\pm 1/2\) and body label \(Q\), while
+=tensor-code= records whether its free index is chiral or antichiral.
+
+The CFT part computes coordinate powers and cocycle phases through the
+bosonized Wick rule.  The tensor part expresses the answer in invariant
+tensors such as
+
+\[
+  (\Gamma^{\mu_1\ldots\mu_p}C)_{AB}.
+\]
+
+The important split is:
+
+- CFT labels know the bosonized \(H\)-charges used for contractions;
+- tensor indices know \(SO(10)\) vector, chiral-spinor, and antichiral-spinor
+  representations;
+- mode-descendant bodies store excited spin fields before a strategy evaluates
+  the mode action;
+- =basis= generates candidate spin-field descendants by weight and quantum
+  numbers;
+- =ope= solves their coefficients by correlator pairing.
+
+This covers the prototype spin-field machinery without copying its old
+algorithm-specific organization.
+
+** Heterotic SO(32)
+
+The \(32\) left-moving fermions \(\lambda^A\) are one chiral gauge sector.
+
+Atomic kinds:
+
+- \(\lambda^A\), with an \(SO(32)\) vector index.
+
+Normal bodies:
+
+- \(j^{AB}=:\lambda^A\lambda^B:\), represented as an =OperatorBody= with two
+  antisymmetric vector indices, or as a named current kind if a preset wants a
+  shorter basis.
+
+The \(SO(32)\) GSO projection is a finite projection in =BasisQuery=.  The
+sector's Wick strategy contracts \(\lambda^A\lambda^B\) with \(\delta^{AB}\)
+and uses the sector statistics rule for signs.  =tensor-code= supplies the
+vector and adjoint representation data.
+
+This sector should also admit a rank-16 bosonized lattice presentation.  In
+that presentation, the \(\lambda^A\)'s, \(SO(32)\) currents, and \(SO(32)\)
+spin fields are represented by charge vectors plus cocycles.  The direct
+\(\lambda\) presentation and the lattice presentation are two descriptions of
+the same gauge sector.
+
+** Heterotic E8xE8
+
+The \(E_8\times E_8\) heterotic gauge sector should be specified as an
+\(E_8\times E_8\) current algebra, equivalently as the even self-dual
+rank-16 chiral lattice CFT with lattice \(\Gamma_8\oplus\Gamma_8\).
+
+The primary computational presentation is bosonized/lattice:
+
+- the atomic exponential kind carries a =lattice_vector= label;
+- Cartan currents are derivative operators along the lattice directions;
+- root currents are weight-one exponentials for \(E_8\) roots in either
+  factor;
+- =ModeAlgebra= contains the affine \(E_8\oplus E_8\) current modes
+  \(J^a_n\);
+- =basis= builds the gauge spectrum as a Kac-Moody module by acting with
+  negative current modes on allowed highest-weight or lattice ground states;
+- current-mode descendants can be canonicalized by the affine algebra or
+  evaluated by bosonizing the currents and using the lattice presentation;
+- the \(E_8\times E_8\) Kac-Moody OPEs and correlators are generated by the
+  lattice Wick rule and its cocycle table;
+- tensor-code records the \(E_8\) representations and invariant tensors that
+  appear in coefficients or projections;
+- the rest of the Narain lattice also gives local exponential operators when
+  the model includes those momenta or winding labels.
+
+This is not represented in the kernel as an \(SO(16)\times SO(16)\) current
+algebra plus later enhancement.  Such a subgroup can be used internally by a
+client or in a derivation, but the preset data should expose \(E_8\times E_8\)
+operator kinds, quantum numbers, roots, weights, cocycles, and current
+algebra structure directly.
+
+** Lattice Cocycles
+
+A lattice exponential is an atomic body with a charge-vector or lattice-vector
+label.  For a true Narain CFT one writes
+
+\[
+  {\cal O}_k = :e^{i k_L X_L+i k_R X_R}: .
+\]
+
+The OPE adds labels:
+
+\[
+  {\cal O}_k(z){\cal O}_{k'}(w)
+  \sim
+  \epsilon(k,k') (z-w)^{k_L\cdot k'_L}
+  (\bar z-\bar w)^{k_R\cdot k'_R}
+  {\cal O}_{k+k'}(w).
+\]
+
+The kernel does not need to know why \(\Gamma_{16}\) and
+\(\Gamma_8\oplus\Gamma_8\) are the two rank-16 cases.  It only needs the
+lattice, the bilinear form, and the Wick rule that uses the cocycle table.
+The theory preset enforces integrality, evenness, self-duality, and the finite
+projections appropriate to the string model.
+
+The same storage shape also covers the RNS bosonized presentation
+\((q;s_0,\ldots,s_4)\), but with a different conformal-weight rule because the
+\(\phi\) direction has background charge.  Therefore the data structure should
+say "lattice presentation plus weight rule", not "Narain sector" as a special
+public object.
+
+** Pure Spinor AdS5xS5
+
+The pure-spinor \(AdS_5\times S^5\) sigma model is a stress test for the
+kernel boundary, not a reason to put pure-spinor quantization into =cft-code=.
+
+The pure-spinor client must own:
+
+- the supercoset \(PSU(2,2|4)/(SO(4,1)\times SO(5))\);
+- the \(\mathbb Z_4\)-graded currents
+  \(J=J_0+J_1+J_2+J_3\);
+- the pure-spinor constraints
+  \(\lambda\gamma^a\lambda=0\) and
+  \(\bar\lambda\gamma^a\bar\lambda=0\);
+- the \(w\)-gauge quotient;
+- the definitions of \(N^{ab}\), \(J_\lambda\), \(T_\lambda\), the BRST
+  current, and the supercoset currents;
+- local \(SO(4,1)\times SO(5)\) gauge choices;
+- Maurer-Cartan and equation-of-motion reductions;
+- the large-radius expansion, integrated vertices, and regularization
+  prescription.
+
+The general kernel is adequate if it can accept what that client produces:
+
+- tensor-code graded algebra tensors for \(PSU(2,2|4)\), its
+  \(SO(4,1)\times SO(5)\) subalgebra, invariant supertrace, structure
+  constants, and graded signs;
+- local =OperatorKind= values for the fields, currents, and ghost composites
+  the client chooses to expose;
+- =OperatorBody= values for normal products and mode descendants;
+- sector presentations with client-supplied Wick/correlator strategies;
+- coefficient terms whose coordinate factor may be an opaque symbolic kernel
+  produced by the client;
+- ordinary =ope=, =correlator=, and =basis= calls after the client has chosen
+  the presentation and reductions.
+
+The design would be overfit if =cft-code= stored pure-spinor constraints,
+regularization schemes, or supercoset equations of motion as generic kernel
+objects.  What is not overfit is the smaller common substrate: graded tensor
+algebra in =tensor-code=, labeled operator bodies, mode descendants, sector
+presentations, Wick rules with cocycles, and streamed coefficient output.
+
+* Public CFT API
+
+The public API should be small and physics-oriented.  It should not grow
+one-off helpers such as a separate doubling operation.  Boundary doubling is a
+compile-time DSL step that produces ordinary local operators and Wick rules.
+
+#+begin_src zig
+pub const OperatorSchema = struct {
+    bulk_kinds: []const OperatorKind,
+    boundary_kind_ids: []const OperatorKindId = &.{},
+    boundary_changing_kinds: []const BoundaryChangingKind = &.{},
+};
+
+pub fn OperatorBodyStore(comptime schema: OperatorSchema) type {
+    return struct {
+        pub fn atomic(kind: OperatorKindId, labels: LabelSpanId) !OperatorBodyId;
+        pub fn normalOrdered(factors: []const OperatorBodyId) !CanonicalBodyResult;
+    };
+}
+
+pub const CanonicalBodyResult = struct {
+    coeff: Scalar,
+    body: ?OperatorBodyId,
+};
+
+pub const OpeProjection = struct {
+    target: OpeTarget,
+    target_weights: ?ConformalWeights,
+    quantum_filters: []const QuantumFilter,
+    max_level: ?LevelBound,
+};
+
+pub const OpeTarget = union(enum) {
+    first_insertion,
+    explicit: Insertion,
+};
+
+pub const LocalTerm = struct {
+    coeff: CoeffTerm,
+    insertion: Insertion,
+    body: OperatorBodyId,
+};
+
+pub fn CFTKernel(comptime spec: CFTSpec) type {
+    return struct {
+        pub const bulk_operator_kinds = spec.bulk_operator_kinds;
+        pub const Bodies = OperatorBodyStore(.{
+            .bulk_kinds = spec.bulk_operator_kinds,
+        });
+
+        pub fn ope(
+            operators: MultiOp,
+            projection: OpeProjection,
+            sink: anytype,
+        ) !void;
+
+        pub fn correlator(
+            config: *const CorrelatorConfig,
+            operators: MultiOp,
+            sink: anytype,
+        ) !void;
+
+        pub fn basis(
+            query: BasisQuery,
+            sink: anytype,
+        ) !void;
+    };
+}
+
+pub fn BCFTKernel(comptime Bulk: type, comptime bcft: BCFTSpec) type {
+    return struct {
+        pub const bulk = Bulk;
+        pub const Bodies = OperatorBodyStore(.{
+            .bulk_kinds = Bulk.bulk_operator_kinds,
+            .boundary_kind_ids = bcft.boundary_operator_kinds,
+            .boundary_changing_kinds = bcft.boundary_changing_kinds,
+        });
+
+        pub fn ope(
+            operators: MultiOp,
+            projection: OpeProjection,
+            sink: anytype,
+        ) !void;
+
+        pub fn correlator(
+            config: *const CorrelatorConfig,
+            operators: MultiOp,
+            sink: anytype,
+        ) !void;
+
+        pub fn basis(
+            query: BasisQuery,
+            sink: anytype,
+        ) !void;
+    };
+}
+#+end_src
+
+The receiver is not an =OpeContext=.  For built-in presets it is a generated
+bulk or BCFT kernel type that owns the compact stores, conventions, rule
+tables, dispatch, and ids.  This keeps multiple presets usable in the same
+process and allows parallel calls without hidden global state.  A =BCFTKernel=
+exposes the same operations after boundary data has been compiled from a bulk
+=CFTSpec= plus BCFT data.  A runtime-erased wrapper can be added later only
+for callers that need to choose among presets dynamically; it should not be
+the primary kernel interface.
+
+=BasisQuery= should include weight conditions, quantum-number conditions, and
+optional finite projections.  It should also allow optional =domain= and
+=support= filters, so a client can ask separately for bulk holomorphic, bulk
+antiholomorphic, bulk mixed, or boundary chiral candidates.  That keeps
+projection as data, not another public verb.
+
+If a basis should include descendants, =BasisQuery= may also carry descendant
+filters: maximum level, allowed mode algebras, or allowed mode generators.
+That is still a CFT basis filter.  BRST, Siegel gauge, picture-changing
+prescriptions, and SFT bracket constraints remain client-layer data unless the
+client translates them into ordinary quantum-number or descendant filters.
+
+* How Future Modules Use It
+
+** On-Shell RNS
+
+On-shell RNS code supplies:
+
+- vertex operators;
+- ghost and picture constraints;
+- GSO projection;
+- PCO insertion prescription;
+- integration over moduli.
+
+It calls =cft-code= for OPEs and correlators.  Here =ope= already means the
+projected OPE operation computed from candidate bodies, correlators, and
+pairing data.
+It calls =tensor-code= for Lorentz and spinor tensor algebra.
+
+** SFT
+
+SFT code supplies:
+
+- local coordinate maps;
+- \(b\)-ghost mode insertions;
+- BRST operator;
+- BPZ pairing;
+- propagators;
+- bracket/vertex prescriptions.
+
+It calls =ope= and =correlator= after placing operators with its local
+coordinate data.  The placed operators are naturally passed as a =MultiOp=.
+
+** NLSM
+
+NLSM code supplies:
+
+- target-space geometry;
+- background-field expansion;
+- regulator;
+- counterterms and beta functions.
+
+It uses CFT operator kinds for fluctuation fields and background profiles, and uses
+=tensor-code= for target-index contractions such as curvature and \(H\)-flux
+tensors.
+
+** Pure Spinor
+
+Pure-spinor code supplies:
+
+- constrained pure-spinor variables;
+- BRST operator;
+- quotient/gauge equivalence data;
+- regularization of the \(AdS_5\times S^5\) sigma model;
+- \(PSU(2,2|4)\) supercoset presentation data;
+- current definitions and large-radius expansions;
+- integrated interaction vertices;
+- Maurer-Cartan/equation-of-motion relation sets.
+
+It uses =cft-code= after it has chosen a presentation and reduction scheme.
+It may pass expanded local bodies to =ope= and =correlator=, or install a
+theory-specific strategy that emits the same local terms.  It uses
+=tensor-code= for graded \(PSU(2,2|4)\) tensor algebra, structure constants,
+supertrace metrics, gamma identities, and invariant contractions.
+
+* First Milestone
+
+The first milestone should be concrete:
+
+1. Define \(bc\), \(X^\mu\), the RNS spin-picture sector
+   \((\psi^\mu,\phi,\Theta)\), and the optional independent \((\eta,\xi)\)
+   first-order sector.
+2. Compute normal free-field OPEs with coefficients carrying tensor structures.
+3. Compute projected OPEs through the single public =ope= operation using
+   basis generation, correlators, and pairing data.
+4. Generate a small R-sector spin-field tensor basis using gamma matrices.
+5. Solve one spin-field projected OPE in that tensor basis.
+6. Add a \(\beta\gamma\) superghost presentation that can generate basis
+   states by \(\beta,\gamma\) modes and bosonize them to
+   \((\phi,\eta,\xi)\) labels/bodies when useful.
+7. Define a simple D-brane BCFT extension from the already-defined bulk free
+   boson/fermion CFT, compile boundary operator kinds and mixed Wick rules,
+   then derive one disk two-point function using the config-specific Wick
+   rules.
+8. Add a stacked version \(B^{\oplus n}\) of that boundary condition and test
+   one boundary OPE with Chan-Paton matrix-unit multiplication.
+9. Define a heterotic gauge-sector preset: first \(SO(32)\) with
+   \(\lambda^A\) and its rank-16 bosonized presentation, then the
+   \(E_8\times E_8\) lattice/current-algebra presentation with \(E_8\) roots,
+   weights, representations, affine current modes, Kac-Moody module basis
+   generation, cocycles, and the allowed Narain-lattice exponential
+   operators.
+10. As a client stress test, let a pure-spinor module define
+   \(N,J_\lambda,T_\lambda\) and supply their chosen OPE data to the same
+   kernel interface.  Do not put the pure-spinor constraint solver in
+   =cft-code=.
+11. As a tensor-code stress test, encode the \(PSU(2,2|4)\) graded algebra data
+   needed by an \(AdS_5\times S^5\) client: grading, subalgebra, supertrace,
+   structure constants, and graded signs.
+
+If this works, the data structures are strong enough for the next layer of
+on-shell RNS and SFT work without baking those layers into the CFT kernel.
+
+* API Review
+
+The proposed =cft-code= public surface is deliberately small:
+
+- =OperatorBodyStore.atomic= constructs atomic =OperatorBody= values, and
+  =OperatorBodyStore.normalOrdered= returns a canonical coefficient/body
+  result.  The store is specialized by the generated kernel type's operator
+  schema.
+- =ope= computes the projected OPE of any =MultiOp= using candidate bodies,
+  correlators, pairing data, and the selected body-supported sector strategies.
+- =correlator= evaluates any =MultiOp= with a pointer to a supplied
+  =CorrelatorConfig=.  The generated kernel type supplies schemas,
+  conventions, and rule dispatch.
+- =basis= streams operator/state candidates satisfying a query.
+
+This is concise because it avoids extra verbs for special cases:
+
+- no =OpeContext=, because OPE is local operator algebra selected from the
+  operator and sector data;
+- no separate =projectedOpe=, because public =ope= is already projected;
+- no Taylor operation yet, because OPE is proposed through =basis=,
+  =correlator=, and pairing data; derivative labels are already part of local
+  operators;
+- no separate =projectBasis=, because finite projections belong in
+  =BasisQuery=;
+- no =doubleBulkInsertion= or boundary-doubling helper, because gluing has
+  already been compiled into local operator definitions and Wick rules.
+
+This is still complete enough because clients can build higher operations from
+these pieces:
+
+- BRST and PCO actions are residues/projections of OPEs with specified
+  operator bodies.
+- SFT brackets are local-coordinate placement followed by =ope= and
+  =correlator=.
+- On-shell amplitudes are correlators plus moduli integration supplied by the
+  client.
+- Boundary and orientifold calculations are boundary operator families,
+  finite projections, client-compiled local operators, and
+  =CorrelatorConfig= values.
+- R-sector computations use =basis= together with =tensor-code= invariant
+  generation and solving.
+- Heterotic \(SO(32)\) can use free fermions or a bosonized rank-16
+  presentation.  Heterotic \(E_8\times E_8\) is a lattice/current-algebra
+  presentation whose \(E_8\) roots, weights, representations, currents, and
+  cocycles are primary preset data.  Both use the same three public
+  operations.
+- Descendant insertions such as \(\psi^\mu_{-1}\Theta_A\) and
+  \(L_{-2}{\cal O}\) are =OperatorBody= values; sector strategies decide
+  whether to reduce them by free-field mode action, current algebra, or Ward
+  identities.
+- Pure-spinor \(AdS_5\times S^5\) current algebra can be built above the
+  kernel: the client handles current definitions, integrated vertices,
+  regularization, constraints, and relation reductions, then supplies ordinary
+  local terms or a strategy that streams them.
+
+* Cohesion Review
+
+The design is cohesive if every datum has one owner:
+
+- bulk theory data owns sectors, bulk operator kinds, presentations, statistics rules,
+  conformal structures, the stress tensor, supercurrents, convention sets, weight
+  rules, Wick rules, pairings, basis filters, and finite projections;
+- BCFT extension data owns the boundary stress tensor, boundary operator
+  families, boundary-changing families, boundary stacks, Chan-Paton labels,
+  mixed bulk-boundary Wick rules, and BCFT zero-mode rules;
+- DSL surface data owns only the compositional geometric description: sphere,
+  disk, torus, annulus/cylinder, higher-genus symbolic surfaces, and spin
+  structures;
+- generated kernel types own preset schemas, static config declarations,
+  convention data, compact stores, and comptime rule dispatch;
+- runtime correlator data owns only the =CorrelatorConfig= pointer: Wick rules
+  and zero-mode caveats;
+- runtime operator data owns only =OperatorBody=, insertion points, and
+  =MultiOp= collections;
+- client data owns BRST, PCOs, moduli integration, SFT brackets, pure-spinor
+  constraints, NLSM regularization, EOM reductions, orientifold projections,
+  and amplitude prescriptions.
+
+This matches the =AGENTS.md= constraints:
+
+- the public API has only =ope=, =correlator=, =basis=, and body construction;
+- the correlator does not receive a full surface when a config is enough;
+- all large outputs are streamed through sinks;
+- tensor products are lists of quantum numbers, not extra runtime products;
+- rule tables are compact handles into generated dispatch tables or are passed
+  by pointer rather than copied expression trees;
+- convention changes are data changes, not new operator kinds or public API
+  branches;
+- spin CFT data always says which worldsheet SUSY algebra is present and names
+  the corresponding supercurrents;
+- special string constructions are client-side data that generate ordinary
+  kernel inputs.
+
+The main correction from the previous draft is that "surface" is not a runtime
+catch-all.  A surface is DSL input.  A =CorrelatorConfig= pointer is runtime
+input, while the built-in rule dispatch is preset data compiled into the
+generated kernel type.
+Unoriented worldsheets are also not independent CFT-kernel surfaces: they are
+available only after an orientifold/orientation-reversal client supplies the
+quotient or doubled local operators and config.
+
+* Source Audit
+
+I rechecked the local =stringbook= notes, =pure-spinor.tex=, and
+=prototype-string-code= against the proposed data structures.
+
+The BCFT chapter adds one kernel feature that was missing: boundary-condition
+direct sums and Chan-Paton matrix factors.  This is now represented by
+=BoundaryStack= and =ChanPatonLabel=.  Boundary spin signs, boundary-changing
+operators, bulk-boundary correlators, and mixed Wick kernels were already
+covered by =BCFTSpec= plus config-selected Wick and zero-mode rules.
+
+The surface material in =stringbook= supports the current split: sphere, disk,
+torus, annulus/cylinder, and higher-genus symbolic kernels are DSL surface
+data that compile to Wick and zero-mode configs.  Spin structures are cycle
+periodicity data.  Moduli, Beltrami insertions, sewing, plumbing, PCO
+placement, and degeneration regularization remain amplitude/SFT-client data.
+Unoriented surfaces such as crosscaps and Moebius strips require an
+orientation-reversal or orientifold client before they become local operators
+and a correlator config.
+
+The RNS and heterotic material supports a more precise split.  The \(\phi\)
+picture charge should stay grouped with \(\psi^\mu\) and the matter spin
+fields, because GSO, spin-field cocycles, and physical picture-dressed
+operators use them together.  The \((\eta,\xi)\) system may be a separate
+first-order contraction sector, at least at sphere level and whenever only its
+\(\eta\xi\) Wick rule is needed.  Loop and SFT prescriptions couple
+\((\eta,\xi)\) back through the superghost presentation, PCOs, and the
+\({\cal X}-d\xi\) form.  The direct \(\beta\gamma\) system should also be a
+supported presentation for superghost state generation, with bosonization to
+\((\phi,\eta,\xi)\) available for basis and Wick computations.  The same
+presentation mechanism covers \(SO(10)\) spin fields, heterotic \(SO(32)\)
+fermions and spin fields, and the \(E_8\times E_8\) lattice/current-algebra
+presentation whose Kac-Moody currents and allowed Narain-lattice operators are
+generated through bosonized Wick rules and cocycles.
+
+The prototype mainly confirms the kernel boundary: convention tables,
+canonical normal ordering, sparse pairings, Wick recursion, top-form and
+charge zero-mode rules, projected OPE, basis generation, mode actions,
+gamma/tensor structure generation, and spin-field cocycles are core.  String
+brackets, BRST/PCO macros, moduli integration, TeX output, and special
+regularization choices are clients.
+
+The pure-spinor notes do not require putting pure-spinor constraints,
+\(w\)-gauge quotients, Maurer-Cartan reductions, equations of motion, or
+regularization in the generic CFT kernel.  The needed general features are
+already present: abstract operator bodies, mode descendants, convention-driven
+stress tensors, zero-mode rules, tensor-code gamma/superalgebra data, and
+client-supplied Wick/OPE strategies.  For \(AdS_5\times S^5\), tensor-code
+must support \(PSU(2,2|4)\), its \(\mathbb Z_4\) grading, the gauged
+\(SO(4,1)\times SO(5)\), structure constants, supertrace, and graded signs;
+the pure-spinor client owns the supercoset currents and reductions.
+
+After this audit, I do not see another basic kernel data structure needed
+before the DSL.  The remaining choices are presets and syntax.
+
+* Implementation Readiness
+
+The kernel data structures are ready to implement.
+
+The first implementation should build:
+
+- =CFTSpec= and =BCFTSpec= as comptime preset declarations;
+- generated =CFTKernel= and =BCFTKernel= types from those declarations;
+- compact ids and stores for =Sector=, =OperatorKind=, =OperatorBody=,
+  =MultiOp=, =CorrelatorConfig=, and =LocalOpeConfig= inside the generated
+  kernels;
+- exact scalars, rationals, and coordinate powers;
+- label schemas, convention sets, and default config declarations as comptime
+  preset data;
+- comptime dispatch tables for weight-rule evaluators, quantum-rule
+  evaluators, statistics, strategy-support evaluators, Wick rules, zero-mode
+  rules, and mode actions;
+- canonical normal-product construction;
+- sparse Wick-rule tables;
+- zero-mode rule tables;
+- streamed =correlator= over =*const CorrelatorConfig= and =MultiOp= on a
+  generated kernel type, emitting =CoeffTerm= values;
+- streamed =basis= using comptime-dispatched weight and quantum evaluators
+  over runtime labels and quantum-number filters;
+- projected =ope= through basis, correlators, and pairings.
+
+Do not add a runtime =Kernel= union in the first milestone.  If a client later
+needs to pick an arbitrary preset dynamically, add a thin runtime-erased
+wrapper around the generated kernels without changing the core data layout.
+
+The DSL can then compile higher-level physics declarations into these kernel
+objects:
+
+- CFT preset conventions;
+- the stress tensor and supercurrents;
+- surface plus spin-structure declarations into =CorrelatorConfig= and
+  =LocalOpeConfig= values;
+- boundary/gluing declarations into =BCFTSpec= data: boundary stress tensor,
+  boundary operator kinds, boundary stacks, Chan-Paton labels, mixed Wick
+  rules, and zero-mode rules;
+- finite GSO/orbifold/orientifold-induced projections;
+- sector presentations, including \(\beta\gamma\) and bosonized lattice
+  presentations.
+
+What should still be reviewed before locking the first presets:
+
+- the default \(\alpha'\), \(\psi\psi\), and
+  \(\partial X\partial X\) normalizations;
+- the default \(e^{q\phi}\) weight convention;
+- the built-in SUSY enum names are =none=, =n1_1=, =n2_2=, =n1_chiral=,
+  =n2_chiral=, and =custom=;
+- for =n2_chiral= and =n2_2=, \(U(1)\) R-currents are required in
+  =ConformalStructure.r_currents=;
+- the syntax for declaring \(B_1\oplus B_2\), \(B^{\oplus n}\), and
+  Chan-Paton matrix-unit labels;
+- the first zero-mode rule tables for sphere, disk, and torus.
+
+These are preset and DSL choices, not blockers for the kernel data structures.
+
+* Summary
+
+The corrected design is:
+
+- Built-in CFT and BCFT presets are =comptime= declarations that generate
+  kernel types.
+- Generated kernel types own schemas, compact stores, static config
+  declarations, convention data, and rule dispatch tables.
+- Runtime calculation data is limited to local operators, label values,
+  insertion points, =CorrelatorConfig= pointers, coefficient sinks, and
+  scratch/work queues.
+- CFT tensor products are quantum-number lists.
+- Sectors may intentionally couple fields, as in the RNS spin-picture sector
+  \((\psi,\phi,\Theta)\); \((\eta,\xi)\) may remain a separate first-order
+  contraction sector.
+- A sector may have multiple presentations: direct fields, bosonized lattice,
+  current algebra, or abstract conformal data.
+- A presentation may cover a coupled group of sectors, so a \(\beta\gamma\)
+  superghost presentation can generate states by modes and bosonize to
+  \((\phi,\eta,\xi)\) labels/bodies when useful.
+- Heterotic \(E_8\times E_8\) is represented as the \(E_8\times E_8\)
+  lattice/current algebra itself, not as an \(SO(16)\times SO(16)\) subgroup.
+  Its Kac-Moody currents, roots, weights, representations, cocycles, and
+  allowed Narain-lattice exponentials are primary preset data.
+- The \(E_8\times E_8\) spectrum can be generated as a Kac-Moody module by
+  acting with negative current modes; those current modes are evaluated by the
+  affine current algebra and, when useful, by bosonizing the currents into the
+  lattice presentation.
+- A local operator is an insertion plus a body.
+- A normal product is a canonical =OperatorBody=, not a new =OperatorKind=.
+- A mode descendant is also an =OperatorBody=.
+- Atomic bodies carry validated label spans, not a single label union.
+- Each =OperatorKind= declares a strategy-support rule; each sector ranks
+  strategies.
+- OPE/correlator evaluation chooses the best common body-supported strategy
+  sector by sector.
+- Statistics are sector-level rules evaluated on bodies and their labels.
+- Convention sets control normalizations such as \(\alpha'\), \(\psi\psi\),
+  and \(\partial X\partial X\).
+- Weight rules compute label-dependent weights at runtime, such as
+  \(e^{q\phi}\), \(e^{ikX}\), lattice exponentials, and derivatives.
+- Quantum rules compute label-dependent quantum numbers at runtime, such as
+  picture, lattice charge, and Chan-Paton endpoint representations.
+- Weight, quantum-number, statistics, Wick, zero-mode, strategy-support, and
+  mode-action rules are selected through comptime dispatch tables where the
+  preset is built in.
+- Cocycles are used inside Wick rules for the presentations that need them.
+- Every CFT names its stress tensor.  Spin CFTs also name their worldsheet SUSY
+  algebra and supercurrent operators.  Built-in \(N=2\) cases also name their
+  distinguished \(U(1)\) R-currents if this syntax is accepted.
+- A streamed CFT coefficient term is a scalar times a coordinate factor times
+  a tensor structure; coordinate factors include rational powers and optional
+  opaque client-supplied kernels.
+- Constrained systems, EOM reductions, regularization, and named composite
+  macros are client-layer responsibilities.
+- Tensor-code includes graded superalgebra/coset data for examples such as
+  \(PSU(2,2|4)/(SO(4,1)\times SO(5))\).
+- OPE is computed from candidate output bodies, correlators, and pairing data.
+- The public OPE operation is the projected OPE.
+- OPEs and correlators accept any number of local operators, usually through a
+  =MultiOp=.
+- =CorrelatorConfig= supplies Wick rules and zero-mode caveats.
+- Bulk =CFTSpec= contains no boundary data.
+- =BCFTSpec= extends a bulk CFT with a boundary stress tensor, boundary
+  operator kinds, boundary-changing kinds, boundary stacks, Chan-Paton labels,
+  mixed Wick rules, and zero-mode rules.
+- Chan-Paton labels are boundary body labels; concrete matrix units are the
+  fast case, while symbolic Chan-Paton factors point to tensor-code tensor
+  expressions instead of forming an independent tensor system.
+- Tensor-code is the engine for invariant spacetime/internal tensor structures.
+- Lattice data is internal sector-presentation data, not another public API
+  layer.
+
+This is the smallest kernel that still reaches on-shell RNS, SFT, NLSM, and
+pure-spinor applications.

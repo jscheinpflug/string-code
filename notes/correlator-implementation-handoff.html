@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-06 Sat 20:50 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Correlator Implementation Handoff</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Correlator Implementation Handoff</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org0c4f39b">1. Purpose</a></li>
+<li><a href="#org58a1fb7">2. Current User-Facing Shape</a></li>
+<li><a href="#orgd391408">3. Runtime Inputs</a></li>
+<li><a href="#org698ac8f">4. Wick Access</a></li>
+<li><a href="#orgc6be4d0">5. Zero-Mode Access</a></li>
+<li><a href="#org218d7b5">6. Full Correlator Algorithm</a></li>
+<li><a href="#orgf401930">7. Accumulators And Sinks</a></li>
+<li><a href="#org89293dc">8. Signs And Fermions</a></li>
+<li><a href="#orgf55ecdc">9. What Is Already Implemented</a></li>
+<li><a href="#org85891a9">10. Immediate Implementation Plan</a></li>
+<li><a href="#org2e70c9b">11. Things Not To Add Yet</a></li>
+<li><a href="#org24d5e38">12. Open Questions Before Coding</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org0c4f39b" class="outline-2">
+<h2 id="org0c4f39b"><span class="section-number-2">1.</span> Purpose</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note records the current implementation boundary for the future full
+correlator.  It is a handoff for implementing the algorithm, not a redesign of
+the CFT data structures.
+</p>
+
+<p>
+The relevant code nodes are <a href="../org/cft-code/cft-code.html">CFT-Code</a>,
+<a href="../org/cft-code/presets/presets.html">Presets</a>,
+<a href="../org/cft-code/presets/shared.html">Preset Shared Runtime</a>,
+<a href="../org/cft-code/presets/free-boson.html">Free Boson Preset</a>,
+<a href="../org/cft-code/presets/bc.html">bc Preset</a>,
+<a href="../org/cft-code/presets/composition.html">Preset Composition</a>,
+<a href="../org/cft-code/kernel/cft-kernel.html">CFT Kernel</a>, and
+<a href="../org/cft-code/correlators/correlators.html">Correlators</a>.  Coefficients are represented by
+<a href="../org/cft-code/expressions/coefficient.html">Coefficient</a>, while tensor factors are intended to
+flow into <a href="../org/tensor-code/tensor-code.html">Tensor-Code</a>.
+</p>
+
+<p>
+The design principle to preserve is narrow data flow.  The correlator receives
+only the operator collection, a compiled correlator config, and a sink.  It
+does not receive a theory context, a surface object, boundary-condition data,
+or user-side preset internals.  Surface and boundary choices have already been
+compiled into Wick rules, zero-mode rules, and small typed config entries.
+</p>
+</div>
+</div>
+<div id="outline-container-org58a1fb7" class="outline-2">
+<h2 id="org58a1fb7"><span class="section-number-2">2.</span> Current User-Facing Shape</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The root CFT API is intentionally compact.  User code should import the root
+module and use family objects:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">cft</span> = <span style="color: #fe8019;">@import</span>(<span style="color: #b8bb26;">"string-code"</span>).cft;
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">X</span> = cft.FreeBoson.make(.{ .dimension = 26 });
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">Ghost</span> = cft.Bc.sphere(.{});
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">Sphere</span> = cft.product(.{ X, Ghost });
+
+<span style="color: #fb4934;">const</span> <span style="color: #83a598;">Disk</span> = cft.boundary(Sphere, .{
+    cft.FreeBoson.boundary(.{
+        .neumann = X.target.subspace(&amp;.{ 0, 1, 2, 3 }),
+        .dirichlet = X.target.complement(&amp;.{ 0, 1, 2, 3 }),
+        .dirichlet_position = X.target.point(<span style="color: #b8bb26;">"x0"</span>),
+        .chan_paton = X.target.boundaryStack(<span style="color: #b8bb26;">"stack"</span>),
+    }),
+    cft.Bc.diskBoundary(.{}),
+});
+</code></pre>
+</div>
+
+<p>
+The root exposes <code>Handle</code> and <code>scalars</code> as support vocabulary, but it does not
+expose implementation modules such as <code>presets</code>, <code>kernel</code>, <code>theory</code>, or
+<code>expressions</code>.  The old flat constructor names are also not root API.
+</p>
+
+<p>
+Generated presets expose:
+</p>
+
+<ul class="org-ul">
+<li><code>op</code> namespaces for local operator builders;</li>
+<li><code>profile</code> and <code>target</code> helpers where a preset needs physics handles;</li>
+<li><code>config</code> with named correlator configs such as <code>sphere</code> or <code>disk</code>;</li>
+<li><code>local(allocator)</code> for building a <code>MultiOp</code> with its label store;</li>
+<li><code>correlator(config_ptr, ops, sink)</code> as the current execution wrapper.</li>
+</ul>
+
+<p>
+The current wrapper is a first streaming boundary, not the final correlator.
+It emits primitive pair Wick terms and zero-mode rule events.  The full
+implementation should replace this with recursive Wick pairing and base-case
+zero-mode evaluation while keeping the same narrow call shape.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd391408" class="outline-2">
+<h2 id="orgd391408"><span class="section-number-2">3.</span> Runtime Inputs</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+The full correlator should take exactly:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">correlator</span>(<span style="color: #83a598;">config_ptr</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CorrelatorConfig</span>, <span style="color: #83a598;">ops</span>: <span style="color: #fabd2f;">kernel.Call.MultiOp</span>, <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">anytype</span>) !<span style="color: #fabd2f;">void</span>
+</code></pre>
+</div>
+
+<p>
+In the current preset implementation, <code>CorrelatorConfig</code> is internal to
+<a href="../org/cft-code/presets/shared.html">Preset Shared Runtime</a>.  It contains:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">CorrelatorConfig</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">wick_rules</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">wick.Rule</span>,
+    <span style="color: #83a598;">zero_modes</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">zero_mode.Rule</span>,
+    <span style="color: #83a598;">config_entries</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">ConfigEntry</span> = &amp;.{},
+};
+</code></pre>
+</div>
+
+<p>
+The correlator should treat this as compiled runtime data.  It should not ask
+for a separate surface.  Sphere, disk, doubling, Neumann/Dirichlet projectors,
+Chan-Paton stack handles, and convention scalars enter through the selected
+config and its rule tables.
+</p>
+
+<p>
+The operator input is <code>kernel.Call.MultiOp</code> from <a href="../org/cft-code/kernel/cft-kernel.html">CFT Kernel</a>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">const</span> <span style="color: #83a598;">MultiOp</span> = <span style="color: #fb4934;">struct</span> {
+    <span style="color: #83a598;">operators</span>: []<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LocalOp</span>,
+    <span style="color: #83a598;">labels</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">LabelStore</span>,
+};
+</code></pre>
+</div>
+
+<p>
+This is just a collection of local operators plus the out-of-line labels those
+operators reference.  It is not a context.  The correlator may reorder,
+contract, or mark entries inactive in a work stack, but it should not allocate
+a large expression tree.
+</p>
+</div>
+</div>
+<div id="outline-container-org698ac8f" class="outline-2">
+<h2 id="org698ac8f"><span class="section-number-2">4.</span> Wick Access</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+The full correlator must not inspect Wick-rule internals.  The current
+implementation boundary is the pair emitter in
+<a href="../org/cft-code/presets/shared.html">Preset Shared Runtime</a>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">pub</span> <span style="color: #fb4934;">fn</span> <span style="color: #b8bb26;">emitWickPairTerms</span>(
+    <span style="color: #83a598;">config_ptr</span>: *<span style="color: #fb4934;">const</span> <span style="color: #fabd2f;">CorrelatorConfig</span>,
+    <span style="color: #83a598;">ops</span>: <span style="color: #fabd2f;">kernel.Call.MultiOp</span>,
+    <span style="color: #83a598;">left_index</span>: <span style="color: #fabd2f;">usize</span>,
+    <span style="color: #83a598;">right_index</span>: <span style="color: #fabd2f;">usize</span>,
+    <span style="color: #83a598;">sink</span>: <span style="color: #fabd2f;">anytype</span>,
+) !<span style="color: #fabd2f;">usize</span>
+</code></pre>
+</div>
+
+<p>
+This function takes two operator positions, matches the compiled Wick rule
+table, resolves runtime labels and config-backed projectors, evaluates
+universal coordinate derivatives on powers/logs/Green kernels, and emits each
+primitive Wick term to a sink.  It returns the number of primitive terms
+emitted.
+</p>
+
+<p>
+The sink contract is structural:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code><span style="color: #fb4934;">try</span> sink.emitWickTermStart(event);
+<span style="color: #fb4934;">try</span> sink.emitWickScalar(factor);
+<span style="color: #fb4934;">try</span> sink.emitWickCoordinate(factor);
+<span style="color: #fb4934;">try</span> sink.emitWickTensor(factor);
+<span style="color: #fb4934;">try</span> sink.emitWickAction(factor);
+<span style="color: #fb4934;">try</span> sink.emitWickTermEnd();
+</code></pre>
+</div>
+
+<p>
+Only this sink boundary should be visible to the recursive correlator.  The
+correlator should not receive <code>wick.Rule</code>, resolved label references, config
+references, or derivative bookkeeping.  If the correlator needs to multiply a
+primitive contraction into its current coefficient, it should use a small
+accumulator sink that receives these events and appends the factors to the
+current streamed term.
+</p>
+
+<p>
+The factors currently emitted cover:
+</p>
+
+<ul class="org-ul">
+<li>structured scalar monomials, including rational factors, \(i\)-powers, and
+named atoms such as \(\alpha'\);</li>
+<li>coordinate factors: powers, logarithms, named Green kernels, and
+Green-exponential factors;</li>
+<li>tensor factors: metrics, momentum-index contractions, momentum pairs, and
+config-backed projector versions of these;</li>
+<li>action factors: profile derivatives and projected profile derivatives.</li>
+</ul>
+
+<p>
+This already covers the primitive Wicks needed for the implemented free boson,
+its Neumann/Dirichlet boundary extension, and the \(bc\) system on sphere and
+disk.  Future \(\psi,\phi,\eta,\xi\), Narain/bosonized spin fields, SO(32),
+and \(E_8\times E_8\) presets should extend the rule vocabulary only when a
+new primitive factor cannot be represented by these scalar, coordinate,
+tensor, or action events.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc6be4d0" class="outline-2">
+<h2 id="orgc6be4d0"><span class="section-number-2">5.</span> Zero-Mode Access</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+Zero-mode rules are separate from Wick rules.  They are selected by the
+compiled config:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><code>config_ptr.zero_modes
+</code></pre>
+</div>
+
+<p>
+Current rule expressions include momentum conservation, explicit profile
+integrals, Dirichlet positions, and \(bc\) top-form saturation.  The current
+streamer simply emits them after primitive pair events.  The full correlator
+must instead apply zero-mode rules at the Wick-recursion base case.
+</p>
+
+<p>
+The base case is reached after no more Wick pairings are chosen for a branch.
+At that point the branch has:
+</p>
+
+<ul class="org-ul">
+<li>a residual ordered list of uncontracted local operators;</li>
+<li>a coefficient accumulator built from emitted Wick factors;</li>
+<li>a sign/parity accumulator once fermionic sectors are added;</li>
+<li>the same <code>config_ptr</code> used for Wick matching.</li>
+</ul>
+
+<p>
+The zero-mode evaluator should inspect only the residual operators, their
+labels, and <code>config_ptr.zero_modes</code>.  It should emit either zero branch
+weight, a finite coefficient factor, or a residual symbolic zero-mode object.
+For arbitrary free-boson profiles, keeping the zero-mode integral explicit is
+the correct generic behavior.  Fourier-presented profiles may later allow
+partial evaluation by momentum conservation.
+</p>
+
+<p>
+The zero-mode evaluator should be a separate small procedure, not folded into
+the Wick pair emitter.  Wick pair emission knows about two local operators.
+Zero-mode evaluation knows about the residual collection.
+</p>
+</div>
+</div>
+<div id="outline-container-org218d7b5" class="outline-2">
+<h2 id="org218d7b5"><span class="section-number-2">6.</span> Full Correlator Algorithm</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The target algorithm is a streaming recursive Wick engine.
+</p>
+
+<ol class="org-ol">
+<li>Build a work view over <code>ops.operators</code>.  This can be an index array, an
+active bitset, or a small stack frame.  Do not copy local operators unless a
+compact index view is insufficient.</li>
+<li>Choose the next active operator.  The first implementation can use the
+first active index.  Later heuristics may choose the operator with fewest
+possible Wick partners.</li>
+<li>For each active partner to its right, call <code>emitWickPairTerms</code> with a branch
+accumulator sink.</li>
+<li>For each emitted primitive term, multiply the emitted factors into the
+branch accumulator, mark the two operators contracted, and recurse.</li>
+<li>Also decide whether a no-contraction branch is allowed.  For ordinary
+Wick-only normal-ordered elementary fields it is not always allowed in the
+same way; for residual operators and zero-mode-sensitive fields it may be
+necessary.  This should be controlled by operator/preset data, not by an
+ad-hoc global rule.</li>
+<li>At the base case, run the zero-mode evaluator on the residual operators and
+the accumulated coefficient.  Emit final terms to the user sink immediately.</li>
+</ol>
+
+<p>
+The essential point is that the correlator streams branches.  It should not
+construct the full sum of pairings before simplification.  Simplification
+should be attachable as a downstream filter on the output stream.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf401930" class="outline-2">
+<h2 id="orgf401930"><span class="section-number-2">7.</span> Accumulators And Sinks</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+The implementation needs at least two sink layers.
+</p>
+
+<p>
+The first sink is a primitive Wick-term accumulator.  It is local to one
+candidate pair and one recursion branch.  It receives events from
+<code>emitWickPairTerms</code> and appends factors into a compact term buffer.
+</p>
+
+<p>
+The second sink is the final correlator output sink.  It receives completed
+correlator terms after zero-mode evaluation.  Its exact public event vocabulary
+can be introduced in <a href="../org/cft-code/correlators/correlators.html">Correlators</a>, but it should
+mirror the same data-oriented idea:
+</p>
+
+<ul class="org-ul">
+<li>begin term;</li>
+<li>emit scalar factor;</li>
+<li>emit coordinate factor;</li>
+<li>emit tensor factor;</li>
+<li>emit residual operator or zero-mode object;</li>
+<li>end term.</li>
+</ul>
+
+<p>
+The primitive accumulator should use bounded stack storage for the common
+case, or caller-provided scratch storage for large terms.  It should not own a
+general expression tree.  When a primitive term is complete, the recursive
+engine either immediately recurses with that term multiplied into the branch
+or discards the branch if any factor resolution failed.
+</p>
+</div>
+</div>
+<div id="outline-container-org89293dc" class="outline-2">
+<h2 id="org89293dc"><span class="section-number-2">8.</span> Signs And Fermions</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+The current implemented presets are free boson and \(bc\).  The full
+correlator must nevertheless leave a clean place for signs before adding the
+RNS and heterotic sectors.
+</p>
+
+<p>
+The correct place is the recursion frame:
+</p>
+
+<ul class="org-ul">
+<li>each local operator kind needs enough parity data to decide the sign for
+bringing two fields together;</li>
+<li>the work view must know the current ordered residual list;</li>
+<li>when contracting positions \(i,j\), the branch sign is determined by moving
+the selected fields through the active residual list according to their
+parities and sector tactics.</li>
+</ul>
+
+<p>
+Do not encode special cases such as &ldquo;\(\phi\)-\(\psi\) system&rdquo; in the
+correlator.  Presets should compile operator parities and Wick factors.  For
+example, an \(e^{q\phi}\psi\) sector can make \(e^{q\phi}\) odd for odd \(q\)
+and even for even \(q\), while \(\psi\) remains fermionic, without changing
+the correlator algorithm.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf55ecdc" class="outline-2">
+<h2 id="orgf55ecdc"><span class="section-number-2">9.</span> What Is Already Implemented</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+Current working pieces:
+</p>
+
+<ul class="org-ul">
+<li>root CFT API with compact family objects <code>FreeBoson</code> and <code>Bc</code>;</li>
+<li>product and boundary composition of generated presets;</li>
+<li>local operator builders with typed handles and out-of-line labels;</li>
+<li>compile-time generated operator kind ids and zero-mode sector ids;</li>
+<li>structured scalar factors, so constants like \(-\alpha'/2\) are not stored
+as magic strings;</li>
+<li>config-backed Wick factors, including Neumann/Dirichlet projectors and
+Chan-Paton stack handles;</li>
+<li>primitive pair Wick emission for free-boson and \(bc\) pairs;</li>
+<li>derivative labels acting on coordinate powers and logarithms;</li>
+<li>action factors for \(dX^\mu(z)F(X(w))\)-type contractions;</li>
+<li>current zero-mode rule records for momentum conservation, profile
+integrals, Dirichlet positions, and \(bc\) top forms.</li>
+</ul>
+
+<p>
+The current <code>streamCorrelator</code> is only a diagnostic driver.  It loops over all
+operator pairs and emits pair-level Wick events plus zero-mode events.  It
+does not yet choose non-overlapping pairings, recurse through branches, manage
+fermionic signs, multiply factors into a branch coefficient, or evaluate
+zero-mode base cases.
+</p>
+</div>
+</div>
+<div id="outline-container-org85891a9" class="outline-2">
+<h2 id="org85891a9"><span class="section-number-2">10.</span> Immediate Implementation Plan</h2>
+<div class="outline-text-2" id="text-10">
+<ol class="org-ol">
+<li>Move the full algorithm into the correlator implementation boundary, but
+keep the user call shape identical: <code>config_ptr</code>, <code>MultiOp</code>, <code>sink</code>.</li>
+<li>Keep <code>emitWickPairTerms</code> as the only way the algorithm asks for primitive
+pair contractions.  If this function must move modules later, preserve the
+opaque sink contract.</li>
+<li>Implement a compact branch frame:
+<ul class="org-ul">
+<li>active operator mask or index list;</li>
+<li>accumulated sign;</li>
+<li>compact coefficient-factor stack;</li>
+<li>residual operator view.</li>
+</ul></li>
+<li>Implement a primitive-term accumulator sink used only inside recursion.</li>
+<li>Implement base-case zero-mode evaluation as a separate function over the
+residual operator view and <code>config_ptr.zero_modes</code>.</li>
+<li>Add tests that prove concepts, not syntax:
+<ul class="org-ul">
+<li>free-boson two-point \(dX dX\) emits one final term;</li>
+<li>free-boson \(dX e^{ikX}\) resolves momentum-index tensor data and
+derivative coordinate factors;</li>
+<li>boundary free-boson rules resolve config-backed Neumann projectors;</li>
+<li>\(bc\) sphere top-form zero mode distinguishes saturated from
+unsaturated residual \(c\)-ghost configurations;</li>
+<li>a three- or four-operator input uses non-overlapping pairings rather than
+emitting all pair events independently.</li>
+</ul></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2e70c9b" class="outline-2">
+<h2 id="org2e70c9b"><span class="section-number-2">11.</span> Things Not To Add Yet</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+Do not add a correlator context.  The config pointer is the context that the
+generic algorithm needs.
+</p>
+
+<p>
+Do not add separate OPE and OPEProjected machinery here.  OPE should later use
+correlators plus pairing/projection data and can call the same primitive Wick
+boundary.
+</p>
+
+<p>
+Do not add a general simplifier inside the correlator.  Emit a stream of final
+terms and allow simplification to be a filter.
+</p>
+
+<p>
+Do not encode pure-spinor constraints, equations of motion, regularization
+schemes, or string-field-theory vertex data in the generic correlator.  Those
+belong in client layers or in concrete preset rule generation.
+</p>
+
+<p>
+Do not expose <code>wick.Rule</code>, <code>zero_mode.Rule</code>, or shared runtime internals in the
+root API.  If the implementation needs a better internal boundary, introduce a
+small opaque pair-emitter interface rather than widening the user API.
+</p>
+</div>
+</div>
+<div id="outline-container-org24d5e38" class="outline-2">
+<h2 id="org24d5e38"><span class="section-number-2">12.</span> Open Questions Before Coding</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+The next implementation pass should ask for domain sign-off on these points:
+</p>
+
+<ol class="org-ol">
+<li>For the first recursive correlator, should residual uncontracted operators
+be allowed only when a zero-mode rule can consume them, or should presets
+explicitly mark which operator families may survive to the base case?</li>
+<li>What exact \(bc\) sphere top-form should the first zero-mode evaluator
+recognize: only three \(c\)-type insertions, or also derivative descendants
+such as \(c\partial c\partial^2 c\) as equivalent saturated forms?</li>
+<li>For final correlator output, should residual zero-mode/profile integrals be
+emitted as a coefficient factor or as a residual operator-like object?</li>
+<li>When fermionic sectors are added, where should operator parity be stored in
+generated preset data so the recursive sign algorithm never inspects
+physics-specific operator names?</li>
+</ol>
+
+<p>
+These are the points that affect the implementation shape.  They should be
+settled before widening the algorithm beyond free boson and \(bc\).
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-06</p>
+<p class="date">Created: 2026-06-06 Sat 20:50</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tensor Context</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Tensor Context</h1>
+<p>
+The context module is the procedural boundary of tensor-code.  Public callers
+get an opaque state pointer and methods; the stores remain in a private
+implementation record so callers cannot bypass validation.
+</p>
+
+<a id="ContextId"></a>
+<a id="ContextOptions"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgba41ab1"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coupling</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"coupling.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decomposition</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"decomposition.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"projector.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"realization.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rendering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rendering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"root-data.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContextId names an initialized tensor-code context or preset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContextId</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs a context id from a store index.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ContextId {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .value = value };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContextOptions configures algebra and rendering defaults.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContextOptions</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra_conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span> = .{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">default_signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.SignatureConvention</span> = .complex,
+};
+</pre>
+</div>
+
+<p>
+Registration validates cross-store handles before interning.  Metadata and
+duals are queried through methods, not by reaching into stores.
+</p>
+
+<a id="Context"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org0cc8290"><span style="color: #e0d3b9; font-style: italic;">/// Context is an opaque handle to tensor-code stores and caches.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Context</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty tensor-code context.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !Context {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Context.initWithOptions(allocator, .{});
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// initWithOptions constructs a context with explicit conventions.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">initWithOptions</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContextOptions</span>) !Context {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.create(Impl);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> allocator.destroy(state);
+        state.* = Impl.init(allocator, options);
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .state = state,
+            .allocator = allocator,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases memory owned by this context.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span> = self.impl();
+        state.deinit();
+        self.allocator.destroy(state);
+        self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// registerAlgebra interns a Lie algebra and returns its handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">registerAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraSpec</span>) !store.AlgebraHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().representations.internAlgebra(spec);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// registerIrrep interns an abstract irreducible representation.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">registerIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepSpec</span>) !store.IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().representations.internIrrep(algebra, spec);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// dualIrrep returns the registered dual representation.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dualIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) !store.IrrepHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().representations.dualIrrep(irrep);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// irrepMetadata returns derived metadata for a registered irrep.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepMetadata</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) ?store.IrrepMetadata {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().representations.irrepMetadata(irrep);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// registerRealization interns a concrete index realization of an irrep.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">registerRealization</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.RealizationSpec</span>) !realization.RealizationHandle {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.validateRealizationSpec(spec);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().realizations.internRealization(spec);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// invariantBasis generates or retrieves a compact invariant basis.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">invariantBasis</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantBasisRequest</span>) !coupling.BasisHandle {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.validateInvariantBasisRequest(request);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().couplings.internBasisRequest(request);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// renderInvariant streams one invariant in the requested convention.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">renderInvariant</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.BasisHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.RenderOptions</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        _ = self;
+        _ = basis;
+        _ = invariant;
+        _ = options;
+        _ = sink;
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// evaluateInvariant streams component-evaluation data for one invariant.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">evaluateInvariant</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.EvalOptions</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        _ = self;
+        _ = invariant;
+        _ = options;
+        _ = sink;
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NotImplemented;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateRealizationSpec</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.RealizationSpec</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">target_algebra</span> = self.impl().representations.irrepAlgebra(spec.channel.irrep) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (spec.ambient) |ambient| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ambient_algebra</span> = self.impl().representations.irrepAlgebra(ambient) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (ambient_algebra.value != target_algebra.value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MixedRealizationAlgebras;
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateInvariantBasisRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantBasisRequest</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!self.impl().representations.containsAlgebra(request.algebra)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownAlgebra;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (request.external_legs) |leg| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">leg_algebra</span> = <span style="color: #fb4934; font-weight: bold;">try</span> self.externalLegAlgebra(leg);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (leg_algebra) |algebra| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (algebra.value != request.algebra.value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MixedInvariantAlgebras;
+            }
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">externalLegAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">leg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.ExternalLeg</span>) !?store.AlgebraHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (leg.realization) {
+            .primitive_irrep =&gt; |irrep| self.impl().representations.irrepAlgebra(irrep) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep,
+            .handle =&gt; |handle| {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span> = self.impl().realizations.targetIrrep(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownRealization;
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.impl().representations.irrepAlgebra(irrep) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+            },
+            .registered_name =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">impl</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) *Impl {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(self.state));
+    }
+};
+</pre>
+</div>
+
+<p>
+The private implementation record owns the flat stores.  It is not imported by
+the root API.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Impl</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContextId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContextOptions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">realizations</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.Store</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.Store</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">projectors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">projector.Store</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">couplings</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.Store</span>,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContextOptions</span>) Impl {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .id = ContextId.init(0),
+            .allocator = allocator,
+            .options = options,
+            .representations = store.Store.init(allocator, options.algebra_conventions),
+            .realizations = realization.Store.init(allocator),
+            .decompositions = decomposition.Store.init(allocator),
+            .projectors = projector.Store.init(allocator),
+            .couplings = coupling.Store.init(allocator),
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Impl</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.couplings.deinit();
+        self.projectors.deinit();
+        self.decompositions.deinit();
+        self.realizations.deinit();
+        self.representations.deinit();
+        self.* = Impl.init(self.allocator, self.options);
+    }
+};
+</pre>
+</div>
+</div>
+</body>
+</html>

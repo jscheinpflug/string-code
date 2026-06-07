@@ -1,0 +1,646 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 06:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Theory</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Theory</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org47e25ac">Identifier Namespace</a></li>
+<li><a href="#org3d162fb">Bulk And Boundary Specifications</a></li>
+<li><a href="#org15a3826">Boundary Namespace</a></li>
+<li><a href="#org7c6457f">Labels And Rules</a></li>
+<li><a href="#org7379db2">Presentations, Lattices, And Modes</a></li>
+<li><a href="#org9153429">Runtime Config Data</a></li>
+</ul>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#Id"><code>Id (struct)</code></a></dt>
+<dd>Id groups compact handles used by CFT and BCFT presets.</dd>
+<dt><a href="#Spec"><code>Spec (struct)</code></a></dt>
+<dd>Spec groups bulk CFT and BCFT preset declarations.</dd>
+<dt><a href="#Boundary"><code>Boundary (struct)</code></a></dt>
+<dd>Boundary groups boundary-condition, stack, and Chan-Paton data.</dd>
+<dt><a href="#Label"><code>Label (struct)</code></a></dt>
+<dd>Label groups quantum-number and operator-label schema declarations.</dd>
+<dt><a href="#Runtime"><code>Runtime (struct)</code></a></dt>
+<dd>Runtime groups small data passed to generic runtime procedures.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+A theory declaration says what it means to specify a CFT or BCFT before any
+runtime correlator is evaluated.  This module is not the executor: it is the
+compact vocabulary of ids, sectors, operator families, conformal structures,
+presentations, Wick and zero-mode rule names, boundary data, and local
+correlator configs used by <a href="/notes/cft-code/correlators/correlators.html">Correlators</a> and <a href="/notes/cft-code/ope/ope.html">OPE</a>.  <a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a>
+consumes this data as <code>comptime</code> preset data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>);
+</pre>
+</div>
+<div id="outline-container-org47e25ac" class="outline-2">
+<h2 id="org47e25ac">Identifier Namespace</h2>
+<div class="outline-text-2" id="text-org47e25ac">
+<p>
+Most theory objects are referenced by compact integer ids.  Keeping them in
+one namespace avoids a flat module full of unrelated public aliases while
+still making the table layout explicit.
+</p>
+
+<a id="Id"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgfd5df5b"><span style="color: #e0d3b9; font-style: italic;">/// Id groups compact handles used by CFT and BCFT presets.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Id</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sector</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Strategy</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StatisticsRule</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SectorPresentation</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConformalStructure</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumRule</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StrategySupportRule</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickRuleSet</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Pairing</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InversePairing</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingData</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroModeRuleSet</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CorrelatorConfig</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalOpeConfig</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CocycleTable</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #e0d3b9; font-style: italic;">/// FiniteProjection names finite projections used by public basis queries.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FiniteProjection</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Lattice</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LatticeVector</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+    <span style="color: #e0d3b9; font-style: italic;">/// ModeAlgebra names a mode algebra used by public descendant filters.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ModeAlgebra</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ModeActionRule</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelSchema</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #e0d3b9; font-style: italic;">/// LabelSpan names a compact slice of runtime body labels accepted by body builders.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelSpan</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Extra</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConventionSet</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightRule</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CFT</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelMap</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundaryCondition</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundaryStack</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundarySpinData</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChanPatonMatrixUnit</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Grading</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org3d162fb" class="outline-2">
+<h2 id="org3d162fb">Bulk And Boundary Specifications</h2>
+<div class="outline-text-2" id="text-org3d162fb">
+<p>
+The bulk CFT spec owns only bulk data: <a href="/notes/cft-code/expressions/operators.html">Operators</a>, sectors, quantum labels,
+presentations, and rule tables.  A BCFT is a separate extension built from
+bulk data plus boundary conditions, boundary stacks, boundary operator
+families, and Wick/zero-mode configs compiled for the boundary problem.
+</p>
+
+<a id="Spec"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org88b41d8"><span style="color: #e0d3b9; font-style: italic;">/// Spec groups bulk CFT and BCFT preset declarations.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Spec</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sector</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">tactic_preference</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Strategy</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">statistics_rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.StatisticsRule</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">presentations</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.SectorPresentation</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// CFT is the compile-time declaration of a bulk CFT preset.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CFT</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">sectors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Sector</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk_operator_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKind</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">conformal_structure</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.ConformalStructure</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">conformal_structures</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ConformalStructure</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_names</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Label.QuantumName</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">label_schemas</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Label.Schema</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.ConventionSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.Weight</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.Quantum</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">statistics_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.Statistics</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">strategy_support_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.StrategySupport</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rule_sets</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.WickSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pairing_data</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.PairingData</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode_rule_sets</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.ZeroModeSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">correlator_configs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.CorrelatorConfig</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">local_ope_configs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.LocalOpeConfig</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">cocycle_tables</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.CocycleTable</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">presentations</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Presentation.Sector</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">finite_projections</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.FiniteProjection</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">lattices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Presentation.Lattice</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">mode_algebras</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Mode.Algebra</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">mode_action_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Mode.ActionRule</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConformalStructure</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">stress_tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.OperatorRef</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">susy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetSusy</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">supercurrents</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.OperatorRef</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">r_currents</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.OperatorRef</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetSusy</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        none,
+        n1_1,
+        n2_2,
+        n1_chiral,
+        n2_chiral,
+        custom,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// BCFT extends a bulk preset with boundary operator and Wick data.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BCFT</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.CFT</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_conditions</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Boundary.Condition</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_stacks</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Boundary.Stack</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_stress_tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.OperatorRef</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_spin</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Boundary.SpinData</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_operator_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_changing_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Boundary.ChangingKind</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rule_sets</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.WickSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pairing_data</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.PairingData</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode_rule_sets</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rule.ZeroModeSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">correlator_configs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.CorrelatorConfig</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">local_ope_configs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.LocalOpeConfig</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org15a3826" class="outline-2">
+<h2 id="org15a3826">Boundary Namespace</h2>
+<div class="outline-text-2" id="text-org15a3826">
+<p>
+Boundary conditions are not part of the bulk CFT.  They enter only when a
+BCFT extension is formed.  Stacks encode direct sums of boundary conditions;
+Chan-Paton multiplicity is label data on boundary bodies.
+</p>
+
+<a id="Boundary"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgbe0d0c9"><span style="color: #e0d3b9; font-style: italic;">/// Boundary groups boundary-condition, stack, and Chan-Paton data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Boundary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Condition</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">simple_data</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Extra</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Stack</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">entries</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StackEntry</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StackEntry</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundaryCondition</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// ChangingKind identifies a boundary-local kind from one condition to another.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChangingKind</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">from</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundaryCondition</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">to</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundaryCondition</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SpinData</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundarySpinData</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChanPatonLabel</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">endpoints</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ChanPatonEndpoints</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ChanPatonFactor</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChanPatonEndpoints</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">from_stack</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundaryStack</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">to_stack</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.BoundaryStack</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">from_entry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">to_entry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChanPatonFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">matrix_unit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ChanPatonMatrixUnit</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.TensorExprId</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChanPatonMatrixUnit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">col</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org7c6457f" class="outline-2">
+<h2 id="org7c6457f">Labels And Rules</h2>
+<div class="outline-text-2" id="text-org7c6457f">
+<p>
+Labels carry runtime <a href="/notes/cft-code/expressions/operators.html">operator</a> body data such as momenta, picture charge,
+lattice vectors, derivative orders, and Chan-Paton endpoints.  Rule
+declarations name client or preset procedures without storing their large
+payloads here.
+</p>
+
+<a id="Label"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb06f6c8"><span style="color: #e0d3b9; font-style: italic;">/// Label groups quantum-number and operator-label schema declarations.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Label</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumName</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// QuantumFilter constrains one named quantum-number value.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumFilter</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Schema</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Field</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldKind</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        integer,
+        rational,
+        lattice_vector,
+        tensor_expr,
+        opaque_data,
+    };
+};
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Rule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConventionSet</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Weight</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Quantum</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Statistics</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StrategySupport</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickSet</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.ConventionSet</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroModeSet</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CocycleTable</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FiniteProjection</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingData</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">sector</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Sector</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pairing</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Pairing</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">inverse_pairing</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.InversePairing</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org7379db2" class="outline-2">
+<h2 id="org7379db2">Presentations, Lattices, And Modes</h2>
+<div class="outline-text-2" id="text-org7379db2">
+<p>
+Presentations say how sectors are computed: direct fields, first-order
+systems, <a href="/notes/cft-code/correlators/bosonization.html">bosonized</a> lattices, current algebras, or abstract conformal data.
+Lattices cover free bosons, RNS bosonized charges, SO(32) bosonization, and
+E8xE8/Narain current-lattice presentations.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Presentation</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sector</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">sectors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Sector</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_map</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Map</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">lattice</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Lattice</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_rule</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.WeightRule</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rules</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.WickRuleSet</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Map</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">from</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">to</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">label_map</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.LabelMap</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Lattice</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">bilinear_form</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.Extra</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">cocycles</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.CocycleTable</span>,
+    };
+};
+</pre>
+</div>
+
+<p>
+Modes are stored as operator-body data before evaluation.  This covers
+free-field modes, Virasoro descendants, beta-gamma modes, and Kac-Moody
+current modes for affine-module spectra generated by <a href="/notes/cft-code/basis-generation/basis-generation.html">Basis-Generation</a>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Mode</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Algebra</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">generators</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Generator</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">action_rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.ModeActionRule</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Generator</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSlot</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">statistics</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StatisticsData</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ActionRule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexSlot</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">representation</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.RepresentationId</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StatisticsData</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">parity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u1</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Descendant</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.ModeAlgebra</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">generator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">mode_number</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Runtime.Rational</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorBodyId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.LabelSpan</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org9153429" class="outline-2">
+<h2 id="org9153429">Runtime Config Data</h2>
+<div class="outline-text-2" id="text-org9153429">
+<p>
+Surface and spin-structure declarations compile to small correlator configs.
+The runtime correlator receives only a pointer to such a config; OPE selects
+one of these local configs for sphere or disk computations.
+</p>
+
+<a id="Runtime"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org4613bb1"><span style="color: #e0d3b9; font-style: italic;">/// Runtime groups small data passed to generic runtime procedures.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Runtime</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// CorrelatorConfig selects the Wick and zero-mode rules for a correlator call.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CorrelatorConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rules</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.WickRuleSet</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_modes</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.ZeroModeRuleSet</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LocalOpeConfig selects the local correlator model used internally by OPE.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalOpeConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">domain</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OperatorDomain</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">support</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ChiralSupport</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">correlator_config</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.CorrelatorConfig</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// OperatorDomain identifies whether an operator body is bulk or boundary data.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorDomain</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        bulk,
+        boundary,
+        boundary_changing,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// ChiralSupport records the chiral support of candidates and OPE targets.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ChiralSupport</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        holomorphic,
+        antiholomorphic,
+        mixed,
+        boundary,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OperatorRef</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id.LabelSpan</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// ConformalWeights stores holomorphic and antiholomorphic weights.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ConformalWeights</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">h</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">hbar</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// LevelBound limits descendant level in basis or OPE generation.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LevelBound</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">max</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Rational</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    };
+};
+</pre>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
