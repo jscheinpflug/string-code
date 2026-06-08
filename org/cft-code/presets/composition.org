@@ -14,200 +14,49 @@ runtime vocabulary from [[id:20260606T183100.000000][Preset Shared Runtime]].
 The important invariant is that tensor products do not allocate a new runtime
 operator representation.  Product quantum numbers remain lists at theory level;
 runtime local operators are still just insertion data, a body kind, and a label
-span.  Composition therefore joins operator namespaces and concatenates rule
-slices at compile time.
+span.  Composition asks the shared lowering path to merge opaque configs, so it
+does not name config-entry records or slice append helpers.
 
 #+begin_src zig
 const std = @import("std");
 const shared = @import("shared.zig");
+const declare = shared.declare;
 
-const kernel = @import("../kernel.zig");
-const CorrelatorConfig = shared.CorrelatorConfig;
-const Local = shared.Local;
-const wick = shared.wick;
-const zero_mode = shared.zero_mode;
+const Builder = *shared.Local;
 #+end_src
 
 * Product CFTs
 
-A product preset forms its rules from the generated sphere config of each
-factor.  Convenience operator aliases are intentionally explicit: for example
-=product(.{FreeBoson})= has =op.free_boson= and no =op.bc=.  Future presets can
-compose through their configs immediately; adding a friendly =op= namespace is
-a separate user-facing alias decision.
+A product preset forms its sphere config from the generated sphere config of
+each factor.  It deliberately does not synthesize preset-named operator
+namespaces.  Future friendly aliases belong in the user DSL layer, not in the
+lowering path.
 
 #+begin_src zig
-const EmptyOp = struct {};
-
-const KnownOpNamespace = enum {
-    free_boson,
-    bc_sphere,
-};
-
-fn hasPresetKind(comptime factors: anytype, comptime kind: KnownOpNamespace) bool {
-    inline for (factors) |Factor| {
-        switch (kind) {
-            .free_boson => if (@hasDecl(Factor, "is_free_boson_preset")) return true,
-            .bc_sphere => if (@hasDecl(Factor, "is_bc_sphere_preset")) return true,
-        }
-    }
-    return false;
-}
-
-fn FactorWithKind(comptime factors: anytype, comptime kind: KnownOpNamespace) type {
-    inline for (factors) |Factor| {
-        switch (kind) {
-            .free_boson => if (@hasDecl(Factor, "is_free_boson_preset")) return Factor,
-            .bc_sphere => if (@hasDecl(Factor, "is_bc_sphere_preset")) return Factor,
-        }
-    }
-    unreachable;
-}
-
-fn factorHasSphereConfig(comptime Factor: type) bool {
-    return @hasDecl(Factor, "config") and @hasDecl(Factor.config, "sphere");
-}
-
-fn productSphereWickCount(comptime factors: anytype) usize {
-    var count: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) count += Factor.config.sphere.wick_rules.len;
-    }
-    return count;
-}
-
-fn productSphereZeroCount(comptime factors: anytype) usize {
-    var count: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) count += Factor.config.sphere.zero_modes.len;
-    }
-    return count;
-}
-
-fn productSphereConfigCount(comptime factors: anytype) usize {
-    var count: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) count += Factor.config.sphere.config_entries.len;
-    }
-    return count;
-}
-
-fn productSphereWickStorage(comptime factors: anytype) [productSphereWickCount(factors)]wick.Rule {
-    var storage: [productSphereWickCount(factors)]wick.Rule = undefined;
-    var index: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) {
-            inline for (Factor.config.sphere.wick_rules) |rule| {
-                storage[index] = rule;
-                index += 1;
-            }
-        }
-    }
-    return storage;
-}
-
-fn productSphereZeroStorage(comptime factors: anytype) [productSphereZeroCount(factors)]zero_mode.Rule {
-    var storage: [productSphereZeroCount(factors)]zero_mode.Rule = undefined;
-    var index: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) {
-            inline for (Factor.config.sphere.zero_modes) |rule| {
-                storage[index] = rule;
-                index += 1;
-            }
-        }
-    }
-    return storage;
-}
-
-fn productSphereConfigStorage(comptime factors: anytype) [productSphereConfigCount(factors)]shared.ConfigEntry {
-    var storage: [productSphereConfigCount(factors)]shared.ConfigEntry = undefined;
-    var index: usize = 0;
-    inline for (factors) |Factor| {
-        if (factorHasSphereConfig(Factor)) {
-            inline for (Factor.config.sphere.config_entries) |entry| {
-                storage[index] = entry;
-                index += 1;
-            }
-        }
-    }
-    return storage;
-}
-
-fn ProductRules(comptime factors: anytype) type {
-    return struct {
-        const sphere_wick_storage = productSphereWickStorage(factors);
-        const sphere_wick_index_storage = shared.wickRuleIndexStorage(&sphere_wick_storage);
-        const sphere_zero_storage = productSphereZeroStorage(factors);
-        const sphere_config_storage = productSphereConfigStorage(factors);
-
-        /// sphere_wick lists primitive Wick rules contributed by product factors.
-        pub const sphere_wick: []const wick.Rule = &sphere_wick_storage;
-        /// sphere_wick_index maps ordered operator-kind pairs to product sphere rules.
-        pub const sphere_wick_index: []const shared.WickRuleIndexEntry = &sphere_wick_index_storage;
-        /// sphere_zero_modes lists zero-mode rules contributed by product factors.
-        pub const sphere_zero_modes: []const zero_mode.Rule = &sphere_zero_storage;
-        /// sphere_config_entries lists typed config values contributed by product factors.
-        pub const sphere_config_entries: []const shared.ConfigEntry = &sphere_config_storage;
-    };
-}
-
 fn ProductCorrelatorConfig(comptime factors: anytype) type {
-    const rules = ProductRules(factors);
+    const merged = declare.mergeSphereConfigs(factors);
     return struct {
         /// sphere selects composed product Wick and zero-mode rules.
-        pub const sphere = CorrelatorConfig{
-            .wick_rules = rules.sphere_wick,
-            .wick_rule_index = rules.sphere_wick_index,
-            .zero_modes = rules.sphere_zero_modes,
-            .config_entries = rules.sphere_config_entries,
-        };
+        pub const sphere = merged.config;
     };
-}
-
-fn ProductOp(comptime factors: anytype) type {
-    const has_free_boson = hasPresetKind(factors, .free_boson);
-    const has_bc = hasPresetKind(factors, .bc_sphere);
-    if (has_free_boson and has_bc) {
-        return struct {
-            /// free_boson exposes free-boson builders contributed by the product.
-            pub const free_boson = FactorWithKind(factors, .free_boson).op;
-            /// bc exposes bc-ghost builders contributed by the product.
-            pub const bc = FactorWithKind(factors, .bc_sphere).op;
-        };
-    }
-    if (has_free_boson) {
-        return struct {
-            /// free_boson exposes free-boson builders contributed by the product.
-            pub const free_boson = FactorWithKind(factors, .free_boson).op;
-        };
-    }
-    if (has_bc) {
-        return struct {
-            /// bc exposes bc-ghost builders contributed by the product.
-            pub const bc = FactorWithKind(factors, .bc_sphere).op;
-        };
-    }
-    return EmptyOp;
 }
 
 /// product builds the generated preset type for a product of independent bulk presets.
 pub fn product(comptime factors: anytype) type {
     return struct {
-        /// op exposes the joined operator builders of the product factors.
-        pub const op = ProductOp(factors);
+        /// op is intentionally empty; use the factor builders passed to product.
+        pub const op = struct {};
         /// config exposes named correlator configs for this product preset.
         pub const config = ProductCorrelatorConfig(factors);
-        /// rules exposes the preset-authored product Wick rule templates.
-        pub const rules = ProductRules(factors);
-
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) Local {
-            return Local.init(allocator);
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
         }
 
         /// correlator streams rule matches for product-theory insertions.
-        pub fn correlator(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, sink: anytype) !void {
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
             return shared.streamCorrelator(config_ptr, ops, sink);
         }
     };
@@ -216,165 +65,27 @@ pub fn product(comptime factors: anytype) type {
 
 * Boundary Extensions
 
-A BCFT is built from a bulk preset plus explicit boundary extensions.  The
-bulk preset remains boundary-free; boundary data contributes new operator
-families, mixed Wick rules, zero-mode caveats, and optional Chan-Paton stack
-data.
+A BCFT is built from a bulk preset plus explicit boundary extensions.  The bulk
+preset remains boundary-free; boundary data contributes new operator families,
+mixed Wick rules, zero-mode caveats, and optional Chan-Paton stack data.
+Boundary-local builders remain on the extension handles passed to =boundary=,
+so composition does not inspect preset names to create aliases.
+
+The disk config is formed by the shared merge helper.  Composition keeps only
+the physics-facing bulk/extension relationship and does not see packed config
+entries, slice selectors, or append procedures.
 
 #+begin_src zig
-const free_boson_boundary_kind = shared.extensionKind("free_boson_boundary");
-const bc_disk_kind = shared.extensionKind("bc_disk");
-
-fn hasBoundaryExtension(comptime extensions: anytype, comptime kind: u32) bool {
-    inline for (extensions) |extension| {
-        if (extension.kind == kind) {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn ExtensionWithKind(comptime extensions: anytype, comptime kind: u32) type {
-    inline for (extensions) |extension| {
-        if (extension.kind == kind) {
-            return extension.op;
-        }
-    }
-    unreachable;
-}
-#+end_src
-
-The disk config is formed from the bulk config payload plus the rule slices
-and config payloads selected by boundary extensions.  Chan-Paton stacks enter
-through the same typed config stream as projectors and target positions.
-
-#+begin_src zig
-fn boundaryWickCount(comptime extensions: anytype) usize {
-    var count: usize = 0;
-    inline for (extensions) |extension| {
-        count += extension.wick_rules.len;
-    }
-    return count;
-}
-
-fn boundaryZeroCount(comptime extensions: anytype) usize {
-    var count: usize = 0;
-    inline for (extensions) |extension| {
-        count += extension.zero_modes.len;
-    }
-    return count;
-}
-
-fn boundaryConfigCount(comptime Bulk: type, comptime extensions: anytype) usize {
-    var count: usize = if (factorHasSphereConfig(Bulk)) Bulk.config.sphere.config_entries.len else 0;
-    inline for (extensions) |extension| {
-        count += extension.config_entries.len;
-    }
-    return count;
-}
-
-fn boundaryWickStorage(comptime extensions: anytype) [boundaryWickCount(extensions)]wick.Rule {
-    var storage: [boundaryWickCount(extensions)]wick.Rule = undefined;
-    var index: usize = 0;
-    inline for (extensions) |extension| {
-        inline for (extension.wick_rules) |rule| {
-            storage[index] = rule;
-            index += 1;
-        }
-    }
-    return storage;
-}
-
-fn boundaryZeroStorage(comptime extensions: anytype) [boundaryZeroCount(extensions)]zero_mode.Rule {
-    var storage: [boundaryZeroCount(extensions)]zero_mode.Rule = undefined;
-    var index: usize = 0;
-    inline for (extensions) |extension| {
-        inline for (extension.zero_modes) |rule| {
-            storage[index] = rule;
-            index += 1;
-        }
-    }
-    return storage;
-}
-
-fn boundaryConfigStorage(comptime Bulk: type, comptime extensions: anytype) [boundaryConfigCount(Bulk, extensions)]shared.ConfigEntry {
-    var storage: [boundaryConfigCount(Bulk, extensions)]shared.ConfigEntry = undefined;
-    var index: usize = 0;
-    if (factorHasSphereConfig(Bulk)) {
-        inline for (Bulk.config.sphere.config_entries) |entry| {
-            storage[index] = entry;
-            index += 1;
-        }
-    }
-    inline for (extensions) |extension| {
-        inline for (extension.config_entries) |entry| {
-            storage[index] = entry;
-            index += 1;
-        }
-    }
-    return storage;
-}
-
-fn BoundaryRules(comptime Bulk: type, comptime extensions: anytype) type {
-    return struct {
-        const disk_wick_storage = boundaryWickStorage(extensions);
-        const disk_wick_index_storage = shared.wickRuleIndexStorage(&disk_wick_storage);
-        const disk_zero_storage = boundaryZeroStorage(extensions);
-        const disk_config_storage = boundaryConfigStorage(Bulk, extensions);
-
-        /// disk_wick lists primitive Wick rules contributed by boundary extensions.
-        pub const disk_wick: []const wick.Rule = &disk_wick_storage;
-        /// disk_wick_index maps ordered operator-kind pairs to composed disk rules.
-        pub const disk_wick_index: []const shared.WickRuleIndexEntry = &disk_wick_index_storage;
-        /// disk_zero_modes lists zero-mode rules contributed by boundary extensions.
-        pub const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
-        /// disk_config_entries lists typed config values contributed by the bulk and boundary extensions.
-        pub const disk_config_entries: []const shared.ConfigEntry = &disk_config_storage;
-    };
-}
-
 fn BoundaryCorrelatorConfig(comptime Bulk: type, comptime extensions: anytype) type {
-    const rules = BoundaryRules(Bulk, extensions);
+    const merged = declare.mergeBoundaryConfig(Bulk, extensions);
     return struct {
         /// disk selects composed boundary Wick and zero-mode rules.
-        pub const disk = CorrelatorConfig{
-            .wick_rules = rules.disk_wick,
-            .wick_rule_index = rules.disk_wick_index,
-            .zero_modes = rules.disk_zero_modes,
-            .config_entries = rules.disk_config_entries,
-        };
+        pub const disk = merged.config;
     };
 }
 
 fn BoundaryOp(comptime Bulk: type, comptime extensions: anytype) type {
-    const has_free_boson_boundary = hasBoundaryExtension(extensions, free_boson_boundary_kind);
-    const has_bc_boundary = hasBoundaryExtension(extensions, bc_disk_kind);
-    if (has_free_boson_boundary and has_bc_boundary) {
-        return struct {
-            /// bulk exposes the bulk operator namespaces.
-            pub const bulk = Bulk.op;
-            /// free_boson_boundary exposes selected free-boson boundary builders.
-            pub const free_boson_boundary = ExtensionWithKind(extensions, free_boson_boundary_kind);
-            /// bc_boundary exposes selected bc boundary builders.
-            pub const bc_boundary = ExtensionWithKind(extensions, bc_disk_kind);
-        };
-    }
-    if (has_free_boson_boundary) {
-        return struct {
-            /// bulk exposes the bulk operator namespaces.
-            pub const bulk = Bulk.op;
-            /// free_boson_boundary exposes selected free-boson boundary builders.
-            pub const free_boson_boundary = ExtensionWithKind(extensions, free_boson_boundary_kind);
-        };
-    }
-    if (has_bc_boundary) {
-        return struct {
-            /// bulk exposes the bulk operator namespaces.
-            pub const bulk = Bulk.op;
-            /// bc_boundary exposes selected bc boundary builders.
-            pub const bc_boundary = ExtensionWithKind(extensions, bc_disk_kind);
-        };
-    }
+    _ = extensions;
     return struct {
         /// bulk exposes the bulk operator namespaces.
         pub const bulk = Bulk.op;
@@ -388,16 +99,15 @@ pub fn boundary(comptime Bulk: type, comptime extensions: anytype) type {
         pub const op = BoundaryOp(Bulk, extensions);
         /// config exposes named correlator configs for this BCFT.
         pub const config = BoundaryCorrelatorConfig(Bulk, extensions);
-        /// rules exposes the preset-authored boundary Wick rule templates.
-        pub const rules = BoundaryRules(Bulk, extensions);
-
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) Local {
-            return Local.init(allocator);
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
         }
 
         /// correlator streams rule matches for BCFT insertions.
-        pub fn correlator(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, sink: anytype) !void {
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
             return shared.streamCorrelator(config_ptr, ops, sink);
         }
     };

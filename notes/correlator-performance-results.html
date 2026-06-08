@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-07 Sun 20:32 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Correlator Performance Results</title>
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-c:before { content: 'C'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'JavaScript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">Correlator Performance Results</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org1df29e5">1. Latest strict median run</a></li>
+<li><a href="#org34bd5e8">2. Raw output</a></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org1df29e5" class="outline-2">
+<h2 id="org1df29e5"><span class="section-number-2">1.</span> Latest strict median run</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This note records the strict correlator benchmark run from 2026-06-07 after
+the API-hiding work and after restoring the torus draft setup.  The command was:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><code>zig run --global-cache-dir /tmp/zig-global-cache -OReleaseFast --dep cft-code -Mroot=benchmarks/correlator_kernel_median.zig --dep tensor-code -Mcft-code=src/cft-code/cft-code.zig -Mtensor-code=/tmp/tensor_stub.zig
+</code></pre>
+</div>
+
+<p>
+The run exited successfully.  Every event and branch case stayed within the
+<code>21/20</code> median gate, and every case had primitive/residual/zero-mode/base-case
+count checks enabled.
+</p>
+
+<p>
+Times below are medians in nanoseconds.  Counts are the raw runner output for
+the configured batch.
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">case</th>
+<th scope="col" class="org-right">samples</th>
+<th scope="col" class="org-right">batch</th>
+<th scope="col" class="org-right">event ns</th>
+<th scope="col" class="org-right">branch ns</th>
+<th scope="col" class="org-right">primitive terms</th>
+<th scope="col" class="org-right">residuals</th>
+<th scope="col" class="org-right">zero modes</th>
+<th scope="col" class="org-right">base cases</th>
+<th scope="col" class="org-right">branch bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">dx8</td>
+<td class="org-right">101</td>
+<td class="org-right">8</td>
+<td class="org-right">27810</td>
+<td class="org-right">21206</td>
+<td class="org-right">3360</td>
+<td class="org-right">0</td>
+<td class="org-right">840</td>
+<td class="org-right">840</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx10</td>
+<td class="org-right">101</td>
+<td class="org-right">1</td>
+<td class="org-right">150948</td>
+<td class="org-right">132262</td>
+<td class="org-right">4725</td>
+<td class="org-right">0</td>
+<td class="org-right">945</td>
+<td class="org-right">945</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx12</td>
+<td class="org-right">31</td>
+<td class="org-right">1</td>
+<td class="org-right">1526322</td>
+<td class="org-right">1307905</td>
+<td class="org-right">62370</td>
+<td class="org-right">0</td>
+<td class="org-right">10395</td>
+<td class="org-right">10395</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx14</td>
+<td class="org-right">11</td>
+<td class="org-right">1</td>
+<td class="org-right">21562888</td>
+<td class="org-right">18120442</td>
+<td class="org-right">945945</td>
+<td class="org-right">0</td>
+<td class="org-right">135135</td>
+<td class="org-right">135135</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>3</sub><sub>6</sub></td>
+<td class="org-right">101</td>
+<td class="org-right">8</td>
+<td class="org-right">35770</td>
+<td class="org-right">30235</td>
+<td class="org-right">2880</td>
+<td class="org-right">0</td>
+<td class="org-right">960</td>
+<td class="org-right">960</td>
+<td class="org-right">52568</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>4</sub><sub>7</sub></td>
+<td class="org-right">101</td>
+<td class="org-right">1</td>
+<td class="org-right">163693</td>
+<td class="org-right">153909</td>
+<td class="org-right">3360</td>
+<td class="org-right">0</td>
+<td class="org-right">840</td>
+<td class="org-right">840</td>
+<td class="org-right">52568</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>5</sub><sub>8</sub></td>
+<td class="org-right">31</td>
+<td class="org-right">1</td>
+<td class="org-right">1405347</td>
+<td class="org-right">1254714</td>
+<td class="org-right">33600</td>
+<td class="org-right">0</td>
+<td class="org-right">6720</td>
+<td class="org-right">6720</td>
+<td class="org-right">52568</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>6</sub><sub>9</sub></td>
+<td class="org-right">11</td>
+<td class="org-right">1</td>
+<td class="org-right">13935981</td>
+<td class="org-right">13128377</td>
+<td class="org-right">362880</td>
+<td class="org-right">0</td>
+<td class="org-right">60480</td>
+<td class="org-right">60480</td>
+<td class="org-right">52568</td>
+</tr>
+
+<tr>
+<td class="org-left">exp2</td>
+<td class="org-right">101</td>
+<td class="org-right">32</td>
+<td class="org-right">4191</td>
+<td class="org-right">5087</td>
+<td class="org-right">32</td>
+<td class="org-right">64</td>
+<td class="org-right">32</td>
+<td class="org-right">32</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">exp4</td>
+<td class="org-right">101</td>
+<td class="org-right">32</td>
+<td class="org-right">8182</td>
+<td class="org-right">8024</td>
+<td class="org-right">192</td>
+<td class="org-right">384</td>
+<td class="org-right">32</td>
+<td class="org-right">32</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">exp6</td>
+<td class="org-right">31</td>
+<td class="org-right">32</td>
+<td class="org-right">14650</td>
+<td class="org-right">12793</td>
+<td class="org-right">480</td>
+<td class="org-right">960</td>
+<td class="org-right">32</td>
+<td class="org-right">32</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx2<sub>exp2</sub></td>
+<td class="org-right">101</td>
+<td class="org-right">32</td>
+<td class="org-right">8852</td>
+<td class="org-right">7262</td>
+<td class="org-right">448</td>
+<td class="org-right">576</td>
+<td class="org-right">160</td>
+<td class="org-right">160</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx4<sub>exp2</sub></td>
+<td class="org-right">31</td>
+<td class="org-right">8</td>
+<td class="org-right">22315</td>
+<td class="org-right">19080</td>
+<td class="org-right">1480</td>
+<td class="org-right">1584</td>
+<td class="org-right">344</td>
+<td class="org-right">344</td>
+<td class="org-right">65048</td>
+</tr>
+
+<tr>
+<td class="org-left">dx4<sub>exp4</sub></td>
+<td class="org-right">11</td>
+<td class="org-right">1</td>
+<td class="org-right">222291</td>
+<td class="org-right">210948</td>
+<td class="org-right">3448</td>
+<td class="org-right">5476</td>
+<td class="org-right">355</td>
+<td class="org-right">355</td>
+<td class="org-right">65048</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+The same timings in seconds:
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">case</th>
+<th scope="col" class="org-right">event seconds</th>
+<th scope="col" class="org-right">branch seconds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">dx8</td>
+<td class="org-right">0.000027810</td>
+<td class="org-right">0.000021206</td>
+</tr>
+
+<tr>
+<td class="org-left">dx10</td>
+<td class="org-right">0.000150948</td>
+<td class="org-right">0.000132262</td>
+</tr>
+
+<tr>
+<td class="org-left">dx12</td>
+<td class="org-right">0.001526322</td>
+<td class="org-right">0.001307905</td>
+</tr>
+
+<tr>
+<td class="org-left">dx14</td>
+<td class="org-right">0.021562888</td>
+<td class="org-right">0.018120442</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>3</sub><sub>6</sub></td>
+<td class="org-right">0.000035770</td>
+<td class="org-right">0.000030235</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>4</sub><sub>7</sub></td>
+<td class="org-right">0.000163693</td>
+<td class="org-right">0.000153909</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>5</sub><sub>8</sub></td>
+<td class="org-right">0.001405347</td>
+<td class="org-right">0.001254714</td>
+</tr>
+
+<tr>
+<td class="org-left">bc<sub>6</sub><sub>9</sub></td>
+<td class="org-right">0.013935981</td>
+<td class="org-right">0.013128377</td>
+</tr>
+
+<tr>
+<td class="org-left">exp2</td>
+<td class="org-right">0.000004191</td>
+<td class="org-right">0.000005087</td>
+</tr>
+
+<tr>
+<td class="org-left">exp4</td>
+<td class="org-right">0.000008182</td>
+<td class="org-right">0.000008024</td>
+</tr>
+
+<tr>
+<td class="org-left">exp6</td>
+<td class="org-right">0.000014650</td>
+<td class="org-right">0.000012793</td>
+</tr>
+
+<tr>
+<td class="org-left">dx2<sub>exp2</sub></td>
+<td class="org-right">0.000008852</td>
+<td class="org-right">0.000007262</td>
+</tr>
+
+<tr>
+<td class="org-left">dx4<sub>exp2</sub></td>
+<td class="org-right">0.000022315</td>
+<td class="org-right">0.000019080</td>
+</tr>
+
+<tr>
+<td class="org-left">dx4<sub>exp4</sub></td>
+<td class="org-right">0.000222291</td>
+<td class="org-right">0.000210948</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="outline-container-org34bd5e8" class="outline-2">
+<h2 id="org34bd5e8"><span class="section-number-2">2.</span> Raw output</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+<pre class="src src-text"><code>event case=dx8 samples=101 batch=8 median_ns=27810 wick_terms=3360 scalars=3360 coordinates=3360 tensors=3360 actions=0 residuals=0 zero_modes=840 base_cases=840
+branch case=dx8 samples=101 batch=8 median_ns=21206 branch_terms=840 fallback_terms=0 primitive_terms=3360 scalars=3360 coordinates=3360 tensors=3360 actions=0 residuals=0 zero_modes=840 base_cases=840 branch_state_bytes=65048
+event case=dx10 samples=101 batch=1 median_ns=150948 wick_terms=4725 scalars=4725 coordinates=4725 tensors=4725 actions=0 residuals=0 zero_modes=945 base_cases=945
+branch case=dx10 samples=101 batch=1 median_ns=132262 branch_terms=945 fallback_terms=0 primitive_terms=4725 scalars=4725 coordinates=4725 tensors=4725 actions=0 residuals=0 zero_modes=945 base_cases=945 branch_state_bytes=65048
+event case=dx12 samples=31 batch=1 median_ns=1526322 wick_terms=62370 scalars=62370 coordinates=62370 tensors=62370 actions=0 residuals=0 zero_modes=10395 base_cases=10395
+branch case=dx12 samples=31 batch=1 median_ns=1307905 branch_terms=10395 fallback_terms=0 primitive_terms=62370 scalars=62370 coordinates=62370 tensors=62370 actions=0 residuals=0 zero_modes=10395 base_cases=10395 branch_state_bytes=65048
+event case=dx14 samples=11 batch=1 median_ns=21562888 wick_terms=945945 scalars=945945 coordinates=945945 tensors=945945 actions=0 residuals=0 zero_modes=135135 base_cases=135135
+branch case=dx14 samples=11 batch=1 median_ns=18120442 branch_terms=135135 fallback_terms=0 primitive_terms=945945 scalars=945945 coordinates=945945 tensors=945945 actions=0 residuals=0 zero_modes=135135 base_cases=135135 branch_state_bytes=65048
+event case=bc_3_6 samples=101 batch=8 median_ns=35770 wick_terms=2880 scalars=2880 coordinates=2880 tensors=2880 actions=0 residuals=0 zero_modes=960 base_cases=960
+branch case=bc_3_6 samples=101 batch=8 median_ns=30235 branch_terms=960 fallback_terms=0 primitive_terms=2880 scalars=2880 coordinates=2880 tensors=2880 actions=0 residuals=0 zero_modes=960 base_cases=960 branch_state_bytes=52568
+event case=bc_4_7 samples=101 batch=1 median_ns=163693 wick_terms=3360 scalars=3360 coordinates=3360 tensors=3360 actions=0 residuals=0 zero_modes=840 base_cases=840
+branch case=bc_4_7 samples=101 batch=1 median_ns=153909 branch_terms=840 fallback_terms=0 primitive_terms=3360 scalars=3360 coordinates=3360 tensors=3360 actions=0 residuals=0 zero_modes=840 base_cases=840 branch_state_bytes=52568
+event case=bc_5_8 samples=31 batch=1 median_ns=1405347 wick_terms=33600 scalars=33600 coordinates=33600 tensors=33600 actions=0 residuals=0 zero_modes=6720 base_cases=6720
+branch case=bc_5_8 samples=31 batch=1 median_ns=1254714 branch_terms=6720 fallback_terms=0 primitive_terms=33600 scalars=33600 coordinates=33600 tensors=33600 actions=0 residuals=0 zero_modes=6720 base_cases=6720 branch_state_bytes=52568
+event case=bc_6_9 samples=11 batch=1 median_ns=13935981 wick_terms=362880 scalars=362880 coordinates=362880 tensors=362880 actions=0 residuals=0 zero_modes=60480 base_cases=60480
+branch case=bc_6_9 samples=11 batch=1 median_ns=13128377 branch_terms=60480 fallback_terms=0 primitive_terms=362880 scalars=362880 coordinates=362880 tensors=362880 actions=0 residuals=0 zero_modes=60480 base_cases=60480 branch_state_bytes=52568
+event case=exp2 samples=101 batch=32 median_ns=4191 wick_terms=32 scalars=32 coordinates=64 tensors=32 actions=0 residuals=64 zero_modes=32 base_cases=32
+branch case=exp2 samples=101 batch=32 median_ns=5087 branch_terms=32 fallback_terms=0 primitive_terms=32 scalars=32 coordinates=64 tensors=32 actions=0 residuals=64 zero_modes=32 base_cases=32 branch_state_bytes=65048
+event case=exp4 samples=101 batch=32 median_ns=8182 wick_terms=192 scalars=192 coordinates=384 tensors=192 actions=0 residuals=384 zero_modes=32 base_cases=32
+branch case=exp4 samples=101 batch=32 median_ns=8024 branch_terms=32 fallback_terms=0 primitive_terms=192 scalars=192 coordinates=384 tensors=192 actions=0 residuals=384 zero_modes=32 base_cases=32 branch_state_bytes=65048
+event case=exp6 samples=31 batch=32 median_ns=14650 wick_terms=480 scalars=480 coordinates=960 tensors=480 actions=0 residuals=960 zero_modes=32 base_cases=32
+branch case=exp6 samples=31 batch=32 median_ns=12793 branch_terms=32 fallback_terms=0 primitive_terms=480 scalars=480 coordinates=960 tensors=480 actions=0 residuals=960 zero_modes=32 base_cases=32 branch_state_bytes=65048
+event case=dx2_exp2 samples=101 batch=32 median_ns=8852 wick_terms=448 scalars=448 coordinates=608 tensors=448 actions=0 residuals=576 zero_modes=160 base_cases=160
+branch case=dx2_exp2 samples=101 batch=32 median_ns=7262 branch_terms=160 fallback_terms=0 primitive_terms=448 scalars=448 coordinates=608 tensors=448 actions=0 residuals=576 zero_modes=160 base_cases=160 branch_state_bytes=65048
+event case=dx4_exp2 samples=31 batch=8 median_ns=22315 wick_terms=1480 scalars=1480 coordinates=1824 tensors=1480 actions=0 residuals=1584 zero_modes=344 base_cases=344
+branch case=dx4_exp2 samples=31 batch=8 median_ns=19080 branch_terms=344 fallback_terms=0 primitive_terms=1480 scalars=1480 coordinates=1824 tensors=1480 actions=0 residuals=1584 zero_modes=344 base_cases=344 branch_state_bytes=65048
+event case=dx4_exp4 samples=11 batch=1 median_ns=222291 wick_terms=3448 scalars=3448 coordinates=5578 tensors=3448 actions=0 residuals=5476 zero_modes=355 base_cases=355
+branch case=dx4_exp4 samples=11 batch=1 median_ns=210948 branch_terms=355 fallback_terms=0 primitive_terms=3448 scalars=3448 coordinates=5578 tensors=3448 actions=0 residuals=5476 zero_modes=355 base_cases=355 branch_state_bytes=65048
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2026-06-07</p>
+<p class="date">Created: 2026-06-07 Sun 20:32</p>
+</div>
+</body>
+</html>

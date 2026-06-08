@@ -21,16 +21,16 @@ with weights \(h_b=2\), \(h_c=-1\).  The sphere top form requires three
 #+begin_src zig
 const std = @import("std");
 const shared = @import("shared.zig");
+const declare = shared.declare;
 
 const operators = @import("../expressions/operators.zig");
-const kernel = @import("../kernel.zig");
 const Handle = shared.Handle;
-const CorrelatorConfig = shared.CorrelatorConfig;
-const BoundaryExtension = shared.BoundaryExtension;
 const Local = shared.Local;
-const RuleScalar = shared.RuleScalar;
-const wick = shared.wick;
-const zero_mode = shared.zero_mode;
+const Builder = *shared.Local;
+const Operator = *shared.LocalOperator;
+const Spec = declare.Spec;
+const wick = declare.wick;
+const zero_mode = declare.zero_mode;
 #+end_src
 
 The ghost preset owns the \(b,c\) operator vocabulary.  It uses a separate id
@@ -53,65 +53,15 @@ const Family = enum {
 const ZeroSector = enum {
     sphere,
     disk,
+    torus,
 };
 
 fn kind(comptime family: Family) operators.OperatorKindId {
-    return shared.familyKind(namespace, family);
+    return declare.familyKind(namespace, family);
 }
 
 fn zeroSector(comptime sector: ZeroSector) zero_mode.Sector {
-    return shared.sectorId(namespace, sector);
-}
-
-fn rawToken(value: anytype) u32 {
-    return @intFromEnum(value);
-}
-
-fn token(comptime T: type, id: u32) T {
-    return @enumFromInt(if (id == 0) 1 else id);
-}
-
-fn coordVariable(coord: Handle.Coord) u32 {
-    return rawToken(coord);
-}
-
-fn singleInsertion(z: Handle.Coord, derivatives: u8) operators.OperatorInsertion {
-    return .{ .single = .{
-        .position = coordVariable(z),
-        .derivatives = derivatives,
-    } };
-}
-
-fn boundaryCoord(y: Handle.BoundaryCoord) Handle.Coord {
-    return token(Handle.Coord, rawToken(y));
-}
-
-fn bcPattern(comptime family: Family, comptime support: wick.Support) wick.Pattern {
-    return wick.pattern(kind(family), support);
-}
-
-fn bPattern() wick.Pattern {
-    return bcPattern(.b, .holomorphic);
-}
-
-fn cPattern() wick.Pattern {
-    return bcPattern(.c, .holomorphic);
-}
-
-fn btPattern() wick.Pattern {
-    return bcPattern(.bt, .antiholomorphic);
-}
-
-fn ctPattern() wick.Pattern {
-    return bcPattern(.ct, .antiholomorphic);
-}
-
-fn bBoundaryPattern() wick.Pattern {
-    return bcPattern(.b_boundary, .boundary);
-}
-
-fn cBoundaryPattern() wick.Pattern {
-    return bcPattern(.c_boundary, .boundary);
+    return declare.sectorId(namespace, sector);
 }
 
 #+end_src
@@ -123,32 +73,26 @@ antiholomorphic copy.  The config flag changes both the builder namespace and
 the emitted rule slice at compile time.
 
 #+begin_src zig
-/// BcSphereConfig declares the holomorphic bc system and optional antiholomorphic copy.
-pub const BcSphereConfig = struct {
+const BcSphereConfig = struct {
     include_antiholomorphic_copy: bool = true,
-    top_form_normalization: RuleScalar = .one,
 };
 
 /// bcSphere builds the generated preset type for the sphere bc ghost CFT.
 pub fn bcSphere(comptime cfg: BcSphereConfig) type {
     return struct {
-        /// is_bc_sphere_preset identifies this generated type for composition.
-        pub const is_bc_sphere_preset = true;
-
         /// op exposes bc ghost local operator builders.
         pub const op = BcSphereOp(cfg.include_antiholomorphic_copy);
         /// config exposes named correlator configs for this preset.
         pub const config = BcSphereCorrelatorConfig(cfg);
-        /// rules exposes the preset-authored Wick rule templates.
-        pub const rules = BcSphereRules(cfg.include_antiholomorphic_copy);
-
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) Local {
-            return Local.init(allocator);
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
         }
 
         /// correlator streams rule matches for bc insertions.
-        pub fn correlator(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, sink: anytype) !void {
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
             return shared.streamCorrelator(config_ptr, ops, sink);
         }
     };
@@ -163,13 +107,13 @@ part of theory data and later basis or correlator evaluation.
 fn BcSphereOp(comptime include_antiholomorphic_copy: bool) type {
     const Holomorphic = struct {
         /// b builds a holomorphic b-ghost insertion.
-        pub fn b(local: *Local, n: u8, z: Handle.Coord) !kernel.Call.LocalOp {
-            return local.op(kind(.b), singleInsertion(z, n), &.{});
+        pub fn b(local: anytype, n: u8, z: Handle.Coord) !Operator {
+            return declare.operatorBuilder(bcOperator(.b)).single(local, z, n, .{});
         }
 
         /// c builds a holomorphic c-ghost insertion.
-        pub fn c(local: *Local, n: u8, z: Handle.Coord) !kernel.Call.LocalOp {
-            return local.op(kind(.c), singleInsertion(z, n), &.{});
+        pub fn c(local: anytype, n: u8, z: Handle.Coord) !Operator {
+            return declare.operatorBuilder(bcOperator(.c)).single(local, z, n, .{});
         }
     };
 
@@ -182,13 +126,13 @@ fn BcSphereOp(comptime include_antiholomorphic_copy: bool) type {
         pub const c = Holomorphic.c;
 
         /// bt builds an antiholomorphic b-ghost insertion.
-        pub fn bt(local: *Local, n: u8, zbar: Handle.Coord) !kernel.Call.LocalOp {
-            return local.op(kind(.bt), singleInsertion(zbar, n), &.{});
+        pub fn bt(local: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            return declare.operatorBuilder(bcOperator(.bt)).single(local, zbar, n, .{});
         }
 
         /// ct builds an antiholomorphic c-ghost insertion.
-        pub fn ct(local: *Local, n: u8, zbar: Handle.Coord) !kernel.Call.LocalOp {
-            return local.op(kind(.ct), singleInsertion(zbar, n), &.{});
+        pub fn ct(local: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            return declare.operatorBuilder(bcOperator(.ct)).single(local, zbar, n, .{});
         }
     };
 }
@@ -216,36 +160,148 @@ fn bcBtCt() wick.Expr {
     return wick.differentiatedPole(.one, .none, antiholomorphicDifference(), -1, .{ .include_left = true, .include_right = true });
 }
 
-const sphere_holomorphic_wick_storage = [_]wick.Rule{
-    wick.rule(bPattern(), cPattern(), bcBC()),
-};
-
-const sphere_full_wick_storage = sphere_holomorphic_wick_storage ++ [_]wick.Rule{
-    wick.rule(btPattern(), ctPattern(), bcBtCt()),
-};
-
-fn sphereZeroStorage(comptime cfg: BcSphereConfig) if (cfg.include_antiholomorphic_copy) [2]zero_mode.Rule else [1]zero_mode.Rule {
-    const holomorphic = zero_mode.rule(zeroSector(.sphere), .{ .bc_top_form = .{
+fn sphereZeroSpec(comptime cfg: BcSphereConfig) if (cfg.include_antiholomorphic_copy) [2]Spec.ZeroModeRule else [1]Spec.ZeroModeRule {
+    const holomorphic = Spec.ZeroModeRule{ .sector = zeroSector(.sphere), .expr = .{ .bc_top_form = .{
         .support = .sphere_holomorphic,
         .c_kind_ids = &.{kind(.c)},
-        .normalization = cfg.top_form_normalization,
-    } });
-    if (!cfg.include_antiholomorphic_copy) return [_]zero_mode.Rule{holomorphic};
-    return [_]zero_mode.Rule{
+        .normalization = .one,
+    } } };
+    if (!cfg.include_antiholomorphic_copy) return [_]Spec.ZeroModeRule{holomorphic};
+    return [_]Spec.ZeroModeRule{
         holomorphic,
-        zero_mode.rule(zeroSector(.sphere), .{ .bc_top_form = .{
+        .{ .sector = zeroSector(.sphere), .expr = .{ .bc_top_form = .{
             .support = .sphere_antiholomorphic,
             .c_kind_ids = &.{kind(.ct)},
-            .normalization = cfg.top_form_normalization,
-        } }),
+            .normalization = .one,
+        } } },
     };
+}
+
+fn sphereZeroStorage(comptime cfg: BcSphereConfig) if (cfg.include_antiholomorphic_copy) [2]zero_mode.Rule else [1]zero_mode.Rule {
+    const spec = sphereZeroSpec(cfg);
+    return Spec.zeroModeRules(&spec);
+}
+
+const sphere_holomorphic_operator_spec = [_]Spec.Operator{
+    .{ .name = "b", .kind = kind(.b), .support = .holomorphic, .insertion = .single, .statistics = .fermionic },
+    .{ .name = "c", .kind = kind(.c), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+};
+
+const sphere_full_operator_spec = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
+    .{ .name = "bt", .kind = kind(.bt), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic },
+    .{ .name = "ct", .kind = kind(.ct), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+};
+
+const sphere_holomorphic_fermion_storage = Spec.fermionKinds(&sphere_holomorphic_operator_spec);
+
+const sphere_full_fermion_storage = Spec.fermionKinds(&sphere_full_operator_spec);
+
+const sphere_holomorphic_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.b), .right = kind(.c), .expr = bcBC() },
+};
+
+const sphere_full_wick_spec = sphere_holomorphic_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.bt), .right = kind(.ct), .expr = bcBtCt() },
+};
+
+const sphere_holomorphic_wick_storage = Spec.wickRules(&sphere_holomorphic_wick_spec, &sphere_holomorphic_operator_spec);
+
+const sphere_full_wick_storage = Spec.wickRules(&sphere_full_wick_spec, &sphere_full_operator_spec);
+
+const torus_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.b), .right = kind(.c), .coordinate_kernels = &.{.elliptic_prime_form} },
+    .{ .left = kind(.bt), .right = kind(.ct), .coordinate_kernels = &.{.elliptic_prime_form} },
+};
+
+const sphere_holomorphic_zero_spec = sphereZeroSpec(.{ .include_antiholomorphic_copy = false });
+
+const sphere_full_zero_spec = sphereZeroSpec(.{});
+#+end_src
+
+For the genus-one amplitude the stringbook fixes one integrated \(b\) insertion
+for the torus modulus and one residual \(c\) zero mode in each chiral copy,
+after one puncture is fixed by torus translations [cite:@yinStringbook].  The
+draft metadata records those holomorphic and antiholomorphic \(b,c\) families
+without lowering them into the current sphere/disk top-form runtime evaluator.
+
+#+begin_src zig
+const torus_zero_spec = [_]Spec.ZeroModeRule{
+    .{
+        .sector = zeroSector(.torus),
+        .kind = .torus_bc_moduli,
+        .consumes = &.{ kind(.b), kind(.c), kind(.bt), kind(.ct) },
+    },
+};
+
+fn bcSphereSpec(comptime include_antiholomorphic_copy: bool) Spec.Theory {
+    return .{
+        .operators = if (include_antiholomorphic_copy) &sphere_full_operator_spec else &sphere_holomorphic_operator_spec,
+        .wick_rules = if (include_antiholomorphic_copy) &sphere_full_wick_spec else &sphere_holomorphic_wick_spec,
+        .zero_modes = if (include_antiholomorphic_copy) &sphere_full_zero_spec else &sphere_holomorphic_zero_spec,
+    };
+}
+
+const torus_draft_spec = Spec.Theory{
+    .surface = .{
+        .kind = .torus,
+        .coordinate_model = .elliptic,
+        .modular_parameters = &.{"tau"},
+        .source = .stringbook,
+    },
+    .operators = &sphere_full_operator_spec,
+    .wick_rules = &torus_wick_spec,
+    .zero_modes = &torus_zero_spec,
+};
+
+const disk_boundary_operator_spec = [_]Spec.Operator{
+    .{ .name = "bBoundary", .kind = kind(.b_boundary), .support = .boundary, .insertion = .single, .statistics = .fermionic },
+    .{ .name = "cBoundary", .kind = kind(.c_boundary), .support = .boundary, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+};
+
+const disk_full_operator_spec = sphere_full_operator_spec ++ disk_boundary_operator_spec;
+
+fn bcOperator(comptime family: Family) Spec.Operator {
+    const kind_id = kind(family);
+    inline for (sphere_full_operator_spec) |operator| {
+        if (operator.kind == kind_id) return operator;
+    }
+    @compileError("missing bc operator spec");
+}
+
+fn bcBoundaryOperator(comptime family: Family) Spec.Operator {
+    const kind_id = kind(family);
+    inline for (disk_boundary_operator_spec) |operator| {
+        if (operator.kind == kind_id) return operator;
+    }
+    @compileError("missing bc boundary operator spec");
+}
+
+fn assertSphereSpec(comptime include_antiholomorphic_copy: bool, comptime wick_count: usize, comptime zero_count: usize, comptime fermion_count: usize) void {
+    const spec = bcSphereSpec(include_antiholomorphic_copy);
+    if (spec.wick_rules.len != wick_count) @compileError("bc sphere spec Wick count does not match lowered rules");
+    if (spec.zero_modes.len != zero_count) @compileError("bc sphere spec zero-mode count does not match lowered rules");
+    if (spec.operators.len != fermion_count) @compileError("bc sphere spec fermion coverage does not match lowered rules");
+}
+
+fn assertTorusDraftSpec() void {
+    if (torus_draft_spec.surface.kind != .torus) @compileError("bc torus draft spec surface kind is incomplete");
+    if (torus_draft_spec.surface.coordinate_model != .elliptic) @compileError("bc torus draft spec coordinate model is incomplete");
+    if (torus_draft_spec.surface.modular_parameters.len != 1) @compileError("bc torus draft spec modular metadata is incomplete");
+    if (torus_draft_spec.surface.source != .stringbook) @compileError("bc torus draft spec source convention is incomplete");
+    if (torus_draft_spec.operators.len != sphere_full_operator_spec.len) @compileError("bc torus draft spec operator metadata is incomplete");
+    if (torus_draft_spec.wick_rules.len != sphere_full_wick_spec.len) @compileError("bc torus draft spec Wick metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_prime_form) != 2) @compileError("bc torus draft spec prime-form metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .rational_pole) != 0) @compileError("bc torus draft spec still uses rational pole metadata");
+    if (torus_draft_spec.zero_modes.len != 1) @compileError("bc torus draft spec zero-mode metadata is incomplete");
+    if (Spec.zeroModeConsumeKindCount(torus_draft_spec.zero_modes[0]) != 4) @compileError("bc torus draft spec zero-mode coverage is incomplete");
 }
 
 fn BcSphereRules(comptime include_antiholomorphic_copy: bool) type {
     const selected_wick = if (include_antiholomorphic_copy) sphere_full_wick_storage else sphere_holomorphic_wick_storage;
+    const selected_fermions = if (include_antiholomorphic_copy) sphere_full_fermion_storage else sphere_holomorphic_fermion_storage;
     return struct {
-        /// sphere_wick lists the primitive bc Wick rules on the sphere.
-        pub const sphere_wick: []const wick.Rule = &selected_wick;
+        const sphere_wick: []const wick.Rule = &selected_wick;
+        const sphere_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
     };
 }
 
@@ -253,14 +309,17 @@ fn BcSphereCorrelatorConfig(comptime cfg: BcSphereConfig) type {
     const rules = BcSphereRules(cfg.include_antiholomorphic_copy);
     return struct {
         const sphere_zero_storage = sphereZeroStorage(cfg);
-        const sphere_wick_index_storage = shared.wickRuleIndexStorage(rules.sphere_wick);
+        comptime {
+            assertSphereSpec(cfg.include_antiholomorphic_copy, rules.sphere_wick.len, sphere_zero_storage.len, rules.sphere_fermion_kinds.len);
+            assertTorusDraftSpec();
+        }
 
         /// sphere selects bc sphere Wick and zero-mode rules.
-        pub const sphere = CorrelatorConfig{
+        pub const sphere = declare.correlatorConfig(.{
             .wick_rules = rules.sphere_wick,
-            .wick_rule_index = &sphere_wick_index_storage,
             .zero_modes = &sphere_zero_storage,
-        };
+            .fermion_kinds = rules.sphere_fermion_kinds,
+        }){};
     };
 }
 #+end_src
@@ -272,63 +331,114 @@ bulk-boundary contractions.  It is an extension chosen by a BCFT composition,
 not a modification of the bulk \(bc\) preset.
 
 #+begin_src zig
-/// BcDiskConfig declares the disk boundary extension for the bc ghost system.
-pub const BcDiskConfig = struct {
+const BcDiskConfig = struct {
     include_mixed_bulk_boundary: bool = true,
-    top_form_normalization: RuleScalar = .one,
 };
 
 const BcDiskBoundaryOp = struct {
     /// bBoundary builds a boundary b-ghost insertion.
-    pub fn bBoundary(local: *Local, n: u8, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.b_boundary), singleInsertion(boundaryCoord(y), n), &.{});
+    pub fn bBoundary(local: anytype, n: u8, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(bcBoundaryOperator(.b_boundary)).boundarySingle(local, y, n, .{});
     }
 
     /// cBoundary builds a boundary c-ghost insertion.
-    pub fn cBoundary(local: *Local, n: u8, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.c_boundary), singleInsertion(boundaryCoord(y), n), &.{});
+    pub fn cBoundary(local: anytype, n: u8, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(bcBoundaryOperator(.c_boundary)).boundarySingle(local, y, n, .{});
     }
 };
 
-/// boundaryExtension declares boundary and mixed bulk-boundary bc rules on the disk.
-pub fn boundaryExtension(comptime cfg: BcDiskConfig) BoundaryExtension {
+fn BcBoundaryExtension(comptime cfg: BcDiskConfig) type {
     const data = BcDiskData(cfg);
-    return .{
-        .kind = shared.extensionKind("bc_disk"),
+    return declare.BoundaryExtension(.{
         .op = BcDiskBoundaryOp,
         .wick_rules = if (cfg.include_mixed_bulk_boundary) &disk_full_wick_storage else &disk_boundary_wick_storage,
         .zero_modes = data.disk_zero_modes,
+        .fermion_kinds = data.disk_fermion_kinds,
+    });
+}
+
+/// boundaryExtension declares boundary and mixed bulk-boundary bc rules on the disk.
+pub fn boundaryExtension(comptime cfg: BcDiskConfig) BcBoundaryExtension(cfg) {
+    return .{};
+}
+
+const disk_boundary_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.b_boundary), .right = kind(.c_boundary), .expr = bcBC() },
+};
+
+const disk_full_wick_spec = disk_boundary_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.b), .right = kind(.c_boundary), .expr = bcBC() },
+    .{ .left = kind(.c), .right = kind(.b_boundary), .expr = bcBC() },
+    .{ .left = kind(.bt), .right = kind(.c_boundary), .expr = bcBtCt() },
+    .{ .left = kind(.ct), .right = kind(.b_boundary), .expr = bcBtCt() },
+};
+
+const disk_boundary_wick_storage = Spec.wickRules(&disk_boundary_wick_spec, &disk_boundary_operator_spec);
+
+const disk_full_wick_storage = Spec.wickRules(&disk_full_wick_spec, &disk_full_operator_spec);
+
+const disk_boundary_fermion_storage = Spec.fermionKinds(&disk_boundary_operator_spec);
+
+const disk_full_fermion_storage = Spec.fermionKinds(&disk_full_operator_spec);
+
+fn diskZeroSpec() [1]Spec.ZeroModeRule {
+    return [_]Spec.ZeroModeRule{
+        .{ .sector = zeroSector(.disk), .expr = .{ .bc_top_form = .{
+            .support = .disk_doubled,
+            .c_kind_ids = &.{ kind(.c), kind(.ct), kind(.c_boundary) },
+            .normalization = .one,
+        } } },
     };
 }
 
-const disk_boundary_wick_storage = [_]wick.Rule{
-    wick.rule(bBoundaryPattern(), cBoundaryPattern(), bcBC()),
-};
-
-const disk_full_wick_storage = disk_boundary_wick_storage ++ [_]wick.Rule{
-    wick.rule(bPattern(), cBoundaryPattern(), bcBC()),
-    wick.rule(cPattern(), bBoundaryPattern(), bcBC()),
-    wick.rule(btPattern(), cBoundaryPattern(), bcBtCt()),
-    wick.rule(ctPattern(), bBoundaryPattern(), bcBtCt()),
-};
-
 fn diskZeroStorage(comptime cfg: BcDiskConfig) [1]zero_mode.Rule {
-    return [_]zero_mode.Rule{
-        zero_mode.rule(zeroSector(.disk), .{ .bc_top_form = .{
-            .support = .disk_doubled,
-            .c_kind_ids = &.{ kind(.c), kind(.ct), kind(.c_boundary) },
-            .normalization = cfg.top_form_normalization,
-        } }),
-    };
+    _ = cfg;
+    const spec = diskZeroSpec();
+    return Spec.zeroModeRules(&spec);
 }
 
 fn BcDiskData(comptime cfg: BcDiskConfig) type {
+    const selected_fermions = if (cfg.include_mixed_bulk_boundary) disk_full_fermion_storage else disk_boundary_fermion_storage;
     return struct {
         const disk_zero_storage = diskZeroStorage(cfg);
 
-        /// disk_zero_modes lists doubled chiral bc zero-mode rules on the disk.
-        pub const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
+        const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
+        const disk_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
     };
+}
+
+test "bc schema builders return opaque local tokens" {
+    const testing = std.testing;
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const b = try Ghost.op.b(&local, 1, z1);
+    const c = try Ghost.op.c(&local, 2, z2);
+    const ops = try local.ops(.{ b, c });
+
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(b)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(c)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(ops)).pointer.child) == .@"opaque");
+}
+
+test "bc boundary schema builders return opaque local tokens" {
+    const testing = std.testing;
+
+    var local = try Local.init(testing.allocator);
+    defer local.deinit();
+
+    const y = try local.boundaryCoord("y");
+    const b = try BcDiskBoundaryOp.bBoundary(&local, 1, y);
+    const c = try BcDiskBoundaryOp.cBoundary(&local, 2, y);
+    const ops = try local.ops(.{ b, c });
+
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(b)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(c)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(ops)).pointer.child) == .@"opaque");
 }
 
 #+end_src

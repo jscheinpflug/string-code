@@ -1,19 +1,3 @@
-:PROPERTIES:
-:ID:       20260606T064107.303587
-:END:
-#+title: Wick
-#+auto_tangle: t
-#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/correlators/wick.zig :mkdirp yes
-
-#+interface:
-
-The Wick correlator is a generic driver.  It chooses primitive pair
-operations and manages stack-bounded branch state; the tactic owns all
-physics.  The first implementation works on original input occurrences.  It
-does not allocate an expression tree: a valid full branch is replayed directly
-to the sink as primitive Wick terms followed by the zero-mode base case.
-
-#+begin_src zig
 const kernel = @import("../kernel.zig");
 
 const PairChoice = struct {
@@ -69,15 +53,7 @@ fn Scratch(comptime operator_count: usize) type {
         }
     };
 }
-#+end_src
 
-The driver first builds a compact pair-candidate list.  Tactics may provide a
-cheap count hook; otherwise a dry sink falls back to probing the pair emitter.
-Zero-mode viability follows the same pattern.  Valid branches are replayed
-once to the real sink, so invalid branches never leak prefix factors into the
-stream.
-
-#+begin_src zig
 const NullSink = struct {
     /// emitWickTermStart discards a dry-run pair term boundary.
     pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
@@ -293,13 +269,7 @@ fn zeroModeSucceeds(comptime Tactic: type, config_ptr: *const Tactic.Config, ops
     var null_sink = NullSink{};
     return Tactic.emitZeroModeBaseCase(config_ptr, ops, residual, &null_sink);
 }
-#+end_src
 
-At a zero-mode base case, the branch stack is replayed before the base case so
-the sink receives one fully expanded streamed term.  Pair factors are not kept
-in memory.
-
-#+begin_src zig
 fn emitPairTerm(comptime Tactic: type, config_ptr: *const Tactic.Config, ops: kernel.Call.MultiOp, choice: PairChoice, sink: anytype) !void {
     if (@hasDecl(Tactic, "emitPairTermPayload")) {
         try Tactic.emitPairTermPayload(config_ptr, ops, choice.left, choice.right, choice.payload, sink);
@@ -492,14 +462,6 @@ fn walkAccumulated(
     return branch_count;
 }
 
-#+end_src
-
-The recursion enumerates pair subsets in lexicographic order, which prevents
-the same disjoint pairing set from being reached in multiple orders.  At each
-node it first tries the zero-mode base case, then extends the branch by one
-allowed pair.
-
-#+begin_src zig
 fn walk(
     comptime Tactic: type,
     config_ptr: *const Tactic.Config,
@@ -574,12 +536,7 @@ fn walk(
 
     return branch_count;
 }
-#+end_src
 
-The public entry point is specialized by a comptime tactic.  A tactic provides
-the config type, primitive pair emitter, and zero-mode base-case emitter.
-
-#+begin_src zig
 /// wickCorrelator streams all Wick branches accepted by the tactic base case.
 pub fn wickCorrelator(
     comptime Tactic: type,
@@ -605,4 +562,3 @@ pub fn wickCorrelator(
     }
     _ = try walk(Tactic, config_ptr, ops, scratch, initialLiveMask(max_operator_count, ops.operators.len), 0, candidate_count, 0, 1, true, sink);
 }
-#+end_src

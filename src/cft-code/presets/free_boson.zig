@@ -1,26 +1,27 @@
 const std = @import("std");
 const shared = @import("shared.zig");
+const declare = shared.declare;
 
 const operators = @import("../expressions/operators.zig");
-const kernel = @import("../kernel.zig");
 const Handle = shared.Handle;
-const RuleScalar = shared.RuleScalar;
-const CorrelatorConfig = shared.CorrelatorConfig;
-const BoundaryExtension = shared.BoundaryExtension;
 const Local = shared.Local;
-const wick = shared.wick;
-const zero_mode = shared.zero_mode;
+const Builder = *shared.Local;
+const Operator = *shared.LocalOperator;
+const Spec = declare.Spec;
+const wick = declare.wick;
+const zero_mode = declare.zero_mode;
 
 const namespace = "free_boson";
-const scalars = shared.scalars;
+const scalars = declare.scalars;
+const RuleScalar = @TypeOf(scalars.one());
 const alpha_prime_atom = scalars.atom(namespace, "alpha_prime");
 const k_disk_atom = scalars.atom(namespace, "K_D2");
-const neumann_projector_ref = shared.configRef(namespace, "neumann_projector");
-const dirichlet_projector_ref = shared.configRef(namespace, "dirichlet_projector");
-const bulk_boundary_projector_ref = shared.configRef(namespace, "bulk_boundary_projector");
-const dirichlet_position_ref = shared.configRef(namespace, "dirichlet_position");
-const chan_paton_ref = shared.configRef(namespace, "chan_paton");
-const target_dimension_ref = shared.configRef(namespace, "target_dimension");
+const neumann_projector_ref = declare.configRef(namespace, "neumann_projector");
+const dirichlet_projector_ref = declare.configRef(namespace, "dirichlet_projector");
+const bulk_boundary_projector_ref = declare.configRef(namespace, "bulk_boundary_projector");
+const dirichlet_position_ref = declare.configRef(namespace, "dirichlet_position");
+const chan_paton_ref = declare.configRef(namespace, "chan_paton");
+const target_dimension_ref = declare.configRef(namespace, "target_dimension");
 
 const Family = enum {
     x,
@@ -36,14 +37,15 @@ const Family = enum {
 const ZeroSector = enum {
     bulk,
     boundary,
+    torus,
 };
 
 fn kind(comptime family: Family) operators.OperatorKindId {
-    return shared.familyKind(namespace, family);
+    return declare.familyKind(namespace, family);
 }
 
 fn zeroSector(comptime sector: ZeroSector) zero_mode.Sector {
-    return shared.sectorId(namespace, sector);
+    return declare.sectorId(namespace, sector);
 }
 
 fn rawToken(value: anytype) u32 {
@@ -52,62 +54,6 @@ fn rawToken(value: anytype) u32 {
 
 fn token(comptime T: type, id: u32) T {
     return @enumFromInt(if (id == 0) 1 else id);
-}
-
-fn coordVariable(coord: Handle.Coord) u32 {
-    return rawToken(coord);
-}
-
-fn singleInsertion(z: Handle.Coord, derivatives: u8) operators.OperatorInsertion {
-    return .{ .single = .{
-        .position = coordVariable(z),
-        .derivatives = derivatives,
-    } };
-}
-
-fn pairInsertion(z: Handle.Coord, zbar: Handle.Coord) operators.OperatorInsertion {
-    return .{ .pair = .{
-        .holomorphic_position = coordVariable(z),
-        .antiholomorphic_position = coordVariable(zbar),
-        .holomorphic_derivatives = 0,
-        .antiholomorphic_derivatives = 0,
-    } };
-}
-
-fn boundaryCoord(y: Handle.BoundaryCoord) Handle.Coord {
-    return token(Handle.Coord, rawToken(y));
-}
-
-fn freeBosonPattern(comptime family: Family, comptime support: wick.Support) wick.Pattern {
-    return wick.pattern(kind(family), support);
-}
-
-fn dXPattern() wick.Pattern {
-    return freeBosonPattern(.d_x, .holomorphic);
-}
-
-fn dXtPattern() wick.Pattern {
-    return freeBosonPattern(.d_xt, .antiholomorphic);
-}
-
-fn expXPattern() wick.Pattern {
-    return freeBosonPattern(.exp_x, .bulk_pair);
-}
-
-fn profilePattern() wick.Pattern {
-    return freeBosonPattern(.profile_x, .bulk_pair);
-}
-
-fn dXBoundaryPattern() wick.Pattern {
-    return freeBosonPattern(.d_x_boundary, .boundary);
-}
-
-fn expXBoundaryPattern() wick.Pattern {
-    return freeBosonPattern(.exp_x_boundary, .boundary);
-}
-
-fn profileBoundaryPattern() wick.Pattern {
-    return freeBosonPattern(.profile_x_boundary, .boundary);
 }
 
 fn stableNameId(comptime name: []const u8) u32 {
@@ -131,9 +77,19 @@ fn projectorId(comptime rank: u8, hash: u32) u32 {
     return (@as(u32, rank) << 24) | (hash & 0x00ff_ffff);
 }
 
-fn polynomialProfileId(point: Handle.TargetPoint, comptime terms: []const Handle.PolynomialProfileTerm) u32 {
+fn polynomialProfileTerm(term: anytype) struct { coefficient: Handle.ProfileCoefficient, power: u16 } {
+    const Term = @TypeOf(term);
+    const info = @typeInfo(Term);
+    if (info != .@"struct" or !info.@"struct".is_tuple or info.@"struct".fields.len != 2) {
+        @compileError("polynomial profile terms must be .{ coefficient, power } tuples");
+    }
+    return .{ .coefficient = term[0], .power = term[1] };
+}
+
+fn polynomialProfileId(point: Handle.TargetPoint, terms: anytype) u32 {
     var hash = rawToken(point) ^ 0x9e37_79b9;
-    inline for (terms) |term| {
+    inline for (terms) |raw_term| {
+        const term = polynomialProfileTerm(raw_term);
         hash = (hash ^ rawToken(term.coefficient)) *% 16777619;
         hash = (hash ^ @as(u32, term.power)) *% 16777619;
     }
@@ -162,18 +118,13 @@ const TargetSpace = struct {
     }
 };
 
-/// FreeBosonConfig declares a noncompact D-dimensional free boson preset.
-pub const FreeBosonConfig = struct {
+const FreeBosonConfig = struct {
     dimension: u16,
-    alpha_prime: shared.ScalarAtom = alpha_prime_atom,
-    zero_mode_normalization: RuleScalar = .one,
 };
 
 /// freeBoson builds the generated preset type for a noncompact free-boson CFT.
 pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
     return struct {
-        /// is_free_boson_preset identifies this generated type for composition.
-        pub const is_free_boson_preset = true;
         /// op exposes free-boson local operator builders.
         pub const op = FreeBosonOp;
         /// profile exposes profile-presentation builders.
@@ -182,16 +133,15 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
         pub const target = TargetSpace;
         /// config exposes named correlator configs for this preset.
         pub const config = FreeBosonCorrelatorConfig(cfg);
-        /// rules exposes the preset-authored Wick rule templates.
-        pub const rules = FreeBosonRules(cfg);
-
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) Local {
-            return Local.init(allocator);
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
         }
 
         /// correlator streams rule matches for free-boson insertions.
-        pub fn correlator(config_ptr: *const CorrelatorConfig, ops: kernel.Call.MultiOp, sink: anytype) !void {
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
             return shared.streamCorrelator(config_ptr, ops, sink);
         }
     };
@@ -199,33 +149,33 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
 
 const FreeBosonOp = struct {
     /// X builds an explicit bulk free-boson field insertion.
-    pub fn X(local: *Local, mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.x), pairInsertion(z, zbar), &.{Local.symbol(mu)});
+    pub fn X(local: anytype, mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        return declare.operatorBuilder(sphereOperator(.x)).pair(local, z, zbar, .{mu});
     }
 
     /// dX builds a holomorphic derivative field insertion.
-    pub fn dX(local: *Local, mu: Handle.Index, n: u8, z: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.d_x), singleInsertion(z, n), &.{Local.symbol(mu)});
+    pub fn dX(local: anytype, mu: Handle.Index, n: u8, z: Handle.Coord) !Operator {
+        return declare.operatorBuilder(sphereOperator(.d_x)).single(local, z, n, .{mu});
     }
 
     /// dXt builds an antiholomorphic derivative field insertion.
-    pub fn dXt(local: *Local, mu: Handle.Index, n: u8, zbar: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.d_xt), singleInsertion(zbar, n), &.{Local.symbol(mu)});
+    pub fn dXt(local: anytype, mu: Handle.Index, n: u8, zbar: Handle.Coord) !Operator {
+        return declare.operatorBuilder(sphereOperator(.d_xt)).single(local, zbar, n, .{mu});
     }
 
     /// expX builds a normal-ordered plane-wave insertion.
-    pub fn expX(local: *Local, k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.exp_x), pairInsertion(z, zbar), &.{Local.symbol(k)});
+    pub fn expX(local: anytype, k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        return declare.operatorBuilder(sphereOperator(.exp_x)).pair(local, z, zbar, .{k});
     }
 
     /// profile builds a target-space profile insertion.
-    pub fn profile(local: *Local, f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.profile_x), pairInsertion(z, zbar), &.{Local.symbol(f)});
+    pub fn profile(local: anytype, f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        return declare.operatorBuilder(sphereOperator(.profile_x)).pair(local, z, zbar, .{f});
     }
 
     /// profileVector builds a vector-valued target-space profile insertion.
-    pub fn profileVector(local: *Local, f: Handle.Profile, nu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !kernel.Call.LocalOp {
-        return local.op(kind(.profile_x), pairInsertion(z, zbar), &.{ Local.symbol(f), Local.symbol(nu) });
+    pub fn profileVector(local: anytype, f: Handle.Profile, nu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        return declare.operatorBuilder(profile_vector_operator).pair(local, z, zbar, .{ f, nu });
     }
 };
 
@@ -241,7 +191,7 @@ const ProfileOp = struct {
     }
 
     /// polynomialRnc selects a finite polynomial profile presentation.
-    pub fn polynomialRnc(point: Handle.TargetPoint, comptime terms: []const Handle.PolynomialProfileTerm) Handle.Profile {
+    pub fn polynomialRnc(point: Handle.TargetPoint, terms: anytype) Handle.Profile {
         return shared.profileHandle(.polynomial_rnc, polynomialProfileId(point, terms));
     }
 };
@@ -258,6 +208,10 @@ fn bulkHolomorphicDifference() wick.CoordinateDifference {
     return wick.difference(wick.coord(.left, .holomorphic), wick.coord(.right, .holomorphic));
 }
 
+fn bulkAntiholomorphicDifference() wick.CoordinateDifference {
+    return wick.difference(wick.coord(.left, .antiholomorphic), wick.coord(.right, .antiholomorphic));
+}
+
 fn bulkToBoundaryHolomorphicDifference() wick.CoordinateDifference {
     return wick.difference(wick.coord(.left, .holomorphic), wick.coord(.right, .position));
 }
@@ -267,151 +221,257 @@ fn bulkToBoundaryAntiholomorphicDifference() wick.CoordinateDifference {
 }
 
 fn freeBosonDxDx(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(alpha, 2), .{ .metric = .{
+    return wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .metric = .{
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
     } }, holomorphicDifference(), -2, .{ .include_left = true, .include_right = true });
 }
 
 fn freeBosonDxtDxt(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(alpha, 2), .{ .metric = .{
+    return wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .metric = .{
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
     } }, antiholomorphicDifference(), -2, .{ .include_left = true, .include_right = true });
 }
 
 fn freeBosonDxExpX(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .momentum_index = .{
+    return wick.differentiatedPoleWithResiduals(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .momentum_index = .{
         .momentum = wick.label(.right, 0),
         .index = wick.label(.left, 0),
-    } }, holomorphicDifference(), -1, .{ .include_left = true });
+    } }, holomorphicDifference(), -1, .{ .include_left = true }, &.{.right});
 }
 
 fn freeBosonDxProfile(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedActionPole(scalars.div(scalars.neg(alpha), 2), .none, holomorphicDifference(), -1, .{ .include_left = true }, &.{
+    return wick.differentiatedActionPoleWithResiduals(scalars.div(scalars.neg(alpha), 2), .none, holomorphicDifference(), -1, .{ .include_left = true }, &.{
         wick.profileDerivative(wick.label(.right, 0), wick.label(.left, 0)),
-    });
+    }, &.{.right});
 }
 
 fn freeBosonDxtExpX(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .momentum_index = .{
+    return wick.differentiatedPoleWithResiduals(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .momentum_index = .{
         .momentum = wick.label(.right, 0),
         .index = wick.label(.left, 0),
-    } }, antiholomorphicDifference(), -1, .{ .include_left = true });
+    } }, antiholomorphicDifference(), -1, .{ .include_left = true }, &.{.right});
 }
 
 fn freeBosonDxtProfile(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedActionPole(scalars.div(scalars.neg(alpha), 2), .none, antiholomorphicDifference(), -1, .{ .include_left = true }, &.{
+    return wick.differentiatedActionPoleWithResiduals(scalars.div(scalars.neg(alpha), 2), .none, antiholomorphicDifference(), -1, .{ .include_left = true }, &.{
         wick.profileDerivative(wick.label(.right, 0), wick.label(.left, 0)),
-    });
+    }, &.{.right});
 }
 
 fn freeBosonExpXExpX(comptime alpha: RuleScalar) wick.Expr {
-    return wick.greenExponential(scalars.div(alpha, 2), .{ .momentum_pair = .{
+    return wick.expr(&.{wick.termWithResiduals(&.{wick.scalar(scalars.div(alpha, 2))}, &.{
+        .{ .green_exponential = bulkHolomorphicDifference() },
+        .{ .green_exponential = bulkAntiholomorphicDifference() },
+    }, &.{.{ .momentum_pair = .{
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
-    } }, bulkHolomorphicDifference());
+    } }}, &.{}, &.{ .left, .right })});
 }
 
-fn sphereWickStorage(comptime alpha: RuleScalar) [7]wick.Rule {
-    return [_]wick.Rule{
-        wick.rule(dXPattern(), dXPattern(), freeBosonDxDx(alpha)),
-        wick.rule(dXtPattern(), dXtPattern(), freeBosonDxtDxt(alpha)),
-        wick.rule(dXPattern(), expXPattern(), freeBosonDxExpX(alpha)),
-        wick.rule(dXtPattern(), expXPattern(), freeBosonDxtExpX(alpha)),
-        wick.rule(dXPattern(), profilePattern(), freeBosonDxProfile(alpha)),
-        wick.rule(dXtPattern(), profilePattern(), freeBosonDxtProfile(alpha)),
-        wick.rule(expXPattern(), expXPattern(), freeBosonExpXExpX(alpha)),
-    };
-}
-
-fn sphereZeroStorage(comptime cfg: FreeBosonConfig) [1]zero_mode.Rule {
-    return [_]zero_mode.Rule{
-        zero_mode.rule(zeroSector(.bulk), .{ .free_boson_constant_mode = .{
+fn sphereZeroSpec(comptime normalization: RuleScalar) [1]Spec.ZeroModeRule {
+    return [_]Spec.ZeroModeRule{
+        .{ .sector = zeroSector(.bulk), .expr = .{ .free_boson_constant_mode = .{
             .exp_kind_ids = &.{kind(.exp_x)},
             .profile_kind_ids = &.{kind(.profile_x)},
             .normalization = .{
-                .scalar = cfg.zero_mode_normalization,
+                .scalar = normalization,
                 .two_pi_power = .{ .target_dimension = target_dimension_ref },
             },
-        } }),
+        } } },
     };
 }
 
-fn FreeBosonRules(comptime cfg: FreeBosonConfig) type {
-    const alpha = scalars.atomScalar(cfg.alpha_prime);
-    return struct {
-        const sphere_wick_storage = sphereWickStorage(alpha);
+fn sphereZeroStorage() [1]zero_mode.Rule {
+    const spec = sphereZeroSpec(.one);
+    return Spec.zeroModeRules(&spec);
+}
 
-        /// sphere_wick lists the primitive free-boson Wick rules on the sphere.
-        pub const sphere_wick: []const wick.Rule = &sphere_wick_storage;
+const sphere_operator_spec = [_]Spec.Operator{
+    .{ .name = "X", .kind = kind(.x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.index}, .statistics = .bosonic },
+    .{ .name = "dX", .kind = kind(.d_x), .support = .holomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic },
+    .{ .name = "dXt", .kind = kind(.d_xt), .support = .antiholomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic },
+    .{ .name = "expX", .kind = kind(.exp_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.momentum}, .statistics = .bosonic, .zero_mode_consumable = true },
+    .{ .name = "profile", .kind = kind(.profile_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.profile}, .statistics = .bosonic, .zero_mode_consumable = true },
+};
+
+fn sphereWickSpec(comptime alpha: RuleScalar) [7]Spec.WickRule {
+    return [_]Spec.WickRule{
+        .{ .left = kind(.d_x), .right = kind(.d_x), .expr = freeBosonDxDx(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.d_xt), .expr = freeBosonDxtDxt(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.exp_x), .expr = freeBosonDxExpX(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.exp_x), .expr = freeBosonDxtExpX(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.profile_x), .expr = freeBosonDxProfile(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.profile_x), .expr = freeBosonDxtProfile(alpha) },
+        .{ .left = kind(.exp_x), .right = kind(.exp_x), .expr = freeBosonExpXExpX(alpha) },
+    };
+}
+
+const sphere_wick_spec = sphereWickSpec(.one);
+
+const torus_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.d_x), .right = kind(.d_x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_xt), .right = kind(.d_xt), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_x), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_xt), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_x), .right = kind(.profile_x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_xt), .right = kind(.profile_x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.exp_x), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green_exponential} },
+};
+
+const sphere_zero_spec = sphereZeroSpec(.one);
+
+const torus_zero_spec = [_]Spec.ZeroModeRule{
+    .{
+        .sector = zeroSector(.torus),
+        .kind = .torus_free_boson_constant,
+        .consumes = &.{ kind(.exp_x), kind(.profile_x) },
+    },
+};
+
+const sphere_spec = Spec.Theory{
+    .operators = &sphere_operator_spec,
+    .wick_rules = &sphere_wick_spec,
+    .zero_modes = &sphere_zero_spec,
+};
+
+const torus_draft_spec = Spec.Theory{
+    .surface = .{
+        .kind = .torus,
+        .coordinate_model = .elliptic,
+        .modular_parameters = &.{"tau"},
+        .source = .stringbook,
+    },
+    .operators = &sphere_operator_spec,
+    .wick_rules = &torus_wick_spec,
+    .zero_modes = &torus_zero_spec,
+};
+
+const boundary_operator_spec = [_]Spec.Operator{
+    .{ .name = "dXBoundary", .kind = kind(.d_x_boundary), .support = .boundary, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic },
+    .{ .name = "expXBoundary", .kind = kind(.exp_x_boundary), .support = .boundary, .insertion = .single, .labels = &.{.momentum}, .statistics = .bosonic, .zero_mode_consumable = true },
+    .{ .name = "profileBoundary", .kind = kind(.profile_x_boundary), .support = .boundary, .insertion = .single, .labels = &.{.profile}, .statistics = .bosonic, .zero_mode_consumable = true },
+};
+
+const disk_operator_spec = sphere_operator_spec ++ boundary_operator_spec;
+
+const profile_vector_operator = Spec.Operator{ .name = "profileVector", .kind = kind(.profile_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{ .profile, .index }, .statistics = .bosonic, .zero_mode_consumable = true };
+const boundary_profile_vector_operator = Spec.Operator{ .name = "profileBoundaryVector", .kind = kind(.profile_x_boundary), .support = .boundary, .insertion = .single, .labels = &.{ .profile, .index }, .statistics = .bosonic, .zero_mode_consumable = true };
+
+fn sphereOperator(comptime family: Family) Spec.Operator {
+    const kind_id = kind(family);
+    inline for (sphere_operator_spec) |operator| {
+        if (operator.kind == kind_id) return operator;
+    }
+    @compileError("missing free-boson sphere operator spec");
+}
+
+fn boundaryOperator(comptime family: Family) Spec.Operator {
+    const kind_id = kind(family);
+    inline for (boundary_operator_spec) |operator| {
+        if (operator.kind == kind_id) return operator;
+    }
+    @compileError("missing free-boson boundary operator spec");
+}
+
+fn assertSphereSpec(comptime wick_count: usize, comptime zero_count: usize) void {
+    if (sphere_spec.wick_rules.len != wick_count) @compileError("free-boson sphere spec Wick count does not match lowered rules");
+    if (sphere_spec.zero_modes.len != zero_count) @compileError("free-boson sphere spec zero-mode count does not match lowered rules");
+    if (Spec.zeroModeConsumeKindCount(sphere_spec.zero_modes[0]) != 2) @compileError("free-boson sphere spec zero-mode coverage is incomplete");
+}
+
+fn assertTorusDraftSpec() void {
+    if (torus_draft_spec.surface.kind != .torus) @compileError("free-boson torus draft spec surface kind is incomplete");
+    if (torus_draft_spec.surface.coordinate_model != .elliptic) @compileError("free-boson torus draft spec coordinate model is incomplete");
+    if (torus_draft_spec.surface.modular_parameters.len != 1) @compileError("free-boson torus draft spec modular metadata is incomplete");
+    if (torus_draft_spec.surface.source != .stringbook) @compileError("free-boson torus draft spec source convention is incomplete");
+    if (torus_draft_spec.operators.len != sphere_spec.operators.len) @compileError("free-boson torus draft spec operator metadata is incomplete");
+    if (torus_draft_spec.wick_rules.len != sphere_spec.wick_rules.len) @compileError("free-boson torus draft spec Wick metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green) != 6) @compileError("free-boson torus draft spec Green-kernel metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green_exponential) != 1) @compileError("free-boson torus draft spec exponential Green-kernel metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .rational_pole) != 0) @compileError("free-boson torus draft spec still uses rational pole metadata");
+    if (torus_draft_spec.zero_modes.len != 1) @compileError("free-boson torus draft spec zero-mode metadata is incomplete");
+    if (Spec.zeroModeConsumeKindCount(torus_draft_spec.zero_modes[0]) != 2) @compileError("free-boson torus draft spec zero-mode coverage is incomplete");
+}
+
+fn FreeBosonRules(comptime cfg: FreeBosonConfig) type {
+    _ = cfg;
+    const alpha = scalars.atomScalar(alpha_prime_atom);
+    return struct {
+        const sphere_wick_runtime_spec = sphereWickSpec(alpha);
+        const sphere_wick_storage = Spec.wickRules(&sphere_wick_runtime_spec, &sphere_operator_spec);
+
+        const sphere_wick: []const wick.Rule = &sphere_wick_storage;
     };
 }
 
 fn FreeBosonCorrelatorConfig(comptime cfg: FreeBosonConfig) type {
     const rules = FreeBosonRules(cfg);
     return struct {
-        const sphere_zero_storage = sphereZeroStorage(cfg);
-        const sphere_wick_index_storage = shared.wickRuleIndexStorage(rules.sphere_wick);
+        const sphere_zero_storage = sphereZeroStorage();
+        comptime {
+            assertSphereSpec(rules.sphere_wick.len, sphere_zero_storage.len);
+            assertTorusDraftSpec();
+        }
 
         /// sphere selects free-boson sphere Wick and zero-mode rules.
-        pub const sphere = CorrelatorConfig{
+        pub const sphere = declare.correlatorConfig(.{
             .wick_rules = rules.sphere_wick,
-            .wick_rule_index = &sphere_wick_index_storage,
             .zero_modes = &sphere_zero_storage,
-            .config_entries = &.{
-                .{ .id = target_dimension_ref, .value = .{ .target_dimension = cfg.dimension } },
-            },
-        };
+            .config_entries = &declare.configEntries(.{
+                declare.config.targetDimension(target_dimension_ref, cfg.dimension),
+            }),
+        }){};
     };
 }
 
-/// FreeBosonBoundaryConfig declares Neumann and Dirichlet data for a brane.
-pub const FreeBosonBoundaryConfig = struct {
+const FreeBosonBoundaryConfig = struct {
     neumann: Handle.TensorProjector,
     dirichlet: Handle.TensorProjector,
     dirichlet_position: Handle.TargetPoint,
-    alpha_prime: shared.ScalarAtom = alpha_prime_atom,
-    zero_mode_normalization: RuleScalar = scalars.atomScalar(k_disk_atom),
     chan_paton: ?Handle.BoundaryStack = null,
 };
 
 const FreeBosonBoundaryOp = struct {
     /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
-    pub fn dXBoundary(local: *Local, mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.d_x_boundary), singleInsertion(boundaryCoord(y), n), &.{Local.symbol(mu)});
+    pub fn dXBoundary(local: anytype, mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(boundaryOperator(.d_x_boundary)).boundarySingle(local, y, n, .{mu});
     }
 
     /// expXBoundary builds a Neumann boundary plane-wave insertion.
-    pub fn expXBoundary(local: *Local, k: Handle.Momentum, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.exp_x_boundary), singleInsertion(boundaryCoord(y), 0), &.{Local.symbol(k)});
+    pub fn expXBoundary(local: anytype, k: Handle.Momentum, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(boundaryOperator(.exp_x_boundary)).boundarySingle(local, y, 0, .{k});
     }
 
     /// profileBoundary builds a boundary profile insertion.
-    pub fn profileBoundary(local: *Local, f: Handle.Profile, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.profile_x_boundary), singleInsertion(boundaryCoord(y), 0), &.{Local.symbol(f)});
+    pub fn profileBoundary(local: anytype, f: Handle.Profile, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(boundaryOperator(.profile_x_boundary)).boundarySingle(local, y, 0, .{f});
     }
 
     /// profileBoundaryVector builds a vector-valued boundary profile insertion.
-    pub fn profileBoundaryVector(local: *Local, f: Handle.Profile, nu: Handle.Index, y: Handle.BoundaryCoord) !kernel.Call.LocalOp {
-        return local.op(kind(.profile_x_boundary), singleInsertion(boundaryCoord(y), 0), &.{ Local.symbol(f), Local.symbol(nu) });
+    pub fn profileBoundaryVector(local: anytype, f: Handle.Profile, nu: Handle.Index, y: Handle.BoundaryCoord) !Operator {
+        return declare.operatorBuilder(boundary_profile_vector_operator).boundarySingle(local, y, 0, .{ f, nu });
     }
 };
 
-/// boundaryExtension declares the Neumann/Dirichlet free-boson boundary extension.
-pub fn boundaryExtension(comptime cfg: FreeBosonBoundaryConfig) BoundaryExtension {
+fn FreeBosonBoundaryExtension(comptime cfg: FreeBosonBoundaryConfig) type {
     const data = FreeBosonBoundaryData(cfg);
-    return .{
-        .kind = shared.extensionKind("free_boson_boundary"),
+    return declare.BoundaryExtension(.{
         .op = FreeBosonBoundaryOp,
         .wick_rules = data.disk_wick,
         .zero_modes = data.disk_zero_modes,
         .config_entries = data.config_entries,
-    };
+    });
+}
+
+/// boundaryExtension declares the Neumann/Dirichlet free-boson boundary extension.
+pub fn boundaryExtension(comptime cfg: FreeBosonBoundaryConfig) FreeBosonBoundaryExtension(cfg) {
+    return .{};
 }
 
 fn boundaryFreeBosonDxDx(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(alpha, .{ .projector_metric = .{
+    return wick.differentiatedPole(scalars.neg(alpha), .{ .projector_metric = .{
         .projector = .{ .config = neumann_projector_ref },
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
@@ -419,29 +479,29 @@ fn boundaryFreeBosonDxDx(comptime alpha: RuleScalar) wick.Expr {
 }
 
 fn boundaryFreeBosonDxExpX(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.neg(scalars.i(alpha)), .{ .projector_momentum_index = .{
+    return wick.differentiatedPoleWithResiduals(scalars.neg(scalars.i(alpha)), .{ .projector_momentum_index = .{
         .projector = .{ .config = neumann_projector_ref },
         .momentum = wick.label(.right, 0),
         .index = wick.label(.left, 0),
-    } }, holomorphicDifference(), -1, .{ .include_left = true });
+    } }, holomorphicDifference(), -1, .{ .include_left = true }, &.{.right});
 }
 
 fn boundaryFreeBosonDxProfile(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedActionPole(scalars.neg(alpha), .none, holomorphicDifference(), -1, .{ .include_left = true }, &.{
+    return wick.differentiatedActionPoleWithResiduals(scalars.neg(alpha), .none, holomorphicDifference(), -1, .{ .include_left = true }, &.{
         wick.projectedProfileDerivative(.{ .config = neumann_projector_ref }, wick.label(.right, 0), wick.label(.left, 0)),
-    });
+    }, &.{.right});
 }
 
 fn boundaryFreeBosonExpXExpX(comptime alpha: RuleScalar) wick.Expr {
-    return wick.greenExponential(alpha, .{ .projector_momentum_pair = .{
+    return wick.greenExponentialWithResiduals(alpha, .{ .projector_momentum_pair = .{
         .projector = .{ .config = neumann_projector_ref },
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
-    } }, holomorphicDifference());
+    } }, holomorphicDifference(), &.{ .left, .right });
 }
 
 fn mixedFreeBosonDxDxBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(alpha, 2), .{ .projector_metric = .{
+    return wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .projector_metric = .{
         .projector = .{ .config = bulk_boundary_projector_ref },
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
@@ -449,7 +509,7 @@ fn mixedFreeBosonDxDxBoundary(comptime alpha: RuleScalar) wick.Expr {
 }
 
 fn mixedFreeBosonDxtDxBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(alpha, 2), .{ .projector_metric = .{
+    return wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .projector_metric = .{
         .projector = .{ .config = bulk_boundary_projector_ref },
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
@@ -457,96 +517,137 @@ fn mixedFreeBosonDxtDxBoundary(comptime alpha: RuleScalar) wick.Expr {
 }
 
 fn mixedFreeBosonDxExpXBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .projector_momentum_index = .{
+    return wick.differentiatedPoleWithResiduals(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .projector_momentum_index = .{
         .projector = .{ .config = bulk_boundary_projector_ref },
         .momentum = wick.label(.right, 0),
         .index = wick.label(.left, 0),
-    } }, bulkToBoundaryHolomorphicDifference(), -1, .{ .include_left = true });
+    } }, bulkToBoundaryHolomorphicDifference(), -1, .{ .include_left = true }, &.{.right});
 }
 
 fn mixedFreeBosonDxProfileBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedActionPole(scalars.div(scalars.neg(alpha), 2), .none, bulkToBoundaryHolomorphicDifference(), -1, .{ .include_left = true }, &.{
+    return wick.differentiatedActionPoleWithResiduals(scalars.div(scalars.neg(alpha), 2), .none, bulkToBoundaryHolomorphicDifference(), -1, .{ .include_left = true }, &.{
         wick.projectedProfileDerivative(.{ .config = bulk_boundary_projector_ref }, wick.label(.right, 0), wick.label(.left, 0)),
-    });
+    }, &.{.right});
 }
 
 fn mixedFreeBosonDxtExpXBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedPole(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .projector_momentum_index = .{
+    return wick.differentiatedPoleWithResiduals(scalars.div(scalars.neg(scalars.i(alpha)), 2), .{ .projector_momentum_index = .{
         .projector = .{ .config = bulk_boundary_projector_ref },
         .momentum = wick.label(.right, 0),
         .index = wick.label(.left, 0),
-    } }, bulkToBoundaryAntiholomorphicDifference(), -1, .{ .include_left = true });
+    } }, bulkToBoundaryAntiholomorphicDifference(), -1, .{ .include_left = true }, &.{.right});
 }
 
 fn mixedFreeBosonDxtProfileBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.differentiatedActionPole(scalars.div(scalars.neg(alpha), 2), .none, bulkToBoundaryAntiholomorphicDifference(), -1, .{ .include_left = true }, &.{
+    return wick.differentiatedActionPoleWithResiduals(scalars.div(scalars.neg(alpha), 2), .none, bulkToBoundaryAntiholomorphicDifference(), -1, .{ .include_left = true }, &.{
         wick.projectedProfileDerivative(.{ .config = bulk_boundary_projector_ref }, wick.label(.right, 0), wick.label(.left, 0)),
-    });
+    }, &.{.right});
 }
 
 fn mixedFreeBosonExpXExpXBoundary(comptime alpha: RuleScalar) wick.Expr {
-    return wick.greenExponential(scalars.div(alpha, 2), .{ .projector_momentum_pair = .{
+    return wick.greenExponentialWithResiduals(scalars.div(alpha, 2), .{ .projector_momentum_pair = .{
         .projector = .{ .config = bulk_boundary_projector_ref },
         .left = wick.label(.left, 0),
         .right = wick.label(.right, 0),
-    } }, bulkToBoundaryHolomorphicDifference());
+    } }, bulkToBoundaryHolomorphicDifference(), &.{ .left, .right });
 }
 
-fn diskWickStorage(comptime alpha: RuleScalar) [11]wick.Rule {
-    return [_]wick.Rule{
-        wick.rule(dXBoundaryPattern(), dXBoundaryPattern(), boundaryFreeBosonDxDx(alpha)),
-        wick.rule(dXBoundaryPattern(), expXBoundaryPattern(), boundaryFreeBosonDxExpX(alpha)),
-        wick.rule(dXBoundaryPattern(), profileBoundaryPattern(), boundaryFreeBosonDxProfile(alpha)),
-        wick.rule(expXBoundaryPattern(), expXBoundaryPattern(), boundaryFreeBosonExpXExpX(alpha)),
-        wick.rule(dXPattern(), dXBoundaryPattern(), mixedFreeBosonDxDxBoundary(alpha)),
-        wick.rule(dXtPattern(), dXBoundaryPattern(), mixedFreeBosonDxtDxBoundary(alpha)),
-        wick.rule(dXPattern(), expXBoundaryPattern(), mixedFreeBosonDxExpXBoundary(alpha)),
-        wick.rule(dXtPattern(), expXBoundaryPattern(), mixedFreeBosonDxtExpXBoundary(alpha)),
-        wick.rule(dXPattern(), profileBoundaryPattern(), mixedFreeBosonDxProfileBoundary(alpha)),
-        wick.rule(dXtPattern(), profileBoundaryPattern(), mixedFreeBosonDxtProfileBoundary(alpha)),
-        wick.rule(expXPattern(), expXBoundaryPattern(), mixedFreeBosonExpXExpXBoundary(alpha)),
+fn diskWickSpec(comptime alpha: RuleScalar) [11]Spec.WickRule {
+    return [_]Spec.WickRule{
+        .{ .left = kind(.d_x_boundary), .right = kind(.d_x_boundary), .expr = boundaryFreeBosonDxDx(alpha) },
+        .{ .left = kind(.d_x_boundary), .right = kind(.exp_x_boundary), .expr = boundaryFreeBosonDxExpX(alpha) },
+        .{ .left = kind(.d_x_boundary), .right = kind(.profile_x_boundary), .expr = boundaryFreeBosonDxProfile(alpha) },
+        .{ .left = kind(.exp_x_boundary), .right = kind(.exp_x_boundary), .expr = boundaryFreeBosonExpXExpX(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.d_x_boundary), .expr = mixedFreeBosonDxDxBoundary(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.d_x_boundary), .expr = mixedFreeBosonDxtDxBoundary(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.exp_x_boundary), .expr = mixedFreeBosonDxExpXBoundary(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.exp_x_boundary), .expr = mixedFreeBosonDxtExpXBoundary(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.profile_x_boundary), .expr = mixedFreeBosonDxProfileBoundary(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.profile_x_boundary), .expr = mixedFreeBosonDxtProfileBoundary(alpha) },
+        .{ .left = kind(.exp_x), .right = kind(.exp_x_boundary), .expr = mixedFreeBosonExpXExpXBoundary(alpha) },
     };
 }
 
-fn diskZeroStorage(comptime cfg: FreeBosonBoundaryConfig) [1]zero_mode.Rule {
-    return [_]zero_mode.Rule{
-        zero_mode.rule(zeroSector(.boundary), .{ .free_boson_constant_mode = .{
+fn diskZeroSpec(comptime normalization: RuleScalar) [1]Spec.ZeroModeRule {
+    return [_]Spec.ZeroModeRule{
+        .{ .sector = zeroSector(.boundary), .expr = .{ .free_boson_constant_mode = .{
             .integration_projector = neumann_projector_ref,
             .fixed_projector = dirichlet_projector_ref,
             .fixed_position = dirichlet_position_ref,
             .exp_kind_ids = &.{ kind(.exp_x), kind(.exp_x_boundary) },
             .profile_kind_ids = &.{ kind(.profile_x), kind(.profile_x_boundary) },
             .normalization = .{
-                .scalar = cfg.zero_mode_normalization,
+                .scalar = normalization,
                 .two_pi_power = .{ .projector_rank = neumann_projector_ref },
             },
-        } }),
+        } } },
     };
 }
 
-fn FreeBosonBoundaryData(comptime cfg: FreeBosonBoundaryConfig) type {
-    const alpha = scalars.atomScalar(cfg.alpha_prime);
-    return struct {
-        const disk_wick_storage = diskWickStorage(alpha);
-        const disk_zero_storage = diskZeroStorage(cfg);
-        const config_storage = if (cfg.chan_paton) |stack| [_]shared.ConfigEntry{
-            .{ .id = neumann_projector_ref, .value = .{ .tensor_projector = cfg.neumann } },
-            .{ .id = dirichlet_projector_ref, .value = .{ .tensor_projector = cfg.dirichlet } },
-            .{ .id = bulk_boundary_projector_ref, .value = .{ .tensor_projector = cfg.neumann } },
-            .{ .id = dirichlet_position_ref, .value = .{ .target_point = cfg.dirichlet_position } },
-            .{ .id = chan_paton_ref, .value = .{ .boundary_stack = stack } },
-        } else [_]shared.ConfigEntry{
-            .{ .id = neumann_projector_ref, .value = .{ .tensor_projector = cfg.neumann } },
-            .{ .id = dirichlet_projector_ref, .value = .{ .tensor_projector = cfg.dirichlet } },
-            .{ .id = bulk_boundary_projector_ref, .value = .{ .tensor_projector = cfg.neumann } },
-            .{ .id = dirichlet_position_ref, .value = .{ .target_point = cfg.dirichlet_position } },
-        };
+fn diskZeroStorage() [1]zero_mode.Rule {
+    const spec = diskZeroSpec(scalars.atomScalar(k_disk_atom));
+    return Spec.zeroModeRules(&spec);
+}
 
-        /// disk_wick lists boundary and mixed free-boson Wick rules on the disk.
-        pub const disk_wick: []const wick.Rule = &disk_wick_storage;
-        /// disk_zero_modes lists free-boson constant-mode rules on the disk.
-        pub const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
-        /// config_entries lists typed Neumann, Dirichlet, and Chan-Paton boundary data.
-        pub const config_entries: []const shared.ConfigEntry = &config_storage;
+fn FreeBosonBoundaryData(comptime cfg: FreeBosonBoundaryConfig) type {
+    const alpha = scalars.atomScalar(alpha_prime_atom);
+    return struct {
+        const disk_wick_runtime_spec = diskWickSpec(alpha);
+        const disk_wick_storage = Spec.wickRules(&disk_wick_runtime_spec, &disk_operator_spec);
+        const disk_zero_storage = diskZeroStorage();
+        const config_storage = if (cfg.chan_paton) |stack| declare.configEntries(.{
+            declare.config.tensorProjector(neumann_projector_ref, cfg.neumann),
+            declare.config.tensorProjector(dirichlet_projector_ref, cfg.dirichlet),
+            declare.config.tensorProjector(bulk_boundary_projector_ref, cfg.neumann),
+            declare.config.targetPoint(dirichlet_position_ref, cfg.dirichlet_position),
+            declare.config.boundaryStack(chan_paton_ref, stack),
+        }) else declare.configEntries(.{
+            declare.config.tensorProjector(neumann_projector_ref, cfg.neumann),
+            declare.config.tensorProjector(dirichlet_projector_ref, cfg.dirichlet),
+            declare.config.tensorProjector(bulk_boundary_projector_ref, cfg.neumann),
+            declare.config.targetPoint(dirichlet_position_ref, cfg.dirichlet_position),
+        });
+
+        const disk_wick: []const wick.Rule = &disk_wick_storage;
+        const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
+        const config_entries = &config_storage;
     };
+}
+
+test "free-boson schema builders return opaque local tokens" {
+    const testing = std.testing;
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const k = try local.momentum("k");
+    const z = try local.coord("z");
+    const zbar = try local.coord("zbar");
+    const dx = try X.op.dX(&local, mu, 2, z);
+    const exp = try X.op.expX(&local, k, z, zbar);
+    const ops = try local.ops(.{ dx, exp });
+
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(dx)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(exp)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(ops)).pointer.child) == .@"opaque");
+}
+
+test "free-boson boundary schema builders return opaque local tokens" {
+    const testing = std.testing;
+
+    var local = try Local.init(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const k = try local.momentum("k");
+    const y = try local.boundaryCoord("y");
+    const dx = try FreeBosonBoundaryOp.dXBoundary(&local, mu, 3, y);
+    const exp = try FreeBosonBoundaryOp.expXBoundary(&local, k, y);
+    const ops = try local.ops(.{ dx, exp });
+
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(dx)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(exp)).pointer.child) == .@"opaque");
+    try testing.expect(@typeInfo(@typeInfo(@TypeOf(ops)).pointer.child) == .@"opaque");
 }

@@ -1,0 +1,164 @@
+const std = @import("std");
+const shared = @import("shared.zig");
+const declare = shared.declare;
+
+const operators = @import("../expressions/operators.zig");
+const Handle = shared.Handle;
+const Builder = *shared.Local;
+const Operator = *shared.LocalOperator;
+const Spec = declare.Spec;
+const wick = declare.wick;
+
+const namespace = "free_fermion";
+
+const Family = enum {
+    psi,
+    psit,
+};
+
+fn kind(comptime family: Family) operators.OperatorKindId {
+    return declare.familyKind(namespace, family);
+}
+
+const FreeFermionSphereConfig = struct {
+    dimension: u16,
+    include_antiholomorphic_copy: bool = true,
+};
+
+/// freeFermionSphere builds the generated preset type for sphere NS free fermions.
+pub fn freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type {
+    if (cfg.dimension == 0) @compileError("free-fermion target dimension must be nonzero");
+    return struct {
+        /// op exposes NS free-fermion local operator builders.
+        pub const op = FreeFermionSphereOp(cfg.include_antiholomorphic_copy);
+        /// config exposes named correlator configs for this preset.
+        pub const config = FreeFermionCorrelatorConfig(cfg);
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
+        /// local constructs a label-preserving local-operator builder.
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
+        }
+
+        /// correlator streams rule matches for NS free-fermion insertions.
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+            return shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+
+fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
+    const Holomorphic = struct {
+        /// psi builds a holomorphic NS free-fermion insertion.
+        pub fn psi(local: anytype, mu: Handle.Index, n: u8, z: Handle.Coord) !Operator {
+            return declare.operatorBuilder(fermionOperator(.psi)).single(local, z, n, .{mu});
+        }
+    };
+
+    if (!include_antiholomorphic_copy) return Holomorphic;
+
+    return struct {
+        /// psi builds a holomorphic NS free-fermion insertion.
+        pub const psi = Holomorphic.psi;
+
+        /// psit builds an antiholomorphic NS free-fermion insertion.
+        pub fn psit(local: anytype, mu: Handle.Index, n: u8, zbar: Handle.Coord) !Operator {
+            return declare.operatorBuilder(fermionOperator(.psit)).single(local, zbar, n, .{mu});
+        }
+    };
+}
+
+fn holomorphicDifference() wick.CoordinateDifference {
+    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+fn antiholomorphicDifference() wick.CoordinateDifference {
+    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+fn psiPsi() wick.Expr {
+    return wick.differentiatedPole(.one, .{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }, holomorphicDifference(), -1, .{ .include_left = true, .include_right = true });
+}
+
+fn psitPsit() wick.Expr {
+    return wick.differentiatedPole(.one, .{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }, antiholomorphicDifference(), -1, .{ .include_left = true, .include_right = true });
+}
+
+const sphere_holomorphic_operator_spec = [_]Spec.Operator{
+    .{ .name = "psi", .kind = kind(.psi), .support = .holomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .fermionic },
+};
+
+const sphere_full_operator_spec = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
+    .{ .name = "psit", .kind = kind(.psit), .support = .antiholomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .fermionic },
+};
+
+const sphere_holomorphic_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.psi), .right = kind(.psi), .expr = psiPsi() },
+};
+
+const sphere_full_wick_spec = sphere_holomorphic_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.psit), .right = kind(.psit), .expr = psitPsit() },
+};
+
+const sphere_holomorphic_wick_storage = Spec.wickRules(&sphere_holomorphic_wick_spec, &sphere_holomorphic_operator_spec);
+const sphere_full_wick_storage = Spec.wickRules(&sphere_full_wick_spec, &sphere_full_operator_spec);
+
+const sphere_holomorphic_fermion_storage = Spec.fermionKinds(&sphere_holomorphic_operator_spec);
+const sphere_full_fermion_storage = Spec.fermionKinds(&sphere_full_operator_spec);
+
+const sphere_holomorphic_zero_spec = [_]Spec.ZeroModeRule{};
+const sphere_full_zero_spec = [_]Spec.ZeroModeRule{};
+
+fn sphereSpec(comptime include_antiholomorphic_copy: bool) Spec.Theory {
+    return .{
+        .operators = if (include_antiholomorphic_copy) &sphere_full_operator_spec else &sphere_holomorphic_operator_spec,
+        .wick_rules = if (include_antiholomorphic_copy) &sphere_full_wick_spec else &sphere_holomorphic_wick_spec,
+        .zero_modes = if (include_antiholomorphic_copy) &sphere_full_zero_spec else &sphere_holomorphic_zero_spec,
+    };
+}
+
+fn fermionOperator(comptime family: Family) Spec.Operator {
+    const kind_id = kind(family);
+    inline for (sphere_full_operator_spec) |operator| {
+        if (operator.kind == kind_id) return operator;
+    }
+    @compileError("missing free-fermion operator spec");
+}
+
+fn assertSphereSpec(comptime include_antiholomorphic_copy: bool, comptime wick_count: usize, comptime zero_count: usize, comptime fermion_count: usize) void {
+    const spec = sphereSpec(include_antiholomorphic_copy);
+    if (spec.wick_rules.len != wick_count) @compileError("free-fermion sphere spec Wick count does not match lowered rules");
+    if (spec.zero_modes.len != zero_count) @compileError("free-fermion sphere spec zero-mode count does not match lowered rules");
+    if (spec.operators.len != fermion_count) @compileError("free-fermion sphere spec fermion coverage does not match lowered rules");
+}
+
+fn FreeFermionRules(comptime include_antiholomorphic_copy: bool) type {
+    const selected_wick = if (include_antiholomorphic_copy) sphere_full_wick_storage else sphere_holomorphic_wick_storage;
+    const selected_fermions = if (include_antiholomorphic_copy) sphere_full_fermion_storage else sphere_holomorphic_fermion_storage;
+    return struct {
+        const sphere_wick: []const wick.Rule = &selected_wick;
+        const sphere_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
+    };
+}
+
+fn FreeFermionCorrelatorConfig(comptime cfg: FreeFermionSphereConfig) type {
+    const rules = FreeFermionRules(cfg.include_antiholomorphic_copy);
+    return struct {
+        comptime {
+            assertSphereSpec(cfg.include_antiholomorphic_copy, rules.sphere_wick.len, 0, rules.sphere_fermion_kinds.len);
+        }
+
+        /// sphere selects NS free-fermion sphere Wick rules.
+        pub const sphere = declare.correlatorConfig(.{
+            .wick_rules = rules.sphere_wick,
+            .zero_modes = &.{},
+            .fermion_kinds = rules.sphere_fermion_kinds,
+        }){};
+    };
+}

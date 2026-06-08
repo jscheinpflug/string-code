@@ -1,0 +1,525 @@
+:PROPERTIES:
+:ID:       20260607T170000.000000
+:END:
+#+title: CFT API Leakage Handoff
+
+* Goal
+
+Carry out [[id:20260607T140000.000000][Generated Correlator Implementation Plan]].
+
+The main requirement is that performance-related correlator internals never
+leak to user-side code.  The eventual user side should be a small DSL for
+physics data: operator families, Wick contractions, zero modes, surfaces, and
+rendering preferences.  Users should not know about kernel operator records,
+pair lookup tables, branch state, residual masks, rule payloads, compact cache
+layouts, or zero-mode dry-run machinery.
+
+The API should stay extremely concise.  Extra code is a liability.  All changes
+must preserve the strict benchmark gate documented in
+[[id:20260607T130000.000000][Correlator Performance Benchmarks]].
+
+Important correction from the latest review: the torus draft setup is not dead
+code to delete for size reduction.  It is retained design scaffolding for the
+next torus implementation pass.  Size cleanup must therefore target real
+duplication, public leakage, or unused transitional machinery without removing
+the torus surface/kernel/zero-mode metadata.
+
+* Current public API situation
+
+The root CFT API currently exports only a small constructor surface:
+
+- =cft.FreeBoson=
+- =cft.Bc=
+- =cft.FreeFermion=
+- =cft.EtaXi=
+- =cft.product=
+- =cft.boundary=
+
+The root no longer exports implementation namespaces such as =kernel=,
+=theory=, =expressions=, =presets=, =Handle=, or scalar/config internals.
+
+This does not mean the full reachable API is clean.  Preset return types still
+expose the current practical workflow:
+
+#+begin_src zig
+const X = cft.FreeBoson.make(.{ .dimension = 10 });
+var local = try X.local(allocator);
+defer local.deinit();
+
+const mu = try local.index("mu");
+const z = try local.coord("z");
+const dx = try X.op.dX(&local, mu, 0, z);
+const ops = try local.ops(.{dx});
+
+var sink = X.text.compact(writer, .small);
+try X.correlator(&X.config.sphere, ops, &sink);
+#+end_src
+
+This is much better than the starting point, but it is not the final DSL shape
+from the plan.  Users still see a builder workflow and generated preset
+operator namespaces rather than pure declaration forms.
+
+Reachable preset members today include:
+
+- =op=: generated operator builders.
+- =config=: opaque runtime config handles.
+- =text=: selected compact text sink constructor.
+- =local=: local token/operator-list builder.
+- =correlator=: streaming entry point.
+- Free-boson only: =profile= and =target= helpers.
+
+Those names are not all leaks.  The leak criterion is whether a user must know
+runtime implementation details to use them.  =op=, =local=, =config=, and
+=text= are transitional API.  =kernel.Call= records, rule arrays, branch
+storage, residual masks, and pair-cache payloads must stay hidden behind them.
+
+* Progress made
+
+Root API leakage was reduced.
+
+- =src/cft-code/cft-code.zig= exposes only the selected CFT constructors and
+  combinators.
+- Tests assert that root-level implementation namespaces and old constructor
+  names are not visible.
+
+Config leakage was reduced.
+
+- Public preset configs are opaque handles with private implementation data.
+- User code cannot inspect =wick_rules=, =pair_lookup=, =zero_modes=,
+  =config_entries=, or related runtime tables through preset configs.
+
+Operator-list leakage was reduced.
+
+- =shared.Local= is now opaque.
+- Local operator tokens are opaque =*shared.LocalOperator=.
+- Frozen correlator inputs are opaque =*shared.OperatorList=.
+- User-side code no longer handles =kernel.Call.LocalOp= or
+  =kernel.Call.MultiOp= directly.
+- Builder ownership is checked: an operator token from one local builder cannot
+  be frozen by another builder.
+- =local.ops(...)= is now the only public operation-list freezing path.
+  Nested tuples inside =ops= represent normal-ordered products, so
+  =local.finish()= and =local.normalOrdered(...)= are no longer public.
+
+Runtime traversal internals were moved away from user-visible preset surfaces.
+
+- The generated Wick traversal uses compact runtime data and the correlator
+  walker internally.
+- Pair lookup, branch accumulation, residual replay, and zero-mode base-case
+  logic are private implementation machinery.
+
+Shared preset visibility was narrowed further.
+
+- Import-only implementation aliases were removed from preset modules:
+  unused =kernel= imports in free-boson, =bc=, and composition, unused
+  =RuleScalar= in =bc=, and unused =Local= in composition.
+- =shared.LoweredSlice= is no longer public; composition still passes enum
+  literals into the slice helpers.
+- =shared.TextBudget= is no longer public; users still call
+  =X.text.compact(writer, .small)= or =.medium=.
+- =shared.ConfigValue= and the compact scalar/config carrier types
+  =ScalarAtom=, =ConfigRef=, =RationalScalar=, and =ScalarMonomial= are no
+  longer public.
+- =shared.ConfigEntry= is no longer public.  Presets build typed config
+  payloads through =shared.declare.config.*= constructors and
+  =shared.declare.configEntries=.
+- The composition slice plumbing =correlatorSliceCount=,
+  =appendCorrelatorSlice=, =boundaryExtensionSliceCount=, and
+  =appendBoundaryExtensionSlice= is no longer public.  Product and boundary
+  presets use =shared.declare.mergeSphereConfigs= and
+  =shared.declare.mergeBoundaryConfig=.
+- The broad declaration vocabulary =shared.Spec=, =shared.wick=,
+  =shared.zero_mode=, and =shared.scalars= is no longer exported as separate
+  top-level names.  Preset implementations now use the single
+  =shared.declare= namespace.
+
+Benchmark hardening was completed for the current runner.
+
+- =benchmarks/correlator_kernel_median.zig= enforces a =21/20= median gate for
+  every event and branch benchmark case.
+- There are no relaxed slow-case exceptions.
+- Every benchmark case now requires expected primitive term, residual,
+  zero-mode, and base-case counts.
+- The same benchmark changes were mirrored into
+  =org/cft-code/benchmarks/correlator-performance.org=.
+
+* Verification already run
+
+The following checks passed after the main API-hiding work and benchmark
+hardening:
+
+#+begin_src sh
+zig test --global-cache-dir /tmp/zig-global-cache --dep tensor-code -Mroot=src/cft-code/cft-code.zig -Mtensor-code=/tmp/tensor_stub.zig
+zig build test --global-cache-dir /tmp/zig-global-cache
+git diff --check
+zig run --global-cache-dir /tmp/zig-global-cache -OReleaseFast --dep cft-code -Mroot=benchmarks/correlator_kernel_median.zig --dep tensor-code -Mcft-code=src/cft-code/cft-code.zig -Mtensor-code=/tmp/tensor_stub.zig
+#+end_src
+
+The last benchmark run exited successfully with all event and branch cases under
+the 5% median gate and with all count checks enabled.
+
+The latest strict benchmark timings from 2026-06-08 are written separately in
+[[file:../../../notes/correlator-performance-results.org][Correlator Performance Results]].  That note records the raw runner output,
+nanosecond medians, batch sizes, branch-state sizes, and streamed count totals
+for every case.
+
+* Not done yet
+
+The full generated-correlator plan is not complete.
+
+Current handoff caveat:
+
+- This node records the current state; it is not proof that the goal is done.
+- It is intentionally conservative: anything not explicitly verified should be
+  treated as open work.
+- The current worktree contains unrelated tensor and CFT changes.  Do not infer
+  ownership from =git status= alone, and do not revert unrelated changes.
+
+Torus status:
+
+- Torus is present only as draft spec metadata, and that metadata should be
+  preserved.
+- =src/cft-code/presets/free_boson.zig= has a =torus_draft_spec= with
+  elliptic Green and elliptic Green-exponential Wick kernel metadata, one
+  torus free-boson constant-mode zero-mode rule, modular parameter =tau=, and
+  compile-time consistency checks.
+- =src/cft-code/presets/bc.zig= has a =torus_draft_spec= with elliptic
+  prime-form Wick kernel metadata, one torus ghost-moduli zero-mode rule,
+  modular parameter =tau=, and compile-time consistency checks.
+- =src/cft-code/presets/free_fermion.zig= defines the NS-sector free fermion on
+  the sphere only.  Do not define its torus/loop-level surface yet; that must
+  later be combined with the \(\phi\) system.
+- =src/cft-code/presets/eta_xi.zig= defines the \(\eta,\xi\) system on the
+  sphere and has a =torus_draft_spec= with elliptic prime-form Wick kernel
+  metadata, one torus eta-xi zero-mode rule, modular parameter =tau=, and
+  compile-time consistency checks.
+- =shared.Spec= knows about =.torus= surfaces, =.elliptic= coordinate models,
+  elliptic coordinate-kernel tags, and torus zero-mode kinds.
+- There is no public torus preset/config yet.
+- There is no torus runtime evaluator yet: the elliptic kernels, torus
+  zero-mode emissions, normalization factors, and modular data are not lowered
+  into an executable correlator config.
+- There are no torus benchmarks yet.  Current strict benchmark coverage is for
+  the existing sphere/disk/free-boson/=bc= workloads.
+- Code-size cleanup must not remove this setup.  The right next step is to
+  lower torus through the same generic data path, then add torus benchmarks.
+
+Known wrong or suspect boundaries:
+
+- =shared.operatorBuilder= is implementation machinery for generated operator
+  builders.  Theory authors and normal users should never call it.
+- The custom sink protocol still exposes internal event method names and
+  resolved factor types to anyone writing a sink.  Normal users can use
+  =X.text.compact=, but the low-level sink interface remains visible through
+  =correlator(..., sink)=.
+- =shared.Handle.*= token types are still visible in inferred function
+  signatures.  Some token types, such as coordinates, indices, and momenta, may
+  be the right public vocabulary.  The global =shared.Handle= grouping is
+  suspect and may need preset-local aliases.
+- =Local= is opaque, but it still combines token creation and operator-list
+  freezing.  This is acceptable transitionally but may not be the final DSL
+  shape.
+- Boundary ergonomics are still rough:
+  =@TypeOf(extension).op.expXBoundary(...)= exposes the fact that boundary data
+  is a separate extension object.  BCFT construction should probably present a
+  smoother theory-local operator namespace.
+- Config selection by pointer, =X.correlator(&X.config.sphere, ops, &sink)=,
+  is not the worst leak, but =X.correlator(.sphere, ops, &out)= may be the
+  cleaner eventual surface.
+- The public preset layer is still handwritten/generated-preset style rather
+  than the final =defineTheory(.{ ... })= declaration shape.
+
+Already corrected wrong boundaries:
+
+- The root CFT module no longer exports =kernel=, =theory=, =expressions=, or
+  =presets=.
+- Config handles are opaque.
+- Local operators and frozen operator lists are opaque.
+- User code no longer handles =kernel.Call.LocalOp= or =kernel.Call.MultiOp=.
+- =Local.finish= and =Local.normalOrdered= are no longer public.
+- Polynomial profile construction now accepts tuple terms such as
+  =.{ .{ coefficient, power } }=, and =Handle.PolynomialProfileTerm= is no
+  longer public.
+
+Boundaries that should remain unsettled until harder worldsheets are
+implemented:
+
+- The exact spelling of =defineTheory=, =parameter=, =operator=, =wick=,
+  =zeroMode=, and =surface=.
+- Whether =Handle.*= survives as the public token vocabulary or becomes hidden
+  behind preset-local aliases.
+- How much of custom result streaming remains public after torus, spin
+  structures, superghost/picture data, integrated vertices, and moduli are
+  exercised.
+- The final shape of torus config selection and modular data.
+
+Remaining implementation work:
+
+- Complete a requirement-by-requirement audit of
+  [[id:20260607T140000.000000][Generated Correlator Implementation Plan]].
+- Continue moving declaration/spec concepts toward the compact five-form DSL:
+  =parameter=, =operator=, =wick=, =zeroMode=, and =surface=.
+- Add the next near-term theory runtime pieces in this order:
+  1. \(\eta,\xi\) torus lowering through the generic surface/kernel/zero-mode
+     path.
+  2. Torus benchmarks for the retained metadata.
+  Free-fermion loop-level/torus work should still wait until it can be
+  combined with the \(\phi\) system.
+- Keep generated runtime tables private.
+- Keep branch traversal and zero-mode pruning procedural and data-oriented.
+- Avoid adding materialized symbolic expressions by default.
+- Run the strict benchmark after each meaningful API or runtime change.
+- When the full tensor module builds cleanly, run the benchmark against
+  =src/tensor-code/tensor-code.zig=, not only the tensor stub.
+
+* AGENTS audit
+
+This handoff should be read with =AGENTS.md= as a constraint, not as optional
+background.
+
+Rules satisfied by the work so far:
+
+- The benchmark runner avoids materializing full symbolic expressions and
+  checks streaming counts.
+- The public root API is small.
+- The main implementation edits were mirrored between =org= and =src= files.
+- New tests added during the API-hiding work targeted concrete invariants:
+  hidden config fields, opaque local/operator-list tokens, and builder
+  ownership.
+
+Rules still at risk:
+
+- Public declarations in =shared.zig= are too broad for the final target.  Even
+  if root hides them, AGENTS requires each module to export the bare minimum.
+- Raw code size is still too large.  API surface reduction is substantial, but
+  =src/cft-code/presets/shared.zig= remains the dominant implementation growth
+  area.  Reduce it by removing duplication and transitional public surface, not
+  by deleting retained torus scaffolding.
+- =Local= still owns both token creation and operator-list freezing.  Keep this
+  procedural and lean; do not add a larger abstraction unless it removes a real
+  public leak.
+- Custom sinks can see implementation-shaped event names and resolved factor
+  types.  A concise user-facing renderer/result API should reduce the need for
+  public custom sinks.
+- The torus case is only metadata.  Adding it must not introduce special
+  branches by theory name; torus must lower through the same data path as
+  sphere examples.
+- Any next code change must be made in the relevant =org= node and tangled or
+  mirrored into =src=.  Do not edit only generated Zig.
+- Do not add tests just to increase coverage.  Add only tests that pin a
+  precise public-leak or performance invariant.
+- No new result-inspection path may allocate a large expression tree by
+  default.
+
+* Recommended next pass
+
+The next major goal is not only to hide names.  It is to make the current
+preset implementation look like the future =defineTheory= lowering path from
+the outside.  The public surface should become a thin physics-facing shell over
+private tables.
+
+** Step 1: Freeze the intended user surface
+
+There are two user surfaces, and they should not be conflated.
+
+The theory-authoring surface is for writing physics data.  It must include the
+whole theory:
+
+- parameters: scalar, rank, tensor, modular, and topology/config data;
+- operators: family name, support, statistics, label schema, and zero-mode
+  survivability;
+- Wick contractions: pair rules written as symbolic factor products;
+- zero-mode rules: residual consumers and emitted base-case factors;
+- surfaces: sphere, disk, torus, boundary/topology data, coordinate models,
+  modular parameters, and convention source.
+
+The intended shape is:
+
+#+begin_src zig
+pub const X = cft.defineTheory(.{
+    .parameters = .{
+        cft.parameter(.alpha_prime, .scalar),
+        cft.parameter(.dimension, .rank),
+    },
+
+    .operators = .{
+        cft.operator(.dX, .{
+            .support = .holomorphic,
+            .statistics = .bosonic,
+            .labels = .{ cft.label(.mu, .index) },
+        }),
+        cft.operator(.expX, .{
+            .support = .bulk_pair,
+            .statistics = .bosonic,
+            .labels = .{ cft.label(.k, .momentum) },
+            .zero_mode = .consumable,
+        }),
+    },
+
+    .wick = .{
+        cft.wick(.dX, .dX).term(.{
+            .scalar = cft.scalar(.alpha_prime).scale(-1, 2),
+            .coordinate = cft.pole(cft.z(.left), cft.z(.right), -2)
+                .differentiate(.left, .right),
+            .tensor = cft.metric(
+                cft.label(.left, .mu),
+                cft.label(.right, .mu),
+            ),
+        }),
+    },
+
+    .zero_modes = .{
+        cft.zeroMode(.free_boson_constant, .{
+            .sector = .sphere,
+            .consumes = .{ cft.any(.expX) },
+            .emits = cft.momentumDelta(.{
+                .momenta = cft.labels(.expX, .k),
+            }),
+        }),
+    },
+
+    .surfaces = .{
+        cft.surface(.sphere, .{ .coordinate_model = .rational }),
+        cft.surface(.torus, .{
+            .coordinate_model = .elliptic,
+            .moduli = .{ cft.parameter(.tau, .modular) },
+            .source = .stringbook,
+        }),
+    },
+});
+#+end_src
+
+The theory definition must not expose compact operator ids, label spans,
+pair-cache storage, rule indexes, payload bit packing, residual masks, branch
+state, zero-mode dry-run state, or sink event names.
+
+The theory-usage surface is for evaluating a defined theory.  Write down and
+enforce the smallest preset-facing API that should survive until =defineTheory=
+exists:
+
+- theory constructors: =cft.FreeBoson.make=, =cft.Bc.sphere=,
+  =cft.FreeFermion.sphere=, =cft.EtaXi.sphere=, =cft.product=, =cft.boundary=;
+- local construction and insertion builders: =X.local= and =X.op.*=;
+- opaque configs: =X.config.sphere= and eventual =X.config.torus=;
+- bounded result adapters: initially =X.text.compact=;
+- one streaming call: =X.correlator(config, ops, result_adapter)=.
+
+Existing presets should migrate toward being handwritten users of the same
+internal lowering path that =defineTheory= will use.  They are not a separate
+API family.
+
+Everything else should either become private or be given a physics-facing name.
+Do this with compile-time negative tests only when they pin a real public-leak
+invariant.
+
+** Step 2: Finish profile-handle cleanup
+
+The first profile cleanup is complete: polynomial RNC profiles no longer expose
+=Handle.PolynomialProfileTerm=.  The public constructor vocabulary is now:
+
+#+begin_src zig
+X.profile.position(f)
+X.profile.fourier(f_hat)
+X.profile.polynomialRnc(point, .{
+    .{ coefficient, power },
+})
+#+end_src
+
+This sets the pattern for later DSL terms: public tuples and named
+constructors, private packed records.  Remaining profile work is to decide
+whether =Handle.Profile= and the target-profile token constructors should stay
+as the public token vocabulary or move behind preset-local aliases.
+
+** Step 3: Introduce an internal declaration namespace
+
+The current implementation namespace is =shared.declare=.  It owns the current
+=Spec=, =wick=, =zero_mode=, =scalars=, config-entry constructors, config
+merge helpers, and operator/config lowering helpers.  Existing handwritten
+presets use it, while root and preset return types do not expose the individual
+top-level declaration names.
+
+The future =defineTheory= DSL should lower into this same namespace.  Do not
+create a second parallel representation.  The key internal records remain:
+
+- operator declarations;
+- Wick rule declarations;
+- zero-mode declarations;
+- surface declarations;
+- boundary extension declarations.
+
+This keeps future DSL work cheap: =defineTheory(.{ ... })= becomes a frontend
+that lowers into the same compact tables the presets already use.
+
+** Step 4: Hide composition slice plumbing
+
+=ConfigEntry= and the slice append/count helpers are no longer public.
+=product= and =boundary= compose lowered tables through private shared merge
+helpers instead of naming slice selectors or append procedures.
+
+The current shape is:
+
+#+begin_src zig
+const merged = shared.mergeSphereConfigs(.{ A, B });
+const disk = shared.mergeBoundaryConfig(Bulk, extensions);
+#+end_src
+
+Those helpers return opaque config handles.  Callers no longer see
+=ConfigEntry=, slice selectors, or append procedures.
+
+** Step 5: Put custom sinks behind result adapters
+
+The low-level sink protocol still leaks event names and resolved factor types.
+Keep the streaming runtime internally, but make public correlator calls prefer
+named result adapters:
+
+#+begin_src zig
+var out = X.result.text(writer, .small);
+try X.correlator(&X.config.sphere, ops, &out);
+#+end_src
+
+Only expose custom sinks through a deliberately named advanced/internal entry
+point if they are still needed for benchmarks.  The normal API should not teach
+users about =emitWickTermStart=, residual replay, branch terms, or zero-mode
+base-case events.
+
+** Step 6: Add the next theory cases without guessing loop-level boundaries
+
+Keep the free-boson and =bc= torus draft specs.  Add the NS-sector free
+fermion on the sphere as the next nontrivial sphere theory, but do not add a
+standalone torus free-fermion surface yet.  At loop level this sector must be
+defined together with the \(\phi\) system, so freezing a standalone torus
+boundary now would be premature.
+
+Add the \(\eta,\xi\) system on the sphere and add torus draft metadata for it.
+The torus draft should use the same generic surface/kernel/zero-mode spec path
+as free boson and =bc=.
+
+The next torus runtime work should add lowering for:
+
+- elliptic Green kernels;
+- elliptic Green-exponential kernels;
+- elliptic prime-form kernels;
+- modular parameter =tau=;
+- torus free-boson constant-mode zero modes;
+- torus =bc= moduli/ghost zero modes.
+- torus \(\eta,\xi\) zero-mode data and coordinate kernels.
+
+Do not add theory-name branches.  Torus must be selected by surface/kernel and
+zero-mode data, so the same =surface= declaration form can be used by the
+future DSL.
+
+** Step 7: Keep the benchmark contract strict
+
+After each meaningful API or runtime change:
+
+#+begin_src sh
+zig test --global-cache-dir /tmp/zig-global-cache --dep tensor-code -Mroot=src/cft-code/cft-code.zig -Mtensor-code=/tmp/tensor_stub.zig
+zig build test --global-cache-dir /tmp/zig-global-cache
+zig run --global-cache-dir /tmp/zig-global-cache -OReleaseFast --dep cft-code -Mroot=benchmarks/correlator_kernel_median.zig --dep tensor-code -Mcft-code=src/cft-code/cft-code.zig -Mtensor-code=/tmp/tensor_stub.zig
+#+end_src
+
+All benchmark cases must remain within the 5% median gate, with primitive,
+residual, zero-mode, and base-case counts checked.
+
+After any edit, mirror Zig changes into the corresponding =org= node.  Do not
+edit only generated Zig.

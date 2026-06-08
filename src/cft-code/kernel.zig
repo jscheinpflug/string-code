@@ -50,6 +50,8 @@ pub const Call = struct {
         insertion: operators.OperatorInsertion,
         kind: operators.OperatorKindId,
         labels: theory.Id.LabelSpan,
+        /// Equal nonzero ids mark factors in the same normal-ordered product.
+        normal_order_group: u16 = 0,
     };
 
     /// MultiOp is an ordered collection of local operators and their label store.
@@ -207,7 +209,7 @@ test "MultiOp carries local operators and labels" {
     const testing = @import("std").testing;
 
     const labels = Call.LabelStore{
-        .values = &.{ .{ .integer = 7 } },
+        .values = &.{.{ .integer = 7 }},
     };
     const ops = [_]Call.LocalOp{
         .{
