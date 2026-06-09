@@ -1,15 +1,3 @@
-:PROPERTIES:
-:ID:       20260603T094037.040938
-:END:
-#+title: Normal-Ordering
-#+auto_tangle: t
-#+PROPERTY: header-args :tangle ../../../src/cft-code/normal-ordering/normal-ordering.zig :mkdirp yes
-
-This module owns the generic normal-ordering group policy.  The group id stays
-on =kernel.Call.LocalOp= because Wick traversal needs it in the hot pair loop;
-this module only allocates, tags, and compares those compact ids.
-
-#+begin_src zig
 const kernel = @import("../kernel.zig");
 
 /// Group is the compact id stored on local operators in one normal product.
@@ -20,12 +8,7 @@ pub const none: Group = 0;
 
 /// first is the first valid context-local normal-ordering group id.
 pub const first: Group = 1;
-#+end_src
 
-Group ids are context-local.  Overflow wraps to =none=, and the next request
-fails instead of silently producing an untagged normal product.
-
-#+begin_src zig
 /// next returns a fresh normal-ordering group and advances the counter.
 pub fn next(counter: *Group) !Group {
     if (counter.* == none) return error.TooManyNormalOrderedProducts;
@@ -40,13 +23,7 @@ pub fn tag(op: kernel.Call.LocalOp, group: Group) kernel.Call.LocalOp {
     tagged.normal_order_group = group;
     return tagged;
 }
-#+end_src
 
-The Wick kernel treats equal nonzero group ids as a forbidden contraction pair.
-Bulk tagging is used by both generated descriptor contexts and hand-written
-Zig preset builders.
-
-#+begin_src zig
 /// same reports whether two operators are in the same nonempty normal product.
 pub fn same(left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) bool {
     const group = left.normal_order_group;
@@ -62,4 +39,3 @@ pub fn tagLast(ops: []kernel.Call.LocalOp, count: usize, counter: *Group) !void 
         op.* = tag(op.*, group);
     }
 }
-#+end_src

@@ -1,0 +1,23 @@
+:PROPERTIES:
+:ID:       20260609T004100.000000
+:END:
+#+title: Lisp Free Fermion Preset
+#+auto_tangle: t
+#+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/free-fermion-10.lisp :mkdirp yes
+
+This preset declares the indexed sphere free fermion.  The only Wick datum is
+the \(\eta_{\mu\nu}/(z-w)\) contraction.
+
+#+begin_src lisp
+(in-package #:string-code.cft.presets)
+#+end_src
+
+#+begin_src lisp
+(define-cft-preset free-fermion-10
+  (surface sphere :sphere :rational)
+  (quantum-number spin10 :ade-irrep :group d5)
+  (field psi "psi" :single ((mu :vector-index)) :fermionic
+         :quantum-numbers ((spin10 vector)))
+  (wick sphere (psi mu z) (psi nu w)
+    (* (metric mu nu) (/ 1 (- z w)))))
+#+end_src

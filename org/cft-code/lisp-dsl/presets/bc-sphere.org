@@ -1,0 +1,27 @@
+:PROPERTIES:
+:ID:       20260609T004300.000000
+:END:
+#+title: Lisp bc Sphere Preset
+#+auto_tangle: t
+#+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/bc-sphere.lisp :mkdirp yes
+
+The sphere \(bc\) preset declares a single \(b(z)c(w)\) rational-pole
+contraction and the \(c\) top-form zero mode.
+
+#+begin_src lisp
+(in-package #:string-code.cft.presets)
+#+end_src
+
+#+begin_src lisp
+(define-cft-preset bc-sphere
+  (surface sphere :sphere :rational)
+  (quantum-number ghost-number :u1)
+  (field b "b" :single nil :fermionic
+         :quantum-numbers ((ghost-number -1)))
+  (field c "c" :single nil :fermionic
+         :zero-mode t
+         :quantum-numbers ((ghost-number 1)))
+  (wick sphere (b z) (c w)
+    (/ 1 (- z w)))
+  (zero-mode sphere :top-form-fermion (c)))
+#+end_src

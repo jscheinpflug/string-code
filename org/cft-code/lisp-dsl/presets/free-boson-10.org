@@ -1,0 +1,79 @@
+:PROPERTIES:
+:ID:       20260609T004400.000000
+:END:
+#+title: Lisp Free Boson Preset
+#+auto_tangle: t
+#+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/free-boson-10.lisp :mkdirp yes
+
+This preset declares the ten-dimensional free boson on the sphere.  The scalar
+parameter =alpha-prime= is symbolic in the descriptor and can be assigned a
+runtime convention value by the Lisp REPL layer.
+
+#+begin_src lisp
+(in-package #:string-code.cft.presets)
+#+end_src
+
+The field declarations keep label-dependent conformal weights in descriptor
+metadata.  The \(k \cdot k\) expression references the =expX= momentum label
+by name, not by a numeric slot.
+
+#+begin_src lisp
+(define-cft-preset free-boson-10
+  (parameter alpha-prime "alpha-prime" :scalar-parameter)
+  (surface sphere :sphere :rational)
+  (quantum-number spin10 :ade-irrep :group d5)
+  (field dX "dX" :single ((mu :vector-index)) :bosonic
+         :quantum-numbers ((spin10 vector)))
+  (field expX "expX" :pair ((k :momentum)) :bosonic
+         :zero-mode t
+         :weight (* (rational 1 4)
+                    (* (parameter alpha-prime)
+                       (dot (field-label expX k)
+                            (field-label expX k)
+                            eta)))
+         :anti-weight (* (rational 1 4)
+                         (* (parameter alpha-prime)
+                            (dot (field-label expX k)
+                                 (field-label expX k)
+                                 eta))))
+#+end_src
+
+The \(dX dX\) contraction carries the metric tensor and the second-order
+rational pole.
+
+#+begin_src lisp
+  (wick sphere (dX mu z) (dX nu w)
+    (* -1/2 alpha-prime
+       (metric mu nu)
+       (pow (- z w) -2)))
+#+end_src
+
+The \(dX\,e^{ikX}\) contraction leaves the plane wave as a residual operator,
+which keeps the expansion tree fixed for the streaming kernel.
+
+#+begin_src lisp
+  (wick sphere (dX mu z) (expX k w wb)
+    (* -1/2 i alpha-prime
+       (momentum-index k mu)
+       (/ 1 (- z w)))
+    :residuals (:right))
+#+end_src
+
+The exponential-exponential rule emits holomorphic and antiholomorphic Green
+factors with the shared momentum-pair tensor.
+
+#+begin_src lisp
+  (wick sphere (expX p z zb) (expX k w wb)
+    (* 1/2 alpha-prime
+       (momentum-pair p k)
+       (green-exp z w)
+       (green-exp zb wb))
+    :residuals (:left :right))
+#+end_src
+
+The sphere zero-mode factor is the stringbook momentum-conservation
+normalization for ten noncompact bosons.
+
+#+begin_src lisp
+  (zero-mode sphere :boson-momentum-conservation (expX) :two-pi-power 10))
+#+end_src

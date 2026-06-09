@@ -1,0 +1,47 @@
+:PROPERTIES:
+:ID:       20260609T004200.000000
+:END:
+#+title: Lisp Eta-Xi Presets
+#+auto_tangle: t
+#+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/eta-xi.lisp :mkdirp yes
+
+The \(\eta,\xi\) presets share fields but use different surface kernels.  The
+sphere rule uses the rational pole; the torus rule names the prime-form
+derivative kernel.
+
+#+begin_src lisp
+(in-package #:string-code.cft.presets)
+#+end_src
+
+* Sphere
+
+#+begin_src lisp
+(define-cft-preset eta-xi-sphere
+  (surface sphere :sphere :rational)
+  (quantum-number ghost-number :u1)
+  (field eta "eta" :single nil :fermionic
+         :quantum-numbers ((ghost-number 1)))
+  (field xi "xi" :single nil :fermionic
+         :zero-mode t
+         :quantum-numbers ((ghost-number -1)))
+  (wick sphere (eta z) (xi w)
+    (/ 1 (- z w)))
+  (zero-mode sphere :constant-fermion (xi)))
+#+end_src
+
+* Torus
+
+#+begin_src lisp
+(define-cft-preset eta-xi-torus
+  (parameter tau "tau" :modular-parameter)
+  (surface torus :torus :elliptic :modular-parameter tau)
+  (quantum-number ghost-number :u1)
+  (field eta "eta" :single nil :fermionic
+         :quantum-numbers ((ghost-number 1)))
+  (field xi "xi" :single nil :fermionic
+         :zero-mode t
+         :quantum-numbers ((ghost-number -1)))
+  (wick torus (eta z) (xi w)
+    (prime-log-d z w))
+  (zero-mode torus :constant-fermion (xi)))
+#+end_src

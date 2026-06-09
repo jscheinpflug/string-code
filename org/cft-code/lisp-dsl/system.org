@@ -1,0 +1,26 @@
+:PROPERTIES:
+:ID:       20260609T003900.000000
+:END:
+#+title: Lisp CFT System
+#+auto_tangle: t
+#+PROPERTY: header-args:lisp :tangle ../../../lisp/string-code-cft.asd :mkdirp yes
+
+The Lisp system loads descriptor emission first, then preset declarations, then
+the REPL fixture helpers that insert fields through the generated C ABI.
+
+#+begin_src lisp
+(defsystem "string-code-cft"
+  :description "Lisp CFT presets, descriptor emission, and generated C ABI runtime helpers."
+  :serial t
+  :depends-on ("uiop")
+  :components ((:file "string-code-cft-descriptor")
+               (:file "string-code-cft-presets")
+               (:module "presets"
+                :serial t
+                :components
+                ((:file "free-fermion-10")
+                 (:file "eta-xi")
+                 (:file "bc-sphere")
+                 (:file "free-boson-10")))
+               (:file "string-code-cft-fixtures")))
+#+end_src

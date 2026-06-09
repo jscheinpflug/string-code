@@ -33,6 +33,7 @@ const std = @import("std");
 const operators = @import("../expressions/operators.zig");
 const coefficient = @import("../expressions/coefficient.zig");
 const kernel = @import("../kernel.zig");
+const normal_ordering = @import("../normal-ordering/normal-ordering.zig");
 const theory = @import("../theory/theory.zig");
 const wick_correlator = @import("../correlators/wick.zig");
 const KernelOperatorList = kernel.Call.MultiOp;
@@ -256,7 +257,7 @@ const LocalStateImpl = struct {
     owned_operators: []kernel.Call.LocalOp = &.{},
     label_store: kernel.Call.LabelStore = .{ .values = &.{} },
     next_symbol: u32 = 1,
-    next_normal_order_group: u16 = 1,
+    next_normal_order_group: normal_ordering.Group = normal_ordering.first,
     finished: bool = false,
 };
 
@@ -301,20 +302,6 @@ pub const Local = opaque {
         const value = state.next_symbol;
         state.next_symbol += 1;
         return value;
-    }
-
-    fn nextNormalOrderGroup(self: *Local) !u16 {
-        const state = self.data();
-        if (state.next_normal_order_group == 0) return error.TooManyNormalOrderedProducts;
-        const value = state.next_normal_order_group;
-        state.next_normal_order_group +%= 1;
-        return value;
-    }
-
-    fn withNormalOrderGroup(item: kernel.Call.LocalOp, group: u16) kernel.Call.LocalOp {
-        var tagged = item;
-        tagged.normal_order_group = group;
-        return tagged;
     }
 
     /// coord creates a named bulk coordinate token.
@@ -424,9 +411,10 @@ pub const Local = opaque {
     }
 
     fn addNormalOrdered(self: *Local, items: anytype) !void {
-        const group = try self.nextNormalOrderGroup();
+        const state = self.data();
+        const group = try normal_ordering.next(&state.next_normal_order_group);
         inline for (items) |item| {
-            try self.addRaw(withNormalOrderGroup(try self.rawOperator(item), group));
+            try self.addRaw(normal_ordering.tag(try self.rawOperator(item), group));
         }
     }
 
@@ -840,6 +828,9 @@ const Spec = struct {
             .bc_top_form => |payload| payload.c_kind_ids.len,
             .free_boson_constant_mode => |payload| payload.exp_kind_ids.len + payload.profile_kind_ids.len,
             .eta_xi_zero_mode => |payload| payload.xi_kind_ids.len,
+            .constant_fermion => |payload| payload.fermion_kind_ids.len,
+            .top_form_fermion => |payload| payload.field_kind_ids.len,
+            .boson_momentum_conservation => |payload| payload.exp_kind_ids.len + payload.profile_kind_ids.len,
         };
     }
 
@@ -1030,9 +1021,24 @@ const ZeroModeDsl = struct {
         normalization: RuleScalar = .one,
     };
 
+    /// ConstantFermion declares one generic constant fermion saturation rule.
+    pub const ConstantFermion = struct {
+        support: EtaXiSupport,
+        fermion_kind_ids: []const operators.OperatorKindId,
+        normalization: RuleScalar = .one,
+    };
+
+    /// TopFormFermion declares one generic top-form fermion saturation rule.
+    pub const TopFormFermion = struct {
+        support: BcSupport,
+        field_kind_ids: []const operators.OperatorKindId,
+        normalization: RuleScalar = .one,
+    };
+
     /// RankSource records where a power of 2pi gets its exponent.
     pub const RankSource = union(enum) {
         none,
+        literal: u16,
         target_dimension: ConfigRef,
         projector_rank: ConfigRef,
     };
@@ -1058,6 +1064,9 @@ const ZeroModeDsl = struct {
         bc_top_form: BcTopForm,
         free_boson_constant_mode: FreeBosonConstantMode,
         eta_xi_zero_mode: EtaXiZeroMode,
+        constant_fermion: ConstantFermion,
+        top_form_fermion: TopFormFermion,
+        boson_momentum_conservation: FreeBosonConstantMode,
     };
 
     /// Rule is one preset-authored zero-mode rule.
@@ -2473,6 +2482,7 @@ fn projectorRank(value: ConfigValue) ?u16 {
 fn rankValue(config_ptr: *const CorrelatorConfigData, source: zero_mode.RankSource) ?u16 {
     return switch (source) {
         .none => 0,
+        .literal => |value| value,
         .target_dimension => |config_ref| switch (configValue(config_ptr, config_ref) orelse return null) {
             .target_dimension => |dimension| dimension,
             else => null,
@@ -2769,6 +2779,24 @@ fn EtaXiZeroModeProcedure(comptime rule: zero_mode.EtaXiZeroMode) type {
     };
 }
 
+fn ConstantFermionProcedure(comptime rule: zero_mode.ConstantFermion) type {
+    const adapted = zero_mode.EtaXiZeroMode{
+        .support = rule.support,
+        .xi_kind_ids = rule.fermion_kind_ids,
+        .normalization = rule.normalization,
+    };
+    return EtaXiZeroModeProcedure(adapted);
+}
+
+fn TopFormFermionProcedure(comptime rule: zero_mode.TopFormFermion) type {
+    const adapted = zero_mode.BcTopForm{
+        .support = rule.support,
+        .c_kind_ids = rule.field_kind_ids,
+        .normalization = rule.normalization,
+    };
+    return BcTopFormProcedure(adapted);
+}
+
 fn FreeBosonConstantModeProcedure(comptime rule: zero_mode.FreeBosonConstantMode) type {
     return struct {
         fn canConsumeKind(kind: operators.OperatorKindId) bool {
@@ -2794,6 +2822,9 @@ fn ZeroModeProcedure(comptime expr: zero_mode.Expr) type {
         .bc_top_form => |rule| BcTopFormProcedure(rule),
         .free_boson_constant_mode => |rule| FreeBosonConstantModeProcedure(rule),
         .eta_xi_zero_mode => |rule| EtaXiZeroModeProcedure(rule),
+        .constant_fermion => |rule| ConstantFermionProcedure(rule),
+        .top_form_fermion => |rule| TopFormFermionProcedure(rule),
+        .boson_momentum_conservation => |rule| FreeBosonConstantModeProcedure(rule),
     };
 }
 

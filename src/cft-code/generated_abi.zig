@@ -1,0 +1,431 @@
+const std = @import("std");
+const descriptor = @import("correlators/descriptor.zig");
+const dispatch = @import("correlators/generated_dispatch.zig");
+const kernel = @import("kernel.zig");
+
+const allocator = std.heap.c_allocator;
+const TheoryId = dispatch.TheoryId;
+const ContextTag = dispatch.ContextTag;
+
+/// Context is an opaque generated-theory runtime handle for the C ABI.
+const Context = struct {
+    inner: ContextTag,
+    frozen: ?kernel.Call.MultiOp = null,
+};
+
+/// Event is one stable C ABI result event.
+pub const Event = extern struct {
+    kind: u8,
+    a: u32,
+    b: u32,
+    c: u32,
+    d: i32,
+    name_ptr: ?[*]const u8,
+    name_len: usize,
+};
+
+/// ExpressionTerm is one product in the expanded symbolic sum.
+pub const ExpressionTerm = extern struct {
+    first_factor: usize,
+    factor_count: usize,
+};
+
+/// ExpressionFactor is one nontrivial symbolic product factor.
+pub const ExpressionFactor = extern struct {
+    kind: u8,
+    a: u32,
+    b: u32,
+    c: u32,
+    d: i32,
+    name_id: u32,
+};
+
+/// ExpressionName is one borrowed symbolic name used by expression factors.
+pub const ExpressionName = extern struct {
+    ptr: ?[*]const u8,
+    len: usize,
+};
+
+/// EventCallback receives one streamed result event.
+pub const EventCallback = *const fn (?*anyopaque, *const Event) callconv(.c) c_int;
+
+/// EventChunkCallback receives a bounded chunk of streamed result events.
+pub const EventChunkCallback = *const fn (?*anyopaque, [*]const Event, usize) callconv(.c) c_int;
+
+const StreamState = struct {
+    payload: ?*anyopaque,
+    callback: EventCallback,
+};
+
+const event_chunk_capacity = 256;
+
+const BufferedStreamState = struct {
+    payload: ?*anyopaque,
+    callback: EventChunkCallback,
+    events: [event_chunk_capacity]Event = undefined,
+    len: usize = 0,
+
+    fn flush(self: *@This()) !void {
+        if (self.len == 0) return;
+        if (self.callback(self.payload, &self.events, self.len) != 0) return error.CallbackFailed;
+        self.len = 0;
+    }
+
+    fn push(self: *@This(), event: Event) !void {
+        self.events[self.len] = event;
+        self.len += 1;
+        if (self.len == self.events.len) try self.flush();
+    }
+};
+
+fn abiEvent(event: descriptor.ResultEvent) Event {
+    const name_ptr: ?[*]const u8 = if (event.name) |name| name.ptr else null;
+    const name_len: usize = if (event.name) |name| name.len else 0;
+    return .{
+        .kind = @intFromEnum(event.kind),
+        .a = event.a,
+        .b = event.b,
+        .c = event.c,
+        .d = event.d,
+        .name_ptr = name_ptr,
+        .name_len = name_len,
+    };
+}
+
+fn streamThunk(payload: *anyopaque, event: descriptor.ResultEvent) !void {
+    const state: *StreamState = @ptrCast(@alignCast(payload));
+    const stable_event = abiEvent(event);
+    if (state.callback(state.payload, &stable_event) != 0) return error.CallbackFailed;
+}
+
+fn bufferedStreamThunk(payload: *anyopaque, event: descriptor.ResultEvent) !void {
+    const state: *BufferedStreamState = @ptrCast(@alignCast(payload));
+    try state.push(abiEvent(event));
+}
+
+const NameKey = struct {
+    ptr: usize,
+    len: usize,
+};
+
+const ExpressionRecordState = struct {
+    terms: std.ArrayList(ExpressionTerm) = .empty,
+    factors: std.ArrayList(ExpressionFactor) = .empty,
+    names: std.ArrayList(ExpressionName) = .empty,
+    name_ids: std.AutoHashMap(NameKey, u32) = std.AutoHashMap(NameKey, u32).init(allocator),
+    term_start: usize = 0,
+
+    fn deinit(self: *@This()) void {
+        self.terms.deinit(allocator);
+        self.factors.deinit(allocator);
+        self.names.deinit(allocator);
+        self.name_ids.deinit();
+    }
+
+    fn nameId(self: *@This(), maybe_name: ?[]const u8) !u32 {
+        const name = maybe_name orelse return 0;
+        const key = NameKey{ .ptr = @intFromPtr(name.ptr), .len = name.len };
+        if (self.name_ids.get(key)) |id| return id;
+        const id: u32 = @intCast(self.names.items.len + 1);
+        try self.names.append(allocator, .{ .ptr = name.ptr, .len = name.len });
+        try self.name_ids.put(key, id);
+        return id;
+    }
+
+    fn finishTerm(self: *@This()) !void {
+        try self.terms.append(allocator, .{
+            .first_factor = self.term_start,
+            .factor_count = self.factors.items.len - self.term_start,
+        });
+        self.term_start = self.factors.items.len;
+    }
+
+    fn pushFactor(self: *@This(), event: descriptor.ResultEvent) !void {
+        if (event.kind == .scalar and event.d == 0 and event.name == null) return;
+        try self.factors.append(allocator, .{
+            .kind = @intFromEnum(event.kind),
+            .a = event.a,
+            .b = event.b,
+            .c = event.c,
+            .d = event.d,
+            .name_id = try self.nameId(event.name),
+        });
+    }
+};
+
+fn expressionRecordThunk(payload: *anyopaque, event: descriptor.ResultEvent) !void {
+    const state: *ExpressionRecordState = @ptrCast(@alignCast(payload));
+    switch (event.kind) {
+        .sum_term_begin => state.term_start = state.factors.items.len,
+        .sum_term_end => try state.finishTerm(),
+        .wick_term_begin, .wick_term_end => {},
+        .scalar, .coordinate, .tensor, .zero_mode, .residual_operator => try state.pushFactor(event),
+    }
+}
+
+var last_error_storage: [160]u8 = [_]u8{0} ** 160;
+
+fn clearError() void {
+    last_error_storage[0] = 0;
+}
+
+fn setErrorName(name: []const u8) c_int {
+    const len = @min(name.len, last_error_storage.len - 1);
+    @memcpy(last_error_storage[0..len], name[0..len]);
+    last_error_storage[len] = 0;
+    return -1;
+}
+
+fn setError(err: anyerror) c_int {
+    return setErrorName(@errorName(err));
+}
+
+/// sc_generated_last_error returns the last ABI error string.
+export fn sc_generated_last_error() [*:0]const u8 {
+    return @ptrCast(&last_error_storage);
+}
+
+/// sc_generated_descriptor_abi_version returns the descriptor ABI version.
+export fn sc_generated_descriptor_abi_version() u32 {
+    return descriptor.descriptor_abi_version;
+}
+
+/// sc_generated_theory_hash returns the generated theory hash for a theory id.
+export fn sc_generated_theory_hash(raw_theory: u32) u32 {
+    clearError();
+    const id = dispatch.theoryId(raw_theory) catch |err| {
+        _ = setError(err);
+        return 0;
+    };
+    return dispatch.theoryHash(id);
+}
+
+/// sc_generated_scalar_atom_name returns a descriptor parameter name for an atom id.
+export fn sc_generated_scalar_atom_name(raw_theory: u32, atom: u32, out_ptr: ?*?[*]const u8, out_len: ?*usize) c_int {
+    clearError();
+    const id = dispatch.theoryId(raw_theory) catch |err| return setError(err);
+    const ptr = out_ptr orelse return setErrorName("NullOutput");
+    const len = out_len orelse return setErrorName("NullOutput");
+    const name = dispatch.scalarAtomParameterName(id, atom) orelse return setErrorName("UnknownScalarAtom");
+    ptr.* = name.ptr;
+    len.* = name.len;
+    return 0;
+}
+
+/// sc_generated_context_create allocates a context for a generated theory id.
+export fn sc_generated_context_create(raw_theory: u32) ?*Context {
+    clearError();
+    const id = dispatch.theoryId(raw_theory) catch |err| {
+        _ = setError(err);
+        return null;
+    };
+    const ctx = allocator.create(Context) catch |err| {
+        _ = setError(err);
+        return null;
+    };
+    ctx.* = .{ .inner = ContextTag.create(id) catch |err| {
+        allocator.destroy(ctx);
+        _ = setError(err);
+        return null;
+    } };
+    return ctx;
+}
+
+/// sc_generated_context_destroy releases a generated context.
+export fn sc_generated_context_destroy(ctx: ?*Context) void {
+    const handle = ctx orelse return;
+    handle.inner.destroy();
+    allocator.destroy(handle);
+}
+
+fn byteSlice(ptr: ?[*]const u8, len: usize) ![]const u8 {
+    const data = ptr orelse return error.NullPointer;
+    return data[0..len];
+}
+
+fn u32Slice(ptr: ?[*]const u32, len: usize) ![]const u32 {
+    if (len == 0) return &.{};
+    const data = ptr orelse return error.NullPointer;
+    return data[0..len];
+}
+
+/// sc_generated_symbol_intern interns a runtime symbol in one context.
+export fn sc_generated_symbol_intern(ctx: ?*Context, name_ptr: ?[*]const u8, name_len: usize, out_symbol: ?*u32) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const out = out_symbol orelse return setErrorName("NullOutput");
+    const name = byteSlice(name_ptr, name_len) catch |err| return setError(err);
+    out.* = handle.inner.symbolIntern(name) catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_field_insert appends one generated field occurrence.
+export fn sc_generated_field_insert(ctx: ?*Context, field_id: u16, coords_ptr: ?[*]const u32, coord_len: usize, labels_ptr: ?[*]const u32, label_len: usize) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const coords = u32Slice(coords_ptr, coord_len) catch |err| return setError(err);
+    const labels = u32Slice(labels_ptr, label_len) catch |err| return setError(err);
+    handle.inner.fieldInsert(field_id, coords, labels) catch |err| return setError(err);
+    handle.frozen = null;
+    return 0;
+}
+
+/// sc_generated_normal_ordering tags the last count fields as one normal product.
+export fn sc_generated_normal_ordering(ctx: ?*Context, count: usize) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    handle.inner.normalOrdering(count) catch |err| return setError(err);
+    handle.frozen = null;
+    return 0;
+}
+
+/// sc_generated_operator_list_freeze freezes the current operator list.
+export fn sc_generated_operator_list_freeze(ctx: ?*Context) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    handle.frozen = handle.inner.freeze() catch |err| return setError(err);
+    return 0;
+}
+
+fn frozen(handle: *Context) !kernel.Call.MultiOp {
+    return handle.frozen orelse error.OperatorListNotFrozen;
+}
+
+/// sc_generated_correlator_count returns the number of accepted branches.
+export fn sc_generated_correlator_count(ctx: ?*Context, out_count: ?*usize) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const out = out_count orelse return setErrorName("NullOutput");
+    const ops = frozen(handle) catch |err| return setError(err);
+    out.* = handle.inner.count(ops) catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_correlator_run streams result events to a callback.
+export fn sc_generated_correlator_run(ctx: ?*Context, payload: ?*anyopaque, callback: ?EventCallback) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const cb = callback orelse return setErrorName("NullCallback");
+    const ops = frozen(handle) catch |err| return setError(err);
+    var state = StreamState{ .payload = payload, .callback = cb };
+    handle.inner.run(ops, &state, streamThunk) catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_correlator_run_buffered streams bounded event chunks.
+export fn sc_generated_correlator_run_buffered(ctx: ?*Context, payload: ?*anyopaque, callback: ?EventChunkCallback) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const cb = callback orelse return setErrorName("NullCallback");
+    const ops = frozen(handle) catch |err| return setError(err);
+    var state = BufferedStreamState{ .payload = payload, .callback = cb };
+    handle.inner.run(ops, &state, bufferedStreamThunk) catch |err| return setError(err);
+    state.flush() catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_correlator_expression_records returns compact expression terms and factors.
+export fn sc_generated_correlator_expression_records(
+    ctx: ?*Context,
+    out_terms: ?*[*]ExpressionTerm,
+    out_term_count: ?*usize,
+    out_factors: ?*[*]ExpressionFactor,
+    out_factor_count: ?*usize,
+    out_names: ?*[*]ExpressionName,
+    out_name_count: ?*usize,
+) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const terms_out = out_terms orelse return setErrorName("NullOutput");
+    const term_count_out = out_term_count orelse return setErrorName("NullOutput");
+    const factors_out = out_factors orelse return setErrorName("NullOutput");
+    const factor_count_out = out_factor_count orelse return setErrorName("NullOutput");
+    const names_out = out_names orelse return setErrorName("NullOutput");
+    const name_count_out = out_name_count orelse return setErrorName("NullOutput");
+    const ops = frozen(handle) catch |err| return setError(err);
+    var state = ExpressionRecordState{};
+    defer state.deinit();
+    handle.inner.run(ops, &state, expressionRecordThunk) catch |err| return setError(err);
+    const factors = state.factors.toOwnedSlice(allocator) catch |err| return setError(err);
+    const terms = state.terms.toOwnedSlice(allocator) catch |err| {
+        allocator.free(factors);
+        return setError(err);
+    };
+    const names = state.names.toOwnedSlice(allocator) catch |err| {
+        allocator.free(terms);
+        allocator.free(factors);
+        return setError(err);
+    };
+    terms_out.* = terms.ptr;
+    term_count_out.* = terms.len;
+    factors_out.* = factors.ptr;
+    factor_count_out.* = factors.len;
+    names_out.* = names.ptr;
+    name_count_out.* = names.len;
+    return 0;
+}
+
+/// sc_generated_expression_buffer_free releases compact expression buffers.
+export fn sc_generated_expression_buffer_free(
+    terms: ?[*]ExpressionTerm,
+    term_count: usize,
+    factors: ?[*]ExpressionFactor,
+    factor_count: usize,
+    names: ?[*]ExpressionName,
+    name_count: usize,
+) void {
+    if (terms) |ptr| allocator.free(ptr[0..term_count]);
+    if (factors) |ptr| allocator.free(ptr[0..factor_count]);
+    if (names) |ptr| allocator.free(ptr[0..name_count]);
+}
+
+const AbiRecorder = struct {
+    count: usize = 0,
+    saw_tensor: bool = false,
+    saw_coordinate: bool = false,
+
+    fn push(payload: ?*anyopaque, event_ptr: *const Event) callconv(.c) c_int {
+        const self: *AbiRecorder = @ptrCast(@alignCast(payload.?));
+        const event = event_ptr.*;
+        self.count += 1;
+        if (event.kind == @intFromEnum(descriptor.ResultEventKind.tensor) and event.a == 1 and event.b == 2) {
+            self.saw_tensor = true;
+        }
+        if (event.kind == @intFromEnum(descriptor.ResultEventKind.coordinate) and event.a == 3 and event.b == 4) {
+            self.saw_coordinate = true;
+        }
+        return 0;
+    }
+};
+
+test "generated C ABI counts and streams free-fermion events" {
+    try selfTest();
+}
+
+/// selfTest runs the generated C ABI fixture invariants.
+pub fn selfTest() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(dispatch.first_theory_id)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    var mu: u32 = 0;
+    var nu: u32 = 0;
+    var z: u32 = 0;
+    var w: u32 = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "mu".ptr, 2, &mu));
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "nu".ptr, 2, &nu));
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "z".ptr, 1, &z));
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "w".ptr, 1, &w));
+
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert(ctx, 0, &.{z}, 1, &.{mu}, 1));
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert(ctx, 0, &.{w}, 1, &.{nu}, 1));
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_operator_list_freeze(ctx));
+
+    var count: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_count(ctx, &count));
+    try std.testing.expectEqual(@as(usize, 1), count);
+
+    var recorder = AbiRecorder{};
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_run(ctx, &recorder, AbiRecorder.push));
+    try std.testing.expect(recorder.saw_tensor);
+    try std.testing.expect(recorder.saw_coordinate);
+}

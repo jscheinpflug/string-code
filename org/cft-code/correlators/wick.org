@@ -15,6 +15,7 @@ to the sink as primitive Wick terms followed by the zero-mode base case.
 
 #+begin_src zig
 const kernel = @import("../kernel.zig");
+const normal_ordering = @import("../normal-ordering/normal-ordering.zig");
 
 const PairChoice = struct {
     left: u8,
@@ -160,11 +161,6 @@ fn pairTermInfo(comptime Tactic: type, config_ptr: *const Tactic.Config, ops: ke
     residual_count.* = try pairTermResiduals(Tactic, config_ptr, ops, left, right, term_index, residuals);
 }
 
-fn sameNormalOrderGroup(ops: kernel.Call.MultiOp, left: usize, right: usize) bool {
-    const group = ops.operators[left].normal_order_group;
-    return group != 0 and group == ops.operators[right].normal_order_group;
-}
-
 fn residualsKeepPair(left: usize, right: usize, residuals: []const usize) bool {
     var keeps_left = false;
     var keeps_right = false;
@@ -206,7 +202,7 @@ fn buildCandidates(comptime Tactic: type, config_ptr: *const Tactic.Config, ops:
         const left_start = candidate_count;
         var right = left + 1;
         while (right < ops.operators.len) : (right += 1) {
-            if (sameNormalOrderGroup(ops, left, right)) continue;
+            if (normal_ordering.same(ops.operators[left], ops.operators[right])) continue;
             const term_count = try pairTermCount(Tactic, config_ptr, ops, left, right);
             var term_index: usize = 0;
             while (term_index < term_count) : (term_index += 1) {
