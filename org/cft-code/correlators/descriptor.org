@@ -23,7 +23,7 @@ const zero_mode = declare.zero_mode;
 const scalars = declare.scalars;
 
 /// descriptor_abi_version is the generated descriptor table ABI understood here.
-pub const descriptor_abi_version: u32 = 1;
+pub const descriptor_abi_version: u32 = 2;
 
 /// Id is one dense descriptor table index.
 pub const Id = u16;
@@ -179,6 +179,20 @@ pub const LabelRef = struct {
     slot: Id,
 };
 
+/// PairIndexConstraint selects one local index-sort compatibility check.
+pub const PairIndexConstraint = enum(u8) {
+    none,
+    same_sort,
+    conjugate_complex_sort,
+};
+
+/// PairIndexConstraintRow checks one label slot on each Wick endpoint.
+pub const PairIndexConstraintRow = struct {
+    left_slot: Id,
+    right_slot: Id,
+    constraint: PairIndexConstraint,
+};
+
 /// ScalarFactor describes one scalar multiplier in a Wick term.
 pub const ScalarFactor = union(enum) {
     one,
@@ -192,6 +206,7 @@ pub const ScalarFactor = union(enum) {
 /// CoordinateFactor describes one coordinate multiplier in a Wick term.
 pub const CoordinateFactor = union(enum) {
     difference_power: struct { left: CoordinateRef, right: CoordinateRef, exponent: i16, derive_left: bool = false, derive_right: bool = false },
+    logarithm: struct { left: CoordinateRef, right: CoordinateRef, derive_left: bool = false, derive_right: bool = false },
     named_kernel: struct { symbol: Id, left: CoordinateRef, right: CoordinateRef, derive_left: bool = false, derive_right: bool = false },
     green_exponential: struct { left: CoordinateRef, right: CoordinateRef },
 };
@@ -224,6 +239,7 @@ pub const WickRule = struct {
     left: Id,
     right: Id,
     terms: []const WickTerm,
+    index_constraints: []const PairIndexConstraintRow = &.{},
 };
 #+end_src
 
@@ -372,6 +388,11 @@ fn validateAction(d: Descriptor, action: ActionFactor, left_field: Id, right_fie
         },
     }
 }
+
+fn validateIndexConstraint(d: Descriptor, row: PairIndexConstraintRow, left_field: Id, right_field: Id) !void {
+    if (try labelRole(d, .{ .side = .left, .slot = row.left_slot }, left_field, right_field) != .vector_index) return error.IncompatibleLabelRole;
+    if (try labelRole(d, .{ .side = .right, .slot = row.right_slot }, left_field, right_field) != .vector_index) return error.IncompatibleLabelRole;
+}
 #+end_src
 
 #+begin_src zig
@@ -427,6 +448,7 @@ pub fn validateDescriptor(d: Descriptor) !void {
         if (!hasSurface(d, rule.surface)) return error.DanglingSurface;
         if (!hasField(d, rule.left) or !hasField(d, rule.right)) return error.DanglingField;
         if (rule.terms.len == 0) return error.EmptyWickRule;
+        for (rule.index_constraints) |row| try validateIndexConstraint(d, row, rule.left, rule.right);
         const left_arity = d.fields[rule.left].labels.len;
         const right_arity = d.fields[rule.right].labels.len;
         for (rule.terms) |term| {
@@ -529,6 +551,18 @@ fn lowerLabelRef(ref: LabelRef) wick.LabelRef {
     return wick.label(lowerSide(ref.side), @intCast(ref.slot));
 }
 
+fn lowerIndexConstraint(row: PairIndexConstraintRow) wick.PairIndexConstraintRow {
+    return .{
+        .left_slot = @intCast(row.left_slot),
+        .right_slot = @intCast(row.right_slot),
+        .constraint = switch (row.constraint) {
+            .none => .none,
+            .same_sort => .same_sort,
+            .conjugate_complex_sort => .conjugate_complex_sort,
+        },
+    };
+}
+
 fn lowerDerivative(left: bool, right: bool) wick.DerivativeAction {
     return .{ .include_left = left, .include_right = right };
 }
@@ -564,6 +598,10 @@ fn lowerCoordinate(comptime d: Descriptor, factor: CoordinateFactor) wick.Coordi
         .difference_power => |item| wick.differentiatedPower(
             wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
             item.exponent,
+            lowerDerivative(item.derive_left, item.derive_right),
+        ),
+        .logarithm => |item| wick.differentiatedLogarithm(
+            wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
             lowerDerivative(item.derive_left, item.derive_right),
         ),
         .named_kernel => |item| wick.differentiatedGreenKernel(
@@ -630,10 +668,16 @@ fn LoweredWickRule(comptime d: Descriptor, comptime rule: WickRule) type {
             for (rule.terms, 0..) |term, index| storage[index] = LoweredTerm(d, term).value;
             break :blk storage;
         };
-        const value = wick.rule(
+        const constraint_storage = blk: {
+            var storage: [rule.index_constraints.len]wick.PairIndexConstraintRow = undefined;
+            for (rule.index_constraints, 0..) |row, index| storage[index] = lowerIndexConstraint(row);
+            break :blk storage;
+        };
+        const value = wick.constrainedRule(
             wick.pattern(kindId(d, rule.left), lowerSupport(d.fields[rule.left].insertion)),
             wick.pattern(kindId(d, rule.right), lowerSupport(d.fields[rule.right].insertion)),
             wick.expr(&terms),
+            &constraint_storage,
         );
     };
 }
@@ -896,6 +940,102 @@ fn insertionFrom(shape: InsertionShape, coords: []const u32) !operators.Operator
     };
 }
 
+fn singleInsertion(z: u32, derivatives: u8) operators.OperatorInsertion {
+    return .{ .single = .{ .position = z, .derivatives = derivatives } };
+}
+
+fn pairInsertion(z: u32, zbar: u32) operators.OperatorInsertion {
+    return .{ .pair = .{
+        .holomorphic_position = z,
+        .antiholomorphic_position = zbar,
+        .holomorphic_derivatives = 0,
+        .antiholomorphic_derivatives = 0,
+    } };
+}
+
+fn tokenId(value: anytype) u32 {
+    const T = @TypeOf(value);
+    return switch (@typeInfo(T)) {
+        .int, .comptime_int => @intCast(value),
+        .@"enum" => @intFromEnum(value),
+        else => @compileError("generated field labels and coordinates must be integer-like tokens"),
+    };
+}
+
+fn labelTupleCount(comptime Labels: type) comptime_int {
+    const info = @typeInfo(Labels);
+    if (info != .@"struct" or !info.@"struct".is_tuple) @compileError("generated field labels must be passed as a tuple");
+    return info.@"struct".fields.len;
+}
+
+fn fillLabelSymbols(comptime count: usize, out: *[count]u32, labels: anytype) void {
+    inline for (0..count) |index| out[index] = tokenId(labels[index]);
+}
+
+fn fieldIdByName(comptime d: Descriptor, comptime name: []const u8) Id {
+    inline for (d.fields) |field| {
+        if (std.mem.eql(u8, d.symbols[field.symbol], name)) return field.id;
+    }
+    @compileError("unknown generated field name");
+}
+
+fn GeneratedField(comptime d: Descriptor, comptime field_id: Id) type {
+    const field = d.fields[field_id];
+    return struct {
+        /// id is the descriptor field id for this generated field builder.
+        pub const id = field_id;
+        /// name is the descriptor symbol for this generated field builder.
+        pub const name = d.symbols[field.symbol];
+
+        /// single appends a single-coordinate generated field insertion.
+        pub fn single(local: anytype, z: anytype, derivatives: u8, labels: anytype) !void {
+            if (field.insertion != .single) return error.InvalidInsertionShape;
+            const count = comptime labelTupleCount(@TypeOf(labels));
+            if (count != field.labels.len) return error.InvalidFieldArity;
+            var label_symbols: [count]u32 = undefined;
+            fillLabelSymbols(count, &label_symbols, labels);
+            try local.insertFieldRaw(field_id, singleInsertion(tokenId(z), derivatives), &label_symbols);
+        }
+
+        /// pair appends a bulk-pair generated field insertion.
+        pub fn pair(local: anytype, z: anytype, zbar: anytype, labels: anytype) !void {
+            if (field.insertion != .pair) return error.InvalidInsertionShape;
+            const count = comptime labelTupleCount(@TypeOf(labels));
+            if (count != field.labels.len) return error.InvalidFieldArity;
+            var label_symbols: [count]u32 = undefined;
+            fillLabelSymbols(count, &label_symbols, labels);
+            try local.insertFieldRaw(field_id, pairInsertion(tokenId(z), tokenId(zbar)), &label_symbols);
+        }
+    };
+}
+
+fn hasSingleSurfaceKind(comptime d: Descriptor, comptime kind: SurfaceKind) bool {
+    return d.surfaces.len == 1 and d.surfaces[0].kind == kind;
+}
+
+fn GeneratedConfig(comptime d: Descriptor, comptime Config: type) type {
+    if (hasSingleSurfaceKind(d, .sphere)) {
+        return struct {
+            /// default selects all lowered descriptor rules.
+            pub const default = Config{};
+            /// sphere selects the generated sphere rule set.
+            pub const sphere = default;
+        };
+    }
+    if (hasSingleSurfaceKind(d, .torus)) {
+        return struct {
+            /// default selects all lowered descriptor rules.
+            pub const default = Config{};
+            /// torus selects the generated torus rule set.
+            pub const torus = default;
+        };
+    }
+    return struct {
+        /// default selects all lowered descriptor rules.
+        pub const default = Config{};
+    };
+}
+
 /// GeneratedTheory lowers one descriptor to an executable theory boundary.
 pub fn GeneratedTheory(comptime d: Descriptor) type {
     comptime {
@@ -917,7 +1057,21 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
         pub const theory_hash = d.theory_hash;
         /// descriptor exposes the compact source descriptor for audits.
         pub const descriptor = d;
-        const config = Config{};
+        /// config exposes generated correlator configs through the theory API.
+        pub const config = GeneratedConfig(d, Config);
+
+        /// op groups compile-time generated field builders.
+        pub const op = struct {
+            /// field returns a builder for a descriptor field name.
+            pub fn field(comptime name: []const u8) type {
+                return GeneratedField(d, fieldIdByName(d, name));
+            }
+        };
+
+        /// field returns a builder for a descriptor field name.
+        pub fn field(comptime name: []const u8) type {
+            return GeneratedField(d, fieldIdByName(d, name));
+        }
 
         /// Context owns symbols and a single mutable operator list.
         pub const Context = struct {
@@ -947,8 +1101,8 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
 
             /// intern returns a stable context-local symbol id for a name.
             pub fn intern(self: *Context, name: []const u8) !u32 {
-                for (self.symbols.items, 1..) |stored, index| {
-                    if (std.mem.eql(u8, stored, name)) return @intCast(index);
+                for (self.symbols.items, 1..) |stored, symbol_index| {
+                    if (std.mem.eql(u8, stored, name)) return @intCast(symbol_index);
                 }
                 const copy = try self.allocator.dupe(u8, name);
                 try self.symbols.append(self.allocator, copy);
@@ -956,25 +1110,57 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             }
 
             /// symbolName resolves a context-local symbol id.
-            pub fn symbolName(self: *const Context, symbol: u32) ?[]const u8 {
-                if (symbol == 0 or symbol > self.symbols.items.len) return null;
-                return self.symbols.items[symbol - 1];
+            pub fn symbolName(self: *const Context, token: u32) ?[]const u8 {
+                if (token == 0 or token > self.symbols.items.len) return null;
+                return self.symbols.items[token - 1];
+            }
+
+            /// symbol interns a generic runtime token name.
+            pub fn symbol(self: *Context, name: []const u8) !u32 {
+                return self.intern(name);
+            }
+
+            /// coord interns a coordinate token name.
+            pub fn coord(self: *Context, name: []const u8) !u32 {
+                return self.intern(name);
+            }
+
+            /// index interns an index token name.
+            pub fn index(self: *Context, name: []const u8) !u32 {
+                return self.intern(name);
+            }
+
+            /// momentum interns a momentum token name.
+            pub fn momentum(self: *Context, name: []const u8) !u32 {
+                return self.intern(name);
+            }
+
+            /// profile interns a profile token name.
+            pub fn profile(self: *Context, name: []const u8) !u32 {
+                return self.intern(name);
+            }
+
+            /// insertFieldRaw appends one already-shaped generated field occurrence.
+            pub fn insertFieldRaw(self: *Context, field_id: Id, insertion: operators.OperatorInsertion, label_symbols: []const u32) !void {
+                if (field_id >= d.fields.len) return error.DanglingField;
+                const field_info = d.fields[field_id];
+                if (label_symbols.len != field_info.labels.len) return error.InvalidFieldArity;
+                const label_start = self.labels.items.len;
+                for (label_symbols) |label_symbol| {
+                    try self.labels.append(self.allocator, .{ .symbol = label_symbol });
+                }
+                try self.operators_list.append(self.allocator, .{
+                    .insertion = insertion,
+                    .kind = kindId(d, field_id),
+                    .labels = @intCast(label_start),
+                });
             }
 
             /// insertField appends one generated field occurrence.
             pub fn insertField(self: *Context, field_id: Id, coords: []const u32, label_symbols: []const u32) !void {
                 if (field_id >= d.fields.len) return error.DanglingField;
-                const field = d.fields[field_id];
-                if (label_symbols.len != field.labels.len) return error.InvalidFieldArity;
-                const label_start = self.labels.items.len;
-                for (label_symbols) |symbol| {
-                    try self.labels.append(self.allocator, .{ .symbol = symbol });
-                }
-                try self.operators_list.append(self.allocator, .{
-                    .insertion = try insertionFrom(field.insertion, coords),
-                    .kind = kindId(d, field_id),
-                    .labels = @intCast(label_start),
-                });
+                const field_info = d.fields[field_id];
+                try self.insertFieldRaw(field_id, try insertionFrom(field_info.insertion, coords), label_symbols);
             }
 
             /// normalOrderLast tags the last count insertions as one normal product.
@@ -991,7 +1177,17 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
                 self.label_store = .{ .values = self.frozen_labels };
                 return .{ .operators = self.frozen_ops, .labels = &self.label_store };
             }
+
+            /// ops freezes the current generated operator list.
+            pub fn ops(self: *Context) !kernel.Call.MultiOp {
+                return self.freeze();
+            }
         };
+
+        /// local constructs a value-style generated-theory operator builder.
+        pub fn local(allocator: std.mem.Allocator) Context {
+            return Context.init(allocator);
+        }
 
         /// descriptorAbiVersion returns the generated descriptor ABI version.
         pub fn descriptorAbiVersion() u32 {
@@ -1045,10 +1241,15 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             return ctx.freeze();
         }
 
+        /// correlator streams generated-theory correlator output to a Zig sink.
+        pub fn correlator(config_ptr: anytype, ops: kernel.Call.MultiOp, sink: anytype) !void {
+            return shared.streamCorrelator(config_ptr, ops, sink);
+        }
+
         /// correlatorCount returns the number of accepted streamed branches.
         pub fn correlatorCount(ops: kernel.Call.MultiOp) !usize {
             var sink = CountSink{};
-            try shared.streamCorrelator(&config, ops, &sink);
+            try shared.streamCorrelator(&config.default, ops, &sink);
             return sink.count;
         }
 
@@ -1056,8 +1257,109 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
         pub fn correlatorRun(ops: kernel.Call.MultiOp, payload: *anyopaque, stream: StreamFn) !void {
             var sink = EventSink{ .payload = payload, .stream = stream };
             try sink.emit(.{ .kind = .sum_term_begin });
-            try shared.streamCorrelator(&config, ops, &sink);
+            try shared.streamCorrelator(&config.default, ops, &sink);
         }
     };
+}
+#+end_src
+
+The bridge test uses one small descriptor rather than the generated fixture
+module.  That keeps the boundary self-contained: descriptor data lowers to a
+theory, named field builders fill a local context, and the correlator streams
+to a caller-owned sink.
+
+#+begin_src zig
+test "generated theory exposes field builders and direct correlator sink" {
+    const symbols = [_][]const u8{ "free-fermion-10", "spin10", "d5", "psi", "mu", "vector" };
+    const quantum_numbers = [_]QuantumNumber{
+        .{ .id = 0, .symbol = 1, .kind = .ade_irrep, .group_symbol = 2 },
+    };
+    const field_quantum_numbers = [_]FieldQuantumNumber{
+        .{ .field = 0, .quantum_number = 0, .value = .{ .symbol = 5 } },
+    };
+    const surfaces = [_]Surface{
+        .{ .id = 0, .kind = .sphere, .coordinate_model = .rational },
+    };
+    const fields = [_]Field{
+        .{ .id = 0, .symbol = 3, .insertion = .single, .labels = &.{.{ .id = 0, .role = .vector_index, .symbol = 4 }}, .statistics = .fermionic },
+    };
+    const terms = [_]WickTerm{
+        .{
+            .scalars = &.{.one},
+            .coordinates = &.{.{ .difference_power = .{
+                .left = .{ .side = .left, .slot = .position },
+                .right = .{ .side = .right, .slot = .position },
+                .exponent = -1,
+                .derive_left = true,
+                .derive_right = true,
+            } }},
+            .tensors = &.{.{ .metric = .{
+                .left = .{ .side = .left, .slot = 0 },
+                .right = .{ .side = .right, .slot = 0 },
+            } }},
+        },
+    };
+    const wick_rules = [_]WickRule{
+        .{ .surface = 0, .left = 0, .right = 0, .terms = &terms },
+    };
+    const theory = GeneratedTheory(.{
+        .theory_symbol = 0,
+        .theory_hash = 0x1933f00d,
+        .symbols = &symbols,
+        .quantum_numbers = &quantum_numbers,
+        .field_quantum_numbers = &field_quantum_numbers,
+        .surfaces = &surfaces,
+        .fields = &fields,
+        .wick_rules = &wick_rules,
+    });
+
+    try std.testing.expect(comptime @hasDecl(theory.config, "default"));
+    try std.testing.expect(comptime @hasDecl(theory.config, "sphere"));
+    try std.testing.expectEqualStrings("psi", theory.field("psi").name);
+
+    var local_ctx = theory.local(std.testing.allocator);
+    defer local_ctx.deinit();
+    const z0 = try local_ctx.coord("z0");
+    const z1 = try local_ctx.coord("z1");
+    const mu = try local_ctx.index("mu");
+    const nu = try local_ctx.index("nu");
+
+    const Psi = theory.field("psi");
+    try Psi.single(&local_ctx, z0, 0, .{mu});
+    try theory.op.field("psi").single(&local_ctx, z1, 0, .{nu});
+    const ops = try local_ctx.ops();
+
+    const Sink = struct {
+        wick_terms: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        base_cases: usize = 0,
+
+        pub fn emitWickBranchSign(_: *@This(), _: i8) !void {}
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.wick_terms += 1;
+        }
+        pub fn emitWickScalar(_: *@This(), _: anytype) !void {}
+        pub fn emitWickCoordinate(self: *@This(), _: anytype) !void {
+            self.coordinates += 1;
+        }
+        pub fn emitWickTensor(self: *@This(), _: anytype) !void {
+            self.tensors += 1;
+        }
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {}
+        pub fn emitWickResidualOperator(_: *@This(), _: anytype) !void {}
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {}
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+    var sink = Sink{};
+    try theory.correlator(&theory.config.sphere, ops, &sink);
+
+    try std.testing.expectEqual(@as(usize, 1), sink.wick_terms);
+    try std.testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try std.testing.expectEqual(@as(usize, 1), sink.tensors);
+    try std.testing.expectEqual(@as(usize, 1), sink.base_cases);
 }
 #+end_src

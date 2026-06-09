@@ -21,6 +21,8 @@ pub const Handle = struct {
     pub const BoundaryCoord = enum(u32) { _ };
     /// Index names a target-space vector index.
     pub const Index = enum(u32) { _ };
+    /// TypedIndex names a target-space index with a compact sort tag.
+    pub const TypedIndex = enum(u32) { _ };
     /// Momentum names a target-space momentum expression.
     pub const Momentum = enum(u32) { _ };
     /// Profile names a selected presentation of a target-space profile.
@@ -44,6 +46,40 @@ pub const Handle = struct {
         polynomial_rnc,
     };
 };
+
+/// IndexSort classifies target-space index handles for local Wick checks.
+pub const IndexSort = enum(u8) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+const typed_index_sort_shift = 24;
+const typed_index_raw_mask: u32 = 0x00ff_ffff;
+
+fn typedIndexToken(raw: u32, sort: IndexSort) u32 {
+    const tag = @as(u32, @intFromEnum(sort) + 1) << typed_index_sort_shift;
+    return tag | (raw & typed_index_raw_mask);
+}
+
+fn typedIndexSort(raw: u32) IndexSort {
+    const tag = raw >> typed_index_sort_shift;
+    if (tag == 0) return .real_tangent;
+    if (tag > 6) return .real_tangent;
+    return @enumFromInt(@as(u8, @intCast(tag - 1)));
+}
+
+/// targetU1Charge returns the target holomorphic-degree charge of one sort.
+pub fn targetU1Charge(sort: IndexSort) i8 {
+    return switch (sort) {
+        .real_tangent, .real_cotangent => 0,
+        .holomorphic_tangent, .holomorphic_cotangent => 1,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent => -1,
+    };
+}
 
 fn rawToken(value: anytype) u32 {
     return @intFromEnum(value);
@@ -291,6 +327,12 @@ pub const Local = opaque {
         return token(Handle.Index, self.next());
     }
 
+    /// typedIndex creates a sorted target-space index token.
+    pub fn typedIndex(self: *Local, name: []const u8, sort: IndexSort) !Handle.TypedIndex {
+        _ = name;
+        return token(Handle.TypedIndex, typedIndexToken(self.next(), sort));
+    }
+
     /// momentum creates a target-space momentum token.
     pub fn momentum(self: *Local, name: []const u8) !Handle.Momentum {
         _ = name;
@@ -525,11 +567,31 @@ const WickDsl = struct {
         left: Pattern,
         right: Pattern,
         expr: Expr,
+        index_constraints: []const PairIndexConstraintRow = &.{},
+    };
+
+    /// PairIndexConstraint selects a local index-sort check for a pair rule.
+    pub const PairIndexConstraint = enum(u8) {
+        none,
+        same_sort,
+        conjugate_complex_sort,
+    };
+
+    /// PairIndexConstraintRow checks one label slot on each pair endpoint.
+    pub const PairIndexConstraintRow = struct {
+        left_slot: u8,
+        right_slot: u8,
+        constraint: PairIndexConstraint,
     };
 
     /// rule constructs one primitive Wick rule template.
     pub fn rule(left: Pattern, right: Pattern, expression: Expr) Rule {
         return .{ .left = left, .right = right, .expr = expression };
+    }
+
+    /// constrainedRule constructs one Wick rule with index-sort checks.
+    pub fn constrainedRule(left: Pattern, right: Pattern, expression: Expr, constraints: []const PairIndexConstraintRow) Rule {
+        return .{ .left = left, .right = right, .expr = expression, .index_constraints = constraints };
     }
 
     /// pattern constructs one Wick-rule side from a preset-owned kind id.
@@ -2878,9 +2940,46 @@ fn ruleMatches(rule: wick.Rule, left: kernel.Call.LocalOp, right: kernel.Call.Lo
     return null;
 }
 
+fn labelIndexSort(value: kernel.Call.LabelValue) ?IndexSort {
+    return switch (value) {
+        .symbol => |symbol| typedIndexSort(symbol),
+        .integer => |integer| if (integer >= 0 and integer <= std.math.maxInt(u32)) typedIndexSort(@intCast(integer)) else null,
+        else => null,
+    };
+}
+
+fn conjugateIndexSort(left: IndexSort, right: IndexSort) bool {
+    return switch (left) {
+        .holomorphic_tangent => right == .antiholomorphic_tangent,
+        .antiholomorphic_tangent => right == .holomorphic_tangent,
+        .holomorphic_cotangent => right == .antiholomorphic_cotangent,
+        .antiholomorphic_cotangent => right == .holomorphic_cotangent,
+        .real_tangent, .real_cotangent => false,
+    };
+}
+
+fn indexConstraintMatches(constraint: wick.PairIndexConstraint, left: IndexSort, right: IndexSort) bool {
+    return switch (constraint) {
+        .none => true,
+        .same_sort => left == right,
+        .conjugate_complex_sort => conjugateIndexSort(left, right),
+    };
+}
+
+fn pairSatisfiesIndexConstraints(pair: Correlator.WickPair) bool {
+    for (pair.rule.index_constraints) |row| {
+        const left = pair.label(wick.label(.left, row.left_slot)) orelse return false;
+        const right = pair.label(wick.label(.right, row.right_slot)) orelse return false;
+        const left_sort = labelIndexSort(left) orelse return false;
+        const right_sort = labelIndexSort(right) orelse return false;
+        if (!indexConstraintMatches(row.constraint, left_sort, right_sort)) return false;
+    }
+    return true;
+}
+
 fn matchRule(config_ptr: *const CorrelatorConfigData, rule: *const wick.Rule, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp, labels: *const kernel.Call.LabelStore) ?Correlator.WickPair {
     const reversed = ruleMatches(rule.*, left, right) orelse return null;
-    return .{
+    const pair = Correlator.WickPair{
         .rule = rule,
         .config = config_ptr,
         .left = left,
@@ -2888,6 +2987,8 @@ fn matchRule(config_ptr: *const CorrelatorConfigData, rule: *const wick.Rule, le
         .labels = labels,
         .reversed = reversed,
     };
+    if (!pairSatisfiesIndexConstraints(pair)) return null;
+    return pair;
 }
 
 fn lowerBoundPairLookup(entries: []const PairLookupEntry, key: u64) usize {
@@ -3456,15 +3557,17 @@ fn matchIndexedWickPairTerm(config_ptr: *const CorrelatorConfigData, ops: kernel
         const rule_index: usize = @intCast(entry.rule_index);
         if (rule_index >= config_ptr.wick_rules.len) return error.InvalidPairLookup;
         const rule = &config_ptr.wick_rules[rule_index];
+        const pair = Correlator.WickPair{
+            .rule = rule,
+            .config = config_ptr,
+            .left = left,
+            .right = right,
+            .labels = ops.labels,
+            .reversed = entry.reversed,
+        };
+        if (!pairSatisfiesIndexConstraints(pair)) continue;
         if (remaining < rule.expr.terms.len) {
-            return .{ .pair = .{
-                .rule = rule,
-                .config = config_ptr,
-                .left = left,
-                .right = right,
-                .labels = ops.labels,
-                .reversed = entry.reversed,
-            }, .rule_index = rule_index, .term_index = remaining };
+            return .{ .pair = pair, .rule_index = rule_index, .term_index = remaining };
         }
         remaining -= rule.expr.terms.len;
     }
@@ -3521,6 +3624,7 @@ fn emitIndexedWickPairTerms(config_ptr: *const CorrelatorConfigData, ops: kernel
             .labels = ops.labels,
             .reversed = entry.reversed,
         };
+        if (!pairSatisfiesIndexConstraints(pair)) continue;
 
         var term_index: usize = 0;
         while (term_index < pair.rule.expr.terms.len) : (term_index += 1) {
@@ -3548,24 +3652,35 @@ fn emitScannedWickPairTerms(config_ptr: *const CorrelatorConfigData, ops: kernel
     return emitted;
 }
 
-fn countIndexedWickPairTerms(config_ptr: *const CorrelatorConfigData, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) !usize {
+fn countIndexedWickPairTerms(config_ptr: *const CorrelatorConfigData, ops: kernel.Call.MultiOp, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) !usize {
     const key = wickRuleKey(left.kind, right.kind);
     var entry_index = lowerBoundPairLookup(config_ptr.pair_lookup, key);
     var count: usize = 0;
 
     while (entry_index < config_ptr.pair_lookup.len and config_ptr.pair_lookup[entry_index].key == key) : (entry_index += 1) {
-        const rule_index: usize = @intCast(config_ptr.pair_lookup[entry_index].rule_index);
+        const entry = config_ptr.pair_lookup[entry_index];
+        const rule_index: usize = @intCast(entry.rule_index);
         if (rule_index >= config_ptr.wick_rules.len) return error.InvalidPairLookup;
-        count += config_ptr.wick_rules[rule_index].expr.terms.len;
+        const rule = &config_ptr.wick_rules[rule_index];
+        const pair = Correlator.WickPair{
+            .rule = rule,
+            .config = config_ptr,
+            .left = left,
+            .right = right,
+            .labels = ops.labels,
+            .reversed = entry.reversed,
+        };
+        if (!pairSatisfiesIndexConstraints(pair)) continue;
+        count += rule.expr.terms.len;
     }
 
     return count;
 }
 
-fn countScannedWickPairTerms(config_ptr: *const CorrelatorConfigData, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) usize {
+fn countScannedWickPairTerms(config_ptr: *const CorrelatorConfigData, ops: kernel.Call.MultiOp, left: kernel.Call.LocalOp, right: kernel.Call.LocalOp) usize {
     var count: usize = 0;
     for (config_ptr.wick_rules) |rule| {
-        if (ruleMatches(rule, left, right) != null) count += rule.expr.terms.len;
+        if (matchRule(config_ptr, &rule, left, right, ops.labels) != null) count += rule.expr.terms.len;
     }
     return count;
 }
@@ -3577,10 +3692,10 @@ fn countWickPairTermsData(config_ptr: *const CorrelatorConfigData, ops: kernel.C
     const left = ops.operators[left_index];
     const right = ops.operators[right_index];
     if (config_ptr.pair_lookup.len != 0) {
-        return countIndexedWickPairTerms(config_ptr, left, right);
+        return countIndexedWickPairTerms(config_ptr, ops, left, right);
     }
 
-    return countScannedWickPairTerms(config_ptr, left, right);
+    return countScannedWickPairTerms(config_ptr, ops, left, right);
 }
 
 fn emitWickPairTermsData(config_ptr: *const CorrelatorConfigData, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, sink: anytype) !usize {
@@ -3764,4 +3879,87 @@ pub fn streamCorrelator(config_ptr: anytype, ops: anytype, sink: anytype) !void 
     const ConfigHandle = ptr_info.pointer.child;
     const data = configData(config_ptr);
     return wick_correlator.wickCorrelator(RuntimeWickTactic(ConfigHandle), data, operatorListData(ops), sink);
+}
+
+test "target index sorts carry holomorphic degree charges" {
+    const testing = std.testing;
+
+    try testing.expectEqual(@as(i8, 0), targetU1Charge(.real_tangent));
+    try testing.expectEqual(@as(i8, 1), targetU1Charge(.holomorphic_tangent));
+    try testing.expectEqual(@as(i8, -1), targetU1Charge(.antiholomorphic_tangent));
+    try testing.expectEqual(@as(i8, 1), targetU1Charge(.holomorphic_cotangent));
+    try testing.expectEqual(@as(i8, -1), targetU1Charge(.antiholomorphic_cotangent));
+}
+
+test "pair index constraints filter declared contractions" {
+    const testing = std.testing;
+    const op_kind: operators.OperatorKindId = 0x2345;
+    const op_spec = Spec.Operator{
+        .name = "xi",
+        .kind = op_kind,
+        .support = .holomorphic,
+        .insertion = .single,
+        .labels = &.{.index},
+        .statistics = .bosonic,
+    };
+    const Data = struct {
+        const rule_expr = wick.expr(&.{wick.term(&.{wick.scalar(scalars.one())}, &.{}, &.{.none})});
+        const rules = [_]wick.Rule{
+            wick.constrainedRule(
+                wick.pattern(op_kind, .holomorphic),
+                wick.pattern(op_kind, .holomorphic),
+                rule_expr,
+                &.{.{ .left_slot = 0, .right_slot = 0, .constraint = .conjugate_complex_sort }},
+            ),
+        };
+        const Config = correlatorConfig(.{ .wick_rules = &rules, .zero_modes = &.{} });
+    };
+    const Config = Data.Config;
+    const Sink = struct {
+        terms: usize = 0,
+
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.terms += 1;
+        }
+
+        pub fn emitWickScalar(_: *@This(), _: anytype) !void {}
+        pub fn emitWickCoordinate(_: *@This(), _: anytype) !void {}
+        pub fn emitWickTensor(_: *@This(), _: anytype) !void {}
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {}
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {}
+        pub fn emitZeroModeBaseEnd(_: *@This()) !void {}
+    };
+
+    {
+        var local = try Local.init(testing.allocator);
+        defer local.deinit();
+        const i = try local.typedIndex("i", .holomorphic_tangent);
+        const jbar = try local.typedIndex("jbar", .antiholomorphic_tangent);
+        const z = try local.coord("z");
+        const w = try local.coord("w");
+        const left = try operatorBuilder(op_spec).single(&local, z, 0, .{i});
+        const right = try operatorBuilder(op_spec).single(&local, w, 0, .{jbar});
+        const ops = try local.ops(.{ left, right });
+        var sink = Sink{};
+        var config = Config{};
+        try streamCorrelator(&config, ops, &sink);
+        try testing.expectEqual(@as(usize, 1), sink.terms);
+    }
+
+    {
+        var local = try Local.init(testing.allocator);
+        defer local.deinit();
+        const i = try local.typedIndex("i", .holomorphic_tangent);
+        const j = try local.typedIndex("j", .holomorphic_tangent);
+        const z = try local.coord("z");
+        const w = try local.coord("w");
+        const left = try operatorBuilder(op_spec).single(&local, z, 0, .{i});
+        const right = try operatorBuilder(op_spec).single(&local, w, 0, .{j});
+        const ops = try local.ops(.{ left, right });
+        var sink = Sink{};
+        var config = Config{};
+        try streamCorrelator(&config, ops, &sink);
+        try testing.expectEqual(@as(usize, 0), sink.terms);
+    }
 }

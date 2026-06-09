@@ -20,6 +20,12 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    const nlsm_mod = b.addModule("nlsm-code", .{
+        .root_source_file = b.path("src/nlsm-code/nlsm-code.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const root_mod = b.addModule("string-code", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
@@ -27,6 +33,7 @@ pub fn build(b: *std.Build) void {
         .imports = &.{
             .{ .name = "tensor-code", .module = tensor_mod },
             .{ .name = "cft-code", .module = cft_mod },
+            .{ .name = "nlsm-code", .module = nlsm_mod },
         },
     });
 
@@ -46,6 +53,11 @@ pub fn build(b: *std.Build) void {
         .root_module = root_mod,
     });
     const run_root_tests = b.addRunArtifact(root_tests);
+
+    const nlsm_tests = b.addTest(.{
+        .root_module = nlsm_mod,
+    });
+    const run_nlsm_tests = b.addRunArtifact(nlsm_tests);
 
     const generated_abi_mod = b.createModule(.{
         .root_source_file = b.path("src/cft-code/generated_abi.zig"),
@@ -70,10 +82,12 @@ pub fn build(b: *std.Build) void {
 
     b.default_step.dependOn(&run_cft_kernel_tests.step);
     b.default_step.dependOn(&run_root_tests.step);
+    b.default_step.dependOn(&run_nlsm_tests.step);
     b.default_step.dependOn(&run_generated_abi_tests.step);
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_cft_kernel_tests.step);
     test_step.dependOn(&run_root_tests.step);
+    test_step.dependOn(&run_nlsm_tests.step);
     test_step.dependOn(&run_generated_abi_tests.step);
 }

@@ -74,7 +74,7 @@ descriptor string at this boundary, so generated Zig never sees Lisp packages.
 (defstruct label-schema id role symbol)
 (defstruct field id symbol insertion labels statistics zero-mode weight anti-weight)
 (defstruct wick-term scalars coordinates tensors actions residuals)
-(defstruct wick-rule surface left right terms)
+(defstruct wick-rule surface left right terms constraints)
 (defstruct zero-mode surface kind consumes normalization two-pi-power)
 (defstruct (runtime-context (:constructor %make-runtime-context))
   handle
@@ -218,8 +218,9 @@ label row.  This is intentionally small and deterministic.
               (push row (theory-metadata theory))
               id)))))
 
-(defun add-wick-rule (theory surface left right terms)
-  (push (make-wick-rule :surface surface :left left :right right :terms terms)
+(defun add-wick-rule (theory surface left right terms &key constraints)
+  (push (make-wick-rule :surface surface :left left :right right :terms terms
+                        :constraints constraints)
         (theory-wick-rules theory)))
 
 (defun add-zero-mode (theory surface kind consumes &key (normalization :one) (two-pi-power 0))
@@ -437,6 +438,16 @@ dense ids and compact tagged rows.
      (emit-coordinate-ref stream (second form))
      (format stream ", .right = ")
      (emit-coordinate-ref stream (third form))
+     (format stream " } }"))
+    (:logarithm
+     (format stream ".{ .logarithm = .{ .left = ")
+     (emit-coordinate-ref stream (second form))
+     (format stream ", .right = ")
+     (emit-coordinate-ref stream (third form))
+     (when (derive-left-p form)
+       (format stream ", .derive_left = true"))
+     (when (derive-right-p form)
+       (format stream ", .derive_right = true"))
      (format stream " } }"))))
 
 (defun emit-tensor-factor (stream form)
@@ -463,6 +474,11 @@ dense ids and compact tagged rows.
 (defun emit-side (stream side)
   (format stream ".~A" (side-name side)))
 
+(defun emit-index-constraint (stream form)
+  (destructuring-bind (left-slot right-slot constraint) form
+    (format stream ".{ .left_slot = ~D, .right_slot = ~D, .constraint = .~A }"
+            left-slot right-slot (zig-keyword constraint))))
+
 (defun emit-wick-term (theory stream term)
   (format stream ".{ .scalars = ")
   (emit-zig-list stream (or (wick-term-scalars term) '(:one)) #'emit-scalar-factor)
@@ -476,11 +492,15 @@ dense ids and compact tagged rows.
   (format stream " }"))
 
 (defun emit-wick-rule (stream rule term-var)
-  (format stream ".{ .surface = ~D, .left = ~D, .right = ~D, .terms = &~A }"
+  (format stream ".{ .surface = ~D, .left = ~D, .right = ~D, .terms = &~A"
           (wick-rule-surface rule)
           (wick-rule-left rule)
           (wick-rule-right rule)
-          term-var))
+          term-var)
+  (when (wick-rule-constraints rule)
+    (format stream ", .index_constraints = ")
+    (emit-zig-list stream (wick-rule-constraints rule) #'emit-index-constraint))
+  (format stream " }"))
 
 (defun emit-zero-mode (stream rule)
   (format stream ".{ .surface = ~D, .kind = .~A, .consumes = "

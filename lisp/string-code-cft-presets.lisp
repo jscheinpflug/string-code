@@ -333,7 +333,11 @@
                      ,@(cddddr form)))
     ((:green-exponential green-exponential)
      `(:green-exponential ,(second form)
-                          ,(third form)))))
+                          ,(third form)))
+    ((:logarithm logarithm)
+     `(:logarithm ,(second form)
+                  ,(third form)
+                  ,@(cdddr form)))))
 
 (defun parse-side-label-ref (labels left-field right-field ref)
   (destructuring-bind (side value) ref
@@ -352,6 +356,23 @@
     ((:momentum-pair momentum-pair)
      `(:momentum-pair ,(parse-side-label-ref labels left-field right-field (second form))
                       ,(parse-side-label-ref labels left-field right-field (third form))))))
+
+(defun parse-index-constraint-kind (kind)
+  (ecase kind
+    ((:none none) :none)
+    ((:same-sort same-sort) :same-sort)
+    ((:conjugate-complex-sort conjugate-complex-sort) :conjugate-complex-sort)))
+
+(defun parse-index-constraint (labels left-field right-field form)
+  (destructuring-bind (left-label right-label kind) form
+    (list (parse-label-ref labels left-field left-label)
+          (parse-label-ref labels right-field right-label)
+          (parse-index-constraint-kind kind))))
+
+(defun parse-index-constraints (labels left-field right-field forms)
+  (mapcar (lambda (form)
+            (parse-index-constraint labels left-field right-field form))
+          forms))
 
 (defun insertion-coordinate-slots (insertion)
   (ecase insertion
@@ -424,6 +445,17 @@
           (= (length form) 3))
      `(:green-exponential ,(env-ref coordinate-env (second form) "coordinate")
                           ,(env-ref coordinate-env (third form) "coordinate")))
+    ((and (consp form) (member (first form) '(log logarithm))
+          (= (length form) 2))
+     (let ((argument (second form)))
+       (unless (and (difference-form-p argument)
+                    (= (length argument) 3))
+         (error "Expected logarithm of coordinate difference, got ~S." form))
+       (let ((left (env-ref coordinate-env (second argument) "coordinate"))
+             (right (env-ref coordinate-env (third argument) "coordinate")))
+         `(:logarithm ,left ,right
+                      ,@(when (coordinate-ref-position-p left) '(:derive-left))
+                      ,@(when (coordinate-ref-position-p right) '(:derive-right))))))
     ((named-coordinate-kernel-p form coordinate-env)
      `(:named-kernel ,(first form)
                      ,(env-ref coordinate-env (second form) "coordinate")
@@ -501,16 +533,24 @@
          (parse-field-ref fields right-field)
          (list (parse-expression-term parameters label-env coordinate-env
                                       expression
-                                      (option-value options :residuals nil)))))
+                                      (option-value options :residuals nil)))
+         :constraints (parse-index-constraints
+                       labels left-field right-field
+                       (option-value options :index-constraints nil))))
       (destructuring-bind (left-field right-field) left
-        (add-wick-rule
-         theory
-         surface
-         (parse-field-ref fields left-field)
-         (parse-field-ref fields right-field)
-         (mapcar (lambda (term)
-                   (parse-term parameters labels left-field right-field term))
-                 body)))))
+        (let ((constraints (option-value body :index-constraints nil))
+              (terms (loop for item in body when (consp item) collect item)))
+          (add-wick-rule
+           theory
+           surface
+           (parse-field-ref fields left-field)
+           (parse-field-ref fields right-field)
+           (mapcar (lambda (term)
+                     (parse-term parameters labels left-field right-field term))
+                   terms)
+           :constraints (parse-index-constraints
+                         labels left-field right-field
+                         constraints))))))
 
 (defun apply-preset-form
     (theory parameters quantum-numbers surfaces fields labels form)

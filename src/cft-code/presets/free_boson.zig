@@ -220,6 +220,14 @@ fn bulkToBoundaryAntiholomorphicDifference() wick.CoordinateDifference {
     return wick.difference(wick.coord(.left, .antiholomorphic), wick.coord(.right, .position));
 }
 
+fn singleToBulkHolomorphicDifference() wick.CoordinateDifference {
+    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .holomorphic));
+}
+
+fn singleToBulkAntiholomorphicDifference() wick.CoordinateDifference {
+    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .antiholomorphic));
+}
+
 fn freeBosonDxDx(comptime alpha: RuleScalar) wick.Expr {
     return wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .metric = .{
         .left = wick.label(.left, 0),
@@ -260,6 +268,38 @@ fn freeBosonDxtProfile(comptime alpha: RuleScalar) wick.Expr {
     }, &.{.right});
 }
 
+fn freeBosonXX(comptime alpha: RuleScalar) wick.Expr {
+    const scalar = scalars.div(scalars.neg(alpha), 2);
+    return wick.expr(&.{
+        wick.term(&.{wick.scalar(scalar)}, &.{wick.logarithm(bulkHolomorphicDifference())}, &.{.{ .metric = .{
+            .left = wick.label(.left, 0),
+            .right = wick.label(.right, 0),
+        } }}),
+        wick.term(&.{wick.scalar(scalar)}, &.{wick.logarithm(bulkAntiholomorphicDifference())}, &.{.{ .metric = .{
+            .left = wick.label(.left, 0),
+            .right = wick.label(.right, 0),
+        } }}),
+    });
+}
+
+fn freeBosonDxX(comptime alpha: RuleScalar) wick.Expr {
+    return wick.expr(&.{wick.term(&.{wick.scalar(scalars.div(scalars.neg(alpha), 2))}, &.{
+        wick.differentiatedLogarithm(singleToBulkHolomorphicDifference(), .{ .include_left = true }),
+    }, &.{.{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }})});
+}
+
+fn freeBosonDxtX(comptime alpha: RuleScalar) wick.Expr {
+    return wick.expr(&.{wick.term(&.{wick.scalar(scalars.div(scalars.neg(alpha), 2))}, &.{
+        wick.differentiatedLogarithm(singleToBulkAntiholomorphicDifference(), .{ .include_left = true }),
+    }, &.{.{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }})});
+}
+
 fn freeBosonExpXExpX(comptime alpha: RuleScalar) wick.Expr {
     return wick.expr(&.{wick.termWithResiduals(&.{wick.scalar(scalars.div(alpha, 2))}, &.{
         .{ .green_exponential = bulkHolomorphicDifference() },
@@ -296,10 +336,13 @@ const sphere_operator_spec = [_]Spec.Operator{
     .{ .name = "profile", .kind = kind(.profile_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.profile}, .statistics = .bosonic, .zero_mode_consumable = true },
 };
 
-fn sphereWickSpec(comptime alpha: RuleScalar) [7]Spec.WickRule {
+fn sphereWickSpec(comptime alpha: RuleScalar) [10]Spec.WickRule {
     return [_]Spec.WickRule{
+        .{ .left = kind(.x), .right = kind(.x), .expr = freeBosonXX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.d_x), .expr = freeBosonDxDx(alpha) },
         .{ .left = kind(.d_xt), .right = kind(.d_xt), .expr = freeBosonDxtDxt(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.x), .expr = freeBosonDxX(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.x), .expr = freeBosonDxtX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.exp_x), .expr = freeBosonDxExpX(alpha) },
         .{ .left = kind(.d_xt), .right = kind(.exp_x), .expr = freeBosonDxtExpX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.profile_x), .expr = freeBosonDxProfile(alpha) },
@@ -311,8 +354,11 @@ fn sphereWickSpec(comptime alpha: RuleScalar) [7]Spec.WickRule {
 const sphere_wick_spec = sphereWickSpec(.one);
 
 const torus_wick_spec = [_]Spec.WickRule{
+    .{ .left = kind(.x), .right = kind(.x), .coordinate_kernels = &.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.d_x), .coordinate_kernels = &.{.elliptic_green} },
     .{ .left = kind(.d_xt), .right = kind(.d_xt), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_x), .right = kind(.x), .coordinate_kernels = &.{.elliptic_green} },
+    .{ .left = kind(.d_xt), .right = kind(.x), .coordinate_kernels = &.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green} },
     .{ .left = kind(.d_xt), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.profile_x), .coordinate_kernels = &.{.elliptic_green} },
@@ -388,7 +434,7 @@ fn assertTorusDraftSpec() void {
     if (torus_draft_spec.surface.source != .stringbook) @compileError("free-boson torus draft spec source convention is incomplete");
     if (torus_draft_spec.operators.len != sphere_spec.operators.len) @compileError("free-boson torus draft spec operator metadata is incomplete");
     if (torus_draft_spec.wick_rules.len != sphere_spec.wick_rules.len) @compileError("free-boson torus draft spec Wick metadata is incomplete");
-    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green) != 6) @compileError("free-boson torus draft spec Green-kernel metadata is incomplete");
+    if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green) != 9) @compileError("free-boson torus draft spec Green-kernel metadata is incomplete");
     if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green_exponential) != 1) @compileError("free-boson torus draft spec exponential Green-kernel metadata is incomplete");
     if (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .rational_pole) != 0) @compileError("free-boson torus draft spec still uses rational pole metadata");
     if (torus_draft_spec.zero_modes.len != 1) @compileError("free-boson torus draft spec zero-mode metadata is incomplete");

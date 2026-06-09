@@ -2,11 +2,14 @@
 pub const tensor = @import("tensor-code");
 /// cft exposes the selected worldsheet CFT public API.
 pub const cft = @import("cft-code");
+/// nlsm exposes the compact nonlinear-sigma-model local reducer API.
+pub const nlsm = @import("nlsm-code");
 
-test "top-level API exposes tensor and cft boundaries" {
+test "top-level API exposes tensor, cft, and nlsm boundaries" {
     const testing = @import("std").testing;
     try testing.expect(@hasDecl(@This(), "tensor"));
     try testing.expect(@hasDecl(@This(), "cft"));
+    try testing.expect(@hasDecl(@This(), "nlsm"));
     try testing.expect(@hasDecl(cft, "FreeBoson"));
     try testing.expect(@hasDecl(cft, "Bc"));
     try testing.expect(@hasDecl(cft, "FreeFermion"));
@@ -37,6 +40,8 @@ test "top-level API exposes tensor and cft boundaries" {
     try testing.expect(!@hasDecl(cft, "kernel"));
     try testing.expect(!@hasDecl(cft, "theory"));
     try testing.expect(!@hasDecl(cft, "expressions"));
+    try testing.expect(@hasDecl(nlsm, "GeometryFlavor"));
+    try testing.expect(@hasDecl(nlsm, "reduceLocalTerm"));
 }
 
 test "tensor context interns projected realization requests without expansion" {

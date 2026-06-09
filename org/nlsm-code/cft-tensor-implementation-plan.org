@@ -1,0 +1,283 @@
+:PROPERTIES:
+:ID:       20260609T122526.430480
+:END:
+#+title: CFT Tensor Implementation Plan For NLSM
+
+This plan implements the requests from [[id:20260609T150500.000000][NLSM Feature Request For CFT-Code And
+Tensor-Code]] while preserving the module split described in
+[[id:20260609T131500.000000][NLSM Backend And Lisp DSL]].  The implementation keeps
+[[id:20260606T150002.000000][CFT Kernel]] responsible for typed free-field contraction data and makes
+[[id:20260603T064230.276471][NLSM-Code]] own local geometry tensor canonicalization.  [[id:20260605T075909.433647][Tensor-Code]]
+is not extended until the geometry reducer has a second client.
+
+* Coherence Review
+
+The feature request is coherent with the current DSL if it is treated as a
+streaming descriptor extension, not as a new symbolic geometry layer inside
+=cft-code=.  The current code has two authoring paths that must be kept in
+sync:
+
+- the handwritten Zig preset path in [[id:20260606T183100.000000][Preset Shared Runtime]] and
+  [[id:20260606T183200.000000][Free Boson Preset]];
+- the Lisp descriptor path in [[id:20260609T004000.000000][Lisp Preset Compiler]] and
+  [[id:20260608T234500.000000][Lisp Descriptor Emitter]].
+
+The public CFT root currently hides shared-runtime internals.  Keep that shape:
+typed index machinery can be internal to CFT presets, while NLSM-facing public
+data belongs under an =NLSM= namespace.
+
+* CFT Descriptor And Runtime Changes
+
+Add compact typed index handles to the shared preset runtime.
+
+#+begin_src zig :tangle no
+pub const IndexSort = enum(u8) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+pub const TargetIndex = packed struct(u32) {
+    raw: u24,
+    sort: IndexSort,
+};
+#+end_src
+
+Implementation details:
+
+- keep =Handle.Index= and =Local.index()= as real-tangent defaults;
+- add =Handle.TypedIndex= and =Local.typedIndex(name, sort)=;
+- encode typed target indices as compact =u32= label values so =kernel.Call.LabelValue=
+  stays unchanged;
+- add internal helpers to decode sort and raw id from label values;
+- never infer a sort from a printed symbol name.
+
+Extend Wick rules with slot-local pair constraints.
+
+#+begin_src zig :tangle no
+pub const PairIndexConstraint = enum(u8) {
+    none,
+    same_sort,
+    conjugate_complex_sort,
+};
+
+pub const PairIndexConstraintRow = struct {
+    left_slot: u8,
+    right_slot: u8,
+    constraint: PairIndexConstraint,
+};
+#+end_src
+
+The matcher applies these rows after operator-kind matching and before
+counting or emitting primitive terms.  This must be shared by the direct
+pair-lookup path and the scanned fallback path so =count= and =run= agree.
+Rules with no rows behave exactly as current rules.
+
+Extend primitive tensor factors only as compact coefficient atoms:
+
+#+begin_src zig :tangle no
+pub const TensorFactor = union(enum) {
+    none,
+    metric: struct { left: LabelRef, right: LabelRef },
+    hermitian_metric: struct { holo: LabelRef, antiholo: LabelRef },
+    inverse_metric: struct { left: LabelRef, right: LabelRef },
+    kahler_form: struct { holo: LabelRef, antiholo: LabelRef },
+    complex_structure: struct { left: LabelRef, right: LabelRef },
+    tensor_atom_slot: struct { atom: u32, slots: []const LabelRef },
+};
+#+end_src
+
+Validation stays local: label arity, label role, and index-sort compatibility.
+CFT must not know Riemann identities, Kahler identities, Hodge data, or
+counterterm quotients.
+
+* U(1) Charge Metadata
+
+Basis generation should receive integer charge rows, not naming conventions.
+Add two charge layers.
+
+First, add target holomorphic-degree charge metadata to typed target indices
+and tensor slots:
+
+#+begin_src zig :tangle no
+pub fn targetU1Charge(sort: IndexSort) i8 {
+    return switch (sort) {
+        .real_tangent, .real_cotangent => 0,
+        .holomorphic_tangent, .holomorphic_cotangent => 1,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent => -1,
+    };
+}
+#+end_src
+
+This convention makes =g_{i \bar j}=, =g^{i \bar j}=, =J_{i \bar j}=, and
+=R_{i \bar j k \bar l}= neutral.  A CY holomorphic volume form in complex
+dimension =d= has charge =+d=, its conjugate has charge =-d=, and a harmonic
+=(p,q)= form has charge =p-q=.  For K3, the holomorphic two-form has charge
+=+2=, its conjugate has =-2=, and the Kahler form is neutral.
+
+Second, add worldsheet =U(1)_R= quantum numbers for NLSM field families using
+the existing =u1_charge= quantum-number machinery:
+
+#+begin_src text :tangle no
+field family          q_L    q_R
+xi^i, xi^bar          0      0
+dX^i, dX^bar          0      0
+psi_+^i              +1      0
+psi_+^bar            -1      0
+psi_-^i               0     +1
+psi_-^bar             0     -1
+#+end_src
+
+Store =q_L= and =q_R= as primitive integer quantum numbers.  Basis-generation
+helpers may derive vector and axial charges by =q_V = q_L + q_R= and
+=q_A = q_L - q_R=.  Do not assign worldsheet R charge to bosonic target
+indices themselves; their target holomorphic-degree charge is separate and is
+used by the geometry/tensor basis filters.
+
+Tensor atoms declare both slot sorts and total target charge:
+
+#+begin_src zig :tangle no
+pub const TensorAtomDecl = struct {
+    name: []const u8,
+    slot_sorts: []const TensorSlotSort,
+    target_u1_charge: i16,
+    symmetry: SlotSymmetryId,
+};
+#+end_src
+
+The reducer verifies =target_u1_charge= equals the sum of slot charges unless a
+special atom declaration, such as a density or volume form, explicitly fixes a
+different charge.  This gives the basis-generation plan a stable way to filter
+Kahler, CY3, and K3 tensor structures.
+
+* Free-Boson Rules
+
+The handwritten free-boson preset already has an explicit bulk =X= operator.
+Complete the missing sphere contractions:
+
+- =X X=: logarithmic Green kernel times the metric;
+- =dX X=: differentiated logarithm times the metric;
+- =dXt X=: antiholomorphic differentiated logarithm times the metric.
+
+Use the existing runtime logarithm coordinate factor in the handwritten preset.
+Extend the generated descriptor path with a =logarithm= coordinate factor so
+the Lisp preset can express the same rules.
+
+Required Lisp descriptor changes:
+
+- add =:logarithm= parsing and emission beside =:difference-power=,
+  =:named-kernel=, and =:green-exponential=;
+- add tensor-factor forms for =hermitian-metric=, =inverse-metric=,
+  =kahler-form=, =complex-structure=, and =tensor-atom-slot=;
+- add rule-level index-constraint syntax;
+- add =X= and =dXt= to the generated free-boson preset and regenerate fixtures.
+
+* NLSM Geometry Reducer
+
+Add a first NLSM geometry reducer as local tensor-term infrastructure, not as a
+tensor-code extension.
+
+#+begin_src zig :tangle no
+pub const GeometryFlavor = enum(u8) {
+    generic_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+};
+
+pub const TensorSlotSort = IndexSort;
+#+end_src
+
+The first reducer consumes streamed CFT branch data:
+
+#+begin_example
+cft-code Wick stream
+  -> nlsm-code tensor-term sink
+  -> local canonicalizer / hash-cons table
+  -> coefficient accumulation
+#+end_example
+
+Implement only:
+
+- slot-sort checking;
+- target charge accumulation and neutrality checks requested by the job;
+- dummy-index renaming within fixed sorts;
+- metric and Hermitian-metric contraction;
+- Kahler same-type vanishing;
+- Riemann and covariant-derivative symmetry canonicalization;
+- Ricci and scalar-curvature detection.
+
+Do not implement topology, Hodge decomposition, large-volume fitting, pole
+extraction, beta assembly, or field-redefinition quotients in this step.
+
+* Public API Shape
+
+Keep public exports small.
+
+For =cft-code=, expose no raw shared-runtime internals at the root.  Existing
+presets keep their current public constructor shape.
+
+For =nlsm-code=, expose only compact declarations and job-facing entrypoints:
+
+#+begin_src zig :tangle no
+pub const GeometryFlavor = geometry.GeometryFlavor;
+pub const TensorAtomDecl = geometry.TensorAtomDecl;
+pub const TensorSlotSort = geometry.TensorSlotSort;
+
+pub const NLSM = struct {
+    pub fn run(job: JobId, stage: Stage, sink: anytype) !void;
+    pub fn inspect(job: JobId, request: InspectRequest, sink: anytype) !void;
+};
+#+end_src
+
+Private implementation details include rewrite tables, hash-cons arenas,
+canonicalization caches, and CFT pair-rule internals.
+
+* Implementation Order
+
+1. Extend the shared runtime typed-index encoding and add decode helpers.
+2. Add pair-rule index constraints and apply them in both count and emit paths.
+3. Add the new tensor-factor variants to handwritten runtime, descriptor rows,
+   validation, result events, and Lisp expression reconstruction.
+4. Add logarithm support to the generated descriptor path.
+5. Add =X X=, =dX X=, and =dXt X= to handwritten and Lisp free-boson presets.
+6. Add NLSM geometry declarations, tensor atom declarations, and charge rows.
+7. Add the local NLSM tensor-term sink and minimal canonicalizer.
+8. Add the compact =NLSM= root namespace and build wiring.
+9. Revisit tensor-code extraction only after the reducer is exercised by a
+   second non-NLSM client.
+
+* Tests
+
+Run the existing baseline:
+
+#+begin_src sh :tangle no
+zig build test
+#+end_src
+
+Add focused tests only where they protect concrete invariants:
+
+- typed-index encoding preserves raw id and sort;
+- conjugate-sort pair constraints reject \(i i\) and \(\bar i \bar i\) while
+  accepting \(i \bar j\);
+- constrained pair counts and streamed terms agree;
+- generated descriptors validate new tensor factors, logarithms, and
+  constraints;
+- free-boson =X X=, =dX X=, and =dXt X= emit the expected metric and
+  logarithmic coordinate kernels;
+- NLSM reducer rejects bad slot sorts, applies Kahler same-type vanishing,
+  contracts Hermitian metrics, and detects Ricci contractions;
+- NLSM basis metadata exposes =q_L=, =q_R=, vector/axial derived charges, and
+  target holomorphic-degree charges for CY3 and K3 forms.
+
+* Assumptions
+
+- Tangent sorts are sufficient for the first CFT-facing implementation; explicit
+  cotangent sorts are used when NLSM tensor declarations need variance.
+- Worldsheet =U(1)_R= and target holomorphic-degree charge are separate rows.
+- CY3/K3 topology and volume data remain downstream NLSM descriptors.
+- =tensor_atom_slot= is a compact bridge to NLSM sinks, not a general symbolic
+  expression layer in CFT.
