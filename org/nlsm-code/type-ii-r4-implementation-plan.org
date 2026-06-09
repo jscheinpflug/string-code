@@ -1,0 +1,574 @@
+:PROPERTIES:
+:ID:       20260609T193000.000000
+:END:
+#+title: Type II R4 Implementation Plan
+#+bibliography: ../refs.bib
+
+This note fixes the implementation plan for the generic type-II \(R^4\)
+calculation in ordinary real Riemann normal coordinates.  The goal is not just
+to obtain the answer.  The goal is to make the code and the note read like a
+modern version of the old sigma-model papers: every local term is emitted by a
+small kernel, every regulated integral belongs to a named family, and every
+beta-function coefficient is traced back to a specific simple pole in the
+minimal-subtraction scheme [cite:@yinStringbook] [cite:@Friedan:1985nl]
+[cite:@Callan:1985ia] [cite:@Tseytlin:1986tt] [cite:@Tseytlin:1986ws]
+[cite:@Grisaru:1986kw] [cite:@Grisaru:1986px] [cite:@Gross:1986iv]
+[cite:@Park:1987az].
+
+* Scope
+
+This plan is for the ten-dimensional type-II sigma model in ordinary real RNC.
+It is not yet the CY3 or K3 specialization.  The output is:
+
+- the four-loop local counterterm in the metric sector;
+- the corresponding MS-scheme metric beta function;
+- the purified on-shell \(R^4\) invariant obtained after the allowed
+  field-redefinition quotient;
+- the normalization match to the amplitude-side \(R^4\) basis.
+
+The calculation should reproduce the old four-loop supersymmetric sigma-model
+result, but in a form that is inspectable term by term and checkable by code
+[cite:@Grisaru:1986kw] [cite:@Grisaru:1986px] [cite:@Park:1987az].
+
+* Fixed Scheme
+
+The scheme is fixed at the start and never inferred later.
+
+1. Worldsheet regularization
+
+   Use Euclidean dimensional regularization in
+   \(d = 2 - \epsilon\) dimensions, as in stringbook and the classic sigma-model
+   literature [cite:@yinStringbook] [cite:@Tseytlin:1986tt]
+   [cite:@Tseytlin:1986ws].
+
+2. Renormalization prescription
+
+   Use minimal subtraction.  Every bare coupling is written as a finite
+   renormalized coupling plus poles in \(\epsilon\), multiplied by the
+   required power of \(\mu\) so the bare action keeps the correct engineering
+   dimension in \(d\neq 2\).
+
+3. Background-field organization
+
+   Expand covariantly about a background map \(X_0\) using real RNC.  The
+   fluctuation fields are the tangent vectors \(\xi^\mu\) and their
+   worldsheet-superpartner fermions.  Background tensors
+   \(R_{\mu\nu\rho\sigma}(X_0)\), \(\nabla R(X_0)\), \(\nabla^2 R(X_0)\), and
+   higher covariant derivatives are treated as external local coefficients
+   [cite:@Friedan:1985nl].
+
+4. Operator basis for renormalization
+
+   Counterterms are expanded in the same local operator basis as the original
+   sigma-model couplings.  For the metric sector this means local terms
+   multiplying \(\partial X^\mu \bar\partial X^\nu\).  This is the only basis
+   from which the metric beta function is assembled.
+
+5. Field-redefinition policy
+
+   The raw beta function is kept in MS form.  The later action-matching stage
+   is the only place where field redefinitions, Ricci/EOM terms, and
+   integration by parts are quotiented [cite:@Tseytlin:1986ws]
+   [cite:@Policastro:2006vt].
+
+* Why The Beta Function Comes From The Simple Pole
+
+This must be explicit because it fixes the output contract of the code.
+
+Write the bare metric coupling in the metric-operator basis as
+
+\[
+G^{\text{bare}}_{\mu\nu}
+= \mu^{-\epsilon}
+\left(
+G_{\mu\nu}
++ \sum_{L\ge 1} \sum_{n=1}^{L}
+\frac{1}{\epsilon^n} K^{(L,n)}_{\mu\nu}(G)
+\right).
+\]
+
+Here \(L\) is loop order, and \(K^{(L,n)}_{\mu\nu}\) is the local tensor
+coefficient of the \(n\)-th pole at \(L\) loops in the metric operator basis.
+
+The bare coupling does not run:
+
+\[
+0 = \mu \frac{d}{d\mu} G^{\text{bare}}_{\mu\nu}.
+\]
+
+Differentiate the expression above at fixed bare coupling.  The result contains:
+
+- the explicit \(-\epsilon\) from \(\mu^{-\epsilon}\);
+- the beta function \(\beta^G_{\mu\nu} = \mu \frac{d}{d\mu} G_{\mu\nu}\);
+- chain-rule terms where \(\beta^G\) differentiates the pole coefficients
+  \(K^{(L,n)}_{\mu\nu}(G)\).
+
+After expanding in powers of \(1/\epsilon\), finiteness of
+\(\beta^G_{\mu\nu}\) implies:
+
+- poles of order \(1/\epsilon^m\) with \(m\ge 2\) do not define new physics;
+  they are fixed recursively by lower-order data;
+- the coefficient of the simple pole \(K^{(L,1)}_{\mu\nu}\) is the only new
+  counterterm input needed to determine the beta function in MS.
+
+Operationally, the code should implement this as:
+
+1. compute the local pole rows \(K^{(L,n)}_{\mu\nu}\);
+2. check higher-pole consistency relations internally;
+3. feed only the simple-pole residue into =BetaAssembler=;
+4. keep the map from =PoleRow= to =BetaRow= explicit in the note and the code.
+
+This is why the contraction pipeline is asked only for local pole terms and
+why the main inspection target is the simple-pole coefficient in the metric
+operator basis [cite:@yinStringbook] [cite:@Tseytlin:1986tt]
+[cite:@Tseytlin:1986ws].
+
+* Loop Order And Calculation Target
+
+The worldsheet target is the four-loop metric divergence of the type-II
+supersymmetric sigma model.  The old literature shows that this is the first
+non-vanishing supersymmetric sigma-model correction relevant to the
+\(R^4\) sector [cite:@Grisaru:1986kw] [cite:@Grisaru:1986px]
+[cite:@Park:1987az].
+
+The code should not hard-wire the final invariant.  It should compute the raw
+four-loop local metric counterterm and only then project it to the purified
+\(R^4\) basis.  This keeps the distinction between:
+
+- the sigma-model renormalization statement;
+- the beta-function tensor;
+- the on-shell effective-action invariant;
+- the amplitude-normalized coefficient.
+
+* Representation Of The Calculation
+
+The whole calculation should be represented as a stream pipeline:
+
+1. =RncVertexGenerator= emits local RNC vertices by order in \(\xi\);
+2. =DiagramPlan= emits only vertex multisets compatible with the requested loop
+   order and external operator;
+3. =WickKernel= contracts free boson and free fermion lines using =cft-code=;
+4. =KernelSignatureReducer= rewrites each branch to a compact loop-integral
+   signature plus a local tensor word;
+5. =PoleExtractor= evaluates the signature in \(d=2-\epsilon\) and emits
+   =PoleRow=;
+6. =LocalGeometryReducer= canonicalizes the tensor word;
+7. =BetaAssembler= converts the simple pole to the MS beta function;
+8. =ActionMatcher= quotients by field redefinitions and matches the
+   amplitude-normalized \(R^4\) basis.
+
+No stage should materialize the full expanded action or the full diagram sum.
+Every stage streams rows to the next stage.
+
+* Worldsheet Model
+
+The first implementation should use the standard type-II \(N=(1,1)\)
+worldsheet sigma model in components, in Euclidean signature.  The interaction
+data required by the kernels are:
+
+- the bosonic kinetic term for \(\xi^\mu\);
+- the fermionic kinetic term for left- and right-moving tangent fermions;
+- the RNC interaction vertices generated by the Levi-Civita connection and
+  curvature tensors;
+- the local operator insertion corresponding to
+  \(\partial X^\mu \bar\partial X^\nu\) in the background-field expansion.
+
+We should work in components, not superspace, for the first implementation.
+The reason is practical: the existing =cft-code= backend is already organized
+around explicit free fields and explicit contractions, so the shortest path to
+an inspectable four-loop computation is a component vertex generator.  The old
+superspace results remain the regression target, not the implementation
+language [cite:@Grisaru:1986kw] [cite:@Grisaru:1986px].
+
+* RNC Expansion Plan
+
+The RNC generator is the first place where the code becomes the paper.
+
+1. Generate the action expansion by homogeneous order in \(\xi\).
+
+   The generator must emit separate vertex families for:
+
+   - quadratic terms defining the free propagators;
+   - cubic and higher interaction terms carrying \(R\), \(\nabla R\),
+     \(\nabla^2 R\), and higher background tensors;
+   - fermionic interaction terms carrying curvature couplings.
+
+2. Do not emit symbolic formulas as strings or trees.
+
+   Emit compact rows:
+
+   - quantum-field occurrences: kind, derivative order, vertex id;
+   - background legs: the operator slots that survive after Wick contraction;
+   - tensor atoms: \(R\), \(\nabla R\), \(\nabla^2 R\), metric, inverse metric;
+   - scalar prefactors: rational number, loop weight, \(\alpha'\) power.
+
+3. Emit by request, not all at once.
+
+   A four-loop job only needs vertex families whose total valence and derivative
+   structure can contribute to the four-loop metric counterterm.  The generator
+   should be asked for exactly that budget.
+
+4. Keep a literal derivation in the note next to the code blocks.
+
+   For every emitted vertex family, the note should state:
+
+   - which term in the RNC expansion it comes from;
+   - which background tensor it carries;
+   - why its symmetry factor has the value recorded in the row.
+
+This part should lean on Friedan for the background-field algorithm and on the
+stringbook appendix for conventions [cite:@Friedan:1985nl]
+[cite:@yinStringbook].
+
+* Diagram Enumeration Plan
+
+The four-loop calculation will fail if enumeration is left implicit.
+
+1. Enumerate by connected vacuum graphs with one local metric operator
+   insertion.
+
+2. Reject impossible branches before any Wick work:
+
+   - wrong loop number;
+   - wrong fermion parity;
+   - wrong derivative count;
+   - disconnected graphs;
+   - branches that cannot end in the required local operator basis.
+
+3. Record enough data for inspection:
+
+   - vertex multiplicities;
+   - propagator count;
+   - automorphism denominator;
+   - surviving background tensor signature.
+
+The note should list the primitive four-loop topologies we accept and explain
+how they map to the row format used by =DiagramPlan= [cite:@Grisaru:1986kw].
+
+* Free Contractions
+
+At the contraction level, we reuse =cft-code= directly.
+
+1. Bosons
+
+   Use the existing free-boson system with \(X\), \(\partial X\),
+   \(\bar\partial X\), and the newly added \(X X\), \(\partial X X\),
+   \(\bar\partial X X\) rules.  In the RNC job these fields represent the
+   tangent fluctuations \(\xi^\mu\).
+
+2. Fermions
+
+   Use the existing free-fermion system for the left- and right-moving tangent
+   fermions.
+
+3. Branch state
+
+   Each branch carries only:
+
+   - live quantum occurrences;
+   - local kernel factors from each propagator;
+   - scalar combinatorics;
+   - tensor atoms attached to the vertices;
+   - the background operator legs that survive.
+
+4. No residual semantics
+
+   Uncontracted quantum occurrences are not Wick residuals in this pipeline.
+   They are a rejected branch unless the job explicitly asks for extra external
+   insertions.
+
+* Regulated Integral Families
+
+This must be explicit and finite in number.  We should not regulate every
+diagram ad hoc.
+
+1. Choose a master representation
+
+   Use momentum-space dimensional regularization for the loop integrals, even
+   though the RNC vertices are generated in coordinate language.  The
+   contraction kernel may continue to emit coordinate-kernel signatures, but
+   =PoleExtractor= should translate those signatures to a small set of
+   momentum-space master families before evaluation.
+
+   This choice is deliberate:
+
+   - dimensional regularization is standard in the old papers;
+   - momentum-space power counting makes the UV pole structure explicit;
+   - Feynman-parameter derivations are systematic and reproducible;
+   - differentiated kernels are generated by algebraic differentiation of the
+     same masters instead of by hand-built distribution identities.
+
+2. Define the master families once
+
+   The note should introduce named families such as:
+
+   - one-loop massless bubbles;
+   - nested bubbles;
+   - ladder/sunset-type families;
+   - four-loop vacuum families with numerator momenta generated by derivatives;
+   - derivative descendants obtained from the same denominators.
+
+   The code should store only a family id plus integer numerator/denominator
+   data, never a symbolic integral.
+
+3. Derive each family once in the note
+
+   For each master family:
+
+   - write the momentum integral;
+   - combine denominators with Feynman parameters;
+   - perform the \(d\)-dimensional loop-momentum integral;
+   - expand around \(\epsilon=0\);
+   - record the pole part and the locality condition;
+   - store the result as a =KernelPoleRule=.
+
+   The reduction template should be literal and uniform.  For a generic bubble
+   descendant we start from
+
+   \[
+   I_{a,b}^{(r)}(k)
+   = \mu^\epsilon \int \frac{d^d p}{(2\pi)^d}
+   \frac{(p\cdot k)^r}{(p^2)^a ((p+k)^2)^b}.
+   \]
+
+   Combine denominators with one Feynman parameter,
+
+   \[
+   \frac{1}{A^a B^b}
+   = \frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}
+   \int_0^1 dx \,
+   x^{a-1} (1-x)^{b-1}
+   \frac{1}{\left[x A + (1-x) B\right]^{a+b}},
+   \]
+
+   then shift \(q = p + (1-x) k\).  Odd powers of \(q\) vanish after angular
+   integration, and even powers reduce to \(q^2\) times metric tensors.  The
+   remaining loop integral is always of the form
+
+   \[
+   \int \frac{d^d q}{(2\pi)^d}
+   \frac{(q^2)^m}{(q^2 + \Delta)^n}
+   = \frac{1}{(4\pi)^{d/2}}
+   \frac{\Gamma(m + d/2)\Gamma(n - m - d/2)}
+        {\Gamma(d/2)\Gamma(n)}
+   \Delta^{m + d/2 - n},
+   \]
+
+   with \(\Delta = x(1-x) k^2\).  The pole comes only from the gamma factor
+   that hits a non-positive integer at \(d=2-\epsilon\).  =PoleExtractor=
+   should therefore store the reduced integer data \((a,b,r,m,n)\), evaluate
+   the gamma-function combination once, and read off the \(1/\epsilon^p\)
+   coefficient from its Laurent expansion.
+
+4. Separate local from non-local terms
+
+   We only keep the UV-local pole part for beta-function assembly.  Finite and
+   non-local pieces may be inspected, but they are not part of the MS
+   counterterm.
+
+5. Record vanishing scaleless integrals
+
+   Dimensional regularization kills scaleless tadpoles.  This should be a
+   first-class rule in =PoleExtractor=, not an accident of simplification.
+
+The derivation style here should follow the stringbook scheme and the old
+dimensional-regularization practice, but the note should present the exact
+steps needed by the code rather than a prose summary [cite:@yinStringbook]
+[cite:@Tseytlin:1986tt] [cite:@Tseytlin:1986ws].
+
+* Locality Expansion
+
+The counterterm is local, but many regulated integrals are naturally produced
+with external momentum dependence first.
+
+1. Expand only as far as needed to isolate the local divergence in the metric
+   operator basis.
+
+2. Keep the derivative counting explicit in the row format.
+
+3. Delay tensor canonicalization until after locality extraction.
+
+This split matters.  The loop integral decides whether a branch contributes a
+local pole.  The tensor reducer only decides how to identify equivalent local
+tensor words after that.
+
+* Local Tensor Reduction
+
+The first reducer lives in =nlsm-code=.
+
+Its job is limited:
+
+- normalize dummy indices;
+- sort tensor atoms into a stable order;
+- impose Riemann symmetries and the algebraic Bianchi identity;
+- contract metric/inverse-metric pairs;
+- identify Ricci and scalar-curvature traces;
+- keep enough provenance to explain which raw branches merged.
+
+It should not try to do full off-shell differential-geometry CAS work.
+Anything not needed for the generic RNC \(R^4\) computation stays out.
+
+* Beta Assembly
+
+After pole extraction and local reduction, the code has rows of the form:
+
+- loop order;
+- pole order;
+- local operator kind;
+- canonical local tensor word;
+- rational prefactor;
+- provenance data for inspection.
+
+=BetaAssembler= then:
+
+1. selects the metric-operator rows;
+2. checks that higher poles satisfy the recursion implied by bare-coupling
+   independence;
+3. extracts the simple pole;
+4. applies the fixed MS conversion rule;
+5. emits the metric beta tensor with scheme id attached.
+
+The note should show this step in one place, with the exact algebra that
+connects =PoleRow= to =BetaRow=.  This is the place where the computation
+stops being "diagram evaluation" and becomes "renormalization statement"
+[cite:@yinStringbook] [cite:@Tseytlin:1986tt] [cite:@Tseytlin:1986ws].
+
+* Action Matching
+
+Only after the MS beta tensor is known do we match to the effective action.
+
+1. Form the local eight-derivative invariant basis relevant to the metric
+   sector.
+
+2. Quotient by:
+
+   - Ricci terms removable on shell;
+   - scalar-curvature terms removable on shell;
+   - integration by parts;
+   - field redefinitions.
+
+3. Match the purified result to the amplitude-normalized \(R^4\) basis,
+   including the \(t_8 t_8 R^4\) presentation used in the amplitude literature
+   [cite:@Gross:1986iv] [cite:@Park:1987az] [cite:@Policastro:2006vt].
+
+This stage must remain separate from the renormalization code.  Otherwise the
+computation becomes impossible to audit.
+
+* File And Module Plan
+
+The implementation should be split into short literal-programming notes whose
+code blocks tangle into minimal Zig modules.
+
+1. [[id:20260609T120000.000000][R4 Coefficient Technology]]
+
+   High-level scope and literature map.
+
+2. This note
+
+   The executable paper outline: scheme, loop families, and pipeline order.
+
+3. =rnc-vertices.org=
+
+   Real RNC expansion rules and emitted vertex rows.
+
+4. =diagram-plan.org=
+
+   Connected four-loop topology enumeration and symmetry factors.
+
+5. =pole-extractor.org=
+
+   Dimensional-regularization master families and their pole rules.
+
+6. [[id:20260609T160500.000000][NLSM Local Geometry Reducer]]
+
+   Canonical local tensor-word reducer.
+
+7. =beta-assembly.org=
+
+   Bare-coupling algebra and simple-pole to beta conversion.
+
+8. =r4-action-matcher.org=
+
+   On-shell purified invariant basis and amplitude matching.
+
+Each note should be short and tied to one narrow code surface.  That is the
+only way to keep the calculation inspectable.
+
+* Step-By-Step Execution Order
+
+The implementation order should follow the physics dependency graph.
+
+1. Fix the scheme runtime.
+
+   Add a concrete =stringbookMS()= descriptor and the =PoleRow= data shape.
+
+2. Finish the generic real-RNC vertex generator.
+
+   First target: bosonic one-loop metric counterterm as a regression check
+   against stringbook [cite:@yinStringbook].
+
+3. Add the component \(N=(1,1)\) worldsheet field set.
+
+   Verify that the free-field contractions and fermion signs are correct on
+   low-loop checks before generating four-loop vertices.
+
+4. Implement the diagram enumerator.
+
+   Start with one- and two-loop connected topologies and make the inspection
+   sink print them in a stable textual format.
+
+5. Implement the pole extractor with a tiny initial master table.
+
+   Reproduce one-loop and two-loop local poles before adding the four-loop
+   families.
+
+6. Strengthen the local geometry reducer to generic real Riemannian \(R^4\)
+   tensor words.
+
+7. Implement =BetaAssembler= and reproduce the known low-loop metric beta
+   function.
+
+8. Add the four-loop \(N=(1,1)\) job and compare raw divergence structures
+   against the old four-loop literature [cite:@Grisaru:1986kw]
+   [cite:@Grisaru:1986px].
+
+9. Implement =ActionMatcher= and match the purified result to the known
+   type-II \(R^4\) basis [cite:@Gross:1986iv] [cite:@Park:1987az].
+
+10. Only after that open the CY3/K3 specialization path.
+
+* Regression Ladder
+
+The calculation is too large to debug only at four loops.  The regression
+ladder must be built into the plan.
+
+1. Bosonic one-loop metric beta function in the stringbook scheme
+   [cite:@yinStringbook].
+2. Bosonic two-loop metric check against the classic sigma-model result
+   [cite:@Friedan:1985nl] [cite:@Tseytlin:1986ws].
+3. Supersymmetric low-loop cancellation checks in the type-II field content.
+4. Four-loop primitive divergence-structure checks against
+   [cite:@Grisaru:1986kw].
+5. Four-loop compact beta-function-form check against
+   [cite:@Grisaru:1986px].
+6. Final effective-action normalization check against
+   [cite:@Gross:1986iv] [cite:@Park:1987az].
+
+* What This Plan Deliberately Excludes
+
+To keep the first \(R^4\) implementation under control, this plan does not yet
+include:
+
+- Kähler or CY-specific index types;
+- topology/cohomology descriptors;
+- \(B\)-field and dilaton higher-derivative sectors beyond the scheme hooks
+  already needed for the metric job;
+- superspace as the primary implementation language;
+- a general-purpose tensor CAS.
+
+Those belong to later notes.  The first target is the generic type-II
+four-loop metric counterterm in real RNC, obtained in a way that is explicit,
+streamable, and inspectable from the bare action to the final \(R^4\)
+invariant.
+
+#+print_bibliography:

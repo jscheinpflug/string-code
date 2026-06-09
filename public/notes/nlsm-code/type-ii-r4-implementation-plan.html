@@ -1,0 +1,1152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:17 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Type II R4 Implementation Plan</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Type II R4 Implementation Plan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org29c7de6">Scope</a></li>
+<li><a href="#org2adf886">Fixed Scheme</a></li>
+<li><a href="#org0e47c1a">Why The Beta Function Comes From The Simple Pole</a></li>
+<li><a href="#orgdc96cae">Loop Order And Calculation Target</a></li>
+<li><a href="#orga37f14d">Representation Of The Calculation</a></li>
+<li><a href="#org2c45374">Worldsheet Model</a></li>
+<li><a href="#orge79ce1a">RNC Expansion Plan</a></li>
+<li><a href="#org0a27ec9">Diagram Enumeration Plan</a></li>
+<li><a href="#org3244eb8">Free Contractions</a></li>
+<li><a href="#orgc40c8dd">Regulated Integral Families</a></li>
+<li><a href="#orge91de58">Locality Expansion</a></li>
+<li><a href="#orgba48ebc">Local Tensor Reduction</a></li>
+<li><a href="#orge6d1e01">Beta Assembly</a></li>
+<li><a href="#org44b03d9">Action Matching</a></li>
+<li><a href="#org410c988">File And Module Plan</a></li>
+<li><a href="#orgcab6aef">Step-By-Step Execution Order</a></li>
+<li><a href="#org55b6ee8">Regression Ladder</a></li>
+<li><a href="#org2d83aa0">What This Plan Deliberately Excludes</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note fixes the implementation plan for the generic type-II \(R^4\)
+calculation in ordinary real Riemann normal coordinates.  The goal is not just
+to obtain the answer.  The goal is to make the code and the note read like a
+modern version of the old sigma-model papers: every local term is emitted by a
+small kernel, every regulated integral belongs to a named family, and every
+beta-function coefficient is traced back to a specific simple pole in the
+minimal-subtraction scheme <a href="#ref-1" class="cite">[1]</a> <a href="#ref-2" class="cite">[2]</a>
+<a href="#ref-3" class="cite">[3]</a> <a href="#ref-4" class="cite">[4]</a> <a href="#ref-5" class="cite">[5]</a>
+<a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a> <a href="#ref-8" class="cite">[8]</a>
+<a href="#ref-9" class="cite">[9]</a>.
+</p>
+<div id="outline-container-org29c7de6" class="outline-2">
+<h2 id="org29c7de6">Scope</h2>
+<div class="outline-text-2" id="text-org29c7de6">
+<p>
+This plan is for the ten-dimensional type-II sigma model in ordinary real RNC.
+It is not yet the CY3 or K3 specialization.  The output is:
+</p>
+
+<ul class="org-ul">
+<li>the four-loop local counterterm in the metric sector;</li>
+<li>the corresponding MS-scheme metric beta function;</li>
+<li>the purified on-shell \(R^4\) invariant obtained after the allowed
+field-redefinition quotient;</li>
+<li>the normalization match to the amplitude-side \(R^4\) basis.</li>
+</ul>
+
+<p>
+The calculation should reproduce the old four-loop supersymmetric sigma-model
+result, but in a form that is inspectable term by term and checkable by code
+<a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a> <a href="#ref-9" class="cite">[9]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-org2adf886" class="outline-2">
+<h2 id="org2adf886">Fixed Scheme</h2>
+<div class="outline-text-2" id="text-org2adf886">
+<p>
+The scheme is fixed at the start and never inferred later.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Worldsheet regularization
+</p>
+
+<p>
+Use Euclidean dimensional regularization in
+\(d = 2 - \epsilon\) dimensions, as in stringbook and the classic sigma-model
+literature <a href="#ref-1" class="cite">[1]</a> <a href="#ref-4" class="cite">[4]</a>
+<a href="#ref-5" class="cite">[5]</a>.
+</p></li>
+
+<li><p>
+Renormalization prescription
+</p>
+
+<p>
+Use minimal subtraction.  Every bare coupling is written as a finite
+renormalized coupling plus poles in \(\epsilon\), multiplied by the
+required power of \(\mu\) so the bare action keeps the correct engineering
+dimension in \(d\neq 2\).
+</p></li>
+
+<li><p>
+Background-field organization
+</p>
+
+<p>
+Expand covariantly about a background map \(X_0\) using real RNC.  The
+fluctuation fields are the tangent vectors \(\xi^\mu\) and their
+worldsheet-superpartner fermions.  Background tensors
+\(R_{\mu\nu\rho\sigma}(X_0)\), \(\nabla R(X_0)\), \(\nabla^2 R(X_0)\), and
+higher covariant derivatives are treated as external local coefficients
+<a href="#ref-2" class="cite">[2]</a>.
+</p></li>
+
+<li><p>
+Operator basis for renormalization
+</p>
+
+<p>
+Counterterms are expanded in the same local operator basis as the original
+sigma-model couplings.  For the metric sector this means local terms
+multiplying \(\partial X^\mu \bar\partial X^\nu\).  This is the only basis
+from which the metric beta function is assembled.
+</p></li>
+
+<li><p>
+Field-redefinition policy
+</p>
+
+<p>
+The raw beta function is kept in MS form.  The later action-matching stage
+is the only place where field redefinitions, Ricci/EOM terms, and
+integration by parts are quotiented <a href="#ref-5" class="cite">[5]</a>
+<a href="#ref-10" class="cite">[10]</a>.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org0e47c1a" class="outline-2">
+<h2 id="org0e47c1a">Why The Beta Function Comes From The Simple Pole</h2>
+<div class="outline-text-2" id="text-org0e47c1a">
+<p>
+This must be explicit because it fixes the output contract of the code.
+</p>
+
+<p>
+Write the bare metric coupling in the metric-operator basis as
+</p>
+
+<p>
+\[
+G<sup>\text{bare}</sup><sub>&mu;&nu;</sub>
+= &mu;<sup>-&epsilon;</sup>
+\left(
+G<sub>&mu;&nu;</sub>
+</p>
+<ul class="org-ul">
+<li>&sum;<sub>L&ge; 1</sub> &sum;<sub>n=1</sub><sup>L</sup></li>
+</ul>
+<p>
+\frac{1}{\epsilon^n} K<sup>(L,n)</sup><sub>&mu;&nu;</sub>(G)
+\right).
+\]
+</p>
+
+<p>
+Here \(L\) is loop order, and \(K^{(L,n)}_{\mu\nu}\) is the local tensor
+coefficient of the \(n\)-th pole at \(L\) loops in the metric operator basis.
+</p>
+
+<p>
+The bare coupling does not run:
+</p>
+
+<p>
+\[
+0 = \mu \frac{d}{d\mu} G^{\text{bare}}_{\mu\nu}.
+\]
+</p>
+
+<p>
+Differentiate the expression above at fixed bare coupling.  The result contains:
+</p>
+
+<ul class="org-ul">
+<li>the explicit \(-\epsilon\) from \(\mu^{-\epsilon}\);</li>
+<li>the beta function \(\beta^G_{\mu\nu} = \mu \frac{d}{d\mu} G_{\mu\nu}\);</li>
+<li>chain-rule terms where \(\beta^G\) differentiates the pole coefficients
+\(K^{(L,n)}_{\mu\nu}(G)\).</li>
+</ul>
+
+<p>
+After expanding in powers of \(1/\epsilon\), finiteness of
+\(\beta^G_{\mu\nu}\) implies:
+</p>
+
+<ul class="org-ul">
+<li>poles of order \(1/\epsilon^m\) with \(m\ge 2\) do not define new physics;
+they are fixed recursively by lower-order data;</li>
+<li>the coefficient of the simple pole \(K^{(L,1)}_{\mu\nu}\) is the only new
+counterterm input needed to determine the beta function in MS.</li>
+</ul>
+
+<p>
+Operationally, the code should implement this as:
+</p>
+
+<ol class="org-ol">
+<li>compute the local pole rows \(K^{(L,n)}_{\mu\nu}\);</li>
+<li>check higher-pole consistency relations internally;</li>
+<li>feed only the simple-pole residue into <code>BetaAssembler</code>;</li>
+<li>keep the map from <code>PoleRow</code> to <code>BetaRow</code> explicit in the note and the code.</li>
+</ol>
+
+<p>
+This is why the contraction pipeline is asked only for local pole terms and
+why the main inspection target is the simple-pole coefficient in the metric
+operator basis <a href="#ref-1" class="cite">[1]</a> <a href="#ref-4" class="cite">[4]</a>
+<a href="#ref-5" class="cite">[5]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgdc96cae" class="outline-2">
+<h2 id="orgdc96cae">Loop Order And Calculation Target</h2>
+<div class="outline-text-2" id="text-orgdc96cae">
+<p>
+The worldsheet target is the four-loop metric divergence of the type-II
+supersymmetric sigma model.  The old literature shows that this is the first
+non-vanishing supersymmetric sigma-model correction relevant to the
+\(R^4\) sector <a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a>
+<a href="#ref-9" class="cite">[9]</a>.
+</p>
+
+<p>
+The code should not hard-wire the final invariant.  It should compute the raw
+four-loop local metric counterterm and only then project it to the purified
+\(R^4\) basis.  This keeps the distinction between:
+</p>
+
+<ul class="org-ul">
+<li>the sigma-model renormalization statement;</li>
+<li>the beta-function tensor;</li>
+<li>the on-shell effective-action invariant;</li>
+<li>the amplitude-normalized coefficient.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orga37f14d" class="outline-2">
+<h2 id="orga37f14d">Representation Of The Calculation</h2>
+<div class="outline-text-2" id="text-orga37f14d">
+<p>
+The whole calculation should be represented as a stream pipeline:
+</p>
+
+<ol class="org-ol">
+<li><code>RncVertexGenerator</code> emits local RNC vertices by order in \(\xi\);</li>
+<li><code>DiagramPlan</code> emits only vertex multisets compatible with the requested loop
+order and external operator;</li>
+<li><code>WickKernel</code> contracts free boson and free fermion lines using <code>cft-code</code>;</li>
+<li><code>KernelSignatureReducer</code> rewrites each branch to a compact loop-integral
+signature plus a local tensor word;</li>
+<li><code>PoleExtractor</code> evaluates the signature in \(d=2-\epsilon\) and emits
+<code>PoleRow</code>;</li>
+<li><code>LocalGeometryReducer</code> canonicalizes the tensor word;</li>
+<li><code>BetaAssembler</code> converts the simple pole to the MS beta function;</li>
+<li><code>ActionMatcher</code> quotients by field redefinitions and matches the
+amplitude-normalized \(R^4\) basis.</li>
+</ol>
+
+<p>
+No stage should materialize the full expanded action or the full diagram sum.
+Every stage streams rows to the next stage.
+</p>
+</div>
+</div>
+<div id="outline-container-org2c45374" class="outline-2">
+<h2 id="org2c45374">Worldsheet Model</h2>
+<div class="outline-text-2" id="text-org2c45374">
+<p>
+The first implementation should use the standard type-II \(N=(1,1)\)
+worldsheet sigma model in components, in Euclidean signature.  The interaction
+data required by the kernels are:
+</p>
+
+<ul class="org-ul">
+<li>the bosonic kinetic term for \(\xi^\mu\);</li>
+<li>the fermionic kinetic term for left- and right-moving tangent fermions;</li>
+<li>the RNC interaction vertices generated by the Levi-Civita connection and
+curvature tensors;</li>
+<li>the local operator insertion corresponding to
+\(\partial X^\mu \bar\partial X^\nu\) in the background-field expansion.</li>
+</ul>
+
+<p>
+We should work in components, not superspace, for the first implementation.
+The reason is practical: the existing <code>cft-code</code> backend is already organized
+around explicit free fields and explicit contractions, so the shortest path to
+an inspectable four-loop computation is a component vertex generator.  The old
+superspace results remain the regression target, not the implementation
+language <a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-orge79ce1a" class="outline-2">
+<h2 id="orge79ce1a">RNC Expansion Plan</h2>
+<div class="outline-text-2" id="text-orge79ce1a">
+<p>
+The RNC generator is the first place where the code becomes the paper.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Generate the action expansion by homogeneous order in \(\xi\).
+</p>
+
+<p>
+The generator must emit separate vertex families for:
+</p>
+
+<ul class="org-ul">
+<li>quadratic terms defining the free propagators;</li>
+<li>cubic and higher interaction terms carrying \(R\), \(\nabla R\),
+\(\nabla^2 R\), and higher background tensors;</li>
+<li>fermionic interaction terms carrying curvature couplings.</li>
+</ul></li>
+
+<li><p>
+Do not emit symbolic formulas as strings or trees.
+</p>
+
+<p>
+Emit compact rows:
+</p>
+
+<ul class="org-ul">
+<li>quantum-field occurrences: kind, derivative order, vertex id;</li>
+<li>background legs: the operator slots that survive after Wick contraction;</li>
+<li>tensor atoms: \(R\), \(\nabla R\), \(\nabla^2 R\), metric, inverse metric;</li>
+<li>scalar prefactors: rational number, loop weight, \(\alpha'\) power.</li>
+</ul></li>
+
+<li><p>
+Emit by request, not all at once.
+</p>
+
+<p>
+A four-loop job only needs vertex families whose total valence and derivative
+structure can contribute to the four-loop metric counterterm.  The generator
+should be asked for exactly that budget.
+</p></li>
+
+<li><p>
+Keep a literal derivation in the note next to the code blocks.
+</p>
+
+<p>
+For every emitted vertex family, the note should state:
+</p>
+
+<ul class="org-ul">
+<li>which term in the RNC expansion it comes from;</li>
+<li>which background tensor it carries;</li>
+<li>why its symmetry factor has the value recorded in the row.</li>
+</ul></li>
+</ol>
+
+<p>
+This part should lean on Friedan for the background-field algorithm and on the
+stringbook appendix for conventions <a href="#ref-2" class="cite">[2]</a>
+<a href="#ref-1" class="cite">[1]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-org0a27ec9" class="outline-2">
+<h2 id="org0a27ec9">Diagram Enumeration Plan</h2>
+<div class="outline-text-2" id="text-org0a27ec9">
+<p>
+The four-loop calculation will fail if enumeration is left implicit.
+</p>
+
+<ol class="org-ol">
+<li>Enumerate by connected vacuum graphs with one local metric operator
+insertion.</li>
+
+<li>Reject impossible branches before any Wick work:
+
+<ul class="org-ul">
+<li>wrong loop number;</li>
+<li>wrong fermion parity;</li>
+<li>wrong derivative count;</li>
+<li>disconnected graphs;</li>
+<li>branches that cannot end in the required local operator basis.</li>
+</ul></li>
+
+<li>Record enough data for inspection:
+
+<ul class="org-ul">
+<li>vertex multiplicities;</li>
+<li>propagator count;</li>
+<li>automorphism denominator;</li>
+<li>surviving background tensor signature.</li>
+</ul></li>
+</ol>
+
+<p>
+The note should list the primitive four-loop topologies we accept and explain
+how they map to the row format used by <code>DiagramPlan</code> <a href="#ref-6" class="cite">[6]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-org3244eb8" class="outline-2">
+<h2 id="org3244eb8">Free Contractions</h2>
+<div class="outline-text-2" id="text-org3244eb8">
+<p>
+At the contraction level, we reuse <code>cft-code</code> directly.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Bosons
+</p>
+
+<p>
+Use the existing free-boson system with \(X\), \(\partial X\),
+\(\bar\partial X\), and the newly added \(X X\), \(\partial X X\),
+\(\bar\partial X X\) rules.  In the RNC job these fields represent the
+tangent fluctuations \(\xi^\mu\).
+</p></li>
+
+<li><p>
+Fermions
+</p>
+
+<p>
+Use the existing free-fermion system for the left- and right-moving tangent
+fermions.
+</p></li>
+
+<li><p>
+Branch state
+</p>
+
+<p>
+Each branch carries only:
+</p>
+
+<ul class="org-ul">
+<li>live quantum occurrences;</li>
+<li>local kernel factors from each propagator;</li>
+<li>scalar combinatorics;</li>
+<li>tensor atoms attached to the vertices;</li>
+<li>the background operator legs that survive.</li>
+</ul></li>
+
+<li><p>
+No residual semantics
+</p>
+
+<p>
+Uncontracted quantum occurrences are not Wick residuals in this pipeline.
+They are a rejected branch unless the job explicitly asks for extra external
+insertions.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orgc40c8dd" class="outline-2">
+<h2 id="orgc40c8dd">Regulated Integral Families</h2>
+<div class="outline-text-2" id="text-orgc40c8dd">
+<p>
+This must be explicit and finite in number.  We should not regulate every
+diagram ad hoc.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Choose a master representation
+</p>
+
+<p>
+Use momentum-space dimensional regularization for the loop integrals, even
+though the RNC vertices are generated in coordinate language.  The
+contraction kernel may continue to emit coordinate-kernel signatures, but
+<code>PoleExtractor</code> should translate those signatures to a small set of
+momentum-space master families before evaluation.
+</p>
+
+<p>
+This choice is deliberate:
+</p>
+
+<ul class="org-ul">
+<li>dimensional regularization is standard in the old papers;</li>
+<li>momentum-space power counting makes the UV pole structure explicit;</li>
+<li>Feynman-parameter derivations are systematic and reproducible;</li>
+<li>differentiated kernels are generated by algebraic differentiation of the
+same masters instead of by hand-built distribution identities.</li>
+</ul></li>
+
+<li><p>
+Define the master families once
+</p>
+
+<p>
+The note should introduce named families such as:
+</p>
+
+<ul class="org-ul">
+<li>one-loop massless bubbles;</li>
+<li>nested bubbles;</li>
+<li>ladder/sunset-type families;</li>
+<li>four-loop vacuum families with numerator momenta generated by derivatives;</li>
+<li>derivative descendants obtained from the same denominators.</li>
+</ul>
+
+<p>
+The code should store only a family id plus integer numerator/denominator
+data, never a symbolic integral.
+</p></li>
+
+<li><p>
+Derive each family once in the note
+</p>
+
+<p>
+For each master family:
+</p>
+
+<ul class="org-ul">
+<li>write the momentum integral;</li>
+<li>combine denominators with Feynman parameters;</li>
+<li>perform the \(d\)-dimensional loop-momentum integral;</li>
+<li>expand around \(\epsilon=0\);</li>
+<li>record the pole part and the locality condition;</li>
+<li>store the result as a <code>KernelPoleRule</code>.</li>
+</ul>
+
+<p>
+The reduction template should be literal and uniform.  For a generic bubble
+descendant we start from
+</p>
+
+<p>
+\[
+I_{a,b}^{(r)}(k)
+= \mu^\epsilon \int \frac{d^d p}{(2\pi)^d}
+\frac{(p\cdot k)^r}{(p^2)^a ((p+k)^2)^b}.
+\]
+</p>
+
+<p>
+Combine denominators with one Feynman parameter,
+</p>
+
+<p>
+\[
+\frac{1}{A^a B^b}
+= \frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}
+\int_0^1 dx \,
+x^{a-1} (1-x)^{b-1}
+\frac{1}{\left[x A + (1-x) B\right]^{a+b}},
+\]
+</p>
+
+<p>
+then shift \(q = p + (1-x) k\).  Odd powers of \(q\) vanish after angular
+integration, and even powers reduce to \(q^2\) times metric tensors.  The
+remaining loop integral is always of the form
+</p>
+
+<p>
+\[
+\int \frac{d^d q}{(2\pi)^d}
+\frac{(q^2)^m}{(q^2 + \Delta)^n}
+= \frac{1}{(4\pi)^{d/2}}
+\frac{\Gamma(m + d/2)\Gamma(n - m - d/2)}
+     {\Gamma(d/2)\Gamma(n)}
+\Delta^{m + d/2 - n},
+\]
+</p>
+
+<p>
+with \(\Delta = x(1-x) k^2\).  The pole comes only from the gamma factor
+that hits a non-positive integer at \(d=2-\epsilon\).  <code>PoleExtractor</code>
+should therefore store the reduced integer data \((a,b,r,m,n)\), evaluate
+the gamma-function combination once, and read off the \(1/\epsilon^p\)
+coefficient from its Laurent expansion.
+</p></li>
+
+<li><p>
+Separate local from non-local terms
+</p>
+
+<p>
+We only keep the UV-local pole part for beta-function assembly.  Finite and
+non-local pieces may be inspected, but they are not part of the MS
+counterterm.
+</p></li>
+
+<li><p>
+Record vanishing scaleless integrals
+</p>
+
+<p>
+Dimensional regularization kills scaleless tadpoles.  This should be a
+first-class rule in <code>PoleExtractor</code>, not an accident of simplification.
+</p></li>
+</ol>
+
+<p>
+The derivation style here should follow the stringbook scheme and the old
+dimensional-regularization practice, but the note should present the exact
+steps needed by the code rather than a prose summary <a href="#ref-1" class="cite">[1]</a>
+<a href="#ref-4" class="cite">[4]</a> <a href="#ref-5" class="cite">[5]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-orge91de58" class="outline-2">
+<h2 id="orge91de58">Locality Expansion</h2>
+<div class="outline-text-2" id="text-orge91de58">
+<p>
+The counterterm is local, but many regulated integrals are naturally produced
+with external momentum dependence first.
+</p>
+
+<ol class="org-ol">
+<li>Expand only as far as needed to isolate the local divergence in the metric
+operator basis.</li>
+
+<li>Keep the derivative counting explicit in the row format.</li>
+
+<li>Delay tensor canonicalization until after locality extraction.</li>
+</ol>
+
+<p>
+This split matters.  The loop integral decides whether a branch contributes a
+local pole.  The tensor reducer only decides how to identify equivalent local
+tensor words after that.
+</p>
+</div>
+</div>
+<div id="outline-container-orgba48ebc" class="outline-2">
+<h2 id="orgba48ebc">Local Tensor Reduction</h2>
+<div class="outline-text-2" id="text-orgba48ebc">
+<p>
+The first reducer lives in <code>nlsm-code</code>.
+</p>
+
+<p>
+Its job is limited:
+</p>
+
+<ul class="org-ul">
+<li>normalize dummy indices;</li>
+<li>sort tensor atoms into a stable order;</li>
+<li>impose Riemann symmetries and the algebraic Bianchi identity;</li>
+<li>contract metric/inverse-metric pairs;</li>
+<li>identify Ricci and scalar-curvature traces;</li>
+<li>keep enough provenance to explain which raw branches merged.</li>
+</ul>
+
+<p>
+It should not try to do full off-shell differential-geometry CAS work.
+Anything not needed for the generic RNC \(R^4\) computation stays out.
+</p>
+</div>
+</div>
+<div id="outline-container-orge6d1e01" class="outline-2">
+<h2 id="orge6d1e01">Beta Assembly</h2>
+<div class="outline-text-2" id="text-orge6d1e01">
+<p>
+After pole extraction and local reduction, the code has rows of the form:
+</p>
+
+<ul class="org-ul">
+<li>loop order;</li>
+<li>pole order;</li>
+<li>local operator kind;</li>
+<li>canonical local tensor word;</li>
+<li>rational prefactor;</li>
+<li>provenance data for inspection.</li>
+</ul>
+
+<p>
+<code>BetaAssembler</code> then:
+</p>
+
+<ol class="org-ol">
+<li>selects the metric-operator rows;</li>
+<li>checks that higher poles satisfy the recursion implied by bare-coupling
+independence;</li>
+<li>extracts the simple pole;</li>
+<li>applies the fixed MS conversion rule;</li>
+<li>emits the metric beta tensor with scheme id attached.</li>
+</ol>
+
+<p>
+The note should show this step in one place, with the exact algebra that
+connects <code>PoleRow</code> to <code>BetaRow</code>.  This is the place where the computation
+stops being "diagram evaluation" and becomes "renormalization statement"
+<a href="#ref-1" class="cite">[1]</a> <a href="#ref-4" class="cite">[4]</a> <a href="#ref-5" class="cite">[5]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-org44b03d9" class="outline-2">
+<h2 id="org44b03d9">Action Matching</h2>
+<div class="outline-text-2" id="text-org44b03d9">
+<p>
+Only after the MS beta tensor is known do we match to the effective action.
+</p>
+
+<ol class="org-ol">
+<li>Form the local eight-derivative invariant basis relevant to the metric
+sector.</li>
+
+<li>Quotient by:
+
+<ul class="org-ul">
+<li>Ricci terms removable on shell;</li>
+<li>scalar-curvature terms removable on shell;</li>
+<li>integration by parts;</li>
+<li>field redefinitions.</li>
+</ul></li>
+
+<li>Match the purified result to the amplitude-normalized \(R^4\) basis,
+including the \(t_8 t_8 R^4\) presentation used in the amplitude literature
+<a href="#ref-8" class="cite">[8]</a> <a href="#ref-9" class="cite">[9]</a> <a href="#ref-10" class="cite">[10]</a>.</li>
+</ol>
+
+<p>
+This stage must remain separate from the renormalization code.  Otherwise the
+computation becomes impossible to audit.
+</p>
+</div>
+</div>
+<div id="outline-container-org410c988" class="outline-2">
+<h2 id="org410c988">File And Module Plan</h2>
+<div class="outline-text-2" id="text-org410c988">
+<p>
+The implementation should be split into short literal-programming notes whose
+code blocks tangle into minimal Zig modules.
+</p>
+
+<ol class="org-ol">
+<li><p>
+<a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a>
+</p>
+
+<p>
+High-level scope and literature map.
+</p></li>
+
+<li><p>
+This note
+</p>
+
+<p>
+The executable paper outline: scheme, loop families, and pipeline order.
+</p></li>
+
+<li><p>
+<code>rnc-vertices.org</code>
+</p>
+
+<p>
+Real RNC expansion rules and emitted vertex rows.
+</p></li>
+
+<li><p>
+<code>diagram-plan.org</code>
+</p>
+
+<p>
+Connected four-loop topology enumeration and symmetry factors.
+</p></li>
+
+<li><p>
+<code>pole-extractor.org</code>
+</p>
+
+<p>
+Dimensional-regularization master families and their pole rules.
+</p></li>
+
+<li><p>
+<a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a>
+</p>
+
+<p>
+Canonical local tensor-word reducer.
+</p></li>
+
+<li><p>
+<code>beta-assembly.org</code>
+</p>
+
+<p>
+Bare-coupling algebra and simple-pole to beta conversion.
+</p></li>
+
+<li><p>
+<code>r4-action-matcher.org</code>
+</p>
+
+<p>
+On-shell purified invariant basis and amplitude matching.
+</p></li>
+</ol>
+
+<p>
+Each note should be short and tied to one narrow code surface.  That is the
+only way to keep the calculation inspectable.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcab6aef" class="outline-2">
+<h2 id="orgcab6aef">Step-By-Step Execution Order</h2>
+<div class="outline-text-2" id="text-orgcab6aef">
+<p>
+The implementation order should follow the physics dependency graph.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Fix the scheme runtime.
+</p>
+
+<p>
+Add a concrete <code>stringbookMS()</code> descriptor and the <code>PoleRow</code> data shape.
+</p></li>
+
+<li><p>
+Finish the generic real-RNC vertex generator.
+</p>
+
+<p>
+First target: bosonic one-loop metric counterterm as a regression check
+against stringbook <a href="#ref-1" class="cite">[1]</a>.
+</p></li>
+
+<li><p>
+Add the component \(N=(1,1)\) worldsheet field set.
+</p>
+
+<p>
+Verify that the free-field contractions and fermion signs are correct on
+low-loop checks before generating four-loop vertices.
+</p></li>
+
+<li><p>
+Implement the diagram enumerator.
+</p>
+
+<p>
+Start with one- and two-loop connected topologies and make the inspection
+sink print them in a stable textual format.
+</p></li>
+
+<li><p>
+Implement the pole extractor with a tiny initial master table.
+</p>
+
+<p>
+Reproduce one-loop and two-loop local poles before adding the four-loop
+families.
+</p></li>
+
+<li>Strengthen the local geometry reducer to generic real Riemannian \(R^4\)
+tensor words.</li>
+
+<li>Implement <code>BetaAssembler</code> and reproduce the known low-loop metric beta
+function.</li>
+
+<li>Add the four-loop \(N=(1,1)\) job and compare raw divergence structures
+against the old four-loop literature <a href="#ref-6" class="cite">[6]</a>
+<a href="#ref-7" class="cite">[7]</a>.</li>
+
+<li>Implement <code>ActionMatcher</code> and match the purified result to the known
+type-II \(R^4\) basis <a href="#ref-8" class="cite">[8]</a> <a href="#ref-9" class="cite">[9]</a>.</li>
+
+<li>Only after that open the CY3/K3 specialization path.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org55b6ee8" class="outline-2">
+<h2 id="org55b6ee8">Regression Ladder</h2>
+<div class="outline-text-2" id="text-org55b6ee8">
+<p>
+The calculation is too large to debug only at four loops.  The regression
+ladder must be built into the plan.
+</p>
+
+<ol class="org-ol">
+<li>Bosonic one-loop metric beta function in the stringbook scheme
+<a href="#ref-1" class="cite">[1]</a>.</li>
+<li>Bosonic two-loop metric check against the classic sigma-model result
+<a href="#ref-2" class="cite">[2]</a> <a href="#ref-5" class="cite">[5]</a>.</li>
+<li>Supersymmetric low-loop cancellation checks in the type-II field content.</li>
+<li>Four-loop primitive divergence-structure checks against
+<a href="#ref-6" class="cite">[6]</a>.</li>
+<li>Four-loop compact beta-function-form check against
+<a href="#ref-7" class="cite">[7]</a>.</li>
+<li>Final effective-action normalization check against
+<a href="#ref-8" class="cite">[8]</a> <a href="#ref-9" class="cite">[9]</a>.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org2d83aa0" class="outline-2">
+<h2 id="org2d83aa0">What This Plan Deliberately Excludes</h2>
+<div class="outline-text-2" id="text-org2d83aa0">
+<p>
+To keep the first \(R^4\) implementation under control, this plan does not yet
+include:
+</p>
+
+<ul class="org-ul">
+<li>Kähler or CY-specific index types;</li>
+<li>topology/cohomology descriptors;</li>
+<li>\(B\)-field and dilaton higher-derivative sectors beyond the scheme hooks
+already needed for the metric job;</li>
+<li>superspace as the primary implementation language;</li>
+<li>a general-purpose tensor CAS.</li>
+</ul>
+
+<p>
+Those belong to later notes.  The first target is the generic type-II
+four-loop metric counterterm in real RNC, obtained in a way that is explicit,
+streamable, and inspectable from the bare action to the final \(R^4\)
+invariant.
+</p>
+
+<div class="references"><h2>References</h2><ol>
+<li id="ref-1">Yin, Xi (2026). <em>String Theory</em>. <a href="https://github.com/xiyin137/stringbook">github.com/xiyin137/stringbook</a></li>
+<li id="ref-2">Friedan, Daniel Harry (1985). <em>Nonlinear Models in 2 + epsilon Dimensions</em>, Annals of Physics <b>163</b>, 318--419. doi:<a href="https://doi.org/10.1016/0003-4916(85)90384-7">10.1016/0003-4916(85)90384-7</a></li>
+<li id="ref-3">Callan, Curtis G. and Friedan, Daniel and Martinec, Emil J. and Perry, Malcolm J. (1985). <em>Strings in Background Fields</em>, Nuclear Physics B <b>262</b>, 593--609. doi:<a href="https://doi.org/10.1016/0550-3213(85)90506-1">10.1016/0550-3213(85)90506-1</a></li>
+<li id="ref-4">Tseytlin, Arkady A. (1986). <em>Conformal Anomaly in Two-Dimensional Sigma Model on Curved Background and Strings</em>, Physics Letters B <b>178</b>, 34. doi:<a href="https://doi.org/10.1016/0370-2693(86)90465-X">10.1016/0370-2693(86)90465-X</a></li>
+<li id="ref-5">Tseytlin, Arkady A. (1987). <em>Sigma Model Weyl Invariance Conditions and String Equations of Motion</em>, Nuclear Physics B <b>294</b>, 383--411. doi:<a href="https://doi.org/10.1016/0550-3213(87)90588-8">10.1016/0550-3213(87)90588-8</a></li>
+<li id="ref-6">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Divergences for the N=1 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Nuclear Physics B <b>277</b>, 409--428. doi:<a href="https://doi.org/10.1016/0550-3213(86)90449-9">10.1016/0550-3213(86)90449-9</a></li>
+<li id="ref-7">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Beta Function for the N=1 and N=2 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Physics Letters B <b>173</b>, 423--428. doi:<a href="https://doi.org/10.1016/0370-2693(86)90408-9">10.1016/0370-2693(86)90408-9</a></li>
+<li id="ref-8">Gross, David J. and Witten, Edward (1986). <em>Superstring Modifications of Einstein's Equations</em>, Nuclear Physics B <b>277</b>, 1--10. doi:<a href="https://doi.org/10.1016/0550-3213(86)90429-3">10.1016/0550-3213(86)90429-3</a></li>
+<li id="ref-9">Park, Q. and Zanon, D. (1987). <em>More on Sigma-Model Beta Functions and Low-Energy Effective Actions</em>, Physical Review D <b>35</b>, 4038. doi:<a href="https://doi.org/10.1103/PhysRevD.35.4038">10.1103/PhysRevD.35.4038</a></li>
+<li id="ref-10">Policastro, Giuseppe and Tsimpis, Dimitrios (2006). <em>R4, Purified</em>, Classical and Quantum Gravity <b>23</b>, 4753--4780. doi:<a href="https://doi.org/10.1088/0264-9381/23/14/012">10.1088/0264-9381/23/14/012</a></li>
+</ol></div>
+</div>
+</div>
+</div>
+</body>
+</html>

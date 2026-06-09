@@ -2,13 +2,52 @@
 :ID:       20260603T064230.276471
 :END:
 #+title: NLSM-Code
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/nlsm-code/nlsm-code.zig :mkdirp yes
 
 This is an overview of NLSM-Code.
 
 - [[id:20260609T120000.000000][R4 Coefficient Technology]]
+- [[id:20260609T193000.000000][Type II R4 Implementation Plan]]
 - [[id:20260609T123000.000000][NLSM API Requirements]]
 - [[id:20260609T131500.000000][NLSM Backend And Lisp DSL]]
 - [[id:20260609T150500.000000][NLSM Feature Request For CFT-Code And Tensor-Code]]
 - [[id:20260609T122526.430480][CFT Tensor Implementation Plan For NLSM]]
-- [[id:20260609T160000.000000][NLSM Root]]
 - [[id:20260609T160500.000000][NLSM Local Geometry Reducer]]
+
+* Root API
+
+The NLSM root exposes only compact declarations that are already useful to
+callers.  Local geometry reduction stays in its own node and can later absorb
+generated job dispatch without widening the public surface.
+
+#+api:
+
+#+begin_src zig
+const geometry = @import("local_geometry_reducer.zig");
+
+/// GeometryFlavor selects the target-geometry quotient used by local reducers.
+pub const GeometryFlavor = geometry.GeometryFlavor;
+/// TensorSlotSort classifies a target tensor slot by complex type and variance.
+pub const TensorSlotSort = geometry.TensorSlotSort;
+/// TensorSlot is one compact target-index occurrence in a local tensor atom.
+pub const TensorSlot = geometry.TensorSlot;
+/// TensorAtom is one local geometry tensor row.
+pub const TensorAtom = geometry.TensorAtom;
+/// TensorTerm is a streamed product of local geometry atoms.
+pub const TensorTerm = geometry.TensorTerm;
+/// ReductionOptions selects the local quotient checks applied to one term.
+pub const ReductionOptions = geometry.ReductionOptions;
+/// ReductionSummary reports the reducer decision without materializing a sum.
+pub const ReductionSummary = geometry.ReductionSummary;
+/// reduceLocalTerm filters one streamed local geometry term into caller storage.
+pub const reduceLocalTerm = geometry.reduceLocalTerm;
+
+test "nlsm root exposes only compact local reducer rows" {
+    const testing = @import("std").testing;
+    try testing.expect(@hasDecl(@This(), "GeometryFlavor"));
+    try testing.expect(@hasDecl(@This(), "TensorSlotSort"));
+    try testing.expect(@hasDecl(@This(), "reduceLocalTerm"));
+    try testing.expect(!@hasDecl(@This(), "local_geometry_reducer"));
+}
+#+end_src

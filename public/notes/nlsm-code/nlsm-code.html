@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:03 -->
+<!-- 2026-06-09 Tue 13:17 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NLSM-Code</title>
@@ -161,7 +161,7 @@
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
-    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -213,19 +213,116 @@
 </div>
 <div id="content" class="content">
 <h1 class="title">NLSM-Code</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org4676f12">Root API</a></li>
+</ul>
+</div>
+</div>
 <p>
 This is an overview of NLSM-Code.
 </p>
 
 <ul class="org-ul">
 <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+<li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
 <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
 <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
 <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
 <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
-<li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
 <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
 </ul>
+<div id="outline-container-org4676f12" class="outline-2">
+<h2 id="org4676f12">Root API</h2>
+<div class="outline-text-2" id="text-org4676f12">
+<p>
+The NLSM root exposes only compact declarations that are already useful to
+callers.  Local geometry reduction stays in its own node and can later absorb
+generated job dispatch without widening the public surface.
+</p>
+
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">API</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Types</b></p>
+<dl>
+<dt><a href="#GeometryFlavor"><code>GeometryFlavor = geometry.GeometryFlavor</code></a></dt>
+<dd>GeometryFlavor selects the target-geometry quotient used by local reducers.</dd>
+<dt><a href="#TensorSlotSort"><code>TensorSlotSort = geometry.TensorSlotSort</code></a></dt>
+<dd>TensorSlotSort classifies a target tensor slot by complex type and variance.</dd>
+<dt><a href="#TensorSlot"><code>TensorSlot = geometry.TensorSlot</code></a></dt>
+<dd>TensorSlot is one compact target-index occurrence in a local tensor atom.</dd>
+<dt><a href="#TensorAtom"><code>TensorAtom = geometry.TensorAtom</code></a></dt>
+<dd>TensorAtom is one local geometry tensor row.</dd>
+<dt><a href="#TensorTerm"><code>TensorTerm = geometry.TensorTerm</code></a></dt>
+<dd>TensorTerm is a streamed product of local geometry atoms.</dd>
+<dt><a href="#ReductionOptions"><code>ReductionOptions = geometry.ReductionOptions</code></a></dt>
+<dd>ReductionOptions selects the local quotient checks applied to one term.</dd>
+<dt><a href="#ReductionSummary"><code>ReductionSummary = geometry.ReductionSummary</code></a></dt>
+<dd>ReductionSummary reports the reducer decision without materializing a sum.</dd>
+</dl>
+<p class="api-kind"><b>Constants</b></p>
+<dl>
+<dt><a href="#reduceLocalTerm"><code>reduceLocalTerm = geometry.reduceLocalTerm</code></a></dt>
+<dd>reduceLocalTerm filters one streamed local geometry term into caller storage.</dd>
+</dl>
+</div>
+</div>
+</div>
+<a id="GeometryFlavor"></a>
+<a id="TensorSlotSort"></a>
+<a id="TensorSlot"></a>
+<a id="TensorAtom"></a>
+<a id="TensorTerm"></a>
+<a id="ReductionOptions"></a>
+<a id="ReductionSummary"></a>
+<a id="reduceLocalTerm"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org58a2c45"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// GeometryFlavor selects the target-geometry quotient used by local reducers.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryFlavor</span> = geometry.GeometryFlavor;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorSlotSort classifies a target tensor slot by complex type and variance.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlotSort</span> = geometry.TensorSlotSort;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorSlot is one compact target-index occurrence in a local tensor atom.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlot</span> = geometry.TensorSlot;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorAtom is one local geometry tensor row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtom</span> = geometry.TensorAtom;
+<span style="color: #e0d3b9; font-style: italic;">/// TensorTerm is a streamed product of local geometry atoms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorTerm</span> = geometry.TensorTerm;
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionOptions selects the local quotient checks applied to one term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionOptions</span> = geometry.ReductionOptions;
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionSummary reports the reducer decision without materializing a sum.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionSummary</span> = geometry.ReductionSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// reduceLocalTerm filters one streamed local geometry term into caller storage.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reduceLocalTerm</span> = geometry.reduceLocalTerm;
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM-Code / Root API</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"nlsm root exposes only compact local reducer rows"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"GeometryFlavor"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"TensorSlotSort"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"reduceLocalTerm"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer"</span>));
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="postamble" class="status">
 <p class="postamble-date">Last updated: 2026-06-09</p>
