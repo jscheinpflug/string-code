@@ -137,6 +137,57 @@
   (setf (field-shape-insertion (table-get fields (field-key field) "field"))
         insertion))
 
+(defun current-surface (surfaces)
+  (or (gethash :current surfaces)
+      (error "No current surface. Declare a SURFACE before surface-less WICK or ZERO-MODE forms.")))
+
+(defun surface-form-id (surfaces value)
+  (if (and (symbolp value) (gethash value surfaces))
+      (gethash value surfaces)
+      (current-surface surfaces)))
+
+(defun starts-with-surface-p (surfaces items)
+  (and (symbolp (first items)) (gethash (first items) surfaces)))
+
+(defun field-declaration-parts (form insertion)
+  (let* ((id (second form))
+         (tail (cddr form))
+         (symbol (if (stringp (first tail))
+                     (prog1 (first tail) (setf tail (rest tail)))
+                     (string-downcase (string id))))
+         (labels (if (and tail (consp (first tail)) (not (keywordp (first tail))))
+                     (prog1 (first tail) (setf tail (rest tail)))
+                     nil))
+         (statistics (first tail))
+         (options (rest tail)))
+    (unless (member statistics '(:bosonic :fermionic))
+      (error "Field ~S has invalid statistics ~S." id statistics))
+    (values id symbol insertion labels statistics options)))
+
+(defun declare-field
+    (theory parameters quantum-numbers fields labels
+     id symbol insertion label-spec statistics options)
+  (let* ((field-id (register-field-shape fields labels id label-spec))
+         (weight-form (option-value options :weight))
+         (anti-weight-form (option-value options :anti-weight))
+         (weight-id (when weight-form
+                      (parse-metadata-id theory parameters fields labels weight-form)))
+         (anti-weight-id (cond
+                           ((null anti-weight-form) nil)
+                           ((equal anti-weight-form weight-form) weight-id)
+                           (t (parse-metadata-id theory parameters fields labels
+                                                 anti-weight-form)))))
+    (set-field-shape-insertion fields id insertion)
+    (unless (= field-id
+               (add-field theory symbol insertion label-spec statistics
+                          :zero-mode (option-value options :zero-mode)
+                          :weight weight-id
+                          :anti-weight anti-weight-id))
+      (error "Field table drift while declaring ~S." id))
+    (parse-field-quantum-numbers
+     theory quantum-numbers field-id
+     (option-value options :quantum-numbers nil))))
+
 (defun parse-parameter-ref (parameters value)
   (etypecase value
     (integer value)
@@ -433,6 +484,34 @@
                       (option-value body :tensors nil))
      :residuals (option-value body :residuals nil))))
 
+(defun add-wick-form
+    (theory parameters fields labels surface left body)
+  (if (and body (consp (first body)) (not (eq (caar body) 'term)))
+      (let* ((right (first body))
+             (expression (second body))
+             (options (cddr body))
+             (label-env (make-hash-table))
+             (coordinate-env (make-hash-table))
+             (left-field (bind-field-call fields :left left label-env coordinate-env))
+             (right-field (bind-field-call fields :right right label-env coordinate-env)))
+        (add-wick-rule
+         theory
+         surface
+         (parse-field-ref fields left-field)
+         (parse-field-ref fields right-field)
+         (list (parse-expression-term parameters label-env coordinate-env
+                                      expression
+                                      (option-value options :residuals nil)))))
+      (destructuring-bind (left-field right-field) left
+        (add-wick-rule
+         theory
+         surface
+         (parse-field-ref fields left-field)
+         (parse-field-ref fields right-field)
+         (mapcar (lambda (term)
+                   (parse-term parameters labels left-field right-field term))
+                 body)))))
+
 (defun apply-preset-form
     (theory parameters quantum-numbers surfaces fields labels form)
   (ecase (first form)
@@ -447,70 +526,48 @@
                                (parse-quantum-number-kind (third form))
                                :group (option-value (cdddr form) :group))))
     (surface
-     (setf (gethash (second form) surfaces)
-           (add-surface theory (third form) (fourth form)
-                        :modular-parameter
-                        (when (option-value (cddddr form) :modular-parameter)
-                          (parse-parameter-ref
-                           parameters
-                           (option-value (cddddr form) :modular-parameter))))))
+     (let ((surface-id
+             (add-surface theory (third form) (fourth form)
+                          :modular-parameter
+                          (when (option-value (cddddr form) :modular-parameter)
+                            (parse-parameter-ref
+                             parameters
+                             (option-value (cddddr form) :modular-parameter))))))
+       (setf (gethash (second form) surfaces) surface-id
+             (gethash :current surfaces) surface-id)))
     (field
      (destructuring-bind (id symbol insertion label-spec statistics &rest options) (rest form)
-       (let* ((field-id (register-field-shape fields labels id label-spec))
-              (weight-form (option-value options :weight))
-              (anti-weight-form (option-value options :anti-weight))
-              (weight-id (when weight-form
-                           (parse-metadata-id theory parameters fields labels weight-form)))
-              (anti-weight-id (cond
-                                ((null anti-weight-form) nil)
-                                ((equal anti-weight-form weight-form) weight-id)
-                                (t (parse-metadata-id theory parameters fields labels
-                                                      anti-weight-form)))))
-         (set-field-shape-insertion fields id insertion)
-         (unless (= field-id
-                    (add-field theory symbol insertion label-spec statistics
-                               :zero-mode (option-value options :zero-mode)
-                               :weight weight-id
-                               :anti-weight anti-weight-id))
-           (error "Field table drift while declaring ~S." id))
-         (parse-field-quantum-numbers
-          theory quantum-numbers field-id
-          (option-value options :quantum-numbers nil)))))
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
+    (chiral-field
+     (multiple-value-bind (id symbol insertion label-spec statistics options)
+         (field-declaration-parts form :single)
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
+    (bulk-field
+     (multiple-value-bind (id symbol insertion label-spec statistics options)
+         (field-declaration-parts form :pair)
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
     (wick
-     (destructuring-bind (surface-id left &rest body) (rest form)
-       (if (and body (consp (first body)) (not (eq (caar body) 'term)))
-           (let* ((right (first body))
-                  (expression (second body))
-                  (options (cddr body))
-                  (label-env (make-hash-table))
-                  (coordinate-env (make-hash-table))
-                  (left-field (bind-field-call fields :left left label-env coordinate-env))
-                  (right-field (bind-field-call fields :right right label-env coordinate-env)))
-             (add-wick-rule
-              theory
-              (table-get surfaces surface-id "surface")
-              (parse-field-ref fields left-field)
-              (parse-field-ref fields right-field)
-              (list (parse-expression-term parameters label-env coordinate-env
-                                           expression
-                                           (option-value options :residuals nil)))))
-           (destructuring-bind (left-field right-field) left
-             (add-wick-rule
-              theory
-              (table-get surfaces surface-id "surface")
-              (parse-field-ref fields left-field)
-              (parse-field-ref fields right-field)
-              (mapcar (lambda (term)
-                        (parse-term parameters labels left-field right-field term))
-                      body))))))
+     (let* ((items (rest form))
+            (has-surface (starts-with-surface-p surfaces items))
+            (surface (surface-form-id surfaces (first items)))
+            (left (if has-surface (second items) (first items)))
+            (body (if has-surface (cddr items) (rest items))))
+       (add-wick-form theory parameters fields labels surface left body)))
     (zero-mode
-     (destructuring-bind (surface-id kind consumes &rest options) (rest form)
-       (add-zero-mode theory
-                      (table-get surfaces surface-id "surface")
-                      kind
-                      (mapcar (lambda (field) (parse-field-ref fields field)) consumes)
-                      :normalization (option-value options :normalization :one)
-                      :two-pi-power (option-value options :two-pi-power 0))))))
+     (let* ((items (rest form))
+            (has-surface (starts-with-surface-p surfaces items))
+            (surface (surface-form-id surfaces (first items)))
+            (body (if has-surface (rest items) items)))
+       (destructuring-bind (kind consumes &rest options) body
+         (add-zero-mode theory
+                        surface
+                        kind
+                        (mapcar (lambda (field) (parse-field-ref fields field)) consumes)
+                        :normalization (option-value options :normalization :one)
+                        :two-pi-power (option-value options :two-pi-power 0)))))))
 
 (defun build-cft-preset (name hash forms)
   (let ((theory (make-theory name hash))
