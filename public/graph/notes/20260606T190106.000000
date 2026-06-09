@@ -1,0 +1,109 @@
+:PROPERTIES:
+:ID:       20260606T190106.000000
+:END:
+#+title: Tensor Rendering
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/rendering.zig :mkdirp yes
+
+Rendering turns compact invariant ids into concrete notation.  Signature is a
+rendering/evaluation convention, not a different abstract representation.  The
+symbolic output is streamed one term at a time so a large expanded projector
+does not become one large allocation.
+
+#+begin_src zig
+const coupling = @import("coupling.zig");
+
+/// SignatureConvention selects the metric convention for rendering/evaluation.
+pub const SignatureConvention = enum {
+    complex,
+    euclidean,
+    lorentzian_mostly_plus,
+    lorentzian_mostly_minus,
+};
+
+/// ProjectorRenderMode controls how much derived projector data is expanded.
+pub const ProjectorRenderMode = enum {
+    named,
+    expanded_blocks,
+    expanded_terms,
+};
+
+/// RenderFormat selects the output syntax level.
+pub const RenderFormat = enum {
+    symbolic_terms,
+    text,
+};
+
+/// RenderOptions controls streamed invariant rendering.
+pub const RenderOptions = struct {
+    format: RenderFormat = .symbolic_terms,
+    projectors: ProjectorRenderMode = .named,
+    signature: SignatureConvention = .complex,
+    preserve_caller_index_names: bool = true,
+};
+
+/// EvalOptions controls component evaluation of one invariant.
+pub const EvalOptions = struct {
+    signature: SignatureConvention = .complex,
+};
+
+/// IndexRef names one symbolic index in a rendered term.
+pub const IndexRef = u32;
+
+/// IndexBlockId names a compact antisymmetric or ordered index block.
+pub const IndexBlockId = u32;
+
+/// RationalId names an exact rational coefficient in the scalar store.
+pub const RationalId = u32;
+
+/// GammaBlock stores one internal antisymmetrized gamma factor.
+const GammaBlock = struct {
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    vector_block: IndexBlockId,
+    rank: u8,
+    chirality: u8,
+    duality: DualityTag = .none,
+};
+
+/// DualityTag records middle-form self-duality data.
+pub const DualityTag = enum {
+    none,
+    self_dual,
+    anti_self_dual,
+};
+
+/// SymbolicAtom stores one symbolic invariant contraction atom.
+pub const SymbolicAtom = union(enum) {
+    metric_pair: struct { left: IndexRef, right: IndexRef },
+    generalized_delta: struct { upper: IndexBlockId, lower: IndexBlockId },
+    epsilon: struct { block: IndexBlockId },
+    hodge_star: struct { input: IndexBlockId, output: IndexBlockId },
+    antisymmetrizer: struct { block: IndexBlockId },
+    named_operator: struct { operator_id: u32, first_index: u32, index_len: u16 },
+};
+
+/// SymbolicTerm stores one streamed coefficient times symbolic atoms.
+pub const SymbolicTerm = struct {
+    coefficient: RationalId,
+    /// atoms is borrowed and valid only until the sink returns.
+    atoms: []const SymbolicAtom,
+};
+
+/// emitTerm sends one symbolic term to a caller-provided sink.
+pub fn emitTerm(sink: anytype, term: SymbolicTerm) !void {
+    try sink.emitTerm(term);
+}
+
+/// RenderedTermSpan stores a compact range of already emitted terms.
+const RenderedTermSpan = struct {
+    offset: u32,
+    len: u32,
+};
+
+/// ReductionTerm stores one coefficient of an invariant in a target basis.
+const ReductionTerm = struct {
+    invariant: coupling.InvariantHandle,
+    coefficient: RationalId,
+};
+#+end_src

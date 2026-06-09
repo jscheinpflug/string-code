@@ -1,0 +1,106 @@
+:PROPERTIES:
+:ID:       20260608T154500.000000
+:END:
+#+title: Lisp Generated Expression Benchmark
+#+PROPERTY: header-args:lisp :tangle ../../../../benchmarks/lisp_generated_expr_median.lisp :mkdirp yes
+
+This benchmark times the Lisp expression folder over compact generated ABI
+term/factor records.  The comparison baseline is the generated C ABI event
+stream, not the count-only path, because expanded expression output must still
+read every emitted factor.  Build the generated shared library with
+=-Doptimize=ReleaseFast= before timing.
+
+#+begin_src lisp
+(ql:quickload :cffi :silent t)
+(require :asdf)
+(push #p"lisp/" asdf:*central-registry*)
+(asdf:load-system "string-code-cft")
+
+(defparameter *generated-library* "zig-out/lib/libstring_code_cft_generated.so")
+(defparameter *sample-count* 11)
+
+(defstruct bench-case name maker fill abi-run-ns)
+
+(defun now-ns ()
+  (multiple-value-bind (sec usec) (sb-ext:get-time-of-day)
+    (+ (* sec 1000000000) (* usec 1000))))
+
+(defun median (values)
+  (let ((copy (sort (copy-seq values) #'<)))
+    (aref copy (floor (length copy) 2))))
+
+(defun sample-ns (thunk)
+  (let ((samples (make-array *sample-count*)))
+    (dotimes (index *sample-count*)
+      (sb-ext:gc :full nil)
+      (let ((start (now-ns)))
+        (funcall thunk)
+        (setf (aref samples index) (- (now-ns) start))))
+    (median samples)))
+
+(defun expression-term-count (expr)
+  (if (and (consp expr) (eq (first expr) '+))
+      (length (rest expr))
+      1))
+
+(defun fill-psi (count)
+  (lambda (context)
+    (dotimes (index count)
+      (string-code.cft.fixtures:psi context
+                                    (format nil "mu~D" index)
+                                    (format nil "z~D" index)))))
+
+(defun fill-dx (count)
+  (lambda (context)
+    (dotimes (index count)
+      (string-code.cft.fixtures:dX context
+                                   (format nil "mu~D" index)
+                                   (format nil "z~D" index)))))
+
+(defun fill-exp (count)
+  (lambda (context)
+    (dotimes (index count)
+      (string-code.cft.fixtures:expX context
+                                     (format nil "k~D" index)
+                                     (format nil "z~D" index)
+                                     (format nil "zb~D" index)))))
+
+(defun run-case (case)
+  (let ((context (funcall (bench-case-maker case) :library *generated-library*)))
+    (unwind-protect
+         (progn
+           (funcall (bench-case-fill case) context)
+           (let* ((frozen (string-code.cft.descriptor:freeze-runtime-operators context))
+                  (count (string-code.cft.descriptor:count-correlator context frozen))
+                  (expr-ns (sample-ns
+                            (lambda ()
+                              (expression-term-count
+                               (string-code.cft.descriptor:correlator-expression context frozen)))))
+                  (ratio (/ (float expr-ns) (bench-case-abi-run-ns case))))
+             (format t "~A count=~D expr_ns=~D abi_run_ns=~D ratio=~,2F~%"
+                     (bench-case-name case) count expr-ns
+                     (bench-case-abi-run-ns case) ratio)))
+      (string-code.cft.descriptor:destroy-runtime-context context))))
+
+(defparameter *cases*
+  (list
+   (make-bench-case :name "psi8"
+                    :maker #'string-code.cft.fixtures:make-free-fermion-runtime
+                    :fill (fill-psi 8)
+                    :abi-run-ns 136715)
+   (make-bench-case :name "psi10"
+                    :maker #'string-code.cft.fixtures:make-free-fermion-runtime
+                    :fill (fill-psi 10)
+                    :abi-run-ns 1056899)
+   (make-bench-case :name "dx8"
+                    :maker #'string-code.cft.fixtures:make-free-boson-runtime
+                    :fill (fill-dx 8)
+                    :abi-run-ns 125244)
+   (make-bench-case :name "exp4"
+                    :maker #'string-code.cft.fixtures:make-free-boson-runtime
+                    :fill (fill-exp 4)
+                    :abi-run-ns 8268)))
+
+(dolist (case *cases*)
+  (run-case case))
+#+end_src

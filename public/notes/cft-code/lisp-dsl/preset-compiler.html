@@ -1,0 +1,1506 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lisp Preset Compiler</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Lisp Preset Compiler</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgea24a86">Package</a></li>
+<li><a href="#org2d0a3f7">Descriptor Layers</a></li>
+<li><a href="#org80a7c24">Registry</a></li>
+<li><a href="#orga3cadf6">Tables</a></li>
+<li><a href="#orgfaa7daa">References</a></li>
+<li><a href="#org2f6c942">Metadata</a></li>
+<li><a href="#orgc0e9ad3">Wick Terms</a></li>
+<li><a href="#org028a72d">Declarations</a></li>
+<li><a href="#org7102879">Fixture Emission</a></li>
+<li><a href="#org884653c">Dispatch Emission</a></li>
+<li><a href="#orgb59f228">Compilation</a></li>
+</ul>
+</div>
+</div>
+<p>
+This node lowers compact Lisp CFT presets to descriptor rows and emits the Zig
+fixture and dispatch modules imported by the generated C ABI.  It does not evaluate
+correlators and it does not own REPL insertion helpers.
+</p>
+<div id="outline-container-orgea24a86" class="outline-2">
+<h2 id="orgea24a86">Package</h2>
+<div class="outline-text-2" id="text-orgea24a86">
+<p>
+The public surface is deliberately small: define presets, inspect one lowered
+theory, emit generated Zig sources, or compile the fixed generated ABI library.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">eval-when</span> (<span style="color: #fe8019; font-weight: bold;">:compile-toplevel</span> <span style="color: #fe8019; font-weight: bold;">:load-toplevel</span> <span style="color: #fe8019; font-weight: bold;">:execute</span>)
+  (<span style="color: #fb4934; font-weight: bold;">require</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:asdf</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defpackage</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.presets</span>
+  (<span style="color: #fe8019; font-weight: bold;">:use</span> <span style="color: #fe8019; font-weight: bold;">#:cl</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.descriptor</span>)
+  (<span style="color: #fe8019; font-weight: bold;">:export</span>
+   <span style="color: #fe8019; font-weight: bold;">#:define-cft-preset</span>
+   <span style="color: #fe8019; font-weight: bold;">#:preset-theory</span>
+   <span style="color: #fe8019; font-weight: bold;">#:preset-theory-id-for</span>
+   <span style="color: #fe8019; font-weight: bold;">#:write-generated-fixtures</span>
+   <span style="color: #fe8019; font-weight: bold;">#:write-generated-sources</span>
+   <span style="color: #fe8019; font-weight: bold;">#:compile-preset-library</span>
+   <span style="color: #fe8019; font-weight: bold;">#:free-fermion-10</span>
+   <span style="color: #fe8019; font-weight: bold;">#:eta-xi-sphere</span>
+   <span style="color: #fe8019; font-weight: bold;">#:eta-xi-torus</span>
+   <span style="color: #fe8019; font-weight: bold;">#:bc-sphere</span>
+   <span style="color: #fe8019; font-weight: bold;">#:free-boson-10</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">in-package</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.presets</span>)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2d0a3f7" class="outline-2">
+<h2 id="org2d0a3f7">Descriptor Layers</h2>
+<div class="outline-text-2" id="text-org2d0a3f7">
+<p>
+The preset path has four layers, and only the first one is user-facing:
+</p>
+
+<ul class="org-ul">
+<li>The preset file declares CFT data: parameters, surfaces, fields, Wick
+contractions, and zero modes.</li>
+<li>The Lisp descriptor rows are compact normalized data for Zig: symbols,
+surfaces, fields, metadata, Wick terms, and zero-mode rows.</li>
+<li>The generated Zig fixture needs internal names: table prefixes, descriptor
+constants, generated theory type names, and stable theory ids.</li>
+<li>The C ABI receives a theory id at runtime so the REPL can select a compiled
+generated theory.</li>
+</ul>
+
+<p>
+The generated names and ids are compiler data.  They are kept here, not in
+preset files.
+</p>
+</div>
+</div>
+<div id="outline-container-org80a7c24" class="outline-2">
+<h2 id="org80a7c24">Registry</h2>
+<div class="outline-text-2" id="text-org80a7c24">
+<p>
+The registry stores compile-time identity for the generated ABI.  The builder is
+a function so users can inspect a fresh descriptor before compiling.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">preset</span> name builder theory-name hash theory-id)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">field-shape</span> id insertion labels)
+
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*presets*</span> (make-hash-table))
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*next-theory-id*</span> 1)
+</pre>
+</div>
+
+<p>
+Preset names generate theory names, type names, descriptor prefixes, and theory
+ids.  Numeric suffixes such as <code>-10</code> are treated as dimension labels and are
+not part of generated Zig type names.  Surface suffixes are kept only when a
+family has more than one generated surface.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-options-form-p</span> (form)
+  (and (consp form) (keywordp (first form))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">split-name-parts</span> (name)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((text (string-downcase (string name)))
+        (start 0)
+        (parts nil))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for index from 0 below (length text)
+          when (char= (aref text index) #\-)
+            do (<span style="color: #fb4934; font-weight: bold;">progn</span>
+                 (<span style="color: #fb4934; font-weight: bold;">when</span> (&lt; start index)
+                   (push (subseq text start index) parts))
+                 (setf start (1+ index))))
+    (<span style="color: #fb4934; font-weight: bold;">when</span> (&lt; start (length text))
+      (push (subseq text start) parts))
+    (nreverse parts)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">numeric-name-part-p</span> (part)
+  (and (&gt; (length part) 0)
+       (<span style="color: #fb4934; font-weight: bold;">loop</span> for char across part always (digit-char-p char))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">surface-name-part-p</span> (part)
+  (member part '(<span style="color: #b8bb26; font-style: italic;">"sphere"</span> <span style="color: #b8bb26; font-style: italic;">"torus"</span> <span style="color: #b8bb26; font-style: italic;">"disk"</span>) <span style="color: #fe8019; font-weight: bold;">:test</span> #'string=))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">drop-trailing-numeric-parts</span> (parts)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> while (and parts (numeric-name-part-p (car (last parts))))
+        do (setf parts (butlast parts)))
+  parts)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">drop-trailing-surface-part</span> (parts)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and parts (surface-name-part-p (car (last parts))))
+      (butlast parts)
+      parts))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">join-name-parts</span> (parts separator)
+  (<span style="color: #fb4934; font-weight: bold;">with-output-to-string</span> (stream)
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for part in parts
+          for first = t then nil
+          do (<span style="color: #fb4934; font-weight: bold;">progn</span>
+               (<span style="color: #fb4934; font-weight: bold;">unless</span> first
+                 (write-string separator stream))
+               (write-string part stream)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-theory-name</span> (name)
+  (join-name-parts (drop-trailing-surface-part (split-name-parts name)) <span style="color: #b8bb26; font-style: italic;">"-"</span>))
+</pre>
+</div>
+
+<p>
+Theory ids are assigned in preset load order.  Hashes are generated from the
+canonical theory name and declaration forms.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">next-theory-id-form</span> ()
+  (<span style="color: #fb4934; font-weight: bold;">prog1</span> *next-theory-id*
+    (incf *next-theory-id*)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">hash-byte</span> (hash byte)
+  (logand #xffffffff (* #x01000193 (logxor hash byte))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-theory-hash</span> (name forms)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((hash #x811c9dc5)
+        (text (<span style="color: #fb4934; font-weight: bold;">with-output-to-string</span> (stream)
+                (prin1 name stream)
+                (prin1 forms stream))))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for char across text
+          do (setf hash (hash-byte hash (char-code char))))
+    hash))
+</pre>
+</div>
+
+<p>
+The macro accepts optional metadata for experiments, but built-in preset files
+do not need ABI headers.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defmacro</span> <span style="color: #b8bb26; font-weight: bold;">define-cft-preset</span> (name <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;body</span> body)
+  <span style="color: #e0d3b9; font-style: italic;">"Define NAME as a descriptor preset from CFT declaration forms."</span>
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((user-options (<span style="color: #fb4934; font-weight: bold;">if</span> (preset-options-form-p (first body)) (first body) nil))
+         (forms (<span style="color: #fb4934; font-weight: bold;">if</span> user-options (rest body) body))
+         (theory-name (or (getf user-options <span style="color: #fe8019; font-weight: bold;">:name</span>)
+                          (generated-theory-name name)))
+         (hash (or (getf user-options <span style="color: #fe8019; font-weight: bold;">:hash</span>)
+                   (generated-theory-hash theory-name forms)))
+         (theory-id (or (getf user-options <span style="color: #fe8019; font-weight: bold;">:theory-id</span>)
+                        (next-theory-id-form))))
+    `(<span style="color: #fb4934; font-weight: bold;">progn</span>
+       (<span style="color: #fb4934; font-weight: bold;">defun</span> ,name ()
+         (build-cft-preset ,theory-name ,hash ',forms))
+       (setf (gethash ',name *presets*)
+             (make-preset <span style="color: #fe8019; font-weight: bold;">:name</span> ',name
+                          <span style="color: #fe8019; font-weight: bold;">:builder</span> #',name
+                          <span style="color: #fe8019; font-weight: bold;">:theory-name</span> ,theory-name
+                          <span style="color: #fe8019; font-weight: bold;">:hash</span> ,hash
+                          <span style="color: #fe8019; font-weight: bold;">:theory-id</span> ,theory-id))
+       ',name)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga3cadf6" class="outline-2">
+<h2 id="orga3cadf6">Tables</h2>
+<div class="outline-text-2" id="text-orga3cadf6">
+<p>
+Preset declarations resolve names to compact descriptor ids.  Fields and labels
+use normalized string keys so case differences in Lisp symbols do not leak into
+the descriptor.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">table-get</span> (table key label)
+  (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (value found) (gethash key table)
+    (<span style="color: #fb4934; font-weight: bold;">unless</span> found
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown ~A ~S."</span> label key))
+    value))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">option-value</span> (items key <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;optional</span> default)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((tail (member key items)))
+    (<span style="color: #fb4934; font-weight: bold;">if</span> tail (second tail) default)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">field-key</span> (name)
+  (string-downcase (string name)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">label-key</span> (field label)
+  (list (field-key field) (string-downcase (string label))))
+</pre>
+</div>
+
+<p>
+Field labels must be visible before weight metadata is parsed, because weights
+may refer to the field being declared.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">register-field-shape</span> (fields labels field labels-spec)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((field-name (field-key field))
+        (field-id (hash-table-count fields)))
+    (setf (gethash field-name fields)
+          (make-field-shape <span style="color: #fe8019; font-weight: bold;">:id</span> field-id <span style="color: #fe8019; font-weight: bold;">:insertion</span> nil <span style="color: #fe8019; font-weight: bold;">:labels</span> labels-spec))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for label in labels-spec
+          for slot from 0
+          do (setf (gethash (label-key field (first label)) labels) slot))
+    field-id))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">set-field-shape-insertion</span> (fields field insertion)
+  (setf (field-shape-insertion (table-get fields (field-key field) <span style="color: #b8bb26; font-style: italic;">"field"</span>))
+        insertion))
+</pre>
+</div>
+
+<p>
+The current surface is the last declared surface.  Single-surface presets can
+therefore write Wick and zero-mode rules without repeating <code>sphere</code> or <code>torus</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">current-surface</span> (surfaces)
+  (or (gethash <span style="color: #fe8019; font-weight: bold;">:current</span> surfaces)
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"No current surface. Declare a SURFACE before surface-less WICK or ZERO-MODE forms."</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">surface-form-id</span> (surfaces value)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and (symbolp value) (gethash value surfaces))
+      (gethash value surfaces)
+      (current-surface surfaces)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">starts-with-surface-p</span> (surfaces items)
+  (and (symbolp (first items)) (gethash (first items) surfaces)))
+</pre>
+</div>
+
+<p>
+Field declarations have ergonomic forms and lower to the same descriptor
+shapes.  <code>chiral-field</code> means one coordinate; <code>bulk-field</code> means holomorphic
+and antiholomorphic coordinates.  A string symbol is optional and only needed
+when printed case matters, as for <code>dX</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">field-declaration-parts</span> (form insertion)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((id (second form))
+         (tail (cddr form))
+         (symbol (<span style="color: #fb4934; font-weight: bold;">if</span> (stringp (first tail))
+                     (<span style="color: #fb4934; font-weight: bold;">prog1</span> (first tail) (setf tail (rest tail)))
+                     (string-downcase (string id))))
+         (<span style="color: #fb4934; font-weight: bold;">labels</span> (<span style="color: #fb4934; font-weight: bold;">if</span> (and tail (consp (first tail)) (not (keywordp (first tail))))
+                     (<span style="color: #fb4934; font-weight: bold;">prog1</span> (first tail) (setf tail (rest tail)))
+                     nil))
+         (statistics (first tail))
+         (options (rest tail)))
+    (<span style="color: #fb4934; font-weight: bold;">unless</span> (member statistics '(<span style="color: #fe8019; font-weight: bold;">:bosonic</span> <span style="color: #fe8019; font-weight: bold;">:fermionic</span>))
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Field ~S has invalid statistics ~S."</span> id statistics))
+    (values id symbol insertion labels statistics options)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">declare-field</span>
+    (theory parameters quantum-numbers fields labels
+     id symbol insertion label-spec statistics options)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((field-id (register-field-shape fields labels id label-spec))
+         (weight-form (option-value options <span style="color: #fe8019; font-weight: bold;">:weight</span>))
+         (anti-weight-form (option-value options <span style="color: #fe8019; font-weight: bold;">:anti-weight</span>))
+         (weight-id (<span style="color: #fb4934; font-weight: bold;">when</span> weight-form
+                      (parse-metadata-id theory parameters fields labels weight-form)))
+         (anti-weight-id (<span style="color: #fb4934; font-weight: bold;">cond</span>
+                           ((null anti-weight-form) nil)
+                           ((equal anti-weight-form weight-form) weight-id)
+                           (t (parse-metadata-id theory parameters fields labels
+                                                 anti-weight-form)))))
+    (set-field-shape-insertion fields id insertion)
+    (<span style="color: #fb4934; font-weight: bold;">unless</span> (= field-id
+               (add-field theory symbol insertion label-spec statistics
+                          <span style="color: #fe8019; font-weight: bold;">:zero-mode</span> (option-value options <span style="color: #fe8019; font-weight: bold;">:zero-mode</span>)
+                          <span style="color: #fe8019; font-weight: bold;">:weight</span> weight-id
+                          <span style="color: #fe8019; font-weight: bold;">:anti-weight</span> anti-weight-id))
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Field table drift while declaring ~S."</span> id))
+    (parse-field-quantum-numbers
+     theory quantum-numbers field-id
+     (option-value options <span style="color: #fe8019; font-weight: bold;">:quantum-numbers</span> nil))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgfaa7daa" class="outline-2">
+<h2 id="orgfaa7daa">References</h2>
+<div class="outline-text-2" id="text-orgfaa7daa">
+<p>
+Reference parsers convert preset names into descriptor ids.  Integer ids are
+accepted only as an escape hatch for generated code.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-parameter-ref</span> (parameters value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (symbol (table-get parameters value <span style="color: #b8bb26; font-style: italic;">"parameter"</span>))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-quantum-number-ref</span> (quantum-numbers value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (symbol (table-get quantum-numbers value <span style="color: #b8bb26; font-style: italic;">"quantum number"</span>))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-quantum-number-kind</span> (kind)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> kind
+    ((<span style="color: #fe8019; font-weight: bold;">:u1</span> <span style="color: #fe8019; font-weight: bold;">:u1-charge</span> u1 u1-charge) <span style="color: #fe8019; font-weight: bold;">:u1-charge</span>)
+    ((<span style="color: #fe8019; font-weight: bold;">:ade-irrep</span> ade-irrep) <span style="color: #fe8019; font-weight: bold;">:ade-irrep</span>)))
+</pre>
+</div>
+
+<p>
+Quantum-number values are deliberately scalar.  U(1) charges lower to exact
+integers or rationals; representation-valued numbers lower to symbol ids.  The
+Zig descriptor validator checks that the value kind matches the declared
+quantum-number kind.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-field-ref</span> (fields value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (symbol (field-shape-id (table-get fields (field-key value) <span style="color: #b8bb26; font-style: italic;">"field"</span>)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-quantum-value</span> (theory value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (rational value)
+    (string `(<span style="color: #fe8019; font-weight: bold;">:symbol</span> ,(add-symbol theory value)))
+    (symbol `(<span style="color: #fe8019; font-weight: bold;">:symbol</span> ,(add-symbol theory (string-downcase (string value)))))
+    (cons
+     (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first value)
+       ((<span style="color: #fe8019; font-weight: bold;">:rational</span> rational)
+        `(<span style="color: #fe8019; font-weight: bold;">:rational</span> ,(second value) ,(third value)))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-field-quantum-numbers</span> (theory quantum-numbers field-id specs)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (spec specs)
+    (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (name value) spec
+      (add-field-quantum-number theory
+                                field-id
+                                (parse-quantum-number-ref quantum-numbers name)
+                                (parse-quantum-value theory value)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-label-ref</span> (<span style="color: #fb4934; font-weight: bold;">labels</span> field value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (symbol (table-get labels (label-key field value) <span style="color: #b8bb26; font-style: italic;">"field label"</span>))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2f6c942" class="outline-2">
+<h2 id="org2f6c942">Metadata</h2>
+<div class="outline-text-2" id="text-org2f6c942">
+<p>
+Metadata forms describe field weights and similar declaration-time expressions.
+They lower to the compact descriptor metadata language.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-metadata-form</span> (theory parameters fields labels form)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> form
+    (integer form)
+    (cons
+     (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+       ((<span style="color: #fe8019; font-weight: bold;">:rational</span> rational)
+        `(<span style="color: #fe8019; font-weight: bold;">:rational</span> ,(second form) ,(third form)))
+       ((<span style="color: #fe8019; font-weight: bold;">:parameter</span> parameter)
+        `(<span style="color: #fe8019; font-weight: bold;">:parameter</span> ,(parse-parameter-ref parameters (second form))))
+       ((<span style="color: #fe8019; font-weight: bold;">:field-label</span> field-label)
+        `(<span style="color: #fe8019; font-weight: bold;">:field-label</span> ,(parse-field-ref fields (second form))
+                       ,(parse-label-ref labels (second form) (third form))))
+       ((<span style="color: #fe8019; font-weight: bold;">:add</span> add +)
+        `(<span style="color: #fe8019; font-weight: bold;">:add</span> ,(parse-metadata-id theory parameters fields labels (second form))
+               ,(parse-metadata-id theory parameters fields labels (third form))))
+       ((<span style="color: #fe8019; font-weight: bold;">:mul</span> mul *)
+        `(<span style="color: #fe8019; font-weight: bold;">:mul</span> ,(parse-metadata-id theory parameters fields labels (second form))
+               ,(parse-metadata-id theory parameters fields labels (third form))))
+       ((<span style="color: #fe8019; font-weight: bold;">:bilinear</span> bilinear dot)
+        `(<span style="color: #fe8019; font-weight: bold;">:bilinear</span> ,(parse-metadata-id theory parameters fields labels (second form))
+                    ,(parse-metadata-id theory parameters fields labels (third form))
+                    ,(fourth form)))))))
+</pre>
+</div>
+
+<p>
+The descriptor builder interns duplicate metadata rows, so repeated symbols
+such as \(k\) in \(k \cdot k\) do not allocate duplicate descriptor nodes.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-metadata-id</span> (theory parameters fields labels form)
+  (add-metadata theory (parse-metadata-form theory parameters fields labels form)))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgc0e9ad3" class="outline-2">
+<h2 id="orgc0e9ad3">Wick Terms</h2>
+<div class="outline-text-2" id="text-orgc0e9ad3">
+<p>
+Scalar factors are user-facing products of exact rationals, <code>i</code>, and named
+parameters.  The parser lowers common products to the compact descriptor tags
+used by Zig.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">i-symbol-p</span> (value)
+  (and (symbolp value) (string-equal value 'i)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">rational-factor</span> (value)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((integerp value) value)
+    ((rationalp value) value)
+    ((and (consp value) (member (first value) '(<span style="color: #fe8019; font-weight: bold;">:rational</span> rational)))
+     (/ (second value) (third value)))
+    (t nil)))
+</pre>
+</div>
+
+<p>
+The product parser is intentionally narrow.  Unsupported scalar forms fail at
+preset compile time instead of leaking into the generated descriptor.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-product-factors</span> (form)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and (consp form) (member (first form) '(* <span style="color: #fe8019; font-weight: bold;">:mul</span> mul)))
+      (rest form)
+      (list form)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-factor-product</span> (parameters form)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((coefficient 1)
+        (imaginary-power 0)
+        (parameter nil))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (factor (scalar-product-factors form))
+      (<span style="color: #fb4934; font-weight: bold;">let</span> ((rational (rational-factor factor)))
+        (<span style="color: #fb4934; font-weight: bold;">cond</span>
+          (rational
+           (setf coefficient (* coefficient rational)))
+          ((i-symbol-p factor)
+           (setf imaginary-power (mod (1+ imaginary-power) 4)))
+          ((and (consp factor) (member (first factor) '(<span style="color: #fe8019; font-weight: bold;">:parameter</span> parameter)))
+           (<span style="color: #fb4934; font-weight: bold;">when</span> parameter
+             (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Scalar factor has more than one parameter: ~S."</span> form))
+           (setf parameter (parse-parameter-ref parameters (second factor))))
+          ((symbolp factor)
+           (<span style="color: #fb4934; font-weight: bold;">when</span> parameter
+             (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Scalar factor has more than one parameter: ~S."</span> form))
+           (setf parameter (parse-parameter-ref parameters factor)))
+          (t
+           (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unsupported scalar factor ~S in ~S."</span> factor form)))))
+    (values coefficient imaginary-power parameter)))
+</pre>
+</div>
+
+<p>
+The final lowering preserves the compact descriptor format without exposing it
+to preset authors.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-scalar-factor</span> (parameters form)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (eq form <span style="color: #fe8019; font-weight: bold;">:one</span>)
+      <span style="color: #fe8019; font-weight: bold;">:one</span>
+      (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (coefficient imaginary-power parameter)
+          (scalar-factor-product parameters form)
+        (<span style="color: #fb4934; font-weight: bold;">cond</span>
+          ((and (null parameter) (zerop imaginary-power) (= coefficient 1))
+           <span style="color: #fe8019; font-weight: bold;">:one</span>)
+          ((and (null parameter) (zerop imaginary-power))
+           `(<span style="color: #fe8019; font-weight: bold;">:rational</span> ,(numerator coefficient) ,(denominator coefficient)))
+          ((and parameter (zerop imaginary-power) (= coefficient 1))
+           `(<span style="color: #fe8019; font-weight: bold;">:parameter</span> ,parameter))
+          ((and parameter (zerop imaginary-power) (= coefficient 1/2))
+           `(<span style="color: #fe8019; font-weight: bold;">:parameter-half</span> ,parameter))
+          ((and parameter (zerop imaginary-power) (= coefficient -1/2))
+           `(<span style="color: #fe8019; font-weight: bold;">:neg-parameter-half</span> ,parameter))
+          ((and parameter (= imaginary-power 1) (= coefficient -1/2))
+           `(<span style="color: #fe8019; font-weight: bold;">:neg-i-parameter-half</span> ,parameter))
+          (t
+           (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Scalar factor cannot be lowered to the current compact descriptor: ~S."</span>
+                  form))))))
+</pre>
+</div>
+
+<p>
+Coordinate factors are already descriptor-shaped.  The parser only normalizes
+operator names and preserves coordinate slots.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-coordinate-factor</span> (form)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+    ((<span style="color: #fe8019; font-weight: bold;">:difference-power</span> difference-power)
+     `(<span style="color: #fe8019; font-weight: bold;">:difference-power</span> ,(second form)
+                         ,(third form)
+                         ,(fourth form)
+                         ,@(cddddr form)))
+    ((<span style="color: #fe8019; font-weight: bold;">:named-kernel</span> named-kernel)
+     `(<span style="color: #fe8019; font-weight: bold;">:named-kernel</span> ,(second form)
+                     ,(third form)
+                     ,(fourth form)
+                     ,@(cddddr form)))
+    ((<span style="color: #fe8019; font-weight: bold;">:green-exponential</span> green-exponential)
+     `(<span style="color: #fe8019; font-weight: bold;">:green-exponential</span> ,(second form)
+                          ,(third form)))))
+</pre>
+</div>
+
+<p>
+Tensor factors need the current Wick pair because <code>(:left mu)</code> and <code>(:right k)</code>
+refer to labels on different fields.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-side-label-ref</span> (<span style="color: #fb4934; font-weight: bold;">labels</span> left-field right-field ref)
+  (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (side value) ref
+    (<span style="color: #fb4934; font-weight: bold;">ecase</span> side
+      (<span style="color: #fe8019; font-weight: bold;">:left</span> `(<span style="color: #fe8019; font-weight: bold;">:left</span> ,(parse-label-ref labels left-field value)))
+      (<span style="color: #fe8019; font-weight: bold;">:right</span> `(<span style="color: #fe8019; font-weight: bold;">:right</span> ,(parse-label-ref labels right-field value))))))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-tensor-factor</span> (<span style="color: #fb4934; font-weight: bold;">labels</span> left-field right-field form)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+    ((<span style="color: #fe8019; font-weight: bold;">:metric</span> metric)
+     `(<span style="color: #fe8019; font-weight: bold;">:metric</span> ,(parse-side-label-ref labels left-field right-field (second form))
+               ,(parse-side-label-ref labels left-field right-field (third form))))
+    ((<span style="color: #fe8019; font-weight: bold;">:momentum-index</span> momentum-index)
+     `(<span style="color: #fe8019; font-weight: bold;">:momentum-index</span> ,(parse-side-label-ref labels left-field right-field (second form))
+                       ,(parse-side-label-ref labels left-field right-field (third form))))
+    ((<span style="color: #fe8019; font-weight: bold;">:momentum-pair</span> momentum-pair)
+     `(<span style="color: #fe8019; font-weight: bold;">:momentum-pair</span> ,(parse-side-label-ref labels left-field right-field (second form))
+                      ,(parse-side-label-ref labels left-field right-field (third form))))))
+</pre>
+</div>
+
+<p>
+The high-level Wick syntax binds field-call arguments to endpoint-local label
+and coordinate refs.  Single fields have one position coordinate; pair fields
+use holomorphic and antiholomorphic slots.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">insertion-coordinate-slots</span> (insertion)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> insertion
+    (<span style="color: #fe8019; font-weight: bold;">:single</span> '(<span style="color: #fe8019; font-weight: bold;">:position</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:pair</span> '(<span style="color: #fe8019; font-weight: bold;">:holomorphic</span> <span style="color: #fe8019; font-weight: bold;">:antiholomorphic</span>))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">coordinate-ref-form</span> (side slot)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (eq slot <span style="color: #fe8019; font-weight: bold;">:position</span>)
+      side
+      (list side slot)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">bind-field-call</span> (fields side call label-env coordinate-env)
+  (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (field <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> args) call
+    (<span style="color: #fb4934; font-weight: bold;">let*</span> ((shape (table-get fields (field-key field) <span style="color: #b8bb26; font-style: italic;">"field"</span>))
+           (label-count (length (field-shape-labels shape)))
+           (slots (insertion-coordinate-slots (field-shape-insertion shape)))
+           (<span style="color: #fb4934; font-weight: bold;">labels</span> (subseq args 0 label-count))
+           (coordinates (subseq args label-count)))
+      (<span style="color: #fb4934; font-weight: bold;">unless</span> (= (length coordinates) (length slots))
+        (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Field call ~S has ~D coordinate arguments; expected ~D."</span>
+               call (length coordinates) (length slots)))
+      (<span style="color: #fb4934; font-weight: bold;">loop</span> for label in labels
+            for slot from 0
+            do (setf (gethash label label-env) (list side slot)))
+      (<span style="color: #fb4934; font-weight: bold;">loop</span> for coordinate in coordinates
+            for slot in slots
+            do (setf (gethash coordinate coordinate-env)
+                     (coordinate-ref-form side slot)))
+      field)))
+</pre>
+</div>
+
+<p>
+Expression lowering is intentionally small: products, coordinate differences,
+named coordinate kernels, Green exponentials, and the supported tensor
+structures.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">env-ref</span> (env name label)
+  (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (value found) (gethash name env)
+    (<span style="color: #fb4934; font-weight: bold;">unless</span> found
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown ~A variable ~S."</span> label name))
+    value))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">coordinate-ref-position-p</span> (ref)
+  (symbolp ref))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">difference-form-p</span> (form)
+  (and (consp form) (member (first form) '(- <span style="color: #fe8019; font-weight: bold;">:difference</span> difference))))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">lower-difference-power</span> (coordinate-env difference exponent)
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> (and (difference-form-p difference)
+               (= (length difference) 3))
+    (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Expected coordinate difference, got ~S."</span> difference))
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((left (env-ref coordinate-env (second difference) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>))
+        (right (env-ref coordinate-env (third difference) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>)))
+    `(<span style="color: #fe8019; font-weight: bold;">:difference-power</span> ,left ,right ,exponent
+                        ,@(<span style="color: #fb4934; font-weight: bold;">when</span> (coordinate-ref-position-p left) '(<span style="color: #fe8019; font-weight: bold;">:derive-left</span>))
+                        ,@(<span style="color: #fb4934; font-weight: bold;">when</span> (coordinate-ref-position-p right) '(<span style="color: #fe8019; font-weight: bold;">:derive-right</span>)))))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">named-coordinate-kernel-p</span> (form coordinate-env)
+  (and (consp form)
+       (= (length form) 3)
+       (symbolp (first form))
+       (gethash (second form) coordinate-env)
+       (gethash (third form) coordinate-env)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-expression-coordinate</span> (coordinate-env form)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((and (consp form) (member (first form) '(/ <span style="color: #fe8019; font-weight: bold;">:div</span> div))
+          (= (length form) 3)
+          (eql (second form) 1))
+     (lower-difference-power coordinate-env (third form) -1))
+    ((and (consp form) (member (first form) '(pow expt))
+          (= (length form) 3))
+     (lower-difference-power coordinate-env (second form) (third form)))
+    ((and (consp form) (member (first form) '(green-exp green-exponential))
+          (= (length form) 3))
+     `(<span style="color: #fe8019; font-weight: bold;">:green-exponential</span> ,(env-ref coordinate-env (second form) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>)
+                          ,(env-ref coordinate-env (third form) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>)))
+    ((named-coordinate-kernel-p form coordinate-env)
+     `(<span style="color: #fe8019; font-weight: bold;">:named-kernel</span> ,(first form)
+                     ,(env-ref coordinate-env (second form) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>)
+                     ,(env-ref coordinate-env (third form) <span style="color: #b8bb26; font-style: italic;">"coordinate"</span>)
+                     <span style="color: #fe8019; font-weight: bold;">:derive-left</span>))
+    (t nil)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-expression-tensor</span> (label-env form)
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (consp form)
+    (<span style="color: #fb4934; font-weight: bold;">case</span> (first form)
+      ((metric)
+       `(<span style="color: #fe8019; font-weight: bold;">:metric</span> ,(env-ref label-env (second form) <span style="color: #b8bb26; font-style: italic;">"label"</span>)
+                 ,(env-ref label-env (third form) <span style="color: #b8bb26; font-style: italic;">"label"</span>)))
+      ((momentum-index)
+       `(<span style="color: #fe8019; font-weight: bold;">:momentum-index</span> ,(env-ref label-env (second form) <span style="color: #b8bb26; font-style: italic;">"label"</span>)
+                         ,(env-ref label-env (third form) <span style="color: #b8bb26; font-style: italic;">"label"</span>)))
+      ((momentum-pair)
+       `(<span style="color: #fe8019; font-weight: bold;">:momentum-pair</span> ,(env-ref label-env (second form) <span style="color: #b8bb26; font-style: italic;">"label"</span>)
+                        ,(env-ref label-env (third form) <span style="color: #b8bb26; font-style: italic;">"label"</span>))))))
+</pre>
+</div>
+
+<p>
+The expression term collector classifies product factors and leaves all scalar
+factors together so <code>(* -1/2 i alpha-prime)</code> lowers as one scalar.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">expression-product-factors</span> (form)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and (consp form) (member (first form) '(* <span style="color: #fe8019; font-weight: bold;">:mul</span> mul)))
+      (<span style="color: #fb4934; font-weight: bold;">loop</span> for factor in (rest form) append (expression-product-factors factor))
+      (list form)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-expression-term</span> (parameters label-env coordinate-env expression residuals)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((scalar-factors nil)
+        (coordinates nil)
+        (tensors nil))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (factor (expression-product-factors expression))
+      (<span style="color: #fb4934; font-weight: bold;">let</span> ((coordinate (parse-expression-coordinate coordinate-env factor))
+            (tensor (parse-expression-tensor label-env factor)))
+        (<span style="color: #fb4934; font-weight: bold;">cond</span>
+          (coordinate (push coordinate coordinates))
+          (tensor (push tensor tensors))
+          (t (push factor scalar-factors)))))
+    (make-wick-term
+     <span style="color: #fe8019; font-weight: bold;">:scalars</span> (list (parse-scalar-factor
+                     parameters
+                     (<span style="color: #fb4934; font-weight: bold;">if</span> scalar-factors
+                         `(* ,@(reverse scalar-factors))
+                         <span style="color: #fe8019; font-weight: bold;">:one</span>)))
+     <span style="color: #fe8019; font-weight: bold;">:coordinates</span> (reverse coordinates)
+     <span style="color: #fe8019; font-weight: bold;">:tensors</span> (reverse tensors)
+     <span style="color: #fe8019; font-weight: bold;">:residuals</span> residuals)))
+</pre>
+</div>
+
+<p>
+The descriptor-shaped <code>term</code> form remains as an explicit escape hatch for
+generated or debugging code.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">parse-term</span> (parameters labels left-field right-field form)
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> (eq (first form) 'term)
+    (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Expected TERM form, got ~S."</span> form))
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((body (rest form)))
+    (make-wick-term
+     <span style="color: #fe8019; font-weight: bold;">:scalars</span> (mapcar (<span style="color: #fb4934; font-weight: bold;">lambda</span> (item) (parse-scalar-factor parameters item))
+                      (option-value body <span style="color: #fe8019; font-weight: bold;">:scalars</span> '(<span style="color: #fe8019; font-weight: bold;">:one</span>)))
+     <span style="color: #fe8019; font-weight: bold;">:coordinates</span> (mapcar #'parse-coordinate-factor
+                          (option-value body <span style="color: #fe8019; font-weight: bold;">:coordinates</span> nil))
+     <span style="color: #fe8019; font-weight: bold;">:tensors</span> (mapcar (<span style="color: #fb4934; font-weight: bold;">lambda</span> (item)
+                        (parse-tensor-factor labels left-field right-field item))
+                      (option-value body <span style="color: #fe8019; font-weight: bold;">:tensors</span> nil))
+     <span style="color: #fe8019; font-weight: bold;">:residuals</span> (option-value body <span style="color: #fe8019; font-weight: bold;">:residuals</span> nil))))
+</pre>
+</div>
+
+<p>
+Both high-level and descriptor-shaped Wick forms flow through this helper.  The
+high-level form binds labels and coordinates from the two field calls and then
+classifies the product factors in the expression.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-wick-form</span>
+    (theory parameters fields labels surface left body)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and body (consp (first body)) (not (eq (caar body) 'term)))
+      (<span style="color: #fb4934; font-weight: bold;">let*</span> ((right (first body))
+             (expression (second body))
+             (options (cddr body))
+             (label-env (make-hash-table))
+             (coordinate-env (make-hash-table))
+             (left-field (bind-field-call fields <span style="color: #fe8019; font-weight: bold;">:left</span> left label-env coordinate-env))
+             (right-field (bind-field-call fields <span style="color: #fe8019; font-weight: bold;">:right</span> right label-env coordinate-env)))
+        (add-wick-rule
+         theory
+         surface
+         (parse-field-ref fields left-field)
+         (parse-field-ref fields right-field)
+         (list (parse-expression-term parameters label-env coordinate-env
+                                      expression
+                                      (option-value options <span style="color: #fe8019; font-weight: bold;">:residuals</span> nil)))))
+      (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (left-field right-field) left
+        (add-wick-rule
+         theory
+         surface
+         (parse-field-ref fields left-field)
+         (parse-field-ref fields right-field)
+         (mapcar (<span style="color: #fb4934; font-weight: bold;">lambda</span> (term)
+                   (parse-term parameters labels left-field right-field term))
+                 body)))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org028a72d" class="outline-2">
+<h2 id="org028a72d">Declarations</h2>
+<div class="outline-text-2" id="text-org028a72d">
+<p>
+Declaration forms append descriptor rows in source order.  Quantum-number
+schema rows are separate from field quantum-number assignments so the later
+basis generator can scan them without touching Wick data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">apply-preset-form</span>
+    (theory parameters quantum-numbers surfaces fields labels form)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+    (parameter
+     (setf (gethash (second form) parameters)
+           (add-parameter theory (third form) (or (fourth form) <span style="color: #fe8019; font-weight: bold;">:scalar-parameter</span>))))
+    (quantum-number
+     (setf (gethash (second form) quantum-numbers)
+           (add-quantum-number theory
+                               (or (option-value (cdddr form) <span style="color: #fe8019; font-weight: bold;">:symbol</span>)
+                                   (string-downcase (string (second form))))
+                               (parse-quantum-number-kind (third form))
+                               <span style="color: #fe8019; font-weight: bold;">:group</span> (option-value (cdddr form) <span style="color: #fe8019; font-weight: bold;">:group</span>))))
+    (surface
+     (<span style="color: #fb4934; font-weight: bold;">let</span> ((surface-id
+             (add-surface theory (third form) (fourth form)
+                          <span style="color: #fe8019; font-weight: bold;">:modular-parameter</span>
+                          (<span style="color: #fb4934; font-weight: bold;">when</span> (option-value (cddddr form) <span style="color: #fe8019; font-weight: bold;">:modular-parameter</span>)
+                            (parse-parameter-ref
+                             parameters
+                             (option-value (cddddr form) <span style="color: #fe8019; font-weight: bold;">:modular-parameter</span>))))))
+       (setf (gethash (second form) surfaces) surface-id
+             (gethash <span style="color: #fe8019; font-weight: bold;">:current</span> surfaces) surface-id)))
+    (field
+     (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (id symbol insertion label-spec statistics <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> options) (rest form)
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
+    (chiral-field
+     (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (id symbol insertion label-spec statistics options)
+         (field-declaration-parts form <span style="color: #fe8019; font-weight: bold;">:single</span>)
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
+    (bulk-field
+     (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (id symbol insertion label-spec statistics options)
+         (field-declaration-parts form <span style="color: #fe8019; font-weight: bold;">:pair</span>)
+       (declare-field theory parameters quantum-numbers fields labels
+                      id symbol insertion label-spec statistics options)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(wick
+ (<span style="color: #fb4934; font-weight: bold;">let*</span> ((items (rest form))
+        (has-surface (starts-with-surface-p surfaces items))
+        (surface (surface-form-id surfaces (first items)))
+        (left (<span style="color: #fb4934; font-weight: bold;">if</span> has-surface (second items) (first items)))
+        (body (<span style="color: #fb4934; font-weight: bold;">if</span> has-surface (cddr items) (rest items))))
+   (add-wick-form theory parameters fields labels surface left body)))
+(zero-mode
+ (<span style="color: #fb4934; font-weight: bold;">let*</span> ((items (rest form))
+        (has-surface (starts-with-surface-p surfaces items))
+        (surface (surface-form-id surfaces (first items)))
+        (body (<span style="color: #fb4934; font-weight: bold;">if</span> has-surface (rest items) items)))
+   (<span style="color: #fb4934; font-weight: bold;">destructuring-bind</span> (kind consumes <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> options) body
+     (add-zero-mode theory
+                    surface
+                    kind
+                    (mapcar (<span style="color: #fb4934; font-weight: bold;">lambda</span> (field) (parse-field-ref fields field)) consumes)
+                    <span style="color: #fe8019; font-weight: bold;">:normalization</span> (option-value options <span style="color: #fe8019; font-weight: bold;">:normalization</span> <span style="color: #fe8019; font-weight: bold;">:one</span>)
+                    <span style="color: #fe8019; font-weight: bold;">:two-pi-power</span> (option-value options <span style="color: #fe8019; font-weight: bold;">:two-pi-power</span> 0)))))))
+</pre>
+</div>
+
+<p>
+Building a preset uses only small name tables and returns the descriptor theory.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">build-cft-preset</span> (name hash forms)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((theory (make-theory name hash))
+        (parameters (make-hash-table))
+        (quantum-numbers (make-hash-table))
+        (surfaces (make-hash-table))
+        (fields (make-hash-table <span style="color: #fe8019; font-weight: bold;">:test</span> #'equal))
+        (<span style="color: #fb4934; font-weight: bold;">labels</span> (make-hash-table <span style="color: #fe8019; font-weight: bold;">:test</span> #'equal)))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (form forms theory)
+      (apply-preset-form
+       theory parameters quantum-numbers surfaces fields labels form))))
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org7102879" class="outline-2">
+<h2 id="org7102879">Fixture Emission</h2>
+<div class="outline-text-2" id="text-org7102879">
+<p>
+Presets are emitted in generated theory-id order.  The ids are assigned when
+the preset files load through ASDF.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">sorted-presets</span> ()
+  (sort (<span style="color: #fb4934; font-weight: bold;">loop</span> for preset being the hash-values of *presets*
+              collect preset)
+        #'&lt; <span style="color: #fe8019; font-weight: bold;">:key</span> #'preset-theory-id))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-name-parts</span> (preset)
+  (drop-trailing-numeric-parts (split-name-parts (preset-name preset))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-family-parts</span> (preset)
+  (drop-trailing-surface-part (preset-name-parts preset)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">same-family-p</span> (left right)
+  (equal (preset-family-parts left) (preset-family-parts right)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-family-count</span> (preset presets)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for item in presets count (same-family-p preset item)))
+</pre>
+</div>
+
+<p>
+Generated Zig names are derived from the preset set.  A family with one surface
+gets a short type such as <code>Bc</code>; a family with multiple surfaces keeps the
+surface suffix, such as <code>EtaXiSphere</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-name-parts</span> (preset presets)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (&gt; (preset-family-count preset presets) 1)
+      (preset-name-parts preset)
+      (preset-family-parts preset)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-prefix</span> (preset presets)
+  (join-name-parts (generated-name-parts preset presets) <span style="color: #b8bb26; font-style: italic;">"_"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-descriptor-name</span> (preset presets)
+  (format nil <span style="color: #b8bb26; font-style: italic;">"~A_descriptor"</span> (generated-prefix preset presets)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">capitalized-name-part</span> (part)
+  (string-capitalize part))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">generated-type-name</span> (preset presets)
+  (<span style="color: #fb4934; font-weight: bold;">with-output-to-string</span> (stream)
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (part (generated-name-parts preset presets))
+      (write-string (capitalized-name-part part) stream))))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-key</span> (name)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> name
+    (symbol
+     (or (find-symbol (symbol-name name) (find-package '<span style="color: #fe8019; font-weight: bold;">#:string-code.cft.presets</span>))
+         name))
+    (string
+     (find-symbol (string-upcase name) (find-package '<span style="color: #fe8019; font-weight: bold;">#:string-code.cft.presets</span>)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">registered-preset</span> (name)
+  (table-get *presets* (preset-key name) <span style="color: #b8bb26; font-style: italic;">"preset"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-theory</span> (name)
+  <span style="color: #e0d3b9; font-style: italic;">"Build the descriptor theory declared by preset NAME."</span>
+  (funcall (preset-builder (registered-preset name))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">preset-theory-id-for</span> (name)
+  <span style="color: #e0d3b9; font-style: italic;">"Return the generated ABI theory id for preset NAME."</span>
+  (preset-theory-id (registered-preset name)))
+</pre>
+</div>
+
+<p>
+The prologue is the only Zig syntax that is not descriptor data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-fixture-prologue</span> (stream)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const descriptor = @import(\"descriptor.zig\");~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const d = descriptor;~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"fn cref(side: d.Side) d.CoordinateRef {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return .{ .side = side, .slot = .position };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"fn bulk(side: d.Side, slot: d.CoordinateSlot) d.CoordinateRef {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return .{ .side = side, .slot = slot };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"fn lref(side: d.Side, slot: d.Id) d.LabelRef {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return .{ .side = side, .slot = slot };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%~%"</span>))
+</pre>
+</div>
+
+<p>
+Each preset becomes one descriptor plus one generated theory type.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-fixture-type</span> (stream preset presets)
+  (emit-zig-descriptor (funcall (preset-builder preset)) stream
+                       <span style="color: #fe8019; font-weight: bold;">:prefix</span> (generated-prefix preset presets)
+                       <span style="color: #fe8019; font-weight: bold;">:descriptor-name</span> (generated-descriptor-name preset presets))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"~%/// ~A is the lowered generated preset.~%"</span>
+          (generated-type-name preset presets))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub const ~A = d.GeneratedTheory(~A);~%~%"</span>
+          (generated-type-name preset presets)
+          (generated-descriptor-name preset presets)))
+</pre>
+</div>
+
+<p>
+The generated fixture self-test checks descriptor validity without allocating
+correlator expressions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-fixture-self-test</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"/// selfTest validates that generated preset descriptors are loadable.~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub fn selfTest() !void {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"    try d.validateDescriptor(~A);~%"</span>
+            (generated-descriptor-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">write-generated-fixtures</span>
+    (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> (path <span style="color: #b8bb26; font-style: italic;">"src/cft-code/correlators/generated_fixtures.zig"</span>))
+  <span style="color: #e0d3b9; font-style: italic;">"Write the Zig fixture module from registered Lisp presets."</span>
+  (<span style="color: #fb4934; font-weight: bold;">with-open-file</span> (stream path <span style="color: #fe8019; font-weight: bold;">:direction</span> <span style="color: #fe8019; font-weight: bold;">:output</span> <span style="color: #fe8019; font-weight: bold;">:if-exists</span> <span style="color: #fe8019; font-weight: bold;">:supersede</span>
+                               <span style="color: #fe8019; font-weight: bold;">:if-does-not-exist</span> <span style="color: #fe8019; font-weight: bold;">:create</span>)
+    (<span style="color: #fb4934; font-weight: bold;">let</span> ((presets (sorted-presets)))
+      (emit-fixture-prologue stream)
+      (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+        (emit-fixture-type stream preset presets))
+      (emit-fixture-self-test stream presets)))
+  path)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org884653c" class="outline-2">
+<h2 id="org884653c">Dispatch Emission</h2>
+<div class="outline-text-2" id="text-org884653c">
+<p>
+The dispatch module is generated with the fixtures.  It owns <code>TheoryId</code>, the
+context union, and every switch over generated theory types.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-dispatch-prologue</span> (stream)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const std = @import(\"std\");~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const fixtures = @import(\"generated_fixtures.zig\");~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const kernel = @import(\"../kernel.zig\");~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const allocator = std.heap.c_allocator;~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-theory-id</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"/// TheoryId selects one generated fixture through the generic ABI.~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub const TheoryId = enum(u32) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"    ~A = ~D,~%"</span>
+            (generated-prefix preset presets)
+            (preset-theory-id preset)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"};~%~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub const first_theory_id = TheoryId.~A;~%~%"</span>
+          (generated-prefix (first presets) presets)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-context-fields</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub const ContextTag = union(TheoryId) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"    ~A: *fixtures.~A.Context,~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"~%"</span>))
+</pre>
+</div>
+
+<p>
+The context methods are direct switches.  They do not allocate and expose only
+the operations the C ABI needs.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-create-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn create(id: TheoryId) !ContextTag {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        return switch (id) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; .{ .~A = try fixtures.~A.contextCreate(allocator) },~%"</span>
+            (generated-prefix preset presets)
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-destroy-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn destroy(self: ContextTag) void {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; |inner| fixtures.~A.contextDestroy(inner),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        }~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-symbol-intern-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn symbolIntern(self: ContextTag, name: []const u8) !u32 {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        return switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; |inner| fixtures.~A.symbolIntern(inner, name),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-field-insert-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn fieldInsert(self: ContextTag, field_id: u16, coords: []const u32, labels: []const u32) !void {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; |inner| try fixtures.~A.fieldInsert(inner, field_id, coords, labels),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        }~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-normal-ordering-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn normalOrdering(self: ContextTag, field_count: usize) !void {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; |inner| try fixtures.~A.normalOrdering(inner, field_count),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        }~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-freeze-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn freeze(self: ContextTag) !kernel.Call.MultiOp {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        return switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; |inner| fixtures.~A.operatorListFreeze(inner),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-count-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn count(self: ContextTag, ops: kernel.Call.MultiOp) !usize {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        return switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; fixtures.~A.correlatorCount(ops),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-run-method</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    pub fn run(self: ContextTag, ops: kernel.Call.MultiOp, state: anytype, thunk: anytype) !void {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        switch (self) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"            .~A =&gt; try fixtures.~A.correlatorRun(ops, state, thunk),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        }~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    }~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-context-end</span> (stream)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"};~%~%"</span>))
+</pre>
+</div>
+
+<p>
+The remaining dispatch functions decode raw ids and expose generated theory
+hashes to Lisp.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-scalar-atom-name-function</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub fn scalarAtomParameterName(id: TheoryId, atom: u32) ?[]const u8 {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return switch (id) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"        .~A =&gt; fixtures.~A.scalarAtomParameterName(atom),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-theory-id-function</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub fn theoryId(raw: u32) !TheoryId {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return switch (raw) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"        ~D =&gt; .~A,~%"</span>
+            (preset-theory-id preset)
+            (generated-prefix preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"        else =&gt; error.UnknownTheory,~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%~%"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-theory-hash-function</span> (stream presets)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub fn theoryHash(id: TheoryId) u32 {~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    return switch (id) {~%"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (preset presets)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"        .~A =&gt; fixtures.~A.theoryHash(),~%"</span>
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    };~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">write-generated-dispatch</span>
+    (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> (path <span style="color: #b8bb26; font-style: italic;">"src/cft-code/correlators/generated_dispatch.zig"</span>))
+  <span style="color: #e0d3b9; font-style: italic;">"Write the generated Zig dispatcher for registered presets."</span>
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((presets (sorted-presets)))
+    (<span style="color: #fb4934; font-weight: bold;">with-open-file</span> (stream path <span style="color: #fe8019; font-weight: bold;">:direction</span> <span style="color: #fe8019; font-weight: bold;">:output</span> <span style="color: #fe8019; font-weight: bold;">:if-exists</span> <span style="color: #fe8019; font-weight: bold;">:supersede</span>
+                                 <span style="color: #fe8019; font-weight: bold;">:if-does-not-exist</span> <span style="color: #fe8019; font-weight: bold;">:create</span>)
+      (emit-dispatch-prologue stream)
+      (emit-theory-id stream presets)
+      (emit-context-fields stream presets)
+      (emit-create-method stream presets)
+      (emit-destroy-method stream presets)
+      (emit-symbol-intern-method stream presets)
+      (emit-field-insert-method stream presets)
+      (emit-normal-ordering-method stream presets)
+      (emit-freeze-method stream presets)
+      (emit-count-method stream presets)
+      (emit-run-method stream presets)
+      (emit-context-end stream)
+      (emit-scalar-atom-name-function stream presets)
+      (emit-theory-id-function stream presets)
+      (emit-theory-hash-function stream presets)))
+  path)
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb59f228" class="outline-2">
+<h2 id="orgb59f228">Compilation</h2>
+<div class="outline-text-2" id="text-orgb59f228">
+<p>
+The compile helper writes the generated fixture and dispatch sources imported
+by <code>src/cft-code/generated_abi.zig</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">write-generated-sources</span> ()
+  <span style="color: #e0d3b9; font-style: italic;">"Write all generated Zig modules derived from registered Lisp presets."</span>
+  (write-generated-fixtures)
+  (write-generated-dispatch))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">compile-preset-library</span>
+    (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span>
+       (library-path <span style="color: #b8bb26; font-style: italic;">"zig-out/lib/libstring_code_cft_generated.so"</span>)
+       (global-cache-dir <span style="color: #b8bb26; font-style: italic;">"/tmp/zig-global-cache"</span>)
+       (zig <span style="color: #b8bb26; font-style: italic;">"zig"</span>))
+  <span style="color: #e0d3b9; font-style: italic;">"Emit registered presets and compile the generated C ABI shared library."</span>
+  (write-generated-sources)
+  (uiop:run-program
+   (list zig <span style="color: #b8bb26; font-style: italic;">"build-lib"</span> <span style="color: #b8bb26; font-style: italic;">"-OReleaseFast"</span>
+         <span style="color: #b8bb26; font-style: italic;">"--dep"</span> <span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>
+         <span style="color: #b8bb26; font-style: italic;">"-Mroot=src/cft-code/generated_abi.zig"</span>
+         <span style="color: #b8bb26; font-style: italic;">"-Mtensor-code=src/tensor-code/tensor-code.zig"</span>
+         <span style="color: #b8bb26; font-style: italic;">"-lc"</span> <span style="color: #b8bb26; font-style: italic;">"--name"</span> <span style="color: #b8bb26; font-style: italic;">"string_code_cft_generated"</span>
+         <span style="color: #b8bb26; font-style: italic;">"-dynamic"</span> <span style="color: #b8bb26; font-style: italic;">"--global-cache-dir"</span> global-cache-dir
+         <span style="color: #b8bb26; font-style: italic;">"-femit-bin"</span> library-path)
+   <span style="color: #fe8019; font-weight: bold;">:output</span> *standard-output*
+   <span style="color: #fe8019; font-weight: bold;">:error-output</span> *error-output*)
+  library-path)
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

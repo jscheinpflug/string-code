@@ -188,12 +188,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -249,6 +256,22 @@
   <dd>BasisHandle names a generated invariant basis.</dd>
   <dt><a href="/notes/tensor-code/tensor-code.html#InvariantHandle"><code>InvariantHandle = coupling.InvariantHandle</code></a></dt>
   <dd>InvariantHandle names one invariant inside a basis.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#BasisAudit"><code>BasisAudit = coupling.BasisAudit</code></a></dt>
+  <dd>BasisAudit stores compact evidence for one generated path basis.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#FormulaCoverageAudit"><code>FormulaCoverageAudit = context.FormulaCoverageAudit</code></a></dt>
+  <dd>FormulaCoverageAudit stores formula-readiness counters for a generated basis.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProjectorDescriptor"><code>ProjectorDescriptor = projector.ProjectorDescriptor</code></a></dt>
+  <dd>ProjectorDescriptor exposes read-only metadata for a projector id.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProjectorRole"><code>ProjectorRole = projector.ProjectorRole</code></a></dt>
+  <dd>ProjectorRole records what mathematical object a projector selects.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProductChannelKey"><code>ProductChannelKey = projector.ProductChannelKey</code></a></dt>
+  <dd>ProductChannelKey identifies one target channel inside a binary product.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProjectorDerivation"><code>ProjectorDerivation = projector.ProjectorDerivation</code></a></dt>
+  <dd>ProjectorDerivation stores the construction route and expansion state.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProjectorFormulaKind"><code>ProjectorFormulaKind = projector.ProjectorFormulaKind</code></a></dt>
+  <dd>ProjectorFormulaKind records the executable local formula route.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ProjectorFormulaAudit"><code>ProjectorFormulaAudit = projector.ProjectorFormulaAudit</code></a></dt>
+  <dd>ProjectorFormulaAudit records symbolic checks passed by a formula route.</dd>
   <dt><a href="/notes/tensor-code/tensor-code.html#Context"><code>Context = context.Context</code></a></dt>
   <dd>Context is an opaque handle to tensor-code stores and caches.</dd>
   <dt><a href="/notes/tensor-code/tensor-code.html#ContextOptions"><code>ContextOptions = context.ContextOptions</code></a></dt>
@@ -275,8 +298,100 @@
   <dd>SymbolicTerm stores one streamed coefficient times symbolic atoms.</dd>
   <dt><a href="/notes/tensor-code/tensor-code.html#SymbolicAtom"><code>SymbolicAtom = rendering.SymbolicAtom</code></a></dt>
   <dd>SymbolicAtom stores one symbolic invariant contraction atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#SymbolicAtomTag"><code>SymbolicAtomTag = rendering.SymbolicAtomTag</code></a></dt>
+  <dd>SymbolicAtomTag names one symbolic atom variant.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#AtomLoweringAudit"><code>AtomLoweringAudit = rendering.AtomLoweringAudit</code></a></dt>
+  <dd>AtomLoweringAudit records how far streamed atoms have been lowered.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#AtomLoweringAuditSink"><code>AtomLoweringAuditSink = rendering.AtomLoweringAuditSink</code></a></dt>
+  <dd>AtomLoweringAuditSink accumulates atom-lowering counters from terms.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaMatrix"><code>GammaMatrix = rendering.GammaMatrix</code></a></dt>
+  <dd>GammaMatrix stores one explicit spinor-vector Clifford atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaForm"><code>GammaForm = rendering.GammaForm</code></a></dt>
+  <dd>GammaForm stores one explicit spinor bilinear coupled to a form irrep.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaAction"><code>GammaAction = rendering.GammaAction</code></a></dt>
+  <dd>GammaAction stores an antisymmetric gamma form acting on a spinor.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProduct"><code>CliffordProduct = rendering.CliffordProduct</code></a></dt>
+  <dd>CliffordProduct stores one reduced gamma-product term.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CartanProduct"><code>CartanProduct = rendering.CartanProduct</code></a></dt>
+  <dd>CartanProduct stores a compact highest-weight product projection.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#TensorSpinorProjection"><code>TensorSpinorProjection = rendering.TensorSpinorProjection</code></a></dt>
+  <dd>TensorSpinorProjection stores a compact form-valued spinor-tower channel.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#TensorFormProjection"><code>TensorFormProjection = rendering.TensorFormProjection</code></a></dt>
+  <dd>TensorFormProjection stores a compact tensor-spinor terminal channel.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaTrace"><code>GammaTrace = rendering.GammaTrace</code></a></dt>
+  <dd>GammaTrace stores the gamma-trace part of a vector-spinor projector.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#SpinorPair"><code>SpinorPair = rendering.SpinorPair</code></a></dt>
+  <dd>SpinorPair stores one explicit invariant spinor bilinear atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#VectorSpinorIdentity"><code>VectorSpinorIdentity = rendering.VectorSpinorIdentity</code></a></dt>
+  <dd>VectorSpinorIdentity stores the identity on a vector-spinor slot.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#StructureConstant"><code>StructureConstant = rendering.StructureConstant</code></a></dt>
+  <dd>StructureConstant stores one backend-specific invariant tensor atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#RationalValue"><code>RationalValue = rendering.RationalValue</code></a></dt>
+  <dd>RationalValue is a decoded small exact rational coefficient.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaBlock"><code>GammaBlock = rendering.GammaBlock</code></a></dt>
+  <dd>GammaBlock stores one internal antisymmetrized gamma factor.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductTerm"><code>CliffordProductTerm = rendering.CliffordProductTerm</code></a></dt>
+  <dd>CliffordProductTerm stores one grade term in a gamma-block product.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductExpansion"><code>CliffordProductExpansion = rendering.CliffordProductExpansion</code></a></dt>
+  <dd>CliffordProductExpansion stores the small finite grade expansion.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordVectorSource"><code>CliffordVectorSource = rendering.CliffordVectorSource</code></a></dt>
+  <dd>CliffordVectorSource identifies which input gamma block owns a vector.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordMetricContraction"><code>CliffordMetricContraction = rendering.CliffordMetricContraction</code></a></dt>
+  <dd>CliffordMetricContraction stores one metric between input gamma slots.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordFreeVector"><code>CliffordFreeVector = rendering.CliffordFreeVector</code></a></dt>
+  <dd>CliffordFreeVector stores one uncontracted vector slot in output order.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductMetricFactor"><code>CliffordProductMetricFactor = rendering.CliffordProductMetricFactor</code></a></dt>
+  <dd>CliffordProductMetricFactor names one metric in a reduced gamma product.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductFreeVectorFactor"><code>CliffordProductFreeVectorFactor = rendering.CliffordProductFreeVectorFactor</code></a></dt>
+  <dd>CliffordProductFreeVectorFactor maps one input slot into the output gamma.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductFactor"><code>CliffordProductFactor = rendering.CliffordProductFactor</code></a></dt>
+  <dd>CliffordProductFactor stores one explicit factor of a reduced product atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductFactorRecord"><code>CliffordProductFactorRecord = rendering.CliffordProductFactorRecord</code></a></dt>
+  <dd>CliffordProductFactorRecord stores one streamed factor with product context.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductFactorScan"><code>CliffordProductFactorScan = rendering.CliffordProductFactorScan</code></a></dt>
+  <dd>CliffordProductFactorScan summarizes and validates lowered reducer factors.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordProductFactorAuditSink"><code>CliffordProductFactorAuditSink = rendering.CliffordProductFactorAuditSink</code></a></dt>
+  <dd>CliffordProductFactorAuditSink accumulates factor scans from rendered terms.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#CliffordContractionPlan"><code>CliffordContractionPlan = rendering.CliffordContractionPlan</code></a></dt>
+  <dd>CliffordContractionPlan stores metric pairs and residual gamma slots.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#GammaChirality"><code>GammaChirality = rendering.GammaChirality</code></a></dt>
+  <dd>GammaChirality classifies chiral spinor conventions for gamma renderers.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#NamedOperatorKind"><code>NamedOperatorKind = rendering.NamedOperatorKind</code></a></dt>
+  <dd>NamedOperatorKind classifies compact backend-rendered operators.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#FilterDecision"><code>FilterDecision = rendering.FilterDecision</code></a></dt>
+  <dd>FilterDecision is the tri-state result for streamed expansion filters.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ExpansionFilter"><code>ExpansionFilter = rendering.ExpansionFilter</code></a></dt>
+  <dd>ExpansionFilter decides whether streamed terms should continue or emit.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#ExpansionAudit"><code>ExpansionAudit = rendering.ExpansionAudit</code></a></dt>
+  <dd>ExpansionAudit stores compact counters from streamed expansion.</dd>
   <dt><a href="/notes/tensor-code/tensor-code.html#TensorExprId"><code>TensorExprId = kernel.TensorExprId</code></a></dt>
   <dd>TensorExprId names a tensor expression stored by tensor-code.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#gammaChiralityTag"><code>gammaChiralityTag = rendering.gammaChiralityTag</code></a></dt>
+  <dd>gammaChiralityTag returns a compact chirality tag for a spinor Dynkin label.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#orthogonalDimension"><code>orthogonalDimension = rendering.orthogonalDimension</code></a></dt>
+  <dd>orthogonalDimension returns the vector dimension for B/D algebras.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#gammaDualityValid"><code>gammaDualityValid = rendering.gammaDualityValid</code></a></dt>
+  <dd>gammaDualityValid checks whether a gamma block duality tag matches its grade.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#gammaProductExpansion"><code>gammaProductExpansion = rendering.gammaProductExpansion</code></a></dt>
+  <dd>gammaProductExpansion returns the grade expansion of two gamma blocks.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#gammaProductContractionPlan"><code>gammaProductContractionPlan = rendering.gammaProductContractionPlan</code></a></dt>
+  <dd>gammaProductContractionPlan returns metrics and free slots for one product term.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#cliffordProductTerm"><code>cliffordProductTerm = rendering.cliffordProductTerm</code></a></dt>
+  <dd>cliffordProductTerm decodes the grade term stored in a streamed atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#cliffordProductContractionPlan"><code>cliffordProductContractionPlan = rendering.cliffordProductContractionPlan</code></a></dt>
+  <dd>cliffordProductContractionPlan reconstructs the metric/free-slot plan.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#cliffordProductFactorCount"><code>cliffordProductFactorCount = rendering.cliffordProductFactorCount</code></a></dt>
+  <dd>cliffordProductFactorCount returns the number of explicit factors in an atom.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#cliffordProductFactorAt"><code>cliffordProductFactorAt = rendering.cliffordProductFactorAt</code></a></dt>
+  <dd>cliffordProductFactorAt returns one metric or residual vector factor.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#streamCliffordProductFactors"><code>streamCliffordProductFactors = rendering.streamCliffordProductFactors</code></a></dt>
+  <dd>streamCliffordProductFactors emits factors from compact or lowered reducers.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#scanCliffordProductFactors"><code>scanCliffordProductFactors = rendering.scanCliffordProductFactors</code></a></dt>
+  <dd>scanCliffordProductFactors validates and counts compact or lowered factors.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#appendLoweredCliffordProductAtoms"><code>appendLoweredCliffordProductAtoms = rendering.appendLoweredCliffordProductAtoms</code></a></dt>
+  <dd>appendLoweredCliffordProductAtoms replaces reducer atoms with factor atoms.</dd>
+  <dt><a href="/notes/tensor-code/tensor-code.html#rationalValue"><code>rationalValue = rendering.rationalValue</code></a></dt>
+  <dd>rationalValue decodes an exact rational coefficient.</dd>
 </dl>
   </div>
 </div>

@@ -1,0 +1,834 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM API Requirements</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM API Requirements</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgc32aeeb">Existing Surface We Can Reuse</a></li>
+<li><a href="#orgc1f7c21">Immediate Gaps</a></li>
+<li><a href="#org493f33e">Required Public NLSM API</a></li>
+<li><a href="#orgb7db2dd">Geometry API</a></li>
+<li><a href="#org5c53cc7">Scheme API</a></li>
+<li><a href="#orgbf953e7">RNC Vertex API</a></li>
+<li><a href="#orgbf8bb33">NLSM Diagram/Contraction API</a></li>
+<li><a href="#org41a1920">Counterterm API</a></li>
+<li><a href="#orge345277">Geometry Tensor Canonicalization API</a></li>
+<li><a href="#org2cfbbe7">Beta Function API</a></li>
+<li><a href="#org87c6d92">Minimum Implementation Order</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note records the exact API surface required by the <a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a>
+pipeline after inspecting the current CFT and tensor modules.
+</p>
+<div id="outline-container-orgc32aeeb" class="outline-2">
+<h2 id="orgc32aeeb">Existing Surface We Can Reuse</h2>
+<div class="outline-text-2" id="text-orgc32aeeb">
+<p>
+The usable runtime boundary is <a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a> <code>Call.MultiOp</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">MultiOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelStore</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorInsertion</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory.Id.LabelSpan</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">normal_order_group</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelValue</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">integer</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalLabel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">tensor.TensorExprId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+</pre>
+</div>
+
+<p>
+The current <a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a> already gives preset authors:
+</p>
+
+<ul class="org-ul">
+<li>opaque local builder tokens;</li>
+<li>coordinate, index, momentum, profile, target-point, profile-coefficient,
+tensor-projector, boundary-stack handles;</li>
+<li>profile presentations <code>position_space</code>, <code>fourier</code>, and <code>polynomial_rnc</code>;</li>
+<li>Wick rule terms containing scalar, coordinate, tensor, action, and residual
+factors;</li>
+<li>named Green kernels and differentiated coordinate kernels;</li>
+<li>zero-mode profile factors for Fourier, polynomial/RNC, and residual
+Gaussian presentations;</li>
+<li>product and boundary config merging for ordinary CFT/BCFT factors.</li>
+</ul>
+
+<p>
+For NLSM, this means the free fluctuation correlator should not be a new
+generic correlator.  The RNC path should lower vertices to explicit field
+occurrences with attached tensor/coefficient data.  The elementary Wick pair
+is then \(\xi\xi\), \(\psi\psi\), or the corresponding free fluctuation pair,
+and the pair operation consumes both occurrences.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc1f7c21" class="outline-2">
+<h2 id="orgc1f7c21">Immediate Gaps</h2>
+<div class="outline-text-2" id="text-orgc1f7c21">
+<p>
+The current API is insufficient in four exact places.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Tensor factors are flat-space oriented.
+</p>
+
+<p>
+Current Wick tensor factors cover metric, momentum-index, momentum-pair,
+and projector variants.  RNC and \(R^4\) need curvature tensors, covariant
+derivatives, Kahler projections, holomorphic/antiholomorphic index
+families, epsilon tensors, and field-redefinition markers.
+</p>
+
+<p>
+CY3/K3 calculations also need target-topology data that is not a local
+tensor factor: Hodge numbers, harmonic-form roles, intersection numbers,
+Chern-class pairings, and volume coordinates.  This data is consumed by
+projection and large-volume fitting after local tensor canonicalization.
+</p></li>
+
+<li><p>
+The coefficient layer has no local counterterm or pole object.
+</p>
+
+<p>
+<code>Coefficient</code> can carry coordinate kernels, but the dimensional
+regularization step needs a stream of local pole terms:
+loop-integral family, \(1/\epsilon^n\) pole, local derivative order, and
+target tensor expression.
+</p></li>
+
+<li><p>
+Tensor-code is representation-theory oriented, not differential geometry
+oriented.
+</p>
+
+<p>
+It can produce invariant bases for Lie-algebra representations, but it does
+not canonicalize Riemann tensors, Bianchi identities, Kahler restrictions,
+covariant-derivative commutators, integration by parts, or field
+redefinitions.
+</p></li>
+
+<li><p>
+The current public preset root has no NLSM namespace.
+</p>
+
+<p>
+<code>cft-code.zig</code> exports <code>FreeBoson</code>, <code>Bc</code>, <code>FreeFermion</code>, <code>EtaXi</code>,
+<code>product</code>, and <code>boundary</code>.  NLSM should be exported as a new compact root
+namespace rather than as public shared-runtime internals.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org493f33e" class="outline-2">
+<h2 id="org493f33e">Required Public NLSM API</h2>
+<div class="outline-text-2" id="text-org493f33e">
+<p>
+The public root should follow the existing preset style:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NLSM</span> = preset_impl.NLSM;
+</pre>
+</div>
+
+<p>
+The public constructors should be minimal:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NLSM</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// bosonic builds the regulated bosonic G,B,Phi sigma-model preset.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic</span> = nlsm.bosonic;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// supersymmetric builds N=(1,1), N=(2,2), or N=(4,4) sigma-model data.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">supersymmetric</span> = nlsm.supersymmetric;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// geometry groups target-geometry descriptor constructors.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = nlsm_geometry;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// scheme groups regulator and subtraction-scheme constructors.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = nlsm_scheme;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// counterterms exposes local pole extraction and beta-function assembly.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = nlsm_counterterms;
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb7db2dd" class="outline-2">
+<h2 id="orgb7db2dd">Geometry API</h2>
+<div class="outline-text-2" id="text-orgb7db2dd">
+<p>
+Geometry must be data, not behavior hidden inside the correlator.  The NLSM
+vertex generator receives only a compact geometry descriptor.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TargetGeometry</span> = <span style="color: #fb4934; font-weight: bold;">opaque</span> {};
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryHandle</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TargetIndex</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtom</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    real_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+    product,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holonomy</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    generic,
+    su,
+    sp,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">real_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">complex_dimension</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holonomy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Holonomy</span> = .generic,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">topology</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TopologyHandle</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TopologyHandle</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">HodgeDiamondId</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">HarmonicFormId</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">HodgeNumber</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">p</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">q</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">HarmonicForm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">degree</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge_p</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge_q</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        kahler_modulus,
+        complex_structure_modulus,
+        holomorphic_volume,
+        hyperkahler_triplet,
+        other,
+    },
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IntersectionNumber</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">forms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">HarmonicFormId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VolumeModel</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    none,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">cubic_kahler</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">kahler_forms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">HarmonicFormId</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">overall_volume</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> },
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LargeVolumeFitRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">observables</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">variables</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">HarmonicFormId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metric_samples</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NumericalMetricSampleId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NumericalMetricSampleId</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">realRiemannian</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kahler</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">complex_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">calabiYau</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">complex_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">k3</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">quintic</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">product</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>;
+</pre>
+</div>
+
+<p>
+Each generated geometry type should expose stable tensor atoms:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">metric</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">inverse_metric</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">riemann</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">covariant_derivative_riemann</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">h_flux</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dilaton_derivative</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kahler_form</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">complex_structure</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic_volume_form</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>;
+};
+</pre>
+</div>
+
+<p>
+The essential point is that \(R^4\), CY3, and K3 all differ at the tensor
+quotient layer.  They should not require different correlator code.
+</p>
+
+<p>
+For compact targets they also differ at the topology/projection layer.  The
+local counterterm kernel should not know Hodge diamonds or intersection
+numbers.  Those data are attached to the target descriptor and used by the
+large-volume fit layer.
+</p>
+</div>
+</div>
+<div id="outline-container-org5c53cc7" class="outline-2">
+<h2 id="org5c53cc7">Scheme API</h2>
+<div class="outline-text-2" id="text-org5c53cc7">
+<p>
+The regulator must model the stringbook scheme explicitly <a href="#ref-1" class="cite">[1]</a>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DimRegMS</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">epsilon_symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">mu_symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">base</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 2,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">epsilon_sign</span>: <span style="color: #fb4934; font-weight: bold;">enum</span> { minus, plus } = .minus,
+    } = .{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">subtract</span>: <span style="color: #fb4934; font-weight: bold;">enum</span> { minimal, modified_minimal } = .minimal,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">b_field_epsilon</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BFieldEpsilonScheme</span> = .none,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BFieldEpsilonScheme</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    none,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">frame_epsilon</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">f_epsilon_symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> },
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">stringbookMS</span>() DimRegMS;
+</pre>
+</div>
+
+<p>
+This descriptor is consumed by loop-pole extraction and beta assembly.  Wick
+rules should only emit named Green-kernel factors; they should not decide how
+dimensional regularization extracts poles.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbf953e7" class="outline-2">
+<h2 id="orgbf953e7">RNC Vertex API</h2>
+<div class="outline-text-2" id="text-orgbf953e7">
+<p>
+RNC expansion should be a streaming vertex generator.  It should never build a
+full expanded action as one symbolic expression.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_loop_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_b_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_dilaton</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetModel</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetModel</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    bosonic,
+    n1_1,
+    n2_2,
+    n4_4,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexField</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetIndex</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetDerivatives</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    xi,
+    psi,
+    psit,
+    auxiliary,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetDerivatives</span> = <span style="color: #fb4934; font-weight: bold;">packed</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexTensor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">indices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetIndex</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">covariant_derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">beginVertex</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitField</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexField</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitTensor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexTensor</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">endVertex</span>() !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamRncVertices</span>(
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Geometry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">nlsm_scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncRequest</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+</pre>
+</div>
+
+<p>
+This API gives the later diagram enumerator compact vertices with exactly the
+data it needs: fields to contract and target tensors to keep.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbf8bb33" class="outline-2">
+<h2 id="orgbf8bb33">NLSM Diagram/Contraction API</h2>
+<div class="outline-text-2" id="text-orgbf8bb33">
+<p>
+The RNC calculation should not represent one interaction vertex as one
+composite local operator and then ask Wick contractions to return residual
+remainders.  The vertex iterator already knows the fields inside a vertex, so
+the diagram engine should track field occurrences directly.  A primitive pair
+contraction consumes both endpoints and emits only coefficient, coordinate,
+and tensor factors.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexOccurrence</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexField</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContractionPair</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexOccurrence</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexOccurrence</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContractionTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactorId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coefficient.CoordinateFactor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryTensorExprId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitContraction</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">nlsm_scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContractionPair</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+</pre>
+</div>
+
+<p>
+Uncontracted occurrences at the end of a vacuum counterterm branch are not
+Wick residuals; they are an invalid branch unless the request explicitly asks
+for an insertion or external composite operator.  Background tensors attached
+to vertices are carried by the branch accumulator, not by residual local
+operators.
+</p>
+
+<p>
+The existing <code>wickCorrelator</code> residual API remains relevant to current
+free-boson profile/exponential presets.  It is not a prerequisite for the
+RNC/NLSM \(R^4\) pipeline.
+</p>
+</div>
+</div>
+<div id="outline-container-org41a1920" class="outline-2">
+<h2 id="org41a1920">Counterterm API</h2>
+<div class="outline-text-2" id="text-org41a1920">
+<p>
+Counterterm extraction sits after correlator streaming.  It consumes branches,
+applies scheme-dependent local pole identities, and emits compact local tensor
+terms.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CountertermRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">loop_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pole_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorCanonicalization</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalCountertermKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    metric_beta,
+    b_field_beta,
+    dilaton_beta,
+    kahler_potential_beta,
+    scalar_effective_action,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pole_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">loop_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactorId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryTensorExprId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamPoleTerms</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">nlsm_scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branches</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CountertermRequest</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+</pre>
+</div>
+
+<p>
+This must be stream-first.  The four-loop \(N=(2,2)\) calculation will be too
+large to materialize as a complete symbolic expression.
+</p>
+</div>
+</div>
+<div id="outline-container-orge345277" class="outline-2">
+<h2 id="orge345277">Geometry Tensor Canonicalization API</h2>
+<div class="outline-text-2" id="text-orge345277">
+<p>
+Do not route Riemann canonicalization through the existing Lie-algebra
+invariant-basis API.  Add a geometry tensor store with a small public
+boundary:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryTensorExprId</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>;
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorCanonicalization</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">presentation</span>: <span style="color: #fb4934; font-weight: bold;">enum</span> {
+        real_riemannian,
+        kahler,
+        hyperkahler,
+        product,
+    },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quotient</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorRelationSet</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_redefinitions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldRedefinitionPolicy</span> = .track,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorRelationSet</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    metric_compatibility,
+    riemann_symmetry,
+    first_bianchi,
+    second_bianchi,
+    kahler_type,
+    kahler_bianchi,
+    hyperkahler_identities,
+    integration_by_parts,
+    equations_of_motion,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldRedefinitionPolicy</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    keep_all,
+    quotient,
+    track,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">canonicalizeGeometryTensor</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">expr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryTensorExprId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorCanonicalization</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+</pre>
+</div>
+
+<p>
+The existing <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a> remains useful for spinor, gamma-matrix, and invariant
+tensor structures.  Differential-geometry tensors need their own
+canonicalizer.
+</p>
+</div>
+</div>
+<div id="outline-container-org2cfbbe7" class="outline-2">
+<h2 id="org2cfbbe7">Beta Function API</h2>
+<div class="outline-text-2" id="text-org2cfbbe7">
+<p>
+The beta assembly should be deterministic post-processing over pole terms:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">nlsm_scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_hatted_weyl_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_frame</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldFrame</span> = .minimal_subtraction,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldFrame</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    minimal_subtraction,
+    string_frame,
+    einstein_frame,
+    amplitude_matched,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryTensorExprId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_redefinition_class</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assembleBetaFunctions</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">poles</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BetaRequest</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+</pre>
+</div>
+
+<p>
+This API encodes the stringbook rule <a href="#ref-1" class="cite">[1]</a> that the MS beta
+function is determined by the \(1/\epsilon\) counterterm, while hatted Weyl
+coefficients include total-derivative and dilaton terms.
+</p>
+</div>
+</div>
+<div id="outline-container-org87c6d92" class="outline-2">
+<h2 id="org87c6d92">Minimum Implementation Order</h2>
+<div class="outline-text-2" id="text-org87c6d92">
+<ol class="org-ol">
+<li>Add <code>NLSM</code> root export and empty constructor namespace.</li>
+<li>Add geometry descriptors and tensor atoms for real, Kahler, CY3, and K3
+targets.</li>
+<li>Add <code>streamRncVertices</code> for bosonic \(G\)-only vertices through quartic
+order in \(\xi\).</li>
+<li>Add a counterterm sink that can recognize one-loop poles and reproduce the
+stringbook \(R_{\mu\nu}\) beta function <a href="#ref-1" class="cite">[1]</a>.</li>
+<li>Add the contraction-only RNC diagram enumerator over vertex occurrences.</li>
+<li>Add supersymmetric field kinds and reproduce lower-loop cancellations.</li>
+<li>Add geometry tensor canonicalization for Kahler and hyperkahler quotients.</li>
+<li>Run the four-loop \(N=(2,2)\) Ricci-flat Kahler target calculation and
+match the \(R^4\) coefficient modulo field redefinitions.</li>
+</ol>
+
+<div class="references"><h2>References</h2><ol>
+<li id="ref-1">Yin, Xi (2026). <em>String Theory</em>. <a href="https://github.com/xiyin137/stringbook">github.com/xiyin137/stringbook</a></li>
+</ol></div>
+</div>
+</div>
+</div>
+</body>
+</html>

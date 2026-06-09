@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 09:51 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tensor Coupling</title>
@@ -190,12 +190,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -260,6 +267,10 @@ workflow for invariant tensor structures.
 <a id="BasisPolicy"></a>
 <a id="InvariantBasisRequest"></a>
 <a id="TensorExpansionTerm"></a>
+<a id="CouplingStep"></a>
+<a id="CouplingPath"></a>
+<a id="CouplingPathSpan"></a>
+<a id="BasisAudit"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="org2a86fc9"><span style="color: #e0d3b9; font-style: italic;">/// TargetIrrep selects the target representation, usually the singlet.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TargetIrrep</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
@@ -295,6 +306,39 @@ workflow for invariant tensor structures.
     <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InvariantHandle</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
 };
+
+<span style="color: #e0d3b9; font-style: italic;">/// CouplingStep stores one local channel choice in the canonical tree.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingStep</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">projector.ProjectorId</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CouplingPath stores a flat span of local coupling steps.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingPath</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">step_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">step_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CouplingPathSpan stores paths belonging to one basis handle.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingPathSpan</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BasisAudit stores compact evidence for one generated path basis.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisAudit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">path_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">stored_path_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">step_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #e0d3b9; font-style: italic;">/// distinct_projector_count counts local coupling-step projectors.
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">distinct_projector_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_projector_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">total_projector_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_path_step_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+};
 </pre>
 </div>
 
@@ -310,6 +354,11 @@ is that caller-owned slices can disappear after registration.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Store</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">requests</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(InvariantBasisRequest) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">path_counts</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis_audits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(BasisAudit) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis_paths</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(CouplingPathSpan) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">paths</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(CouplingPath) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">steps</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(CouplingStep) = .empty,
 
     <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty coupling store.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Store {
@@ -321,71 +370,130 @@ is that caller-owned slices can disappear after registration.
         <span style="color: #fb4934; font-weight: bold;">for</span> (self.requests.items) |request| {
             freeRequest(self.allocator, request);
         }
+        self.steps.deinit(self.allocator);
+        self.paths.deinit(self.allocator);
+        self.basis_paths.deinit(self.allocator);
+        self.basis_audits.deinit(self.allocator);
+        self.path_counts.deinit(self.allocator);
         self.requests.deinit(self.allocator);
         self.* = Store.init(self.allocator);
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// internBasisRequest returns a stable basis handle for a request.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internBasisRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InvariantBasisRequest</span>) !BasisHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.internBasisRequestWithCount(request, 0);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internBasisRequestWithCount stores a basis request and its path-count audit.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internBasisRequestWithCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InvariantBasisRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">path_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) !BasisHandle {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.internBasisRequestWithPaths(request, path_count, &amp;.{}, &amp;.{}, 0);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// internBasisRequestWithPaths stores a basis request and compact path records.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internBasisRequestWithPaths</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InvariantBasisRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">path_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">paths</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingPath</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">steps</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingStep</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_projector_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !BasisHandle {
         <span style="color: #fb4934; font-weight: bold;">for</span> (self.requests.items, 0..) |stored, index| {
             <span style="color: #fb4934; font-weight: bold;">if</span> (requestEql(stored, request)) {
+                self.path_counts.items[index] = path_count;
+                self.basis_audits.items[index] = <span style="color: #fb4934; font-weight: bold;">try</span> makeBasisAudit(self.allocator, path_count, paths, steps, boundary_projector_count);
                 <span style="color: #fb4934; font-weight: bold;">return</span> BasisHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index));
             }
         }
 
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = <span style="color: #fb4934; font-weight: bold;">try</span> makeBasisAudit(self.allocator, path_count, paths, steps, boundary_projector_count);
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">owned</span> = <span style="color: #fb4934; font-weight: bold;">try</span> cloneRequest(self.allocator, request);
         <span style="color: #fb4934; font-weight: bold;">errdefer</span> freeRequest(self.allocator, owned);
         <span style="color: #fb4934; font-weight: bold;">try</span> self.requests.append(self.allocator, owned);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.requests.pop();
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.path_counts.append(self.allocator, path_count);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.path_counts.pop();
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.basis_audits.append(self.allocator, audit);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.basis_audits.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">step_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.steps.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.steps.appendSlice(self.allocator, steps);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.steps.shrinkRetainingCapacity(step_offset);
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">path_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.paths.items.len);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (paths) |path| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.paths.append(self.allocator, .{
+                .step_offset = step_offset + path.step_offset,
+                .step_len = path.step_len,
+            });
+        }
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.paths.shrinkRetainingCapacity(path_offset);
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.basis_paths.append(self.allocator, .{
+            .offset = path_offset,
+            .len = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(paths.len),
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.basis_paths.pop();
         <span style="color: #fb4934; font-weight: bold;">return</span> BasisHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.requests.items.len - 1));
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// basisPathCount returns the audited path count for a basis handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basisPathCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisHandle</span>) ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.path_counts.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.path_counts.items[index];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// basisAudit returns compact generation counters for a basis handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basisAudit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisHandle</span>) ?BasisAudit {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.basis_audits.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.basis_audits.items[index];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// basisRequest returns the stored request for a basis handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basisRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisHandle</span>) ?InvariantBasisRequest {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.requests.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.requests.items[index];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// basisPathSpan returns the stored path span for a basis handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basisPathSpan</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisHandle</span>) ?CouplingPathSpan {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.basis_paths.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.basis_paths.items[index];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// basisPaths returns the compact paths for a basis handle.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">basisPaths</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisHandle</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingPath</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">span</span> = self.basisPathSpan(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(span.offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + span.len;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.paths.items[start..end];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// pathSteps returns the local steps for one compact path.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pathSteps</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">path</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingPath</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingStep</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(path.step_offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + path.step_len;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.steps.items[start..end];
     }
 };
 </pre>
 </div>
 
 <p>
-Internal coupling records use offsets and lengths into flat stores.  This is
-the shape the future dynamic-programming solver should fill without allocating
-large symbolic expressions.
+<i>/</i> BasisRecord stores one generated invariant basis.
+const BasisRecord = struct {
+    request: InvariantBasisRequest,
+    path<sub>offset</sub>: u32,
+    path<sub>len</sub>: u32,
+};
 </p>
 
-<div class="org-src-container">
-<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// CouplingInput names either an external leg or a previous coupling node.
-</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingInput</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">external</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">realization.ExternalLegHandle</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">node</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+<p>
+<i>/</i> ReachabilityRecord stores pruning data for one coupling tree node.
+const ReachabilityRecord = struct {
+    node: u32,
+    irrep<sub>offset</sub>: u32,
+    irrep<sub>len</sub>: u32,
 };
-
-<span style="color: #e0d3b9; font-style: italic;">/// CouplingNodeRecord stores one binary coupling step.
-</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingNodeRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingInput</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingInput</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.ChannelHandle</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">projector.ProjectorId</span>,
-};
-
-<span style="color: #e0d3b9; font-style: italic;">/// CouplingPathRecord stores a compact invariant basis element.
-</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CouplingPathRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">external_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">external_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">node_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">node_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
-};
-
-<span style="color: #e0d3b9; font-style: italic;">/// BasisRecord stores one generated invariant basis.
-</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BasisRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InvariantBasisRequest</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">path_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">path_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-};
-
-<span style="color: #e0d3b9; font-style: italic;">/// ReachabilityRecord stores pruning data for one coupling tree node.
-</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReachabilityRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">node</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
-};
-</pre>
-</div>
+#+end<sub>src</sub>
+</p>
 
 <p>
 Request equality is structural.  This makes repeated high-level calls cheap and
@@ -470,6 +578,29 @@ deterministic before the expensive solver exists.
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">optionalStringEql</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
     <span style="color: #fb4934; font-weight: bold;">if</span> (left == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">or</span> right == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span> left == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">and</span> right == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
     <span style="color: #fb4934; font-weight: bold;">return</span> std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, left.?, right.?);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">makeBasisAudit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">path_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">paths</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingPath</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">steps</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CouplingStep</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">boundary_projector_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !BasisAudit {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">projectors</span> = std.AutoHashMap(projector.ProjectorId, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>).init(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> projectors.deinit();
+    <span style="color: #fb4934; font-weight: bold;">for</span> (steps) |step| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> projectors.put(step.projector, {});
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">max_path_step_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (paths) |path| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (path.step_len &gt; max_path_step_len) max_path_step_len = path.step_len;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .path_count = path_count,
+        .stored_path_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(paths.len),
+        .step_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(steps.len),
+        .distinct_projector_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(projectors.count()),
+        .boundary_projector_count = boundary_projector_count,
+        .total_projector_count = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(projectors.count())) + boundary_projector_count,
+        .max_path_step_len = max_path_step_len,
+    };
 }
 </pre>
 </div>
@@ -589,7 +720,7 @@ shape.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-07</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

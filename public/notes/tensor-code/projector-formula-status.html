@@ -1,0 +1,1869 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projector Formula Status</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Projector Formula Status</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgb45e3ab">Status</a></li>
+<li><a href="#org90e6a76">Achieved</a></li>
+<li><a href="#org6ea9836">Not Achieved</a></li>
+<li><a href="#org8666868">Main Bottlenecks</a>
+<ul>
+<li><a href="#orga487200">Evaluator Boundary</a></li>
+<li><a href="#org95779f4">Component Data Model</a></li>
+<li><a href="#org331ca17">Atom Semantics</a></li>
+<li><a href="#org7cd6a2b">Formula Registry</a></li>
+<li><a href="#orge8d46ed">General ADE Coverage</a></li>
+<li><a href="#org3226da9">Performance</a></li>
+</ul>
+</li>
+<li><a href="#org5cdae39">Immediate Implementation Plan</a></li>
+<li><a href="#org7f624f2">Pseudocode</a>
+<ul>
+<li><a href="#org09d8276">Basis-Aware Evaluator</a></li>
+<li><a href="#orga1475ae">Streaming Component Evaluation</a></li>
+<li><a href="#org4c9f8e1">Prefix Filter</a></li>
+<li><a href="#orgd0b426a">Local Projector Program</a></li>
+<li><a href="#org2773163">Residual Projector Solve</a></li>
+</ul>
+</li>
+<li><a href="#orga47c785">AGENTS Audit And Handoff</a>
+<ul>
+<li><a href="#org9291183">What The Next Agent Must Preserve</a></li>
+<li><a href="#org140943f">Key Information Learned</a></li>
+<li><a href="#org5979bc0">Current Non-Opaque Output Shape</a></li>
+<li><a href="#org4da97c3">Actual \(16^{12}\) Output Snapshot</a></li>
+<li><a href="#org1c2a023">Projectors Still Needing Gamma/Metric/Delta Lowering</a></li>
+<li><a href="#org5fbad45">Doability</a></li>
+<li><a href="#org8a1ebd5">Rendering Audit</a></li>
+<li><a href="#org7bfa362">Next-Agent Work Order</a></li>
+<li><a href="#org9089b2b">What Not To Do Next</a></li>
+</ul>
+</li>
+<li><a href="#orgb68df43">Performance And Generalization</a></li>
+<li><a href="#org070df72">Current Verification</a>
+<ul>
+<li><a href="#org6b7db3e">Cache Notes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<p>
+This note records the current state of the explicit-projector goal for
+<a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>.  It should be read with the requirements in
+<a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a>, the streaming structures in
+<a href="/notes/tensor-code/rendering.html">Tensor Rendering</a>, the context boundary in
+<a href="/notes/tensor-code/context.html">Tensor Context</a>, the projector store in
+<a href="/notes/tensor-code/projector.html">Tensor Projector</a>, and the current generic backend in
+<a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a>.
+</p>
+<div id="outline-container-orgb45e3ab" class="outline-2">
+<h2 id="orgb45e3ab">Status</h2>
+<div class="outline-text-2" id="text-orgb45e3ab">
+<p>
+The goal is not complete.  The current implementation can store and stream a
+large Spin(10) invariant basis in a symbolic, lowered form, but it is not yet a
+fully evaluable component tensor system.  The remaining work is not cosmetic:
+there is still no component evaluator for the streamed atoms, and the general
+ADE projector construction is only partially present.
+</p>
+
+<p>
+The strongest completed milestone is that the Spin(10) stress case has moved
+past abstract path counting.  The context can enumerate the \(16^{12}\)
+singlet basis as compact coupling paths and can render every path through the
+current local formula registry without named projector placeholders.  The
+current tests assert the expected path count \(73744\), zero missing local
+formula steps for that basis, and a lowered Clifford-factor stream with no
+compact projector operators.
+</p>
+
+<p>
+Update 2026-06-08: the finite Clifford-exterior Gram solver described in
+<a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a> is now the
+active tensor-form/tensor-spinor lowering path for expanded rendering.  Compact
+projection atoms are still available as compact metadata outside
+<code>.expanded_terms</code>, but expanded streaming asks the structural program caches
+for term counts and raises typed unsupported errors instead of silently
+emitting compact placeholders.
+</p>
+
+<p>
+The solver now uses fixed candidate words, exact Gram contraction, pivot
+selection, inverse-Gram term streaming, structural program caches, and
+right-spinor chirality metadata for tensor-form terminal bilinears.  The
+previous hard Spin(10) terminal case
+<code>orthogonal_tensor_spinor_opposite_form_add_shift_terminal_channel</code> is solved
+as a structural gamma-map/adjoint pair plus carried-form deltas, not by a new
+family-specific closed form.
+</p>
+
+<p>
+The current verification pass completed:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig test src/tensor-code/projector-constructor.zig
+All 51 tests passed.
+
+zig test src/tensor-code/context.zig
+All 85 tests passed.
+
+zig test src/tensor-code/tensor-code.zig
+All 87 tests passed.
+</pre>
+</div>
+
+<p>
+Update 2026-06-07: a basis-aware symbolic evaluator entry point now exists:
+<code>Context.evaluateBasisInvariant(basis, invariant, options, sink)</code>.  It streams
+the same expanded, lowered formula path used by rendering, with Clifford
+products lowered to factor atoms, and returns an <code>EvaluationAudit</code>.  The old
+<code>evaluateInvariant(invariant, ...)</code> entry point remains unsupported because an
+<code>InvariantHandle</code> is only meaningful inside a basis.
+</p>
+
+<p>
+The current verification pass after that change completed:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig test src/tensor-code/rendering.zig
+All 4 tests passed.
+
+zig test src/tensor-code/tensor-code.zig
+All 43 tests passed.
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org90e6a76" class="outline-2">
+<h2 id="org90e6a76">Achieved</h2>
+<div class="outline-text-2" id="text-org90e6a76">
+<ul class="org-ul">
+<li>Compact invariant bases are stored as path records, not dense tensors.</li>
+<li>The Spin(10) \(16^{12}\) basis count is represented as \(73744\) stored
+coupling paths.</li>
+<li>Local coupling steps carry projector ids with derivation metadata.</li>
+<li>Expanded rendering fails with typed errors when a formula route is missing.</li>
+<li>Formula coverage audits distinguish local steps, boundary steps, expandable
+steps, missing steps, distinct projector ids, and the first missing
+projector.</li>
+<li>Boundary realization projectors exist for constrained realizations, including
+the gamma-traceless vector-spinor case \(144\subset 10\otimes16\).</li>
+<li>The \(144\) boundary formula is generated by <code>projector-constructor.zig</code> as
+the vector-spinor identity minus the gamma-trace projector with coefficient
+\(-1/N\), the rank-one Gram trace-subtraction form \(I - T G^{-1} T^*\).</li>
+<li>Spin(10) spinor and tensor-spinor local formula routes are broad enough for
+the current \(16^{12}\) path set.</li>
+<li>Compact Clifford-product atoms encode gamma-block reductions without
+expanding large products into memory.</li>
+<li>Lowered Clifford-product factors can be streamed as explicit metric and
+output-vector factor atoms.</li>
+<li>Lowered streams can be scanned and audited without retaining all emitted
+terms.</li>
+<li>A basis-aware evaluation stream can now consume one invariant through its
+owning basis and receive lowered symbolic terms without materializing the
+full expression.</li>
+<li>Tensor-form and tensor-spinor compact projection descriptors route through
+structural projector program caches for expanded rendering.  A zero structural
+term count becomes a typed unsupported error in <code>.expanded_terms</code> instead of
+a silent compact fallback.</li>
+<li>Structural projector programs enumerate primitive signatures from form
+profiles, tower powers, chirality, duality, and spinor presence metadata,
+then compute exact Gram matrices and stream inverse-Gram projector terms.</li>
+<li>Tensor-form terminal bilinears now carry right-spinor chirality in the
+compact rendering atom, constructor spec, structural key, and cache key.</li>
+<li>Generalized terminal rank-split cases are recognized by the finite
+Clifford-exterior rank equation, including carried-form deltas such as
+\(\{2,3\}\to\{1,2,4\}\).</li>
+<li>Middle-form/Hodge, rank-split, gamma-delta, gamma-wedge, spinor-tower, and
+form-spinor structural fixtures pass through the generic solver path.</li>
+<li>The constructor includes a structural fixture with nonzero off-diagonal Gram
+entries and exact inverse-Gram mixed-term streaming.</li>
+<li>The tensor-form terminal family
+<code>orthogonal_tensor_spinor_terminal_channel</code> is now explicit
+<code>gamma_form</code> plus carried-form <code>generalized_delta</code> rather than compact
+<code>tensor_form_projection</code>.</li>
+<li>The form-preserving terminal family
+<code>orthogonal_tensor_spinor_form_terminal_channel</code> now emits primitive
+<code>spinor_pair</code> and <code>generalized_delta</code> atoms rather than a
+<code>tensor_form_spinor_pair</code> descriptor.</li>
+<li>The form-adding terminal family
+<code>orthogonal_tensor_spinor_form_add_terminal_channel</code> is now explicit
+<code>gamma_form</code> plus carried-form <code>generalized_delta</code>, with the inserted form
+rank recorded from the compact form profiles.</li>
+<li>The form-power terminal family
+<code>orthogonal_tensor_spinor_form_power_terminal_channel</code> is now explicit
+<code>gamma_form</code> plus carried-form <code>generalized_delta</code>, with the inserted form
+rank recorded from the incremented compact form-profile slot.</li>
+<li>The terminal gamma-form projector expressions now go through
+<code>projector-constructor.zig</code>.  The constructor infers the gamma rank from
+profile increments, whole-profile shifts, and single-block moves, then emits
+primitive <code>gamma_form</code> plus carried-form <code>generalized_delta</code> atoms directly
+into the scratch buffer.</li>
+<li>The constructor now has a streaming multi-term API, tested on the
+vector-spinor gamma-traceless projector, so trace-subtraction formulas can be
+emitted term-by-term without materializing expression trees.</li>
+<li>The local path renderer now has a fixed-index term stream for local formula
+programs.  One-term formulas still produce the same \(16^{12}\) stream, but
+future Hodge and Gram-sum projectors no longer need to be forced through one
+flat local atom list.</li>
+<li>Representative A and E atoms exist for epsilon and structure-constant style
+primitive invariants.</li>
+<li>The public root exports the minimal symbolic structures needed by current
+callers.</li>
+<li>The source changes have matching org mirrors in the tensor-code literate
+files.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org6ea9836" class="outline-2">
+<h2 id="org6ea9836">Not Achieved</h2>
+<div class="outline-text-2" id="text-org6ea9836">
+<ul class="org-ul">
+<li><code>Context.evaluateInvariant</code> remains unsupported by design because its
+signature is under-specified; <code>Context.evaluateBasisInvariant</code> is the
+basis-aware replacement.</li>
+<li>There is no component assignment model for vector, spinor, form, adjoint, or
+tensor-spinor indices.</li>
+<li>There is no evaluator for <code>metric_pair</code>, <code>spinor_pair</code>, <code>gamma_matrix</code>,
+<code>gamma_form</code>, <code>gamma_action</code>, <code>epsilon</code>, <code>structure_constant</code>,
+<code>generalized_delta</code>, <code>hodge_star</code>, <code>tensor_spinor_projection</code>, or
+<code>tensor_form_projection</code>.</li>
+<li>Lowered Clifford-product factors are explicit symbolic factors, not evaluated
+component contractions.</li>
+<li>The Hodge and middle-form duality tags are metadata-level.  They are not yet
+executable epsilon/Hodge component operations.</li>
+<li>Optional canonical gamma reductions are not complete.</li>
+<li>Chirality zero-selection and canonical Clifford ordering are incomplete.</li>
+<li>General ADE local projector construction is not complete.</li>
+<li>The generic highest-weight backend is still limited by missing character and
+local-projector construction capabilities for many non-minuscule products.</li>
+<li>There is no general Casimir or residual-linear-algebra projector builder.</li>
+<li>Expansion cost estimates do not yet include all future component-evaluation
+costs.</li>
+<li>Streaming filters are currently term-level.  They do not yet prune all
+intermediate projector branches with sound prefix decisions.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org8666868" class="outline-2">
+<h2 id="org8666868">Main Bottlenecks</h2>
+<div class="outline-text-2" id="text-org8666868">
+</div>
+<div id="outline-container-orga487200" class="outline-3">
+<h3 id="orga487200">Evaluator Boundary</h3>
+<div class="outline-text-3" id="text-orga487200">
+<p>
+The first hard blocker is API shape.  Rendering uses:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig">renderInvariant(ctx, basis, invariant, options, sink)
+</pre>
+</div>
+
+<p>
+Evaluation currently has only:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig">evaluateInvariant(ctx, invariant, options, sink)
+</pre>
+</div>
+
+<p>
+This cannot be made correct because the same invariant handle value can name
+different paths in different bases.  The next implementation should add a
+basis-aware evaluator and leave the old method as a typed unsupported entry
+point until it can be removed or redirected safely.
+</p>
+</div>
+</div>
+<div id="outline-container-org95779f4" class="outline-3">
+<h3 id="org95779f4">Component Data Model</h3>
+<div class="outline-text-3" id="text-org95779f4">
+<p>
+The symbolic stream names abstract indices and blocks.  A component evaluator
+needs a lean assignment layout that can be tested and filtered without building
+dense tensors.
+</p>
+
+<p>
+The data should be flat:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ComponentAssignment</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">vector_values</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor_values</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_block_offsets</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_values</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">adjoint_values</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+</pre>
+</div>
+
+<p>
+Every atom evaluator should receive only the slices it needs.  No evaluator
+should allocate a product-space object such as \(16^{12}\).
+</p>
+</div>
+</div>
+<div id="outline-container-org331ca17" class="outline-3">
+<h3 id="org331ca17">Atom Semantics</h3>
+<div class="outline-text-3" id="text-org331ca17">
+<p>
+The renderer now emits enough atom tags for symbolic consumers, but a numeric
+or component evaluator needs exact semantics for each atom.  The first pass
+should support predicates and small integer/rational weights:
+</p>
+
+<ul class="org-ul">
+<li>metric: equality or signed diagonal metric entry;</li>
+<li>generalized delta: ordered or antisymmetric block equality;</li>
+<li>epsilon: permutation sign after distinctness check;</li>
+<li>spinor pair: backend-defined charge conjugation pairing;</li>
+<li>gamma atoms: backend gamma-entry callback;</li>
+<li>Clifford factors: metric factors plus free-vector routing;</li>
+<li>Hodge: epsilon complement and normalization;</li>
+<li>structure constants: backend callback or sparse table iterator.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org7cd6a2b" class="outline-3">
+<h3 id="org7cd6a2b">Formula Registry</h3>
+<div class="outline-text-3" id="text-org7cd6a2b">
+<p>
+The formula registry currently proves enough local coverage for the Spin(10)
+stress path, but many routes are specialized procedural recognizers.  This is
+acceptable as an intermediate state, but the final system needs projector
+programs with explicit input/output realization metadata and executable atom
+emitters.
+</p>
+
+<p>
+The basis must not be obtained by emitting an overcomplete set of gamma
+monomials and then quotienting by Fierz relations.  The invariant records are
+already the basis: they are coupling paths through representation and
+multiplicity space.  Formula programs are only the rendering/evaluation route
+for each already-independent path.  Fierz-style identities may be useful later
+to choose prettier or more canonical gamma notation, but they are not required
+for independence and should not sit on the critical path for streaming the
+basis.
+</p>
+</div>
+</div>
+<div id="outline-container-orge8d46ed" class="outline-3">
+<h3 id="orge8d46ed">General ADE Coverage</h3>
+<div class="outline-text-3" id="text-orge8d46ed">
+<p>
+The current generic backend gives useful decomposition/path infrastructure, but
+the final ADE goal requires more:
+</p>
+
+<ul class="org-ul">
+<li>complete character generation for non-minuscule irreps;</li>
+<li>multiplicity-space bases for product channels;</li>
+<li>local CG kernel/projector construction for multiplicity copies;</li>
+<li>primitive invariant renderers beyond the small representative A/E cases;</li>
+<li>residual projector solves when Casimir separation does not isolate a channel.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org3226da9" class="outline-3">
+<h3 id="org3226da9">Performance</h3>
+<div class="outline-text-3" id="text-org3226da9">
+<p>
+The primary performance risk is accidentally turning streaming into hidden
+materialization.  The evaluator must reuse scratch buffers per term, emit or
+reject immediately, and keep all large loops structured so they can later be
+split by invariant range or path chunk.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org5cdae39" class="outline-2">
+<h2 id="org5cdae39">Immediate Implementation Plan</h2>
+<div class="outline-text-2" id="text-org5cdae39">
+<ol class="org-ol">
+<li>Keep projector lowering work organized around structural keys and missing
+contraction identities.  Compact projection atoms are still valid as compact
+metadata outside expanded rendering, but they should not be counted as
+solved unless the expanded path goes through candidate enumeration, exact
+Gram contraction, and streamed term emission.</li>
+
+<li>Add component assignment filtering on top of the basis-aware evaluator:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">evaluateBasisInvariant</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.BasisHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.EvalOptions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !rendering.EvaluationAudit
+</pre>
+</div>
+
+<p>
+This now exists and streams lowered symbolic terms.  The next evaluator work is
+not another entry point; it is a component assignment filter:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ComponentFilter</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">assignment</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentAssignment</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">decide_fn</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ComponentAssignment</span>, SymbolicTerm) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!FilterDecision,
+};
+</pre>
+</div>
+
+<p>
+The first filter should support metric and generalized-delta rejection.  That
+gives immediate useful pruning without needing gamma matrices.
+</p>
+
+<ol class="org-ol">
+<li>Implement atom evaluators in increasing cost order:</li>
+
+<li>metric and generalized delta;</li>
+<li>epsilon and Hodge complement;</li>
+<li>spinor pair;</li>
+<li>gamma matrix/form/action through backend callbacks;</li>
+<li>Clifford-product factor streams;</li>
+<li>structure constants;</li>
+<li>compact tensor-spinor and tensor-form projections.</li>
+
+<li>For future projector gaps, add missing finite contraction identities or</li>
+</ol>
+<p>
+candidate signatures.  Do not add another production branch whose main
+description is a compact formula-family name.
+</p>
+</div>
+</div>
+<div id="outline-container-org7f624f2" class="outline-2">
+<h2 id="org7f624f2">Pseudocode</h2>
+<div class="outline-text-2" id="text-org7f624f2">
+</div>
+<div id="outline-container-org09d8276" class="outline-3">
+<h3 id="org09d8276">Basis-Aware Evaluator</h3>
+<div class="outline-text-3" id="text-org09d8276">
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">evaluateBasisInvariant</span>(ctx, basis, invariant, options, sink) !EvaluationAudit {
+    <span style="color: #fb4934; font-weight: bold;">try</span> ctx.validateEvalOptions(options);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">path</span> = ctx.impl().couplingPathForInvariant(basis, invariant)
+        <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownInvariant;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span> = ctx.impl().couplings.basisRequest(basis)
+        <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownBasis;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpansionScratch</span> = .{};
+    <span style="color: #fb4934; font-weight: bold;">defer</span> scratch.deinit(ctx.allocator);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">render_options</span> = RenderOptions{
+        .projectors = .expanded_terms,
+        .signature = options.signature,
+        .lower_clifford_product_atoms = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">adapter</span> = EvaluationSinkAdapter{ .inner = sink };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">expansion_audit</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ctx.impl().streamPathExpansion(
+        request,
+        path,
+        render_options,
+        ExpansionFilter.acceptAll(),
+        &amp;adapter,
+        &amp;scratch,
+    );
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> EvaluationAudit{
+        .terms = expansion_audit.emitted,
+        .rejected = expansion_audit.rejected,
+        .lowered_clifford_factors = expansion_audit.clifford_product_factors,
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga1475ae" class="outline-3">
+<h3 id="orga1475ae">Streaming Component Evaluation</h3>
+<div class="outline-text-3" id="text-orga1475ae">
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">evaluateTerm</span>(term, assignment, backend, sink) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coeff</span> = rationalValue(term.coefficient);
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (term.atoms) |atom| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span> = <span style="color: #fb4934; font-weight: bold;">switch</span> (atom) {
+            .metric_pair =&gt; |m| evalMetric(m, assignment),
+            .generalized_delta =&gt; |d| evalDelta(d, assignment),
+            .epsilon =&gt; |e| evalEpsilon(e, assignment),
+            .spinor_pair =&gt; |p| backend.evalSpinorPair(p, assignment),
+            .gamma_matrix =&gt; |g| backend.evalGammaMatrix(g, assignment),
+            .gamma_form =&gt; |g| backend.evalGammaForm(g, assignment),
+            .gamma_action =&gt; |g| backend.evalGammaAction(g, assignment),
+            .clifford_product_factor =&gt; |f| evalCliffordFactor(f, assignment),
+            .structure_constant =&gt; |f| backend.evalStructureConstant(f, assignment),
+            .hodge_star =&gt; |h| evalHodge(h, assignment),
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.AtomEvaluationNotImplemented,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (factor.is_zero) <span style="color: #fb4934; font-weight: bold;">return</span>;
+        coeff = <span style="color: #fb4934; font-weight: bold;">try</span> coeff.mul(factor.value);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> sink.emitComponentValue(coeff);
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org4c9f8e1" class="outline-3">
+<h3 id="org4c9f8e1">Prefix Filter</h3>
+<div class="outline-text-3" id="text-org4c9f8e1">
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">componentPrefixDecision</span>(prefix, assignment) !FilterDecision {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (prefix.atoms) |atom| {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (atom) {
+            .metric_pair =&gt; |m| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (bothAssigned(m.left, m.right, assignment) <span style="color: #fb4934; font-weight: bold;">and</span>
+                    vectorValue(m.left) != vectorValue(m.right))
+                    <span style="color: #fb4934; font-weight: bold;">return</span> .reject;
+            },
+            .generalized_delta =&gt; |d| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (blockAssigned(d, assignment) <span style="color: #fb4934; font-weight: bold;">and</span>
+                    !sameAntisymmetricBlock(d, assignment))
+                    <span style="color: #fb4934; font-weight: bold;">return</span> .reject;
+            },
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">continue</span>,
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (allNeededAtomsAssigned(prefix, assignment)) <span style="color: #fb4934; font-weight: bold;">return</span> .accept;
+    <span style="color: #fb4934; font-weight: bold;">return</span> .undecided;
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd0b426a" class="outline-3">
+<h3 id="orgd0b426a">Local Projector Program</h3>
+<div class="outline-text-3" id="text-orgd0b426a">
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">renderProjectorProgram</span>(program, indices, filter, sink, scratch) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    scratch.clear();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">frontier</span> = TermFrontier.init(&amp;scratch.a, .{ .coefficient = one });
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (program.instructions) |instruction| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next</span> = TermFrontier.init(&amp;scratch.b, .{});
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (frontier.terms()) |partial| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> appendInstructionTerms(instruction, partial, &amp;next);
+
+            <span style="color: #fb4934; font-weight: bold;">for</span> (next.newTerms()) |candidate| {
+                <span style="color: #fb4934; font-weight: bold;">switch</span> (<span style="color: #fb4934; font-weight: bold;">try</span> filter.decide(candidate)) {
+                    .reject =&gt; next.discard(candidate),
+                    .accept, .undecided =&gt; next.keep(candidate),
+                }
+            }
+        }
+
+        frontier = next.swapIntoFrontier();
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (frontier.terms()) |term| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> filter.decide(term) != .reject)
+            <span style="color: #fb4934; font-weight: bold;">try</span> sink.emitTerm(term);
+    }
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org2773163" class="outline-3">
+<h3 id="org2773163">Residual Projector Solve</h3>
+<div class="outline-text-3" id="text-org2773163">
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">buildResidualProjectors</span>(product_space, channels, backend) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">casimir_blocks</span> = splitByCasimir(channels);
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (casimir_blocks) |block| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (block.channels.len == 1) {
+            <span style="color: #fb4934; font-weight: bold;">try</span> emitCasimirProjector(block.channels[0]);
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">equations</span> = SparseEquationBuilder.init();
+        <span style="color: #fb4934; font-weight: bold;">try</span> equations.addIntertwinerConstraints(product_space, block);
+        <span style="color: #fb4934; font-weight: bold;">try</span> equations.addIdempotencyConstraints(block);
+        <span style="color: #fb4934; font-weight: bold;">try</span> equations.addOrthogonalityConstraints(block);
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span> = <span style="color: #fb4934; font-weight: bold;">try</span> solveSparseNullspace(equations);
+        <span style="color: #fb4934; font-weight: bold;">try</span> chooseMultiplicityBasis(block, basis);
+        <span style="color: #fb4934; font-weight: bold;">try</span> emitSparseProjectorPrograms(block);
+    }
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-orga47c785" class="outline-2">
+<h2 id="orga47c785">AGENTS Audit And Handoff</h2>
+<div class="outline-text-2" id="text-orga47c785">
+<p>
+This section is the handoff for the next agent.  It audits the current note and
+the current implementation direction against <a href="../../AGENTS.md">AGENTS.md</a> and
+<a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a>.
+</p>
+</div>
+<div id="outline-container-org9291183" class="outline-3">
+<h3 id="org9291183">What The Next Agent Must Preserve</h3>
+<div class="outline-text-3" id="text-org9291183">
+<ul class="org-ul">
+<li>Keep the basis construction in representation/multiplicity space.  Do not
+build an overcomplete gamma-monomial list and then reduce it by Fierz
+identities.  The invariants are emitted directly from coupling paths.</li>
+<li>Keep \(16^{12}\) as compact basis paths and streamed terms.  Do not allocate
+dense component tensors or a full expanded expression list.</li>
+<li>Keep the public API small.  Add exports only when another module or caller
+needs them.</li>
+<li>Keep source and org mirrors synchronized.  If a Zig source file is edited,
+patch the matching <code>org/tensor-code/*.org</code> block in the same turn.</li>
+<li>Use simple procedural code with lean data structures and explicit counters.
+Prefer borrowed slices and scratch buffers over owned intermediate symbolic
+expressions.</li>
+<li>Tests must check a precise invariant.  Do not add tests merely to exercise
+syntax.</li>
+<li>Do not revert unrelated dirty worktree changes.  This repository currently
+has many modified tensor-code and CFT files; treat them as user or prior-agent
+work unless they directly block the task.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org140943f" class="outline-3">
+<h3 id="org140943f">Key Information Learned</h3>
+<div class="outline-text-3" id="text-org140943f">
+<ul class="org-ul">
+<li>The Spin(10) \(16^{12}\) stress target is already represented as \(73744\)
+coupling paths.</li>
+<li>Current formula coverage for that stress basis has been tested to report no
+missing local formula steps and \(811184\) expandable local steps.</li>
+<li>The current stream can remove opaque projector operator atoms for the
+Spin(10) stress basis.</li>
+<li>The lowered Clifford-product stream replaces compact <code>clifford_product</code> atoms
+by <code>clifford_product_factor</code> atoms.  These factors are explicit metric
+contractions and free-vector routing records, not dense gamma matrices.</li>
+<li>The latest full tensor-code verification passed after adding the
+basis-aware evaluator and after lowering identity/Cartan product atoms.</li>
+<li><code>Context.evaluateInvariant</code> remains explicitly unsupported and is also
+under-specified because <code>InvariantHandle</code> is only meaningful inside a
+<code>BasisHandle</code>.  Use <code>Context.evaluateBasisInvariant</code> instead.</li>
+<li>The point of the current architecture is to avoid Fierz reduction as a basis
+construction step.  Optional canonical gamma notation can come later, but it
+must not become a prerequisite for emitting the independent basis.</li>
+<li>The projectors are only partially explicit.  Many Spin(10) routes render to
+meaningful symbolic atoms, but several atoms still stand for compact local
+formula families rather than primitive component operations.</li>
+<li>A dumped \(16^{12}\) term still contains <code>tensor_spinor_projection</code> and
+<code>tensor_form_projection</code>.  The previous <code>cartan_product</code> occurrence is now
+an explicit <code>spinor_symmetrized_product</code> atom carrying tower powers and
+chirality.  The remaining \(\Pi\)-style tensor atoms are not the final desired
+gamma/metric/delta/epsilon-only rendering.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org5979bc0" class="outline-3">
+<h3 id="org5979bc0">Current Non-Opaque Output Shape</h3>
+<div class="outline-text-3" id="text-org5979bc0">
+<p>
+The renderer emits <code>SymbolicTerm</code> records.  Opaque named projectors look like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig">.{ .named_operator = .{
+    .kind = .projector,
+    .operator_id = projector_id,
+    .first_index = first,
+    .index_len = len,
+} }
+</pre>
+</div>
+
+<p>
+Expanded projector routes should instead emit atoms such as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig">.gamma_matrix
+.gamma_form
+.gamma_action
+.metric_pair
+.spinor_pair
+.generalized_delta
+.identity_route
+.spinor_symmetrized_product
+.tensor_spinor_projection
+.tensor_form_projection
+.clifford_product_factor
+</pre>
+</div>
+
+<p>
+A simple Spin(10) example is the invariant
+\[
+  16\otimes16\otimes10\to 1.
+\]
+Its rendered term has the shape:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig">SymbolicTerm{
+    .coefficient = rationalOne(),
+    .atoms = &amp;.{
+        .{ .gamma_matrix = .{
+            .operator_id = p_spinor_spinor_vector,
+            .spinor_left = 0,
+            .spinor_right = 1,
+            .vector = 3,
+            .orthogonal_dimension = 10,
+            .rank = 1,
+            .chirality = 1,
+            .duality = .none,
+        } },
+        .{ .metric_pair = .{
+            .left = 3,
+            .right = 2,
+        } },
+    },
+}
+</pre>
+</div>
+
+<p>
+This is schematically
+\[
+  (\Gamma^\mu)_{\alpha\beta}\eta_{\mu\nu}.
+\]
+It is non-opaque because the vector-channel projector is rendered as a gamma
+matrix atom and the singlet contraction is rendered as a metric atom.  It is
+not yet a component-evaluated tensor entry.
+</p>
+</div>
+</div>
+<div id="outline-container-org4da97c3" class="outline-3">
+<h3 id="org4da97c3">Actual \(16^{12}\) Output Snapshot</h3>
+<div class="outline-text-3" id="text-org4da97c3">
+<p>
+The following is a real dumped term: invariant <code>0</code> from the Spin(10)
+\(16^{12}\) basis, rendered with <code>projectors = .expanded_terms</code> and
+<code>lower_clifford_product_atoms = true</code>.  The basis count in the same run was
+<code>73744</code>.  This is not a toy example.
+</p>
+
+<p>
+The raw stream summary is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">coefficient = 1/1
+atom_count = 56
+
+0:  gamma_form(op=0, sL=0, sR=1, form=12, N=10, rank=5, chir=2, dual=self_dual)
+1:  gamma_action(op=3, form=12, in=2, out=13, N=10, rank=5, chir=2, dual=self_dual)
+2..46: lowered Clifford factors for the rank-5 by rank-5 gamma product
+47: spinor_symmetrized_product(op=12, left=13, right=3, out=14,
+        N=10, left_power=3, right_power=1, output_power=4, chir=2)
+48: tensor_spinor_projection(op=35, left=14, right=4, out=15,
+        N=10, form_rank=3, form_count=1, form_mask=4,
+        form_profile=256, tower=3, chir=2, dual=none)
+49: tensor_spinor_projection(op=86, left=15, right=5, out=16,
+        N=10, form_rank=1, form_count=2, form_mask=5,
+        form_profile=257, tower=2, chir=2, dual=none)
+50: tensor_spinor_projection(op=175, left=16, right=6, out=17,
+        N=10, form_rank=2, form_count=2, form_mask=6,
+        form_profile=272, tower=1, chir=2, dual=none)
+51: tensor_form_projection(op=258, left=17, right=7, out=18,
+        N=10, input_mask=6, output_profile=512,
+        output_count=2, output_rank=0, dual=none)
+52: tensor_spinor_projection(op=51, left=18, right=8, out=19,
+        N=10, input_profile=512, input_count=2,
+        form_rank=3, form_count=1, form_mask=4,
+        form_profile=256, tower=1, chir=1, dual=none)
+53: tensor_form_projection(op=143, left=19, right=9, out=20,
+        N=10, input_mask=4, output_profile=0,
+        output_count=1, output_rank=5, dual=anti_self_dual)
+54: gamma_action(op=248, form=20, in=10, out=21,
+        N=10, rank=5, chir=2, dual=anti_self_dual)
+55: spinor_pair(op=34, left=21, right=11, N=10, chirL=1, chirR=2)
+</pre>
+</div>
+
+<p>
+In TeX-like notation, write the twelve external spinor indices as
+\(\alpha_0,\ldots,\alpha_{11}\), internal spinors as
+\(\beta_{13},\beta_{21}\), and the internal form/tensor-spinor channels as
+\(X_{14},\ldots,X_{20}\).  The current stream represents the term as:
+</p>
+
+<p>
+\[
+</p>
+\begin{aligned}
+T^{(0)}_{\alpha_0\cdots\alpha_{11}}
+= {}&amp;
+(\Gamma^{A_+}_{(5)})_{\alpha_0\alpha_1}\,
+(\Gamma_{A_+}^{(5)})_{\alpha_2}{}^{\beta_{13}}\,
+\mathcal C_{5,5}(A_+,A_+)
+\\
+&amp;\cdot
+\operatorname{Sym}_{S_+}^{3,1\to4}(\beta_{13},\alpha_3\to X_{14})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TS}}^{(3;\,{\rm tower}=3)}
+    (X_{14},\alpha_4\to X_{15})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TS}}^{(1,2;\,{\rm tower}=2)}
+    (X_{15},\alpha_5\to X_{16})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TS}}^{(2,2;\,{\rm tower}=1)}
+    (X_{16},\alpha_6\to X_{17})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TF}}(X_{17},\alpha_7\to X_{18})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TS}}^{(3;\,{\rm tower}=1)}
+    (X_{18},\alpha_8\to X_{19})
+\\
+&amp;\cdot
+\Pi_{\mathrm{TF}}^{\rm ASD}
+    (X_{19},\alpha_9\to X_{20})
+\\
+&amp;\cdot
+(\Gamma^{X_{20}}_{(5),-})_{\alpha_{10}}{}^{\beta_{21}}\,
+C_{\beta_{21}\alpha_{11}} .
+\end{aligned}
+<p>
+\]
+</p>
+
+<p>
+Here \(A_+\) is a self-dual rank-5 form channel and \(X_{20}\) is an
+anti-self-dual rank-5 form channel.  The fully lowered part already available
+inside this term is the Clifford product
+\(\mathcal C_{5,5}\).  The dumped factor records correspond to:
+</p>
+
+<p>
+\[
+</p>
+\begin{aligned}
+\mathcal C_{5,5}(A,A')
+= {}&amp;
+\Gamma^{A_1A_2A_3A_4A_5A'_1A'_2A'_3A'_4A'_5}
+\\
+&amp;+25\,\eta^{A_5A'_1}
+\Gamma^{A_1A_2A_3A_4A'_2A'_3A'_4A'_5}
+\\
+&amp;-200\,\eta^{A_4A'_1}\eta^{A_5A'_2}
+\Gamma^{A_1A_2A_3A'_3A'_4A'_5}
+\\
+&amp;-600\,\eta^{A_3A'_1}\eta^{A_4A'_2}\eta^{A_5A'_3}
+\Gamma^{A_1A_2A'_4A'_5}
+\\
+&amp;+600\,\eta^{A_2A'_1}\eta^{A_3A'_2}
+       \eta^{A_4A'_3}\eta^{A_5A'_4}
+\Gamma^{A_1A'_5}
+\\
+&amp;+120\,\eta^{A_1A'_1}\eta^{A_2A'_2}
+       \eta^{A_3A'_3}\eta^{A_4A'_4}\eta^{A_5A'_5}.
+\end{aligned}
+<p>
+\]
+</p>
+
+<p>
+This proves that the current renderer has lowered compact Clifford products
+into metrics and output gamma slots.  It does not prove that the full term is
+gamma/metric/delta/epsilon-only, because atoms 48&#x2013;53 are still compact
+tensor projector-family atoms.  Atom 47 is explicit spinor-tower
+symmetrization, not a compact Cartan placeholder.
+</p>
+</div>
+</div>
+<div id="outline-container-org1c2a023" class="outline-3">
+<h3 id="org1c2a023">Projectors Still Needing Gamma/Metric/Delta Lowering</h3>
+<div class="outline-text-3" id="text-org1c2a023">
+<p>
+The concrete \(16^{12}\) term above shows exactly which families remain between
+the current output and the desired gamma/metric/delta/epsilon rendering:
+</p>
+
+<ul class="org-ul">
+<li><code>tensor_spinor_projection</code> at atoms 48, 49, 50, and 52.  These are the main
+remaining compact Spin(10) projector families in the dumped term.  They
+encode form-valued spinor tower projections.  They need formula programs that
+emit only gamma actions/forms, metrics, antisymmetric deltas, Hodge/epsilon
+atoms for middle forms, and explicit routing atoms.</li>
+<li><code>tensor_form_projection</code> at atoms 51 and 53.  These are terminal or
+intermediate form projections.  They need lowering to antisymmetric
+generalized deltas, metric traces, Hodge/epsilon atoms for self/anti-self
+dual rank-5 channels, and explicit output routing.</li>
+<li><code>gamma_action</code> and <code>gamma_form</code> are acceptable gamma atoms for the orthogonal
+backend.  They are not opaque projectors.  A later component evaluator needs
+backend callbacks for their matrix entries, but they are already the intended
+gamma-level symbolic form.</li>
+<li><code>spinor_pair</code> is an invariant bilinear atom.  It is acceptable as a primitive
+charge-conjugation pairing once its component semantics are supplied.</li>
+<li><code>clifford_product_factor</code> is already a lowered metric/output-vector factor.
+The next audit should ensure no compact <code>clifford_product</code> atoms remain when
+<code>lower_clifford_product_atoms</code> is enabled.</li>
+</ul>
+
+<p>
+The next rendering milestone is therefore precise:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">For Spin(10) 16^12 with lower_clifford_product_atoms = true:
+    named_operator(kind=projector) count must be 0
+    clifford_product count must be 0
+    product_identity count must be 0
+    cartan_product count must be 0
+    tensor_spinor_projection count should be driven to 0
+    tensor_form_projection count should be driven to 0
+    remaining atoms should be gamma_*, metric_pair, generalized_delta,
+        epsilon/hodge, spinor_pair, structure_constant if applicable,
+        and clifford_product_factor
+</pre>
+</div>
+
+<p>
+After adding <code>AtomLoweringAuditSink</code>, the full lowered \(16^{12}\) stream
+currently audits as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">basis_count = 73744
+emitted = 73744
+terms = 73744
+atoms = 3124463
+primitive_atoms = 2888833
+compact_formula_atoms = 235630
+
+named_operator = 0
+named_projector = 0
+clifford_product = 0
+clifford_product_factor = 2131320
+
+identity_route = 700
+spinor_symmetrized_product = 84
+product_identity = 0
+cartan_product = 0
+tensor_spinor_projection = 205086
+tensor_form_gamma_wedge = 0
+tensor_form_gamma_map = 21331
+tensor_form_spinor_pair = 0
+tensor_form_projection = 30544
+gamma_trace = 0
+vector_spinor_identity = 0
+first_compact = tensor_spinor_projection
+</pre>
+</div>
+
+<p>
+These numbers are the current rendering backlog.  The stream has no named
+projector atoms, no compact Clifford products, no compact identity product
+atoms, no compact Cartan product atoms, and the form-preserving and
+gamma-wedge terminal families are now primitive pair/delta or gamma-form/delta
+programs rather than descriptors.  The opposite-chirality rank-2 terminal and
+opposite form-add terminal families now use the same gamma-form/delta program.
+It still has \(235630\) compact
+formula-family atoms.  The remaining compact backlog is
+<code>tensor_form_projection</code> variants and <code>tensor_spinor_projection</code> lowering for
+the Spin(10) \(16^{12}\) stream.
+</p>
+</div>
+</div>
+<div id="outline-container-org5fbad45" class="outline-3">
+<h3 id="org5fbad45">Doability</h3>
+<div class="outline-text-3" id="text-org5fbad45">
+<p>
+This is doable, but it is not a small cleanup.  The audit narrows the Spin(10)
+\(16^{12}\) problem to a concrete rendering backlog:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">remaining compact formula atoms = 235630
+
+tensor_spinor_projection = 205086
+tensor_form_projection = 30544
+</pre>
+</div>
+
+<p>
+The problem is therefore no longer "find the \(73744\) invariants"; that part
+is already represented by coupling paths.  It is also not "remove named
+projectors"; the lowered stream already has <code>named_projector = 0</code>.  The real
+remaining work is to lower the two large tensor formula families.
+</p>
+
+<p>
+The rough difficulty is:
+</p>
+
+<ul class="org-ul">
+<li><code>identity_route</code>: done for the Spin(10) stress stream.  The previous
+<code>product_identity</code> atom is explicit routing and no longer compact.</li>
+<li><code>spinor_symmetrized_product</code>: done for the Spin(10) stress stream.  The
+previous spinor-tower <code>cartan_product</code> atom is explicit symmetric
+spinor-tower multiplication with tower-power and chirality metadata.</li>
+<li><code>tensor_spinor_projection</code>: hard.  This is one of the two main remaining
+projector families.  It represents form-valued spinor tower projections and
+must lower to gamma actions/forms, metrics, antisymmetric deltas,
+Hodge/epsilon atoms for middle forms, and explicit routing.  There are many
+occurrences but probably far fewer distinct projector programs.</li>
+<li><code>tensor_form_projection</code>: hard.  This still includes terminal and
+intermediate form projections, including self/anti-self-dual rank-5
+channels.  It must lower to antisymmetric generalized deltas, metric traces,
+Hodge/epsilon atoms, and routing.</li>
+</ul>
+
+<p>
+The main reason it is hard is not the number \(73744\) by itself.  The hard
+part is avoiding a hidden expression explosion while replacing compact local
+formula atoms with primitive streamed atoms.  Each tensor-spinor or tensor-form
+projector can expand into several local factors, and those factors must be
+emitted term-by-term with scratch buffers, not assembled into a giant symbolic
+tree.
+</p>
+
+<p>
+The correct route is:
+</p>
+
+<ol class="org-ol">
+<li>Count distinct <code>operator_id</code> values for <code>tensor_spinor_projection</code> and
+<code>tensor_form_projection</code> in the lowered \(16^{12}\) stream.</li>
+<li>For each distinct operator id, inspect <code>ProjectorDescriptor</code> and formula
+metadata.  Lower by formula kind, not by occurrence.</li>
+<li>Implement one lowering program at a time.  Each lowering program should
+stream primitive atoms into the current term scratch buffer.</li>
+<li>Re-run <code>AtomLoweringAuditSink</code> after each lowering.</li>
+<li>The Spin(10) rendering target is reached only when:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-text">named_projector_atoms = 0
+clifford_product_atoms = 0
+compact_formula_atoms = 0
+</pre>
+</div>
+
+<p>
+This should be feasible because the current stream already proves that all
+paths can be enumerated and all local formula routes are recognized.  The
+remaining work is to replace compact recognized atoms by lower-level streamed
+programs.  It is still substantial mathematical rendering work, especially for
+tensor-spinor and tensor-form projectors.
+</p>
+</div>
+</div>
+<div id="outline-container-org8a1ebd5" class="outline-3">
+<h3 id="org8a1ebd5">Rendering Audit</h3>
+<div class="outline-text-3" id="text-org8a1ebd5">
+<p>
+Rendering is now the main work surface.  The current renderer is too coarse in
+three ways:
+</p>
+
+<ol class="org-ol">
+<li>Some atoms are primitive enough for downstream handling:
+<code>metric_pair</code>, <code>spinor_pair</code>, <code>gamma_matrix</code>, <code>gamma_form</code>,
+<code>gamma_action</code>, <code>epsilon</code>, <code>structure_constant</code>, and lowered
+<code>clifford_product_factor</code>.</li>
+<li>Some atoms are still compact projector-family atoms:
+<code>tensor_spinor_projection</code> and <code>tensor_form_projection</code>.  The identity and
+spinor-tower Cartan routes are now explicit primitive formula atoms for the
+Spin(10) stress stream.</li>
+<li>There is no text or inspectable formula renderer.  <code>RenderFormat.text</code>
+exists but is not implemented as a real output format.  Debugging therefore
+depends on test sinks and counters.</li>
+</ol>
+
+<p>
+The next agent should treat rendering as an executable data pipeline, not a
+printer.  The target is a stream that can be consumed at high throughput by CFT
+code and filtered before large products are materialized.
+</p>
+</div>
+</div>
+<div id="outline-container-org7bfa362" class="outline-3">
+<h3 id="org7bfa362">Next-Agent Work Order</h3>
+<div class="outline-text-3" id="text-org7bfa362">
+<ol class="org-ol">
+<li>Re-run a narrow verification of the current state before editing:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-sh">mkdir -p .zig-cache-global .zig-cache-local
+<span style="color: #83a598; font-weight: bold; font-style: italic;">ZIG_GLOBAL_CACHE_DIR</span>=$<span style="color: #83a598; font-weight: bold; font-style: italic;">PWD</span>/.zig-cache-global <span style="color: #b8bb26; font-style: italic;">\</span>
+<span style="color: #83a598; font-weight: bold; font-style: italic;">ZIG_LOCAL_CACHE_DIR</span>=$<span style="color: #83a598; font-weight: bold; font-style: italic;">PWD</span>/.zig-cache-local <span style="color: #b8bb26; font-style: italic;">\</span>
+zig test src/tensor-code/rendering.zig
+</pre>
+</div>
+
+<ol class="org-ol">
+<li>Add an inspectable symbolic rendering sink before changing semantics.  The
+immediate need is not pretty publication output; it is a deterministic
+compact textual/debug form for one streamed <code>SymbolicTerm</code> so humans can see
+which projectors are still compact.  Keep it streaming:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">writeSymbolicTerm</span>(writer, term) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> writeRational(writer, term.coefficient);
+    <span style="color: #fb4934; font-weight: bold;">for</span> (term.atoms) |atom| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> writer.writeAll(<span style="color: #b8bb26; font-style: italic;">" * "</span>);
+        <span style="color: #fb4934; font-weight: bold;">try</span> writeAtom(writer, atom);
+    }
+}
+</pre>
+</div>
+
+<p>
+Do not allocate a full string for the \(73744\)-term basis.  Write term by
+term to a caller sink.
+</p>
+
+<ol class="org-ol">
+<li>Use the implemented rendering audit to classify every atom in a basis stream:</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AtomLoweringAudit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">compact_formula_atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">named_projector_atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">clifford_product_atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">clifford_product_factor_atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_compact_kind</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SymbolicAtomTag</span>,
+};
+</pre>
+</div>
+
+<p>
+For the Spin(10) \(16^{12}\) lowered stream, the audit now proves:
+</p>
+
+<ul class="org-ul">
+<li><code>named_projector_atoms =</code> 0=;</li>
+<li><code>clifford_product_atoms =</code> 0= when lowering is enabled;</li>
+<li><code>clifford_product_factor_atoms &gt; 0</code>;</li>
+<li>every remaining compact formula atom is listed by kind and count.</li>
+</ul>
+
+<p>
+This is the fastest way to see what still prevents a fully primitive rendering.
+Do not remove these counters; extend them when new compact atom kinds are
+introduced.
+</p>
+
+<ol class="org-ol">
+<li>Lower one compact tensor projector-family atom at a time.  The next expected
+order is:</li>
+
+<li><code>tensor_form_projection</code> for rank-split and unsupported terminal cases;</li>
+<li><code>tensor_form_projection</code> middle-form cases with Hodge/self-dual handling;</li>
+<li><code>tensor_spinor_projection</code> tower and form-spinor variants, sharing
+gamma-action and trace-subtraction routines across formula kinds.</li>
+</ol>
+
+<p>
+Each lowering must stream and must reuse scratch buffers.  It must not build a
+large expression tree.
+</p>
+
+<ol class="org-ol">
+<li>Add a basis-aware evaluation or rendering-consumption entry point only after</li>
+</ol>
+<p>
+the atom audit exists.  The current proposed shape is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">evaluateBasisInvariant</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.BasisHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">invariant</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.InvariantHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.EvalOptions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !rendering.EvaluationAudit
+</pre>
+</div>
+
+<p>
+This should initially consume the lowered symbolic stream.  Do not try to make
+<code>evaluateInvariant(self, invariant, ...)</code> work without a basis; that API is
+not mathematically well-defined.
+</p>
+
+<ol class="org-ol">
+<li>Only after the rendering audit is clean for Spin(10), add component</li>
+</ol>
+<p>
+semantics for primitive atoms.  Start with metrics and generalized deltas, then
+epsilon/Hodge, then spinor pair and gamma callbacks.
+</p>
+
+<ol class="org-ol">
+<li>Keep ADE generality explicit.  Gamma atoms are orthogonal backend atoms, not</li>
+</ol>
+<p>
+generic ADE public API.  A/E primitive invariants should use epsilon,
+structure constants, Cartan/product identity, or future backend-specific
+formula programs.
+</p>
+
+<ol class="org-ol">
+<li>Every source edit must be mirrored in the matching org file:</li>
+
+<li><code>src/tensor-code/rendering.zig</code> with <a href="/notes/tensor-code/rendering.html">Tensor Rendering</a>;</li>
+<li><code>src/tensor-code/context.zig</code> with <a href="/notes/tensor-code/context.html">Tensor Context</a>;</li>
+<li><code>src/tensor-code/tensor-code.zig</code> with <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>;</li>
+<li>projector metadata edits with <a href="/notes/tensor-code/projector.html">Tensor Projector</a>.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org9089b2b" class="outline-3">
+<h3 id="org9089b2b">What Not To Do Next</h3>
+<div class="outline-text-3" id="text-org9089b2b">
+<ul class="org-ul">
+<li>Do not spend effort deriving Fierz identities as the basis mechanism.</li>
+<li>Do not build a dense component evaluator before the rendering audit shows
+which atom kinds remain compact.</li>
+<li>Do not add a broad public API for internal formula-program details.</li>
+<li>Do not replace path independence with numerical spot checks.</li>
+<li>Do not add tests that only assert current implementation trivia.  Tests
+should prove a rendering invariant such as "lowered \(16^{12}\) has no named
+projectors and reports all remaining compact atom kinds."</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb68df43" class="outline-2">
+<h2 id="orgb68df43">Performance And Generalization</h2>
+<div class="outline-text-2" id="text-orgb68df43">
+<p>
+The optimal design is not to make every ADE projector look like an
+orthogonal gamma formula.  The optimal design is a generic streaming
+formula-program interface with backend-specific primitive atom vocabularies.
+</p>
+
+<p>
+The generic layer should own:
+</p>
+
+<ul class="org-ul">
+<li>coupling-path storage;</li>
+<li>multiplicity-copy ids;</li>
+<li>projector ids and derivation metadata;</li>
+<li>render/evaluation options;</li>
+<li>streamed term emission;</li>
+<li>filter decisions and audit counters;</li>
+<li>scratch-buffer ownership and reuse.</li>
+</ul>
+
+<p>
+The backend layer should own:
+</p>
+
+<ul class="org-ul">
+<li>the primitive invariant atoms available for that family;</li>
+<li>the formula program for each projector kind;</li>
+<li>local normalization and signature conventions;</li>
+<li>local Hodge/duality or epsilon conventions where relevant;</li>
+<li>sparse residual projector construction when a generic closed form is not
+available.</li>
+</ul>
+
+<p>
+For \(B_n,D_n\), the backend primitive vocabulary includes metrics, spinor
+pairings, gamma forms/actions, Clifford product factors, antisymmetric deltas,
+and Hodge/epsilon atoms.  For \(A_n\), the primitive vocabulary should be
+fundamental deltas, epsilons, Cartan/highest-weight product programs, and
+eventually tableau/Gelfand-Tsetlin style formula programs.  For \(E_6,E_7,E_8\),
+the primitive vocabulary should include structure constants, invariant forms,
+and sparse backend-specific projector programs.  Gamma atoms must remain
+orthogonal-backend atoms, not generic ADE API.
+</p>
+
+<p>
+The performance-critical rule is: lower by formula program, not by occurrence.
+The current \(16^{12}\) stream has \(235630\) compact formula-family atoms, but
+those atoms come from a much smaller set of projector ids and formula kinds.
+The next implementation should count distinct operator ids and then compile or
+dispatch one lowering program per formula kind.  Re-lowering the same operator
+shape independently for every occurrence would waste time and make parallel
+execution harder.
+</p>
+
+<p>
+The hot data flow should look like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">coupling path
+  -&gt; local projector formula id
+  -&gt; backend formula program
+  -&gt; small scratch frontier
+  -&gt; streamed primitive atoms
+  -&gt; filter
+  -&gt; sink
+</pre>
+</div>
+
+<p>
+The hot data flow should not look like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">all paths
+  -&gt; all expanded terms
+  -&gt; one huge symbolic expression
+  -&gt; simplify/reduce
+  -&gt; filter
+</pre>
+</div>
+
+<p>
+Each formula program should be written as simple procedural code over lean
+records.  A program should receive only the local indices and metadata it
+needs, append primitive atoms into caller-owned scratch storage, and emit or
+discard terms immediately.  It should not allocate an owned expression tree.
+The local renderer now has fixed local term-count and term-index arrays plus
+caller-owned scratch atom buffers.  Multi-summand projector programs should
+plug into that path by reporting term counts and appending the selected term.
+Filters must be applied at each safe prefix point so reject-all and component
+filters do not pay the cost of completing impossible branches.
+</p>
+
+<p>
+Parallelization should be straightforward if the state is kept local:
+</p>
+
+<ul class="org-ul">
+<li>basis paths can be split into independent ranges;</li>
+<li>each worker owns an <code>ExpansionScratch</code>;</li>
+<li>read-only stores provide projector/formula metadata;</li>
+<li>sinks either collect per-worker audits or use caller-controlled reduction;</li>
+<li>no worker writes to a shared giant expression buffer.</li>
+</ul>
+
+<p>
+Caching should be compact:
+</p>
+
+<ul class="org-ul">
+<li>cache decomposition results and formula-program descriptors;</li>
+<li>cache small lowering plans keyed by projector id or formula kind;</li>
+<li>cache Clifford grade/contraction plans because they are tiny and reused;</li>
+<li>do not cache dense component tensors;</li>
+<li>do not cache all \(73744\) expanded formulas.</li>
+</ul>
+
+<p>
+The next high-value performance audit is to count distinct projector
+<code>operator_id</code> values and formula kinds for:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">tensor_spinor_projection
+tensor_form_projection
+</pre>
+</div>
+
+<p>
+That audit determines how many actual lowering programs remain.  The occurrence
+counts are large, but the program count should be much smaller.  Once the
+distinct program count is known, lowering should proceed in this order:
+</p>
+
+<ol class="org-ol">
+<li><code>tensor_form_projection</code> for the simplest non-dual form cases;</li>
+<li><code>tensor_form_projection</code> for middle self/anti-self-dual cases;</li>
+<li><code>tensor_spinor_projection</code> tower cases, one formula kind at a time.</li>
+</ol>
+
+<p>
+Each pass should end by re-running <code>AtomLoweringAuditSink</code>.  The target is not
+"more pretty output"; the target is fewer compact formula atoms while preserving
+streaming, filterability, and no dense intermediate allocation.
+</p>
+
+<p>
+Historical note: the following distinct formula-kind audit was run before the
+2026-06-08 structural Gram solver routing and should not be used as the current
+remaining-backlog count.  Current expanded rendering verifies sampled
+Spin(10) \(16^{12}\) paths with zero compact
+<code>tensor_spinor_projection</code> and <code>tensor_form_projection</code> atoms, and future
+backlog triage should use structural unsupported-key audit data rather than the
+family-count table below.
+</p>
+
+<p>
+That distinct formula-kind audit had been run on the lowered Spin(10)
+\(16^{12}\) stream.  It reports:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">basis_count = 73744
+emitted = 73744
+
+tensor_spinor_projection:
+    formula kinds = 33
+    distinct operator ids = 179
+    occurrences = 205086
+
+tensor_form_projection:
+    compact formula kinds remaining = refresh needed after constructor routing
+    compact distinct operator ids remaining = refresh needed after constructor routing
+    compact occurrences remaining = 30544
+
+primitive rank-split gamma-map terminal:
+    occurrences = 21331
+
+primitive gamma-form/form-delta terminal:
+    formula kinds = 5
+    distinct operator ids = 52
+    occurrences = 124373
+
+primitive spinor-pair/form-delta terminal:
+    formula kinds = 1
+    distinct operator ids = 12
+    occurrences = 37699
+</pre>
+</div>
+
+<p>
+The tensor-form occurrence count above reflects constructor-routed terminal
+gamma-form/delta lowering and rank-split gamma-map lowering through the
+candidate/Gram constructor.
+The per-kind and distinct-id breakdown should be recomputed before choosing
+the next family.  The tensor families are therefore
+large by occurrence count but finite by
+program count: at most 40 compact formula-kind lowerers remain for the two hard
+families in the current \(16^{12}\) stream.  Many of those kinds are variants of the same
+orthogonal tensor-spinor pattern.  The next implementation should not lower
+179 + 21 compact operator ids separately unless metadata forces it; it should group
+them by formula kind and only specialize on compact rank/profile metadata.
+</p>
+
+<p>
+The most important tensor-spinor formula-kind groups by occurrence are:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">orthogonal_tensor_form_spinor_channel: ids=31 total=58328
+orthogonal_tensor_form_spinor_shift_channel: ids=9 total=21331
+orthogonal_tensor_form_spinor_shift_down_channel: ids=11 total=14652
+orthogonal_tensor_spinor_opposite_form_tower_shift_down_channel: ids=12 total=11425
+orthogonal_tensor_spinor_tower_raise_channel: ids=9 total=10197
+orthogonal_tensor_spinor_opposite_tower_lower_channel: ids=9 total=10197
+orthogonal_tensor_spinor_shift_channel: ids=7 total=8760
+orthogonal_tensor_spinor_opposite_form_tower_channel: ids=10 total=8641
+orthogonal_tensor_spinor_tower_channel: ids=10 total=6996
+orthogonal_tensor_form_spinor_preserve_channel: ids=8 total=6974
+</pre>
+</div>
+
+<p>
+Before the candidate/Gram rank-split compiler, the most important tensor-form
+formula-kind groups by occurrence were:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">orthogonal_tensor_spinor_middle_form_channel: ids=2 total=24324
+orthogonal_tensor_spinor_rank_split_terminal_channel: ids=8 total=16596
+orthogonal_tensor_spinor_rank_wrap_terminal_channel: ids=4 total=14680
+orthogonal_tensor_spinor_opposite_rank_split_terminal_channel: ids=3 total=6431
+</pre>
+</div>
+
+<p>
+The previous <code>orthogonal_tensor_spinor_opposite_terminal_channel</code>
+\(ids=9, total=23054\) and
+<code>orthogonal_tensor_spinor_opposite_form_add_terminal_channel</code>
+\(ids=13, total=17801\) entries are now part of the primitive
+gamma-form/form-delta terminal group.  These terminal expressions are generated
+by the profile-diff projector constructor, not by route-local rank constants.
+</p>
+
+<p>
+At the time, this made the next lowering order more precise:
+</p>
+
+<ol class="org-ol">
+<li>recompute the remaining tensor-form projector id/kind audit after the
+constructor-routed gamma-wedge lowering;</li>
+<li>lower the remaining rank-split forms not covered by the single-form
+gamma-map rule, plus unsupported terminal variants, in the constructor
+dispatcher;</li>
+<li>lower middle-form variants with Hodge/self-dual handling;</li>
+<li>lower tensor-spinor tower/form-spinor variants, sharing gamma-action and
+trace-subtraction routines across all shift/preserve/opposite cases.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org070df72" class="outline-2">
+<h2 id="org070df72">Current Verification</h2>
+<div class="outline-text-2" id="text-org070df72">
+<p>
+The latest verification pass ran in the current workspace:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig fmt --check src/tensor-code/projector-constructor.zig src/tensor-code/context.zig src/tensor-code/rendering.zig src/tensor-code/projector.zig src/tensor-code/tensor-code.zig
+zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/context.zig
+zig test src/tensor-code/tensor-code.zig
+</pre>
+</div>
+
+<p>
+Result:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig fmt --check ...
+passed
+
+zig test src/tensor-code/projector-constructor.zig
+All 51 tests passed.
+
+zig test src/tensor-code/context.zig
+All 85 tests passed.
+
+zig test src/tensor-code/tensor-code.zig
+All 87 tests passed.
+</pre>
+</div>
+</div>
+<div id="outline-container-org6b7db3e" class="outline-3">
+<h3 id="org6b7db3e">Cache Notes</h3>
+<div class="outline-text-3" id="text-org6b7db3e">
+<p>
+The two cache directories in the verification command are Zig build caches, not
+tensor-code data files:
+</p>
+
+<ul class="org-ul">
+<li><code>.zig-cache-global</code> is passed as <code>ZIG_GLOBAL_CACHE_DIR</code>.  Zig uses it for
+compiler artifacts that would otherwise go into the user-level global cache,
+usually under the home directory.  Keeping it inside the workspace makes the
+test run independent of a full or stale global cache outside the repository.</li>
+<li><code>.zig-cache-local</code> is passed as <code>ZIG_LOCAL_CACHE_DIR</code>.  Zig uses it for
+package-local and build-local artifacts produced while compiling this
+checkout.  Keeping it explicit prevents the test run from writing to an
+uncontrolled cache location.</li>
+</ul>
+
+<p>
+These directories are created only for verification.  They may contain compiled
+object files, dependency metadata, incremental compiler state, and build
+products needed by <code>zig test</code> or <code>zig build test</code>.  They do not contain
+mathematical projector data, invariant bases, formula programs, or source of
+truth.  After the tests finish they can be removed without changing the
+implementation.
+</p>
+
+<p>
+The reason to use workspace-local caches here is practical.  Earlier long
+tensor-code verification runs encountered pressure in the default temporary or
+global Zig cache locations.  Redirecting both caches into the repository keeps
+the run reproducible under the current sandbox and makes cleanup explicit:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">find .zig-cache-global .zig-cache-local -depth -mindepth 1 -delete
+rmdir .zig-cache-global .zig-cache-local
+</pre>
+</div>
+
+<p>
+This cleanup should happen only for the two explicitly created verification
+directories.  It must not remove <code>zig-out</code>, source files, org files, or any
+repository data.
+</p>
+
+<p>
+Tensor-code also has internal in-memory caches, which are a different matter.
+Those caches are part of the implementation and must survive for the lifetime
+of a <code>Context</code>:
+</p>
+
+<ul class="org-ul">
+<li>the representation store interns algebras and irreps so handles are stable;</li>
+<li>the decomposition store avoids recomputing tensor-product decompositions;</li>
+<li>the projector store interns local projector ids and their derivation/formula
+metadata;</li>
+<li>the coupling store keeps compact basis requests, paths, and steps;</li>
+<li>formula-program caching records whether a projector has an executable render
+route or must fail with a typed missing-formula error.</li>
+</ul>
+
+<p>
+Those internal caches are needed for performance and correctness.  They prevent
+the \(16^{12}\) stress target from repeatedly regenerating the same product
+decompositions and local projector metadata.  They are deliberately compact:
+they store handles, spans, counters, and formula metadata, not dense component
+tensors.  The final evaluator should keep this property.  Any future component
+cache must be bounded by local atom/program size or by an explicit caller-owned
+memoization policy; it must not cache dense spaces such as \(16^{12}\).
+</p>
+
+<p>
+The full goal should not be marked complete until the following evidence is
+present in the current tree:
+</p>
+
+<ul class="org-ul">
+<li>every \(16^{12}\) path streams in expanded, lowered form;</li>
+<li>every lowered atom needed by that stream has component-evaluation semantics;</li>
+<li>component filters prune during streaming;</li>
+<li><code>evaluateBasisInvariant</code> or its final equivalent is implemented and tested;</li>
+<li><code>evaluateInvariant</code> is removed, redirected safely, or explicitly documented
+as basis-less and unsupported;</li>
+<li>ADE decomposition works beyond the currently supported generic cases;</li>
+<li>ADE local projector programs exist or fail with typed missing capability
+before they appear in an expanded basis;</li>
+<li>no implementation path allocates dense \(16^{12}\) component tensors.</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

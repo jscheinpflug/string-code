@@ -1,0 +1,475 @@
+:PROPERTIES:
+:ID:       20260609T131500.000000
+:END:
+#+title: NLSM Backend And Lisp DSL
+#+bibliography: ../refs.bib
+
+This note reviews and replaces the first backend sketch.  The corrected design
+is a compact calculation DSL backed by generated, streaming Zig kernels.  The
+physics anchor is the stringbook dimensional-regularization/minimal-subtraction
+scheme for the Polyakov path integral, together with the older sigma-model
+literature on background fields, Weyl anomaly coefficients, and four-loop
+supersymmetric NLSM beta functions [cite:@yinStringbook] [cite:@Friedan:1985nl]
+[cite:@Callan:1985ia] [cite:@Tseytlin:1986tt] [cite:@Tseytlin:1986ws]
+[cite:@Metsaev:1987zx] [cite:@Grisaru:1986px] [cite:@Grisaru:1986dk]
+[cite:@Grisaru:1986kw] [cite:@Gross:1986iv].
+
+* Reference Map
+
+Each paper below must translate to a concrete table, kernel, or check.  If a
+reference does not constrain code, it does not belong in the implementation
+note.
+
+- Stringbook [cite:@yinStringbook] gives the working scheme: the Polyakov path
+  integral with \(G,B,\Phi\), dimensional regularization in \(2-\epsilon\),
+  minimal subtraction, \(G^\epsilon=\mu^{-\epsilon}(G+\sum\epsilon^{-n}K^{(n)})\),
+  beta functions from the simple pole \(K^{(1)}\), the \(B\)-field epsilon-frame
+  ambiguity, and hatted Weyl coefficients with \(W_\mu,L_\mu,\Phi\) total
+  derivative terms.  Code translation: =SchemeRow(:stringbook-ms)=,
+  =PoleRow=, =BetaAssembler=, =WeylAnomalyRow=, and a =BFieldEpsilonPolicy=.
+
+- Friedan [cite:@Friedan:1985nl] is the background-field/RNC renormalization
+  anchor: NLSM couplings are geometric tensors, counterterms are local tensor
+  functionals, and normal-coordinate algorithms organize the perturbation
+  series covariantly.  Code translation: =RncVertexPlan= streams vertices from
+  geometry descriptors; =GeometryTensorWord= stores counterterms as local
+  tensor words; =CouplingSpaceOp= records metric variations used by beta
+  assembly.
+
+- Callan-Friedan-Martinec-Perry [cite:@Callan:1985ia] explains why the beta
+  functions of \(G,B,\Phi\) are the spacetime equations of motion for string
+  backgrounds.  Code translation: jobs target physical rows such as
+  =:metric-beta=, =:b-beta=, =:dilaton-beta=, and =:effective-action= instead
+  of generic correlator output.
+
+- Tseytlin's conformal-anomaly paper [cite:@Tseytlin:1986tt] fixes the
+  distinction between RG beta functions and Weyl-anomaly coefficients in curved
+  backgrounds.  Code translation: keep =BetaRow= separate from
+  =WeylAnomalyRow=; do not bake \(W_\mu\), \(L_\mu\), or dilaton improvements
+  into the contraction kernel.
+
+- Tseytlin's Weyl-invariance paper [cite:@Tseytlin:1986ws] emphasizes scheme
+  dependence and field redefinitions in the map from sigma-model beta functions
+  to string equations.  Code translation: =BasisPolicy= must include
+  =:field-redefinitions= and =:eom= quotients, and every emitted row carries a
+  scheme id.
+
+- Metsaev-Tseytlin [cite:@Metsaev:1987zx] compares two-loop sigma-model Weyl
+  invariance with string effective equations including \(B\) and \(\Phi\), and
+  makes field-frame dependence explicit.  Code translation: =ActionMatcher=
+  consumes canonical beta rows plus a =FieldFrame= and emits effective-action
+  tensor rows; \(H=dB\) and dilaton derivative atoms are part of the geometry
+  descriptor.
+
+- Grisaru-van de Ven-Zanon PLB [cite:@Grisaru:1986px] gives the compact
+  four-loop superspace beta-function result for \(N=1,2\) NLSMs.  Code
+  translation: this is the first high-loop regression target for
+  =define-nlsm-job= with =:n1-1= and =:n2-2= worldsheet presets.
+
+- Grisaru-van de Ven-Zanon on Ricci-flat Kahler targets [cite:@Grisaru:1986dk]
+  shows that Ricci-flat Kahler manifolds are not finite at four loops.  Code
+  translation: =TargetPreset(:cy3)= must impose Kahler type and Ricci-flatness
+  but still allow the four-loop local tensor to survive in the =:kahler-beta=
+  job.
+
+- Grisaru-van de Ven-Zanon on four-loop divergences [cite:@Grisaru:1986kw]
+  supplies explicit divergence structures and diagrammatic checks.  Code
+  translation: =inspect-nlsm= must expose vertices, primitive diagram classes,
+  pole signatures, and uncanonicalized tensor words for term-by-term
+  comparison.
+
+- Gross-Witten [cite:@Gross:1986iv] fixes the amplitude-normalized \(R^4\)
+  correction and its implication that generic Ricci-flat targets are corrected
+  while special Kahler holonomy changes the answer.  Code translation:
+  =ActionMatcher(:r4)= maps beta rows to the \(R^4\) action basis and provides
+  the normalization check for type-II jobs.
+
+- Liu-Minasian [cite:@Liu:2013dna] gives duality and \(B\)-field tests for
+  higher-derivative couplings.  Code translation: =TargetPreset(:k3)= and
+  =TargetPreset(:cy3)= should share the same \(R^4\) kernel but use different
+  quotient policies and compactification checks.
+
+- Policastro-Tsimpis [cite:@Policastro:2006vt] clarifies purified \(R^4\)
+  invariants and the removal of ambiguous Ricci/EOM terms.  Code translation:
+  =BasisPolicy(:r4)= has an on-shell/purified mode that quotients Ricci,
+  scalar-curvature, integration-by-parts, and field-redefinition terms before
+  comparing to amplitudes.
+
+- Candelas-de la Ossa [cite:@Candelas:1990pi] and
+  Candelas-de la Ossa-Green-Parkes [cite:@Candelas:1990rm] fix the CY moduli
+  and quintic test case.  Code translation: compact target descriptors need
+  =CohomologyRow=, =IntersectionRow=, and =LargeVolumeFitPlan=.  The quintic
+  preset has \(h^{1,1}=1\), so it is the first numerical metric target: fit
+  local curvature integrals against one Kahler volume parameter before moving
+  to multi-modulus CY3 examples.
+
+* Review Findings
+
+The previous proposal had the right backend direction but the wrong authoring
+surface.
+
+- Good: generated Zig fixtures, streaming kernels, descriptor tables, and a
+  contraction-only RNC path.
+- Good: CY3 and K3 should alter target descriptors and tensor quotients, not
+  replace the correlator engine.
+- Bad: the Lisp examples exposed too much per-model boilerplate: explicit
+  propagator kernels, repeated index declarations, manual background legs, and
+  full RNC source declarations.
+- Bad: public Zig functions such as =streamVertices= and =streamDiagrams= are
+  useful internally, but too wide as the main user-facing API.
+
+The user wants to say what calculation is being done.  Zig wants a compact
+static job plan with interned ids, flat arrays, and no symbolic tree
+materialization.
+
+* Correct Backend
+
+The backend is a generated kernel plan:
+
+#+begin_src text :tangle no
+Lisp job form
+  -> normalized NLSM descriptor
+  -> generated Zig fixture tables
+  -> generated dispatch by job id
+  -> streaming kernels
+  -> pole, beta, or action rows
+#+end_src
+
+The performance-critical kernels are:
+
+1. =vertex_plan=: expands standard RNC vertex families by order and field
+   content.
+2. =diagram_plan=: enumerates vertex multisets and quantum occurrence pairings.
+3. =contract=: consumes fluctuation pairs such as \(\xi\xi\), \(\psi\psi\), or
+   mixed supersymmetric free pairs.
+4. =pole=: maps coordinate-kernel signatures to local \(1/\epsilon^n\) pole
+   rows in the selected scheme.
+5. =canon=: canonicalizes geometry tensor words in the requested quotient.
+6. =assemble=: converts simple poles to beta-function or local-action rows.
+
+The RNC Wick operation has no residual.  A branch contains quantum occurrences
+to be paired, background legs to keep, tensor atoms to multiply, and compact
+coordinate/scalar ids.  Pairing a quantum occurrence consumes it.  Remaining
+background legs are the local counterterm operator.
+
+* Data Shape
+
+The generated descriptor should use flat tables and integer ids.
+
+#+begin_src zig :tangle no
+pub const JobRow = struct {
+    model: ModelId,
+    scheme: SchemeId,
+    target_op: TargetOp,
+    max_loops: u8,
+    alpha_prime_order: u8,
+    vertex_policy: VertexPolicyId,
+    basis: BasisPolicyId,
+    emit: EmitFlags,
+};
+
+pub const ModelRow = struct {
+    target: TargetId,
+    worldsheet: WorldsheetId,
+    field_set: FieldSetId,
+    default_scheme: SchemeId,
+    topology: TopologyId,
+};
+
+pub const TopologyRow = struct {
+    hodge: HodgeDiamondId,
+    first_form: u32,
+    form_len: u16,
+    first_intersection: u32,
+    intersection_len: u16,
+    volume_model: VolumeModelId,
+};
+
+pub const FormRow = struct {
+    degree: u8,
+    hodge_p: u8,
+    hodge_q: u8,
+    multiplicity: u16,
+    role: FormRole,
+};
+
+pub const IntersectionRow = struct {
+    first_form: u32,
+    form_len: u8,
+    coefficient: RationalId,
+};
+
+pub const VertexRow = struct {
+    first_quantum: u32,
+    quantum_len: u16,
+    first_background: u32,
+    background_len: u16,
+    first_tensor: u32,
+    tensor_len: u16,
+    first_scalar: u32,
+    scalar_len: u16,
+    alpha_prime_power: i16,
+    symmetry_denominator: u32,
+};
+#+end_src
+
+The hot branch frame should be mutable and small:
+
+#+begin_src zig :tangle no
+pub const BranchState = struct {
+    live_quantum: OccurrenceBitSet,
+    pairs: PairStack,
+    scalar: ScalarAccum,
+    coordinate: CoordinateAccum,
+    tensor: TensorWordAccum,
+    background: BackgroundAccum,
+};
+#+end_src
+
+No kernel should allocate an expanded action, a full diagram forest, or a full
+symbolic sum.  Every stage streams rows to the next stage or to an inspection
+sink.
+
+* Public Zig API
+
+The public API should be job-oriented.  Fine-grained streams stay internal
+until there is a concrete external caller.
+
+#+begin_src zig :tangle no
+pub const NLSM = struct {
+    /// run streams the requested stage for a generated NLSM job.
+    pub fn run(job: JobId, stage: Stage, sink: anytype) !void;
+
+    /// inspect streams selected intermediate rows for debugging or paper checks.
+    pub fn inspect(job: JobId, request: InspectRequest, sink: anytype) !void;
+};
+#+end_src
+
+The generated ABI can mirror this:
+
+#+begin_src text :tangle no
+nlsm_run(job_id, stage_id, sink)
+nlsm_inspect(job_id, selector_id, sink)
+#+end_src
+
+Everything else should remain private until another module needs it.
+
+* Compact Lisp DSL
+
+The normal user should write one compact job form.  Defaults come from named
+target/worldsheet presets.
+
+#+begin_src lisp :tangle no
+(define-nlsm-job bosonic-one-loop-g
+  (target :riemannian :dim d)
+  (worldsheet :bosonic)
+  (scheme :stringbook-ms)
+  (compute :metric-beta :loops 1)
+  (basis :riemannian)
+  (emit :poles :beta))
+#+end_src
+
+The \(R^4\) CY3 calculation should be similarly short:
+
+#+begin_src lisp :tangle no
+(define-nlsm-job cy3-r4
+  (target :cy3 :dim 3
+          :cohomology (hodge ((0 0 1)
+                              (1 1 h11)
+                              (2 1 h21) (1 2 h21)
+                              (2 2 h11)
+                              (3 0 1) (0 3 1)
+                              (3 3 1)))
+          :forms ((J a :h11 :kahler)
+                  (chi alpha :h21 :complex)
+                  (Omega :h30 :holomorphic-volume)))
+  (worldsheet :n2-2)
+  (scheme :stringbook-ms)
+  (compute :kahler-beta :loops 4 :alpha-prime 3)
+  (basis :r4 :quotient (:kahler :ricci-flat :ibp :field-redefinitions))
+  (emit :poles :beta :action))
+#+end_src
+
+K3 changes only the target preset and quotient:
+
+#+begin_src lisp :tangle no
+(define-nlsm-job k3-r4-check
+  (target :k3
+          :cohomology (hodge ((0 0 1)
+                              (1 0 0) (0 1 0)
+                              (2 0 1)
+                              (1 1 20)
+                              (0 2 1)
+                              (2 1 0) (1 2 0)
+                              (2 2 1)))
+          :forms ((omega A :h11 :kahler)
+                  (Omega :h20 :holomorphic-two-form)))
+  (worldsheet :n4-4)
+  (scheme :stringbook-ms)
+  (compute :metric-beta :loops 4 :alpha-prime 3)
+  (basis :r4 :quotient (:hyperkahler :ricci-flat :ibp :field-redefinitions))
+  (emit :poles :beta))
+#+end_src
+
+The DSL compiler expands these forms to:
+
+- standard fields for the selected worldsheet model;
+- standard propagators for the selected scheme;
+- standard RNC vertex families through the requested loop order;
+- default background operator legs for the requested counterterm;
+- target-specific tensor canonicalization relations.
+
+The user should not have to declare \(\xi\), \(G_{\mu\nu}\), the propagator, or
+\(\partial X\bar\partial X\) for common metric and Kahler beta calculations.
+
+For a concrete one-modulus starting point, the quintic should be a named target
+preset:
+
+#+begin_src lisp :tangle no
+(define-nlsm-job quintic-large-volume-r4
+  (target :quintic
+          :cohomology (hodge ((0 0 1)
+                              (1 1 1)
+                              (2 1 101) (1 2 101)
+                              (2 2 1)
+                              (3 0 1) (0 3 1)
+                              (3 3 1)))
+          :forms ((J :h11 :kahler)
+                  (chi alpha :h21 :complex)
+                  (Omega :h30 :holomorphic-volume))
+          :intersection ((J J J) 5)
+          :c2 ((J) 50)
+          :volume (cubic :kahler J))
+  (worldsheet :n2-2)
+  (scheme :stringbook-ms)
+  (compute :kahler-beta :loops 4 :alpha-prime 3)
+  (fit :large-volume :variables (vol J) :observables (:curvature-integrals))
+  (emit :beta :action :fit-data))
+#+end_src
+
+This separates two tasks.  The local NLSM kernel computes a curvature
+expansion.  Once a numerical Ricci-flat metric is supplied, the fitting layer
+integrates emitted local invariants against harmonic-form and cycle data, then
+fits the result as an expansion in Kahler parameters or the overall volume.
+
+The target form declarations are intentionally topology-level data.  They tell
+the backend which moduli exist and which projections are legal.  They do not
+change the local \(\xi\xi\) Wick kernel.
+
+* Reusable Models
+
+If several jobs share one model, define the model once:
+
+#+begin_src lisp :tangle no
+(define-nlsm-model type-ii-cy3
+  (target :cy3 :dim 3 :cohomology cy3-cohomology)
+  (worldsheet :n2-2)
+  (scheme :stringbook-ms))
+
+(define-nlsm-job cy3-r4
+  (model type-ii-cy3)
+  (compute :kahler-beta :loops 4 :alpha-prime 3)
+  (basis :r4 :quotient (:kahler :ricci-flat :ibp :field-redefinitions))
+  (emit :beta :action))
+#+end_src
+
+This is the authoring path we should optimize.
+
+* Inspection DSL
+
+Manual detail belongs in inspection forms, not in normal jobs.
+
+#+begin_src lisp :tangle no
+(inspect-nlsm cy3-r4
+  (vertices :order 4)
+  (diagrams :topology :primitive)
+  (poles :tensor (r4 :kahler)))
+#+end_src
+
+For term-by-term checks against old papers, allow a low-level vertex fixture:
+
+#+begin_src lisp :tangle no
+(define-nlsm-fixture metric-rnc-2
+  (model bosonic-riemannian)
+  (vertex
+    (:quantum (xi rho) (xi sigma))
+    (:background (dX mu) (dbarX nu))
+    (:tensor (riemann mu rho sigma nu))
+    (:symmetry 3)))
+#+end_src
+
+This fixture path is for debugging the generator.  It is not the main
+calculation language.
+
+* Descriptor Defaults
+
+Named presets should carry the boilerplate:
+
+- =:stringbook-ms=: \(d=2-\epsilon\), minimal subtraction, simple-pole beta
+  extraction, hatted Weyl anomaly option, and the stringbook \(B\)-field
+  epsilon-frame convention.
+- =:riemannian=: real vector indices, Levi-Civita connection, Riemann
+  symmetries, Bianchi relations, metric compatibility.
+- =:cy3=: complex dimension 3, Kahler index type, Ricci flatness, \(SU(3)\)
+  holonomy, holomorphic volume form when requested, and user-specified Hodge
+  numbers/forms/intersections.
+- =:k3=: complex dimension 2, hyperkahler quotient, Ricci flatness, \(Sp(1)\)
+  holonomy, and the known K3 Hodge diamond.
+- =:quintic=: CY3 preset with \(h^{1,1}=1\), \(h^{2,1}=101\), one Kahler
+  generator \(J\), \(\int J^3=5\), and a one-variable large-volume fit.
+- =:bosonic=, =:n1-1=, =:n2-2=, =:n4-4=: standard fluctuation field sets,
+  free contractions, signs, and supersymmetry selection rules.
+
+The old NLSM and string effective-action literature makes two design
+constraints unavoidable: scheme data must be explicit, and field
+redefinition/equation-of-motion equivalence must be part of the basis policy
+[cite:@Tseytlin:1986ws] [cite:@Metsaev:1987zx] [cite:@Grisaru:1986px]
+[cite:@Gross:1986iv].
+
+* What Zig Must Make Fast
+
+The fast path is not Lisp macro expansion.  It is the generated Zig job:
+
+- enumerate only vertex multisets compatible with loop order and external
+  operator;
+- pair only compatible quantum occurrence types;
+- represent tensor products as interned tensor words with small ids;
+- cache canonical tensor words by target quotient;
+- reduce coordinate kernels by signature tables, not expression matching;
+- stream pole rows immediately;
+- assemble beta/action rows after canonicalization.
+- project local curvature invariants onto harmonic-form and intersection data
+  only after the local tensor result has been streamed and canonicalized.
+
+The key cache keys are:
+
+#+begin_src zig :tangle no
+const VertexCacheKey = struct { model: ModelId, loops: u8, op: TargetOp };
+const DiagramCacheKey = struct { job: JobId, signature: OccupancySignature };
+const PoleCacheKey = struct { scheme: SchemeId, coordinate: CoordinateSignature };
+const CanonCacheKey = struct { target: TargetId, basis: BasisPolicyId, word: TensorWordId };
+const FitCacheKey = struct { target: TargetId, observable: ObservableId, volume: VolumeModelId };
+#+end_src
+
+This layout leaves room for parallelization by vertex multiset, primitive
+topology, coordinate signature, or canonicalization bucket.
+
+* Implementation Order
+
+1. Build the descriptor compiler for =define-nlsm-model= and
+   =define-nlsm-job=.
+2. Generate =JobRow=, =ModelRow=, and preset target/worldsheet tables.
+3. Implement the bosonic one-loop =:metric-beta= job and reproduce the
+   stringbook \(R_{\mu\nu}\) result in the MS scheme.
+4. Add =inspect-nlsm= for vertices, diagrams, and poles.
+5. Add =:n1-1= and =:n2-2= field presets and reproduce the four-loop
+   Ricci-flat Kahler non-finiteness checks [cite:@Grisaru:1986px]
+   [cite:@Grisaru:1986dk] [cite:@Grisaru:1986kw].
+6. Add CY3/K3 topology descriptors: Hodge diamonds, harmonic-form roles,
+   intersection data, and volume models.  Use K3's known Hodge diamond and the
+   one-modulus quintic as the first CY3 target [cite:@Candelas:1990rm].
+7. Add CY3/K3 tensor quotients and match the \(R^4\) action basis against
+   amplitude and duality checks [cite:@Gross:1986iv] [cite:@Liu:2013dna]
+   [cite:@Policastro:2006vt].
+
+#+print_bibliography:

@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lisp Generated Expression Benchmark</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Lisp Generated Expression Benchmark</h1>
+<p>
+This benchmark times the Lisp expression folder over compact generated ABI
+term/factor records.  The comparison baseline is the generated C ABI event
+stream, not the count-only path, because expanded expression output must still
+read every emitted factor.  Build the generated shared library with
+<code>-Doptimize=ReleaseFast</code> before timing.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(ql:quickload <span style="color: #fe8019; font-weight: bold;">:cffi</span> <span style="color: #fe8019; font-weight: bold;">:silent</span> t)
+(<span style="color: #fb4934; font-weight: bold;">require</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:asdf</span>)
+(push #p<span style="color: #b8bb26; font-style: italic;">"lisp/"</span> asdf:*central-registry*)
+(asdf:load-system <span style="color: #b8bb26; font-style: italic;">"string-code-cft"</span>)
+
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*generated-library*</span> <span style="color: #b8bb26; font-style: italic;">"zig-out/lib/libstring_code_cft_generated.so"</span>)
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*sample-count*</span> 11)
+
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bench-case</span> name maker fill abi-run-ns)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">now-ns</span> ()
+  (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (sec usec) (sb-ext:get-time-of-day)
+    (+ (* sec 1000000000) (* usec 1000))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">median</span> (values)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((copy (sort (copy-seq values) #'&lt;)))
+    (aref copy (floor (length copy) 2))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">sample-ns</span> (thunk)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((samples (make-array *sample-count*)))
+    (<span style="color: #fb4934; font-weight: bold;">dotimes</span> (index *sample-count*)
+      (sb-ext:gc <span style="color: #fe8019; font-weight: bold;">:full</span> nil)
+      (<span style="color: #fb4934; font-weight: bold;">let</span> ((start (now-ns)))
+        (funcall thunk)
+        (setf (aref samples index) (- (now-ns) start))))
+    (median samples)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">expression-term-count</span> (expr)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and (consp expr) (eq (first expr) '+))
+      (length (rest expr))
+      1))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fill-psi</span> (count)
+  (<span style="color: #fb4934; font-weight: bold;">lambda</span> (context)
+    (<span style="color: #fb4934; font-weight: bold;">dotimes</span> (index count)
+      (string-code.cft.fixtures:psi context
+                                    (format nil <span style="color: #b8bb26; font-style: italic;">"mu~D"</span> index)
+                                    (format nil <span style="color: #b8bb26; font-style: italic;">"z~D"</span> index)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fill-dx</span> (count)
+  (<span style="color: #fb4934; font-weight: bold;">lambda</span> (context)
+    (<span style="color: #fb4934; font-weight: bold;">dotimes</span> (index count)
+      (string-code.cft.fixtures:dX context
+                                   (format nil <span style="color: #b8bb26; font-style: italic;">"mu~D"</span> index)
+                                   (format nil <span style="color: #b8bb26; font-style: italic;">"z~D"</span> index)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fill-exp</span> (count)
+  (<span style="color: #fb4934; font-weight: bold;">lambda</span> (context)
+    (<span style="color: #fb4934; font-weight: bold;">dotimes</span> (index count)
+      (string-code.cft.fixtures:expX context
+                                     (format nil <span style="color: #b8bb26; font-style: italic;">"k~D"</span> index)
+                                     (format nil <span style="color: #b8bb26; font-style: italic;">"z~D"</span> index)
+                                     (format nil <span style="color: #b8bb26; font-style: italic;">"zb~D"</span> index)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">run-case</span> (<span style="color: #fb4934; font-weight: bold;">case</span>)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((context (funcall (bench-case-maker case) <span style="color: #fe8019; font-weight: bold;">:library</span> *generated-library*)))
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (<span style="color: #fb4934; font-weight: bold;">progn</span>
+           (funcall (bench-case-fill case) context)
+           (<span style="color: #fb4934; font-weight: bold;">let*</span> ((frozen (string-code.cft.descriptor:freeze-runtime-operators context))
+                  (count (string-code.cft.descriptor:count-correlator context frozen))
+                  (expr-ns (sample-ns
+                            (<span style="color: #fb4934; font-weight: bold;">lambda</span> ()
+                              (expression-term-count
+                               (string-code.cft.descriptor:correlator-expression context frozen)))))
+                  (ratio (/ (float expr-ns) (bench-case-abi-run-ns case))))
+             (format t <span style="color: #b8bb26; font-style: italic;">"~A count=~D expr_ns=~D abi_run_ns=~D ratio=~,2F~%"</span>
+                     (bench-case-name case) count expr-ns
+                     (bench-case-abi-run-ns case) ratio)))
+      (string-code.cft.descriptor:destroy-runtime-context context))))
+
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*cases*</span>
+  (list
+   (make-bench-case <span style="color: #fe8019; font-weight: bold;">:name</span> <span style="color: #b8bb26; font-style: italic;">"psi8"</span>
+                    <span style="color: #fe8019; font-weight: bold;">:maker</span> #'string-code.cft.fixtures:make-free-fermion-runtime
+                    <span style="color: #fe8019; font-weight: bold;">:fill</span> (fill-psi 8)
+                    <span style="color: #fe8019; font-weight: bold;">:abi-run-ns</span> 136715)
+   (make-bench-case <span style="color: #fe8019; font-weight: bold;">:name</span> <span style="color: #b8bb26; font-style: italic;">"psi10"</span>
+                    <span style="color: #fe8019; font-weight: bold;">:maker</span> #'string-code.cft.fixtures:make-free-fermion-runtime
+                    <span style="color: #fe8019; font-weight: bold;">:fill</span> (fill-psi 10)
+                    <span style="color: #fe8019; font-weight: bold;">:abi-run-ns</span> 1056899)
+   (make-bench-case <span style="color: #fe8019; font-weight: bold;">:name</span> <span style="color: #b8bb26; font-style: italic;">"dx8"</span>
+                    <span style="color: #fe8019; font-weight: bold;">:maker</span> #'string-code.cft.fixtures:make-free-boson-runtime
+                    <span style="color: #fe8019; font-weight: bold;">:fill</span> (fill-dx 8)
+                    <span style="color: #fe8019; font-weight: bold;">:abi-run-ns</span> 125244)
+   (make-bench-case <span style="color: #fe8019; font-weight: bold;">:name</span> <span style="color: #b8bb26; font-style: italic;">"exp4"</span>
+                    <span style="color: #fe8019; font-weight: bold;">:maker</span> #'string-code.cft.fixtures:make-free-boson-runtime
+                    <span style="color: #fe8019; font-weight: bold;">:fill</span> (fill-exp 4)
+                    <span style="color: #fe8019; font-weight: bold;">:abi-run-ns</span> 8268)))
+
+(<span style="color: #fb4934; font-weight: bold;">dolist</span> (<span style="color: #fb4934; font-weight: bold;">case</span> *cases*)
+  (run-case case))
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

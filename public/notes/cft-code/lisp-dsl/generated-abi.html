@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generated Fixture ABI</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Generated Fixture ABI</h1>
+<p>
+This node exposes the smallest C ABI for the descriptor fixtures emitted by
+<a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a>.  The exported entrypoints are
+theory-generic: a theory id selects the generated descriptor instance, and field
+ids distinguish runtime insertions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"correlators/descriptor.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dispatch</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"correlators/generated_dispatch.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"kernel.zig"</span>);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span> = std.heap.c_allocator;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TheoryId</span> = dispatch.TheoryId;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContextTag</span> = dispatch.ContextTag;
+
+<span style="color: #e0d3b9; font-style: italic;">/// Context is an opaque generated-theory runtime handle for the C ABI.
+</span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Context</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">inner</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContextTag</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">frozen</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+
+<p>
+The ABI event is a stable POD record.  String names are borrowed for the
+duration of the callback and copied by Lisp only when it collects events.
+</p>
+
+<a id="Event"></a>
+<a id="ExpressionTerm"></a>
+<a id="ExpressionFactor"></a>
+<a id="ExpressionName"></a>
+<a id="EventCallback"></a>
+<a id="EventChunkCallback"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org10925a9"><span style="color: #e0d3b9; font-style: italic;">/// Event is one stable C ABI result event.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Event</span> = <span style="color: #fb4934; font-weight: bold;">extern</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">a</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">b</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">c</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name_ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExpressionTerm is one product in the expanded symbolic sum.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpressionTerm</span> = <span style="color: #fb4934; font-weight: bold;">extern</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">factor_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExpressionFactor is one nontrivial symbolic product factor.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpressionFactor</span> = <span style="color: #fb4934; font-weight: bold;">extern</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">a</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">b</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">c</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExpressionName is one borrowed symbolic name used by expression factors.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpressionName</span> = <span style="color: #fb4934; font-weight: bold;">extern</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// EventCallback receives one streamed result event.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EventCallback</span> = *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Event</span>) <span style="color: #fb4934; font-weight: bold;">callconv</span>(.c) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// EventChunkCallback receives a bounded chunk of streamed result events.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EventChunkCallback</span> = *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, [*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Event</span>, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fb4934; font-weight: bold;">callconv</span>(.c) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StreamState</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">callback</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EventCallback</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">event_chunk_capacity</span> = 256;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BufferedStreamState</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">callback</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EventChunkCallback</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">events</span>: [event_chunk_capacity]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Event</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">flush</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.callback(self.payload, &amp;self.events, self.len) != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.CallbackFailed;
+        self.len = 0;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">push</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Event</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.events[self.len] = event;
+        self.len += 1;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.len == self.events.len) <span style="color: #fb4934; font-weight: bold;">try</span> self.flush();
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">abiEvent</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">descriptor.ResultEvent</span>) Event {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name_ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (event.name) |name| name.ptr <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (event.name) |name| name.len <span style="color: #fb4934; font-weight: bold;">else</span> 0;
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .kind = <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(event.kind),
+        .a = event.a,
+        .b = event.b,
+        .c = event.c,
+        .d = event.d,
+        .name_ptr = name_ptr,
+        .name_len = name_len,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamThunk</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">descriptor.ResultEvent</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StreamState</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(payload));
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">stable_event</span> = abiEvent(event);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (state.callback(state.payload, &amp;stable_event) != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.CallbackFailed;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bufferedStreamThunk</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">descriptor.ResultEvent</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BufferedStreamState</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(payload));
+    <span style="color: #fb4934; font-weight: bold;">try</span> state.push(abiEvent(event));
+}
+</pre>
+</div>
+
+<p>
+Expression records are the fast REPL path.  Zig still streams the correlator
+once, but this state stores only term ranges, nontrivial factors, and interned
+borrowed names.  Lisp builds cons expressions from these compact rows after the
+kernel returns.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NameKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpressionRecordState</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ExpressionTerm) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ExpressionFactor) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">names</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ExpressionName) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name_ids</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.AutoHashMap</span>(NameKey, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) = std.AutoHashMap(NameKey, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>).init(allocator),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.terms.deinit(allocator);
+        self.factors.deinit(allocator);
+        self.names.deinit(allocator);
+        self.name_ids.deinit();
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">nameId</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">maybe_name</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = maybe_name <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span> = NameKey{ .ptr = <span style="color: #fe8019; font-weight: bold;">@intFromPtr</span>(name.ptr), .len = name.len };
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.name_ids.get(key)) |id| <span style="color: #fb4934; font-weight: bold;">return</span> id;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.names.items.len + 1);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.names.append(allocator, .{ .ptr = name.ptr, .len = name.len });
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.name_ids.put(key, id);
+        <span style="color: #fb4934; font-weight: bold;">return</span> id;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">finishTerm</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.terms.append(allocator, .{
+            .first_factor = self.term_start,
+            .factor_count = self.factors.items.len - self.term_start,
+        });
+        self.term_start = self.factors.items.len;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pushFactor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">descriptor.ResultEvent</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (event.kind == .scalar <span style="color: #fb4934; font-weight: bold;">and</span> event.d == 0 <span style="color: #fb4934; font-weight: bold;">and</span> event.name == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span>;
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.factors.append(allocator, .{
+            .kind = <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(event.kind),
+            .a = event.a,
+            .b = event.b,
+            .c = event.c,
+            .d = event.d,
+            .name_id = <span style="color: #fb4934; font-weight: bold;">try</span> self.nameId(event.name),
+        });
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">expressionRecordThunk</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">descriptor.ResultEvent</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionRecordState</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(payload));
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (event.kind) {
+        .sum_term_begin =&gt; state.term_start = state.factors.items.len,
+        .sum_term_end =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> state.finishTerm(),
+        .wick_term_begin, .wick_term_end =&gt; {},
+        .scalar, .coordinate, .tensor, .zero_mode, .residual_operator =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> state.pushFactor(event),
+    }
+}
+</pre>
+</div>
+
+<p>
+Errors are reported by a process-local short buffer.  The ABI does not allocate
+errors or throw across the C boundary.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">last_error_storage</span>: [160]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{0} ** 160;
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">clearError</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    last_error_storage[0] = 0;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">setErrorName</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span> = <span style="color: #fe8019; font-weight: bold;">@min</span>(name.len, last_error_storage.len - 1);
+    <span style="color: #fe8019; font-weight: bold;">@memcpy</span>(last_error_storage[0..len], name[0..len]);
+    last_error_storage[len] = 0;
+    <span style="color: #fb4934; font-weight: bold;">return</span> -1;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">setError</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">err</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #fe8019; font-weight: bold;">@errorName</span>(err));
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_last_error returns the last ABI error string.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_last_error</span>() [*:0]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(&amp;last_error_storage);
+}
+</pre>
+</div>
+
+<p>
+Context creation and destruction dispatch on generated theory ids.  The
+entrypoints are generic; no theory-specific exported functions are needed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// sc_generated_descriptor_abi_version returns the descriptor ABI version.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_descriptor_abi_version</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> descriptor.descriptor_abi_version;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_theory_hash returns the generated theory hash for a theory id.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_theory_hash</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">raw_theory</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span> = dispatch.theoryId(raw_theory) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        _ = setError(err);
+        <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    };
+    <span style="color: #fb4934; font-weight: bold;">return</span> dispatch.theoryHash(id);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_scalar_atom_name returns a descriptor parameter name for an atom id.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_scalar_atom_name</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">raw_theory</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out_ptr</span>: ?*?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out_len</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span> = dispatch.theoryId(raw_theory) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ptr</span> = out_ptr <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span> = out_len <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = dispatch.scalarAtomParameterName(id, atom) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"UnknownScalarAtom"</span>);
+    ptr.* = name.ptr;
+    len.* = name.len;
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_context_create allocates a context for a generated theory id.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_context_create</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">raw_theory</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?*Context {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span> = dispatch.theoryId(raw_theory) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        _ = setError(err);
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = allocator.create(Context) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        _ = setError(err);
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    };
+    ctx.* = .{ .inner = ContextTag.create(id) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        allocator.destroy(ctx);
+        _ = setError(err);
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    } };
+    <span style="color: #fb4934; font-weight: bold;">return</span> ctx;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_context_destroy releases a generated context.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_context_destroy</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span>;
+    handle.inner.destroy();
+    allocator.destroy(handle);
+}
+</pre>
+</div>
+
+<p>
+The mutation entrypoints operate on compact ids and slices supplied by Lisp.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">byteSlice</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) ![]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">data</span> = ptr <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NullPointer;
+    <span style="color: #fb4934; font-weight: bold;">return</span> data[0..len];
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">u32Slice</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) ![]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> &amp;.{};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">data</span> = ptr <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NullPointer;
+    <span style="color: #fb4934; font-weight: bold;">return</span> data[0..len];
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_symbol_intern interns a runtime symbol in one context.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_symbol_intern</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name_ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out_symbol</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = out_symbol <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = byteSlice(name_ptr, name_len) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    out.* = handle.inner.symbolIntern(name) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_field_insert appends one generated field occurrence.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_field_insert</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coords_ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coord_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels_ptr</span>: ?[*]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span> = u32Slice(coords_ptr, coord_len) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span> = u32Slice(labels_ptr, label_len) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    handle.inner.fieldInsert(field_id, coords, labels) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    handle.frozen = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_normal_ordering tags the last count fields as one normal product.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_normal_ordering</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    handle.inner.normalOrdering(count) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    handle.frozen = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_operator_list_freeze freezes the current operator list.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_operator_list_freeze</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    handle.frozen = handle.inner.freeze() <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+</pre>
+</div>
+
+<p>
+Count and stream run against the last frozen operator list.  Count uses the
+descriptor count sink and does not allocate Lisp expression data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">frozen</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) !kernel.Call.MultiOp {
+    <span style="color: #fb4934; font-weight: bold;">return</span> handle.frozen <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OperatorListNotFrozen;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_correlator_count returns the number of accepted branches.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_correlator_count</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out_count</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = out_count <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = frozen(handle) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    out.* = handle.inner.count(ops) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_correlator_run streams result events to a callback.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_correlator_run</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">callback</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EventCallback</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cb</span> = callback <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullCallback"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = frozen(handle) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span> = StreamState{ .payload = payload, .callback = cb };
+    handle.inner.run(ops, &amp;state, streamThunk) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_correlator_run_buffered streams bounded event chunks.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_correlator_run_buffered</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">callback</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EventChunkCallback</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cb</span> = callback <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullCallback"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = frozen(handle) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span> = BufferedStreamState{ .payload = payload, .callback = cb };
+    handle.inner.run(ops, &amp;state, bufferedStreamThunk) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    state.flush() <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+</pre>
+</div>
+
+<p>
+The expression-record export owns the temporary arrays until Lisp has copied or
+folded them.  On every allocation failure it frees earlier arrays before
+returning an ABI error.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #e0d3b9; font-style: italic;">/// sc_generated_correlator_expression_records returns compact expression terms and factors.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_correlator_expression_records</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_terms</span>: ?*[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionTerm</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_term_count</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_factors</span>: ?*[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionFactor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_factor_count</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_names</span>: ?*[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionName</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">out_name_count</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+    clearError();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = ctx <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullContext"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms_out</span> = out_terms <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term_count_out</span> = out_term_count <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors_out</span> = out_factors <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor_count_out</span> = out_factor_count <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">names_out</span> = out_names <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name_count_out</span> = out_name_count <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> setErrorName(<span style="color: #b8bb26; font-style: italic;">"NullOutput"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = frozen(handle) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">state</span> = ExpressionRecordState{};
+    <span style="color: #fb4934; font-weight: bold;">defer</span> state.deinit();
+    handle.inner.run(ops, &amp;state, expressionRecordThunk) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span> = state.factors.toOwnedSlice(allocator) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = state.terms.toOwnedSlice(allocator) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        allocator.free(factors);
+        <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">names</span> = state.names.toOwnedSlice(allocator) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| {
+        allocator.free(terms);
+        allocator.free(factors);
+        <span style="color: #fb4934; font-weight: bold;">return</span> setError(err);
+    };
+    terms_out.* = terms.ptr;
+    term_count_out.* = terms.len;
+    factors_out.* = factors.ptr;
+    factor_count_out.* = factors.len;
+    names_out.* = names.ptr;
+    name_count_out.* = names.len;
+    <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// sc_generated_expression_buffer_free releases compact expression buffers.
+</span><span style="color: #fb4934; font-weight: bold;">export</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sc_generated_expression_buffer_free</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: ?[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionTerm</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: ?[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionFactor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">factor_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">names</span>: ?[*]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpressionName</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (terms) |ptr| allocator.free(ptr[0..term_count]);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (factors) |ptr| allocator.free(ptr[0..factor_count]);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (names) |ptr| allocator.free(ptr[0..name_count]);
+}
+</pre>
+</div>
+
+<p>
+The tests exercise the ABI on one tensor/coordinate path and one count path.
+</p>
+
+<a id="selfTest"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgaf422d6"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">AbiRecorder</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">push</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: ?*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Event</span>) <span style="color: #fb4934; font-weight: bold;">callconv</span>(.c) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">AbiRecorder</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(payload.?));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span> = event_ptr.*;
+        self.count += 1;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (event.kind == <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(descriptor.ResultEventKind.tensor) <span style="color: #fb4934; font-weight: bold;">and</span> event.a == 1 <span style="color: #fb4934; font-weight: bold;">and</span> event.b == 2) {
+            self.saw_tensor = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (event.kind == <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(descriptor.ResultEventKind.coordinate) <span style="color: #fb4934; font-weight: bold;">and</span> event.a == 3 <span style="color: #fb4934; font-weight: bold;">and</span> event.b == 4) {
+            self.saw_coordinate = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    }
+};
+
+
+<span style="color: #e0d3b9; font-style: italic;">/// selfTest runs the generated C ABI fixture invariants.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">selfTest</span>() !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = sc_generated_context_create(<span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(dispatch.first_theory_id)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ContextCreateFailed;
+    <span style="color: #fb4934; font-weight: bold;">defer</span> sc_generated_context_destroy(ctx);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">w</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_symbol_intern(ctx, <span style="color: #b8bb26; font-style: italic;">"mu"</span>.ptr, 2, &amp;mu));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_symbol_intern(ctx, <span style="color: #b8bb26; font-style: italic;">"nu"</span>.ptr, 2, &amp;nu));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_symbol_intern(ctx, <span style="color: #b8bb26; font-style: italic;">"z"</span>.ptr, 1, &amp;z));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_symbol_intern(ctx, <span style="color: #b8bb26; font-style: italic;">"w"</span>.ptr, 1, &amp;w));
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_field_insert(ctx, 0, &amp;.{z}, 1, &amp;.{mu}, 1));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_field_insert(ctx, 0, &amp;.{w}, 1, &amp;.{nu}, 1));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_operator_list_freeze(ctx));
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_correlator_count(ctx, &amp;count));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), count);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">recorder</span> = AbiRecorder{};
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">c_int</span>, 0), sc_generated_correlator_run(ctx, &amp;recorder, AbiRecorder.push));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expect(recorder.saw_tensor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expect(recorder.saw_coordinate);
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Generated Fixture ABI</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generated C ABI counts and streams free-fermion events"</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> selfTest();
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

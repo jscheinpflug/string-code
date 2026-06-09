@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 09:51 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Clebsch-Gordan</title>
@@ -190,12 +190,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -213,6 +220,19 @@
 <li><a href="#orgbeabb5d">Independence By Construction</a></li>
 <li><a href="#orgdbb0ac3">Implementation Instructions</a></li>
 <li><a href="#org864e8d9">Current State</a></li>
+<li><a href="#org2d62720">Current Handoff Toward Formula Projectors</a>
+<ul>
+<li><a href="#orgd98fca6">Plain-language plan</a></li>
+<li><a href="#org9020295">Current verified pieces</a></li>
+<li><a href="#org12ef242">Generality requirements</a></li>
+<li><a href="#org5c98edb">Immediate consistency tasks</a></li>
+<li><a href="#orgc4da46d">Formula execution model</a></li>
+<li><a href="#org0776f30">Required first projector formulas</a></li>
+<li><a href="#orgfba12ed">Gamma algebra reducer</a></li>
+<li><a href="#org4b1b4c3">Projector cache requirements</a></li>
+<li><a href="#org4eaaa7f">Acceptance gates for the next milestone</a></li>
+</ul>
+</li>
 <li><a href="#org5fdf502">Backend Goal</a></li>
 <li><a href="#orge2da967">Backend Build Order</a>
 <ul>
@@ -283,7 +303,7 @@ carrying the full ambient tensor product through every internal step;</li>
 components;</li>
 <li>render explicit gamma/projector formulas only on demand and by streaming
 terms to a sink;</li>
-<li>make every projector appearing in a returned result fully expandable.</li>
+<li>keep named projector paths distinct from fully expanded projector formulas.</li>
 </ul>
 
 <p>
@@ -297,9 +317,10 @@ identified by dimension.</li>
 <li>Large invariant bases must be stored as compact coupling paths.  A basis
 element is a recipe: external legs, intermediate channels, and local
 projector/CG kernel ids.</li>
-<li>Projectors in returned results must not be opaque tokens.  A projector id
-may be the compact storage form, but it must carry enough derivation data to
-expand into concrete symbolic terms later.</li>
+<li>Projectors in returned results must not be anonymous tokens.  A projector id
+may be the compact storage form, but it must carry role, convention, and
+derivation metadata.  Until a formula renderer exists, expanded rendering
+must fail with a typed missing-formula error.</li>
 <li>Expansion must be streamed.  Fully expandable does not mean eagerly
 expanded.  It means the renderer can enumerate the terms without inventing
 missing identities or asking the user for hidden Fierz relations.</li>
@@ -355,8 +376,10 @@ The following are explicitly not acceptable:
 <li>Returning only abstract representation-theory counts.  Counts are useful for
 feasibility, but CFT code needs actual invariant handles and eventually
 streamable tensor expressions.</li>
-<li>Returning opaque named projectors with no derivation recipe.  A compact
-projector id is acceptable only if the backend can expand it.</li>
+<li>Returning opaque named projectors with no derivation metadata.  A compact
+projector id is acceptable as an intermediate named form only if expanded
+rendering remains a typed missing-formula error until a real formula route is
+implemented.</li>
 <li>Returning compact coupling paths with no efficient expansion path.  A list
 of \(73744\) abstract expressions is not enough.</li>
 <li>Expanding all \(73744\) basis elements into memory before filtering.  Filters
@@ -569,13 +592,19 @@ records that path enumeration will use.</li>
 <li>Implement path enumeration for one canonical coupling tree.  Each emitted
 path must store its local channel choices and multiplicity-copy ids.  The
 path count must equal the dynamic count.  Do not enumerate several trees
-until basis-change or reduction maps exist.</li>
+until basis-change or reduction maps exist.
+The public request path must at least verify that \(R\otimes R^*\) contains
+one singlet for representative \(A\), \(D\), \(E_6\), \(E_7\), and \(E_8\)
+irreps.
+It must also verify representative multi-leg invariants such as
+\(A_2:3^3\), \(D_5:10^2\), \(E_6:27^3\), and \(E_8:248^3\).</li>
 <li>Implement projector identity creation.  Each projector id must record its
 role, convention, derivation kind, and expansion obligation.</li>
 <li>Implement a minimal expansion interface that can walk one path and call a
-sink with streamed symbolic terms.  At first it may return typed
-<code>NotImplemented</code> for missing local formulas, but it must not return opaque
-successful placeholders.</li>
+sink with streamed symbolic terms.  Named projector chains may be emitted as
+compact symbolic atoms; expanded projector requests must return typed
+<code>NotImplemented</code> for missing local formulas rather than successful formula
+placeholders.</li>
 <li>Implement filters inside the expansion loop.  The filter decision is
 tri-state: <code>accept</code>, <code>reject</code>, or <code>undecided</code>.  A partial term can be
 rejected only when rejection is final under all completions.  Prove with a
@@ -658,8 +687,18 @@ projectors.</li>
 capability contract.</li>
 <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a> defines streamed symbolic
 terms.  <code>SymbolicTerm</code> carries borrowed slices valid only until the sink
-returns.  The public root does not expose a gamma-specific type; SO/Spin
-renderers can emit backend operators through generic symbolic atoms.</li>
+returns.  The public root exposes the compact explicit atom payloads needed
+by current SO/Spin renderers.
+Named operators carry a compact kind tag, so filters can distinguish
+projector, gamma, metric, epsilon, structure-constant, and custom backend
+operators without knowing their family-specific formula payload.  Projector
+operator ids can be resolved through the context to read-only descriptors
+containing their role, convention, and derivation metadata.
+A built-in operator-kind filter can reject terms containing a selected
+operator kind before they reach the sink; explicit <code>gamma_matrix</code> and
+<code>gamma_form</code> atoms are treated as gamma-kind contractions, while
+<code>metric_pair</code> and <code>spinor_pair</code> atoms are treated as metric-kind
+contractions.</li>
 </ul>
 
 <p>
@@ -675,19 +714,599 @@ Build-checked metadata cases currently include:
 </ul>
 
 <p>
+The implemented backend path now includes:
+</p>
+
+<ul class="org-ul">
+<li>generic highest-weight weight systems for \(A,B,D,E_6,E_7,E_8\);</li>
+<li>cached binary product decompositions;</li>
+<li>dynamic path counting and canonical path enumeration;</li>
+<li>public basis count and compact path audits;</li>
+<li>named projector-chain rendering through a streamed filter boundary;</li>
+<li>projected realization boundary projectors emitted once at the external leg
+boundary, so constrained realizations such as \(144\subset10\otimes16\) do
+not leak their ambient product into internal coupling steps;</li>
+<li>an orthogonal vector-square singlet renderer that emits a streamed metric
+atom for \(B_n,D_n\) vector pairs;</li>
+<li>an orthogonal spinor-pair singlet renderer that emits a streamed
+<code>spinor_pair</code> atom for \(B_n,D_n\) spinor bilinears.  The atom records the
+source product-channel projector, orthogonal dimension, and chirality tags;</li>
+<li>a basic \(D_5\) spinor-spinor-vector singlet renderer that emits a streamed
+<code>gamma_matrix</code> atom for \(16\otimes16\otimes10\).  The atom carries the
+source projector id so callers can resolve the \(16\otimes16\to10\) channel
+descriptor through the context, and stores the orthogonal dimension, gamma
+rank, chirality, and duality tags needed by Clifford-aware consumers.  The
+two \(D_5\) chiral spinors \(16\) and \(16'\) receive distinct chirality
+tags through rendering-level metadata helpers;</li>
+<li>a \(D_5\) spinor-spinor-form renderer that emits a streamed <code>gamma_form</code>
+atom for the \(16\otimes16\to120,126\) and
+\(16'\otimes16'\to120,126'\) channels.  The external form leg is the dual
+channel when the middle form is complex, so the path remains the abstract
+multiplicity-space path while the rendered atom records rank, chirality, and
+self-duality metadata.</li>
+</ul>
+
+<p>
 The following are still intentionally not implemented:
 </p>
 
 <ul class="org-ul">
-<li>binary decomposition algorithms;</li>
-<li>weight-system generation;</li>
-<li>channel-path enumeration;</li>
-<li>local CG/projector construction;</li>
-<li>explicit gamma or projector expansion execution;</li>
-<li>expansion filters and downstream stream consumers;</li>
-<li><code>Context.renderInvariant</code>;</li>
+<li>general local CG/projector formula construction beyond the current
+orthogonal metric, spinor-pair, and gamma primitives;</li>
+<li>explicit boundary-realization projector formulas beyond compact named
+boundary atoms;</li>
+<li>full Clifford/gamma algebra expansion beyond the current rank-1, rank-3,
+and middle-form gamma atoms;</li>
+<li>non-special projector term expansion execution;</li>
+<li>formula-level projector expansion caches;</li>
 <li><code>Context.evaluateInvariant</code>.</li>
 </ul>
+</div>
+</div>
+<div id="outline-container-org2d62720" class="outline-2">
+<h2 id="org2d62720">Current Handoff Toward Formula Projectors</h2>
+<div class="outline-text-2" id="text-org2d62720">
+<p>
+The current code can find the abstract invariant basis for the target
+benchmark.  In particular, the \(Spin(10)\) \(16^{12}\) path basis is generated
+as \(73744\) compact coupling paths, not as dense \(16^{12}\) components.  The
+remaining work is not another counting backend.  The remaining work is to make
+projector ids act on streamed symbolic terms, so selected basis elements can be
+expanded through gamma, metric, spinor-pair, epsilon, and projector formulas
+without materializing a full expression tree.
+</p>
+
+<p>
+\(Spin(10)\) and \(16^{12}\) are stress tests and acceptance examples, not the
+scope boundary.  The solver must remain a general representation-theory engine
+for arbitrary products of registered \(A,D,E\) irreps, with \(B,D\) SO/Spin
+formula renderers isolated as backend-specific expansion routes.  Do not let
+gamma-matrix needs distort the generic ADE decomposition, path enumeration, or
+projector identity model.
+</p>
+</div>
+<div id="outline-container-orgd98fca6" class="outline-3">
+<h3 id="orgd98fca6">Plain-language plan</h3>
+<div class="outline-text-3" id="text-orgd98fca6">
+<p>
+The plan is to keep the solver general first.  Irreps are Dynkin labels,
+products are decomposed by the generic backend, and invariant bases are compact
+coupling paths.  \(Spin(10)\) and \(16^{12}=73744\) are stress tests for this
+pipeline, not special cases that define the architecture.
+</p>
+
+<p>
+The implemented part already finds invariant bases without dense tensors:
+</p>
+
+<ul class="org-ul">
+<li>generic decomposition works for \(A,B,D,E_6,E_7,E_8\);</li>
+<li>invariant bases are counted and stored as compact paths;</li>
+<li>\(Spin(10)\) \(16^{12}\) produces \(73744\) paths;</li>
+<li>every local channel has a projector id with metadata;</li>
+<li>named projector chains can be streamed through filters;</li>
+<li>basic SO/Spin atoms can already be emitted for metrics, spinor pairings, and
+low-rank gamma/form couplings.</li>
+</ul>
+
+<p>
+The remaining work is projector formula execution.  A projector id must become
+a small streamed procedure, not a name and not a large expression tree.  The
+procedure acts on the current term frontier, emits a few output terms, applies
+filters early, and reuses scratch buffers.  This follows the project rules:
+simple procedural code, lean data structures, no large intermediate symbolic
+expressions, and parallelizable data flow.
+</p>
+
+<p>
+The next concrete target is the \(144\subset10\otimes16\) boundary projector.
+It is the gamma-traceless vector-spinor projector:
+\[
+  10\otimes16 = 16' \oplus 144 .
+\]
+It should stream the identity vector-spinor term minus the normalized
+gamma-trace term.  The checks are symbolic projector laws: gamma-tracelessness,
+idempotency, and separation from the \(16'\) channel.  These checks must not
+use dense \(10\cdot16\) component matrices.
+</p>
+
+<p>
+After that, the same formula interface should handle product-channel
+projectors built from spinor bilinears and gamma/form atoms.  This requires a
+Clifford reducer for gamma products, metric contractions, chirality rules, and
+middle-form duality.  The reducer is an SO/Spin backend formula tool; it must
+not change the generic ADE basis construction.
+</p>
+
+<p>
+To keep the design honest, add a non-SO formula route after the first SO/Spin
+formulas work, for example a small \(A_2\) or \(E_6\) invariant.  This ensures
+the formula layer remains a general projector-expansion interface rather than
+a hidden \(Spin(10)\)-only subsystem.
+</p>
+
+<p>
+The current renderer has three different levels:
+</p>
+
+<ul class="org-ul">
+<li>compact names: a product-channel or boundary-realization projector is emitted
+as a <code>named_operator</code> atom with a resolvable projector id;</li>
+<li>primitive formulas: special low-rank orthogonal channels emit explicit
+<code>metric_pair</code>, <code>spinor_pair</code>, <code>gamma_matrix</code>, or <code>gamma_form</code> atoms;</li>
+<li>projector formulas: the \(144\subset10\otimes16\) boundary formula is
+implemented as a two-term stream.  Other expanded projector requests must
+still fail with a typed error unless a filter rejects the term before
+expansion is needed.</li>
+</ul>
+
+<p>
+The next implementation goal is therefore precise:
+</p>
+
+<ol class="org-ol">
+<li>every projector id that can appear in a returned basis must resolve to a
+formula route or a typed missing-formula state;</li>
+<li>formula routes must be executable as streaming term transformations;</li>
+<li>the output of a local formula may include gamma atoms, and later projectors
+must be able to act on those atoms without first expanding the entire
+invariant into components;</li>
+<li>each formula route must carry enough audit data to verify idempotency,
+channel separation, and normalization in the chosen convention.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org9020295" class="outline-3">
+<h3 id="org9020295">Current verified pieces</h3>
+<div class="outline-text-3" id="text-org9020295">
+<p>
+The following pieces are already implemented and build-checked:
+</p>
+
+<ul class="org-ul">
+<li>ADE/B/D generic highest-weight decomposition for \(A,B,D,E_6,E_7,E_8\);</li>
+<li>cached flat weight systems and cached binary product decompositions;</li>
+<li>path counting and canonical path enumeration through the same product
+records;</li>
+<li>\(Spin(10):16^{12}\) benchmark count \(73744\);</li>
+<li>local product projector ids for every coupling step;</li>
+<li>projected external realizations, including \(144\subset10\otimes16\), as
+boundary data rather than internal ambient products;</li>
+<li>named projector-chain streaming with a tri-state filter;</li>
+<li>explicit orthogonal primitive atoms for vector metrics, spinor pairings,
+\(16\,16\,10\), \(16'\,16'\,10\), \(16\,16\,120\), \(16'\,16'\,120\),
+\(16\,16\,126\), and \(16'\,16'\,126'\).  The corresponding local
+product-channel projector ids now report executable formula kinds.  Spinor
+pair and spinor-form channel audits are computed from Clifford grade,
+chirality, orthogonal dimension, and middle-form duality, so a wrong
+chirality or invalid self-duality input is blocked rather than receiving a
+generic primitive pass.  Two-step gamma paths now flow through a left-fold
+local formula walker, streaming the first gamma/form atom and the later
+metric or form-pair projector atom separately, so filters and downstream code
+can see local formula composition rather than only a collapsed whole-path
+atom;</li>
+<li>an orthogonal form-spinor local formula route that streams a <code>gamma_action</code>
+atom.  This covers the first previously missing \(Spin(10)\) \(16^{12}\)
+local channel shape \(126\otimes16\to672\) without introducing dense
+component spaces;</li>
+<li>an orthogonal spinor-tower Cartan-product route that streams a
+<code>cartan_product</code> atom for multiplicity-zero B/D channels whose Dynkin labels
+add on one spinor node.  This covers the next \(Spin(10)\) channel
+\(672\otimes16\to2772\) without broadening the route to unrelated SU(2)
+symmetric products;</li>
+<li>an orthogonal spinor-tower tensor-spinor route that streams a
+<code>tensor_spinor_projection</code> atom for B/D channels with one ordinary form node
+and one lower residual spinor-tower power.  This covers the two remaining
+\(2772\otimes16\) channels \(2772\otimes16\to29568\) and
+\(2772\otimes16\to5280\);</li>
+<li>a recursive tensor-spinor tower route that reuses the same atom with a
+compact ordinary-form bitmask.  It covers
+\(29568\otimes16\to48114\), where the output keeps the existing rank-3 form
+node, adds a rank-1 form node, and lowers the spinor-tower power;</li>
+<li>a tensor-spinor mask-shift route for channels that lower tower power and
+shift exactly one ordinary form rank upward.  It covers
+\(48114\otimes16\to25200\), moving the rank set from \(\{1,3\}\) to
+\(\{2,3\}\);</li>
+<li>a terminal tensor-spinor route that streams a <code>tensor_form_projection</code> atom
+when tower power one contracts with a spinor into a non-spinor tensor-form
+channel.  It covers \(25200\otimes16\to4125\), represented by a compact
+nibble-packed ordinary-form profile;</li>
+<li>a tensor-form spinor route that streams a <code>tensor_spinor_projection</code> atom
+when an ordinary tensor-form profile acts on a spinor and removes one form
+count into a tower-power-one tensor-spinor.  It covers
+\(4125\otimes16\to1200\);</li>
+<li>a tensor-spinor middle-form route that streams a <code>tensor_form_projection</code>
+atom with middle-form rank and duality metadata.  It covers
+\(1200\otimes16\to126'\), the D-type middle-form channel represented on the
+spinor Dynkin nodes;</li>
+<li>an exact tensor-spinor form-terminal route that streams a
+<code>tensor_form_projection</code> atom when tower power one contracts with a spinor
+into an ordinary tensor-form with the same form profile.  It covers
+\(1200\otimes16\to120\);</li>
+<li>D-type ordinary form parsing now treats a common value on both spinor nodes
+as a rank \(n-1\) form count, while residual value on one spinor node remains
+the chiral spinor tower.  This lets the same compact profile machinery handle
+\(D_5\) rank-4 forms such as \([0,0,0,1,1]\);</li>
+<li>tensor-form spinor shift routes transform compact ordinary-form profiles
+before producing a tower-power-one tensor-spinor, including remove-then-shift
+upward, remove-then-shift downward, one-rank shift down, two-rank shift down,
+mixed shift down, and all-ranks shift down cases;</li>
+<li>D-type rank-form tower routes remove the rank \(n-1\) form from a
+tensor-spinor and increase tower power, including the terminal pure-tower
+output case;</li>
+<li>a D-type rank-wrap shift route moves one rank-1 form count to the rank
+\(n-1\) form position while lowering tower power;</li>
+<li>a tensor-spinor form-power route increments an existing form-rank count
+while lowering tower power;</li>
+<li>additional tensor-spinor terminal and tower routes now cover D-type
+opposite-chirality rank shifts, rank splits into rank \(r-1\) plus rank
+\(n-1\), terminal rank splits, terminal form addition, form-tower rank-down
+moves, form-preserving tower growth, opposite-chirality tower lowering with
+rank shift, opposite-chirality form-add terminal channels,
+opposite-chirality terminal all-ranks shift, same-chirality remove-then-shift
+tower growth, same-chirality all-ranks shift tower growth, and pair-to-middle
+profile merges.  These routes are expressed as
+transformations of compact form profiles, not as \(D_5\)-specific channel
+tables;</li>
+<li>a streamed orthogonal vector-spinor boundary formula for projected
+\(144\subset10\otimes16\) realizations.  Expanded rendering emits the
+identity vector-spinor term and the normalized gamma-trace subtraction as
+separate terms after the compact-prefix filter boundary.</li>
+<li>non-SO formula routes for \(A_2:3^3\), rendered as an epsilon atom,
+\(E_6:27^3\), rendered as a backend-specific structure-constant atom, and
+a generic simple-adjoint cubic route exercised by \(E_8:248^3\).  In these
+cases the two local product-channel projectors are marked as verified
+backend-specific structure formulas.</li>
+<li>a generic product-identity atom for multiplicity-zero singlet products, so
+\(1\otimes R\to R\) and \(R\otimes1\to R\) channels are streamed as explicit
+identity steps instead of named missing projectors.</li>
+<li>additional compact-profile routes for the remaining \(D_5\) spinor-tower and
+tensor-spinor shapes in the \(16^{12}\) benchmark: pure opposite-spinor tower
+lowering, opposite-spinor tower-to-form channels, tensor-form spinor
+preservation, arbitrary downward form shifts, opposite terminal neighbor
+splits, opposite terminal add-shift channels, opposite tower-lowering
+form-add and rank-split channels, all-rank shifts, and form-tower
+remove-shift channels.</li>
+<li>a public formula coverage audit for generated bases.  After the current
+identity, form-spinor, spinor-tower, tensor-form, and tensor-spinor profile
+routes, the \(16^{12}\) benchmark records \(811184\) expandable local steps
+out of \(811184\), \(73744\) fully expandable paths out of \(73744\), and no
+missing local projector channel without allocating expanded tensors.  The same
+public API is exercised on the non-SO \(A_2:3^3\) epsilon route,
+\(E_6:27^3\) structure route, and \(E_8:248^3\) adjoint structure route, so
+downstream callers can gate expanded streaming without relying on private
+tests.</li>
+<li>basis-level streamed rendering over compact paths.  The \(16^{12}\) benchmark
+now renders all \(73744\) expanded basis elements through the streaming API,
+emitting \(73744\) terms and \(811184\) formula atoms without named projector
+placeholders or dense tensor-component storage.  The basis renderer reuses
+scratch atom buffers across paths, so the full-basis stream does not allocate
+fresh formula-term arrays for each invariant.</li>
+<li>a formula-program cache keyed by projector id and stored projector convention.
+It records hit/miss counters separately from named one-atom projector caches,
+while the emitted symbolic terms are still rebuilt into caller-owned scratch
+buffers for each streamed path.</li>
+<li>render requests whose signature does not match the context projector
+convention now fail before touching projector caches, so the current
+convention-keyed formula cache cannot be reused under a silently different
+signature.</li>
+<li>the first compact Clifford reducer primitive.  <code>gammaProductExpansion</code> takes
+two antisymmetrized gamma-block ranks plus duality tags and returns the finite
+grade expansion \(|p-q|, |p-q|+2,\ldots,p+q\) as a fixed small buffer of
+rank, contraction-count, coefficient, and output-duality records.
+<code>gammaProductContractionPlan</code> turns each grade term into canonical
+cross-block metric contractions and residual gamma vector slots.  Both
+helpers check invalid ranks and middle-form duality without dense component
+spaces.  Adjacent streamed gamma/form atoms followed by a <code>gamma_action</code> now
+append compact <code>clifford_product</code> reducer atoms, so the full \(16^{12}\)
+expanded stream records \(387804\) gamma-product reductions in addition to
+the local projector formula atoms.  The public rendering helpers
+<code>cliffordProductTerm</code> and <code>cliffordProductContractionPlan</code> decode these
+streamed atoms back into their grade term and canonical metric/free-slot
+plan, checking that the stored counts are consistent.  The indexed helpers
+<code>cliffordProductFactorCount</code> and <code>cliffordProductFactorAt</code> expose the same
+reducer atom as an allocation-free sequence of explicit metric factors and
+residual output-vector slots.  <code>streamCliffordProductFactors</code> walks a
+borrowed <code>SymbolicTerm</code> and emits those factors through a caller sink.  It
+accepts both compact <code>clifford_product</code> atoms and already-lowered
+<code>clifford_product_factor</code> atoms, so lower-level formula or evaluation code
+can consume either render mode without allocating an intermediate expression.
+<code>scanCliffordProductFactors</code> provides the corresponding validated scan:
+compact products and lowered products produce the same counts, while malformed
+lowered factor order or inconsistent per-product metadata is rejected before
+evaluator code consumes it.  The scan object can also accumulate many
+accepted terms through <code>recordTerm</code>, giving evaluator sinks a small reusable
+state object for streaming basis-level factor audits.
+<code>CliffordProductFactorAuditSink</code> wraps that scan behind the ordinary
+<code>emitTerm</code> sink interface, so context rendering can be audited without a
+custom test-only sink.
+Renderers can now opt into this path with
+<code>RenderOptions.stream_clifford_product_factors</code>; the normal compact term is
+still emitted first, and <code>ExpansionAudit.clifford_product_factors</code> records
+how many lower-level factor records were sent to the sink.  The stronger
+<code>RenderOptions.lower_clifford_product_atoms</code> mode rewrites each compact
+<code>clifford_product</code> atom into <code>clifford_product_factor</code> atoms in the emitted
+<code>SymbolicTerm</code> itself, using renderer scratch storage and preserving the
+reducer coefficient, output grade, duality, operator ids, and orthogonal
+dimension on each factor record.  The \(16^{12}\) benchmark now streams all
+\(73744\) terms through this lowered mode as well: emitted terms contain zero
+compact <code>clifford_product</code> atoms and more lowered factor atoms than the
+compact reducer count, while still using the same per-path scratch flow.  The
+lowered benchmark also checks the exact atom accounting identity
+<code>lowered atoms = compact atoms - compact reducers + lowered factors</code> and
+verifies that lowered factor records carry source operator ids, \(Spin(10)\)
+dimension, and nonzero reducer coefficients.</li>
+</ul>
+
+<p>
+These facts are necessary but not sufficient for the final goal.  They prove
+that the multiplicity-space basis exists and that the concrete \(Spin(10)\)
+\(16^{12}\) basis audit has full local formula coverage and can be streamed end
+to end in expanded symbolic-atom form.  They do not yet prove that arbitrary ADE
+product-channel projectors can be expanded into a faithful formula stream.
+</p>
+</div>
+</div>
+<div id="outline-container-org12ef242" class="outline-3">
+<h3 id="org12ef242">Generality requirements</h3>
+<div class="outline-text-3" id="text-org12ef242">
+<p>
+All next steps must preserve these boundaries:
+</p>
+
+<ul class="org-ul">
+<li>the public invariant-basis API remains Dynkin-label based and family-generic;</li>
+<li>\(A_n,D_n,E_6,E_7,E_8\) decomposition and path enumeration must not depend on
+\(Spin(10)\) dimensions, gamma atoms, or hand-entered channel tables;</li>
+<li>SO/Spin Clifford formulas are backend-rendered formulas attached to
+projector ids, not the definition of the abstract basis;</li>
+<li>adding a formula for \(10\otimes16\to144\) must not special-case basis
+generation for \(16^{12}\);</li>
+<li>future \(SU(N)\) tableau/Gelfand-Tsetlin renderers and exceptional
+renderers must fit the same projector-formula interface;</li>
+<li>acceptance tests should keep one large stress case such as \(16^{12}\), but
+must also include non-\(SO(10)\) ADE products so regressions in the generic
+solver are visible.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org5c98edb" class="outline-3">
+<h3 id="org5c98edb">Immediate consistency tasks</h3>
+<div class="outline-text-3" id="text-org5c98edb">
+<p>
+Before adding more formulas, finish these small consistency tasks:
+</p>
+
+<ul class="org-ul">
+<li><code>BasisAudit</code> counts both local coupling projectors and boundary realization
+projectors.  Formula coverage audits now also count boundary formula
+obligations, so a basis with only projected legs cannot be marked fully
+expandable while its boundary formula is still missing.</li>
+<li>The streamed expansion audit reports how many boundary projector atoms and
+local projector atoms were encountered, separately from filter
+accept/reject/undecided counts.</li>
+<li>Named boundary projectors should keep their current behavior: named mode may
+emit them, while expanded mode must fail with a typed missing-formula error
+unless the boundary formula has been implemented for that realization.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgc4da46d" class="outline-3">
+<h3 id="orgc4da46d">Formula execution model</h3>
+<div class="outline-text-3" id="text-orgc4da46d">
+<p>
+Do not implement projector formulas as eager expression builders.  A projector
+formula is a small procedure that transforms a borrowed streamed term frontier.
+The procedure should:
+</p>
+
+<ul class="org-ul">
+<li>read only the current compact term slice and the local projector descriptor;</li>
+<li>append a small number of output terms directly to the next frontier or sink;</li>
+<li>reuse scratch buffers owned by the renderer;</li>
+<li>call the filter as soon as a partial term is soundly rejectable;</li>
+<li>cache the formula program and any invariant convention data by projector id
+and rendering convention.</li>
+</ul>
+
+<p>
+The formula IR should be lean.  A useful first shape is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorFormulaKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    identity,
+    orthogonal_vector_metric,
+    orthogonal_spinor_pair,
+    orthogonal_gamma_trace,
+    orthogonal_gamma_traceless,
+    orthogonal_spinor_form_channel,
+    named_only,
+};
+</pre>
+</div>
+
+<p>
+The executable formula should be a switch over this kind, not a tree of heap
+allocated symbolic expressions.  Each case emits one or more <code>SymbolicAtom</code>
+records into scratch storage and immediately applies the active filter.
+</p>
+</div>
+</div>
+<div id="outline-container-org0776f30" class="outline-3">
+<h3 id="org0776f30">Required first projector formulas</h3>
+<div class="outline-text-3" id="text-org0776f30">
+<p>
+The first nontrivial formula target is implemented for the SO/Spin acceptance
+formula: the boundary projector for \(144\subset10\otimes16\).  This is the
+gamma-traceless vector-spinor.  It exercises projected realizations and gamma
+algebra through the general projector-formula stream, not a one-off render
+path.  The ambient tensor \(V\otimes S\) decomposes as
+\[
+  10\otimes16 = 16' \oplus 144 .
+\]
+In a fixed Clifford convention, the spinor-channel projector is the gamma-trace
+part
+\[
+  P_{16'} \sim \frac1{N}\,\gamma_m\gamma^n ,
+\]
+where \(N=\dim V=10\).  The \(144\) projector is the complement
+\[
+  P_{144} = I_{V\otimes S} - P_{16'} .
+\]
+</p>
+
+<p>
+Implementation requirements for this formula:
+</p>
+
+<ul class="org-ul">
+<li>stored as a boundary-realization projector formula for projected \(144\)
+legs;</li>
+<li>rendered as a two-term streamed formula: identity vector-spinor term minus
+gamma-trace term;</li>
+<li>normalization encoded with the same rational-id mechanism used for streamed
+coefficients;</li>
+<li>compute the formula audit from the orthogonal dimension \(N\), using
+\(\Gamma^2=N\Gamma\) for the gamma-trace channel and rejecting zero
+denominator inputs;</li>
+<li>verify gamma-tracelessness \(\gamma^m P_{144,m}=0\), idempotency
+\(P_{144}^2=P_{144}\), and separation from the \(16'\) gamma-trace channel
+with symbolic Clifford identities, not dense \(10\cdot16\) matrices.</li>
+</ul>
+
+<p>
+The second formula target is the SO/Spin product-channel projector family
+generated by spinor bilinears:
+</p>
+
+<ul class="org-ul">
+<li>\(16\otimes16\to10,120,126\);</li>
+<li>\(16'\otimes16'\to10,120,126'\);</li>
+<li>\(16\otimes16'\to1\) and higher even-form channels once they are needed by a
+selected path.</li>
+</ul>
+
+<p>
+For these channels, the compact gamma atoms already record enough metadata:
+orthogonal dimension, rank, chirality, and duality.  What is missing is a
+formula route that can compose these atoms with later projectors and reduce
+gamma products using Clifford identities.  This should be implemented as a
+gamma-algebra reducer over streamed atoms, not as component matrices.
+</p>
+
+<p>
+The first non-SO formula routes now use the same interface for \(A_2:3^3\),
+rendered as an epsilon atom, \(E_6:27^3\), rendered as a compact
+backend-specific structure atom, and simple adjoint cubics such as
+\(E_8:248^3\).  These use backend-specific structure formula metadata so the
+layer does not become a hidden \(Spin(10)\)-only subsystem.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfba12ed" class="outline-3">
+<h3 id="orgfba12ed">Gamma algebra reducer</h3>
+<div class="outline-text-3" id="text-orgfba12ed">
+<p>
+Projector formulas that act on output gammas require a reducer for products of
+antisymmetrized gamma blocks.  The reducer must support:
+</p>
+
+<ul class="org-ul">
+<li>contraction of vector metrics through gamma atoms;</li>
+<li>multiplication of rank-\(p\) and rank-\(q\) antisymmetrized gammas into the
+finite sum of ranks \(|p-q|, |p-q|+2,\dots,p+q\), with convention-controlled
+signs and rational coefficients.  The current reducer computes this compact
+grade plan, combinatorial coefficient, cross-block metric pair plan, and
+residual gamma-slot order in fixed buffers;</li>
+<li>Hodge duality for middle forms in \(D_n\), including the \(D_5\) \(126\) and
+\(126'\) duality tags;</li>
+<li>chirality selection rules, so invalid gamma strings are rejected or reduced
+to zero before reaching the sink;</li>
+<li>canonical ordering of gamma atoms so repeated reductions hit the formula
+cache.</li>
+</ul>
+
+<p>
+Do not hide these as handwritten Fierz tables.  The reducer should implement
+the Clifford algebra rules once and derive the channel projectors from the
+stored product-channel metadata.  Hand-entered coefficients are acceptable only
+as convention constants that are then checked by idempotency and channel
+separation tests.
+</p>
+</div>
+</div>
+<div id="outline-container-org4b1b4c3" class="outline-3">
+<h3 id="org4b1b4c3">Projector cache requirements</h3>
+<div class="outline-text-3" id="text-org4b1b4c3">
+<p>
+The projector store caches named one-atom expansions and formula-program routes.
+Formula-program cache entries are keyed by:
+</p>
+
+<ul class="org-ul">
+<li>projector id;</li>
+<li>render mode;</li>
+<li>signature convention;</li>
+<li>normalization id;</li>
+<li>gamma convention id if this becomes separate from signature.</li>
+</ul>
+
+<p>
+The cached value is not an expanded global invariant.  It is the compact local
+formula route stored on the projector id; term atoms are still written into
+scratch storage for the currently streamed path.  Global expansion still streams
+one selected path at a time.  The current renderer rejects non-default
+signatures until projector ids can be regenerated under the requested
+convention, rather than reusing a cache entry with the wrong signature.
+</p>
+</div>
+</div>
+<div id="outline-container-org4eaaa7f" class="outline-3">
+<h3 id="org4eaaa7f">Acceptance gates for the next milestone</h3>
+<div class="outline-text-3" id="text-org4eaaa7f">
+<p>
+The next milestone is reached only when all of the following are true:
+</p>
+
+<ul class="org-ul">
+<li>named rendering still works for \(16^{12}\) without expanding dense tensors;</li>
+<li>expanded rendering of a projected \(144\) boundary leg emits the gamma-trace
+complement formula instead of a named placeholder;</li>
+<li>a reject-all filter still stops before executing the boundary formula;</li>
+<li>the \(144\) boundary projector reports <code>expandable_terms</code> only after its
+idempotency and gamma-traceless audits pass;</li>
+<li>product-channel projector formulas for the already-rendered gamma atoms can
+compose with later local projectors in the stream;</li>
+<li>tests verify projector laws in symbolic form from \(N=\dim V\) for
+\(10\otimes16=16'\oplus144\), including rejected zero-dimension audit input,
+and for at least one spinor-square channel;</li>
+<li>at least one non-\(SO(10)\) ADE invariant still exercises the same generic
+path-counting, path-enumeration, and named-projector streaming path;</li>
+<li>no test or implementation allocates arrays proportional to \(16^{12}\) or to
+a dense tensor-component space.</li>
+</ul>
+</div>
 </div>
 </div>
 <div id="outline-container-org5fdf502" class="outline-2">
@@ -946,19 +1565,26 @@ The future internal context method should look like:
 <p>
 Do not expose this method publicly unless CFT code needs it.
 </p>
+
+<p>
+Invariant-basis generation must distinguish true zero multiplicity from a
+failed computation.  Unsupported tree policies, unresolved registered
+realizations, and backend decomposition failures are typed errors.  They must
+not be stored as successful empty bases, because that would make missing
+implementation look like a mathematically valid invariant count.
+</p>
 </div>
 </div>
 <div id="outline-container-orga2eeb68" class="outline-3">
 <h3 id="orga2eeb68">7. Projector identities and expansion obligations</h3>
 <div class="outline-text-3" id="text-orga2eeb68">
 <p>
-For each product term, the backend may create a product-channel projector
-identity in <a href="/notes/tensor-code/projector.html">Tensor Projector</a>.  The first
-decomposition backend does not need to expand projector formulas immediately,
-but a successful basis result must not contain projector ids that have no
-expansion route.  Internal blocked records are allowed only if they fail before
-being returned as successful invariant data.  Each projector record needs
-enough information to recover an expansion path.
+For each product term, the context creates a product-channel projector identity
+in <a href="/notes/tensor-code/projector.html">Tensor Projector</a>.  The first decomposition
+backend does not expand projector formulas immediately.  A successful basis may
+therefore contain projector ids that are renderable as compact names only, but
+expanded rendering must fail before emitting placeholder terms.  Each projector
+record still needs enough metadata to attach a later formula route.
 </p>
 
 <p>
@@ -994,10 +1620,10 @@ distinguish several useful stages:
 
 <p>
 <code>expandable_named</code> is only a rendering mode.  It is not proof that the
-projector satisfies the fully-expandable requirement.  A projector appearing in
-a successful invariant basis must have a derivation route that can reach
-<code>expandable_terms</code> in the requested convention, even when the caller chooses to
-render it as a compact name.
+projector has a formula.  A projector appearing in a successful invariant basis
+may stop at this stage while formula renderers are missing.  Requests for
+<code>expanded_blocks</code> or <code>expanded_terms</code> must check the status and return a typed
+error before successful placeholder emission.
 </p>
 
 <p>
@@ -1010,10 +1636,10 @@ Acceptance checks:
 <li>no symbolic projector expansion is allocated during decomposition;</li>
 <li>every returned projector reports an <code>ExpansionStatus</code> in the requested
 convention;</li>
-<li>blocked projector statuses are typed errors before successful basis return,
-not silently named placeholders;</li>
-<li>a basis result rendered in named mode still audits that each local projector
-has a term-expansion route.</li>
+<li>blocked projector statuses are typed errors before expanded rendering
+succeeds, not silently named placeholders;</li>
+<li>a reject-all filter can stop a non-empty expanded render before missing local
+formulas are requested.</li>
 </ul>
 </div>
 </div>
@@ -1034,7 +1660,8 @@ generic backend.  The expected internal procedures are:
 </ul>
 
 <p>
-Rendering remains <code>NotImplemented</code>.
+Backend projector formula rendering remains <code>NotImplemented</code>.  Context-level
+named path rendering is allowed to emit compact projector atoms.
 </p>
 </div>
 </div>
@@ -1238,19 +1865,23 @@ The backend handoff is complete when:
 <li>product decompositions are cached by key;</li>
 <li>no dense tensor component arrays are allocated;</li>
 <li><code>Context.invariantBasis</code> can internally request product decompositions;</li>
-<li>projector records created by the backend have explicit expansion obligations;</li>
-<li>expanded invariants can be streamed through a filter without materializing
+<li>projector records created by the context have explicit expansion obligations;</li>
+<li>named invariant paths can be streamed through a filter without materializing
 their full term list;</li>
-<li>repeated projector expansions can be cached and reused;</li>
+<li>repeated named local projector expansions are cached by projector id;</li>
+<li>expanded invariant requests stop with typed formula errors until local
+projector renderers exist;</li>
+<li>repeated formula-level projector expansions can be cached and reused once
+specialized renderers exist;</li>
 <li>a downstream sink can consume accepted terms incrementally;</li>
-<li>render/evaluate remain explicitly unimplemented until projector formulas and
-term streaming are ready.</li>
+<li>evaluate remains explicitly unimplemented until projector formulas and
+component term streaming are ready.</li>
 </ul>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-07</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

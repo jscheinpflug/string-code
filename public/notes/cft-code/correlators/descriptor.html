@@ -1,0 +1,1335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generated Descriptor Boundary</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Generated Descriptor Boundary</h1>
+<p>
+The descriptor boundary is the narrow data interface between generated theory
+files and the current Wick traversal <a href="/notes/cft-code/correlators/wick.html">Wick</a>.  Lisp emits only compact ids
+and primitive factors.  This module validates those tables, lowers them at
+comptime, and streams small events back out without building a symbolic tree.
+</p>
+
+<a id="Id"></a>
+<a id="LabelRole"></a>
+<a id="SurfaceKind"></a>
+<a id="CoordinateModel"></a>
+<a id="Statistics"></a>
+<a id="InsertionShape"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org4295b16"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../kernel.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">normal_ordering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../normal-ordering/normal-ordering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">shared</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../presets/shared.zig"</span>);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">declare</span> = shared.declare;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = declare.wick;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode</span> = declare.zero_mode;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scalars</span> = declare.scalars;
+
+<span style="color: #e0d3b9; font-style: italic;">/// descriptor_abi_version is the generated descriptor table ABI understood here.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor_abi_version</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 1;
+
+<span style="color: #e0d3b9; font-style: italic;">/// Id is one dense descriptor table index.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Id</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
+
+<span style="color: #e0d3b9; font-style: italic;">/// LabelRole classifies a generated field label.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelRole</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    vector_index,
+    momentum,
+    profile,
+    scalar_parameter,
+    modular_parameter,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SurfaceKind names the supported topology class.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SurfaceKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    sphere,
+    torus,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateModel selects rational or elliptic coordinate kernels.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateModel</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    rational,
+    elliptic,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Statistics records the exchange parity of one field family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Statistics</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    bosonic,
+    fermionic,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// InsertionShape gives the coordinate slots carried by a field insertion.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">InsertionShape</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    single,
+    pair,
+};
+</pre>
+</div>
+
+<p>
+Fields and surfaces are lean table rows.  Names are symbol ids from the
+generated symbol table, not strings used by the lowerer.
+</p>
+
+<a id="Parameter"></a>
+<a id="QuantumNumberKind"></a>
+<a id="QuantumNumber"></a>
+<a id="QuantumNumberValue"></a>
+<a id="FieldQuantumNumber"></a>
+<a id="Surface"></a>
+<a id="LabelSchema"></a>
+<a id="Field"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org98f10dd"><span style="color: #e0d3b9; font-style: italic;">/// Parameter declares one generated scalar or modular parameter.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Parameter</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRole</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// QuantumNumberKind classifies a conserved or representation-valued label.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumNumberKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    u1_charge,
+    ade_irrep,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// QuantumNumber declares one basis-selection quantum number.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumNumber</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">QuantumNumberKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">group_symbol</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// QuantumNumberValue stores one compact field quantum-number value.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">QuantumNumberValue</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">integer</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// FieldQuantumNumber assigns one quantum-number value to one field family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldQuantumNumber</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_number</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">QuantumNumberValue</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Surface declares one coordinate model for a generated rule set.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Surface</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SurfaceKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate_model</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateModel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">modular_parameter</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// LabelSchema declares one field label slot.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelSchema</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRole</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Field declares one generated local field family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Field</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InsertionShape</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelSchema</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">statistics</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Statistics</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode_consumable</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">anti_weight</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+</pre>
+</div>
+
+<p>
+Metadata expressions are ids over a separate table.  They are preserved for
+Lisp-facing metadata and checked for dangling references.
+</p>
+
+<a id="Rational"></a>
+<a id="MetadataExpr"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgce70932"><span style="color: #e0d3b9; font-style: italic;">/// Rational is one exact small rational value.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Rational</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// MetadataExpr is a compact expression tree over ids, labels, and parameters.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">MetadataExpr</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">parameter</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_label</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">add</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">mul</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">bilinear</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">form_symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> },
+};
+</pre>
+</div>
+
+<p>
+Wick factors name primitive concepts.  The lowerer maps these to the current
+private runtime tables without making runtime table types public.
+</p>
+
+<a id="Side"></a>
+<a id="CoordinateSlot"></a>
+<a id="CoordinateRef"></a>
+<a id="LabelRef"></a>
+<a id="ScalarFactor"></a>
+<a id="CoordinateFactor"></a>
+<a id="TensorFactor"></a>
+<a id="ActionFactor"></a>
+<a id="WickTerm"></a>
+<a id="WickRule"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org972e40b"><span style="color: #e0d3b9; font-style: italic;">/// Side selects the left or right endpoint of a Wick rule.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Side</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    left,
+    right,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateSlot selects one coordinate component from an insertion.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateSlot</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    position,
+    holomorphic,
+    antiholomorphic,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateRef names one coordinate slot on one endpoint.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateRef</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">side</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Side</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateSlot</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// LabelRef names one label slot on one endpoint.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LabelRef</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">side</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Side</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ScalarFactor describes one scalar multiplier in a Wick term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ScalarFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    one,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">parameter</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">neg_parameter_half</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">neg_i_parameter_half</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">parameter_half</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// CoordinateFactor describes one coordinate multiplier in a Wick term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">difference_power</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">exponent</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">named_kernel</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">green_exponential</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span> },
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorFactor describes one tensor multiplier in a Wick term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    none,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metric</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">momentum_index</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">momentum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">momentum_pair</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ActionFactor describes an operation applied to a residual factor.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ActionFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">profile_derivative</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">profile</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// WickTerm is one product in a primitive Wick-rule sum.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalars</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinates</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateFactor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorFactor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">actions</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ActionFactor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Side</span> = &amp;.{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// WickRule declares primitive pair terms for two field families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickRule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">surface</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickTerm</span>,
+};
+</pre>
+</div>
+
+<p>
+Zero modes use generic generated data.  Reserved service slots are present so
+later endpoints can fail deliberately rather than reshaping the ABI.
+</p>
+
+<a id="ZeroModeKind"></a>
+<a id="ZeroModeRule"></a>
+<a id="ReservedServices"></a>
+<a id="Descriptor"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org4a6d48b"><span style="color: #e0d3b9; font-style: italic;">/// ZeroModeKind selects one implemented residual base-case primitive.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroModeKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    constant_fermion,
+    top_form_fermion,
+    boson_momentum_conservation,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ZeroModeRule declares one residual base-case primitive.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroModeRule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">surface</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroModeKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">consumes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">normalization</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactor</span> = .one,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">two_pi_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ReservedServices records descriptor slots not implemented in this slice.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReservedServices</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ope_rules</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_templates</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">relation_rules</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis_rules</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// Descriptor is the generated theory data consumed by the lowerer.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Descriptor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">abi_version</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = descriptor_abi_version,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">theory_symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">theory_hash</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">parameters</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Parameter</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_numbers</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">QuantumNumber</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_quantum_numbers</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldQuantumNumber</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">surfaces</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Surface</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metadata</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MetadataExpr</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickRule</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_modes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroModeRule</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">result_symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">reserved</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ReservedServices</span> = .{},
+};
+</pre>
+</div>
+
+<p>
+Validation is explicit loops over small descriptor tables.  Runtime tests call
+the same predicates that the comptime lowerer uses.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">denseUniqueIds</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">T</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">items</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">T</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">seen</span>: [256]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>{<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>} ** 256;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (items) |item| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (item.id &gt;= items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NonDenseId;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (seen[item.id]) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DuplicateId;
+        seen[item.id] = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasSymbol</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> symbol &lt; d.symbols.len;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasParameter</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> id &lt; d.parameters.len <span style="color: #fb4934; font-weight: bold;">and</span> d.parameters[id].id == id;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasQuantumNumber</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> id &lt; d.quantum_numbers.len <span style="color: #fb4934; font-weight: bold;">and</span> d.quantum_numbers[id].id == id;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasSurface</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> id &lt; d.surfaces.len <span style="color: #fb4934; font-weight: bold;">and</span> d.surfaces[id].id == id;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasField</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> id &lt; d.fields.len <span style="color: #fb4934; font-weight: bold;">and</span> d.fields[id].id == id;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldLabel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) ?LabelSchema {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (field.labels) |label| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (label.id == id) <span style="color: #fb4934; font-weight: bold;">return</span> label;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateLabelRef</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, field_id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (fieldLabel(d.fields[field_id], label_id) == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingLabel;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateMetadata</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MetadataExpr</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (expr) {
+        .rational =&gt; |value| <span style="color: #fb4934; font-weight: bold;">if</span> (value.denominator == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidRational,
+        .parameter =&gt; |id| <span style="color: #fb4934; font-weight: bold;">if</span> (!hasParameter(d, id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingParameter,
+        .field_label =&gt; |ref| <span style="color: #fb4934; font-weight: bold;">try</span> validateLabelRef(d, ref.field, ref.label),
+        .add =&gt; |pair| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (pair.left &gt;= index <span style="color: #fb4934; font-weight: bold;">or</span> pair.right &gt;= index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingMetadata;
+        },
+        .mul =&gt; |pair| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (pair.left &gt;= index <span style="color: #fb4934; font-weight: bold;">or</span> pair.right &gt;= index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingMetadata;
+        },
+        .bilinear =&gt; |item| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (item.left &gt;= index <span style="color: #fb4934; font-weight: bold;">or</span> item.right &gt;= index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingMetadata;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, item.form_symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+        },
+    }
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">labelRole</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ref</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) !LabelRole {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (ref.side == .left) left_field <span style="color: #fb4934; font-weight: bold;">else</span> right_field;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, field_id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = fieldLabel(d.fields[field_id], ref.slot) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingLabel;
+    <span style="color: #fb4934; font-weight: bold;">return</span> label.role;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateTensor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorFactor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (tensor) {
+        .none =&gt; {},
+        .metric =&gt; |item| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.left, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.right, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+        },
+        .momentum_index =&gt; |item| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.momentum, left_field, right_field) != .momentum) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.index, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+        },
+        .momentum_pair =&gt; |item| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.left, left_field, right_field) != .momentum) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.right, left_field, right_field) != .momentum) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+        },
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateAction</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">action</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ActionFactor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (action) {
+        .profile_derivative =&gt; |item| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.profile, left_field, right_field) != .profile) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, item.index, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+        },
+    }
+}
+</pre>
+</div>
+
+<a id="validateDescriptor"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org67f4caa"><span style="color: #e0d3b9; font-style: italic;">/// validateDescriptor rejects malformed generated descriptor data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateDescriptor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (d.abi_version != descriptor_abi_version) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedDescriptorAbi;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, d.theory_symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (d.reserved.ope_rules != 0 <span style="color: #fb4934; font-weight: bold;">or</span> d.reserved.operator_templates != 0 <span style="color: #fb4934; font-weight: bold;">or</span> d.reserved.relation_rules != 0 <span style="color: #fb4934; font-weight: bold;">or</span> d.reserved.basis_rules != 0) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedReservedService;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> denseUniqueIds(Parameter, d.parameters);
+    <span style="color: #fb4934; font-weight: bold;">try</span> denseUniqueIds(QuantumNumber, d.quantum_numbers);
+    <span style="color: #fb4934; font-weight: bold;">try</span> denseUniqueIds(Surface, d.surfaces);
+    <span style="color: #fb4934; font-weight: bold;">try</span> denseUniqueIds(Field, d.fields);
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.parameters) |parameter| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, parameter.symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+    }
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.quantum_numbers) |number| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, number.symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (number.group_symbol) |symbol| <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+    }
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.field_quantum_numbers) |item| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, item.field)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasQuantumNumber(d, item.quantum_number)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingQuantumNumber;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">number</span> = d.quantum_numbers[item.quantum_number];
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (item.value) {
+            .integer =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (number.kind != .u1_charge) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleQuantumNumberValue,
+            .rational =&gt; |value| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (number.kind != .u1_charge) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleQuantumNumberValue;
+                <span style="color: #fb4934; font-weight: bold;">if</span> (value.denominator == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidRational;
+            },
+            .symbol =&gt; |symbol| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (number.kind != .ade_irrep) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleQuantumNumberValue;
+                <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+            },
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.surfaces) |surface| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (surface.modular_parameter) |id| <span style="color: #fb4934; font-weight: bold;">if</span> (!hasParameter(d, id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingParameter;
+    }
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.fields) |field| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, field.symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+        <span style="color: #fb4934; font-weight: bold;">try</span> denseUniqueIds(LabelSchema, field.labels);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (field.labels) |label| <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSymbol(d, label.symbol)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSymbol;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (field.weight) |id| <span style="color: #fb4934; font-weight: bold;">if</span> (id &gt;= d.metadata.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingMetadata;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (field.anti_weight) |id| <span style="color: #fb4934; font-weight: bold;">if</span> (id &gt;= d.metadata.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingMetadata;
+    }
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.metadata, 0..) |expr, index| <span style="color: #fb4934; font-weight: bold;">try</span> validateMetadata(d, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index), expr);
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.wick_rules) |rule| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSurface(d, rule.surface)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSurface;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, rule.left) <span style="color: #fb4934; font-weight: bold;">or</span> !hasField(d, rule.right)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (rule.terms.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.EmptyWickRule;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_arity</span> = d.fields[rule.left].labels.len;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_arity</span> = d.fields[rule.right].labels.len;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (rule.terms) |term| {
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.scalars) |scalar| <span style="color: #fb4934; font-weight: bold;">switch</span> (scalar) {
+                .parameter, .neg_parameter_half, .neg_i_parameter_half, .parameter_half =&gt; |id| <span style="color: #fb4934; font-weight: bold;">if</span> (!hasParameter(d, id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingParameter,
+                <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; {},
+            };
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.tensors) |tensor| <span style="color: #fb4934; font-weight: bold;">try</span> validateTensor(d, tensor, rule.left, rule.right);
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.actions) |action| <span style="color: #fb4934; font-weight: bold;">try</span> validateAction(d, action, rule.left, rule.right);
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.residuals) |_| {}
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_arity != d.fields[rule.left].labels.len <span style="color: #fb4934; font-weight: bold;">or</span> right_arity != d.fields[rule.right].labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (d.zero_modes) |rule| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSurface(d, rule.surface)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSurface;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (rule.consumes.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.EmptyZeroMode;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (rule.consumes) |field_id| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, field_id)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!d.fields[field_id].zero_mode_consumable) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleZeroModeField;
+        }
+    }
+}
+</pre>
+</div>
+
+<p>
+Lowering derives stable private kind and sector ids from descriptor ids.  No
+field or theory names affect generic control flow.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">stableId</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">seed</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">hash</span> = seed ^ 2166136261;
+    hash = (hash ^ local) *% 16777619;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (hash == 0) 1 <span style="color: #fb4934; font-weight: bold;">else</span> hash;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kindId</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">return</span> stableId(d.theory_hash, field + 1);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sectorId</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">surface</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) zero_mode.Sector {
+    <span style="color: #fb4934; font-weight: bold;">return</span> stableId(d.theory_hash ^ 0x51f1_0000, (<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, surface) &lt;&lt; 16) | <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(zero_rule + 1)));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerSupport</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">shape</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InsertionShape</span>) wick.Support {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (shape) {
+        .single =&gt; .holomorphic,
+        .pair =&gt; .bulk_pair,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerInsertion</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">shape</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InsertionShape</span>) declare.Spec.InsertionShape {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (shape) {
+        .single =&gt; .single,
+        .pair =&gt; .pair,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerLabelKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRole</span>) declare.Spec.LabelKind {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (role) {
+        .vector_index =&gt; .index,
+        .momentum =&gt; .momentum,
+        .profile =&gt; .profile,
+        .scalar_parameter, .modular_parameter =&gt; <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"parameter roles are not field-label runtime slots"</span>),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerField</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>) declare.Spec.Operator {
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: [field.labels.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">declare.Spec.LabelKind</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (field.labels, 0..) |label, index| labels[index] = lowerLabelKind(label.role);
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .name = d.symbols[field.symbol],
+        .kind = kindId(d, field.id),
+        .support = lowerSupport(field.insertion),
+        .insertion = lowerInsertion(field.insertion),
+        .labels = &amp;labels,
+        .statistics = <span style="color: #fb4934; font-weight: bold;">if</span> (field.statistics == .fermionic) .fermionic <span style="color: #fb4934; font-weight: bold;">else</span> .bosonic,
+        .zero_mode_consumable = field.zero_mode_consumable,
+    };
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerSide</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">side</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Side</span>) wick.Side {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (side == .left) .left <span style="color: #fb4934; font-weight: bold;">else</span> .right;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerCoordSlot</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateSlot</span>) wick.CoordinateSlot {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (slot) {
+        .position =&gt; .position,
+        .holomorphic =&gt; .holomorphic,
+        .antiholomorphic =&gt; .antiholomorphic,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerCoordRef</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ref</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>) wick.CoordinateRef {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.coord(lowerSide(ref.side), lowerCoordSlot(ref.slot));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerLabelRef</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ref</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>) wick.LabelRef {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.label(lowerSide(ref.side), <span style="color: #fe8019; font-weight: bold;">@intCast</span>(ref.slot));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerDerivative</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) wick.DerivativeAction {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .include_left = left, .include_right = right };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">parameterScalar</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(scalars.one()) {
+    <span style="color: #fb4934; font-weight: bold;">return</span> scalars.atomScalar(parameterAtom(d, id));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">parameterAtom</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> stableId(d.theory_hash ^ 0xa170_0000, id + 1);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerScalar</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactor</span>) wick.ScalarFactor {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+        .one =&gt; wick.scalar(scalars.one()),
+        .rational =&gt; |value| wick.scalar(scalars.rational(value.numerator, value.denominator)),
+        .parameter =&gt; |id| wick.scalar(parameterScalar(d, id)),
+        .neg_parameter_half =&gt; |id| wick.scalar(scalars.div(scalars.neg(parameterScalar(d, id)), 2)),
+        .neg_i_parameter_half =&gt; |id| wick.scalar(scalars.div(scalars.neg(scalars.i(parameterScalar(d, id))), 2)),
+        .parameter_half =&gt; |id| wick.scalar(scalars.div(parameterScalar(d, id), 2)),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerScalarValue</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarFactor</span>) <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(scalars.one()) {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (lowerScalar(d, factor)) {
+        .value =&gt; |value| value,
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"descriptor zero-mode normalization must be a value scalar"</span>),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerCoordinate</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateFactor</span>) wick.CoordinateFactor {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+        .difference_power =&gt; |item| wick.differentiatedPower(
+            wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
+            item.exponent,
+            lowerDerivative(item.derive_left, item.derive_right),
+        ),
+        .named_kernel =&gt; |item| wick.differentiatedGreenKernel(
+            d.symbols[item.symbol],
+            wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
+            lowerDerivative(item.derive_left, item.derive_right),
+        ),
+        .green_exponential =&gt; |item| .{ .green_exponential = wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)) },
+    };
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerTensor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorFactor</span>) wick.TensorFactor {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+        .none =&gt; .none,
+        .metric =&gt; |item| .{ .metric = .{ .left = lowerLabelRef(item.left), .right = lowerLabelRef(item.right) } },
+        .momentum_index =&gt; |item| .{ .momentum_index = .{ .momentum = lowerLabelRef(item.momentum), .index = lowerLabelRef(item.index) } },
+        .momentum_pair =&gt; |item| .{ .momentum_pair = .{ .left = lowerLabelRef(item.left), .right = lowerLabelRef(item.right) } },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerAction</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ActionFactor</span>) wick.ActionFactor {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+        .profile_derivative =&gt; |item| wick.profileDerivative(lowerLabelRef(item.profile), lowerLabelRef(item.index)),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">LoweredTerm</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickTerm</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [term.scalars.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.ScalarFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.scalars, 0..) |factor, index| storage[index] = lowerScalar(d, factor);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [term.coordinates.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.CoordinateFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.coordinates, 0..) |factor, index| storage[index] = lowerCoordinate(d, factor);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [term.tensors.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.TensorFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.tensors, 0..) |factor, index| storage[index] = lowerTensor(factor);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">action_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [term.actions.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.ActionFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.actions, 0..) |factor, index| storage[index] = lowerAction(factor);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [term.residuals.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Side</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (term.residuals, 0..) |side, index| storage[index] = lowerSide(side);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span> = wick.termWithResiduals(&amp;scalar_storage, &amp;coordinate_storage, &amp;tensor_storage, &amp;action_storage, &amp;residual_storage);
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">LoweredWickRule</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickRule</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [rule.terms.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Term</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (rule.terms, 0..) |term, index| storage[index] = LoweredTerm(d, term).value;
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span> = wick.rule(
+            wick.pattern(kindId(d, rule.left), lowerSupport(d.fields[rule.left].insertion)),
+            wick.pattern(kindId(d, rule.right), lowerSupport(d.fields[rule.right].insertion)),
+            wick.expr(&amp;terms),
+        );
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerWickRule</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickRule</span>) wick.Rule {
+    <span style="color: #fb4934; font-weight: bold;">return</span> LoweredWickRule(d, rule).value;
+}
+</pre>
+</div>
+
+<p>
+The zero-mode lowering keeps the generated rule generic, then adapts to the
+current runtime procedures behind the descriptor boundary.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerConsumeKinds</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">consumes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) [consumes.len]operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [consumes.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (consumes, 0..) |field_id, index| storage[index] = kindId(d, field_id);
+    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">LoweredZeroMode</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroModeRule</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">consume_storage</span> = lowerConsumeKinds(d, rule.consumes);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sector</span> = sectorId(d, rule.surface, index);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span> = <span style="color: #fb4934; font-weight: bold;">switch</span> (rule.kind) {
+            .constant_fermion =&gt; zero_mode.rule(sector, .{ .constant_fermion = .{
+                .support = .sphere_holomorphic,
+                .fermion_kind_ids = &amp;consume_storage,
+                .normalization = lowerScalarValue(d, rule.normalization),
+            } }),
+            .top_form_fermion =&gt; zero_mode.rule(sector, .{ .top_form_fermion = .{
+                .support = .sphere_holomorphic,
+                .field_kind_ids = &amp;consume_storage,
+                .normalization = lowerScalarValue(d, rule.normalization),
+            } }),
+            .boson_momentum_conservation =&gt; zero_mode.rule(sector, .{ .boson_momentum_conservation = .{
+                .exp_kind_ids = &amp;consume_storage,
+                .profile_kind_ids = &amp;.{},
+                .normalization = .{
+                    .scalar = lowerScalarValue(d, rule.normalization),
+                    .two_pi_power = <span style="color: #fb4934; font-weight: bold;">if</span> (rule.two_pi_power == 0) .none <span style="color: #fb4934; font-weight: bold;">else</span> .{ .literal = rule.two_pi_power },
+                },
+            } }),
+        };
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerZeroMode</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroModeRule</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">return</span> LoweredZeroMode(d, rule, index).value;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldSpecStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) [d.fields.len]declare.Spec.Operator {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [d.fields.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">declare.Spec.Operator</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (d.fields, 0..) |field, index| storage[index] = lowerField(d, field);
+    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">wickStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) [d.wick_rules.len]wick.Rule {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [d.wick_rules.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (d.wick_rules, 0..) |rule, index| storage[index] = lowerWickRule(d, rule);
+    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">zeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) [d.zero_modes.len]zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [d.zero_modes.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (d.zero_modes, 0..) |rule, index| storage[index] = lowerZeroMode(d, rule, index);
+    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fermionStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) [fermionCount(fields)]operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [fermionCount(fields)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (fields) |field| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (field.statistics == .fermionic) {
+            storage[index] = kindId(d, field.id);
+            index += 1;
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fermionCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Field</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (fields) |field| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (field.statistics == .fermionic) count += 1;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> count;
+}
+</pre>
+</div>
+
+<p>
+Runtime contexts own only symbol names, label values, and packed local
+operators.  Count mode uses a sink that never constructs expression objects.
+</p>
+
+<a id="ResultEventKind"></a>
+<a id="ResultEvent"></a>
+<a id="StreamFn"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org19d4aff"><span style="color: #e0d3b9; font-style: italic;">/// ResultEventKind names one streamed Lisp-facing result event.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ResultEventKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    sum_term_begin,
+    sum_term_end,
+    wick_term_begin,
+    wick_term_end,
+    scalar,
+    coordinate,
+    tensor,
+    zero_mode,
+    residual_operator,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ResultEvent is one compact streamed result record.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ResultEvent</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ResultEventKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">a</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">b</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">c</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// StreamFn consumes one result event and user payload.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StreamFn</span> = *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fb4934; font-weight: bold;">fn</span> (*<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, ResultEvent) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CountSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickBranchSign</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickResidualOperator</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.count += 1;
+    }
+};
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">labelSymbol</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LabelValue</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (value) {
+        .symbol =&gt; |symbol| symbol,
+        .integer =&gt; |item| <span style="color: #fe8019; font-weight: bold;">@intCast</span>(item),
+        .rational =&gt; 0,
+        .tensor =&gt; |item| item,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">scalarFlags</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">imaginary_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u2</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, imaginary_power) | (<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #fe8019; font-weight: bold;">@bitCast</span>(atom_power))) &lt;&lt; 8);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">scalarValueEvent</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">rational</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">imaginary_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u2</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>) !ResultEvent {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator</span> = std.math.cast(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, rational.numerator) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ScalarNumeratorOutOfRange;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span> = std.math.cast(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, rational.denominator) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ScalarDenominatorOutOfRange;
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .kind = .scalar,
+        .a = atom <span style="color: #fb4934; font-weight: bold;">orelse</span> 0,
+        .b = denominator,
+        .c = scalarFlags(imaginary_power, atom_power),
+        .d = numerator,
+        .name = <span style="color: #b8bb26; font-style: italic;">"scalar-monomial"</span>,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">scalarEvent</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !ResultEvent {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (value) {
+        .one =&gt; .{ .kind = .scalar },
+        .rational =&gt; |rational| scalarValueEvent(rational, 0, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>, 0),
+        .monomial =&gt; |monomial| scalarValueEvent(monomial.rational, monomial.imaginary_power, monomial.atom, monomial.atom_power),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EventSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">stream</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StreamFn</span>,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ResultEvent</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.stream(self.payload, event);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickBranchSign</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (sign &lt; 0) <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .scalar, .d = -1 });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">event</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .wick_term_begin, .a = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(event.left_index), .b = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(event.right_index), .c = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(event.term_index) });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+            .value =&gt; |value| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(<span style="color: #fb4934; font-weight: bold;">try</span> scalarEvent(value)),
+            .label_bilinear_phase =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .scalar, .a = labelSymbol(item.left), .b = labelSymbol(item.right), .name = item.form }),
+            .cocycle =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .scalar, .a = labelSymbol(item.left), .b = labelSymbol(item.right), .name = item.table }),
+            .spin_structure =&gt; |name| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .scalar, .name = name }),
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (factor.kernel) {
+            .difference_power =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .coordinate, .a = item.coordinate.left, .b = item.coordinate.right, .d = item.exponent }),
+            .logarithm =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .coordinate, .a = item.left, .b = item.right, .name = <span style="color: #b8bb26; font-style: italic;">"log"</span> }),
+            .green_kernel =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .coordinate, .a = item.coordinate.left, .b = item.coordinate.right, .name = item.name }),
+            .green_exponential =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .coordinate, .a = item.left, .b = item.right, .name = <span style="color: #b8bb26; font-style: italic;">"exp-green"</span> }),
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+            .none =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .tensor }),
+            .metric =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .tensor, .a = labelSymbol(item.left), .b = labelSymbol(item.right), .name = <span style="color: #b8bb26; font-style: italic;">"metric"</span> }),
+            .momentum_index =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .tensor, .a = labelSymbol(item.momentum), .b = labelSymbol(item.index), .name = <span style="color: #b8bb26; font-style: italic;">"momentum-index"</span> }),
+            .momentum_pair =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .tensor, .a = labelSymbol(item.left), .b = labelSymbol(item.right), .name = <span style="color: #b8bb26; font-style: italic;">"momentum-pair"</span> }),
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .tensor }),
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .residual_operator, .name = <span style="color: #b8bb26; font-style: italic;">"action"</span> });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickResidualOperator</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .residual_operator, .a = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(residual.input_index) });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .wick_term_end });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+            .bc_top_form =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .zero_mode, .name = <span style="color: #b8bb26; font-style: italic;">"bc-top-form"</span> }),
+            .eta_xi_zero_mode =&gt; |item| <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .zero_mode, .a = item.xi.coordinate, .name = <span style="color: #b8bb26; font-style: italic;">"eta-xi-zero-mode"</span> }),
+            .momentum_delta =&gt; |item| {
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(<span style="color: #fb4934; font-weight: bold;">try</span> scalarEvent(item.scalar));
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .zero_mode, .a = item.two_pi_power, .b = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(item.momenta.len), .name = <span style="color: #b8bb26; font-style: italic;">"momentum-delta"</span> });
+                <span style="color: #fb4934; font-weight: bold;">for</span> (item.momenta) |momentum| {
+                    <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .zero_mode, .a = labelSymbol(momentum), .name = <span style="color: #b8bb26; font-style: italic;">"momentum-delta-momentum"</span> });
+                }
+            },
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .zero_mode }),
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.emit(.{ .kind = .sum_term_end });
+    }
+};
+</pre>
+</div>
+
+<a id="GeneratedTheory"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org2b83b2a"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">insertionFrom</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">shape</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InsertionShape</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !operators.OperatorInsertion {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (shape) {
+        .single =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (coords.len == 1) .{ .single = .{ .position = coords[0], .derivatives = 0 } } <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidCoordinateArity,
+        .pair =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (coords.len == 2) .{ .pair = .{
+            .holomorphic_position = coords[0],
+            .antiholomorphic_position = coords[1],
+            .holomorphic_derivatives = 0,
+            .antiholomorphic_derivatives = 0,
+        } } <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidCoordinateArity,
+    };
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// GeneratedTheory lowers one descriptor to an executable theory boundary.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">GeneratedTheory</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> {
+        validateDescriptor(d) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #fe8019; font-weight: bold;">@errorName</span>(err));
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = wickStorage(d);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zeros</span> = zeroStorage(d);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermions</span> = fermionStorage(d.fields, d);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Config</span> = declare.correlatorConfig(.{
+        .wick_rules = &amp;rules,
+        .zero_modes = &amp;zeros,
+        .fermion_kinds = &amp;fermions,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// abi_version is the descriptor ABI accepted by this generated theory.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">abi_version</span> = descriptor_abi_version;
+        <span style="color: #e0d3b9; font-style: italic;">/// theory_hash distinguishes generated theories at runtime.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">theory_hash</span> = d.theory_hash;
+        <span style="color: #e0d3b9; font-style: italic;">/// descriptor exposes the compact source descriptor for audits.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor</span> = d;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = Config{};
+
+        <span style="color: #e0d3b9; font-style: italic;">/// Context owns symbols and a single mutable operator list.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Context</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">symbols</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>([]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) = .empty,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(kernel.Call.LabelValue) = .empty,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">operators_list</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(kernel.Call.LocalOp) = .empty,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">frozen_labels</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LabelValue</span> = &amp;.{},
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">frozen_ops</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span> = &amp;.{},
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">label_store</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LabelStore</span> = .{ .values = &amp;.{} },
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">next_normal_order_group</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">normal_ordering.Group</span> = normal_ordering.first,
+
+            <span style="color: #e0d3b9; font-style: italic;">/// init creates an empty generated-theory context.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Context {
+                <span style="color: #fb4934; font-weight: bold;">return</span> .{ .allocator = allocator };
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// deinit releases context-owned buffers.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">for</span> (self.symbols.items) |name| self.allocator.free(name);
+                self.symbols.deinit(self.allocator);
+                self.labels.deinit(self.allocator);
+                self.operators_list.deinit(self.allocator);
+                self.allocator.free(self.frozen_labels);
+                self.allocator.free(self.frozen_ops);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// intern returns a stable context-local symbol id for a name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">intern</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">for</span> (self.symbols.items, 1..) |stored, index| {
+                    <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, stored, name)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+                }
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span> = <span style="color: #fb4934; font-weight: bold;">try</span> self.allocator.dupe(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, name);
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.symbols.append(self.allocator, copy);
+                <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.symbols.items.len);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// symbolName resolves a context-local symbol id.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">symbolName</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (symbol == 0 <span style="color: #fb4934; font-weight: bold;">or</span> symbol &gt; self.symbols.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.symbols.items[symbol - 1];
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// insertField appends one generated field occurrence.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">insertField</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (field_id &gt;= d.fields.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span> = d.fields[field_id];
+                <span style="color: #fb4934; font-weight: bold;">if</span> (label_symbols.len != field.labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label_start</span> = self.labels.items.len;
+                <span style="color: #fb4934; font-weight: bold;">for</span> (label_symbols) |symbol| {
+                    <span style="color: #fb4934; font-weight: bold;">try</span> self.labels.append(self.allocator, .{ .symbol = symbol });
+                }
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.operators_list.append(self.allocator, .{
+                    .insertion = <span style="color: #fb4934; font-weight: bold;">try</span> insertionFrom(field.insertion, coords),
+                    .kind = kindId(d, field_id),
+                    .labels = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(label_start),
+                });
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// normalOrderLast tags the last count insertions as one normal product.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">normalOrderLast</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">try</span> normal_ordering.tagLast(self.operators_list.items, count, &amp;self.next_normal_order_group);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// freeze returns the current immutable operator sequence.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeze</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) !kernel.Call.MultiOp {
+                self.allocator.free(self.frozen_labels);
+                self.allocator.free(self.frozen_ops);
+                self.frozen_labels = <span style="color: #fb4934; font-weight: bold;">try</span> self.labels.toOwnedSlice(self.allocator);
+                self.frozen_ops = <span style="color: #fb4934; font-weight: bold;">try</span> self.operators_list.toOwnedSlice(self.allocator);
+                self.label_store = .{ .values = self.frozen_labels };
+                <span style="color: #fb4934; font-weight: bold;">return</span> .{ .operators = self.frozen_ops, .labels = &amp;self.label_store };
+            }
+        };
+
+        <span style="color: #e0d3b9; font-style: italic;">/// descriptorAbiVersion returns the generated descriptor ABI version.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">descriptorAbiVersion</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> abi_version;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// theoryHash returns the generated theory hash.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">theoryHash</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> theory_hash;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// scalarAtomParameterName resolves a descriptor parameter scalar atom.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">scalarAtomParameterName</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+            <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (d.parameters) |parameter| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (parameterAtom(d, parameter.id) == atom) <span style="color: #fb4934; font-weight: bold;">return</span> d.symbols[parameter.symbol];
+            }
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// contextCreate allocates a generated-theory context.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">contextCreate</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !*Context {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.create(Context);
+            ctx.* = Context.init(allocator);
+            <span style="color: #fb4934; font-weight: bold;">return</span> ctx;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// contextDestroy releases a generated-theory context.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">contextDestroy</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span> = ctx.allocator;
+            ctx.deinit();
+            allocator.destroy(ctx);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// symbolIntern interns one runtime symbol name.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">symbolIntern</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> ctx.intern(name);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// fieldInsert appends one field occurrence.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldInsert</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> ctx.insertField(field_id, coords, label_symbols);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// normalOrdering tags the last count insertions as one normal product.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">normalOrdering</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> ctx.normalOrderLast(count);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// operatorListFreeze freezes the current operator list.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">operatorListFreeze</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) !kernel.Call.MultiOp {
+            <span style="color: #fb4934; font-weight: bold;">return</span> ctx.freeze();
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlatorCount returns the number of accepted streamed branches.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlatorCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = CountSink{};
+            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config, ops, &amp;sink);
+            <span style="color: #fb4934; font-weight: bold;">return</span> sink.count;
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlatorRun streams result events through a caller-provided function.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlatorRun</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">stream</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StreamFn</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = EventSink{ .payload = payload, .stream = stream };
+            <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(.{ .kind = .sum_term_begin });
+            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config, ops, &amp;sink);
+        }
+    };
+}
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

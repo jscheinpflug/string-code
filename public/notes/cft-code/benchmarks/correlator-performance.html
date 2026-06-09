@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Correlator Performance Benchmarks</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Correlator Performance Benchmarks</h1>
+<p>
+This benchmark times the streamed Wick correlator on representative free-boson,
+free-fermion, ghost, and exponential workloads.  It reports medians, not best runs.  The
+event sink counts the fully expanded stream; the branch sink counts the compact
+branch path and its stack state size.
+</p>
+
+<p>
+The <code>event</code> lines describe the expanded primitive event stream: a Wick term
+boundary, scalar/coordinate/tensor/action factors, residual operator references,
+and the zero-mode base-case factors.  The <code>branch</code> lines describe one compact
+accumulated branch object per Wick/base-case branch, while zero modes remain
+separate events.  <code>fallback_terms</code> is nonzero only when a case cannot use the
+compact branch path.
+</p>
+
+<p>
+The runner enforces a <code>5%</code> median regression gate for every event and branch
+case against the recorded baselines below.  Cases with very small baselines run
+multiple correlators per sample and report the per-call median, keeping the
+speed gate strict while reducing timer noise.  Exponential and mixed cases also
+check primitive-term, tensor-factor, residual, zero-mode, and base-case counts
+so semantic drift fails the benchmark instead of only changing printed numbers.
+</p>
+
+<a id="main"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb67df27"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cft</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"cft-code"</span>);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">max_sample_count</span> = 101;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">MedianGate</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">baseline_ns</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">limit_num</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">limit_den</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpectedCounts</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_modes</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">base_cases</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">medianGate</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">baseline_ns</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) MedianGate {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .baseline_ns = baseline_ns, .limit_num = 21, .limit_den = 20 };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">measurementBatchCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">baseline_ns</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (baseline_ns &lt; 20_000) <span style="color: #fb4934; font-weight: bold;">return</span> 32;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (baseline_ns &lt; 50_000) <span style="color: #fb4934; font-weight: bold;">return</span> 8;
+    <span style="color: #fb4934; font-weight: bold;">return</span> 1;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">nowNs</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ts</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.os.linux.timespec</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    _ = std.os.linux.clock_gettime(.MONOTONIC, &amp;ts);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(ts.sec)) * std.time.ns_per_s + <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(ts.nsec));
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EventSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalars</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinates</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">actions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_modes</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">base_cases</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.wick_terms += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.scalars += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.coordinates += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.tensors += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.actions += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickResidualOperator</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.residuals += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.zero_modes += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.base_cases += 1;
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BranchSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">fallback_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalars</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinates</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">actions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_modes</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">base_cases</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_state_bytes</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickBranchTerm</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.branch_terms += 1;
+        self.primitive_terms += branch.primitiveTermCount();
+        self.scalars += branch.scalarFactorCount();
+        self.coordinates += branch.coordinateFactorCount();
+        self.tensors += branch.tensorFactorCount();
+        self.actions += branch.actionFactorCount();
+        self.residuals += branch.residualFactorCount();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bytes</span> = branchStateBytes(branch);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (bytes &gt; self.branch_state_bytes) self.branch_state_bytes = bytes;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.fallback_terms += 1;
+        self.primitive_terms += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.scalars += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.coordinates += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.tensors += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.actions += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickResidualOperator</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.residuals += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.zero_modes += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.base_cases += 1;
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">branchStateBytes</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (<span style="color: #fe8019; font-weight: bold;">@typeInfo</span>(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(branch))) {
+        .pointer =&gt; |ptr| <span style="color: #fe8019; font-weight: bold;">@sizeOf</span>(ptr.child),
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fe8019; font-weight: bold;">@sizeOf</span>(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(branch)),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">median</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">samples</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    std.mem.sort(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, samples, {}, <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lessThan</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> left &lt; right;
+        }
+    }.lessThan);
+    <span style="color: #fb4934; font-weight: bold;">return</span> samples[samples.len / 2];
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">requireSampleCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (sample_count == 0 <span style="color: #fb4934; font-weight: bold;">or</span> sample_count &gt; max_sample_count <span style="color: #fb4934; font-weight: bold;">or</span> (sample_count &amp; 1) == 0) {
+        <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"benchmark sample counts must be odd and &lt;= max_sample_count"</span>);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">checkEventCounts</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">result</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EventSink</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">counts</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">batch_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (result.wick_terms != counts.primitive_terms * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.tensors != counts.tensors * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.residuals != counts.residuals * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.zero_modes != counts.zero_modes * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.base_cases != counts.base_cases * batch_count)
+    {
+        std.debug.print(
+            <span style="color: #b8bb26; font-style: italic;">"event count regression case={s} primitive={} tensors={} residuals={} zero_modes={} base_cases={}\n"</span>,
+            .{ name, result.wick_terms, result.tensors, result.residuals, result.zero_modes, result.base_cases },
+        );
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.BenchmarkCountRegression;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">checkBranchCounts</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">result</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BranchSink</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">counts</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">batch_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (result.primitive_terms != counts.primitive_terms * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.tensors != counts.tensors * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.residuals != counts.residuals * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.zero_modes != counts.zero_modes * batch_count <span style="color: #fb4934; font-weight: bold;">or</span>
+        result.base_cases != counts.base_cases * batch_count)
+    {
+        std.debug.print(
+            <span style="color: #b8bb26; font-style: italic;">"branch count regression case={s} primitive={} tensors={} residuals={} zero_modes={} base_cases={}\n"</span>,
+            .{ name, result.primitive_terms, result.tensors, result.residuals, result.zero_modes, result.base_cases },
+        );
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.BenchmarkCountRegression;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">checkMedianGate</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">form</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">median_ns</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (median_ns * gate.limit_den &gt; gate.baseline_ns * gate.limit_num) {
+        std.debug.print(
+            <span style="color: #b8bb26; font-style: italic;">"{s} speed regression case={s} median_ns={} baseline_ns={} limit={}/{}\n"</span>,
+            .{ form, name, median_ns, gate.baseline_ns, gate.limit_num, gate.limit_den },
+        );
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.BenchmarkSpeedRegression;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchEvent</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">theory</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> requireSampleCount(sample_count);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">batch_count</span> = measurementBatchCount(gate.baseline_ns);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">samples</span>: [max_sample_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">result</span> = EventSink{};
+    <span style="color: #fb4934; font-weight: bold;">for</span> (samples[0..sample_count]) |*sample| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = EventSink{};
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = nowNs();
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..batch_count) |_| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> theory.correlator(config, ops, &amp;sink);
+        }
+        sample.* = (nowNs() - start) / batch_count;
+        result = sink;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">median_ns</span> = median(samples[0..sample_count]);
+    <span style="color: #fb4934; font-weight: bold;">try</span> checkMedianGate(<span style="color: #b8bb26; font-style: italic;">"event"</span>, name, median_ns, gate);
+    <span style="color: #fb4934; font-weight: bold;">try</span> checkEventCounts(name, result, expected, batch_count);
+    std.debug.print(
+        <span style="color: #b8bb26; font-style: italic;">"event case={s} samples={} batch={} median_ns={} wick_terms={} scalars={} coordinates={} tensors={} actions={} residuals={} zero_modes={} base_cases={}\n"</span>,
+        .{ name, sample_count, batch_count, median_ns, result.wick_terms, result.scalars, result.coordinates, result.tensors, result.actions, result.residuals, result.zero_modes, result.base_cases },
+    );
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchBranch</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">theory</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> requireSampleCount(sample_count);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">batch_count</span> = measurementBatchCount(gate.baseline_ns);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">samples</span>: [max_sample_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">result</span> = BranchSink{};
+    <span style="color: #fb4934; font-weight: bold;">for</span> (samples[0..sample_count]) |*sample| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = BranchSink{};
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = nowNs();
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..batch_count) |_| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> theory.correlator(config, ops, &amp;sink);
+        }
+        sample.* = (nowNs() - start) / batch_count;
+        result = sink;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">median_ns</span> = median(samples[0..sample_count]);
+    <span style="color: #fb4934; font-weight: bold;">try</span> checkMedianGate(<span style="color: #b8bb26; font-style: italic;">"branch"</span>, name, median_ns, gate);
+    <span style="color: #fb4934; font-weight: bold;">try</span> checkBranchCounts(name, result, expected, batch_count);
+    std.debug.print(
+        <span style="color: #b8bb26; font-style: italic;">"branch case={s} samples={} batch={} median_ns={} branch_terms={} fallback_terms={} primitive_terms={} scalars={} coordinates={} tensors={} actions={} residuals={} zero_modes={} base_cases={} branch_state_bytes={}\n"</span>,
+        .{ name, sample_count, batch_count, median_ns, result.branch_terms, result.fallback_terms, result.primitive_terms, result.scalars, result.coordinates, result.tensors, result.actions, result.residuals, result.zero_modes, result.base_cases, result.branch_state_bytes },
+    );
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchFreeBosonDx</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">X</span> = cft.FreeBoson.make(.{ .dimension = 10 });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.index(<span style="color: #b8bb26; font-style: italic;">"probe_mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [n]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> X.op.dX(&amp;type_local, probe_mu, 0, probe_z)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.index(<span style="color: #b8bb26; font-style: italic;">"mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..n) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"z{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> X.op.dX(&amp;local, mu, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"dx{}"</span>, .{n});
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, X, &amp;X.config.sphere, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, X, &amp;X.config.sphere, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchBcSphere</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">b_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">c_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Ghost</span> = cft.Bc.sphere(.{ .include_antiholomorphic_copy = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Ghost.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [b_count + c_count]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> Ghost.op.b(&amp;type_local, 0, probe_z)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Ghost.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..b_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"b{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> Ghost.op.b(&amp;local, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..c_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"c{}"</span>, .{i}));
+        ops_buf[b_count + i] = <span style="color: #fb4934; font-weight: bold;">try</span> Ghost.op.c(&amp;local, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"bc_{}_{}"</span>, .{ b_count, c_count });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, Ghost, &amp;Ghost.config.sphere, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, Ghost, &amp;Ghost.config.sphere, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchFreeFermionPsi</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Psi</span> = cft.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Psi.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.index(<span style="color: #b8bb26; font-style: italic;">"probe_mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [n]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> Psi.op.psi(&amp;type_local, probe_mu, 0, probe_z)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Psi.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..n) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.index(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"mu{}"</span>, .{i}));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"psi{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> Psi.op.psi(&amp;local, mu, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"psi{}"</span>, .{n});
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (n &gt;= 2) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorGuard</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">metric_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">switch</span> (factor) {
+                    .metric =&gt; |metric| {
+                        <span style="color: #fb4934; font-weight: bold;">switch</span> (metric.left) {
+                            .symbol =&gt; {},
+                            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnexpectedPsiTensorLabel,
+                        }
+                        <span style="color: #fb4934; font-weight: bold;">switch</span> (metric.right) {
+                            .symbol =&gt; {},
+                            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnexpectedPsiTensorLabel,
+                        }
+                        self.metric_count += 1;
+                    },
+                    <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnexpectedPsiTensorFactor,
+                }
+            }
+
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">guard</span> = TensorGuard{};
+        <span style="color: #fb4934; font-weight: bold;">try</span> Psi.correlator(&amp;Psi.config.sphere, ops, &amp;guard);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (guard.metric_count != expected.tensors) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.BenchmarkCountRegression;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, Psi, &amp;Psi.config.sphere, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, Psi, &amp;Psi.config.sphere, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchFreeBosonExp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">exp_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">X</span> = cft.FreeBoson.make(.{ .dimension = 10 });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_k</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.momentum(<span style="color: #b8bb26; font-style: italic;">"probe_k"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_zbar</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_zbar"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [exp_count]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> X.op.expX(&amp;type_local, probe_k, probe_z, probe_zbar)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..exp_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">k</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.momentum(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"k{}"</span>, .{i}));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"e{}"</span>, .{i}));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"eb{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> X.op.expX(&amp;local, k, z, zbar);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"exp{}"</span>, .{exp_count});
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, X, &amp;X.config.sphere, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, X, &amp;X.config.sphere, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchFreeBosonDxExp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dx_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">exp_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">X</span> = cft.FreeBoson.make(.{ .dimension = 10 });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.index(<span style="color: #b8bb26; font-style: italic;">"probe_mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [dx_count + exp_count]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> X.op.dX(&amp;type_local, probe_mu, 0, probe_z)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.index(<span style="color: #b8bb26; font-style: italic;">"mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..dx_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"x{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> X.op.dX(&amp;local, mu, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..exp_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">k</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.momentum(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"k{}"</span>, .{i}));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"e{}"</span>, .{i}));
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"eb{}"</span>, .{i}));
+        ops_buf[dx_count + i] = <span style="color: #fb4934; font-weight: bold;">try</span> X.op.expX(&amp;local, k, z, zbar);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"dx{}_exp{}"</span>, .{ dx_count, exp_count });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, X, &amp;X.config.sphere, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, X, &amp;X.config.sphere, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">benchEtaXiTorus</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">eta_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">xi_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sample_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">event_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_gate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">MedianGate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpectedCounts</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EtaXi</span> = cft.EtaXi.sphere(.{ .include_antiholomorphic_copy = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> });
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">type_local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> EtaXi.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> type_local.coord(<span style="color: #b8bb26; font-style: italic;">"probe_z"</span>);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops_buf</span>: [eta_count + xi_count]<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(<span style="color: #fb4934; font-weight: bold;">try</span> EtaXi.op.eta(&amp;type_local, 0, probe_z)) = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    type_local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> EtaXi.local(allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..eta_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"eta{}"</span>, .{i}));
+        ops_buf[i] = <span style="color: #fb4934; font-weight: bold;">try</span> EtaXi.op.eta(&amp;local, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..xi_count) |i| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"xi{}"</span>, .{i}));
+        ops_buf[eta_count + i] = <span style="color: #fb4934; font-weight: bold;">try</span> EtaXi.op.xi(&amp;local, 0, z);
+    }
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(ops_buf);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = std.fmt.comptimePrint(<span style="color: #b8bb26; font-style: italic;">"eta_xi_torus_{}_{}"</span>, .{ eta_count, xi_count });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEvent(name, sample_count, EtaXi, &amp;EtaXi.config.torus, ops, event_gate, expected);
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBranch(name, sample_count, EtaXi, &amp;EtaXi.config.torus, ops, branch_gate, expected);
+}
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">main</span>() !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span> = std.heap.page_allocator;
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEtaXiTorus(3, 4, 101, allocator, medianGate(16000), medianGate(16000), .{ .primitive_terms = 72, .tensors = 72, .residuals = 0, .zero_modes = 24, .base_cases = 24 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchEtaXiTorus(4, 5, 101, allocator, medianGate(50000), medianGate(50000), .{ .primitive_terms = 480, .tensors = 480, .residuals = 0, .zero_modes = 120, .base_cases = 120 });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDx(8, 101, allocator, medianGate(42779), medianGate(37253), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 105, .base_cases = 105 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDx(10, 101, allocator, medianGate(231673), medianGate(185435), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 945, .base_cases = 945 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDx(12, 31, allocator, medianGate(2271202), medianGate(2131701), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 10395, .base_cases = 10395 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDx(14, 11, allocator, medianGate(35454428), medianGate(31226026), .{ .primitive_terms = 945945, .tensors = 945945, .residuals = 0, .zero_modes = 135135, .base_cases = 135135 });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBcSphere(3, 6, 101, allocator, medianGate(39095), medianGate(38634), .{ .primitive_terms = 360, .tensors = 360, .residuals = 0, .zero_modes = 120, .base_cases = 120 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBcSphere(4, 7, 101, allocator, medianGate(234677), medianGate(226326), .{ .primitive_terms = 3360, .tensors = 3360, .residuals = 0, .zero_modes = 840, .base_cases = 840 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBcSphere(5, 8, 31, allocator, medianGate(2225167), medianGate(2106137), .{ .primitive_terms = 33600, .tensors = 33600, .residuals = 0, .zero_modes = 6720, .base_cases = 6720 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchBcSphere(6, 9, 11, allocator, medianGate(22262770), medianGate(19629812), .{ .primitive_terms = 362880, .tensors = 362880, .residuals = 0, .zero_modes = 60480, .base_cases = 60480 });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonExp(2, 101, allocator, medianGate(9277), medianGate(8626), .{ .primitive_terms = 1, .tensors = 1, .residuals = 2, .zero_modes = 1, .base_cases = 1 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonExp(4, 101, allocator, medianGate(10801), medianGate(10893), .{ .primitive_terms = 6, .tensors = 6, .residuals = 12, .zero_modes = 1, .base_cases = 1 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonExp(6, 31, allocator, medianGate(17741), medianGate(18497), .{ .primitive_terms = 15, .tensors = 15, .residuals = 30, .zero_modes = 1, .base_cases = 1 });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDxExp(2, 2, 101, allocator, medianGate(11317), medianGate(11790), .{ .primitive_terms = 14, .tensors = 14, .residuals = 18, .zero_modes = 5, .base_cases = 5 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDxExp(4, 2, 31, allocator, medianGate(30767), medianGate(32523), .{ .primitive_terms = 185, .tensors = 185, .residuals = 198, .zero_modes = 43, .base_cases = 43 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeBosonDxExp(4, 4, 11, allocator, medianGate(226336), medianGate(218270), .{ .primitive_terms = 3448, .tensors = 3448, .residuals = 5476, .zero_modes = 355, .base_cases = 355 });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeFermionPsi(8, 101, allocator, medianGate(30000), medianGate(30000), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 0, .base_cases = 105 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeFermionPsi(10, 101, allocator, medianGate(150000), medianGate(150000), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 0, .base_cases = 945 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeFermionPsi(12, 31, allocator, medianGate(1600000), medianGate(1400000), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 0, .base_cases = 10395 });
+    <span style="color: #fb4934; font-weight: bold;">try</span> benchFreeFermionPsi(14, 11, allocator, medianGate(21000000), medianGate(20000000), .{ .primitive_terms = 945945, .tensors = 945945, .residuals = 0, .zero_modes = 0, .base_cases = 135135 });
+}
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-08</p>
+</div>
+</body>
+</html>

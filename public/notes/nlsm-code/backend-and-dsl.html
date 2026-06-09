@@ -1,0 +1,821 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Backend And Lisp DSL</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Backend And Lisp DSL</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org70bc9fe">Reference Map</a></li>
+<li><a href="#org29935c8">Review Findings</a></li>
+<li><a href="#org82673b3">Correct Backend</a></li>
+<li><a href="#org9934706">Data Shape</a></li>
+<li><a href="#org898829f">Public Zig API</a></li>
+<li><a href="#org31b7d29">Compact Lisp DSL</a></li>
+<li><a href="#orgd3b1e9d">Reusable Models</a></li>
+<li><a href="#org8504588">Inspection DSL</a></li>
+<li><a href="#orgc86ccc6">Descriptor Defaults</a></li>
+<li><a href="#orgc5503f9">What Zig Must Make Fast</a></li>
+<li><a href="#orgc7ad4f1">Implementation Order</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note reviews and replaces the first backend sketch.  The corrected design
+is a compact calculation DSL backed by generated, streaming Zig kernels.  The
+physics anchor is the stringbook dimensional-regularization/minimal-subtraction
+scheme for the Polyakov path integral, together with the older sigma-model
+literature on background fields, Weyl anomaly coefficients, and four-loop
+supersymmetric NLSM beta functions <a href="#ref-1" class="cite">[1]</a> <a href="#ref-2" class="cite">[2]</a>
+<a href="#ref-3" class="cite">[3]</a> <a href="#ref-4" class="cite">[4]</a> <a href="#ref-5" class="cite">[5]</a>
+<a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a> <a href="#ref-8" class="cite">[8]</a>
+<a href="#ref-9" class="cite">[9]</a> <a href="#ref-10" class="cite">[10]</a>.
+</p>
+<div id="outline-container-org70bc9fe" class="outline-2">
+<h2 id="org70bc9fe">Reference Map</h2>
+<div class="outline-text-2" id="text-org70bc9fe">
+<p>
+Each paper below must translate to a concrete table, kernel, or check.  If a
+reference does not constrain code, it does not belong in the implementation
+note.
+</p>
+
+<ul class="org-ul">
+<li>Stringbook <a href="#ref-1" class="cite">[1]</a> gives the working scheme: the Polyakov path
+integral with \(G,B,\Phi\), dimensional regularization in \(2-\epsilon\),
+minimal subtraction, \(G^\epsilon=\mu^{-\epsilon}(G+\sum\epsilon^{-n}K^{(n)})\),
+beta functions from the simple pole \(K^{(1)}\), the \(B\)-field epsilon-frame
+ambiguity, and hatted Weyl coefficients with \(W_\mu,L_\mu,\Phi\) total
+derivative terms.  Code translation: <code>SchemeRow(:stringbook-ms)</code>,
+<code>PoleRow</code>, <code>BetaAssembler</code>, <code>WeylAnomalyRow</code>, and a <code>BFieldEpsilonPolicy</code>.</li>
+
+<li>Friedan <a href="#ref-2" class="cite">[2]</a> is the background-field/RNC renormalization
+anchor: NLSM couplings are geometric tensors, counterterms are local tensor
+functionals, and normal-coordinate algorithms organize the perturbation
+series covariantly.  Code translation: <code>RncVertexPlan</code> streams vertices from
+geometry descriptors; <code>GeometryTensorWord</code> stores counterterms as local
+tensor words; <code>CouplingSpaceOp</code> records metric variations used by beta
+assembly.</li>
+
+<li>Callan-Friedan-Martinec-Perry <a href="#ref-3" class="cite">[3]</a> explains why the beta
+functions of \(G,B,\Phi\) are the spacetime equations of motion for string
+backgrounds.  Code translation: jobs target physical rows such as
+<code>:metric-beta</code>, <code>:b-beta</code>, <code>:dilaton-beta</code>, and <code>:effective-action</code> instead
+of generic correlator output.</li>
+
+<li>Tseytlin's conformal-anomaly paper <a href="#ref-4" class="cite">[4]</a> fixes the
+distinction between RG beta functions and Weyl-anomaly coefficients in curved
+backgrounds.  Code translation: keep <code>BetaRow</code> separate from
+<code>WeylAnomalyRow</code>; do not bake \(W_\mu\), \(L_\mu\), or dilaton improvements
+into the contraction kernel.</li>
+
+<li>Tseytlin's Weyl-invariance paper <a href="#ref-5" class="cite">[5]</a> emphasizes scheme
+dependence and field redefinitions in the map from sigma-model beta functions
+to string equations.  Code translation: <code>BasisPolicy</code> must include
+<code>:field-redefinitions</code> and <code>:eom</code> quotients, and every emitted row carries a
+scheme id.</li>
+
+<li>Metsaev-Tseytlin <a href="#ref-6" class="cite">[6]</a> compares two-loop sigma-model Weyl
+invariance with string effective equations including \(B\) and \(\Phi\), and
+makes field-frame dependence explicit.  Code translation: <code>ActionMatcher</code>
+consumes canonical beta rows plus a <code>FieldFrame</code> and emits effective-action
+tensor rows; \(H=dB\) and dilaton derivative atoms are part of the geometry
+descriptor.</li>
+
+<li>Grisaru-van de Ven-Zanon PLB <a href="#ref-7" class="cite">[7]</a> gives the compact
+four-loop superspace beta-function result for \(N=1,2\) NLSMs.  Code
+translation: this is the first high-loop regression target for
+<code>define-nlsm-job</code> with <code>:n1-1</code> and <code>:n2-2</code> worldsheet presets.</li>
+
+<li>Grisaru-van de Ven-Zanon on Ricci-flat Kahler targets <a href="#ref-8" class="cite">[8]</a>
+shows that Ricci-flat Kahler manifolds are not finite at four loops.  Code
+translation: <code>TargetPreset(:cy3)</code> must impose Kahler type and Ricci-flatness
+but still allow the four-loop local tensor to survive in the <code>:kahler-beta</code>
+job.</li>
+
+<li>Grisaru-van de Ven-Zanon on four-loop divergences <a href="#ref-9" class="cite">[9]</a>
+supplies explicit divergence structures and diagrammatic checks.  Code
+translation: <code>inspect-nlsm</code> must expose vertices, primitive diagram classes,
+pole signatures, and uncanonicalized tensor words for term-by-term
+comparison.</li>
+
+<li>Gross-Witten <a href="#ref-10" class="cite">[10]</a> fixes the amplitude-normalized \(R^4\)
+correction and its implication that generic Ricci-flat targets are corrected
+while special Kahler holonomy changes the answer.  Code translation:
+<code>ActionMatcher(:r4)</code> maps beta rows to the \(R^4\) action basis and provides
+the normalization check for type-II jobs.</li>
+
+<li>Liu-Minasian <a href="#ref-11" class="cite">[11]</a> gives duality and \(B\)-field tests for
+higher-derivative couplings.  Code translation: <code>TargetPreset(:k3)</code> and
+<code>TargetPreset(:cy3)</code> should share the same \(R^4\) kernel but use different
+quotient policies and compactification checks.</li>
+
+<li>Policastro-Tsimpis <a href="#ref-12" class="cite">[12]</a> clarifies purified \(R^4\)
+invariants and the removal of ambiguous Ricci/EOM terms.  Code translation:
+<code>BasisPolicy(:r4)</code> has an on-shell/purified mode that quotients Ricci,
+scalar-curvature, integration-by-parts, and field-redefinition terms before
+comparing to amplitudes.</li>
+
+<li>Candelas-de la Ossa <a href="#ref-13" class="cite">[13]</a> and
+Candelas-de la Ossa-Green-Parkes <a href="#ref-14" class="cite">[14]</a> fix the CY moduli
+and quintic test case.  Code translation: compact target descriptors need
+<code>CohomologyRow</code>, <code>IntersectionRow</code>, and <code>LargeVolumeFitPlan</code>.  The quintic
+preset has \(h^{1,1}=1\), so it is the first numerical metric target: fit
+local curvature integrals against one Kahler volume parameter before moving
+to multi-modulus CY3 examples.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org29935c8" class="outline-2">
+<h2 id="org29935c8">Review Findings</h2>
+<div class="outline-text-2" id="text-org29935c8">
+<p>
+The previous proposal had the right backend direction but the wrong authoring
+surface.
+</p>
+
+<ul class="org-ul">
+<li>Good: generated Zig fixtures, streaming kernels, descriptor tables, and a
+contraction-only RNC path.</li>
+<li>Good: CY3 and K3 should alter target descriptors and tensor quotients, not
+replace the correlator engine.</li>
+<li>Bad: the Lisp examples exposed too much per-model boilerplate: explicit
+propagator kernels, repeated index declarations, manual background legs, and
+full RNC source declarations.</li>
+<li>Bad: public Zig functions such as <code>streamVertices</code> and <code>streamDiagrams</code> are
+useful internally, but too wide as the main user-facing API.</li>
+</ul>
+
+<p>
+The user wants to say what calculation is being done.  Zig wants a compact
+static job plan with interned ids, flat arrays, and no symbolic tree
+materialization.
+</p>
+</div>
+</div>
+<div id="outline-container-org82673b3" class="outline-2">
+<h2 id="org82673b3">Correct Backend</h2>
+<div class="outline-text-2" id="text-org82673b3">
+<p>
+The backend is a generated kernel plan:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">Lisp job form
+  -&gt; normalized NLSM descriptor
+  -&gt; generated Zig fixture tables
+  -&gt; generated dispatch by job id
+  -&gt; streaming kernels
+  -&gt; pole, beta, or action rows
+</pre>
+</div>
+
+<p>
+The performance-critical kernels are:
+</p>
+
+<ol class="org-ol">
+<li><code>vertex_plan</code>: expands standard RNC vertex families by order and field
+content.</li>
+<li><code>diagram_plan</code>: enumerates vertex multisets and quantum occurrence pairings.</li>
+<li><code>contract</code>: consumes fluctuation pairs such as \(\xi\xi\), \(\psi\psi\), or
+mixed supersymmetric free pairs.</li>
+<li><code>pole</code>: maps coordinate-kernel signatures to local \(1/\epsilon^n\) pole
+rows in the selected scheme.</li>
+<li><code>canon</code>: canonicalizes geometry tensor words in the requested quotient.</li>
+<li><code>assemble</code>: converts simple poles to beta-function or local-action rows.</li>
+</ol>
+
+<p>
+The RNC Wick operation has no residual.  A branch contains quantum occurrences
+to be paired, background legs to keep, tensor atoms to multiply, and compact
+coordinate/scalar ids.  Pairing a quantum occurrence consumes it.  Remaining
+background legs are the local counterterm operator.
+</p>
+</div>
+</div>
+<div id="outline-container-org9934706" class="outline-2">
+<h2 id="org9934706">Data Shape</h2>
+<div class="outline-text-2" id="text-org9934706">
+<p>
+The generated descriptor should use flat tables and integer ids.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">JobRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">model</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ModelId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SchemeId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_op</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_loops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_policy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexPolicyId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisPolicyId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">emit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EmitFlags</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ModelRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_set</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldSetId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">default_scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SchemeId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">topology</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TopologyId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TopologyRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">HodgeDiamondId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_form</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_intersection</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">intersection_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">volume_model</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VolumeModelId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FormRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">degree</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge_p</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hodge_q</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FormRole</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IntersectionRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_form</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RationalId</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_quantum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_background</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">background_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">first_scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry_denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+</pre>
+</div>
+
+<p>
+The hot branch frame should be mutable and small:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BranchState</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">live_quantum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OccurrenceBitSet</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairStack</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ScalarAccum</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateAccum</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorWordAccum</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">background</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackgroundAccum</span>,
+};
+</pre>
+</div>
+
+<p>
+No kernel should allocate an expanded action, a full diagram forest, or a full
+symbolic sum.  Every stage streams rows to the next stage or to an inspection
+sink.
+</p>
+</div>
+</div>
+<div id="outline-container-org898829f" class="outline-2">
+<h2 id="org898829f">Public Zig API</h2>
+<div class="outline-text-2" id="text-org898829f">
+<p>
+The public API should be job-oriented.  Fine-grained streams stay internal
+until there is a concrete external caller.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NLSM</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// run streams the requested stage for a generated NLSM job.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">run</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">job</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">JobId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">stage</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Stage</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+
+    <span style="color: #e0d3b9; font-style: italic;">/// inspect streams selected intermediate rows for debugging or paper checks.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">inspect</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">job</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">JobId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InspectRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+};
+</pre>
+</div>
+
+<p>
+The generated ABI can mirror this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">nlsm_run(job_id, stage_id, sink)
+nlsm_inspect(job_id, selector_id, sink)
+</pre>
+</div>
+
+<p>
+Everything else should remain private until another module needs it.
+</p>
+</div>
+</div>
+<div id="outline-container-org31b7d29" class="outline-2">
+<h2 id="org31b7d29">Compact Lisp DSL</h2>
+<div class="outline-text-2" id="text-org31b7d29">
+<p>
+The normal user should write one compact job form.  Defaults come from named
+target/worldsheet presets.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-job bosonic-one-loop-g
+  (target <span style="color: #fe8019; font-weight: bold;">:riemannian</span> <span style="color: #fe8019; font-weight: bold;">:dim</span> d)
+  (worldsheet <span style="color: #fe8019; font-weight: bold;">:bosonic</span>)
+  (scheme <span style="color: #fe8019; font-weight: bold;">:stringbook-ms</span>)
+  (compute <span style="color: #fe8019; font-weight: bold;">:metric-beta</span> <span style="color: #fe8019; font-weight: bold;">:loops</span> 1)
+  (basis <span style="color: #fe8019; font-weight: bold;">:riemannian</span>)
+  (emit <span style="color: #fe8019; font-weight: bold;">:poles</span> <span style="color: #fe8019; font-weight: bold;">:beta</span>))
+</pre>
+</div>
+
+<p>
+The \(R^4\) CY3 calculation should be similarly short:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-job cy3-r4
+  (target <span style="color: #fe8019; font-weight: bold;">:cy3</span> <span style="color: #fe8019; font-weight: bold;">:dim</span> 3
+          <span style="color: #fe8019; font-weight: bold;">:cohomology</span> (hodge ((0 0 1)
+                              (1 1 h11)
+                              (2 1 h21) (1 2 h21)
+                              (2 2 h11)
+                              (3 0 1) (0 3 1)
+                              (3 3 1)))
+          <span style="color: #fe8019; font-weight: bold;">:forms</span> ((J a <span style="color: #fe8019; font-weight: bold;">:h11</span> <span style="color: #fe8019; font-weight: bold;">:kahler</span>)
+                  (chi alpha <span style="color: #fe8019; font-weight: bold;">:h21</span> <span style="color: #fe8019; font-weight: bold;">:complex</span>)
+                  (Omega <span style="color: #fe8019; font-weight: bold;">:h30</span> <span style="color: #fe8019; font-weight: bold;">:holomorphic-volume</span>)))
+  (worldsheet <span style="color: #fe8019; font-weight: bold;">:n2-2</span>)
+  (scheme <span style="color: #fe8019; font-weight: bold;">:stringbook-ms</span>)
+  (compute <span style="color: #fe8019; font-weight: bold;">:kahler-beta</span> <span style="color: #fe8019; font-weight: bold;">:loops</span> 4 <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span> 3)
+  (basis <span style="color: #fe8019; font-weight: bold;">:r4</span> <span style="color: #fe8019; font-weight: bold;">:quotient</span> (<span style="color: #fe8019; font-weight: bold;">:kahler</span> <span style="color: #fe8019; font-weight: bold;">:ricci-flat</span> <span style="color: #fe8019; font-weight: bold;">:ibp</span> <span style="color: #fe8019; font-weight: bold;">:field-redefinitions</span>))
+  (emit <span style="color: #fe8019; font-weight: bold;">:poles</span> <span style="color: #fe8019; font-weight: bold;">:beta</span> <span style="color: #fe8019; font-weight: bold;">:action</span>))
+</pre>
+</div>
+
+<p>
+K3 changes only the target preset and quotient:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-job k3-r4-check
+  (target <span style="color: #fe8019; font-weight: bold;">:k3</span>
+          <span style="color: #fe8019; font-weight: bold;">:cohomology</span> (hodge ((0 0 1)
+                              (1 0 0) (0 1 0)
+                              (2 0 1)
+                              (1 1 20)
+                              (0 2 1)
+                              (2 1 0) (1 2 0)
+                              (2 2 1)))
+          <span style="color: #fe8019; font-weight: bold;">:forms</span> ((omega A <span style="color: #fe8019; font-weight: bold;">:h11</span> <span style="color: #fe8019; font-weight: bold;">:kahler</span>)
+                  (Omega <span style="color: #fe8019; font-weight: bold;">:h20</span> <span style="color: #fe8019; font-weight: bold;">:holomorphic-two-form</span>)))
+  (worldsheet <span style="color: #fe8019; font-weight: bold;">:n4-4</span>)
+  (scheme <span style="color: #fe8019; font-weight: bold;">:stringbook-ms</span>)
+  (compute <span style="color: #fe8019; font-weight: bold;">:metric-beta</span> <span style="color: #fe8019; font-weight: bold;">:loops</span> 4 <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span> 3)
+  (basis <span style="color: #fe8019; font-weight: bold;">:r4</span> <span style="color: #fe8019; font-weight: bold;">:quotient</span> (<span style="color: #fe8019; font-weight: bold;">:hyperkahler</span> <span style="color: #fe8019; font-weight: bold;">:ricci-flat</span> <span style="color: #fe8019; font-weight: bold;">:ibp</span> <span style="color: #fe8019; font-weight: bold;">:field-redefinitions</span>))
+  (emit <span style="color: #fe8019; font-weight: bold;">:poles</span> <span style="color: #fe8019; font-weight: bold;">:beta</span>))
+</pre>
+</div>
+
+<p>
+The DSL compiler expands these forms to:
+</p>
+
+<ul class="org-ul">
+<li>standard fields for the selected worldsheet model;</li>
+<li>standard propagators for the selected scheme;</li>
+<li>standard RNC vertex families through the requested loop order;</li>
+<li>default background operator legs for the requested counterterm;</li>
+<li>target-specific tensor canonicalization relations.</li>
+</ul>
+
+<p>
+The user should not have to declare \(\xi\), \(G_{\mu\nu}\), the propagator, or
+\(\partial X\bar\partial X\) for common metric and Kahler beta calculations.
+</p>
+
+<p>
+For a concrete one-modulus starting point, the quintic should be a named target
+preset:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-job quintic-large-volume-r4
+  (target <span style="color: #fe8019; font-weight: bold;">:quintic</span>
+          <span style="color: #fe8019; font-weight: bold;">:cohomology</span> (hodge ((0 0 1)
+                              (1 1 1)
+                              (2 1 101) (1 2 101)
+                              (2 2 1)
+                              (3 0 1) (0 3 1)
+                              (3 3 1)))
+          <span style="color: #fe8019; font-weight: bold;">:forms</span> ((J <span style="color: #fe8019; font-weight: bold;">:h11</span> <span style="color: #fe8019; font-weight: bold;">:kahler</span>)
+                  (chi alpha <span style="color: #fe8019; font-weight: bold;">:h21</span> <span style="color: #fe8019; font-weight: bold;">:complex</span>)
+                  (Omega <span style="color: #fe8019; font-weight: bold;">:h30</span> <span style="color: #fe8019; font-weight: bold;">:holomorphic-volume</span>))
+          <span style="color: #fe8019; font-weight: bold;">:intersection</span> ((J J J) 5)
+          <span style="color: #fe8019; font-weight: bold;">:c2</span> ((J) 50)
+          <span style="color: #fe8019; font-weight: bold;">:volume</span> (cubic <span style="color: #fe8019; font-weight: bold;">:kahler</span> J))
+  (worldsheet <span style="color: #fe8019; font-weight: bold;">:n2-2</span>)
+  (scheme <span style="color: #fe8019; font-weight: bold;">:stringbook-ms</span>)
+  (compute <span style="color: #fe8019; font-weight: bold;">:kahler-beta</span> <span style="color: #fe8019; font-weight: bold;">:loops</span> 4 <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span> 3)
+  (fit <span style="color: #fe8019; font-weight: bold;">:large-volume</span> <span style="color: #fe8019; font-weight: bold;">:variables</span> (vol J) <span style="color: #fe8019; font-weight: bold;">:observables</span> (<span style="color: #fe8019; font-weight: bold;">:curvature-integrals</span>))
+  (emit <span style="color: #fe8019; font-weight: bold;">:beta</span> <span style="color: #fe8019; font-weight: bold;">:action</span> <span style="color: #fe8019; font-weight: bold;">:fit-data</span>))
+</pre>
+</div>
+
+<p>
+This separates two tasks.  The local NLSM kernel computes a curvature
+expansion.  Once a numerical Ricci-flat metric is supplied, the fitting layer
+integrates emitted local invariants against harmonic-form and cycle data, then
+fits the result as an expansion in Kahler parameters or the overall volume.
+</p>
+
+<p>
+The target form declarations are intentionally topology-level data.  They tell
+the backend which moduli exist and which projections are legal.  They do not
+change the local \(\xi\xi\) Wick kernel.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd3b1e9d" class="outline-2">
+<h2 id="orgd3b1e9d">Reusable Models</h2>
+<div class="outline-text-2" id="text-orgd3b1e9d">
+<p>
+If several jobs share one model, define the model once:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-model type-ii-cy3
+  (target <span style="color: #fe8019; font-weight: bold;">:cy3</span> <span style="color: #fe8019; font-weight: bold;">:dim</span> 3 <span style="color: #fe8019; font-weight: bold;">:cohomology</span> cy3-cohomology)
+  (worldsheet <span style="color: #fe8019; font-weight: bold;">:n2-2</span>)
+  (scheme <span style="color: #fe8019; font-weight: bold;">:stringbook-ms</span>))
+
+(define-nlsm-job cy3-r4
+  (model type-ii-cy3)
+  (compute <span style="color: #fe8019; font-weight: bold;">:kahler-beta</span> <span style="color: #fe8019; font-weight: bold;">:loops</span> 4 <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span> 3)
+  (basis <span style="color: #fe8019; font-weight: bold;">:r4</span> <span style="color: #fe8019; font-weight: bold;">:quotient</span> (<span style="color: #fe8019; font-weight: bold;">:kahler</span> <span style="color: #fe8019; font-weight: bold;">:ricci-flat</span> <span style="color: #fe8019; font-weight: bold;">:ibp</span> <span style="color: #fe8019; font-weight: bold;">:field-redefinitions</span>))
+  (emit <span style="color: #fe8019; font-weight: bold;">:beta</span> <span style="color: #fe8019; font-weight: bold;">:action</span>))
+</pre>
+</div>
+
+<p>
+This is the authoring path we should optimize.
+</p>
+</div>
+</div>
+<div id="outline-container-org8504588" class="outline-2">
+<h2 id="org8504588">Inspection DSL</h2>
+<div class="outline-text-2" id="text-org8504588">
+<p>
+Manual detail belongs in inspection forms, not in normal jobs.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(inspect-nlsm cy3-r4
+  (vertices <span style="color: #fe8019; font-weight: bold;">:order</span> 4)
+  (diagrams <span style="color: #fe8019; font-weight: bold;">:topology</span> <span style="color: #fe8019; font-weight: bold;">:primitive</span>)
+  (poles <span style="color: #fe8019; font-weight: bold;">:tensor</span> (r4 <span style="color: #fe8019; font-weight: bold;">:kahler</span>)))
+</pre>
+</div>
+
+<p>
+For term-by-term checks against old papers, allow a low-level vertex fixture:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(define-nlsm-fixture metric-rnc-2
+  (model bosonic-riemannian)
+  (vertex
+    (<span style="color: #fe8019; font-weight: bold;">:quantum</span> (xi rho) (xi sigma))
+    (<span style="color: #fe8019; font-weight: bold;">:background</span> (dX mu) (dbarX nu))
+    (<span style="color: #fe8019; font-weight: bold;">:tensor</span> (riemann mu rho sigma nu))
+    (<span style="color: #fe8019; font-weight: bold;">:symmetry</span> 3)))
+</pre>
+</div>
+
+<p>
+This fixture path is for debugging the generator.  It is not the main
+calculation language.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc86ccc6" class="outline-2">
+<h2 id="orgc86ccc6">Descriptor Defaults</h2>
+<div class="outline-text-2" id="text-orgc86ccc6">
+<p>
+Named presets should carry the boilerplate:
+</p>
+
+<ul class="org-ul">
+<li><code>:stringbook-ms</code>: \(d=2-\epsilon\), minimal subtraction, simple-pole beta
+extraction, hatted Weyl anomaly option, and the stringbook \(B\)-field
+epsilon-frame convention.</li>
+<li><code>:riemannian</code>: real vector indices, Levi-Civita connection, Riemann
+symmetries, Bianchi relations, metric compatibility.</li>
+<li><code>:cy3</code>: complex dimension 3, Kahler index type, Ricci flatness, \(SU(3)\)
+holonomy, holomorphic volume form when requested, and user-specified Hodge
+numbers/forms/intersections.</li>
+<li><code>:k3</code>: complex dimension 2, hyperkahler quotient, Ricci flatness, \(Sp(1)\)
+holonomy, and the known K3 Hodge diamond.</li>
+<li><code>:quintic</code>: CY3 preset with \(h^{1,1}=1\), \(h^{2,1}=101\), one Kahler
+generator \(J\), \(\int J^3=5\), and a one-variable large-volume fit.</li>
+<li><code>:bosonic</code>, <code>:n1-1</code>, <code>:n2-2</code>, <code>:n4-4</code>: standard fluctuation field sets,
+free contractions, signs, and supersymmetry selection rules.</li>
+</ul>
+
+<p>
+The old NLSM and string effective-action literature makes two design
+constraints unavoidable: scheme data must be explicit, and field
+redefinition/equation-of-motion equivalence must be part of the basis policy
+<a href="#ref-5" class="cite">[5]</a> <a href="#ref-6" class="cite">[6]</a> <a href="#ref-7" class="cite">[7]</a>
+<a href="#ref-10" class="cite">[10]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc5503f9" class="outline-2">
+<h2 id="orgc5503f9">What Zig Must Make Fast</h2>
+<div class="outline-text-2" id="text-orgc5503f9">
+<p>
+The fast path is not Lisp macro expansion.  It is the generated Zig job:
+</p>
+
+<ul class="org-ul">
+<li>enumerate only vertex multisets compatible with loop order and external
+operator;</li>
+<li>pair only compatible quantum occurrence types;</li>
+<li>represent tensor products as interned tensor words with small ids;</li>
+<li>cache canonical tensor words by target quotient;</li>
+<li>reduce coordinate kernels by signature tables, not expression matching;</li>
+<li>stream pole rows immediately;</li>
+<li>assemble beta/action rows after canonicalization.</li>
+<li>project local curvature invariants onto harmonic-form and intersection data
+only after the local tensor result has been streamed and canonicalized.</li>
+</ul>
+
+<p>
+The key cache keys are:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexCacheKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">model</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ModelId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">loops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetOp</span> };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DiagramCacheKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">job</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">JobId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OccupancySignature</span> };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleCacheKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SchemeId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateSignature</span> };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CanonCacheKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">basis</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BasisPolicyId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">word</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorWordId</span> };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FitCacheKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TargetId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">observable</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ObservableId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">volume</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VolumeModelId</span> };
+</pre>
+</div>
+
+<p>
+This layout leaves room for parallelization by vertex multiset, primitive
+topology, coordinate signature, or canonicalization bucket.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc7ad4f1" class="outline-2">
+<h2 id="orgc7ad4f1">Implementation Order</h2>
+<div class="outline-text-2" id="text-orgc7ad4f1">
+<ol class="org-ol">
+<li>Build the descriptor compiler for <code>define-nlsm-model</code> and
+<code>define-nlsm-job</code>.</li>
+<li>Generate <code>JobRow</code>, <code>ModelRow</code>, and preset target/worldsheet tables.</li>
+<li>Implement the bosonic one-loop <code>:metric-beta</code> job and reproduce the
+stringbook \(R_{\mu\nu}\) result in the MS scheme.</li>
+<li>Add <code>inspect-nlsm</code> for vertices, diagrams, and poles.</li>
+<li>Add <code>:n1-1</code> and <code>:n2-2</code> field presets and reproduce the four-loop
+Ricci-flat Kahler non-finiteness checks <a href="#ref-7" class="cite">[7]</a>
+<a href="#ref-8" class="cite">[8]</a> <a href="#ref-9" class="cite">[9]</a>.</li>
+<li>Add CY3/K3 topology descriptors: Hodge diamonds, harmonic-form roles,
+intersection data, and volume models.  Use K3's known Hodge diamond and the
+one-modulus quintic as the first CY3 target <a href="#ref-14" class="cite">[14]</a>.</li>
+<li>Add CY3/K3 tensor quotients and match the \(R^4\) action basis against
+amplitude and duality checks <a href="#ref-10" class="cite">[10]</a> <a href="#ref-11" class="cite">[11]</a>
+<a href="#ref-12" class="cite">[12]</a>.</li>
+</ol>
+
+<div class="references"><h2>References</h2><ol>
+<li id="ref-1">Yin, Xi (2026). <em>String Theory</em>. <a href="https://github.com/xiyin137/stringbook">github.com/xiyin137/stringbook</a></li>
+<li id="ref-2">Friedan, Daniel Harry (1985). <em>Nonlinear Models in 2 + epsilon Dimensions</em>, Annals of Physics <b>163</b>, 318--419. doi:<a href="https://doi.org/10.1016/0003-4916(85)90384-7">10.1016/0003-4916(85)90384-7</a></li>
+<li id="ref-3">Callan, Curtis G. and Friedan, Daniel and Martinec, Emil J. and Perry, Malcolm J. (1985). <em>Strings in Background Fields</em>, Nuclear Physics B <b>262</b>, 593--609. doi:<a href="https://doi.org/10.1016/0550-3213(85)90506-1">10.1016/0550-3213(85)90506-1</a></li>
+<li id="ref-4">Tseytlin, Arkady A. (1986). <em>Conformal Anomaly in Two-Dimensional Sigma Model on Curved Background and Strings</em>, Physics Letters B <b>178</b>, 34. doi:<a href="https://doi.org/10.1016/0370-2693(86)90465-X">10.1016/0370-2693(86)90465-X</a></li>
+<li id="ref-5">Tseytlin, Arkady A. (1987). <em>Sigma Model Weyl Invariance Conditions and String Equations of Motion</em>, Nuclear Physics B <b>294</b>, 383--411. doi:<a href="https://doi.org/10.1016/0550-3213(87)90588-8">10.1016/0550-3213(87)90588-8</a></li>
+<li id="ref-6">Metsaev, R. R. and Tseytlin, Arkady A. (1987). <em>Order Alpha-Prime Two Loop Equivalence of the String Equations of Motion and the Sigma Model Weyl Invariance Conditions: Dependence on the Dilaton and the Antisymmetric Tensor</em>, Nuclear Physics B <b>293</b>, 385--419. doi:<a href="https://doi.org/10.1016/0550-3213(87)90077-0">10.1016/0550-3213(87)90077-0</a></li>
+<li id="ref-7">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Beta Function for the N=1 and N=2 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Physics Letters B <b>173</b>, 423--428. doi:<a href="https://doi.org/10.1016/0370-2693(86)90408-9">10.1016/0370-2693(86)90408-9</a></li>
+<li id="ref-8">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Two-Dimensional Supersymmetric Sigma Models on Ricci Flat Kahler Manifolds Are Not Finite</em>, Nuclear Physics B <b>277</b>, 388--408. doi:<a href="https://doi.org/10.1016/0550-3213(86)90448-7">10.1016/0550-3213(86)90448-7</a></li>
+<li id="ref-9">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Divergences for the N=1 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Nuclear Physics B <b>277</b>, 409--428. doi:<a href="https://doi.org/10.1016/0550-3213(86)90449-9">10.1016/0550-3213(86)90449-9</a></li>
+<li id="ref-10">Gross, David J. and Witten, Edward (1986). <em>Superstring Modifications of Einstein's Equations</em>, Nuclear Physics B <b>277</b>, 1--10. doi:<a href="https://doi.org/10.1016/0550-3213(86)90429-3">10.1016/0550-3213(86)90429-3</a></li>
+<li id="ref-11">Liu, James T. and Minasian, Ruben (2013). <em>Higher-Derivative Couplings in String Theory: Dualities and the B-Field</em>, Nuclear Physics B <b>874</b>, 413--470. doi:<a href="https://doi.org/10.1016/j.nuclphysb.2013.06.002">10.1016/j.nuclphysb.2013.06.002</a></li>
+<li id="ref-12">Policastro, Giuseppe and Tsimpis, Dimitrios (2006). <em>R4, Purified</em>, Classical and Quantum Gravity <b>23</b>, 4753--4780. doi:<a href="https://doi.org/10.1088/0264-9381/23/14/012">10.1088/0264-9381/23/14/012</a></li>
+<li id="ref-13">Candelas, Philip and de la Ossa, Xenia (1991). <em>Moduli Space of Calabi-Yau Manifolds</em>, Nuclear Physics B <b>355</b>, 455--481. doi:<a href="https://doi.org/10.1016/0550-3213(91)90122-E">10.1016/0550-3213(91)90122-E</a></li>
+<li id="ref-14">Candelas, Philip and de la Ossa, Xenia C. and Green, Paul S. and Parkes, Linda (1991). <em>A Pair of Calabi-Yau Manifolds as an Exactly Soluble Superconformal Theory</em>, Nuclear Physics B <b>359</b>, 21--74. doi:<a href="https://doi.org/10.1016/0550-3213(91)90292-6">10.1016/0550-3213(91)90292-6</a></li>
+</ol></div>
+</div>
+</div>
+</div>
+</body>
+</html>

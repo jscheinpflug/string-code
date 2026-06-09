@@ -1,0 +1,1503 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lisp Descriptor Emitter</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Lisp Descriptor Emitter</h1>
+<p>
+This node is the Lisp side of the descriptor boundary
+<a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a>.  It has three jobs:
+store normalized row data, print deterministic Zig descriptor tables, and wrap
+the generated C ABI for the REPL.  The descriptor rows are compile-time data;
+runtime expression construction only touches the C ABI records returned by Zig.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defpackage</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.descriptor</span>
+  (<span style="color: #fe8019; font-weight: bold;">:use</span> <span style="color: #fe8019; font-weight: bold;">#:cl</span>)
+  (<span style="color: #fe8019; font-weight: bold;">:export</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-theory</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-symbol</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-parameter</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-quantum-number</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-field-quantum-number</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-surface</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-field</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-metadata</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-wick-rule</span>
+   <span style="color: #fe8019; font-weight: bold;">#:add-zero-mode</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-wick-term</span>
+   <span style="color: #fe8019; font-weight: bold;">#:emit-zig-descriptor</span>
+   <span style="color: #fe8019; font-weight: bold;">#:write-build-manifest</span>
+   <span style="color: #fe8019; font-weight: bold;">#:load-generated-library</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-runtime-context</span>
+   <span style="color: #fe8019; font-weight: bold;">#:destroy-runtime-context</span>
+   <span style="color: #fe8019; font-weight: bold;">#:set-runtime-constant</span>
+   <span style="color: #fe8019; font-weight: bold;">#:intern-runtime-symbol</span>
+   <span style="color: #fe8019; font-weight: bold;">#:insert-runtime-field</span>
+   <span style="color: #fe8019; font-weight: bold;">#:normal-order-runtime-field</span>
+   <span style="color: #fe8019; font-weight: bold;">#:freeze-runtime-operators</span>
+   <span style="color: #fe8019; font-weight: bold;">#:run-correlator</span>
+   <span style="color: #fe8019; font-weight: bold;">#:count-correlator</span>
+   <span style="color: #fe8019; font-weight: bold;">#:correlator-expression</span>
+   <span style="color: #fe8019; font-weight: bold;">#:collect-correlator</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">in-package</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.descriptor</span>)
+</pre>
+</div>
+
+<p>
+The IR is plain row data.  Constructors append rows in declaration order and
+the emitter sorts id-bearing tables before printing.  Quantum-number schema
+rows are separate from field assignments so the next basis-generator pass can
+scan charges and irreps without reading Wick rules.
+</p>
+
+<p>
+Symbols are stored once per theory.  Every DSL symbol is normalized to a small
+descriptor string at this boundary, so generated Zig never sees Lisp packages.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defstruct</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">theory</span> (<span style="color: #fe8019; font-weight: bold;">:constructor</span> %make-theory))
+  name
+  hash
+  (symbols (make-array 0 <span style="color: #fe8019; font-weight: bold;">:adjustable</span> t <span style="color: #fe8019; font-weight: bold;">:fill-pointer</span> 0))
+  (parameters nil)
+  (quantum-numbers nil)
+  (field-quantum-numbers nil)
+  (surfaces nil)
+  (fields nil)
+  (metadata nil)
+  (wick-rules nil)
+  (zero-modes nil)
+  (result-symbols nil))
+
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">parameter</span> id symbol role)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">quantum-number</span> id symbol kind group-symbol)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">field-quantum-number</span> field quantum-number value)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">surface</span> id kind coordinate-model modular-parameter)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">label-schema</span> id role symbol)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">field</span> id symbol insertion labels statistics zero-mode weight anti-weight)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick-term</span> scalars coordinates tensors actions residuals)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick-rule</span> surface left right terms)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero-mode</span> surface kind consumes normalization two-pi-power)
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">runtime-context</span> (<span style="color: #fe8019; font-weight: bold;">:constructor</span> %make-runtime-context))
+  handle
+  theory-id
+  constants
+  (scalar-atom-names (make-hash-table))
+  scalar-monomials
+  (symbols (make-array 0 <span style="color: #fe8019; font-weight: bold;">:adjustable</span> t <span style="color: #fe8019; font-weight: bold;">:fill-pointer</span> 0)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">descriptor-symbol-name</span> (value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (string value)
+    (symbol (string-downcase (string value)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-symbol</span> (theory name)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((symbols (theory-symbols theory))
+        (text (descriptor-symbol-name name)))
+    (or (<span style="color: #fb4934; font-weight: bold;">loop</span> for index below (length symbols)
+              when (string= (aref symbols index) text)
+                return index)
+        (vector-push-extend text symbols))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-theory</span> (name hash)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((theory (%make-theory <span style="color: #fe8019; font-weight: bold;">:name</span> name <span style="color: #fe8019; font-weight: bold;">:hash</span> hash)))
+    (add-symbol theory name)
+    theory))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-parameter</span> (theory symbol role)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((id (length (theory-parameters theory))))
+    (push (make-parameter <span style="color: #fe8019; font-weight: bold;">:id</span> id <span style="color: #fe8019; font-weight: bold;">:symbol</span> (add-symbol theory symbol) <span style="color: #fe8019; font-weight: bold;">:role</span> role)
+          (theory-parameters theory))
+    id))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-quantum-number</span> (theory symbol kind <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> group)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((id (length (theory-quantum-numbers theory))))
+    (push (make-quantum-number
+           <span style="color: #fe8019; font-weight: bold;">:id</span> id
+           <span style="color: #fe8019; font-weight: bold;">:symbol</span> (add-symbol theory (descriptor-symbol-name symbol))
+           <span style="color: #fe8019; font-weight: bold;">:kind</span> kind
+           <span style="color: #fe8019; font-weight: bold;">:group-symbol</span> (<span style="color: #fb4934; font-weight: bold;">when</span> group (add-symbol theory (descriptor-symbol-name group))))
+          (theory-quantum-numbers theory))
+    id))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-field-quantum-number</span> (theory field quantum-number value)
+  (push (make-field-quantum-number
+         <span style="color: #fe8019; font-weight: bold;">:field</span> field
+         <span style="color: #fe8019; font-weight: bold;">:quantum-number</span> quantum-number
+         <span style="color: #fe8019; font-weight: bold;">:value</span> value)
+        (theory-field-quantum-numbers theory)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-surface</span> (theory kind coordinate-model <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> modular-parameter)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((id (length (theory-surfaces theory))))
+    (push (make-surface <span style="color: #fe8019; font-weight: bold;">:id</span> id <span style="color: #fe8019; font-weight: bold;">:kind</span> kind <span style="color: #fe8019; font-weight: bold;">:coordinate-model</span> coordinate-model
+                        <span style="color: #fe8019; font-weight: bold;">:modular-parameter</span> modular-parameter)
+          (theory-surfaces theory))
+    id))
+</pre>
+</div>
+
+<p>
+Field labels infer roles from declaration tags unless the caller passes a full
+label row.  This is intentionally small and deterministic.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">role-of-label</span> (label)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> label
+    (label-schema (label-schema-role label))
+    (cons (second label))
+    (symbol <span style="color: #fe8019; font-weight: bold;">:vector-index</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">label-name</span> (label)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> label
+    (label-schema (label-schema-symbol label))
+    (cons (first label))
+    (symbol label)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-label-rows</span> (theory labels)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for label in labels
+        for id from 0
+        collect (make-label-schema
+                 <span style="color: #fe8019; font-weight: bold;">:id</span> id
+                 <span style="color: #fe8019; font-weight: bold;">:role</span> (role-of-label label)
+                 <span style="color: #fe8019; font-weight: bold;">:symbol</span> (add-symbol theory (string-downcase (string (label-name label)))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-field</span> (theory symbol insertion labels statistics <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> zero-mode weight anti-weight)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((id (length (theory-fields theory))))
+    (push (make-field <span style="color: #fe8019; font-weight: bold;">:id</span> id
+                      <span style="color: #fe8019; font-weight: bold;">:symbol</span> (add-symbol theory symbol)
+                      <span style="color: #fe8019; font-weight: bold;">:insertion</span> insertion
+                      <span style="color: #fe8019; font-weight: bold;">:labels</span> (make-label-rows theory labels)
+                      <span style="color: #fe8019; font-weight: bold;">:statistics</span> statistics
+                      <span style="color: #fe8019; font-weight: bold;">:zero-mode</span> zero-mode
+                      <span style="color: #fe8019; font-weight: bold;">:weight</span> weight
+                      <span style="color: #fe8019; font-weight: bold;">:anti-weight</span> anti-weight)
+          (theory-fields theory))
+    id))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">metadata-symbol-id</span> (theory value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (string (add-symbol theory value))
+    (symbol (add-symbol theory (string-downcase (string value))))))
+
+(<span style="color: #fb4934; font-weight: bold;">declaim</span> (ftype function add-metadata))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">normalized-metadata-form</span> (theory form)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> form
+    (integer form)
+    (cons
+     (<span style="color: #fb4934; font-weight: bold;">case</span> (first form)
+       (<span style="color: #fe8019; font-weight: bold;">:rational</span> form)
+       (<span style="color: #fe8019; font-weight: bold;">:parameter</span> form)
+       (<span style="color: #fe8019; font-weight: bold;">:field-label</span> form)
+       (<span style="color: #fe8019; font-weight: bold;">:add</span> (list <span style="color: #fe8019; font-weight: bold;">:add</span>
+                   (add-metadata theory (second form))
+                   (add-metadata theory (third form))))
+       (<span style="color: #fe8019; font-weight: bold;">:mul</span> (list <span style="color: #fe8019; font-weight: bold;">:mul</span>
+                   (add-metadata theory (second form))
+                   (add-metadata theory (third form))))
+       (<span style="color: #fe8019; font-weight: bold;">:bilinear</span> (list <span style="color: #fe8019; font-weight: bold;">:bilinear</span>
+                        (add-metadata theory (second form))
+                        (add-metadata theory (third form))
+                        (metadata-symbol-id theory (fourth form))))
+       (otherwise (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown metadata form ~S."</span> form))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">metadata-row-id</span> (theory row)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((count (length (theory-metadata theory))))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for item in (theory-metadata theory)
+          for index from 0
+          when (equal item row)
+            return (- count index 1))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-metadata</span> (theory form)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((row (normalized-metadata-form theory form)))
+    (<span style="color: #fb4934; font-weight: bold;">if</span> (integerp row)
+        row
+        (or (metadata-row-id theory row)
+            (<span style="color: #fb4934; font-weight: bold;">let</span> ((id (length (theory-metadata theory))))
+              (push row (theory-metadata theory))
+              id)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-wick-rule</span> (theory surface left right terms)
+  (push (make-wick-rule <span style="color: #fe8019; font-weight: bold;">:surface</span> surface <span style="color: #fe8019; font-weight: bold;">:left</span> left <span style="color: #fe8019; font-weight: bold;">:right</span> right <span style="color: #fe8019; font-weight: bold;">:terms</span> terms)
+        (theory-wick-rules theory)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">add-zero-mode</span> (theory surface kind consumes <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> (normalization <span style="color: #fe8019; font-weight: bold;">:one</span>) (two-pi-power 0))
+  (push (make-zero-mode <span style="color: #fe8019; font-weight: bold;">:surface</span> surface <span style="color: #fe8019; font-weight: bold;">:kind</span> kind <span style="color: #fe8019; font-weight: bold;">:consumes</span> consumes
+                        <span style="color: #fe8019; font-weight: bold;">:normalization</span> normalization <span style="color: #fe8019; font-weight: bold;">:two-pi-power</span> two-pi-power)
+        (theory-zero-modes theory)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">by-id</span> (items reader)
+  (sort (copy-list items) #'&lt; <span style="color: #fe8019; font-weight: bold;">:key</span> reader))
+</pre>
+</div>
+
+<p>
+The emitter prints only primitive descriptor data.  It does not branch on
+theory or field names; all semantic choices have already been lowered into
+dense ids and compact tagged rows.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">zig-keyword</span> (value)
+  (substitute #\_ #\- (string-downcase (string value))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-id-list</span> (stream ids)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"&amp;.{"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for id in ids for first = t then nil
+        do (format stream <span style="color: #b8bb26; font-style: italic;">"~:[, ~;~]~D"</span> first id))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-symbols</span> (stream theory var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const ~A = [_][]const u8{ "</span> var)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for index below (length (theory-symbols theory))
+        for first = t then nil
+        do (format stream <span style="color: #b8bb26; font-style: italic;">"~:[, ~;~]~S"</span> first (aref (theory-symbols theory) index)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" };~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-label</span> (stream label)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .id = ~D, .role = .~A, .symbol = ~D }"</span>
+          (label-schema-id label)
+          (zig-keyword (label-schema-role label))
+          (label-schema-symbol label)))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-field</span> (stream field)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .id = ~D, .symbol = ~D, .insertion = .~A, .labels = &amp;.{"</span>
+          (field-id field) (field-symbol field) (zig-keyword (field-insertion field)))
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for label in (field-labels field) for first = t then nil
+        do (<span style="color: #fb4934; font-weight: bold;">progn</span>
+             (<span style="color: #fb4934; font-weight: bold;">unless</span> first (format stream <span style="color: #b8bb26; font-style: italic;">", "</span>))
+             (emit-label stream label)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}, .statistics = .~A"</span>
+          (zig-keyword (field-statistics field)))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (field-zero-mode field)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .zero_mode_consumable = true"</span>))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (field-weight field)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .weight = ~D"</span> (field-weight field)))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (field-anti-weight field)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .anti_weight = ~D"</span> (field-anti-weight field)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-surface</span> (stream surface)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .id = ~D, .kind = .~A, .coordinate_model = .~A"</span>
+          (surface-id surface)
+          (zig-keyword (surface-kind surface))
+          (zig-keyword (surface-coordinate-model surface)))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (surface-modular-parameter surface)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .modular_parameter = ~D"</span> (surface-modular-parameter surface)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-parameter</span> (stream parameter)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .id = ~D, .symbol = ~D, .role = .~A }"</span>
+          (parameter-id parameter)
+          (parameter-symbol parameter)
+          (zig-keyword (parameter-role parameter))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-quantum-number</span> (stream number)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .id = ~D, .symbol = ~D, .kind = .~A"</span>
+          (quantum-number-id number)
+          (quantum-number-symbol number)
+          (zig-keyword (quantum-number-kind number)))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (quantum-number-group-symbol number)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .group_symbol = ~D"</span> (quantum-number-group-symbol number)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-rational-row</span> (stream numerator denominator)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .numerator = ~D, .denominator = ~D }"</span> numerator denominator))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-quantum-value</span> (stream value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .integer = ~D }"</span> value))
+    (rational
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .rational = "</span>)
+     (emit-rational-row stream (numerator value) (denominator value))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+    (cons
+     (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first value)
+       (<span style="color: #fe8019; font-weight: bold;">:symbol</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .symbol = ~D }"</span> (second value)))
+       (<span style="color: #fe8019; font-weight: bold;">:rational</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .rational = "</span>)
+        (emit-rational-row stream (second value) (third value))
+        (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-field-quantum-number</span> (stream item)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .field = ~D, .quantum_number = ~D, .value = "</span>
+          (field-quantum-number-field item)
+          (field-quantum-number-quantum-number item))
+  (emit-quantum-value stream (field-quantum-number-value item))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-metadata</span> (stream form)
+  (<span style="color: #fb4934; font-weight: bold;">case</span> (first form)
+    (<span style="color: #fe8019; font-weight: bold;">:rational</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .rational = "</span>)
+     (emit-rational-row stream (second form) (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:parameter</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .parameter = ~D }"</span> (second form)))
+    (<span style="color: #fe8019; font-weight: bold;">:field-label</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .field_label = .{ .field = ~D, .label = ~D } }"</span>
+             (second form) (third form)))
+    (<span style="color: #fe8019; font-weight: bold;">:add</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .add = .{ .left = ~D, .right = ~D } }"</span>
+             (second form) (third form)))
+    (<span style="color: #fe8019; font-weight: bold;">:mul</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .mul = .{ .left = ~D, .right = ~D } }"</span>
+             (second form) (third form)))
+    (<span style="color: #fe8019; font-weight: bold;">:bilinear</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .bilinear = .{ .left = ~D, .right = ~D, .form_symbol = ~D } }"</span>
+             (second form) (third form) (fourth form)))
+    (otherwise (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown metadata form ~S."</span> form))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">side-name</span> (value)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> value
+    (<span style="color: #fe8019; font-weight: bold;">:left</span> <span style="color: #b8bb26; font-style: italic;">"left"</span>)
+    (<span style="color: #fe8019; font-weight: bold;">:right</span> <span style="color: #b8bb26; font-style: italic;">"right"</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">coordinate-slot-name</span> (value)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> value
+    (<span style="color: #fe8019; font-weight: bold;">:position</span> <span style="color: #b8bb26; font-style: italic;">"position"</span>)
+    (<span style="color: #fe8019; font-weight: bold;">:holomorphic</span> <span style="color: #b8bb26; font-style: italic;">"holomorphic"</span>)
+    (<span style="color: #fe8019; font-weight: bold;">:antiholomorphic</span> <span style="color: #b8bb26; font-style: italic;">"antiholomorphic"</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-coordinate-ref</span> (stream value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (symbol
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .side = .~A, .slot = .position }"</span> (side-name value)))
+    (cons
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .side = .~A, .slot = .~A }"</span>
+             (side-name (first value))
+             (coordinate-slot-name (second value))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-label-ref</span> (stream value)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .side = .~A, .slot = ~D }"</span>
+          (side-name (first value)) (second value)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-zig-list</span> (stream values printer)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"&amp;.{"</span>)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for value in values for first = t then nil
+        do (<span style="color: #fb4934; font-weight: bold;">progn</span>
+             (<span style="color: #fb4934; font-weight: bold;">unless</span> first (format stream <span style="color: #b8bb26; font-style: italic;">", "</span>))
+             (funcall printer stream value)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"}"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-scalar-factor</span> (stream form)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> form
+    (symbol
+     (<span style="color: #fb4934; font-weight: bold;">ecase</span> form
+       (<span style="color: #fe8019; font-weight: bold;">:one</span> (format stream <span style="color: #b8bb26; font-style: italic;">".one"</span>))))
+    (cons
+     (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+       (<span style="color: #fe8019; font-weight: bold;">:rational</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .rational = "</span>)
+        (emit-rational-row stream (second form) (third form))
+        (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+       (<span style="color: #fe8019; font-weight: bold;">:parameter</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .parameter = ~D }"</span> (second form)))
+       (<span style="color: #fe8019; font-weight: bold;">:neg-parameter-half</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .neg_parameter_half = ~D }"</span> (second form)))
+       (<span style="color: #fe8019; font-weight: bold;">:neg-i-parameter-half</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .neg_i_parameter_half = ~D }"</span> (second form)))
+       (<span style="color: #fe8019; font-weight: bold;">:parameter-half</span>
+        (format stream <span style="color: #b8bb26; font-style: italic;">".{ .parameter_half = ~D }"</span> (second form)))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">derive-left-p</span> (value)
+  (and (consp value) (member <span style="color: #fe8019; font-weight: bold;">:derive-left</span> value)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">derive-right-p</span> (value)
+  (and (consp value) (member <span style="color: #fe8019; font-weight: bold;">:derive-right</span> value)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-coordinate-factor</span> (theory stream form)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+    (<span style="color: #fe8019; font-weight: bold;">:difference-power</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .difference_power = .{ .left = "</span>)
+     (emit-coordinate-ref stream (second form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .right = "</span>)
+     (emit-coordinate-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .exponent = ~D"</span> (fourth form))
+     (<span style="color: #fb4934; font-weight: bold;">when</span> (derive-left-p form)
+       (format stream <span style="color: #b8bb26; font-style: italic;">", .derive_left = true"</span>))
+     (<span style="color: #fb4934; font-weight: bold;">when</span> (derive-right-p form)
+       (format stream <span style="color: #b8bb26; font-style: italic;">", .derive_right = true"</span>))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:named-kernel</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .named_kernel = .{ .symbol = ~D, .left = "</span>
+             (metadata-symbol-id theory (second form)))
+     (emit-coordinate-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .right = "</span>)
+     (emit-coordinate-ref stream (fourth form))
+     (<span style="color: #fb4934; font-weight: bold;">when</span> (derive-left-p form)
+       (format stream <span style="color: #b8bb26; font-style: italic;">", .derive_left = true"</span>))
+     (<span style="color: #fb4934; font-weight: bold;">when</span> (derive-right-p form)
+       (format stream <span style="color: #b8bb26; font-style: italic;">", .derive_right = true"</span>))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:green-exponential</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .green_exponential = .{ .left = "</span>)
+     (emit-coordinate-ref stream (second form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .right = "</span>)
+     (emit-coordinate-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-tensor-factor</span> (stream form)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> (first form)
+    (<span style="color: #fe8019; font-weight: bold;">:metric</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .metric = .{ .left = "</span>)
+     (emit-label-ref stream (second form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .right = "</span>)
+     (emit-label-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:momentum-index</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .momentum_index = .{ .momentum = "</span>)
+     (emit-label-ref stream (second form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .index = "</span>)
+     (emit-label-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))
+    (<span style="color: #fe8019; font-weight: bold;">:momentum-pair</span>
+     (format stream <span style="color: #b8bb26; font-style: italic;">".{ .momentum_pair = .{ .left = "</span>)
+     (emit-label-ref stream (second form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">", .right = "</span>)
+     (emit-label-ref stream (third form))
+     (format stream <span style="color: #b8bb26; font-style: italic;">" } }"</span>))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-side</span> (stream side)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".~A"</span> (side-name side)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-wick-term</span> (theory stream term)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .scalars = "</span>)
+  (emit-zig-list stream (or (wick-term-scalars term) '(<span style="color: #fe8019; font-weight: bold;">:one</span>)) #'emit-scalar-factor)
+  (format stream <span style="color: #b8bb26; font-style: italic;">", .coordinates = "</span>)
+  (emit-zig-list stream (wick-term-coordinates term)
+                 (<span style="color: #fb4934; font-weight: bold;">lambda</span> (out form) (emit-coordinate-factor theory out form)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">", .tensors = "</span>)
+  (emit-zig-list stream (wick-term-tensors term) #'emit-tensor-factor)
+  (format stream <span style="color: #b8bb26; font-style: italic;">", .residuals = "</span>)
+  (emit-zig-list stream (wick-term-residuals term) #'emit-side)
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-wick-rule</span> (stream rule term-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .surface = ~D, .left = ~D, .right = ~D, .terms = &amp;~A }"</span>
+          (wick-rule-surface rule)
+          (wick-rule-left rule)
+          (wick-rule-right rule)
+          term-var))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-zero-mode</span> (stream rule)
+  (format stream <span style="color: #b8bb26; font-style: italic;">".{ .surface = ~D, .kind = .~A, .consumes = "</span>
+          (zero-mode-surface rule)
+          (zig-keyword (zero-mode-kind rule)))
+  (emit-id-list stream (zero-mode-consumes rule))
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> (eq (zero-mode-normalization rule) <span style="color: #fe8019; font-weight: bold;">:one</span>)
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .normalization = "</span>)
+    (emit-scalar-factor stream (zero-mode-normalization rule)))
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> (zerop (zero-mode-two-pi-power rule))
+    (format stream <span style="color: #b8bb26; font-style: italic;">", .two_pi_power = ~D"</span> (zero-mode-two-pi-power rule)))
+  (format stream <span style="color: #b8bb26; font-style: italic;">" }"</span>))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-row-array</span> (stream type var rows printer)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"const ~A = [_]d.~A{~%"</span> var type)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (row rows)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"    "</span>)
+    (funcall printer stream row)
+    (format stream <span style="color: #b8bb26; font-style: italic;">",~%"</span>))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"};~%"</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">prepare-coordinate-symbols</span> (theory form)
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (eq (first form) <span style="color: #fe8019; font-weight: bold;">:named-kernel</span>)
+    (metadata-symbol-id theory (second form))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">prepare-emitter-symbols</span> (theory)
+  (<span style="color: #fb4934; font-weight: bold;">dolist</span> (rule (theory-wick-rules theory))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (term (wick-rule-terms rule))
+      (<span style="color: #fb4934; font-weight: bold;">dolist</span> (factor (wick-term-coordinates term))
+        (prepare-coordinate-symbols theory factor)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-wick-term-arrays</span> (stream theory rules prefix)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for rule in rules
+        for index from 0
+        for var = (format nil <span style="color: #b8bb26; font-style: italic;">"~A_terms_~D"</span> prefix index)
+        collect var
+        do (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"WickTerm"</span> var (wick-rule-terms rule)
+                           (<span style="color: #fb4934; font-weight: bold;">lambda</span> (out term) (emit-wick-term theory out term)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">emit-zig-descriptor</span> (theory stream <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> (descriptor-name <span style="color: #b8bb26; font-style: italic;">"generated_descriptor"</span>) (prefix <span style="color: #b8bb26; font-style: italic;">"generated"</span>))
+  (prepare-emitter-symbols theory)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((symbols-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_symbols"</span> prefix))
+        (parameters-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_parameters"</span> prefix))
+        (quantum-numbers-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_quantum_numbers"</span> prefix))
+        (field-quantum-numbers-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_field_quantum_numbers"</span> prefix))
+        (surfaces-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_surfaces"</span> prefix))
+        (fields-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_fields"</span> prefix))
+        (metadata-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_metadata"</span> prefix))
+        (wick-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_wick"</span> prefix))
+        (zero-modes-var (format nil <span style="color: #b8bb26; font-style: italic;">"~A_zero_modes"</span> prefix)))
+  (emit-symbols stream theory symbols-var)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"Parameter"</span> parameters-var
+                  (by-id (theory-parameters theory) #'parameter-id)
+                  #'emit-parameter)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"QuantumNumber"</span> quantum-numbers-var
+                  (by-id (theory-quantum-numbers theory) #'quantum-number-id)
+                  #'emit-quantum-number)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"FieldQuantumNumber"</span> field-quantum-numbers-var
+                  (reverse (theory-field-quantum-numbers theory))
+                  #'emit-field-quantum-number)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"Surface"</span> surfaces-var
+                  (by-id (theory-surfaces theory) #'surface-id)
+                  #'emit-surface)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"Field"</span> fields-var
+                  (by-id (theory-fields theory) #'field-id)
+                  #'emit-field)
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"MetadataExpr"</span> metadata-var
+                  (reverse (theory-metadata theory))
+                  #'emit-metadata)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((rules (reverse (theory-wick-rules theory)))
+         (term-vars (emit-wick-term-arrays stream theory rules prefix)))
+    (format stream <span style="color: #b8bb26; font-style: italic;">"const ~A = [_]d.WickRule{~%"</span> wick-var)
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for rule in rules
+          for term-var in term-vars
+          do (<span style="color: #fb4934; font-weight: bold;">progn</span>
+               (format stream <span style="color: #b8bb26; font-style: italic;">"    "</span>)
+               (emit-wick-rule stream rule term-var)
+               (format stream <span style="color: #b8bb26; font-style: italic;">",~%"</span>)))
+    (format stream <span style="color: #b8bb26; font-style: italic;">"};~%"</span>))
+  (emit-row-array stream <span style="color: #b8bb26; font-style: italic;">"ZeroModeRule"</span> zero-modes-var
+                  (reverse (theory-zero-modes theory))
+                  #'emit-zero-mode)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"pub const ~A = d.Descriptor{~%"</span> descriptor-name)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .theory_symbol = 0,~%"</span>)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .theory_hash = ~D,~%"</span> (theory-hash theory))
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .symbols = &amp;~A,~%"</span> symbols-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .parameters = &amp;~A,~%"</span> parameters-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .quantum_numbers = &amp;~A,~%"</span> quantum-numbers-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .field_quantum_numbers = &amp;~A,~%"</span> field-quantum-numbers-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .surfaces = &amp;~A,~%"</span> surfaces-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .fields = &amp;~A,~%"</span> fields-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .metadata = &amp;~A,~%"</span> metadata-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .wick_rules = &amp;~A,~%"</span> wick-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"    .zero_modes = &amp;~A,~%"</span> zero-modes-var)
+  (format stream <span style="color: #b8bb26; font-style: italic;">"};~%"</span>)))
+</pre>
+</div>
+
+<p>
+The manifest is deliberately small: source hash, generated path, and library
+path.  Runtime calls require a loaded library and otherwise fail before any
+expression object is built.  CFFI definitions are installed lazily because a
+user can inspect presets without loading CFFI or a generated shared object.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">write-build-manifest</span> (path <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> source-hash zig-path library-path)
+  (<span style="color: #fb4934; font-weight: bold;">with-open-file</span> (stream path <span style="color: #fe8019; font-weight: bold;">:direction</span> <span style="color: #fe8019; font-weight: bold;">:output</span>)
+    (format stream <span style="color: #b8bb26; font-style: italic;">"(:source-hash ~S :zig-path ~S :library-path ~S)~%"</span>
+            source-hash zig-path library-path)))
+
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*abi-bound*</span> nil)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*abi-callback-pointer*</span> nil)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*abi-chunk-callback-pointer*</span> nil)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*abi-sinks*</span> (make-hash-table))
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*next-abi-sink-id*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*event-size*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*factor-size*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*name-size*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*name-ptr-offset*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*name-len-offset*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defvar</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*term-size*</span> 0)
+(<span style="color: #fb4934; font-weight: bold;">defparameter</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">*event-kinds*</span>
+  #(<span style="color: #fe8019; font-weight: bold;">:sum-term-begin</span> <span style="color: #fe8019; font-weight: bold;">:sum-term-end</span> <span style="color: #fe8019; font-weight: bold;">:wick-term-begin</span> <span style="color: #fe8019; font-weight: bold;">:wick-term-end</span>
+    <span style="color: #fe8019; font-weight: bold;">:scalar</span> <span style="color: #fe8019; font-weight: bold;">:coordinate</span> <span style="color: #fe8019; font-weight: bold;">:tensor</span> <span style="color: #fe8019; font-weight: bold;">:zero-mode</span> <span style="color: #fe8019; font-weight: bold;">:residual-operator</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">declaim</span>
+ (ftype function
+        set-mem-aref* mem-ref* foreign-slot-value* null-pointer-p*
+        pointer-address* inc-pointer* foreign-type-size* event-pointer-at
+        name-pointer-at term-pointer-at term-expression
+        %abi-last-error %abi-context-create
+        %abi-context-destroy %abi-scalar-atom-name
+        %abi-symbol-intern %abi-field-insert
+        %abi-normal-ordering %abi-operator-list-freeze
+        %abi-correlator-count %abi-correlator-run
+        %abi-correlator-run-buffered %abi-correlator-expression-records
+        %abi-expression-buffer-free))
+
+(<span style="color: #fb4934; font-weight: bold;">declaim</span>
+ (ftype function
+        factor-name-token-by-id factor-coordinate-expression-values
+        factor-tensor-expression-values factor-scalar-expression-values
+        factor-zero-mode-expression-values factor-expression-values
+        term-product-expression))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">cffi-package</span> ()
+  (or (find-package '<span style="color: #fe8019; font-weight: bold;">#:cffi</span>)
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"CFFI is required to use generated libraries."</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">cffi-symbol</span> (name)
+  (intern name (cffi-package)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">foreign-string-to-lisp*</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> args)
+  (apply (symbol-function (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-STRING-TO-LISP"</span>)) args))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">foreign-alloc*</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> args)
+  (apply (symbol-function (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-ALLOC"</span>)) args))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">foreign-free*</span> (pointer)
+  (funcall (symbol-function (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-FREE"</span>)) pointer))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">event-from-pointer</span> (pointer)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((type '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-event))
+         (kind (foreign-slot-value* pointer type 'kind))
+         (name-pointer (foreign-slot-value* pointer type 'name-ptr))
+         (name-length (foreign-slot-value* pointer type 'name-len))
+         (name (and (&gt; name-length 0)
+                    (not (null-pointer-p* name-pointer))
+                    (foreign-string-to-lisp* name-pointer <span style="color: #fe8019; font-weight: bold;">:count</span> name-length))))
+    (list <span style="color: #fe8019; font-weight: bold;">:kind</span> (aref *event-kinds* kind)
+          <span style="color: #fe8019; font-weight: bold;">:a</span> (foreign-slot-value* pointer type 'a)
+          <span style="color: #fe8019; font-weight: bold;">:b</span> (foreign-slot-value* pointer type 'b)
+          <span style="color: #fe8019; font-weight: bold;">:c</span> (foreign-slot-value* pointer type 'c)
+          <span style="color: #fe8019; font-weight: bold;">:d</span> (foreign-slot-value* pointer type 'd)
+          <span style="color: #fe8019; font-weight: bold;">:name</span> name)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">ensure-abi-bindings</span> ()
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> *abi-bound*
+    (<span style="color: #fb4934; font-weight: bold;">let</span> ((defcstruct (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"DEFCSTRUCT"</span>))
+          (defcfun (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"DEFCFUN"</span>))
+          (defcallback (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"DEFCALLBACK"</span>))
+          (callback (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"CALLBACK"</span>))
+          (inc-pointer (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"INC-POINTER"</span>))
+          (foreign-type-size (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-TYPE-SIZE"</span>))
+                  (foreign-slot-offset (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-SLOT-OFFSET"</span>))
+                  (<span style="color: #fb4934; font-weight: bold;">with-foreign-slots</span> (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"WITH-FOREIGN-SLOTS"</span>))
+                  (mem-aref (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"MEM-AREF"</span>))
+          (mem-ref (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"MEM-REF"</span>))
+          (foreign-slot-value (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"FOREIGN-SLOT-VALUE"</span>))
+          (null-pointer-p (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"NULL-POINTER-P"</span>))
+          (pointer-address (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"POINTER-ADDRESS"</span>)))
+      (eval `(,defcstruct generated-event
+               (kind <span style="color: #fe8019; font-weight: bold;">:uint8</span>)
+               (a <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (b <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (c <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (d <span style="color: #fe8019; font-weight: bold;">:int32</span>)
+               (name-ptr <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (name-len <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(,defcstruct generated-factor
+               (kind <span style="color: #fe8019; font-weight: bold;">:uint8</span>)
+               (a <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (b <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (c <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (d <span style="color: #fe8019; font-weight: bold;">:int32</span>)
+               (name-id <span style="color: #fe8019; font-weight: bold;">:uint32</span>)))
+      (eval `(,defcstruct generated-name
+               (ptr <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (len <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(,defcstruct generated-term
+               (first-factor <span style="color: #fe8019; font-weight: bold;">:size</span>)
+               (factor-count <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">set-mem-aref*</span> (pointer type index value)
+               (setf (,mem-aref pointer type index) value)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">mem-ref*</span> (pointer type)
+               (,mem-ref pointer type)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">foreign-slot-value*</span> (pointer type slot)
+               (,foreign-slot-value pointer type slot)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">null-pointer-p*</span> (pointer)
+               (,null-pointer-p pointer)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">pointer-address*</span> (pointer)
+               (,pointer-address pointer)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">inc-pointer*</span> (pointer offset)
+               (,inc-pointer pointer offset)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">foreign-type-size*</span> (type)
+               (,foreign-type-size type)))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">event-pointer-at</span> (events index)
+               (,inc-pointer events (* index *event-size*))))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">name-pointer-at</span> (names index)
+               (,inc-pointer names (* index *name-size*))))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">term-pointer-at</span> (terms index)
+               (,inc-pointer terms (* index *term-size*))))
+      (setf *event-size* (eval `(,foreign-type-size '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-event)))
+            *factor-size* (eval `(,foreign-type-size '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-factor)))
+            *name-size* (eval `(,foreign-type-size '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-name)))
+            *name-ptr-offset* (eval `(,foreign-slot-offset '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-name) 'ptr))
+            *name-len-offset* (eval `(,foreign-slot-offset '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-name) 'len))
+            *term-size* (eval `(,foreign-type-size '(<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-term))))
+      (eval `(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">term-expression</span> (builder factors names term)
+               (<span style="color: #fb4934; font-weight: bold;">declare</span> (optimize (speed 3) (safety 1) (debug 0)))
+               (,with-foreign-slots ((first-factor factor-count) term (<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-term))
+                 (<span style="color: #fb4934; font-weight: bold;">let</span> ((items nil)
+                       (scalars nil)
+                       (greens nil)
+                       (momentum-pairs nil)
+                       (others nil))
+                   (<span style="color: #fb4934; font-weight: bold;">loop</span> for index from first-factor below (+ first-factor factor-count)
+                         for factor = (,inc-pointer factors (* index *factor-size*))
+                         do (,with-foreign-slots ((kind a b c d name-id) factor (<span style="color: #fe8019; font-weight: bold;">:struct</span> generated-factor))
+                              (<span style="color: #fb4934; font-weight: bold;">let</span> ((expr (factor-expression-values builder names kind a b c d name-id)))
+                                (<span style="color: #fb4934; font-weight: bold;">when</span> (and expr (not (eql expr 1)))
+                                  (push expr items)
+                                  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+                                    ((= kind 4) (push expr scalars))
+                                    ((and (= kind 5) (exp-green-expression-p expr))
+                                     (push expr greens))
+                                    ((and (= kind 6) (momentum-pair-expression-p expr))
+                                     (push expr momentum-pairs))
+                                    (t (push expr others)))))))
+                   (term-product-expression items scalars greens momentum-pairs others)))))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_last_error"</span> %abi-last-error) <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_context_create"</span> %abi-context-create) <span style="color: #fe8019; font-weight: bold;">:pointer</span>
+               (theory-id <span style="color: #fe8019; font-weight: bold;">:uint32</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_context_destroy"</span> %abi-context-destroy) <span style="color: #fe8019; font-weight: bold;">:void</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_scalar_atom_name"</span> %abi-scalar-atom-name) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (theory-id <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (atom <span style="color: #fe8019; font-weight: bold;">:uint32</span>)
+               (out-name <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-name-len <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_symbol_intern"</span> %abi-symbol-intern) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (name <span style="color: #fe8019; font-weight: bold;">:string</span>)
+               (name-len <span style="color: #fe8019; font-weight: bold;">:size</span>)
+               (out-symbol <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_field_insert"</span> %abi-field-insert) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (field-id <span style="color: #fe8019; font-weight: bold;">:uint16</span>)
+               (coordinates <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (coordinate-count <span style="color: #fe8019; font-weight: bold;">:size</span>)
+               (<span style="color: #fb4934; font-weight: bold;">labels</span> <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (label-count <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_normal_ordering"</span> %abi-normal-ordering) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (field-count <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_operator_list_freeze"</span> %abi-operator-list-freeze) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_correlator_count"</span> %abi-correlator-count) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-count <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_correlator_run"</span> %abi-correlator-run) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (payload <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (callback <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_correlator_run_buffered"</span> %abi-correlator-run-buffered) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (payload <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (callback <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_correlator_expression_records"</span> %abi-correlator-expression-records) <span style="color: #fe8019; font-weight: bold;">:int</span>
+               (context <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-terms <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-term-count <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-factors <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-factor-count <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-names <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (out-name-count <span style="color: #fe8019; font-weight: bold;">:pointer</span>)))
+      (eval `(,defcfun (<span style="color: #b8bb26; font-style: italic;">"sc_generated_expression_buffer_free"</span> %abi-expression-buffer-free) <span style="color: #fe8019; font-weight: bold;">:void</span>
+               (terms <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (term-count <span style="color: #fe8019; font-weight: bold;">:size</span>)
+               (factors <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (factor-count <span style="color: #fe8019; font-weight: bold;">:size</span>)
+               (names <span style="color: #fe8019; font-weight: bold;">:pointer</span>)
+               (name-count <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+      (eval `(,defcallback %abi-event-callback <span style="color: #fe8019; font-weight: bold;">:int</span>
+               ((payload <span style="color: #fe8019; font-weight: bold;">:pointer</span>) (event <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+               (<span style="color: #fb4934; font-weight: bold;">let</span> ((sink (gethash (mem-ref* payload <span style="color: #fe8019; font-weight: bold;">:uint64</span>) *abi-sinks*)))
+                 (<span style="color: #fb4934; font-weight: bold;">when</span> sink
+                   (funcall sink event))
+                 0)))
+      (eval `(,defcallback %abi-event-chunk-callback <span style="color: #fe8019; font-weight: bold;">:int</span>
+               ((payload <span style="color: #fe8019; font-weight: bold;">:pointer</span>) (events <span style="color: #fe8019; font-weight: bold;">:pointer</span>) (event-count <span style="color: #fe8019; font-weight: bold;">:size</span>))
+               (<span style="color: #fb4934; font-weight: bold;">let</span> ((sink (gethash (mem-ref* payload <span style="color: #fe8019; font-weight: bold;">:uint64</span>) *abi-sinks*)))
+                 (<span style="color: #fb4934; font-weight: bold;">when</span> sink
+                   (<span style="color: #fb4934; font-weight: bold;">loop</span> for index below event-count
+                         do (funcall sink (event-pointer-at events index))))
+                 0)))
+      (setf *abi-callback-pointer* (eval `(,callback %abi-event-callback)))
+      (setf *abi-chunk-callback-pointer* (eval `(,callback %abi-event-chunk-callback)))
+      (setf *abi-bound* t))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">load-generated-library</span> (path)
+  (funcall (symbol-function (cffi-symbol <span style="color: #b8bb26; font-style: italic;">"LOAD-FOREIGN-LIBRARY"</span>)) path)
+  (ensure-abi-bindings)
+  path)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">check-abi</span> (status)
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> (zerop status)
+    (<span style="color: #fb4934; font-weight: bold;">let</span> ((message (%abi-last-error)))
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Generated ABI call failed: ~A"</span>
+             (foreign-string-to-lisp* message)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">keyword-name</span> (name)
+  (intern (string-upcase name) '<span style="color: #fe8019; font-weight: bold;">#:keyword</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">constant-name</span> (name)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> name
+    (string (keyword-name name))
+    (symbol (keyword-name (string name)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">normalize-runtime-constants</span> (constants)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((table (make-hash-table)))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (item constants table)
+      (<span style="color: #fb4934; font-weight: bold;">etypecase</span> item
+        (cons
+         (setf (gethash (constant-name (car item)) table) (cdr item)))
+        (symbol
+         (setf (gethash (constant-name item) table) (constant-name item)))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">set-runtime-constant</span> (context name value)
+  <span style="color: #e0d3b9; font-style: italic;">"Set one symbolic scalar constant for later expression construction."</span>
+  (setf (gethash (constant-name name) (runtime-context-constants context)) value
+        (runtime-context-scalar-monomials context) nil)
+  value)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">runtime-constant-value</span> (context name)
+  (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (value present)
+      (gethash name (runtime-context-constants context))
+    (<span style="color: #fb4934; font-weight: bold;">if</span> present value name)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-runtime-context</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library theory-id constants)
+  (<span style="color: #fb4934; font-weight: bold;">unless</span> theory-id
+    (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"A generated theory id is required."</span>))
+  (<span style="color: #fb4934; font-weight: bold;">when</span> library
+    (load-generated-library library))
+  (ensure-abi-bindings)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((handle (%abi-context-create theory-id)))
+    (<span style="color: #fb4934; font-weight: bold;">when</span> (null-pointer-p* handle)
+      (check-abi -1))
+    (%make-runtime-context <span style="color: #fe8019; font-weight: bold;">:handle</span> handle <span style="color: #fe8019; font-weight: bold;">:theory-id</span> theory-id
+                           <span style="color: #fe8019; font-weight: bold;">:constants</span> (normalize-runtime-constants constants))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">destroy-runtime-context</span> (context)
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (runtime-context-handle context)
+    (%abi-context-destroy (runtime-context-handle context))
+    (setf (runtime-context-handle context) nil)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">runtime-handle</span> (context)
+  (or (runtime-context-handle context)
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"No generated runtime context is active."</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">remember-runtime-symbol</span> (context id name)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((symbols (runtime-context-symbols context)))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> while (&lt; (length symbols) id)
+          do (vector-push-extend nil symbols))
+    (setf (aref symbols (1- id)) (keyword-name name))
+    id))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">runtime-symbol-name</span> (context id)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((symbols (runtime-context-symbols context)))
+    (<span style="color: #fb4934; font-weight: bold;">if</span> (and (&gt; id 0) (&lt;= id (length symbols)))
+        (or (aref symbols (1- id)) `(<span style="color: #fe8019; font-weight: bold;">:symbol</span> ,id))
+        `(<span style="color: #fe8019; font-weight: bold;">:symbol</span> ,id))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">intern-runtime-symbol</span> (context name)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((out (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:uint32</span>)))
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (<span style="color: #fb4934; font-weight: bold;">progn</span>
+           (check-abi
+            (%abi-symbol-intern (runtime-handle context) name (length name) out))
+           (remember-runtime-symbol context (mem-ref* out <span style="color: #fe8019; font-weight: bold;">:uint32</span>) name))
+      (foreign-free* out))))
+</pre>
+</div>
+
+<p>
+Runtime insertion is intentionally shallow.  Lisp interns coordinate and label
+names once per context, passes only dense ids through C, and lets Zig own the
+operator-list storage.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">copy-uint32-values</span> (values)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((count (length values))
+         (pointer (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:uint32</span> <span style="color: #fe8019; font-weight: bold;">:count</span> (max 1 count))))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for value in values
+          for index from 0
+          do (set-mem-aref* pointer <span style="color: #fe8019; font-weight: bold;">:uint32</span> index value))
+    (values pointer count)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">insert-runtime-field</span> (context field-id coordinates labels)
+  (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (coord-pointer coord-count) (copy-uint32-values coordinates)
+    (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (label-pointer label-count) (copy-uint32-values labels)
+      (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+           (check-abi
+            (%abi-field-insert (runtime-handle context) field-id coord-pointer coord-count label-pointer label-count))
+        (foreign-free* label-pointer)
+        (foreign-free* coord-pointer))))
+  field-id)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">normal-order-runtime-field</span> (context count)
+  (check-abi
+   (%abi-normal-ordering (runtime-handle context) count))
+  count)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">freeze-runtime-operators</span> (context)
+  (check-abi
+   (%abi-operator-list-freeze (runtime-handle context)))
+  <span style="color: #fe8019; font-weight: bold;">:generated</span>)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">count-correlator</span> (context frozen)
+  (<span style="color: #fb4934; font-weight: bold;">declare</span> (ignore frozen))
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((out (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (<span style="color: #fb4934; font-weight: bold;">progn</span>
+           (check-abi
+            (%abi-correlator-count (runtime-handle context) out))
+           (mem-ref* out <span style="color: #fe8019; font-weight: bold;">:size</span>))
+      (foreign-free* out))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">run-correlator-raw</span> (context sink)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((sink-id (<span style="color: #fb4934; font-weight: bold;">prog1</span> *next-abi-sink-id*
+                    (incf *next-abi-sink-id*)))
+         (payload (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:uint64</span>)))
+    (setf (gethash sink-id *abi-sinks*) sink)
+    (set-mem-aref* payload <span style="color: #fe8019; font-weight: bold;">:uint64</span> 0 sink-id)
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (check-abi
+          (%abi-correlator-run (runtime-handle context) payload *abi-callback-pointer*))
+      (remhash sink-id *abi-sinks*)
+      (foreign-free* payload))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">run-correlator-buffered</span> (context sink)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((sink-id (<span style="color: #fb4934; font-weight: bold;">prog1</span> *next-abi-sink-id*
+                    (incf *next-abi-sink-id*)))
+         (payload (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:uint64</span>)))
+    (setf (gethash sink-id *abi-sinks*) sink)
+    (set-mem-aref* payload <span style="color: #fe8019; font-weight: bold;">:uint64</span> 0 sink-id)
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (check-abi
+          (%abi-correlator-run-buffered (runtime-handle context) payload *abi-chunk-callback-pointer*))
+      (remhash sink-id *abi-sinks*)
+      (foreign-free* payload))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">run-correlator</span> (context frozen sink)
+  (<span style="color: #fb4934; font-weight: bold;">declare</span> (ignore frozen))
+  (run-correlator-raw context
+                      (<span style="color: #fb4934; font-weight: bold;">lambda</span> (event)
+                        (funcall sink (event-from-pointer event)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defstruct</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">expression-builder</span> (<span style="color: #fe8019; font-weight: bold;">:constructor</span> make-expression-builder (context)))
+  context
+  terms)
+
+(<span style="color: #fb4934; font-weight: bold;">declaim</span>
+ (inline name-ptr name-len name-token product-expression sum-expression))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">name-ptr</span> (name)
+  (mem-ref* (inc-pointer* name *name-ptr-offset*) <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">name-len</span> (name)
+  (mem-ref* (inc-pointer* name *name-len-offset*) <span style="color: #fe8019; font-weight: bold;">:size</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">name-token</span> (name)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((pointer (name-ptr name))
+        (length (name-len name)))
+    (<span style="color: #fb4934; font-weight: bold;">when</span> (and (&gt; length 0) (not (null-pointer-p* pointer)))
+      (keyword-name (foreign-string-to-lisp* pointer <span style="color: #fe8019; font-weight: bold;">:count</span> length)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-name-token-by-id</span> (names id)
+  (and (&gt; id 0) (aref names (1- id))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">product-expression</span> (factors)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((null factors) 1)
+    ((null (cdr factors)) (car factors))
+    (t (cons '* factors))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">sum-expression</span> (terms)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((null terms) 0)
+    ((null (cdr terms)) (car terms))
+    (t (cons '+ terms))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">exp-green-expression-p</span> (expr)
+  (and (consp expr) (eq (first expr) <span style="color: #fe8019; font-weight: bold;">:exp-green</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">momentum-pair-expression-p</span> (expr)
+  (and (consp expr) (eq (first expr) <span style="color: #fe8019; font-weight: bold;">:momentum-pair</span>)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">explicit-green-expression</span> (green exponent)
+  `(expt (- ,(second green) ,(third green)) ,exponent))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">product-factor-list</span> (expr)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and (consp expr) (eq (first expr) '*))
+      (rest expr)
+      (list expr)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">momentum-sum-expression</span> (momenta)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((null momenta) 0)
+    ((null (cdr momenta)) (car momenta))
+    (t (cons '+ momenta))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">momentum-delta-expression</span> (header momenta)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((power (second header))
+        (sum (momentum-sum-expression momenta)))
+    (product-expression
+     (remove 1
+             (list (<span style="color: #fb4934; font-weight: bold;">if</span> (zerop power) 1 `(expt (* 2 <span style="color: #fe8019; font-weight: bold;">:pi</span>) ,power))
+                   `(<span style="color: #fe8019; font-weight: bold;">:momentum-delta</span> ,power ,sum))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">rewrite-zero-mode-factors</span> (items)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((rest nil)
+        (momenta nil)
+        (header nil)
+        (has-delta nil))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (item items)
+      (<span style="color: #fb4934; font-weight: bold;">when</span> (and (consp item) (eq (first item) <span style="color: #fe8019; font-weight: bold;">:momentum-delta-header</span>))
+        (setf has-delta t)))
+    (<span style="color: #fb4934; font-weight: bold;">dolist</span> (item items)
+      (<span style="color: #fb4934; font-weight: bold;">cond</span>
+        ((and (consp item) (eq (first item) <span style="color: #fe8019; font-weight: bold;">:momentum-delta-header</span>))
+         (setf header item))
+        ((and (consp item) (eq (first item) <span style="color: #fe8019; font-weight: bold;">:momentum-delta-momentum</span>))
+         (push (second item) momenta))
+        ((and has-delta (consp item) (eq (first item) <span style="color: #fe8019; font-weight: bold;">:residual</span>))
+         nil)
+        (t (push item rest))))
+    (<span style="color: #fb4934; font-weight: bold;">if</span> header
+        (append (nreverse rest)
+                (list (momentum-delta-expression header (nreverse momenta))))
+        items)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">term-product-expression</span> (items scalars greens momentum-pairs others)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (and greens momentum-pairs)
+      (<span style="color: #fb4934; font-weight: bold;">let</span> ((exponent (product-expression
+                       (append
+                        (<span style="color: #fb4934; font-weight: bold;">loop</span> for scalar in (nreverse scalars)
+                              append (product-factor-list scalar))
+                        (nreverse momentum-pairs)))))
+        (product-expression
+         (append
+          (mapcar (<span style="color: #fb4934; font-weight: bold;">lambda</span> (green)
+                    (explicit-green-expression green exponent))
+                  (nreverse greens))
+          (rewrite-zero-mode-factors (nreverse others)))))
+      (product-expression (rewrite-zero-mode-factors (nreverse items)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-coordinate-expression-values</span> (builder names a b d name-id)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((context (expression-builder-context builder))
+         (left (runtime-symbol-name context a))
+         (right (runtime-symbol-name context b))
+         (name (factor-name-token-by-id names name-id)))
+    (<span style="color: #fb4934; font-weight: bold;">cond</span>
+      ((null name) `(expt (- ,left ,right) ,d))
+      ((eq name <span style="color: #fe8019; font-weight: bold;">:exp-green</span>) `(<span style="color: #fe8019; font-weight: bold;">:exp-green</span> ,left ,right))
+      (t `(,name ,left ,right)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-tensor-expression-values</span> (builder names a b name-id)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((context (expression-builder-context builder))
+         (left (runtime-symbol-name context a))
+         (right (runtime-symbol-name context b))
+         (name (or (factor-name-token-by-id names name-id) <span style="color: #fe8019; font-weight: bold;">:tensor</span>)))
+    `(,name ,left ,right)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-atom-expression</span> (context atom)
+  (<span style="color: #fb4934; font-weight: bold;">when</span> (&gt; atom 0)
+    (<span style="color: #fb4934; font-weight: bold;">let</span> ((name
+            (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (cached present)
+                (gethash atom (runtime-context-scalar-atom-names context))
+              (<span style="color: #fb4934; font-weight: bold;">if</span> present
+                  cached
+                  (<span style="color: #fb4934; font-weight: bold;">let</span> ((out-name (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+                        (out-name-len (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+                    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+                         (<span style="color: #fb4934; font-weight: bold;">let</span> ((status (%abi-scalar-atom-name
+                                        (runtime-context-theory-id context)
+                                        atom out-name out-name-len)))
+                           (<span style="color: #fb4934; font-weight: bold;">if</span> (zerop status)
+                               (<span style="color: #fb4934; font-weight: bold;">let*</span> ((pointer (mem-ref* out-name <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+                                      (length (mem-ref* out-name-len <span style="color: #fe8019; font-weight: bold;">:size</span>))
+                                      (token (keyword-name
+                                              (foreign-string-to-lisp*
+                                               pointer <span style="color: #fe8019; font-weight: bold;">:count</span> length))))
+                                 (setf (gethash atom (runtime-context-scalar-atom-names context))
+                                       token))
+                               (setf (gethash atom (runtime-context-scalar-atom-names context))
+                                     `(<span style="color: #fe8019; font-weight: bold;">:scalar-atom</span> ,atom))))
+                      (foreign-free* out-name-len)
+                      (foreign-free* out-name)))))))
+      (<span style="color: #fb4934; font-weight: bold;">if</span> (keywordp name)
+          (runtime-constant-value context name)
+          name))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">rational-expression</span> (numerator denominator)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((= numerator denominator) 1)
+    ((= denominator 1) numerator)
+    (t `(/ ,numerator ,denominator))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-atom-power-expression</span> (atom power)
+  (<span style="color: #fb4934; font-weight: bold;">cond</span>
+    ((or (null atom) (= power 0)) 1)
+    ((= power 1) atom)
+    (t `(expt ,atom ,power))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">signed-byte8</span> (value)
+  (<span style="color: #fb4934; font-weight: bold;">if</span> (&gt; value 127) (- value 256) value))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-imaginary-factors</span> (power)
+  (<span style="color: #fb4934; font-weight: bold;">ecase</span> power
+    (0 nil)
+    (1 '(<span style="color: #fe8019; font-weight: bold;">:i</span>))
+    (2 '(-1))
+    (3 '(-1 <span style="color: #fe8019; font-weight: bold;">:i</span>))))
+</pre>
+</div>
+
+<p>
+The expression folder consumes compact term/factor/name arrays from Zig.  It
+builds the user-facing S-expression only after the expansion stream has already
+been accepted, and it keeps scalar monomial decoding cached by atom/flags.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-scalar-monomial-expression</span> (context atom denominator flags numerator)
+  (<span style="color: #fb4934; font-weight: bold;">let*</span> ((imaginary-power (logand flags 3))
+         (atom-power (signed-byte8 (ldb (byte 8 8) flags)))
+         (atom-expr (scalar-atom-expression context atom))
+         (coefficient (<span style="color: #fb4934; font-weight: bold;">if</span> (and (numberp atom-expr) (= atom-power 1))
+                          (/ (* numerator atom-expr) denominator)
+                          (rational-expression numerator denominator)))
+         (atom-factor (<span style="color: #fb4934; font-weight: bold;">unless</span> (and (numberp atom-expr) (= atom-power 1))
+                        (scalar-atom-power-expression atom-expr atom-power))))
+    (product-expression
+     (remove-if (<span style="color: #fb4934; font-weight: bold;">lambda</span> (factor) (or (null factor) (eql factor 1)))
+                (append
+                 (list coefficient)
+                 (scalar-imaginary-factors imaginary-power)
+                 (list atom-factor))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">cached-scalar-monomial-expression</span> (context atom denominator flags numerator)
+  (<span style="color: #fb4934; font-weight: bold;">loop</span> for row in (runtime-context-scalar-monomials context)
+        when (and (= atom (aref row 0))
+                  (= denominator (aref row 1))
+                  (= flags (aref row 2))
+                  (= numerator (aref row 3)))
+          return (aref row 4)
+        finally
+           (<span style="color: #fb4934; font-weight: bold;">let</span> ((expr (make-scalar-monomial-expression
+                        context atom denominator flags numerator)))
+             (push (vector atom denominator flags numerator expr)
+                   (runtime-context-scalar-monomials context))
+             (<span style="color: #fb4934; font-weight: bold;">return</span> expr))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">scalar-monomial-expression</span> (builder atom denominator flags numerator)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((context (expression-builder-context builder)))
+    (cached-scalar-monomial-expression context atom denominator flags numerator)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-scalar-expression-values</span> (builder names a b c d name-id)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((sign d))
+    (<span style="color: #fb4934; font-weight: bold;">cond</span>
+      ((and (= sign -1) (= name-id 0)) -1)
+      (t
+       (<span style="color: #fb4934; font-weight: bold;">let</span> ((name (factor-name-token-by-id names name-id)))
+         (<span style="color: #fb4934; font-weight: bold;">cond</span>
+           ((eq name <span style="color: #fe8019; font-weight: bold;">:scalar-monomial</span>)
+            (scalar-monomial-expression builder a b c d))
+           (name
+             `(,name
+               ,(runtime-symbol-name (expression-builder-context builder) a)
+               ,(runtime-symbol-name (expression-builder-context builder) b)))
+           (t 1)))))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-zero-mode-expression-values</span> (builder names a b name-id)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((name (factor-name-token-by-id names name-id)))
+    (<span style="color: #fb4934; font-weight: bold;">cond</span>
+      ((eq name <span style="color: #fe8019; font-weight: bold;">:momentum-delta</span>)
+       `(<span style="color: #fe8019; font-weight: bold;">:momentum-delta-header</span> ,a ,b))
+      ((eq name <span style="color: #fe8019; font-weight: bold;">:momentum-delta-momentum</span>)
+       `(<span style="color: #fe8019; font-weight: bold;">:momentum-delta-momentum</span>
+         ,(runtime-symbol-name (expression-builder-context builder) a)))
+      ((eq name <span style="color: #fe8019; font-weight: bold;">:eta-xi-zero-mode</span>)
+       `(<span style="color: #fe8019; font-weight: bold;">:eta-xi-zero-mode</span> ,(runtime-symbol-name (expression-builder-context builder) a)))
+      ((eq name <span style="color: #fe8019; font-weight: bold;">:bc-top-form</span>)
+       '(<span style="color: #fe8019; font-weight: bold;">:bc-top-form</span>))
+      (name `(,name))
+      (t '(<span style="color: #fe8019; font-weight: bold;">:zero-mode</span>)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">factor-expression-values</span> (builder names kind a b c d name-id)
+  (<span style="color: #fb4934; font-weight: bold;">case</span> kind
+    (4 (factor-scalar-expression-values builder names a b c d name-id))
+    (5 (factor-coordinate-expression-values builder names a b d name-id))
+    (6 (factor-tensor-expression-values builder names a b name-id))
+    (7 (factor-zero-mode-expression-values builder names a b name-id))
+    (8 `(<span style="color: #fe8019; font-weight: bold;">:residual</span> ,a))
+    (otherwise 1)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">expression-name-vector</span> (names count)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((tokens (make-array count)))
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for index below count
+          do (setf (aref tokens index)
+                   (name-token (name-pointer-at names index))))
+    tokens))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fold-expression-records</span> (context)
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((out-terms (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+        (out-term-count (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:size</span>))
+        (out-factors (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+        (out-factor-count (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:size</span>))
+        (out-names (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+        (out-name-count (foreign-alloc* <span style="color: #fe8019; font-weight: bold;">:size</span>))
+        (builder (make-expression-builder context)))
+    (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+         (<span style="color: #fb4934; font-weight: bold;">progn</span>
+           (check-abi
+            (%abi-correlator-expression-records
+             (runtime-handle context)
+             out-terms out-term-count out-factors out-factor-count out-names out-name-count))
+           (<span style="color: #fb4934; font-weight: bold;">let</span> ((terms (mem-ref* out-terms <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+                 (term-count (mem-ref* out-term-count <span style="color: #fe8019; font-weight: bold;">:size</span>))
+                 (factors (mem-ref* out-factors <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+                 (factor-count (mem-ref* out-factor-count <span style="color: #fe8019; font-weight: bold;">:size</span>))
+                 (names (mem-ref* out-names <span style="color: #fe8019; font-weight: bold;">:pointer</span>))
+                 (name-count (mem-ref* out-name-count <span style="color: #fe8019; font-weight: bold;">:size</span>)))
+             (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+                  (<span style="color: #fb4934; font-weight: bold;">let</span> ((name-tokens (expression-name-vector names name-count)))
+                    (<span style="color: #fb4934; font-weight: bold;">loop</span> for index below term-count
+                          do (push (term-expression builder factors name-tokens
+                                                    (term-pointer-at terms index))
+                                   (expression-builder-terms builder))))
+               (%abi-expression-buffer-free terms term-count factors factor-count names name-count)))
+           (sum-expression (nreverse (expression-builder-terms builder))))
+      (foreign-free* out-name-count)
+      (foreign-free* out-names)
+      (foreign-free* out-factor-count)
+      (foreign-free* out-factors)
+      (foreign-free* out-term-count)
+      (foreign-free* out-terms))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">correlator-expression</span> (context frozen)
+  (<span style="color: #fb4934; font-weight: bold;">declare</span> (ignore frozen))
+  (fold-expression-records context))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">collect-correlator</span> (context frozen <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> (limit 1024))
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((events nil)
+        (count 0))
+    (run-correlator context frozen
+                    (<span style="color: #fb4934; font-weight: bold;">lambda</span> (event)
+                      (<span style="color: #fb4934; font-weight: bold;">when</span> (&gt;= count limit)
+                        (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Result collection limit reached."</span>))
+                      (incf count)
+                      (push event events)))
+    (nreverse events)))
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

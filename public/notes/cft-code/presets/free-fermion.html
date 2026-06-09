@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Free Fermion Preset</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Free Fermion Preset</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org64274d8">Sphere Preset</a></li>
+<li><a href="#orgbaf19d3">Rules</a></li>
+</ul>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#freeFermionSphere"><code>freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type</code></a></dt>
+<dd>freeFermionSphere builds the generated preset type for sphere NS free fermions.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+This node defines the NS-sector free worldsheet fermion on the sphere.  It uses
+the shared preset lowering path from <a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a> and deliberately
+does not define a torus surface.  Loop-level free-fermion data must later be
+combined with the \(\phi\) system rather than frozen here in isolation.
+</p>
+
+<p>
+The stringbook convention is
+\[
+  \psi^\mu(z)\psi^\nu(w)\sim {\eta^{\mu\nu}\over z-w}.
+\]
+Derivative labels mean \(\partial^n\psi^\mu\).  The correlator engine receives
+only the lowered fermionic kind ids and pole rule; all theory names remain in
+this preset.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">shared</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"shared.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">declare</span> = shared.declare;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Handle</span> = shared.Handle;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Builder</span> = *shared.Local;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Operator</span> = *shared.LocalOperator;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Spec</span> = declare.Spec;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = declare.wick;
+</pre>
+</div>
+
+<p>
+The preset owns the two chiral operator families.  A compile-time flag can keep
+only the holomorphic NS sector when a chiral computation does not need the
+antiholomorphic copy.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">namespace</span> = <span style="color: #b8bb26; font-style: italic;">"free_fermion"</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Family</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    psi,
+    psit,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>) operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">return</span> declare.familyKind(namespace, family);
+}
+</pre>
+</div>
+<div id="outline-container-org64274d8" class="outline-2">
+<h2 id="org64274d8">Sphere Preset</h2>
+<div class="outline-text-2" id="text-org64274d8">
+<p>
+The public surface mirrors the other presets: users get an operator namespace,
+an opaque sphere config, the bounded text adapter, a local builder, and one
+streaming correlator entry point.
+</p>
+
+<a id="freeFermionSphere"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgfae447a"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FreeFermionSphereConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// freeFermionSphere builds the generated preset type for sphere NS free fermions.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeFermionSphere</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreeFermionSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.dimension == 0) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-fermion target dimension must be nonzero"</span>);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// op exposes NS free-fermion local operator builders.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = FreeFermionSphereOp(cfg.include_antiholomorphic_copy);
+        <span style="color: #e0d3b9; font-style: italic;">/// config exposes named correlator configs for this preset.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = FreeFermionCorrelatorConfig(cfg);
+        <span style="color: #e0d3b9; font-style: italic;">/// text exposes bounded result-inspection sinks.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">text</span> = shared.text;
+        <span style="color: #e0d3b9; font-style: italic;">/// local constructs a label-preserving local-operator builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !Builder {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.Local.init(allocator);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator streams rule matches for NS free-fermion insertions.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+</pre>
+</div>
+
+<p>
+The builders pack one target-space vector index and one coordinate.  They do
+not expose the compact operator kind ids used by the engine.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">FreeFermionSphereOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holomorphic</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// psi builds a holomorphic NS free-fermion insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psi</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(fermionOperator(.psi)).single(local, z, n, .{mu});
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> Holomorphic;
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// psi builds a holomorphic NS free-fermion insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">psi</span> = Holomorphic.psi;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// psit builds an antiholomorphic NS free-fermion insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(fermionOperator(.psit)).single(local, zbar, n, .{mu});
+        }
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbaf19d3" class="outline-2">
+<h2 id="orgbaf19d3">Rules</h2>
+<div class="outline-text-2" id="text-orgbaf19d3">
+<p>
+The sphere rule is a metric numerator times a simple rational pole.  Fermionic
+statistics are lowered as data so the generic branch walker supplies the Wick
+permutation sign for higher-point correlators.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">holomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">antiholomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psiPsi</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }, holomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psitPsit</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }, antiholomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_operator_spec</span> = [_]Spec.Operator{
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"psi"</span>, .kind = kind(.psi), .support = .holomorphic, .insertion = .single, .labels = &amp;.{.index}, .statistics = .fermionic },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_operator_spec</span> = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"psit"</span>, .kind = kind(.psit), .support = .antiholomorphic, .insertion = .single, .labels = &amp;.{.index}, .statistics = .fermionic },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_wick_spec</span> = [_]Spec.WickRule{
+    .{ .left = kind(.psi), .right = kind(.psi), .expr = psiPsi() },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_wick_spec</span> = sphere_holomorphic_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.psit), .right = kind(.psit), .expr = psitPsit() },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_wick_storage</span> = Spec.wickRules(&amp;sphere_holomorphic_wick_spec, &amp;sphere_holomorphic_operator_spec);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_wick_storage</span> = Spec.wickRules(&amp;sphere_full_wick_spec, &amp;sphere_full_operator_spec);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_fermion_storage</span> = Spec.fermionKinds(&amp;sphere_holomorphic_operator_spec);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_fermion_storage</span> = Spec.fermionKinds(&amp;sphere_full_operator_spec);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_zero_spec</span> = [_]Spec.ZeroModeRule{};
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_zero_spec</span> = [_]Spec.ZeroModeRule{};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) Spec.Theory {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .operators = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_operator_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_operator_spec,
+        .wick_rules = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_wick_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_wick_spec,
+        .zero_modes = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_zero_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_zero_spec,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fermionOperator</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>) Spec.Operator {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind_id</span> = kind(family);
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (sphere_full_operator_spec) |operator| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (operator.kind == kind_id) <span style="color: #fb4934; font-weight: bold;">return</span> operator;
+    }
+    <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"missing free-fermion operator spec"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assertSphereSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = sphereSpec(include_antiholomorphic_copy);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.wick_rules.len != wick_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-fermion sphere spec Wick count does not match lowered rules"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.zero_modes.len != zero_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-fermion sphere spec zero-mode count does not match lowered rules"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.operators.len != fermion_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-fermion sphere spec fermion coverage does not match lowered rules"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">FreeFermionRules</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_wick</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) sphere_full_wick_storage <span style="color: #fb4934; font-weight: bold;">else</span> sphere_holomorphic_wick_storage;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_fermions</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) sphere_full_fermion_storage <span style="color: #fb4934; font-weight: bold;">else</span> sphere_holomorphic_fermion_storage;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;selected_wick;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_fermion_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = &amp;selected_fermions;
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">FreeFermionCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreeFermionSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = FreeFermionRules(cfg.include_antiholomorphic_copy);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> {
+            assertSphereSpec(cfg.include_antiholomorphic_copy, rules.sphere_wick.len, 0, rules.sphere_fermion_kinds.len);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// sphere selects NS free-fermion sphere Wick rules.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = declare.correlatorConfig(.{
+            .wick_rules = rules.sphere_wick,
+            .zero_modes = &amp;.{},
+            .fermion_kinds = rules.sphere_fermion_kinds,
+        }){};
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-08</p>
+</div>
+</body>
+</html>

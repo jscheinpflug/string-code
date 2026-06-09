@@ -1,0 +1,298 @@
+:PROPERTIES:
+:ID:       20260609T150500.000000
+:END:
+#+title: NLSM Feature Request For CFT-Code And Tensor-Code
+
+This note records the feature requests that the NLSM \(R^4\), CY3, and K3
+calculations impose primarily on [[id:20260606T150002.000000][CFT Kernel]], with a possible later extraction
+path into [[id:20260605T075909.433647][Tensor-Code]] if the geometry reducer proves reusable.  The main
+requirement is to keep the fast free-field contraction machinery from
+[[id:20260606T183200.000000][Free Boson Preset]] and [[id:20260608T090000.000000][Free Fermion Preset]], while adding
+enough type information that Kahler and Calabi-Yau targets can be expressed
+without ad hoc conventions in user code.
+
+* Boundary Between Modules
+
+The right split is:
+
+- =cft-code= owns local field occurrences, normal-order groups, coordinate
+  kernels, and Wick traversal;
+- =nlsm-code= owns RNC or Kahler-normal-coordinate vertex generation, the
+  first local tensor canonicalizer, regularization bookkeeping, and
+  beta-function projection;
+- =tensor-code= is only a later home for the geometry reducer if the same
+  tensor identities are needed outside NLSM.
+
+=cft-code= should not know curvature identities, Bianchi identities, or Hodge
+data.  It only needs enough structure to reject impossible contractions early
+and to pass typed tensor labels to the sink.  The first target-space tensor
+reducer should live directly in =nlsm-code= as a streamed sink over Wick
+branches.  =tensor-code= should only absorb parts of that reducer later if a
+second client appears.
+
+* CFT-Code Requests
+
+At the level of =cft-code=, the right abstraction is not "geometry", but a
+small extension of the existing preset-handle and Wick-rule vocabulary.
+
+** Typed Index Sorts
+
+The current preset shared runtime has one generic =Handle.Index=.  For NLSM on
+real, Kahler, CY3, and K3 targets, this is too weak.  We need a compact index
+sort tag attached to each target-space index handle.
+
+#+begin_src zig :tangle no
+pub const IndexSort = enum(u8) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+pub const TargetIndex = packed struct(u32) {
+    raw: u24,
+    sort: IndexSort,
+};
+#+end_src
+
+This should stay a handle, not a full symbolic object.  The only job of the
+sort tag inside =cft-code= is to make primitive contractions and primitive
+tensor factors type-safe.
+
+The rule for choosing the sort is:
+
+- use =real_tangent= for generic Riemannian RNC;
+- use =holomorphic_tangent= and =antiholomorphic_tangent= for Kahler, CY3,
+  and K3 fluctuation fields;
+- add cotangent sorts only when the local NLSM tensor reducer needs explicit variance and it is
+  cheaper to carry that variance directly than to reconstruct it later.
+
+For the first implementation, tangent sorts are enough if metric insertions
+record which slots are raised or lowered.
+
+** Primitive Tensor-Factor Kinds
+
+The current primitive tensor factors are flat-space oriented.  NLSM needs a
+few more primitive factor families, but still at the level of handles:
+
+#+begin_src zig :tangle no
+pub const TensorFactor = union(enum) {
+    none,
+    metric: struct { left: LabelRef, right: LabelRef },
+    hermitian_metric: struct { holo: LabelRef, antiholo: LabelRef },
+    inverse_metric: struct { left: LabelRef, right: LabelRef },
+    kahler_form: struct { holo: LabelRef, antiholo: LabelRef },
+    complex_structure: struct { left: LabelRef, right: LabelRef },
+    tensor_atom_slot: struct {
+        atom: u32,
+        slots: []const LabelRef,
+    },
+};
+#+end_src
+
+The important addition is =tensor_atom_slot=: a compact way for a preset or
+NLSM vertex lowerer to say "this Wick branch contributes one external tensor
+atom with these free target indices."  That is a better abstraction than
+teaching =cft-code= what a Riemann tensor is.
+
+** Index-Compatible Contractions
+
+Primitive contraction rules should be able to reject a branch before sink
+emission when index sorts are incompatible.
+
+For Kahler targets:
+
+- \(\xi^i\xi^j\) is forbidden;
+- \(\xi^{\bar{i}}\xi^{\bar{j}}\) is forbidden;
+- \(\xi^i\xi^{\bar{j}}\) is allowed;
+- \(\psi^i\psi^j\) and \(\psi^{\bar{i}}\psi^{\bar{j}}\) depend on the chosen
+  chiral field family, but the sort check is still local.
+
+This should be implemented as metadata on the primitive pair rules, not as a
+dynamic geometry system inside the correlator.
+
+#+begin_src zig :tangle no
+pub const PairIndexConstraint = enum(u8) {
+    none,
+    same_sort,
+    conjugate_complex_sort,
+};
+#+end_src
+
+** Undifferentiated Free-Boson Rules
+
+For bosonic RNC we need the free-boson preset to expose the missing primitive
+pairings involving the explicit =X= field:
+
+- =X X=;
+- =dX X=;
+- =dXt X=.
+
+These are required because the RNC vertices contain undifferentiated
+fluctuations \(\xi\), not only derivatives or plane waves.
+
+** External Tensor Labels
+
+The current =kernel.Call.LabelValue= already supports =tensor:
+=tensor.TensorExprId=.  That is the right hook.  The missing step is a stable
+way for preset authors or NLSM lowering code to assign typed index slots to
+that tensor expression so that the sink knows how the free indices are ordered.
+
+That should be one compact side table owned by =nlsm-code= or the preset
+runtime, not another symbolic layer inside =cft-code=.
+
+* NLSM Geometry Reducer Requests
+
+At the first implementation stage, the right abstraction is not a new full
+differential-geometry CAS and not an immediate =tensor-code= extension.
+It is a small target-geometry reducer in =nlsm-code= that consumes the
+=cft-code= stream and canonicalizes only the local tensor monomials needed by
+the sigma-model computation.
+
+** Index-Slot Schema
+
+Each tensor atom should declare the sort of each slot.
+
+#+begin_src zig :tangle no
+pub const TensorSlotSort = enum(u8) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+pub const TensorAtomDecl = struct {
+    name: []const u8,
+    slot_sorts: []const TensorSlotSort,
+    symmetry: SlotSymmetryId,
+};
+#+end_src
+
+Examples:
+
+- \(g_{i\bar{j}}\) has slots =(holomorphic_cotangent,
+  antiholomorphic_cotangent)=;
+- \(R_{i\bar{j}k\bar{l}}\) has four cotangent slots alternating holomorphic
+  and antiholomorphic types;
+- \(\Omega_{ijk}\) on a CY3 has three holomorphic cotangent slots;
+- the K3 holomorphic two-form has two holomorphic cotangent slots.
+
+This is the main place where index types should be chosen properly: by tensor
+slot declaration in the NLSM reducer, not by user naming convention.
+
+** Geometry Flavor
+
+The NLSM tensor reducer should be parameterized by a compact geometry flavor:
+
+#+begin_src zig :tangle no
+pub const GeometryFlavor = enum(u8) {
+    generic_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+};
+#+end_src
+
+This controls which local identities are legal:
+
+- generic Riemannian: metric symmetry, Riemann antisymmetry, Bianchi;
+- Kahler: only mixed metric components, only \(R_{i\bar{j}k\bar{l}}\)-type
+  curvature components survive;
+- Calabi-Yau: Kahler plus Ricci-flat and \(c_1=0\)-compatible reductions;
+- hyperkahler: Calabi-Yau in complex dimension two plus the stronger K3
+  structure where needed.
+
+This does not require topology or Hodge data.  It is local differential
+geometry only.
+
+** Minimal Canonicalization Surface
+
+The first NLSM reducer should stop at:
+
+- slot-sort checking;
+- dummy-index renaming within fixed sorts;
+- metric and Hermitian-metric contraction;
+- Kahler vanishing rules from slot sorts;
+- Riemann and covariant-derivative symmetry canonicalization;
+- Ricci and scalar-curvature detection.
+
+It should not try to solve large-volume fitting, Hodge decomposition, or cycle
+intersection logic.  Those belong in =nlsm-code= after local tensor terms have
+already been produced.
+
+The intended data flow is:
+
+#+begin_example
+cft-code Wick stream
+  -> nlsm-code tensor-term sink
+  -> local canonicalizer / hash-cons table
+  -> coefficient accumulation
+  -> pole extraction
+  -> beta-function projection
+#+end_example
+
+* Recommended Public Shape
+
+The new public shape should remain minimal.
+
+For =cft-code=:
+
+#+begin_src zig :tangle no
+pub const Handle = struct {
+    pub const Coord = enum(u32) { _ };
+    pub const BoundaryCoord = enum(u32) { _ };
+    pub const Index = enum(u32) { _ };
+    pub const TypedIndex = TargetIndex;
+};
+#+end_src
+
+New operator builders for NLSM-facing presets should accept =TypedIndex=.  Old
+presets can keep using =Index= and default to =real_tangent= lowering.
+
+For =nlsm-code=:
+
+#+begin_src zig :tangle no
+pub const GeometryFlavor = geometry.GeometryFlavor;
+pub const TensorAtomDecl = geometry.TensorAtomDecl;
+pub const TensorSlotSort = geometry.TensorSlotSort;
+#+end_src
+
+Keep these as declarations and handles.  Do not expose internal rewrite
+engines, caches, or canonicalization tables.
+
+If a later extraction into =tensor-code= becomes justified, the public shape
+above is already the right minimal interface to move.
+
+* Non-Goals
+
+This feature request deliberately does not ask =cft-code= to own:
+
+- Kahler-normal-coordinate expansion;
+- Polyakov action expansion;
+- loop-integral evaluation;
+- dimensional-regularization poles;
+- beta-function assembly;
+- CY3 or K3 cohomology descriptors.
+
+Those belong to [[id:20260609T123000.000000][NLSM API Requirements]] and the NLSM-specific backend.  The
+role of =cft-code= is to make typed free-field contractions cheap.  The first
+role of =nlsm-code= is to make the resulting local tensor expressions
+canonical.
+
+This feature request also does not ask =tensor-code= to immediately absorb the
+geometry reducer.  That move should wait until the reducer is implemented and
+we know which pieces are genuinely reusable.
+
+* Immediate Implementation Order
+
+1. Add =X X=, =dX X=, and =dXt X= to the free-boson preset.
+2. Add a typed-index handle in the preset shared runtime with a real default.
+3. Add pair-rule index-compatibility metadata to the Wick descriptor path.
+4. Add tensor-atom slot declarations and slot-sort checking in =nlsm-code=.
+5. Add Kahler and Calabi-Yau geometry flavors to the NLSM tensor reducer.
+6. Lower NLSM RNC vertices onto the free-field backend.
+7. Revisit whether any reducer pieces belong in =tensor-code=.

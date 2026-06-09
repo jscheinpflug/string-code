@@ -1,0 +1,1354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generic Highest-Weight Backend</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Generic Highest-Weight Backend</h1>
+<p>
+This backend is the correctness backend for ADE tensor products.  The first
+storage layer is flat: all Dynkin coordinates share one signed buffer, while
+weight records carry offsets into that buffer.  The initial generator handles
+Weyl-orbit characters: minuscule representations and simply-laced adjoints.
+General non-minuscule characters still return a typed missing capability until
+Freudenthal recursion is implemented.
+</p>
+
+<a id="WeightRef"></a>
+<a id="WeightMultiplicity"></a>
+<a id="ProductAudit"></a>
+<a id="BackendCounters"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org3d1c9da"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">backend</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"backend.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decomposition</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"decomposition.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">projector</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"projector.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rendering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rendering.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_data</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"root-data.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">store</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"representation-store.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// WeightRef points into the flat Dynkin-coordinate buffer.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightRef</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// WeightMultiplicity stores one weight and its multiplicity.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightMultiplicity</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeightRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProductAudit stores compact evidence for one character-subtraction run.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProductAudit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product_multiset_size</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension_sum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BackendCounters stores cache-hit evidence for backend hot paths.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackendCounters</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_system_hits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_system_misses</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product_hits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product_misses</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+};
+</pre>
+</div>
+
+<p>
+Each cached system stores one contiguous span of weight records and one
+contiguous span of signed Dynkin coordinates.  The rank is stored once on the
+system, not per weight.
+</p>
+
+<a id="Backend"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org95e26c4"><span style="color: #e0d3b9; font-style: italic;">/// Backend owns generic highest-weight caches and capability functions.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Backend</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">systems</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(WeightSystem) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(WeightMultiplicity) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">product_audits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ProductAudit) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">system_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.AutoHashMap</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, backend.WeightSystemHandle),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">counters</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackendCounters</span> = .{},
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty generic backend cache.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">conventions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.AlgebraConventions</span>) Backend {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .allocator = allocator,
+            .conventions = conventions,
+            .system_index = std.AutoHashMap(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, backend.WeightSystemHandle).init(allocator),
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases cached weight-system memory.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.system_index.deinit();
+        self.product_audits.deinit(self.allocator);
+        self.dynkin_coords.deinit(self.allocator);
+        self.weights.deinit(self.allocator);
+        self.systems.deinit(self.allocator);
+        self.* = Backend.init(self.allocator, self.conventions);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// record returns one family-specific capability record backed by this state.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">record</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.BackendId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.LieFamily</span>) backend.Record {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .id = id,
+            .state = self,
+            .family = family,
+            .root_conventions = self.conventions,
+            .capabilities = .{
+                .validate_algebra = validateAlgebra,
+                .irrep_metadata = irrepMetadata,
+                .weight_system = weightSystem,
+                .decompose_product = decomposeProduct,
+                .local_projector = localProjector,
+                .primitive_invariants = primitiveInvariants,
+                .render_projector = renderProjector,
+            },
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// weightSystemForIrrep returns a cached weight system when implemented.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystemForIrrep</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span> = weightSystemKey(algebra, irrep);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.system_index.get(key)) |handle| {
+            self.counters.weight_system_hits += 1;
+            <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+        }
+        self.counters.weight_system_misses += 1;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span> = representations.simpleAlgebra(algebra) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedAlgebraFamily;
+        <span style="color: #fb4934; font-weight: bold;">try</span> validateSupported(simple);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(irrep) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidIrrepForAlgebra;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (label.len != simple.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!isZeroDynkin(label)) {
+            <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheWeylOrbitSystem(key, simple, label, representations.irrepMetadata(irrep));
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheSingletSystem(key, simple.rank);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// decomposeProductForKey computes and caches a binary product decomposition.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">decomposeProductForKey</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.ProductKey</span>) !decomposition.ProductDecompositionHandle {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (decompositions.findProduct(key)) |handle| {
+            self.counters.product_hits += 1;
+            <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+        }
+        self.counters.product_misses += 1;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_algebra</span> = representations.irrepAlgebra(key.left) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_algebra</span> = representations.irrepAlgebra(key.right) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_algebra.value != right_algebra.value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MixedProductAlgebras;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span> = representations.simpleAlgebra(left_algebra) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedAlgebraFamily;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_system</span> = <span style="color: #fb4934; font-weight: bold;">try</span> self.weightSystemForIrrep(representations, right_algebra, key.right);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.decomposeProductByShiftedWeights(representations, decompositions, key, left_algebra, simple, key.left, right_system);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">decomposeProductByShiftedWeights</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">original_key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.ProductKey</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">base</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor_system</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>) !decomposition.ProductDecompositionHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">base_label</span> = representations.irrepDynkin(base) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidIrrepForAlgebra;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (base_label.len != simple.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor_weights</span> = self.weightSystemWeights(factor_system) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">signed_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(SignedProductTerm) = .empty;
+        <span style="color: #fb4934; font-weight: bold;">defer</span> signed_terms.deinit(self.allocator);
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (factor_weights) |weight| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span> = self.weightDynkin(weight.weight, simple.rank) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">signed_multiplicity</span> = <span style="color: #fb4934; font-weight: bold;">try</span> dominantShiftedWeight(output[0..simple.rank], simple, base_label, dynkin);
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">signed</span> = signed_multiplicity <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">channel:</span> {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = <span style="color: #fb4934; font-weight: bold;">try</span> dynkinToI16(self.allocator, output[0..simple.rank]);
+                <span style="color: #fb4934; font-weight: bold;">defer</span> self.allocator.free(label);
+                <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:channel</span> <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(algebra, .{ .dynkin = label });
+            };
+            <span style="color: #fb4934; font-weight: bold;">try</span> addSignedTerm(self.allocator, &amp;signed_terms, channel, signed * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight.multiplicity)));
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(decomposition.ProductTerm) = .empty;
+        <span style="color: #fb4934; font-weight: bold;">defer</span> terms.deinit(self.allocator);
+        <span style="color: #fb4934; font-weight: bold;">try</span> appendPositiveTerms(self.allocator, &amp;terms, signed_terms.items);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = <span style="color: #fb4934; font-weight: bold;">try</span> productAudit(representations.*, terms.items, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(factor_weights.len));
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.product_audits.append(self.allocator, audit);
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">try</span> decompositions.internProduct(original_key, terms.items);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// latestProductAudit returns the most recent compact product audit.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">latestProductAudit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>) ?ProductAudit {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.product_audits.items.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.product_audits.items[self.product_audits.items.len - 1];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// backendCounters returns compact cache-hit counters.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">backendCounters</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>) BackendCounters {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.counters;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// weightSystemAudit returns counters for a cached weight system.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystemAudit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>) ?backend.WeightSystemAudit {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.systems.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.systems.items[index].audit;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// weightSystemWeights returns the flat weight records for a cached system.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystemWeights</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightMultiplicity</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">system</span> = self.weightSystemRecord(handle) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(system.weights_offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + system.weights_len;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.weights.items[start..end];
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// weightDynkin returns one borrowed Dynkin-coordinate slice.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightDynkin</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeightRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight.dynkin_offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + rank;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (end &gt; self.dynkin_coords.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.dynkin_coords.items[start..end];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cacheSingletSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coord_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.dynkin_coords.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.dynkin_coords.appendNTimes(self.allocator, 0, rank);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(self.allocator, .{
+            .weight = .{ .dynkin_offset = coord_offset },
+            .multiplicity = 1,
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.weights.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = backend.WeightSystemHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.systems.items.len));
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = 1,
+            .rank = rank,
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = rank,
+            .audit = .{ .weight_count = 1, .total_multiplicity = 1 },
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.systems.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.system_index.put(key, handle);
+        <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cacheWeylOrbitSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">metadata</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepMetadata</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">expected_dimension</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (metadata) |value| value.dimension <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MissingIrrepDimension <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MissingIrrepDimension;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.RootDatum.init(simple, self.conventions);
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">orbit</span> = <span style="color: #fb4934; font-weight: bold;">try</span> WeylOrbit.init(self.allocator, simple.rank, label);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> orbit.deinit(self.allocator);
+        <span style="color: #fb4934; font-weight: bold;">try</span> orbit.close(self.allocator, datum);
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">orbit_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = orbit.len;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (expected_dimension == orbit_dimension) {
+            <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheOrbitSystem(key, orbit, 0);
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (isSimplyLaced(simple) <span style="color: #fb4934; font-weight: bold;">and</span> expected_dimension == orbit_dimension + simple.rank) {
+            <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheOrbitSystem(key, orbit, simple.rank);
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheFreudenthalSystem(key, simple, label, expected_dimension);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cacheFreudenthalSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.RootDatum.init(simple, self.conventions);
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">builder</span> = <span style="color: #fb4934; font-weight: bold;">try</span> FreudenthalBuilder.init(self.allocator, simple.rank, label);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> builder.deinit(self.allocator);
+        <span style="color: #fb4934; font-weight: bold;">try</span> builder.close(self.allocator, datum, label, expected_dimension);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.cacheGeneratedSystem(key, builder);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystemRecord</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>) ?WeightSystem {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(handle.value);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.systems.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.systems.items[index];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cacheOrbitSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">orbit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = orbit.rank;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coord_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.dynkin_coords.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.dynkin_coords.appendSlice(self.allocator, orbit.coords.items);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (zero_multiplicity &gt; 0) {
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.dynkin_coords.appendNTimes(self.allocator, 0, rank);
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items.len);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.weights.shrinkRetainingCapacity(weight_offset);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..orbit.len) |weight_index| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight_index * rank)) },
+                .multiplicity = 1,
+            });
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (zero_multiplicity &gt; 0) {
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(orbit.len * rank)) },
+                .multiplicity = zero_multiplicity,
+            });
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_count</span> = orbit.len + <span style="color: #fe8019; font-weight: bold;">@intFromBool</span>(zero_multiplicity &gt; 0);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">total_multiplicity</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, orbit.len) + zero_multiplicity;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = backend.WeightSystemHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.systems.items.len));
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight_count),
+            .rank = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(rank),
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight_count * rank),
+            .audit = .{ .weight_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(weight_count), .total_multiplicity = total_multiplicity },
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.systems.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.system_index.put(key, handle);
+        <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cacheGeneratedSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">builder</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>) !backend.WeightSystemHandle {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coord_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.dynkin_coords.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.dynkin_coords.appendSlice(self.allocator, builder.coords.items);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items.len);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.weights.shrinkRetainingCapacity(weight_offset);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (builder.weights.items) |entry| {
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + entry.dynkin_offset },
+                .multiplicity = entry.multiplicity,
+            });
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = backend.WeightSystemHandle.init(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.systems.items.len));
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(builder.weights.items.len),
+            .rank = builder.rank,
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(builder.coords.items.len),
+            .audit = .{ .weight_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(builder.weights.items.len), .total_multiplicity = builder.total_multiplicity },
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.systems.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.system_index.put(key, handle);
+        <span style="color: #fb4934; font-weight: bold;">return</span> handle;
+    }
+};
+</pre>
+</div>
+
+<p>
+The opaque capability functions keep the registry simple.  Missing operations
+are typed errors, not successful opaque placeholders.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeightSystem</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemAudit</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ResidualWeight</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SignedProductTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProductCharacter</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ResidualWeight) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_coords</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weight_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.AutoHashMap</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">collision_next</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) = .empty,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) ProductCharacter {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .allocator = allocator,
+            .rank = rank,
+            .weight_index = std.AutoHashMap(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>).init(allocator),
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.collision_next.deinit(self.allocator);
+        self.weight_index.deinit();
+        self.dynkin_coords.deinit(self.allocator);
+        self.weights.deinit(self.allocator);
+        self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">addProduct</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_system</span> = ghw.weightSystemRecord(left) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_system</span> = ghw.weightSystemRecord(right) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_system.rank != self.rank <span style="color: #fb4934; font-weight: bold;">or</span> right_system.rank != self.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MixedProductAlgebras;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_weights</span> = ghw.weightSystemWeights(left) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_weights</span> = ghw.weightSystemWeights(right) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sum</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (left_weights) |left_weight| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_dynkin</span> = ghw.weightDynkin(left_weight.weight, self.rank) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (right_weights) |right_weight| {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_dynkin</span> = ghw.weightDynkin(right_weight.weight, self.rank) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+                <span style="color: #fb4934; font-weight: bold;">for</span> (0..self.rank) |index| {
+                    sum[index] = left_dynkin[index] + right_dynkin[index];
+                }
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, left_weight.multiplicity) * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, right_weight.multiplicity);
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.addWeight(sum[0..self.rank], multiplicity);
+            }
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">addWeight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (multiplicity == 0) <span style="color: #fb4934; font-weight: bold;">return</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.findWeight(dynkin)) |index| {
+            self.weights.items[index].multiplicity += multiplicity;
+            <span style="color: #fb4934; font-weight: bold;">return</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.dynkin_coords.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.dynkin_coords.appendSlice(self.allocator, dynkin);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.dynkin_coords.shrinkRetainingCapacity(offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">hash</span> = dynkinHash(dynkin);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">previous_head</span> = self.weight_index.get(hash);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(self.allocator, .{
+            .dynkin_offset = offset,
+            .multiplicity = multiplicity,
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.weights.pop();
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.collision_next.append(self.allocator, previous_head <span style="color: #fb4934; font-weight: bold;">orelse</span> std.math.maxInt(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>));
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.collision_next.pop();
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.weight_index.put(hash, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items.len - 1));
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">subtractSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">system</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.WeightSystemHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span> = ghw.weightSystemWeights(system) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (weights) |entry| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span> = ghw.weightDynkin(entry.weight, self.rank) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownWeightSystem;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span> = self.findWeight(dynkin) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.CharacterSubtractionMissingWeight;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">amount</span> = factor * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, entry.multiplicity);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.weights.items[index].multiplicity &lt; amount) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NegativeCharacterResidual;
+            self.weights.items[index].multiplicity -= amount;
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">highestDominantIndex</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>) !?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cone</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.PositiveRootCone.init(allocator, algebra);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> cone.deinit(allocator);
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">best</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.weights.items, 0..) |entry, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (entry.multiplicity &lt;= 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = self.weight(index);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!isDominantDynkin(candidate)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">below_other</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (self.weights.items, 0..) |other_entry, other_index| {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (other_index == index <span style="color: #fb4934; font-weight: bold;">or</span> other_entry.multiplicity &lt;= 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">other</span> = self.weight(other_index);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (!isDominantDynkin(other)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+                <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> cone.containsDifference(other, candidate)) {
+                    below_other = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+                    <span style="color: #fb4934; font-weight: bold;">break</span>;
+                }
+            }
+            <span style="color: #fb4934; font-weight: bold;">if</span> (below_other) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">if</span> (best == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">or</span> lexLess(self.weight(best.?), candidate)) best = index;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> best;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isZero</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.weights.items) |entry| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (entry.multiplicity != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items[index].dynkin_offset);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.dynkin_coords.items[start .. start + self.rank];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">findWeight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProductCharacter</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cursor</span> = self.weight_index.get(dynkinHash(dynkin)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">while</span> (cursor != std.math.maxInt(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>)) {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(cursor);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, self.weight(index), dynkin)) <span style="color: #fb4934; font-weight: bold;">return</span> index;
+            cursor = self.collision_next.items[index];
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeneratedWeight</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dynkin_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FreudenthalBuilder</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">weights</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(GeneratedWeight) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">total_multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>) !FreudenthalBuilder {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = FreudenthalBuilder{ .rank = rank };
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> out.deinit(allocator);
+        <span style="color: #fb4934; font-weight: bold;">try</span> out.appendI16(allocator, label, 1);
+        out.total_multiplicity = 1;
+        <span style="color: #fb4934; font-weight: bold;">return</span> out;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.coords.deinit(allocator);
+        self.weights.deinit(allocator);
+        self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">close</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">highest_i16</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expected_dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">roots</span> = <span style="color: #fb4934; font-weight: bold;">try</span> datum.positiveRoots(allocator);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> roots.deinit(allocator);
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">highest</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (highest_i16, 0..) |entry, index| highest[index] = entry;
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cursor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">while</span> (cursor &lt; self.weights.items.len) : (cursor += 1) {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">current</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+            <span style="color: #fe8019; font-weight: bold;">@memcpy</span>(current[0..self.rank], self.weight(cursor));
+            <span style="color: #fb4934; font-weight: bold;">for</span> (0..self.rank) |root_index| {
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+                <span style="color: #fb4934; font-weight: bold;">try</span> subtractSimpleRoot(candidate[0..self.rank], current[0..self.rank], datum, root_index);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (self.find(candidate[0..self.rank]) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_multiplicity</span> = <span style="color: #fb4934; font-weight: bold;">try</span> freudenthalMultiplicity(allocator, datum, roots, highest[0..self.rank], candidate[0..self.rank], self.*);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (candidate_multiplicity == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.appendI32(allocator, candidate[0..self.rank], candidate_multiplicity);
+                self.total_multiplicity = <span style="color: #fb4934; font-weight: bold;">try</span> std.math.add(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, self.total_multiplicity, candidate_multiplicity);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (self.total_multiplicity &gt; expected_dimension) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.WeightSystemDimensionOverflow;
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (self.total_multiplicity != expected_dimension) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.WeightSystemDimensionMismatch;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.weights.items[index].dynkin_offset);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.coords.items[start .. start + self.rank];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">multiplicity</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.weights.items[index].multiplicity;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">find</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (self.weights.items, 0..) |_, index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, self.weight(index), label)) <span style="color: #fb4934; font-weight: bold;">return</span> index;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendI16</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">buffer</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (label, 0..) |entry, index| buffer[index] = entry;
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.appendI32(allocator, buffer[0..label.len], multiplicity_value);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendI32</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.coords.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.coords.appendSlice(allocator, label);
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> self.coords.shrinkRetainingCapacity(offset);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.weights.append(allocator, .{
+            .dynkin_offset = offset,
+            .multiplicity = multiplicity_value,
+        });
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WeylOrbit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) = .empty,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>) !WeylOrbit {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = WeylOrbit{ .rank = rank };
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> out.deinit(allocator);
+        <span style="color: #fb4934; font-weight: bold;">try</span> out.appendLabel(allocator, label);
+        <span style="color: #fb4934; font-weight: bold;">return</span> out;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.coords.deinit(allocator);
+        self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">close</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cursor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">while</span> (cursor &lt; self.len) : (cursor += 1) {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">current</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+            <span style="color: #fe8019; font-weight: bold;">@memcpy</span>(current[0..self.rank], self.weight(cursor));
+            <span style="color: #fb4934; font-weight: bold;">for</span> (0..self.rank) |root_index| {
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reflected</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+                <span style="color: #fb4934; font-weight: bold;">try</span> reflectSimpleRoot(reflected[0..self.rank], current[0..self.rank], datum, root_index);
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.appendUnique(allocator, reflected[0..self.rank]);
+            }
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index * self.rank);
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.coords.items[start .. start + self.rank];
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendLabel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">buffer</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (label, 0..) |entry, index| buffer[index] = entry;
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.append(allocator, buffer[0..label.len]);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendUnique</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..self.len) |index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, self.weight(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(index)), label)) <span style="color: #fb4934; font-weight: bold;">return</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.append(allocator, label);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">append</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WeylOrbit</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.coords.appendSlice(allocator, label);
+        self.len += 1;
+    }
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateAlgebra</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> validateSupported(algebra);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">irrepMetadata</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!store.IrrepMetadata {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.BackendMetadataNotImplemented;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystem</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!backend.WeightSystemHandle {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(state));
+    <span style="color: #fb4934; font-weight: bold;">return</span> self.weightSystemForIrrep(representations, algebra, irrep);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">decomposeProduct</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">state</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.ProductKey</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!decomposition.ProductDecompositionHandle {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Backend</span> = <span style="color: #fe8019; font-weight: bold;">@ptrCast</span>(<span style="color: #fe8019; font-weight: bold;">@alignCast</span>(state));
+    <span style="color: #fb4934; font-weight: bold;">return</span> self.decomposeProductForKey(representations, decompositions, key);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">localProjector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">projector.ProjectorKey</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!projector.ProjectorId {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.LocalProjectorNotImplemented;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">primitiveInvariants</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!backend.PrimitiveInvariantSpan {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.PrimitiveInvariantsNotImplemented;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">renderProjector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">projector.ProjectorId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">backend.RenderConvention</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorRenderingNotImplemented;
+}
+</pre>
+</div>
+
+<p>
+Supported families match the Clebsch-Gordan milestone: \(A\), \(B\), \(D\),
+and \(E_6,E_7,E_8\).  \(C,F,G\) are rejected until a backend implements them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateSupported</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> root_data.validateSimple(algebra);
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (algebra.family) {
+        .a, .b, .d, .e6, .e7, .e8 =&gt; {},
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedAlgebraFamily,
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isSimplyLaced</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (algebra.family) {
+        .a, .d, .e6, .e7, .e8 =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isZeroDynkin</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (label) |entry| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (entry != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">weightSystemKey</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.AlgebraHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> (<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, algebra.value) &lt;&lt; 32) | <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, irrep.value);
+}
+</pre>
+</div>
+
+<p>
+Freudenthal generation and dominance ordering need only small Dynkin-label
+operations in the hot path.  These helpers operate on caller-provided slices.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isDominantDynkin</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (label) |entry| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (entry &lt; 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lexLess</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (left, right) |left_entry, right_entry| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_entry &lt; right_entry) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left_entry &gt; right_entry) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dynkinToI16</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) ![]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span> = <span style="color: #fb4934; font-weight: bold;">try</span> allocator.alloc(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label.len);
+    <span style="color: #fb4934; font-weight: bold;">errdefer</span> allocator.free(out);
+    <span style="color: #fb4934; font-weight: bold;">for</span> (label, 0..) |entry, index| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (entry &lt; 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinLabel;
+        out[index] = std.math.cast(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, entry) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DynkinLabelOverflow;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> out;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dynkinHash</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">hash</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 14695981039346656037;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (label) |entry| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@bitCast</span>(entry);
+        hash ^= bits;
+        hash *%= 1099511628211;
+    }
+    hash ^= label.len;
+    hash *%= 1099511628211;
+    <span style="color: #fb4934; font-weight: bold;">return</span> hash;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dominantShiftedWeight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">base_label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">minuscule_weight</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (out.len != algebra.rank <span style="color: #fb4934; font-weight: bold;">or</span> base_label.len != algebra.rank <span style="color: #fb4934; font-weight: bold;">or</span> minuscule_weight.len != algebra.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.RootDatum.init(algebra, .{});
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">current</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..algebra.rank) |index| {
+        current[index] = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, base_label[index]) + minuscule_weight[index] + 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span> = 1;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">guard</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (guard &lt; 1024) : (guard += 1) {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reflection_index</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..algebra.rank) |index| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (current[index] == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (current[index] &lt; 0 <span style="color: #fb4934; font-weight: bold;">and</span> reflection_index == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) reflection_index = index;
+        }
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_index</span> = reflection_index <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">break</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reflected</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">try</span> reflectSimpleRoot(reflected[0..algebra.rank], current[0..algebra.rank], datum, root_index);
+        <span style="color: #fe8019; font-weight: bold;">@memcpy</span>(current[0..algebra.rank], reflected[0..algebra.rank]);
+        sign = -sign;
+    } <span style="color: #fb4934; font-weight: bold;">else</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.WeylReflectionDidNotConverge;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..algebra.rank) |index| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (current[index] &lt;= 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        out[index] = current[index] - 1;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> sign;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">addSignedTerm</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(SignedProductTerm), <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">signed_multiplicity</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (signed_multiplicity == 0) <span style="color: #fb4934; font-weight: bold;">return</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms.items) |*term| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (term.irrep.value != irrep.value) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        term.multiplicity = <span style="color: #fb4934; font-weight: bold;">try</span> std.math.add(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, term.multiplicity, signed_multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">return</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> terms.append(allocator, .{
+        .irrep = irrep,
+        .multiplicity = signed_multiplicity,
+    });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendPositiveTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(decomposition.ProductTerm), <span style="color: #83a598; font-weight: bold; font-style: italic;">signed_terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SignedProductTerm</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (signed_terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (term.multiplicity == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (term.multiplicity &lt; 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NegativeShiftedWeightMultiplicity;
+        <span style="color: #fb4934; font-weight: bold;">try</span> out.append(allocator, .{
+            .irrep = term.irrep,
+            .multiplicity = std.math.cast(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, term.multiplicity) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ChannelMultiplicityOverflow,
+        });
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productAudit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">decomposition.ProductTerm</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">product_multiset_size</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !ProductAudit {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension_sum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">metadata</span> = representations.irrepMetadata(term.irrep) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownIrrep;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span> = metadata.dimension <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.MissingIrrepDimension;
+        dimension_sum = <span style="color: #fb4934; font-weight: bold;">try</span> std.math.add(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, dimension_sum, <span style="color: #fb4934; font-weight: bold;">try</span> std.math.mul(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, dimension, term.multiplicity));
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .product_multiset_size = product_multiset_size,
+        .channel_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(terms.len),
+        .dimension_sum = dimension_sum,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freudenthalMultiplicity</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">roots</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.PositiveRoots</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">highest</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">generated</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FreudenthalBuilder</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">highest_shifted</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_shifted</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..datum.rank()) |index| {
+        highest_shifted[index] = highest[index] + 1;
+        candidate_shifted[index] = candidate[index] + 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">highest_norm</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.innerProductDynkin(allocator, datum.algebra, highest_shifted[0..datum.rank()], highest_shifted[0..datum.rank()]);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_norm</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.innerProductDynkin(allocator, datum.algebra, candidate_shifted[0..datum.rank()], candidate_shifted[0..datum.rank()]);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.rationalSub(highest_norm, candidate_norm);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (denominator.numerator &lt;= 0) <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sum</span> = root_data.Rational{};
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..roots.count()) |root_index| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root</span> = roots.root(root_index);
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">root_dynkin</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fb4934; font-weight: bold;">try</span> root_data.rootDynkinLabel(datum.algebra, root, root_dynkin[0..datum.rank()]);
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>{0} ** 256;
+        <span style="color: #fe8019; font-weight: bold;">@memcpy</span>(probe[0..datum.rank()], candidate);
+        <span style="color: #fb4934; font-weight: bold;">while</span> (<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>) {
+            <span style="color: #fb4934; font-weight: bold;">for</span> (0..datum.rank()) |index| probe[index] += root_dynkin[index];
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">probe_slice</span> = probe[0..datum.rank()];
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, probe_slice, highest) <span style="color: #fb4934; font-weight: bold;">and</span>
+                !(<span style="color: #fb4934; font-weight: bold;">try</span> root_data.dynkinDifferenceInPositiveRootCone(allocator, datum.algebra, highest, probe_slice))) <span style="color: #fb4934; font-weight: bold;">break</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">if</span> (generated.find(probe_slice)) |known_index| {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">product</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.innerProductDynkinRoot(datum.algebra, probe_slice, root);
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">contribution</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.rationalMulInt(product, generated.multiplicity(known_index));
+                sum = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.rationalAdd(sum, contribution);
+            }
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (sum.numerator == 0) <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">quotient</span> = <span style="color: #fb4934; font-weight: bold;">try</span> root_data.rationalDiv(<span style="color: #fb4934; font-weight: bold;">try</span> root_data.rationalMulInt(sum, 2), denominator);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (quotient.numerator &lt;= 0) <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (quotient.denominator != 1) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.NonIntegralFreudenthalMultiplicity;
+    <span style="color: #fb4934; font-weight: bold;">return</span> std.math.cast(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, quotient.numerator) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">error</span>.FreudenthalMultiplicityOverflow;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">subtractSimpleRoot</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">root_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (out.len != input.len <span style="color: #fb4934; font-weight: bold;">or</span> input.len != datum.rank()) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (input, 0..) |entry, row| {
+        out[row] = entry - <span style="color: #fb4934; font-weight: bold;">try</span> datum.cartan(row, root_index);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">reflectSimpleRoot</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">datum</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">root_data.RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">root_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (out.len != input.len <span style="color: #fb4934; font-weight: bold;">or</span> input.len != datum.rank()) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span> = input[root_index];
+    <span style="color: #fb4934; font-weight: bold;">for</span> (input, 0..) |entry, row| {
+        out[row] = entry - coefficient * <span style="color: #fb4934; font-weight: bold;">try</span> datum.cartan(row, root_index);
+    }
+}
+</pre>
+</div>
+
+<p>
+The first weight-system checks cover the required flat-cache audits that do
+not need Freudenthal: minuscule Spin weights and the simply-laced E8 adjoint.
+</p>
+
+
+<p>
+The first product-decomposition check uses the generic character-subtraction
+path and stores real product terms in the decomposition cache.
+</p>
+
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Generic Highest-Weight Backend</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend caches Weyl-orbit weight audits"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so10</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor_weights</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.weightSystemForIrrep(&amp;representations, so10, spinor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 16), ghw.weightSystemAudit(spinor_weights).?.weight_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 16), ghw.weightSystemAudit(spinor_weights).?.total_multiplicity);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vector_spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 1, 0, 0, 0, 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vector_spinor_weights</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.weightSystemForIrrep(&amp;representations, so10, vector_spinor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 144), ghw.weightSystemAudit(vector_spinor_weights).?.total_multiplicity);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so9</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .b, .rank = 4 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so9_spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so9, .{ .dynkin = &amp;.{ 0, 0, 0, 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so9_spinor_weights</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.weightSystemForIrrep(&amp;representations, so9, so9_spinor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 16), ghw.weightSystemAudit(so9_spinor_weights).?.weight_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 16), ghw.weightSystemAudit(so9_spinor_weights).?.total_multiplicity);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">e8</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .e8, .rank = 8 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">adjoint</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(e8, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 0, 0, 1, 0 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">adjoint_weights</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.weightSystemForIrrep(&amp;representations, e8, adjoint);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 241), ghw.weightSystemAudit(adjoint_weights).?.weight_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 248), ghw.weightSystemAudit(adjoint_weights).?.total_multiplicity);
+}
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend decomposes SU2 fundamental square"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span> = decomposition.Store.init(testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> decompositions.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">su2</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .a, .rank = 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fundamental</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(su2, .{ .dynkin = &amp;.{1} });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = fundamental,
+        .right = fundamental,
+    });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">again</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = fundamental,
+        .right = fundamental,
+    });
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(handle.value, again.value);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counters</span> = ghw.backendCounters();
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, 1), counters.product_misses);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, 1), counters.product_hits);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(counters.weight_system_misses &gt;= 1);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = decompositions.productTerms(handle).?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), terms.len);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_singlet</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_adjoint</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), term.multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(term.irrep).?;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{0})) saw_singlet = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{2})) saw_adjoint = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_singlet);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_adjoint);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = ghw.latestProductAudit().?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 2), audit.product_multiset_size);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 2), audit.channel_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 4), audit.dimension_sum);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend decomposes Spin10 vector times spinor"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span> = decomposition.Store.init(testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> decompositions.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so10</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vector</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 1, 0, 0, 0, 0 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = vector,
+        .right = spinor,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = decompositions.productTerms(handle).?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), terms.len);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_conjugate_spinor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_vector_spinor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), term.multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(term.irrep).?;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 1, 0 })) saw_conjugate_spinor = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 1, 0, 0, 0, 1 })) saw_vector_spinor = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_conjugate_spinor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_vector_spinor);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = ghw.latestProductAudit().?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 2), audit.channel_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 160), audit.dimension_sum);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend decomposes Spin10 spinor square"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span> = decomposition.Store.init(testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> decompositions.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so10</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 1 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = spinor,
+        .right = spinor,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = decompositions.productTerms(handle).?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 3), terms.len);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_vector</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_three_form</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_self_dual_five_form</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), term.multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(term.irrep).?;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 1, 0, 0, 0, 0 })) saw_vector = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 1, 0, 0 })) saw_three_form = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 0, 2 })) saw_self_dual_five_form = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_vector);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_three_form);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_self_dual_five_form);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = ghw.latestProductAudit().?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 3), audit.channel_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 256), audit.dimension_sum);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend decomposes Spin10 conjugate spinor square"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span> = decomposition.Store.init(testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> decompositions.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">so10</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">conjugate_spinor</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(so10, .{ .dynkin = &amp;.{ 0, 0, 0, 1, 0 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = conjugate_spinor,
+        .right = conjugate_spinor,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = decompositions.productTerms(handle).?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 3), terms.len);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_vector</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_three_form</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_anti_self_dual_five_form</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), term.multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(term.irrep).?;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 1, 0, 0, 0, 0 })) saw_vector = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 1, 0, 0 })) saw_three_form = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 2, 0 })) saw_anti_self_dual_five_form = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_vector);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_three_form);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_anti_self_dual_five_form);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = ghw.latestProductAudit().?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 3), audit.channel_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 256), audit.dimension_sum);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generic backend decomposes E8 adjoint square"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">representations</span> = store.Store.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> representations.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">decompositions</span> = decomposition.Store.init(testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> decompositions.deinit();
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ghw</span> = Backend.init(testing.allocator, .{});
+    <span style="color: #fb4934; font-weight: bold;">defer</span> ghw.deinit();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">e8</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internAlgebra(.{ .simple = .{ .family = .e8, .rank = 8 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">adjoint</span> = <span style="color: #fb4934; font-weight: bold;">try</span> representations.internIrrep(e8, .{ .dynkin = &amp;.{ 0, 0, 0, 0, 0, 0, 1, 0 } });
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">handle</span> = <span style="color: #fb4934; font-weight: bold;">try</span> ghw.decomposeProductForKey(&amp;representations, &amp;decompositions, .{
+        .left = adjoint,
+        .right = adjoint,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = decompositions.productTerms(handle).?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 5), terms.len);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_singlet</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_adjoint</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_3875</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_27000</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saw_30380</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (terms) |term| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), term.multiplicity);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span> = representations.irrepDynkin(term.irrep).?;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 0, 0, 0, 0, 0 })) saw_singlet = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 0, 0, 0, 1, 0 })) saw_adjoint = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 1, 0, 0, 0, 0, 0, 0, 0 })) saw_3875 = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 0, 0, 0, 2, 0 })) saw_27000 = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, label, &amp;.{ 0, 0, 0, 0, 0, 1, 0, 0 })) saw_30380 = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_singlet);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_adjoint);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_3875);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_27000);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(saw_30380);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">audit</span> = ghw.latestProductAudit().?;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 5), audit.channel_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 61504), audit.dimension_sum);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

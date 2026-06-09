@@ -1,0 +1,115 @@
+:PROPERTIES:
+:ID:       20260606T183400.000000
+:END:
+#+title: Preset Composition
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../src/cft-code/presets/composition.zig :mkdirp yes
+
+#+interface:
+
+Composition turns bulk presets such as [[id:20260606T183200.000000][Free Boson Preset]] and
+[[id:20260606T183300.000000][bc Preset]] into products and BCFTs.  It uses the shared
+runtime vocabulary from [[id:20260606T183100.000000][Preset Shared Runtime]].
+
+The important invariant is that tensor products do not allocate a new runtime
+operator representation.  Product quantum numbers remain lists at theory level;
+runtime local operators are still just insertion data, a body kind, and a label
+span.  Composition asks the shared lowering path to merge opaque configs, so it
+does not name config-entry records or slice append helpers.
+
+#+begin_src zig
+const std = @import("std");
+const shared = @import("shared.zig");
+const declare = shared.declare;
+
+const Builder = *shared.Local;
+#+end_src
+
+* Product CFTs
+
+A product preset forms its sphere config from the generated sphere config of
+each factor.  It deliberately does not synthesize preset-named operator
+namespaces.  Future friendly aliases belong in the user DSL layer, not in the
+lowering path.
+
+#+begin_src zig
+fn ProductCorrelatorConfig(comptime factors: anytype) type {
+    const merged = declare.mergeSphereConfigs(factors);
+    return struct {
+        /// sphere selects composed product Wick and zero-mode rules.
+        pub const sphere = merged.config;
+    };
+}
+
+/// product builds the generated preset type for a product of independent bulk presets.
+pub fn product(comptime factors: anytype) type {
+    return struct {
+        /// op is intentionally empty; use the factor builders passed to product.
+        pub const op = struct {};
+        /// config exposes named correlator configs for this product preset.
+        pub const config = ProductCorrelatorConfig(factors);
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
+        /// local constructs a label-preserving local-operator builder.
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
+        }
+
+        /// correlator streams rule matches for product-theory insertions.
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+            return shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+#+end_src
+
+* Boundary Extensions
+
+A BCFT is built from a bulk preset plus explicit boundary extensions.  The bulk
+preset remains boundary-free; boundary data contributes new operator families,
+mixed Wick rules, zero-mode caveats, and optional Chan-Paton stack data.
+Boundary-local builders remain on the extension handles passed to =boundary=,
+so composition does not inspect preset names to create aliases.
+
+The disk config is formed by the shared merge helper.  Composition keeps only
+the physics-facing bulk/extension relationship and does not see packed config
+entries, slice selectors, or append procedures.
+
+#+begin_src zig
+fn BoundaryCorrelatorConfig(comptime Bulk: type, comptime extensions: anytype) type {
+    const merged = declare.mergeBoundaryConfig(Bulk, extensions);
+    return struct {
+        /// disk selects composed boundary Wick and zero-mode rules.
+        pub const disk = merged.config;
+    };
+}
+
+fn BoundaryOp(comptime Bulk: type, comptime extensions: anytype) type {
+    _ = extensions;
+    return struct {
+        /// bulk exposes the bulk operator namespaces.
+        pub const bulk = Bulk.op;
+    };
+}
+
+/// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
+pub fn boundary(comptime Bulk: type, comptime extensions: anytype) type {
+    return struct {
+        /// op exposes bulk and boundary operator builders.
+        pub const op = BoundaryOp(Bulk, extensions);
+        /// config exposes named correlator configs for this BCFT.
+        pub const config = BoundaryCorrelatorConfig(Bulk, extensions);
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
+        /// local constructs a label-preserving local-operator builder.
+        pub fn local(allocator: std.mem.Allocator) !Builder {
+            return shared.Local.init(allocator);
+        }
+
+        /// correlator streams rule matches for BCFT insertions.
+        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+            return shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+#+end_src

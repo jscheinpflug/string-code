@@ -1,0 +1,223 @@
+:PROPERTIES:
+:ID:       20260609T120000.000000
+:END:
+#+title: R4 Coefficient Technology
+#+bibliography: ../refs.bib
+
+This note records the literature and implementation path for using
+[[id:20260603T064230.276471][NLSM-Code]] and the current [[id:20260603T094138.285453][Correlators]] machinery to compute
+the \(R^4\) coefficients from the Polyakov path integral.
+
+* Literature Anchor
+
+The local stringbook [cite:@yinStringbook] uses the generalized Polyakov action
+with \(G\), \(B\), and \(\Phi\), expands about a background map in Riemann
+normal coordinates, and regularizes the worldsheet theory by dimensional
+regularization in \(d=2-\epsilon\).  The appendix fixes the renormalization
+scheme: bare couplings are written as \(\mu^{-\epsilon}\) times finite
+couplings plus minimal-subtraction poles, and the beta function is determined
+by the \(1/\epsilon\) counterterm.  The Weyl anomaly is expressed through
+hatted beta functions, differing from ordinary beta functions by total
+derivative terms and the classical dilaton contribution.
+
+The first old-paper layer is:
+
+- Friedan [cite:@Friedan:1985nl] gives the general covariant renormalization
+  framework: normal coordinates, metric coupling as a point in the space of
+  target metrics, and beta functions as geometric tensors.
+- Callan-Friedan-Martinec-Perry [cite:@Callan:1985ia] gives the direct
+  string-background statement: worldsheet conformal invariance produces the
+  spacetime equations of motion.
+- Tseytlin's anomaly and Weyl-invariance papers [cite:@Tseytlin:1986tt]
+  [cite:@Tseytlin:1986ws] are the scheme references for the stringbook-style
+  hatted Weyl-anomaly coefficients, \(G,B,\Phi\), and the minimal-subtraction
+  organization.
+- Metsaev-Tseytlin [cite:@Metsaev:1987zx] checks two-loop equivalence including
+  dilaton and antisymmetric tensor dependence.
+
+For \(R^4\), the relevant perturbative fact is that type-II corrections begin
+at order \(\alpha'^3\).  In the worldsheet supersymmetric NLSM this is a
+four-loop divergence; on Ricci-flat Kahler targets the lower-loop terms vanish
+but the four-loop term does not.
+
+- Gross-Witten [cite:@Gross:1986iv] fixes the tree-level \(R^4\) correction
+  from four-graviton amplitudes.
+- Grisaru-van de Ven-Zanon [cite:@Grisaru:1986kw] gives the explicit
+  \(N=1\) four-loop divergence structures.
+- Grisaru-van de Ven-Zanon [cite:@Grisaru:1986dk] shows that Ricci-flat Kahler
+  targets are not finite at four loops.
+- Grisaru-van de Ven-Zanon [cite:@Grisaru:1986px] gives the compact four-loop
+  beta-function result for \(N=1,2\) NLSMs.
+- Park-Zanon [cite:@Park:1987az] bridges the four-loop NLSM beta function to
+  the on-shell \(\alpha'^3\) low-energy effective action.
+
+For compact targets and later checks:
+
+- Antoniadis-Ferrara-Minasian-Narain [cite:@Antoniadis:1997eg] relates
+  \(R^4\) couplings to Calabi-Yau reductions and Euler-number contributions.
+- Liu-Minasian [cite:@Liu:2021zmi] is a useful modern check on \(H^2R^3\) and
+  compactification tests on K3 and CY3.
+- Grimm-Mayer-Weissenbacher [cite:@Grimm:2018ohb] is a compactification-level
+  reference for reducing known eight-derivative terms on CY3.
+- Candelas-de la Ossa-Green-Parkes [cite:@Candelas:1990rm] is the first
+  one-modulus CY3 target: the quintic has \(h^{1,1}=1\), so the local
+  curvature expansion can be fitted against one Kahler volume variable before
+  moving to multi-modulus examples.
+
+* Computation Target
+
+The first target is not the full ten-dimensional action.  It is a local
+counterterm calculation that produces the MS-scheme beta-function tensor at
+order \(\alpha'^3\) and identifies the invariant it comes from, modulo field
+redefinitions.  The amplitude literature fixes normalization and the preferred
+string-frame invariant basis.
+
+The output should therefore be:
+
+- a stream of divergent local terms, grouped by loop order and tensor
+  invariant;
+- the \(1/\epsilon\) counterterm \(K^{(1)}_{\mu\nu}\) or the Kahler-potential
+  counterterm in the \(N=(2,2)\) case;
+- the beta function obtained from the stringbook MS rule [cite:@yinStringbook];
+- the hatted Weyl-anomaly coefficient after adding \(W_\mu,L_\mu,\Phi\)
+  terms;
+- a field-redefinition map to the amplitude-normalized \(R^4\) basis.
+
+* Required Technology
+
+1. Regulated Polyakov path integral
+
+   Implement a scheme descriptor for the stringbook regularization
+   [cite:@yinStringbook]:
+   \(d=2-\epsilon\), MS poles, \(\mu^{-\epsilon}\) coupling scaling, and the
+   optional \(B\)-field epsilon-tensor prescription.  The scheme object must
+   own loop-integral families and the pole-extraction rule; the correlator
+   should only emit local kernel factors.
+
+2. Riemann-normal-coordinate expansion
+
+   Build an NLSM preset that lowers background fields to polynomial
+   fluctuation vertices.  The vertex stream should contain only the data used
+   by the next stage: fluctuation fields, worldsheet derivatives, target
+   tensors, and covariant derivatives of curvature, \(H\), and \(\Phi\).  Do
+   not construct a giant expanded action term.  Emit vertices lazily by order
+   in \(\xi\), derivative count, and loop budget.
+
+3. Worldsheet field content
+
+   Start with the bosonic \(G,B,\Phi\) NLSM to reproduce one- and two-loop
+   checks.  Add the \(N=(1,1)\) and \(N=(2,2)\) supersymmetric versions before
+   attacking \(R^4\), because the type-II \(R^4\) term is the four-loop
+   supersymmetric sigma-model effect, and CY3/K3 require the complex/Kahler
+   presentation.
+
+4. Current-correlator integration
+
+   Reuse the existing streaming Wick architecture.  The NLSM preset lowers
+   RNC vertices to normal-ordered polynomial profiles in fluctuation fields.
+   The generic correlator only contracts free fluctuation propagators and
+   streams coefficient factors.  Tensor factors and loop kernels stay opaque,
+   just as current free-boson profile factors do.
+
+5. Divergence extraction
+
+   Add a local counterterm collector after correlator evaluation.  It should
+   receive streamed diagrams, apply the selected dimensionally regulated
+   kernel identities, discard finite parts unless requested, and canonicalize
+   the remaining local tensor expressions.
+
+6. Tensor canonicalization
+
+   The tensor layer must know the Riemann symmetries, Bianchi identities,
+   covariant derivative commutators, Kahler index restrictions, and integration
+   by parts.  It also needs a field-redefinition quotient, because beta
+   functions and spacetime actions are scheme-dependent.
+
+7. Beta and Weyl-anomaly assembly
+
+   Use the stringbook relation [cite:@yinStringbook] between \(K^{(1)}\), beta
+   functions, and hatted Weyl-anomaly coefficients.  This should be a
+   deterministic post-processing step over counterterm records, not embedded in
+   diagram evaluation.
+
+8. Normalization and invariant matching
+
+   Match against known low-loop beta functions first, then against the
+   Gross-Witten four-graviton \(R^4\) coefficient [cite:@Gross:1986iv].  The
+   beta-function engine should report its own MS-scheme tensor; the
+   string-effective-action layer translates it to \(t_8t_8R^4\),
+   epsilon-epsilon terms, and compactification conventions.
+
+* Data Flow
+
+The efficient data flow is:
+
+1. background descriptor \(\to\) RNC vertex iterator;
+2. vertex tuple iterator \(\to\) Wick/correlator stream;
+3. correlator stream \(\to\) regulated loop-kernel pole extractor;
+4. pole terms \(\to\) tensor canonicalizer;
+5. counterterms \(\to\) beta functions;
+6. beta functions \(\to\) Weyl-anomaly coefficients and action matching.
+
+Every stage should be independently streamable.  The only large combinatorics
+are vertex tuple enumeration and Wick branching; both must be chunkable by
+loop order, field content, and target-tensor signature.
+
+* Generalization To CY3 And K3
+
+Nothing in the first implementation should assume a flat ten-dimensional
+target or a generic real Riemannian target only.  The geometry layer should
+support multiple target presentations:
+
+- real Riemannian tensors for universal \(R^4\) checks;
+- complex Kahler tensors for \(N=(2,2)\) CY3 computations;
+- hyperkahler/K3 identities for \(N=(4,4)\) checks;
+- product targets, so external spacetime and internal compact directions can
+  be separated without changing the correlator.
+
+The NLSM preset should therefore expose target geometry as data:
+dimension, holonomy constraints, complex structure, Kahler form, curvature
+families, and allowed index sectors.  The same correlator and divergence
+extractor then work for \(R^4\), CY3, and K3; only the vertex generator and
+tensor quotient change.
+
+For compact targets, target data must also include cohomology.  The CY3
+descriptor needs Hodge numbers, harmonic-form roles, intersection numbers,
+Chern-class pairings, and a volume model.  The K3 descriptor can ship with the
+known Hodge diamond and hyperkahler form roles.  These data do not affect the
+local Wick contractions.  They affect the later projection of local curvature
+invariants onto moduli-space coordinates and large-volume observables.
+
+The intended CY3 data flow is:
+
+1. compute local curvature counterterms with the same NLSM kernels;
+2. evaluate those local invariants on a supplied numerical Ricci-flat metric;
+3. integrate/project them against the allowed harmonic forms and cycle data;
+4. fit the result as an expansion in Kahler moduli, cycle volumes, or the
+   overall volume.
+
+The quintic should be the first integration target because \(h^{1,1}=1\).
+There is a single Kahler generator \(J\), \(\int J^3=5\), and therefore a
+one-variable large-volume fit for any scalar observable that survives the
+local \(R^4\) computation [cite:@Candelas:1990rm].
+
+* Milestones
+
+1. Reproduce the stringbook one-loop \(G,B,\Phi\) beta functions in the MS
+   scheme [cite:@yinStringbook].
+2. Reproduce the known two-loop metric and torsion checks, including the
+   scheme dependence of the \(B\)-field epsilon prescription.
+3. Implement \(N=(1,1)\) supersymmetric RNC vertices and verify the expected
+   lower-loop cancellations.
+4. Implement \(N=(2,2)\) Kahler superspace/component vertices and reproduce
+   the four-loop Ricci-flat Kahler non-finiteness result.
+5. Match the resulting order-\(\alpha'^3\) beta-function tensor to the
+   \(R^4\) invariant basis and calibrate normalization against the amplitude
+   result.
+6. Add K3 and CY3 cohomology descriptors, including the known K3 Hodge diamond.
+7. Run the same machinery with CY3 and K3 tensor quotients, producing local
+   correction terms ready for compactification integrals.
+8. Use the quintic as the first numerical large-volume fit target
+   [cite:@Candelas:1990rm].
+
+#+print_bibliography:

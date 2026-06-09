@@ -1,0 +1,713 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gamma-Only Rendering Plan</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Gamma-Only Rendering Plan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org9209619">Mathematical Lowering Model</a></li>
+<li><a href="#org02cdcb4">Primitive Map Formulas</a>
+<ul>
+<li><a href="#org918071b">Form Delta</a></li>
+<li><a href="#orgc297916">Gamma Insert</a></li>
+<li><a href="#org5bdd1b1">Exterior Gamma Action</a></li>
+<li><a href="#org18c24f5">Gamma Rank Split</a></li>
+<li><a href="#orgc249f2b">Hodge Project</a></li>
+<li><a href="#org69474d0">Spinor Tower Product</a></li>
+<li><a href="#orgbdb4b27">Spinor Tower Contract and Adjoint</a></li>
+</ul>
+</li>
+<li><a href="#org57f43b9">Compiler Procedure</a></li>
+<li><a href="#org4d2916e">Verification Identities</a></li>
+<li><a href="#org8f2da28">Required Output Contract</a></li>
+<li><a href="#org89cddcc">Smoke Milestone</a></li>
+<li><a href="#org8ae6e6e">Required Milestone</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note defines the next renderer milestone after the finite projector Gram
+solver in <a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a>.  The current expanded path removes
+compact projector atoms, but it is not yet gamma-only: it can still emit
+structural atoms such as <code>spinor_symmetrized_product</code>, <code>spinor_tower_contract</code>,
+<code>spinor_tower_contract_adjoint</code>, <code>tensor_form_gamma_wedge</code>, and related
+tensor-form/tensor-spinor formula atoms.
+</p>
+
+<p>
+The goal is a systematic lowering compiler, not hardcoded rewrites for the
+Spin(10) \(16^{12}\) example.  Each structural atom must lower from its stored
+rank/profile/chirality metadata into a streamed product of primitive gamma
+objects and invariant contractions:
+</p>
+
+<ul class="org-ul">
+<li>gamma matrices/forms/actions;</li>
+<li>spinor pairings \(C\);</li>
+<li>metrics, generalized deltas, antisymmetrizers, Hodge/epsilon factors;</li>
+<li>explicit Clifford-product metric and free-vector factors.</li>
+</ul>
+
+<p>
+The compiler should be data-driven by the same finite structural programs used
+by <a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a>.  It should work for any supported orthogonal
+tensor-form or tensor-spinor channel whose metadata determines a finite gamma
+formula.  The required stress target is the entire Spin(10) \(16^{12}\) basis:
+all \(73744\) paths must render in gamma-only notation.
+</p>
+<div id="outline-container-org9209619" class="outline-2">
+<h2 id="org9209619">Mathematical Lowering Model</h2>
+<div class="outline-text-2" id="text-org9209619">
+<p>
+Fix an orthogonal space \(V\) of dimension \(N\), metric \(g\), exterior powers
+\(\Lambda^r V\), and spinor modules \(S_\chi\).  A rendered term should be a
+finite rational linear combination of contractions built from:
+</p>
+
+<p>
+\[
+  g_{ab},\qquad
+  \Delta^{a_1\ldots a_r}_{b_1\ldots b_r}
+    = r!\,\delta^{[a_1}_{b_1}\cdots\delta^{a_r]}_{b_r},
+  \qquad
+  \varepsilon_{a_1\ldots a_N},
+  \qquad
+  C_{\alpha\beta},
+  \qquad
+  \Gamma^{(r)}_{\alpha\beta;a_1\ldots a_r}.
+\]
+</p>
+
+<p>
+Antisymmetrization is unit-weight in the code path: the exact rational
+coefficient attached to a streamed term carries all normalization.  The Hodge
+operator on \(r=N/2\) middle forms is
+</p>
+
+<p>
+\[
+  (*\omega)_{a_1\ldots a_r}
+    = \frac{1}{r!}\varepsilon_{a_1\ldots a_r b_1\ldots b_r}
+      \omega^{b_1\ldots b_r},
+  \qquad
+  P_\pm=\frac12(1\pm *).
+\]
+</p>
+
+<p>
+The finite Gram solver already constructs projector programs as words in
+primitive maps and attaches exact rational coefficients from the inverse Gram
+matrix.  Gamma-only lowering must therefore lower each primitive map to its
+canonical tensor contraction, then keep the existing Gram coefficient.  It must
+not introduce family-specific constants outside the finite Gram contraction.
+</p>
+</div>
+</div>
+<div id="outline-container-org02cdcb4" class="outline-2">
+<h2 id="org02cdcb4">Primitive Map Formulas</h2>
+<div class="outline-text-2" id="text-org02cdcb4">
+<p>
+The implementation should lower <code>ProjectorPrimitiveKind</code> values, not rendered
+operator ids.  Every formula below is determined by
+\(N\), input/output ranks, chirality, duality, and form-profile metadata.
+</p>
+</div>
+<div id="outline-container-org918071b" class="outline-3">
+<h3 id="org918071b">Form Delta</h3>
+<div class="outline-text-3" id="text-org918071b">
+<p>
+For a carried rank-\(r\) form block,
+</p>
+
+<p>
+\[
+  D_r(\omega)_{a_1\ldots a_r}
+    = \Delta^{b_1\ldots b_r}_{a_1\ldots a_r}
+      \omega_{b_1\ldots b_r}.
+\]
+</p>
+
+<p>
+This lowers to one generalized delta.  It is already primitive enough, but the
+gamma-only TeX renderer must print it as \(\Delta\), not as a route atom.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc297916" class="outline-3">
+<h3 id="orgc297916">Gamma Insert</h3>
+<div class="outline-text-3" id="text-orgc297916">
+<p>
+For a spinor bilinear terminal inserting an \(r\)-form,
+</p>
+
+<p>
+\[
+  I_r(\psi,\eta)_{a_1\ldots a_r}
+    = \Gamma^{(r)}_{\alpha\beta;a_1\ldots a_r}
+      \psi^\alpha\eta^\beta .
+\]
+</p>
+
+<p>
+The dual map is the corresponding gamma action on a spinor:
+</p>
+
+<p>
+\[
+  A_r(\omega,\eta)^\alpha
+    = \Gamma^{(r)\alpha}{}_{\beta;a_1\ldots a_r}
+      \omega^{a_1\ldots a_r}\eta^\beta .
+\]
+</p>
+
+<p>
+The chirality check is exactly the existing parity rule:
+\(\Gamma^{(r)}:S_{\chi_1}\otimes S_{\chi_2}\to\Lambda^rV\) is valid only when
+the stored chiralities match the rank parity used by
+<code>spinorBilinearChiralityValid</code> and <code>spinorActionChiralityValid</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org5bdd1b1" class="outline-3">
+<h3 id="org5bdd1b1">Exterior Gamma Action</h3>
+<div class="outline-text-3" id="text-org5bdd1b1">
+<p>
+For an input \(p\)-form and a gamma block of rank \(k\), the canonical
+contraction with \(c\) metric pairings has output rank
+</p>
+
+<p>
+\[
+  q=p+k-2c .
+\]
+</p>
+
+<p>
+In components:
+</p>
+
+<p>
+\[
+  E_{p,k,c}(\omega,\psi)_{a_1\ldots a_q}
+  =
+  \Delta^{\,b_1\ldots b_{p-c}\ d_1\ldots d_{k-c}}_{a_1\ldots a_q}
+  g^{u_1v_1}\cdots g^{u_cv_c}
+  \omega_{b_1\ldots b_{p-c}u_1\ldots u_c}
+  \Gamma^{(k)}_{\alpha\beta;
+    d_1\ldots d_{k-c}v_1\ldots v_c}
+  \psi^\beta .
+\]
+</p>
+
+<p>
+This one formula covers <code>gamma_action</code>, <code>gamma_wedge_shift</code>, and the
+gamma-action part of tower/form-spinor transitions.  The special wedge case is
+\(c=0\).  The lowering code should enumerate \((p,k,c,q)\) through the
+existing <code>ExteriorGammaAction</code> signature rather than branching by formula
+kind.
+</p>
+</div>
+</div>
+<div id="outline-container-org18c24f5" class="outline-3">
+<h3 id="org18c24f5">Gamma Rank Split</h3>
+<div class="outline-text-3" id="text-org18c24f5">
+<p>
+For a rank split \(r\to \ell+u\), separate the carried lower form indices from
+the spinor bilinear upper block:
+</p>
+
+<p>
+\[
+  R_{r,\ell,u}(\omega,\psi,\eta)_{a_1\ldots a_\ell,\ b_1\ldots b_u}
+  =
+  \Delta^{c_1\ldots c_\ell d_1\ldots d_u}
+         _{a_1\ldots a_\ell b_1\ldots b_u}
+  \omega_{c_1\ldots c_\ell d_1\ldots d_u}
+  \Gamma^{(u)}_{\alpha\beta;b_1\ldots b_u}
+  \psi^\alpha\eta^\beta .
+\]
+</p>
+
+<p>
+The adjoint contracts the \((\ell,u)\) output blocks back to the source rank
+with the same generalized delta.  This is the systematic replacement for
+<code>tensor_form_gamma_map</code> and <code>tensor_form_gamma_map_adjoint</code> atoms.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc249f2b" class="outline-3">
+<h3 id="orgc249f2b">Hodge Project</h3>
+<div class="outline-text-3" id="text-orgc249f2b">
+<p>
+A middle-form channel lowers to
+</p>
+
+<p>
+\[
+  P_\sigma = \frac12(D_r+\sigma *),\qquad \sigma\in\{+1,-1\}.
+\]
+</p>
+
+<p>
+The lowering emits two streamed branches: one generalized-delta branch and one
+epsilon/Hodge branch with coefficient \(\sigma/2\).  No <code>tensor_form_gamma_wedge</code>
+placeholder should remain for self-dual or anti-self-dual channels.
+</p>
+</div>
+</div>
+<div id="outline-container-org69474d0" class="outline-3">
+<h3 id="org69474d0">Spinor Tower Product</h3>
+<div class="outline-text-3" id="text-org69474d0">
+<p>
+The current <code>spinor_symmetrized_product</code> atom represents the multiplication
+</p>
+
+<p>
+\[
+  \mu_{p,q}:\operatorname{Sym}^p S_\chi\otimes
+  \operatorname{Sym}^q S_\chi\to\operatorname{Sym}^{p+q}S_\chi .
+\]
+</p>
+
+<p>
+Lowering must inline it as a streamed sum over \((p,q)\)-shuffles:
+</p>
+
+<p>
+\[
+  \mu_{p,q}
+  =
+  \frac{1}{\binom{p+q}{p}}
+  \sum_{\sigma\in\operatorname{Sh}(p,q)}
+  \delta^{\gamma_{\sigma(1)}}_{\alpha_1}\cdots
+  \delta^{\gamma_{\sigma(p)}}_{\alpha_p}
+  \delta^{\gamma_{\sigma(p+1)}}_{\beta_1}\cdots
+  \delta^{\gamma_{\sigma(p+q)}}_{\beta_q}.
+\]
+</p>
+
+<p>
+The renderer should not print a new symmetric-product atom.  It should either
+compose these spinor Kronecker deltas away while threading internal spinor
+slots, or emit explicit spinor-delta contractions if a later component backend
+needs them.  The TeX artifact for the requested term should show the composed
+gamma products, not <code>SymSpin</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbdb4b27" class="outline-3">
+<h3 id="orgbdb4b27">Spinor Tower Contract and Adjoint</h3>
+<div class="outline-text-3" id="text-orgbdb4b27">
+<p>
+For \(m&gt;0\), the tower contraction is the universal gamma contraction
+</p>
+
+<p>
+\[
+  T_{m,r}:
+  \operatorname{Sym}^m S_\chi\otimes S_{\chi'}
+  \to
+  \operatorname{Sym}^{m-1}S_\chi\otimes\Lambda^rV ,
+\]
+</p>
+
+<p>
+\[
+  T_{m,r}(\psi_1\cdots\psi_m,\eta)
+  =
+  \frac1m\sum_{i=1}^m
+  \psi_1\cdots\widehat{\psi_i}\cdots\psi_m
+  \otimes
+  \Gamma^{(r)}_{\alpha_i\beta;a_1\ldots a_r}
+  \eta^\beta .
+\]
+</p>
+
+<p>
+The adjoint inserts a spinor into the symmetric tower by the transpose map
+with respect to \(C\) and the exterior metric:
+</p>
+
+<p>
+\[
+  T^\dagger_{m,r}:
+  \operatorname{Sym}^{m-1}S_\chi\otimes\Lambda^rV\otimes S_{\chi'}
+  \to
+  \operatorname{Sym}^mS_\chi .
+\]
+</p>
+
+<p>
+In lowering, both maps become streamed sums of gamma bilinears plus explicit
+shuffle routing.  Their normalization must be verified by exact contraction:
+the lowered \(T^\dagger T\) inner product must equal the
+<code>spinorTowerPrimitiveNorm</code> used by the Gram solver.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org57f43b9" class="outline-2">
+<h2 id="org57f43b9">Compiler Procedure</h2>
+<div class="outline-text-2" id="text-org57f43b9">
+<ol class="org-ol">
+<li>Add a gamma-only render option and a <code>GammaOnlyAudit</code>.</li>
+<li>Reuse the existing structural projector program enumeration and inverse
+Gram coefficients.</li>
+<li>Replace each structural atom emission site with a two-mode path:
+normal expanded rendering may keep structural atoms; gamma-only rendering
+calls a primitive lowerer for each <code>ProjectorPrimitive</code> in the candidate
+word.</li>
+<li>Lower each primitive by streaming its canonical formula above into a small
+term frontier.  Branching primitives such as Hodge and symmetric shuffles
+must emit depth-first; do not allocate the full product expansion.</li>
+<li>Compose pure routing maps immediately when possible.  In particular,
+<code>spinor_symmetrized_product</code> and free-vector Clifford routing should update
+index-block wiring rather than survive as output atoms.</li>
+<li>Preserve exact rational coefficients throughout.  The only coefficients
+introduced by the lowerer are the canonical ones in the formulas above
+\((1/m)\), shuffle factors, Hodge \((1/2)\), signs, and the existing Gram
+coefficients.</li>
+<li>After lowering a term, classify every emitted atom.  If any structural atom
+remains, reject the term and record the atom tag plus the structural metadata
+that selected it.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org4d2916e" class="outline-2">
+<h2 id="org4d2916e">Verification Identities</h2>
+<div class="outline-text-2" id="text-org4d2916e">
+<p>
+Each primitive lowerer must be checked against the same exact contraction
+engine used by the Gram solver.
+</p>
+
+<p>
+For candidate words \(W_i,W_j\), let \(\mathcal L(W)\) be the gamma-only
+lowering.  The central invariant is
+</p>
+
+<p>
+\[
+  \langle W_i,W_j\rangle_{\mathrm{structural}}
+  =
+  \langle \mathcal L(W_i),\mathcal L(W_j)\rangle_{\gamma}
+\]
+</p>
+
+<p>
+for every primitive word admitted by a projector program.  This catches missing
+shuffle factors, Hodge signs, gamma-product coefficients, and tower
+normalization errors.
+</p>
+
+<p>
+Adjoints are verified by
+</p>
+
+<p>
+\[
+  \langle Pu,v\rangle=\langle u,P^\dagger v\rangle
+\]
+</p>
+
+<p>
+for <code>gamma_insert=/=gamma_action</code>, <code>gamma_rank_split=/adjoint</code>,
+<code>spinor_tower_contract=/adjoint</code>, and <code>hodge_project</code>.  Middle-form projectors
+also satisfy
+</p>
+
+<p>
+\[
+  P_\sigma^2=P_\sigma,\qquad P_+P_-=0.
+\]
+</p>
+
+<p>
+Projector programs keep their existing idempotence check after lowering:
+</p>
+
+<p>
+\[
+  \Pi^2=\Pi
+\]
+</p>
+
+<p>
+under exact rational contraction.  The gamma-only renderer is accepted only
+when the lowered program has the same Gram matrix, the same projector rank, and
+the emitted stream contains no structural atom tags.
+</p>
+</div>
+</div>
+<div id="outline-container-org8f2da28" class="outline-2">
+<h2 id="org8f2da28">Required Output Contract</h2>
+<div class="outline-text-2" id="text-org8f2da28">
+<p>
+A gamma-only render mode must stream terms without materializing large
+intermediate expressions.  Its audit rejects all compact and structural formula
+atoms:
+</p>
+
+<ul class="org-ul">
+<li>no named projector atoms;</li>
+<li>no <code>tensor_spinor_projection</code> or <code>tensor_form_projection</code>;</li>
+<li>no <code>spinor_symmetrized_product</code>, <code>spinor_tower_contract</code>,
+<code>spinor_tower_contract_adjoint</code>, or <code>tensor_form_gamma_wedge</code>;</li>
+<li>no compact <code>clifford_product</code> atoms after Clifford lowering.</li>
+</ul>
+
+<p>
+Allowed atoms are only the primitive gamma/contraction layer listed above.
+</p>
+</div>
+</div>
+<div id="outline-container-org89cddcc" class="outline-2">
+<h2 id="org89cddcc">Smoke Milestone</h2>
+<div class="outline-text-2" id="text-org89cddcc">
+<p>
+Render one actual Spin(10) \(16^{12}\) basis path, preferably invariant path
+<code>0</code>, to TeX/PDF through the real renderer.  The document must include an audit
+with the selected path id, emitted summand count, atom/factor count, and zero
+remaining compact or structural formula atoms.  This milestone is only a
+smoke test for formatting and the first lowering families; it is not sufficient
+for completion.
+</p>
+</div>
+</div>
+<div id="outline-container-org8ae6e6e" class="outline-2">
+<h2 id="org8ae6e6e">Required Milestone</h2>
+<div class="outline-text-2" id="text-org8ae6e6e">
+<p>
+Run the gamma-only audit over all \(73744\) Spin(10) \(16^{12}\) paths.  The
+implementation is complete only when every path renders gamma-only through the
+real renderer.  No path may emit a structural atom, a compact projector atom, or
+an unsupported tensor-form/tensor-spinor projection term.
+</p>
+
+<p>
+During development, failures must report the first unsupported structural
+family and the metadata needed to add its systematic lowerer.  Such failures
+are diagnostics only; they are not an acceptable final state for this goal.
+</p>
+
+<p>
+See <a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a> for the current backlog and <a href="/notes/tensor-code/rendering.html">Tensor Rendering</a>
+for the streamed symbolic term interface.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

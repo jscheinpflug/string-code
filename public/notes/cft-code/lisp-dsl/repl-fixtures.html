@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lisp Generated Fixture Declarations</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Lisp Generated Fixture Declarations</h1>
+<p>
+This node records the minimal Lisp-owned declarations for the generated
+fixtures.  They use the generic emitter from
+<a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a> and add one REPL macro
+that owns runtime lifetime and returns the symbolic expression directly.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defpackage</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.fixtures</span>
+  (<span style="color: #fe8019; font-weight: bold;">:use</span> <span style="color: #fe8019; font-weight: bold;">#:cl</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.descriptor</span>)
+  (<span style="color: #fe8019; font-weight: bold;">:export</span>
+   <span style="color: #fe8019; font-weight: bold;">#:free-fermion-10</span>
+   <span style="color: #fe8019; font-weight: bold;">#:eta-xi-sphere</span>
+   <span style="color: #fe8019; font-weight: bold;">#:eta-xi-torus</span>
+   <span style="color: #fe8019; font-weight: bold;">#:bc-sphere</span>
+   <span style="color: #fe8019; font-weight: bold;">#:free-boson-10</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-free-fermion-runtime</span>
+   <span style="color: #fe8019; font-weight: bold;">#:psi</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-eta-xi-sphere-runtime</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-eta-xi-torus-runtime</span>
+   <span style="color: #fe8019; font-weight: bold;">#:eta</span>
+   <span style="color: #fe8019; font-weight: bold;">#:xi</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-bc-runtime</span>
+   <span style="color: #fe8019; font-weight: bold;">#:b-field</span>
+   <span style="color: #fe8019; font-weight: bold;">#:c-field</span>
+   <span style="color: #fe8019; font-weight: bold;">#:make-free-boson-runtime</span>
+   <span style="color: #fe8019; font-weight: bold;">#:dX</span>
+   <span style="color: #fe8019; font-weight: bold;">#:expX</span>
+   <span style="color: #fe8019; font-weight: bold;">#:with-correlator-context</span>
+   <span style="color: #fe8019; font-weight: bold;">#:correlator</span>
+   <span style="color: #fe8019; font-weight: bold;">#:corr</span>
+   <span style="color: #fe8019; font-weight: bold;">#:ops</span>
+   <span style="color: #fe8019; font-weight: bold;">#:R</span>))
+
+(<span style="color: #fb4934; font-weight: bold;">in-package</span> <span style="color: #fe8019; font-weight: bold;">#:string-code.cft.fixtures</span>)
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">runtime-symbol-id</span> (context value)
+  (<span style="color: #fb4934; font-weight: bold;">etypecase</span> value
+    (integer value)
+    (string (intern-runtime-symbol context value))
+    (symbol (intern-runtime-symbol context (string-downcase (string value))))))
+</pre>
+</div>
+
+<p>
+The REPL macro layer rewrites user field forms into explicit runtime insertions.
+<code>ops</code> just groups forms; <code>R</code> groups forms and then asks Zig to normal-order the
+number of fields in that group.  No symbolic expression is built before the
+operator list is frozen.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">eval-when</span> (<span style="color: #fe8019; font-weight: bold;">:compile-toplevel</span> <span style="color: #fe8019; font-weight: bold;">:load-toplevel</span> <span style="color: #fe8019; font-weight: bold;">:execute</span>)
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fixture-call-symbol</span> (name)
+    (<span style="color: #fb4934; font-weight: bold;">if</span> (symbolp name)
+        (<span style="color: #fb4934; font-weight: bold;">multiple-value-bind</span> (symbol status)
+            (find-symbol (symbol-name name) <span style="color: #b8bb26; font-style: italic;">"STRING-CODE.CFT.FIXTURES"</span>)
+          (<span style="color: #fb4934; font-weight: bold;">if</span> status symbol name))
+        name))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">literal-symbol-form</span> (value)
+    (<span style="color: #fb4934; font-weight: bold;">if</span> (symbolp value) `',value value))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">fixture-form-name</span> (form)
+    (and (consp form) (symbolp (first form)) (first form)))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">field-form-p</span> (form)
+    (and (consp form)
+         (not (member (fixture-form-name form) '(ops R)
+                      <span style="color: #fe8019; font-weight: bold;">:test</span> #'string-equal))))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">field-call-form</span> (context form)
+    (<span style="color: #fb4934; font-weight: bold;">unless</span> (consp form)
+      (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Correlator field form must be a list, got ~S."</span> form))
+    `(,(fixture-call-symbol (first form)) ,context
+      ,@(mapcar #'literal-symbol-form (rest form))))
+
+  (<span style="color: #fb4934; font-weight: bold;">declaim</span> (ftype function correlator-body-forms correlator-form-forms))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">insertion-count</span> (form)
+    (<span style="color: #fb4934; font-weight: bold;">cond</span>
+      ((field-form-p form) 1)
+      ((and (consp form) (string-equal (fixture-form-name form) 'ops))
+       (<span style="color: #fb4934; font-weight: bold;">loop</span> for item in (rest form) sum (insertion-count item)))
+      ((and (consp form) (string-equal (fixture-form-name form) 'R))
+       (<span style="color: #fb4934; font-weight: bold;">loop</span> for item in (rest form) sum (insertion-count item)))
+      (t (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown correlator form ~S."</span> form))))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">correlator-form-forms</span> (context form)
+    (<span style="color: #fb4934; font-weight: bold;">cond</span>
+      ((field-form-p form) (list (field-call-form context form)))
+      ((and (consp form) (string-equal (fixture-form-name form) 'ops))
+       (correlator-body-forms context (rest form)))
+      ((and (consp form) (string-equal (fixture-form-name form) 'R))
+       (append (correlator-body-forms context (rest form))
+               `((normal-order-runtime-field ,context ,(insertion-count form)))))
+      (t (<span style="color: #fb4934; font-weight: bold;">error</span> <span style="color: #b8bb26; font-style: italic;">"Unknown correlator form ~S."</span> form))))
+
+  (<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">correlator-body-forms</span> (context forms)
+    (<span style="color: #fb4934; font-weight: bold;">loop</span> for form in forms append (correlator-form-forms context form))))
+
+(<span style="color: #fb4934; font-weight: bold;">defmacro</span> <span style="color: #b8bb26; font-weight: bold;">with-correlator-context</span> ((context (maker <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> runtime-args)) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;body</span> body)
+  <span style="color: #e0d3b9; font-style: italic;">"Bind CONTEXT to a generated runtime and release it after BODY."</span>
+  `(<span style="color: #fb4934; font-weight: bold;">let</span> ((,context (,(fixture-call-symbol maker) ,@runtime-args)))
+     (<span style="color: #fb4934; font-weight: bold;">unwind-protect</span>
+          (<span style="color: #fb4934; font-weight: bold;">progn</span> ,@body)
+       (destroy-runtime-context ,context))))
+
+(<span style="color: #fb4934; font-weight: bold;">defmacro</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span> ((maker <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> runtime-args) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;body</span> fields)
+  <span style="color: #e0d3b9; font-style: italic;">"Evaluate fixture field forms and return the symbolic correlator expression."</span>
+  (<span style="color: #fb4934; font-weight: bold;">let</span> ((context (gensym <span style="color: #b8bb26; font-style: italic;">"CONTEXT-"</span>))
+        (frozen (gensym <span style="color: #b8bb26; font-style: italic;">"FROZEN-"</span>)))
+    `(<span style="color: #fb4934; font-weight: bold;">with-correlator-context</span> (,context (,(fixture-call-symbol maker) ,@runtime-args))
+       ,@(correlator-body-forms context fields)
+       (<span style="color: #fb4934; font-weight: bold;">let</span> ((,frozen (freeze-runtime-operators ,context)))
+         (correlator-expression ,context ,frozen)))))
+
+(<span style="color: #fb4934; font-weight: bold;">defmacro</span> <span style="color: #b8bb26; font-weight: bold;">corr</span> ((maker <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;rest</span> runtime-args) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;body</span> fields)
+  <span style="color: #e0d3b9; font-style: italic;">"Alias for CORRELATOR."</span>
+  `(correlator (,maker ,@runtime-args) ,@fields))
+</pre>
+</div>
+
+<p>
+Preset accessors return fresh descriptors for inspection.  Runtime constructors
+create C ABI contexts for evaluation.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">free-fermion-10</span> ()
+  (string-code.cft.presets:free-fermion-10))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">eta-xi-sphere</span> ()
+  (string-code.cft.presets:eta-xi-sphere))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">eta-xi-torus</span> ()
+  (string-code.cft.presets:eta-xi-torus))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">bc-sphere</span> ()
+  (string-code.cft.presets:bc-sphere))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">free-boson-10</span> ()
+  (string-code.cft.presets:free-boson-10))
+</pre>
+</div>
+
+<p>
+The user-facing runtime constructors resolve generated theory ids through the
+preset registry.  The numeric ids stay compiler-owned.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-preset-runtime</span> (name library <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> constants)
+  (make-runtime-context
+   <span style="color: #fe8019; font-weight: bold;">:library</span> library
+   <span style="color: #fe8019; font-weight: bold;">:theory-id</span> (string-code.cft.presets:preset-theory-id-for name)
+   <span style="color: #fe8019; font-weight: bold;">:constants</span> constants))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-free-fermion-runtime</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library)
+  (make-preset-runtime 'free-fermion-10 library))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">psi</span> (context mu z)
+  (insert-runtime-field context 0
+                        (list (runtime-symbol-id context z))
+                        (list (runtime-symbol-id context mu))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-eta-xi-sphere-runtime</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library)
+  (make-preset-runtime 'eta-xi-sphere library))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-eta-xi-torus-runtime</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library)
+  (make-preset-runtime 'eta-xi-torus library))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">eta</span> (context z)
+  (insert-runtime-field context 0
+                        (list (runtime-symbol-id context z))
+                        nil))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">xi</span> (context z)
+  (insert-runtime-field context 1
+                        (list (runtime-symbol-id context z))
+                        nil))
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-bc-runtime</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library)
+  (make-preset-runtime 'bc-sphere library))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">b-field</span> (context z)
+  (insert-runtime-field context 0
+                        (list (runtime-symbol-id context z))
+                        nil))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">c-field</span> (context z)
+  (insert-runtime-field context 1
+                        (list (runtime-symbol-id context z))
+                        nil))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">free-boson-constants</span> (alpha-prime constants)
+  (acons <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span> alpha-prime constants))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">make-free-boson-runtime</span> (<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">&amp;key</span> library (alpha-prime <span style="color: #fe8019; font-weight: bold;">:alpha-prime</span>) constants)
+  (make-preset-runtime 'free-boson-10 library
+                       <span style="color: #fe8019; font-weight: bold;">:constants</span> (free-boson-constants alpha-prime constants)))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">dX</span> (context mu z)
+  (insert-runtime-field context 0
+                        (list (runtime-symbol-id context z))
+                        (list (runtime-symbol-id context mu))))
+
+(<span style="color: #fb4934; font-weight: bold;">defun</span> <span style="color: #b8bb26; font-weight: bold;">expX</span> (context k z z-bar)
+  (insert-runtime-field context 1
+                        (list (runtime-symbol-id context z)
+                              (runtime-symbol-id context z-bar))
+                        (list (runtime-symbol-id context k))))
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,835 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finite Projector Gram Solver Plan</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Finite Projector Gram Solver Plan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org7473a7f">Core Problem</a></li>
+<li><a href="#org1696a47">Mathematical Model</a></li>
+<li><a href="#orgb52b7e9">Solver Data Structures</a></li>
+<li><a href="#org7e3b07c">Candidate Generation</a></li>
+<li><a href="#org1bec148">Gram Contraction Algorithm</a></li>
+<li><a href="#orgefb70bb">Program Cache Key</a></li>
+<li><a href="#org5e83c7d">Using Current Hand-Written Cases As Fixtures</a></li>
+<li><a href="#org1eeb850">Implementation Phases</a>
+<ul>
+<li><a href="#org03cab0d">Phase 1: Add Signature Records</a></li>
+<li><a href="#org2925db7">Phase 2: Generic Exterior-Gamma Enumeration</a></li>
+<li><a href="#org74b5c32">Phase 3: Exact One-Block Gram Table</a></li>
+<li><a href="#orga36dbe4">Phase 4: Tower Gram Table</a></li>
+<li><a href="#orgdf6ac07">Phase 5: Non-Orthogonal Candidate Gram Entries</a></li>
+<li><a href="#org99c06ba">Phase 6: Remove Production Dependence On Family Rules</a></li>
+<li><a href="#org59d6fbd">Phase 7: Audit And Iterate By Unsupported Keys</a></li>
+</ul>
+</li>
+<li><a href="#orgbdf1182">Validation Commands</a></li>
+<li><a href="#orgae1eadb">Success Criteria</a></li>
+<li><a href="#org0087abf">Explicit Non-Goals</a></li>
+<li><a href="#orgbc0337d">Next Concrete Step</a></li>
+</ul>
+</div>
+</div>
+<p>
+This plan extends <a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a> and
+the current <a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a> work.  The
+goal is to replace hand-written projector-family lowering with a finite
+dimension-parametric contraction algorithm.  The current hand-written cases are
+to be kept as fixtures and normalization checks only.
+</p>
+
+<p>
+The implementation follows <code>AGENTS.md</code>: simple procedural Zig, lean fixed-size
+records, no large intermediate symbolic expressions, parallelizable data flow,
+minimal public API, concise literate source, and tests only for precise
+mathematical invariants.
+</p>
+<div id="outline-container-org7473a7f" class="outline-2">
+<h2 id="org7473a7f">Core Problem</h2>
+<div class="outline-text-2" id="text-org7473a7f">
+<p>
+The current structural projector path already has the correct outer algorithm:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">channel -&gt; candidate words -&gt; Gram matrix -&gt; independent pivots
+        -&gt; inverse Gram -&gt; streamed sum E_i G^{-1}_{ij} E_j^dagger
+</pre>
+</div>
+
+<p>
+The missing mathematical engine is the Gram entry evaluator.  At present the
+structural inner product behaves like a Kronecker delta on primitive words:
+equal words have norm one and distinct words are orthogonal.  That makes every
+new nontrivial projector family look like it needs a new hand-written rule.
+</p>
+
+<p>
+The replacement is a finite Clifford-exterior contraction algebra.  Candidate
+generation should enumerate all admissible primitive signatures from rank,
+chirality, tower, and duality metadata.  Gram computation should then reduce
+word pairs by exact universal contraction identities.
+</p>
+</div>
+</div>
+<div id="outline-container-org1696a47" class="outline-2">
+<h2 id="org1696a47">Mathematical Model</h2>
+<div class="outline-text-2" id="text-org1696a47">
+<p>
+The orthogonal backend works in dimension <code>N</code> with these primitive invariant
+objects:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">form delta on exterior powers
+metric contraction and metric insertion
+antisymmetrized Clifford block Gamma(r)
+Gamma(r) acting on exterior form slots
+Hodge star and middle-form projectors
+spinor tower contraction and its adjoint
+spinor pairing
+</pre>
+</div>
+
+<p>
+The finite rank rule behind the form/gamma part is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">q = p + r - 2 c
+0 &lt;= c &lt;= min(p, r)
+q &gt;= 0
+q &lt;= N
+</pre>
+</div>
+
+<p>
+Here <code>p</code> is the source form rank, <code>r</code> is the Clifford block rank, <code>c</code> is the
+number of metric contractions, and <code>q</code> is the target form rank.  This one rule
+generates the cases currently appearing as add-rank, shift-rank, split-rank,
+rank-wrap, trace, and gamma-wedge moves.
+</p>
+
+<p>
+Chirality is checked by parity:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">even r preserves chirality
+odd r flips chirality
+unknown or zero chirality metadata is accepted only when the current code
+already treats it as a same-chirality fallback
+</pre>
+</div>
+
+<p>
+Hodge data is attached only when <code>2 p = N</code> or <code>2 q = N</code> and the channel asks
+for self-dual or anti-self-dual projection.  Hodge signs and Hodge-square
+factors are part of the contraction table, not separate projector families.
+</p>
+
+<p>
+Spinor tower maps are represented as raising/lowering steps with:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">tower_delta in {-1, 0, +1}
+optional emitted or consumed form rank
+chirality parity of the spinor action
+normalization key depending on N, tower power, and form rank
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb52b7e9" class="outline-2">
+<h2 id="orgb52b7e9">Solver Data Structures</h2>
+<div class="outline-text-2" id="text-orgb52b7e9">
+<p>
+Keep all new records private to the projector constructor until another module
+really needs them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">ExteriorGammaAction
+    dimension: u8
+    input_rank: u8
+    gamma_rank: u8
+    contraction_count: u8
+    output_rank: u8
+    chirality_parity: u1
+    duality: Duality
+
+PrimitiveSignature
+    kind: ProjectorPrimitiveKind
+    input_block: IndexRef
+    output_block: IndexRef
+    auxiliary_block: IndexRef
+    action: ExteriorGammaAction or empty
+    tower_input_power: u8
+    tower_output_power: u8
+    tower_form_rank: u8
+    normalization_tag: u8
+
+ContractionAccumulator
+    coefficient: Rational
+    remaining_form_profile: u128
+    remaining_tower_power: u8
+    chirality: u8
+    duality: Duality
+    is_zero: bool
+</pre>
+</div>
+
+<p>
+These records are descriptions of local intertwiners, not rendered symbolic
+expressions.  Rendering still happens only when a selected program term is
+streamed.
+</p>
+</div>
+</div>
+<div id="outline-container-org7e3b07c" class="outline-2">
+<h2 id="org7e3b07c">Candidate Generation</h2>
+<div class="outline-text-2" id="text-org7e3b07c">
+<p>
+Replace named projector-family generation with a profile search over primitive
+signatures.
+</p>
+
+<p>
+The procedure is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">1. Build a StructuralSearchState from the channel source.
+2. Build the target StructuralSearchState from the channel output.
+3. Enumerate primitive signatures valid from current state toward target:
+   - form deltas for carried equal profile slots;
+   - exterior gamma actions satisfying q = p + r - 2 c;
+   - Hodge action when middle-rank duality is requested;
+   - spinor tower lowering or raising when tower powers differ by one;
+   - form-spinor adjoint action as tower creation from a pure form state.
+4. Append signatures to a fixed ProjectorCandidateWord.
+5. Stop at max_structural_search_depth.
+6. Append only unique candidate words.
+7. Let the Gram pivot stage remove dependent candidates.
+</pre>
+</div>
+
+<p>
+The enumeration must not branch on compact formula-kind names.  It may reject a
+channel using only mathematical metadata: dimension, profile ranks, chirality,
+duality, spinor presence, and tower powers.
+</p>
+
+<p>
+For the current Spin(10) stress case, keep the existing caps unless a failing
+channel proves they are too small:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">max primitives per word = 6
+max candidates = 8
+max Gram entries = 64
+</pre>
+</div>
+
+<p>
+If the cap is exceeded, return an explicit unsupported error and log or expose
+the compact structural key for audit.  Do not allocate a larger heap expression
+as a fallback.
+</p>
+</div>
+</div>
+<div id="outline-container-org1bec148" class="outline-2">
+<h2 id="org1bec148">Gram Contraction Algorithm</h2>
+<div class="outline-text-2" id="text-org1bec148">
+<p>
+Replace <code>structuralCandidateInnerProduct</code> with a finite exact evaluator:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">inner(left_word, right_word):
+    acc = identity accumulator
+    walk adjoint(left_word) followed by right_word
+    for each adjacent reducible primitive pair:
+        reduce by contraction table
+        multiply acc.coefficient
+        update compact state
+        if mismatch implies zero, return 0
+    if all open indices close to the channel identity, return acc.coefficient
+    otherwise return unsupported
+</pre>
+</div>
+
+<p>
+The first implementation should use direct procedural pair reductions rather
+than building a symbolic rewrite system.  The table is small and finite.
+</p>
+
+<p>
+Required reductions:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">form_delta . form_delta
+form_delta . exterior_gamma_action
+exterior_gamma_action^dagger . exterior_gamma_action
+Gamma(r)^dagger . Gamma(s)
+Hodge^dagger . Hodge
+Hodge . exterior_gamma_action at middle rank
+spinor_tower_contract^dagger . spinor_tower_contract
+spinor_tower_contract . spinor_tower_contract^dagger
+form-spinor-adjoint paired with its adjoint
+</pre>
+</div>
+
+<p>
+Each reduction returns an exact <code>Rational</code>.  Unsupported reductions are not
+allowed to masquerade as zero.  Zero is returned only when rank, block,
+chirality, tower, or duality metadata proves orthogonality.
+</p>
+</div>
+</div>
+<div id="outline-container-orgefb70bb" class="outline-2">
+<h2 id="orgefb70bb">Program Cache Key</h2>
+<div class="outline-text-2" id="text-orgefb70bb">
+<p>
+Cache compiled programs by mathematical structure, not operator id.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">StructuralProgramKey
+    dimension
+    source form profile
+    target form profile
+    source tower power
+    target tower power
+    source/output/right spinor flags
+    chirality metadata
+    duality
+    primitive signature sequence hash when needed
+</pre>
+</div>
+
+<p>
+Many of the 200000 projector occurrences should collapse to a much smaller set
+of keys.  The audit should report distinct structural keys, not only occurrence
+counts.
+</p>
+</div>
+</div>
+<div id="outline-container-org5e83c7d" class="outline-2">
+<h2 id="org5e83c7d">Using Current Hand-Written Cases As Fixtures</h2>
+<div class="outline-text-2" id="text-org5e83c7d">
+<p>
+The currently solved cases become tests for the general solver.  They are not
+the model for production branching.
+</p>
+
+<p>
+Fixture groups:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">terminal gamma_insert plus carried form_delta
+gamma_rank_split plus carried form_delta
+middle-form hodge_project
+gamma_wedge_shift
+spinor_tower_contract
+spinor_tower_contract_adjoint
+form-to-spinor adjoint contraction
+vector-spinor traceless off-diagonal Gram case
+</pre>
+</div>
+
+<p>
+Each fixture should check compact mathematical program data:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">candidate count
+primitive signature sequence
+Gram entries
+pivot count
+inverse Gram entries
+emitted atom kinds for one streamed term
+</pre>
+</div>
+
+<p>
+Do not compare huge rendered formulas.  These tests should protect exact
+normalizations and prevent regression while allowing the production generator
+to become general.
+</p>
+
+<p>
+Once a fixture passes through the generic path, remove or bypass the equivalent
+production family branch.  The fixture expected data can still mention the old
+case name for readability.
+</p>
+</div>
+</div>
+<div id="outline-container-org1eeb850" class="outline-2">
+<h2 id="org1eeb850">Implementation Phases</h2>
+<div class="outline-text-2" id="text-org1eeb850">
+</div>
+<div id="outline-container-org03cab0d" class="outline-3">
+<h3 id="org03cab0d">Phase 1: Add Signature Records</h3>
+<div class="outline-text-3" id="text-org03cab0d">
+<p>
+Add private records in the projector constructor literate file:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">ExteriorGammaAction
+PrimitiveSignature
+ContractionAccumulator
+StructuralProgramKey
+</pre>
+</div>
+
+<p>
+Provide only small helper functions:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">makeExteriorGammaAction
+primitiveToSignature
+signatureEql
+signatureChiralityValid
+signatureProfileTransition
+</pre>
+</div>
+
+<p>
+No public declarations are needed in this phase.
+</p>
+</div>
+</div>
+<div id="outline-container-org2925db7" class="outline-3">
+<h3 id="org2925db7">Phase 2: Generic Exterior-Gamma Enumeration</h3>
+<div class="outline-text-3" id="text-org2925db7">
+<p>
+Add a procedure that enumerates valid exterior gamma actions from a source
+profile to a target profile by looping over:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">source rank p
+gamma rank r
+contraction count c
+target rank q = p + r - 2 c
+</pre>
+</div>
+
+<p>
+It should produce the same signatures currently represented by
+<code>gamma_insert</code>, <code>gamma_wedge_shift</code>, <code>gamma_rank_split</code>, and future rank-wrap
+forms.  Existing primitive atom kinds may still be used for output emission.
+</p>
+</div>
+</div>
+<div id="outline-container-org74b5c32" class="outline-3">
+<h3 id="org74b5c32">Phase 3: Exact One-Block Gram Table</h3>
+<div class="outline-text-3" id="text-org74b5c32">
+<p>
+Implement the contraction table for one primitive block plus carried deltas.
+This must reproduce the current single-candidate cases before trying larger
+multi-word channels.
+</p>
+
+<p>
+Required first successes:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">terminal gamma_insert fixture
+gamma_wedge_shift fixture
+gamma_rank_split fixture
+hodge_project fixture
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga36dbe4" class="outline-3">
+<h3 id="orga36dbe4">Phase 4: Tower Gram Table</h3>
+<div class="outline-text-3" id="text-orga36dbe4">
+<p>
+Implement spinor tower raise/lower contractions.  Reproduce the current tower
+fixtures without using the old family-specific inner products.
+</p>
+
+<p>
+Required first successes:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">spinor_tower_contract fixture
+spinor_tower_contract_adjoint fixture
+form-to-spinor adjoint fixture
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgdf6ac07" class="outline-3">
+<h3 id="orgdf6ac07">Phase 5: Non-Orthogonal Candidate Gram Entries</h3>
+<div class="outline-text-3" id="text-orgdf6ac07">
+<p>
+Enable nonzero off-diagonal Gram entries for distinct primitive words.  The
+vector-spinor traceless projector already demonstrates why this matters, but a
+structural Clifford-exterior fixture must also cover it.
+</p>
+
+<p>
+The acceptance condition is that the generic structural path can produce a
+Gram matrix with at least one nonzero off-diagonal entry, pivot it exactly, and
+stream the resulting mixed projector terms.
+</p>
+</div>
+</div>
+<div id="outline-container-org99c06ba" class="outline-3">
+<h3 id="org99c06ba">Phase 6: Remove Production Dependence On Family Rules</h3>
+<div class="outline-text-3" id="text-org99c06ba">
+<p>
+After the fixtures pass, simplify production routing:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">compact projector -&gt; structural spec -&gt; generic candidate enumeration
+                  -&gt; exact Gram contraction -&gt; streamed emission
+</pre>
+</div>
+
+<p>
+Keep formula-kind classification only where it is needed to build the structural
+spec from compact metadata.  It must not decide projector mathematics.
+</p>
+</div>
+</div>
+<div id="outline-container-org59d6fbd" class="outline-3">
+<h3 id="org59d6fbd">Phase 7: Audit And Iterate By Unsupported Keys</h3>
+<div class="outline-text-3" id="text-org59d6fbd">
+<p>
+Refresh <a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a> after each
+phase.  Report:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">remaining compact projector occurrences
+remaining distinct structural keys
+largest unsupported structural-key groups
+number of keys solved by generic Gram path
+number of projector occurrences solved by generic Gram path
+</pre>
+</div>
+
+<p>
+The next implementation step is chosen by missing contraction identity, not by
+compact formula family name.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbdf1182" class="outline-2">
+<h2 id="orgbdf1182">Validation Commands</h2>
+<div class="outline-text-2" id="text-orgbdf1182">
+<p>
+Focused checks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig test src/tensor-code/projector-constructor.zig
+zig fmt --check src/tensor-code/projector-constructor.zig
+</pre>
+</div>
+
+<p>
+Full tensor-code checks:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig test src/tensor-code/tensor-code.zig
+zig fmt --check src/tensor-code/projector-constructor.zig src/tensor-code/context.zig
+</pre>
+</div>
+
+<p>
+Org/source mirror checks are required after touching tangled files.  The org
+file must be the source of truth for new implementation blocks.
+</p>
+</div>
+</div>
+<div id="outline-container-orgae1eadb" class="outline-2">
+<h2 id="orgae1eadb">Success Criteria</h2>
+<div class="outline-text-2" id="text-orgae1eadb">
+<p>
+The implementation is successful when:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">1. structuralCandidateInnerProduct is no longer equality-only;
+2. current handwritten cases pass as generic-solver fixtures;
+3. at least one structural fixture has a nonzero off-diagonal Gram entry;
+4. projector emission remains streamed;
+5. no large symbolic expression trees are allocated;
+6. the audit reports unsupported structural keys rather than only family names;
+7. Spin(10) 16^12 coverage improves by solving keys through the generic path.
+</pre>
+</div>
+
+<p>
+The deeper success criterion is that future work adds missing contraction
+identities to a finite table, not new projector-family branches.
+</p>
+</div>
+</div>
+<div id="outline-container-org0087abf" class="outline-2">
+<h2 id="org0087abf">Explicit Non-Goals</h2>
+<div class="outline-text-2" id="text-org0087abf">
+<p>
+Do not:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">lower another visible compact family by hand;
+add a primitive atom without its adjoint contraction rule;
+store expanded gamma expressions;
+increase candidate caps silently;
+make solver records public before another module needs them;
+write broad tests that only prove syntax or rendering noise;
+count occurrence decrease as success unless it used the generic Gram path.
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbc0337d" class="outline-2">
+<h2 id="orgbc0337d">Next Concrete Step</h2>
+<div class="outline-text-2" id="text-orgbc0337d">
+<p>
+Start with Phase 1 and Phase 2 in the literate projector constructor.  The
+first visible milestone is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">generic exterior-gamma enumeration reproduces the existing
+gamma_insert, gamma_wedge_shift, gamma_rank_split, and hodge_project fixtures
+without route-local projector-family rules.
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

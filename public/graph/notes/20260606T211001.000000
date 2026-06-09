@@ -1,0 +1,194 @@
+:PROPERTIES:
+:ID:       20260606T211001.000000
+:END:
+#+title: Tensor Context
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/context.zig :mkdirp yes
+
+The context module is the procedural boundary of tensor-code.  Public callers
+get an opaque state pointer and methods; the stores remain in a private
+implementation record so callers cannot bypass validation.
+
+#+begin_src zig
+const std = @import("std");
+const coupling = @import("coupling.zig");
+const decomposition = @import("decomposition.zig");
+const projector = @import("projector.zig");
+const realization = @import("realization.zig");
+const rendering = @import("rendering.zig");
+const root_data = @import("root-data.zig");
+const store = @import("representation-store.zig");
+
+/// ContextId names an initialized tensor-code context or preset.
+pub const ContextId = struct {
+    value: u32,
+
+    /// init constructs a context id from a store index.
+    pub fn init(value: u32) ContextId {
+        return .{ .value = value };
+    }
+};
+
+/// ContextOptions configures algebra and rendering defaults.
+pub const ContextOptions = struct {
+    algebra_conventions: root_data.AlgebraConventions = .{},
+    default_signature: rendering.SignatureConvention = .complex,
+};
+#+end_src
+
+Registration validates cross-store handles before interning.  Metadata and
+duals are queried through methods, not by reaching into stores.
+
+#+begin_src zig
+/// Context is an opaque handle to tensor-code stores and caches.
+pub const Context = struct {
+    state: *anyopaque,
+    allocator: std.mem.Allocator,
+
+    /// init constructs an empty tensor-code context.
+    pub fn init(allocator: std.mem.Allocator) !Context {
+        return Context.initWithOptions(allocator, .{});
+    }
+
+    /// initWithOptions constructs a context with explicit conventions.
+    pub fn initWithOptions(allocator: std.mem.Allocator, options: ContextOptions) !Context {
+        const state = try allocator.create(Impl);
+        errdefer allocator.destroy(state);
+        state.* = Impl.init(allocator, options);
+        return .{
+            .state = state,
+            .allocator = allocator,
+        };
+    }
+
+    /// deinit releases memory owned by this context.
+    pub fn deinit(self: *Context) void {
+        const state = self.impl();
+        state.deinit();
+        self.allocator.destroy(state);
+        self.* = undefined;
+    }
+
+    /// registerAlgebra interns a Lie algebra and returns its handle.
+    pub fn registerAlgebra(self: *Context, spec: store.AlgebraSpec) !store.AlgebraHandle {
+        return self.impl().representations.internAlgebra(spec);
+    }
+
+    /// registerIrrep interns an abstract irreducible representation.
+    pub fn registerIrrep(self: *Context, algebra: store.AlgebraHandle, spec: store.IrrepSpec) !store.IrrepHandle {
+        return self.impl().representations.internIrrep(algebra, spec);
+    }
+
+    /// dualIrrep returns the registered dual representation.
+    pub fn dualIrrep(self: *Context, irrep: store.IrrepHandle) !store.IrrepHandle {
+        return self.impl().representations.dualIrrep(irrep);
+    }
+
+    /// irrepMetadata returns derived metadata for a registered irrep.
+    pub fn irrepMetadata(self: Context, irrep: store.IrrepHandle) ?store.IrrepMetadata {
+        return self.impl().representations.irrepMetadata(irrep);
+    }
+
+    /// registerRealization interns a concrete index realization of an irrep.
+    pub fn registerRealization(self: *Context, spec: realization.RealizationSpec) !realization.RealizationHandle {
+        try self.validateRealizationSpec(spec);
+        return self.impl().realizations.internRealization(spec);
+    }
+
+    /// invariantBasis generates or retrieves a compact invariant basis.
+    pub fn invariantBasis(self: *Context, request: coupling.InvariantBasisRequest) !coupling.BasisHandle {
+        try self.validateInvariantBasisRequest(request);
+        return self.impl().couplings.internBasisRequest(request);
+    }
+
+    /// renderInvariant streams one invariant in the requested convention.
+    pub fn renderInvariant(self: *Context, basis: coupling.BasisHandle, invariant: coupling.InvariantHandle, options: rendering.RenderOptions, sink: anytype) !void {
+        _ = self;
+        _ = basis;
+        _ = invariant;
+        _ = options;
+        _ = sink;
+        return error.NotImplemented;
+    }
+
+    /// evaluateInvariant streams component-evaluation data for one invariant.
+    pub fn evaluateInvariant(self: *Context, invariant: coupling.InvariantHandle, options: rendering.EvalOptions, sink: anytype) !void {
+        _ = self;
+        _ = invariant;
+        _ = options;
+        _ = sink;
+        return error.NotImplemented;
+    }
+
+    fn validateRealizationSpec(self: Context, spec: realization.RealizationSpec) !void {
+        const target_algebra = self.impl().representations.irrepAlgebra(spec.channel.irrep) orelse return error.UnknownIrrep;
+        for (spec.ambient) |ambient| {
+            const ambient_algebra = self.impl().representations.irrepAlgebra(ambient) orelse return error.UnknownIrrep;
+            if (ambient_algebra.value != target_algebra.value) return error.MixedRealizationAlgebras;
+        }
+    }
+
+    fn validateInvariantBasisRequest(self: Context, request: coupling.InvariantBasisRequest) !void {
+        if (!self.impl().representations.containsAlgebra(request.algebra)) return error.UnknownAlgebra;
+        for (request.external_legs) |leg| {
+            const leg_algebra = try self.externalLegAlgebra(leg);
+            if (leg_algebra) |algebra| {
+                if (algebra.value != request.algebra.value) return error.MixedInvariantAlgebras;
+            }
+        }
+    }
+
+    fn externalLegAlgebra(self: Context, leg: realization.ExternalLeg) !?store.AlgebraHandle {
+        return switch (leg.realization) {
+            .primitive_irrep => |irrep| self.impl().representations.irrepAlgebra(irrep) orelse return error.UnknownIrrep,
+            .handle => |handle| {
+                const irrep = self.impl().realizations.targetIrrep(handle) orelse return error.UnknownRealization;
+                return self.impl().representations.irrepAlgebra(irrep) orelse return error.UnknownIrrep;
+            },
+            .registered_name => null,
+        };
+    }
+
+    fn impl(self: Context) *Impl {
+        return @ptrCast(@alignCast(self.state));
+    }
+};
+#+end_src
+
+The private implementation record owns the flat stores.  It is not imported by
+the root API.
+
+#+begin_src zig
+const Impl = struct {
+    id: ContextId,
+    allocator: std.mem.Allocator,
+    options: ContextOptions,
+    representations: store.Store,
+    realizations: realization.Store,
+    decompositions: decomposition.Store,
+    projectors: projector.Store,
+    couplings: coupling.Store,
+
+    fn init(allocator: std.mem.Allocator, options: ContextOptions) Impl {
+        return .{
+            .id = ContextId.init(0),
+            .allocator = allocator,
+            .options = options,
+            .representations = store.Store.init(allocator, options.algebra_conventions),
+            .realizations = realization.Store.init(allocator),
+            .decompositions = decomposition.Store.init(allocator),
+            .projectors = projector.Store.init(allocator),
+            .couplings = coupling.Store.init(allocator),
+        };
+    }
+
+    fn deinit(self: *Impl) void {
+        self.couplings.deinit();
+        self.projectors.deinit();
+        self.decompositions.deinit();
+        self.realizations.deinit();
+        self.representations.deinit();
+        self.* = Impl.init(self.allocator, self.options);
+    }
+};
+#+end_src

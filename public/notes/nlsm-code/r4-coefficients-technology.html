@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>R4 Coefficient Technology</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">R4 Coefficient Technology</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org762ab0e">Literature Anchor</a></li>
+<li><a href="#orge7e6ffe">Computation Target</a></li>
+<li><a href="#orgfc8a2a9">Required Technology</a></li>
+<li><a href="#org788428c">Data Flow</a></li>
+<li><a href="#org15b9b5d">Generalization To CY3 And K3</a></li>
+<li><a href="#org4589768">Milestones</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note records the literature and implementation path for using
+<a href="/notes/nlsm-code/nlsm-code.html">NLSM-Code</a> and the current <a href="/notes/cft-code/correlators/correlators.html">Correlators</a> machinery to compute
+the \(R^4\) coefficients from the Polyakov path integral.
+</p>
+<div id="outline-container-org762ab0e" class="outline-2">
+<h2 id="org762ab0e">Literature Anchor</h2>
+<div class="outline-text-2" id="text-org762ab0e">
+<p>
+The local stringbook <a href="#ref-1" class="cite">[1]</a> uses the generalized Polyakov action
+with \(G\), \(B\), and \(\Phi\), expands about a background map in Riemann
+normal coordinates, and regularizes the worldsheet theory by dimensional
+regularization in \(d=2-\epsilon\).  The appendix fixes the renormalization
+scheme: bare couplings are written as \(\mu^{-\epsilon}\) times finite
+couplings plus minimal-subtraction poles, and the beta function is determined
+by the \(1/\epsilon\) counterterm.  The Weyl anomaly is expressed through
+hatted beta functions, differing from ordinary beta functions by total
+derivative terms and the classical dilaton contribution.
+</p>
+
+<p>
+The first old-paper layer is:
+</p>
+
+<ul class="org-ul">
+<li>Friedan <a href="#ref-2" class="cite">[2]</a> gives the general covariant renormalization
+framework: normal coordinates, metric coupling as a point in the space of
+target metrics, and beta functions as geometric tensors.</li>
+<li>Callan-Friedan-Martinec-Perry <a href="#ref-3" class="cite">[3]</a> gives the direct
+string-background statement: worldsheet conformal invariance produces the
+spacetime equations of motion.</li>
+<li>Tseytlin's anomaly and Weyl-invariance papers <a href="#ref-4" class="cite">[4]</a>
+<a href="#ref-5" class="cite">[5]</a> are the scheme references for the stringbook-style
+hatted Weyl-anomaly coefficients, \(G,B,\Phi\), and the minimal-subtraction
+organization.</li>
+<li>Metsaev-Tseytlin <a href="#ref-6" class="cite">[6]</a> checks two-loop equivalence including
+dilaton and antisymmetric tensor dependence.</li>
+</ul>
+
+<p>
+For \(R^4\), the relevant perturbative fact is that type-II corrections begin
+at order \(\alpha'^3\).  In the worldsheet supersymmetric NLSM this is a
+four-loop divergence; on Ricci-flat Kahler targets the lower-loop terms vanish
+but the four-loop term does not.
+</p>
+
+<ul class="org-ul">
+<li>Gross-Witten <a href="#ref-7" class="cite">[7]</a> fixes the tree-level \(R^4\) correction
+from four-graviton amplitudes.</li>
+<li>Grisaru-van de Ven-Zanon <a href="#ref-8" class="cite">[8]</a> gives the explicit
+\(N=1\) four-loop divergence structures.</li>
+<li>Grisaru-van de Ven-Zanon <a href="#ref-9" class="cite">[9]</a> shows that Ricci-flat Kahler
+targets are not finite at four loops.</li>
+<li>Grisaru-van de Ven-Zanon <a href="#ref-10" class="cite">[10]</a> gives the compact four-loop
+beta-function result for \(N=1,2\) NLSMs.</li>
+<li>Park-Zanon <a href="#ref-11" class="cite">[11]</a> bridges the four-loop NLSM beta function to
+the on-shell \(\alpha'^3\) low-energy effective action.</li>
+</ul>
+
+<p>
+For compact targets and later checks:
+</p>
+
+<ul class="org-ul">
+<li>Antoniadis-Ferrara-Minasian-Narain <a href="#ref-12" class="cite">[12]</a> relates
+\(R^4\) couplings to Calabi-Yau reductions and Euler-number contributions.</li>
+<li>Liu-Minasian <a href="#ref-13" class="cite">[13]</a> is a useful modern check on \(H^2R^3\) and
+compactification tests on K3 and CY3.</li>
+<li>Grimm-Mayer-Weissenbacher <a href="#ref-14" class="cite">[14]</a> is a compactification-level
+reference for reducing known eight-derivative terms on CY3.</li>
+<li>Candelas-de la Ossa-Green-Parkes <a href="#ref-15" class="cite">[15]</a> is the first
+one-modulus CY3 target: the quintic has \(h^{1,1}=1\), so the local
+curvature expansion can be fitted against one Kahler volume variable before
+moving to multi-modulus examples.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orge7e6ffe" class="outline-2">
+<h2 id="orge7e6ffe">Computation Target</h2>
+<div class="outline-text-2" id="text-orge7e6ffe">
+<p>
+The first target is not the full ten-dimensional action.  It is a local
+counterterm calculation that produces the MS-scheme beta-function tensor at
+order \(\alpha'^3\) and identifies the invariant it comes from, modulo field
+redefinitions.  The amplitude literature fixes normalization and the preferred
+string-frame invariant basis.
+</p>
+
+<p>
+The output should therefore be:
+</p>
+
+<ul class="org-ul">
+<li>a stream of divergent local terms, grouped by loop order and tensor
+invariant;</li>
+<li>the \(1/\epsilon\) counterterm \(K^{(1)}_{\mu\nu}\) or the Kahler-potential
+counterterm in the \(N=(2,2)\) case;</li>
+<li>the beta function obtained from the stringbook MS rule <a href="#ref-1" class="cite">[1]</a>;</li>
+<li>the hatted Weyl-anomaly coefficient after adding \(W_\mu,L_\mu,\Phi\)
+terms;</li>
+<li>a field-redefinition map to the amplitude-normalized \(R^4\) basis.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgfc8a2a9" class="outline-2">
+<h2 id="orgfc8a2a9">Required Technology</h2>
+<div class="outline-text-2" id="text-orgfc8a2a9">
+<ol class="org-ol">
+<li><p>
+Regulated Polyakov path integral
+</p>
+
+<p>
+Implement a scheme descriptor for the stringbook regularization
+<a href="#ref-1" class="cite">[1]</a>:
+\(d=2-\epsilon\), MS poles, \(\mu^{-\epsilon}\) coupling scaling, and the
+optional \(B\)-field epsilon-tensor prescription.  The scheme object must
+own loop-integral families and the pole-extraction rule; the correlator
+should only emit local kernel factors.
+</p></li>
+
+<li><p>
+Riemann-normal-coordinate expansion
+</p>
+
+<p>
+Build an NLSM preset that lowers background fields to polynomial
+fluctuation vertices.  The vertex stream should contain only the data used
+by the next stage: fluctuation fields, worldsheet derivatives, target
+tensors, and covariant derivatives of curvature, \(H\), and \(\Phi\).  Do
+not construct a giant expanded action term.  Emit vertices lazily by order
+in \(\xi\), derivative count, and loop budget.
+</p></li>
+
+<li><p>
+Worldsheet field content
+</p>
+
+<p>
+Start with the bosonic \(G,B,\Phi\) NLSM to reproduce one- and two-loop
+checks.  Add the \(N=(1,1)\) and \(N=(2,2)\) supersymmetric versions before
+attacking \(R^4\), because the type-II \(R^4\) term is the four-loop
+supersymmetric sigma-model effect, and CY3/K3 require the complex/Kahler
+presentation.
+</p></li>
+
+<li><p>
+Current-correlator integration
+</p>
+
+<p>
+Reuse the existing streaming Wick architecture.  The NLSM preset lowers
+RNC vertices to normal-ordered polynomial profiles in fluctuation fields.
+The generic correlator only contracts free fluctuation propagators and
+streams coefficient factors.  Tensor factors and loop kernels stay opaque,
+just as current free-boson profile factors do.
+</p></li>
+
+<li><p>
+Divergence extraction
+</p>
+
+<p>
+Add a local counterterm collector after correlator evaluation.  It should
+receive streamed diagrams, apply the selected dimensionally regulated
+kernel identities, discard finite parts unless requested, and canonicalize
+the remaining local tensor expressions.
+</p></li>
+
+<li><p>
+Tensor canonicalization
+</p>
+
+<p>
+The tensor layer must know the Riemann symmetries, Bianchi identities,
+covariant derivative commutators, Kahler index restrictions, and integration
+by parts.  It also needs a field-redefinition quotient, because beta
+functions and spacetime actions are scheme-dependent.
+</p></li>
+
+<li><p>
+Beta and Weyl-anomaly assembly
+</p>
+
+<p>
+Use the stringbook relation <a href="#ref-1" class="cite">[1]</a> between \(K^{(1)}\), beta
+functions, and hatted Weyl-anomaly coefficients.  This should be a
+deterministic post-processing step over counterterm records, not embedded in
+diagram evaluation.
+</p></li>
+
+<li><p>
+Normalization and invariant matching
+</p>
+
+<p>
+Match against known low-loop beta functions first, then against the
+Gross-Witten four-graviton \(R^4\) coefficient <a href="#ref-7" class="cite">[7]</a>.  The
+beta-function engine should report its own MS-scheme tensor; the
+string-effective-action layer translates it to \(t_8t_8R^4\),
+epsilon-epsilon terms, and compactification conventions.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org788428c" class="outline-2">
+<h2 id="org788428c">Data Flow</h2>
+<div class="outline-text-2" id="text-org788428c">
+<p>
+The efficient data flow is:
+</p>
+
+<ol class="org-ol">
+<li>background descriptor \(\to\) RNC vertex iterator;</li>
+<li>vertex tuple iterator \(\to\) Wick/correlator stream;</li>
+<li>correlator stream \(\to\) regulated loop-kernel pole extractor;</li>
+<li>pole terms \(\to\) tensor canonicalizer;</li>
+<li>counterterms \(\to\) beta functions;</li>
+<li>beta functions \(\to\) Weyl-anomaly coefficients and action matching.</li>
+</ol>
+
+<p>
+Every stage should be independently streamable.  The only large combinatorics
+are vertex tuple enumeration and Wick branching; both must be chunkable by
+loop order, field content, and target-tensor signature.
+</p>
+</div>
+</div>
+<div id="outline-container-org15b9b5d" class="outline-2">
+<h2 id="org15b9b5d">Generalization To CY3 And K3</h2>
+<div class="outline-text-2" id="text-org15b9b5d">
+<p>
+Nothing in the first implementation should assume a flat ten-dimensional
+target or a generic real Riemannian target only.  The geometry layer should
+support multiple target presentations:
+</p>
+
+<ul class="org-ul">
+<li>real Riemannian tensors for universal \(R^4\) checks;</li>
+<li>complex Kahler tensors for \(N=(2,2)\) CY3 computations;</li>
+<li>hyperkahler/K3 identities for \(N=(4,4)\) checks;</li>
+<li>product targets, so external spacetime and internal compact directions can
+be separated without changing the correlator.</li>
+</ul>
+
+<p>
+The NLSM preset should therefore expose target geometry as data:
+dimension, holonomy constraints, complex structure, Kahler form, curvature
+families, and allowed index sectors.  The same correlator and divergence
+extractor then work for \(R^4\), CY3, and K3; only the vertex generator and
+tensor quotient change.
+</p>
+
+<p>
+For compact targets, target data must also include cohomology.  The CY3
+descriptor needs Hodge numbers, harmonic-form roles, intersection numbers,
+Chern-class pairings, and a volume model.  The K3 descriptor can ship with the
+known Hodge diamond and hyperkahler form roles.  These data do not affect the
+local Wick contractions.  They affect the later projection of local curvature
+invariants onto moduli-space coordinates and large-volume observables.
+</p>
+
+<p>
+The intended CY3 data flow is:
+</p>
+
+<ol class="org-ol">
+<li>compute local curvature counterterms with the same NLSM kernels;</li>
+<li>evaluate those local invariants on a supplied numerical Ricci-flat metric;</li>
+<li>integrate/project them against the allowed harmonic forms and cycle data;</li>
+<li>fit the result as an expansion in Kahler moduli, cycle volumes, or the
+overall volume.</li>
+</ol>
+
+<p>
+The quintic should be the first integration target because \(h^{1,1}=1\).
+There is a single Kahler generator \(J\), \(\int J^3=5\), and therefore a
+one-variable large-volume fit for any scalar observable that survives the
+local \(R^4\) computation <a href="#ref-15" class="cite">[15]</a>.
+</p>
+</div>
+</div>
+<div id="outline-container-org4589768" class="outline-2">
+<h2 id="org4589768">Milestones</h2>
+<div class="outline-text-2" id="text-org4589768">
+<ol class="org-ol">
+<li>Reproduce the stringbook one-loop \(G,B,\Phi\) beta functions in the MS
+scheme <a href="#ref-1" class="cite">[1]</a>.</li>
+<li>Reproduce the known two-loop metric and torsion checks, including the
+scheme dependence of the \(B\)-field epsilon prescription.</li>
+<li>Implement \(N=(1,1)\) supersymmetric RNC vertices and verify the expected
+lower-loop cancellations.</li>
+<li>Implement \(N=(2,2)\) Kahler superspace/component vertices and reproduce
+the four-loop Ricci-flat Kahler non-finiteness result.</li>
+<li>Match the resulting order-\(\alpha'^3\) beta-function tensor to the
+\(R^4\) invariant basis and calibrate normalization against the amplitude
+result.</li>
+<li>Add K3 and CY3 cohomology descriptors, including the known K3 Hodge diamond.</li>
+<li>Run the same machinery with CY3 and K3 tensor quotients, producing local
+correction terms ready for compactification integrals.</li>
+<li>Use the quintic as the first numerical large-volume fit target
+<a href="#ref-15" class="cite">[15]</a>.</li>
+</ol>
+
+<div class="references"><h2>References</h2><ol>
+<li id="ref-1">Yin, Xi (2026). <em>String Theory</em>. <a href="https://github.com/xiyin137/stringbook">github.com/xiyin137/stringbook</a></li>
+<li id="ref-2">Friedan, Daniel Harry (1985). <em>Nonlinear Models in 2 + epsilon Dimensions</em>, Annals of Physics <b>163</b>, 318--419. doi:<a href="https://doi.org/10.1016/0003-4916(85)90384-7">10.1016/0003-4916(85)90384-7</a></li>
+<li id="ref-3">Callan, Curtis G. and Friedan, Daniel and Martinec, Emil J. and Perry, Malcolm J. (1985). <em>Strings in Background Fields</em>, Nuclear Physics B <b>262</b>, 593--609. doi:<a href="https://doi.org/10.1016/0550-3213(85)90506-1">10.1016/0550-3213(85)90506-1</a></li>
+<li id="ref-4">Tseytlin, Arkady A. (1986). <em>Conformal Anomaly in Two-Dimensional Sigma Model on Curved Background and Strings</em>, Physics Letters B <b>178</b>, 34. doi:<a href="https://doi.org/10.1016/0370-2693(86)90465-X">10.1016/0370-2693(86)90465-X</a></li>
+<li id="ref-5">Tseytlin, Arkady A. (1987). <em>Sigma Model Weyl Invariance Conditions and String Equations of Motion</em>, Nuclear Physics B <b>294</b>, 383--411. doi:<a href="https://doi.org/10.1016/0550-3213(87)90588-8">10.1016/0550-3213(87)90588-8</a></li>
+<li id="ref-6">Metsaev, R. R. and Tseytlin, Arkady A. (1987). <em>Order Alpha-Prime Two Loop Equivalence of the String Equations of Motion and the Sigma Model Weyl Invariance Conditions: Dependence on the Dilaton and the Antisymmetric Tensor</em>, Nuclear Physics B <b>293</b>, 385--419. doi:<a href="https://doi.org/10.1016/0550-3213(87)90077-0">10.1016/0550-3213(87)90077-0</a></li>
+<li id="ref-7">Gross, David J. and Witten, Edward (1986). <em>Superstring Modifications of Einstein's Equations</em>, Nuclear Physics B <b>277</b>, 1--10. doi:<a href="https://doi.org/10.1016/0550-3213(86)90429-3">10.1016/0550-3213(86)90429-3</a></li>
+<li id="ref-8">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Divergences for the N=1 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Nuclear Physics B <b>277</b>, 409--428. doi:<a href="https://doi.org/10.1016/0550-3213(86)90449-9">10.1016/0550-3213(86)90449-9</a></li>
+<li id="ref-9">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Two-Dimensional Supersymmetric Sigma Models on Ricci Flat Kahler Manifolds Are Not Finite</em>, Nuclear Physics B <b>277</b>, 388--408. doi:<a href="https://doi.org/10.1016/0550-3213(86)90448-7">10.1016/0550-3213(86)90448-7</a></li>
+<li id="ref-10">Grisaru, Marcus T. and van de Ven, A. E. M. and Zanon, D. (1986). <em>Four Loop Beta Function for the N=1 and N=2 Supersymmetric Nonlinear Sigma Model in Two-Dimensions</em>, Physics Letters B <b>173</b>, 423--428. doi:<a href="https://doi.org/10.1016/0370-2693(86)90408-9">10.1016/0370-2693(86)90408-9</a></li>
+<li id="ref-11">Park, Q. and Zanon, D. (1987). <em>More on Sigma-Model Beta Functions and Low-Energy Effective Actions</em>, Physical Review D <b>35</b>, 4038. doi:<a href="https://doi.org/10.1103/PhysRevD.35.4038">10.1103/PhysRevD.35.4038</a></li>
+<li id="ref-12">Antoniadis, Ignatios and Ferrara, Sergio and Minasian, Ruben and Narain, K. S. (1997). <em>R4 Couplings in M and Type II Theories on Calabi-Yau Spaces</em>, Nuclear Physics B <b>507</b>, 571--588. doi:<a href="https://doi.org/10.1016/S0550-3213(97)00572-5">10.1016/S0550-3213(97)00572-5</a></li>
+<li id="ref-13">Liu, James T. and Minasian, Ruben (2021). <em>Higher-Derivative Couplings in String Theory: Five-Point Contact Terms</em>, Nuclear Physics B <b>967</b>, 115386. doi:<a href="https://doi.org/10.1016/j.nuclphysb.2021.115386">10.1016/j.nuclphysb.2021.115386</a></li>
+<li id="ref-14">Grimm, Thomas W. and Mayer, Kilian and Weissenbacher, Matthias (2018). <em>Higher Derivatives in Type II and M-Theory on Calabi-Yau Threefolds</em>, Journal of High Energy Physics <b>02</b>, 127. doi:<a href="https://doi.org/10.1007/JHEP02(2018)127">10.1007/JHEP02(2018)127</a></li>
+<li id="ref-15">Candelas, Philip and de la Ossa, Xenia C. and Green, Paul S. and Parkes, Linda (1991). <em>A Pair of Calabi-Yau Manifolds as an Exactly Soluble Superconformal Theory</em>, Nuclear Physics B <b>359</b>, 21--74. doi:<a href="https://doi.org/10.1016/0550-3213(91)90292-6">10.1016/0550-3213(91)90292-6</a></li>
+</ol></div>
+</div>
+</div>
+</div>
+</body>
+</html>

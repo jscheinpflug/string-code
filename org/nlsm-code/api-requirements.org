@@ -1,0 +1,507 @@
+:PROPERTIES:
+:ID:       20260609T123000.000000
+:END:
+#+title: NLSM API Requirements
+#+bibliography: ../refs.bib
+
+This note records the exact API surface required by the [[id:20260609T120000.000000][R4 Coefficient Technology]]
+pipeline after inspecting the current CFT and tensor modules.
+
+* Existing Surface We Can Reuse
+
+The usable runtime boundary is [[id:20260606T150002.000000][CFT Kernel]] =Call.MultiOp=:
+
+#+begin_src zig :tangle no
+pub const MultiOp = struct {
+    operators: []const LocalOp,
+    labels: *const LabelStore,
+};
+
+pub const LocalOp = struct {
+    insertion: operators.OperatorInsertion,
+    kind: operators.OperatorKindId,
+    labels: theory.Id.LabelSpan,
+    normal_order_group: u16 = 0,
+};
+
+pub const LabelValue = union(enum) {
+    integer: i64,
+    rational: RationalLabel,
+    tensor: tensor.TensorExprId,
+    symbol: u32,
+};
+#+end_src
+
+The current [[id:20260606T183100.000000][Preset Shared Runtime]] already gives preset authors:
+
+- opaque local builder tokens;
+- coordinate, index, momentum, profile, target-point, profile-coefficient,
+  tensor-projector, boundary-stack handles;
+- profile presentations =position_space=, =fourier=, and =polynomial_rnc=;
+- Wick rule terms containing scalar, coordinate, tensor, action, and residual
+  factors;
+- named Green kernels and differentiated coordinate kernels;
+- zero-mode profile factors for Fourier, polynomial/RNC, and residual
+  Gaussian presentations;
+- product and boundary config merging for ordinary CFT/BCFT factors.
+
+For NLSM, this means the free fluctuation correlator should not be a new
+generic correlator.  The RNC path should lower vertices to explicit field
+occurrences with attached tensor/coefficient data.  The elementary Wick pair
+is then \(\xi\xi\), \(\psi\psi\), or the corresponding free fluctuation pair,
+and the pair operation consumes both occurrences.
+
+* Immediate Gaps
+
+The current API is insufficient in four exact places.
+
+1. Tensor factors are flat-space oriented.
+
+   Current Wick tensor factors cover metric, momentum-index, momentum-pair,
+   and projector variants.  RNC and \(R^4\) need curvature tensors, covariant
+   derivatives, Kahler projections, holomorphic/antiholomorphic index
+   families, epsilon tensors, and field-redefinition markers.
+
+   CY3/K3 calculations also need target-topology data that is not a local
+   tensor factor: Hodge numbers, harmonic-form roles, intersection numbers,
+   Chern-class pairings, and volume coordinates.  This data is consumed by
+   projection and large-volume fitting after local tensor canonicalization.
+
+2. The coefficient layer has no local counterterm or pole object.
+
+   =Coefficient= can carry coordinate kernels, but the dimensional
+   regularization step needs a stream of local pole terms:
+   loop-integral family, \(1/\epsilon^n\) pole, local derivative order, and
+   target tensor expression.
+
+3. Tensor-code is representation-theory oriented, not differential geometry
+   oriented.
+
+   It can produce invariant bases for Lie-algebra representations, but it does
+   not canonicalize Riemann tensors, Bianchi identities, Kahler restrictions,
+   covariant-derivative commutators, integration by parts, or field
+   redefinitions.
+
+4. The current public preset root has no NLSM namespace.
+
+   =cft-code.zig= exports =FreeBoson=, =Bc=, =FreeFermion=, =EtaXi=,
+   =product=, and =boundary=.  NLSM should be exported as a new compact root
+   namespace rather than as public shared-runtime internals.
+
+* Required Public NLSM API
+
+The public root should follow the existing preset style:
+
+#+begin_src zig :tangle no
+pub const NLSM = preset_impl.NLSM;
+#+end_src
+
+The public constructors should be minimal:
+
+#+begin_src zig :tangle no
+pub const NLSM = struct {
+    /// bosonic builds the regulated bosonic G,B,Phi sigma-model preset.
+    pub const bosonic = nlsm.bosonic;
+
+    /// supersymmetric builds N=(1,1), N=(2,2), or N=(4,4) sigma-model data.
+    pub const supersymmetric = nlsm.supersymmetric;
+
+    /// geometry groups target-geometry descriptor constructors.
+    pub const geometry = nlsm_geometry;
+
+    /// scheme groups regulator and subtraction-scheme constructors.
+    pub const scheme = nlsm_scheme;
+
+    /// counterterms exposes local pole extraction and beta-function assembly.
+    pub const counterterms = nlsm_counterterms;
+};
+#+end_src
+
+* Geometry API
+
+Geometry must be data, not behavior hidden inside the correlator.  The NLSM
+vertex generator receives only a compact geometry descriptor.
+
+#+begin_src zig :tangle no
+pub const TargetGeometry = opaque {};
+pub const GeometryHandle = enum(u32) { _ };
+pub const TargetIndex = enum(u32) { _ };
+pub const TensorAtom = enum(u32) { _ };
+
+pub const GeometryKind = enum {
+    real_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+    product,
+};
+
+pub const Holonomy = enum {
+    generic,
+    su,
+    sp,
+};
+
+pub const GeometryConfig = struct {
+    kind: GeometryKind,
+    real_dimension: u16,
+    complex_dimension: ?u16 = null,
+    holonomy: Holonomy = .generic,
+    topology: ?TopologyHandle = null,
+};
+
+pub const TopologyHandle = enum(u32) { _ };
+pub const HodgeDiamondId = enum(u32) { _ };
+pub const HarmonicFormId = enum(u32) { _ };
+
+pub const HodgeNumber = struct {
+    p: u8,
+    q: u8,
+    value: u16,
+};
+
+pub const HarmonicForm = struct {
+    degree: u8,
+    hodge_p: u8,
+    hodge_q: u8,
+    role: enum {
+        kahler_modulus,
+        complex_structure_modulus,
+        holomorphic_volume,
+        hyperkahler_triplet,
+        other,
+    },
+};
+
+pub const IntersectionNumber = struct {
+    forms: []const HarmonicFormId,
+    coefficient: RationalId,
+};
+
+pub const VolumeModel = union(enum) {
+    none,
+    cubic_kahler: struct { kahler_forms: []const HarmonicFormId },
+    overall_volume: struct { symbol: u32 },
+};
+
+pub const LargeVolumeFitRequest = struct {
+    target: GeometryHandle,
+    observables: []const LocalCountertermKind,
+    variables: []const HarmonicFormId,
+    metric_samples: []const NumericalMetricSampleId,
+};
+
+pub const NumericalMetricSampleId = enum(u32) { _ };
+
+pub fn realRiemannian(comptime dimension: u16) type;
+pub fn kahler(comptime complex_dimension: u16) type;
+pub fn calabiYau(comptime complex_dimension: u16) type;
+pub fn k3() type;
+pub fn quintic() type;
+pub fn product(comptime factors: anytype) type;
+#+end_src
+
+Each generated geometry type should expose stable tensor atoms:
+
+#+begin_src zig :tangle no
+pub const tensor = struct {
+    pub const metric: TensorAtom;
+    pub const inverse_metric: TensorAtom;
+    pub const riemann: TensorAtom;
+    pub const covariant_derivative_riemann: TensorAtom;
+    pub const h_flux: TensorAtom;
+    pub const dilaton_derivative: TensorAtom;
+    pub const kahler_form: ?TensorAtom;
+    pub const complex_structure: ?TensorAtom;
+    pub const holomorphic_volume_form: ?TensorAtom;
+};
+#+end_src
+
+The essential point is that \(R^4\), CY3, and K3 all differ at the tensor
+quotient layer.  They should not require different correlator code.
+
+For compact targets they also differ at the topology/projection layer.  The
+local counterterm kernel should not know Hodge diamonds or intersection
+numbers.  Those data are attached to the target descriptor and used by the
+large-volume fit layer.
+
+* Scheme API
+
+The regulator must model the stringbook scheme explicitly [cite:@yinStringbook]:
+
+#+begin_src zig :tangle no
+pub const DimRegMS = struct {
+    epsilon_symbol: u32,
+    mu_symbol: u32,
+    dimension: struct {
+        base: u16 = 2,
+        epsilon_sign: enum { minus, plus } = .minus,
+    } = .{},
+    subtract: enum { minimal, modified_minimal } = .minimal,
+    b_field_epsilon: BFieldEpsilonScheme = .none,
+};
+
+pub const BFieldEpsilonScheme = union(enum) {
+    none,
+    frame_epsilon: struct { f_epsilon_symbol: u32 },
+};
+
+pub fn stringbookMS() DimRegMS;
+#+end_src
+
+This descriptor is consumed by loop-pole extraction and beta assembly.  Wick
+rules should only emit named Green-kernel factors; they should not decide how
+dimensional regularization extracts poles.
+
+* RNC Vertex API
+
+RNC expansion should be a streaming vertex generator.  It should never build a
+full expanded action as one symbolic expression.
+
+#+begin_src zig :tangle no
+pub const RncRequest = struct {
+    max_xi_order: u8,
+    max_loop_order: u8,
+    include_b_field: bool = false,
+    include_dilaton: bool = false,
+    worldsheet: WorldsheetModel,
+};
+
+pub const WorldsheetModel = enum {
+    bosonic,
+    n1_1,
+    n2_2,
+    n4_4,
+};
+
+pub const VertexId = u32;
+pub const VertexField = struct {
+    kind: FieldKind,
+    target_index: TargetIndex,
+    worldsheet_derivatives: WorldsheetDerivatives,
+};
+
+pub const FieldKind = enum {
+    xi,
+    psi,
+    psit,
+    auxiliary,
+};
+
+pub const WorldsheetDerivatives = packed struct {
+    holomorphic: u4 = 0,
+    antiholomorphic: u4 = 0,
+};
+
+pub const VertexTensor = struct {
+    atom: TensorAtom,
+    indices: []const TargetIndex,
+    covariant_derivatives: u8 = 0,
+};
+
+pub const VertexSink = struct {
+    pub fn beginVertex(id: VertexId, order: u8, scalar: anytype) !void;
+    pub fn emitField(field: VertexField) !void;
+    pub fn emitTensor(tensor: VertexTensor) !void;
+    pub fn endVertex() !void;
+};
+
+pub fn streamRncVertices(
+    comptime Geometry: type,
+    scheme: nlsm_scheme.DimRegMS,
+    request: RncRequest,
+    sink: anytype,
+) !void;
+#+end_src
+
+This API gives the later diagram enumerator compact vertices with exactly the
+data it needs: fields to contract and target tensors to keep.
+
+* NLSM Diagram/Contraction API
+
+The RNC calculation should not represent one interaction vertex as one
+composite local operator and then ask Wick contractions to return residual
+remainders.  The vertex iterator already knows the fields inside a vertex, so
+the diagram engine should track field occurrences directly.  A primitive pair
+contraction consumes both endpoints and emits only coefficient, coordinate,
+and tensor factors.
+
+#+begin_src zig :tangle no
+pub const VertexOccurrence = struct {
+    vertex: VertexId,
+    field_index: u16,
+    field: VertexField,
+};
+
+pub const ContractionPair = struct {
+    left: VertexOccurrence,
+    right: VertexOccurrence,
+};
+
+pub const ContractionTerm = struct {
+    scalar: ScalarFactorId,
+    coordinate: coefficient.CoordinateFactor,
+    tensor: GeometryTensorExprId,
+};
+
+pub fn emitContraction(
+    scheme: nlsm_scheme.DimRegMS,
+    pair: ContractionPair,
+    sink: anytype,
+) !void;
+#+end_src
+
+Uncontracted occurrences at the end of a vacuum counterterm branch are not
+Wick residuals; they are an invalid branch unless the request explicitly asks
+for an insertion or external composite operator.  Background tensors attached
+to vertices are carried by the branch accumulator, not by residual local
+operators.
+
+The existing =wickCorrelator= residual API remains relevant to current
+free-boson profile/exponential presets.  It is not a prerequisite for the
+RNC/NLSM \(R^4\) pipeline.
+
+* Counterterm API
+
+Counterterm extraction sits after correlator streaming.  It consumes branches,
+applies scheme-dependent local pole identities, and emits compact local tensor
+terms.
+
+#+begin_src zig :tangle no
+pub const CountertermRequest = struct {
+    loop_order: u8,
+    pole_order: u8 = 1,
+    local_operator: LocalCountertermKind,
+    tensor_basis: TensorCanonicalization,
+};
+
+pub const LocalCountertermKind = enum {
+    metric_beta,
+    b_field_beta,
+    dilaton_beta,
+    kahler_potential_beta,
+    scalar_effective_action,
+};
+
+pub const PoleTerm = struct {
+    pole_order: u8,
+    loop_order: u8,
+    scalar: ScalarFactorId,
+    tensor: GeometryTensorExprId,
+    derivative_order: u8,
+};
+
+pub fn streamPoleTerms(
+    scheme: nlsm_scheme.DimRegMS,
+    branches: anytype,
+    request: CountertermRequest,
+    sink: anytype,
+) !void;
+#+end_src
+
+This must be stream-first.  The four-loop \(N=(2,2)\) calculation will be too
+large to materialize as a complete symbolic expression.
+
+* Geometry Tensor Canonicalization API
+
+Do not route Riemann canonicalization through the existing Lie-algebra
+invariant-basis API.  Add a geometry tensor store with a small public
+boundary:
+
+#+begin_src zig :tangle no
+pub const GeometryTensorExprId = u32;
+
+pub const TensorCanonicalization = struct {
+    presentation: enum {
+        real_riemannian,
+        kahler,
+        hyperkahler,
+        product,
+    },
+    quotient: []const TensorRelationSet,
+    field_redefinitions: FieldRedefinitionPolicy = .track,
+};
+
+pub const TensorRelationSet = enum {
+    metric_compatibility,
+    riemann_symmetry,
+    first_bianchi,
+    second_bianchi,
+    kahler_type,
+    kahler_bianchi,
+    hyperkahler_identities,
+    integration_by_parts,
+    equations_of_motion,
+};
+
+pub const FieldRedefinitionPolicy = enum {
+    keep_all,
+    quotient,
+    track,
+};
+
+pub fn canonicalizeGeometryTensor(
+    geometry: GeometryHandle,
+    expr: GeometryTensorExprId,
+    options: TensorCanonicalization,
+    sink: anytype,
+) !void;
+#+end_src
+
+The existing [[id:20260605T075909.433647][Tensor-Code]] remains useful for spinor, gamma-matrix, and invariant
+tensor structures.  Differential-geometry tensors need their own
+canonicalizer.
+
+* Beta Function API
+
+The beta assembly should be deterministic post-processing over pole terms:
+
+#+begin_src zig :tangle no
+pub const BetaRequest = struct {
+    scheme: nlsm_scheme.DimRegMS,
+    target: LocalCountertermKind,
+    include_hatted_weyl_terms: bool = true,
+    field_frame: FieldFrame = .minimal_subtraction,
+};
+
+pub const FieldFrame = enum {
+    minimal_subtraction,
+    string_frame,
+    einstein_frame,
+    amplitude_matched,
+};
+
+pub const BetaTerm = struct {
+    target: LocalCountertermKind,
+    alpha_prime_order: u8,
+    tensor: GeometryTensorExprId,
+    field_redefinition_class: u32,
+};
+
+pub fn assembleBetaFunctions(
+    poles: anytype,
+    request: BetaRequest,
+    sink: anytype,
+) !void;
+#+end_src
+
+This API encodes the stringbook rule [cite:@yinStringbook] that the MS beta
+function is determined by the \(1/\epsilon\) counterterm, while hatted Weyl
+coefficients include total-derivative and dilaton terms.
+
+* Minimum Implementation Order
+
+1. Add =NLSM= root export and empty constructor namespace.
+2. Add geometry descriptors and tensor atoms for real, Kahler, CY3, and K3
+   targets.
+3. Add =streamRncVertices= for bosonic \(G\)-only vertices through quartic
+   order in \(\xi\).
+4. Add a counterterm sink that can recognize one-loop poles and reproduce the
+   stringbook \(R_{\mu\nu}\) beta function [cite:@yinStringbook].
+5. Add the contraction-only RNC diagram enumerator over vertex occurrences.
+6. Add supersymmetric field kinds and reproduce lower-loop cancellations.
+7. Add geometry tensor canonicalization for Kahler and hyperkahler quotients.
+8. Run the four-loop \(N=(2,2)\) Ricci-flat Kahler target calculation and
+   match the \(R^4\) coefficient modulo field redefinitions.
+
+#+print_bibliography:

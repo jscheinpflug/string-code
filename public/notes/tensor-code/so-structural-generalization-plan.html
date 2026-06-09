@@ -1,0 +1,1285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SO Structural Generalization Plan</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">SO Structural Generalization Plan</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org2234fb7">Fresh Agent Starting Context</a></li>
+<li><a href="#orgba99f9c">Goal</a></li>
+<li><a href="#org48dacb1">Scope Boundary</a></li>
+<li><a href="#org2a8f577">Data Model</a></li>
+<li><a href="#orga0308ee">Descriptor Parsing</a></li>
+<li><a href="#org751685a">Formula Routing</a></li>
+<li><a href="#org106467b">Stage 1: Refactor The Current Sector</a>
+<ul>
+<li><a href="#orgef6129f">Stage 1 Bridge Strategy</a></li>
+</ul>
+</li>
+<li><a href="#orge34a67d">Stage 2: Delete The Structural Taxonomy</a></li>
+<li><a href="#org78c0e37">Stage 3: Pure Tensor Young Shapes</a></li>
+<li><a href="#org177845c">Stage 4: Mixed Tensor With Forms</a></li>
+<li><a href="#org577be21">Stage 5: Mixed Tensor With Spinors</a></li>
+<li><a href="#org0c56046">Structural Program Cache</a></li>
+<li><a href="#orged5ab7f">Coverage Audits</a></li>
+<li><a href="#orgfe4f66d">Tests</a></li>
+<li><a href="#orgd169c09">Implementation Order</a></li>
+<li><a href="#org9bec3d0">Non-Goals For The Next Goal</a></li>
+<li><a href="#org753160e">Success Criterion</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note is the implementation reference for the next goal.  It refines
+<a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a> and
+<a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a> into a staged
+plan for the orthogonal backend in <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>.
+It keeps the Spin(10) \(16^{12}\) workload from
+<a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a> as the non-regression
+gate, while extending the representation model toward general \(SO(N)\)
+tensor labels.
+</p>
+
+<p>
+The implementation follows <code>AGENTS.md</code>: simple procedural Zig, lean fixed-size
+records, streamed expressions only, minimal public API, and tests only for
+precise mathematical invariants.  No stage may allocate the full expanded
+\(73744\)-element basis or a full local expression tree.
+</p>
+<div id="outline-container-org2234fb7" class="outline-2">
+<h2 id="org2234fb7">Fresh Agent Starting Context</h2>
+<div class="outline-text-2" id="text-org2234fb7">
+<p>
+Start from the literate files and keep tangled Zig in sync:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">org/tensor-code/context.org                  -&gt; src/tensor-code/context.zig
+org/tensor-code/projector-constructor.org    -&gt; src/tensor-code/projector-constructor.zig
+org/tensor-code/projector.org                -&gt; src/tensor-code/projector.zig
+org/tensor-code/rendering.org                -&gt; src/tensor-code/rendering.zig
+</pre>
+</div>
+
+<p>
+The immediate implementation target is Stage 1 only.  Do not start pure
+Young-shape tensor support while the current form/spinor/tower sector still
+depends on the old channel taxonomy.
+</p>
+
+<p>
+The relevant current code entry points are:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">context.zig:
+  localProductFormulaKind
+  localProductFormulaAudit
+  appendLocalFormulaStepAtomForKind
+  localFormulaStepTermCount
+  appendLocalFormulaProjectionStepTerm
+  basisFormulaCoverageAudit
+  orthogonalFormInfo / ordinaryTensorFormInfo
+  spinorTowerInfo / orthogonalTensorSpinorInfo
+
+projector-constructor.zig:
+  TensorFormProjectionProgramCache
+  TensorSpinorProjectionProgramCache
+  StructuralProjectorSpec
+  structuralProjectorTermCount
+  appendStructuralProjectorTerm
+  enumerateOrthogonalStructuralCandidateWords
+  generateOrthogonalStructuralPrimitiveEffects
+  compileStructuralProjectorProgram
+
+projector.zig:
+  ProjectorFormulaKind
+  ProjectorFormulaAudit
+</pre>
+</div>
+
+<p>
+The current structural implementation already has the right inner shape:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">endpoint spec -&gt; candidate words -&gt; exact Gram program -&gt; streamed term
+</pre>
+</div>
+
+<p>
+The problem is the outer routing: production code still names many narrow
+orthogonal tensor-spinor/tensor-form channel families.  Stage 1 should replace
+that route selection by one descriptor/cache path for the already-supported
+form/spinor/tower sector.
+</p>
+
+<p>
+If the current branch's coverage audit allows missing structural formulas, do
+not treat that as the target behavior.  The goal reinstates the strict gate:
+the Spin(10) \(16^{12}\) basis must stream fully expanded with no missing local
+steps and no compact projector placeholders.
+</p>
+</div>
+</div>
+<div id="outline-container-orgba99f9c" class="outline-2">
+<h2 id="orgba99f9c">Goal</h2>
+<div class="outline-text-2" id="text-orgba99f9c">
+<p>
+Replace the current Spin(10)-shaped local formula taxonomy by one
+dimension-parametric orthogonal structural projector path.
+</p>
+
+<p>
+The first useful slice is not the full \(SO(N)\) tensor problem.  It is the
+current exterior-form/spinor sector, because that sector already produces the
+\(73744\) Spin(10) \(16^{12}\) invariant basis.  Once this workload is routed
+through a single descriptor and exact Gram program cache, the same descriptor
+can be widened to pure tensor and mixed tensor-form-spinor labels.
+</p>
+
+<p>
+The target pipeline is:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">Dynkin labels
+  -&gt; orthogonal descriptor
+  -&gt; local structural channel
+  -&gt; primitive candidate words
+  -&gt; exact Gram matrix and independent pivots
+  -&gt; streamed inverse-Gram projector terms
+  -&gt; primitive symbolic atoms
+</pre>
+</div>
+
+<p>
+Expanded rendering must emit primitive symbolic atoms only.  It must not emit:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">named_operator(projector)
+tensor_spinor_projection
+tensor_form_projection
+young_projector
+any unresolved compact projector placeholder
+</pre>
+</div>
+
+<p>
+Allowed primitive atoms are explicit gamma, metric, delta, spinor-pair,
+Hodge/epsilon, Clifford-product-factor, permutation, and trace-contraction
+atoms, with rational coefficients.
+</p>
+</div>
+</div>
+<div id="outline-container-org48dacb1" class="outline-2">
+<h2 id="org48dacb1">Scope Boundary</h2>
+<div class="outline-text-2" id="text-org48dacb1">
+<p>
+The plan targets \(B_n\) and \(D_n\), i.e. \(SO(2n+1)\), \(SO(2n)\), and their
+spin covers where spinors occur.  It does not attempt generic ADE projector
+construction.
+</p>
+
+<p>
+The eventual \(SO(N)\) descriptor should cover:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">scalar
+vector Young shape
+exterior form profile
+spinor chirality and spinor tower
+mixed tensor-form-spinor profile
+middle-form duality in D_n
+</pre>
+</div>
+
+<p>
+The first implementation stage covers the current form/spinor/tower sector.
+Pure tensor labels such as <code>[2,0,0,0,0]</code> and mixed tensor labels such as
+<code>[1,1,0,0,0]</code> are added only after the descriptor route has preserved full
+\(16^{12}\) expansion.
+</p>
+
+<p>
+Large local shapes may exceed fixed constructor limits.  Such cases must return
+a typed unsupported error in expanded mode.  They must not silently fall back to
+compact placeholders.
+</p>
+</div>
+</div>
+<div id="outline-container-org2a8f577" class="outline-2">
+<h2 id="org2a8f577">Data Model</h2>
+<div class="outline-text-2" id="text-org2a8f577">
+<p>
+The central new object is a private orthogonal descriptor.  It is not a public
+API.  It is the small record that lets the context classify a local product
+without naming every special family.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalIrrepKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    scalar,
+    form_profile,
+    vector_young_shape,
+    spinor_tower,
+    tensor_spinor,
+    unsupported,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalIrrepDescriptor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalIrrepKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+
+    <span style="color: #ebdbb2; font-weight: bold; font-style: italic;">// </span><span style="color: #ebdbb2; font-weight: bold; font-style: italic;">Exterior/form sector.  A rank-r form is a one-column Young block.
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_profile</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_total_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_duality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.DualityTag</span> = .none,
+
+    <span style="color: #ebdbb2; font-weight: bold; font-style: italic;">// </span><span style="color: #ebdbb2; font-weight: bold; font-style: italic;">Tensor sector.  Keep shapes compact and bounded.
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">young_row_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">young_rows</span>: [max_young_rows]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{0} ** max_young_rows,
+
+    <span style="color: #ebdbb2; font-weight: bold; font-style: italic;">// </span><span style="color: #ebdbb2; font-weight: bold; font-style: italic;">Spin sector.  Chirality 0 means no chirality or unknown.
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">has_spinor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">chirality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tower_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+};
+</pre>
+</div>
+
+<p>
+Use fixed arrays and bit-packed profiles because this data is visited for every
+local coupling step.  Heap allocation is not needed for the common rank sizes
+in the current workload.
+</p>
+
+<p>
+The local structural channel is just three descriptors plus index locations:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalStructuralStep</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalEndpoint</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalEndpoint</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalEndpoint</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalEndpoint</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">irrep</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalIrrepDescriptor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+};
+</pre>
+</div>
+
+<p>
+This descriptor replaces production dependence on enum names like
+<code>orthogonal_tensor_spinor_opposite_form_tower_shift_down_channel</code>.  Those names
+may remain briefly as bridges while the descriptor path reaches full coverage,
+but they should not be the final routing API.
+</p>
+</div>
+</div>
+<div id="outline-container-orga0308ee" class="outline-2">
+<h2 id="orga0308ee">Descriptor Parsing</h2>
+<div class="outline-text-2" id="text-orga0308ee">
+<p>
+The parser must be cheap.  It runs during formula classification and coverage
+audits.  It must not compile a Gram program just to decide whether a local
+route is possible.
+</p>
+
+<p>
+Parsing order:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">1. reject non-B/D families
+2. parse scalar
+3. parse known exterior forms and middle forms
+4. parse spinor or spinor tower
+5. parse form-profile plus spinor tower
+6. parse vector Young shape
+7. otherwise unsupported
+</pre>
+</div>
+
+<p>
+Possible structure:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">orthogonalIrrepDescriptor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">simple</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>)
+    OrthogonalIrrepDescriptor
+{
+    <span style="color: #fb4934; font-weight: bold;">if</span> (label.len != simple.rank) <span style="color: #fb4934; font-weight: bold;">return</span> unsupportedDescriptor();
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (simple.family) {
+        .b, .d =&gt; {},
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> unsupportedDescriptor(),
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span> = rendering.orthogonalDimension(simple);
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (isZeroDynkin(label)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .kind = .scalar, .dimension = dimension };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (orthogonalFormInfo(simple, label)) |form| {
+        <span style="color: #fb4934; font-weight: bold;">return</span> descriptorFromSingleForm(dimension, form);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (orthogonalTensorSpinorInfo(simple, label)) |info| {
+        <span style="color: #fb4934; font-weight: bold;">return</span> descriptorFromTensorSpinor(dimension, info);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spinorTowerInfo(simple, label)) |tower| {
+        <span style="color: #fb4934; font-weight: bold;">return</span> descriptorFromSpinorTower(dimension, tower);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (ordinaryTensorFormInfo(simple, label)) |forms| {
+        <span style="color: #fb4934; font-weight: bold;">return</span> descriptorFromFormProfile(dimension, forms);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (orthogonalYoungShape(simple, label)) |shape| {
+        <span style="color: #fb4934; font-weight: bold;">return</span> descriptorFromYoungShape(dimension, shape);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> unsupportedDescriptor();
+}
+</pre>
+</div>
+
+<p>
+The final <code>orthogonalYoungShape</code> parser is a later stage.  For Stage 1 it can
+return <code>null</code> for labels outside the current form/spinor sector.
+</p>
+</div>
+</div>
+<div id="outline-container-org751685a" class="outline-2">
+<h2 id="org751685a">Formula Routing</h2>
+<div class="outline-text-2" id="text-org751685a">
+<p>
+The current context-side route selection is a long ordered list of recognizers.
+Replace the structural part with one structural descriptor check.
+</p>
+
+<p>
+The final route classifier should have this shape:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">localProductFormulaKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Impl</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">step</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.CouplingStep</span>)
+    projector.ProjectorFormulaKind
+{
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isIdentityProductStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .identity;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isOrthogonalVectorMetricStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_vector_metric;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isOrthogonalSpinorPairSingletStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_spinor_pair;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isOrthogonalSpinorSpinorVectorStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_spinor_form_channel;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.orthogonalSpinorSpinorFormStep(step) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_spinor_form_channel;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isOrthogonalFormPairSingletStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_form_pair;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.orthogonalFormSpinorStep(step) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_form_spinor_channel;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isCartanProductStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .cartan_product_channel;
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.orthogonalStructuralStep(step, 0, 1, 2) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .orthogonal_structural_projection;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isA2FundamentalPairToAntiFundamentalStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isA2AntiFundamentalFundamentalSingletStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isE6FundamentalPairToDualFundamentalStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isE6DualFundamentalFundamentalSingletStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isSimpleAdjointAdjointStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (self.isSimpleAdjointPairSingletStep(step)) <span style="color: #fb4934; font-weight: bold;">return</span> .backend_specific_structure;
+    <span style="color: #fb4934; font-weight: bold;">return</span> .named_only;
+}
+</pre>
+</div>
+
+<p>
+The structural route is accepted only when the descriptor is in the supported
+sector and the right endpoint is an admissible local factor for the current
+constructor stage.
+</p>
+</div>
+</div>
+<div id="outline-container-org106467b" class="outline-2">
+<h2 id="org106467b">Stage 1: Refactor The Current Sector</h2>
+<div class="outline-text-2" id="text-org106467b">
+<p>
+Stage 1 is the high-value refactor.  It covers the existing exterior
+form/spinor/tower workload and must preserve full Spin(10) \(16^{12}\)
+expanded streaming.
+</p>
+
+<p>
+Implementation tasks:
+</p>
+
+<ol class="org-ol">
+<li>Add <code>orthogonal_structural_projection</code> to <code>ProjectorFormulaKind</code>.</li>
+<li>Add <code>OrthogonalIrrepDescriptor</code> and <code>OrthogonalStructuralStep</code> privately in
+the context or a private helper section.</li>
+<li>Implement descriptor construction for the current supported sector using
+existing helpers:
+<ul class="org-ul">
+<li><code>orthogonalFormInfo</code></li>
+<li><code>outputFormSetInfo</code></li>
+<li><code>ordinaryTensorFormInfo</code></li>
+<li><code>spinorTowerInfo</code></li>
+<li><code>orthogonalTensorSpinorInfo</code></li>
+</ul></li>
+<li>Convert <code>OrthogonalStructuralStep</code> to
+<code>projector_constructor.StructuralProjectorSpec</code>.</li>
+<li>Add a generic structural program cache beside the existing tensor-form and
+tensor-spinor caches.</li>
+<li>Route <code>.orthogonal_structural_projection</code> through this cache for term count
+and term emission.</li>
+<li>Keep old structural formula kinds as temporary bridges only where the new
+route has a zero term count.</li>
+<li>Remove bridges only after the full \(16^{12}\) gate passes.</li>
+</ol>
+
+<p>
+The direct structural term path should avoid building compact projection atoms
+only to decode them again:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">localStructuralTermCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Impl</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">step</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.CouplingStep</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">structural</span> = self.orthogonalStructuralStep(step, 0, 1, 2) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = structuralProjectorSpecFromOrthogonalStep(structural);
+    <span style="color: #fb4934; font-weight: bold;">return</span> self.structural_projection_programs.termCount(spec);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendLocalStructuralTerm</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Impl</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(rendering.SymbolicAtom),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">step</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">coupling.CouplingStep</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">output_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+) !rendering.RationalId {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">structural</span> = self.orthogonalStructuralStep(
+        step,
+        left_index,
+        right_index,
+        output_index,
+    ) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorExpansionNotImplemented;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = structuralProjectorSpecFromOrthogonalStep(structural);
+    <span style="color: #fb4934; font-weight: bold;">return</span> self.structural_projection_programs.appendTerm(atoms, spec, term_index);
+}
+</pre>
+</div>
+
+<p>
+Stage 1 acceptance:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">Spin(10) 16^12 path_count == 73744
+fully_expandable_path_count == 73744
+missing_step_count == 0
+first_missing_projector == null
+expanded streaming over all paths succeeds
+expanded stream contains no named or compact projector atoms
+</pre>
+</div>
+</div>
+<div id="outline-container-orgef6129f" class="outline-3">
+<h3 id="orgef6129f">Stage 1 Bridge Strategy</h3>
+<div class="outline-text-3" id="text-orgef6129f">
+<p>
+The bridge exists only to keep the implementation incremental.  It is not a
+new abstraction and it should be deleted as soon as its count is zero.
+</p>
+
+<p>
+The classifier should prefer the new route:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">if primitive route applies:
+    use primitive formula kind
+else if descriptor route parses and structural term count is nonzero:
+    use orthogonal_structural_projection
+else if old structural recognizer still solves the same step:
+    use old formula kind and increment bridge audit
+else:
+    named_only
+</pre>
+</div>
+
+<p>
+Do not compile Gram programs in the hot classifier just to test every step.
+Use cheap descriptor parsing first.  Term counts may be asked during formula
+coverage and expanded streaming, where the program cache already amortizes
+compilation.
+</p>
+
+<p>
+Bridge diagnostics should distinguish:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">new_structural_step_count
+new_structural_solved_step_count
+old_bridge_step_count
+unsupported_structural_step_count
+first_unsupported_structural_key
+</pre>
+</div>
+
+<p>
+The old bridge may call existing appenders and caches.  It must not emit
+compact placeholders in <code>.expanded_terms</code>.  If an old bridge cannot emit a
+primitive stream, it should be counted as unsupported, not as solved.
+</p>
+
+<p>
+When <code>old_bridge_step_count =</code> 0= on the full \(16^{12}\) audit, remove the old
+structural formula names from <code>ProjectorFormulaKind</code> and simplify
+<code>isGramFormulaKind</code> to the single <code>orthogonal_structural_projection</code> route.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orge34a67d" class="outline-2">
+<h2 id="orge34a67d">Stage 2: Delete The Structural Taxonomy</h2>
+<div class="outline-text-2" id="text-orge34a67d">
+<p>
+Once Stage 1 passes, remove the old structural enum names and their context
+recognizers.  Keep primitive formula kinds, because they are mathematical
+primitives rather than path-taxonomy artifacts.
+</p>
+
+<p>
+Keep:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">identity
+orthogonal_vector_metric
+orthogonal_spinor_pair
+orthogonal_gamma_trace
+orthogonal_gamma_traceless
+orthogonal_spinor_form_channel
+orthogonal_form_pair
+orthogonal_form_spinor_channel
+cartan_product_channel
+orthogonal_structural_projection
+backend_specific_structure
+named_only
+</pre>
+</div>
+
+<p>
+Remove production dependence on structural names such as:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">orthogonal_spinor_tower_form_channel
+orthogonal_tensor_spinor_tower_channel
+orthogonal_tensor_spinor_rank_split_terminal_channel
+orthogonal_tensor_form_spinor_shift_down_any_channel
+...
+</pre>
+</div>
+
+<p>
+Tests must stop asserting old formula-kind names.  They should assert:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">the local step is structural
+the structural program has nonzero term count
+the emitted stream is primitive
+the expected endpoint ranks/profiles/chiralities are present
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org78c0e37" class="outline-2">
+<h2 id="org78c0e37">Stage 3: Pure Tensor Young Shapes</h2>
+<div class="outline-text-2" id="text-org78c0e37">
+<p>
+After the current \(16^{12}\) sector is stable, add pure tensor labels.  These
+are not hard because they avoid spinor gamma algebra.  They require vector-slot
+Young symmetries and trace subtraction.
+</p>
+
+<p>
+The descriptor should parse labels like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">D5 [2,0,0,0,0] -&gt; symmetric traceless rank-2 tensor
+D5 [1,1,0,0,0] -&gt; mixed Young tensor
+D5 [0,2,0,0,0] -&gt; higher tensor shape
+</pre>
+</div>
+
+<p>
+Use a bounded vector-slot model:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">YoungShape</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">row_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: [max_young_rows]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">box_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VectorSlotProjectorSpec</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">input</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.IndexRef</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">shape</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">YoungShape</span>,
+};
+</pre>
+</div>
+
+<p>
+The pure tensor projector is a Brauer/Young projector:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">candidate words = row permutations, column antisymmetrizations, trace insertions
+Gram matrix = exact contraction count in dimension N
+projector = E_i (G^-1)_ij E_j^dagger
+streamed term = coefficient * permutation deltas * metric contractions
+</pre>
+</div>
+
+<p>
+Possible pseudocode:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">enumerateYoungCandidates</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">shape</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">YoungShape</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CandidateBuffer</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendRowSymmetryWords(shape, out);
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendColumnAntisymmetryWords(shape, out);
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendTraceRemovalWords(shape, out);
+    <span style="color: #fb4934; font-weight: bold;">try</span> uniqueCandidates(out);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">youngCandidateInnerProduct</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">dimension</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CandidateWord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CandidateWord</span>)
+    !Rational
+{
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">contraction</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BrauerContraction</span> = .{};
+    <span style="color: #fb4934; font-weight: bold;">try</span> composeCandidateAdjoint(&amp;contraction, left);
+    <span style="color: #fb4934; font-weight: bold;">try</span> composeCandidate(&amp;contraction, right);
+    <span style="color: #fb4934; font-weight: bold;">return</span> evaluateBrauerLoops(dimension, contraction);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendYoungProjectorTerm</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(rendering.SymbolicAtom),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VectorSlotProjectorSpec</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">program</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorProgram</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+) !rendering.RationalId {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span> = program.term(term_index) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorTermOutOfBounds;
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendPermutationDeltaAtoms(allocator, atoms, spec, term.left_word);
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendMetricTraceAtoms(allocator, atoms, spec, term.left_word);
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendAdjointPermutationDeltaAtoms(allocator, atoms, spec, term.right_word);
+    <span style="color: #fb4934; font-weight: bold;">return</span> term.coefficient;
+}
+</pre>
+</div>
+
+<p>
+Stage 3 acceptance:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">SO(10): 10 x 10 decomposes with scalar, 45, and 54 channels
+the 54 channel [2,0,0,0,0] streams as primitive metric/delta terms
+the scalar, antisymmetric, and symmetric-traceless projectors are orthogonal
+projector squares equal projectors under exact contraction
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org177845c" class="outline-2">
+<h2 id="org177845c">Stage 4: Mixed Tensor With Forms</h2>
+<div class="outline-text-2" id="text-org177845c">
+<p>
+Forms are tensor Young shapes with one column, but the current code treats them
+with compact form profiles because that is efficient for gamma algebra.  The
+mixed tensor-form stage should bridge these views without expanding form slots
+unnecessarily.
+</p>
+
+<p>
+Required operations:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">tensor slot permutation
+form block antisymmetrization
+metric contraction between tensor and form slots
+metric insertion into tensor or form slots
+trace removal for tensor outputs
+Hodge projection for middle forms
+</pre>
+</div>
+
+<p>
+The descriptor conversion should keep both views when useful:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalIrrepDescriptor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #ebdbb2; font-weight: bold; font-style: italic;">// </span><span style="color: #ebdbb2; font-weight: bold; font-style: italic;">...
+</span>    <span style="color: #83a598; font-weight: bold; font-style: italic;">young_rows</span>: [max_young_rows]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_profile</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">form_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">has_form_view</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">has_young_view</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+};
+</pre>
+</div>
+
+<p>
+The candidate generator can then choose the cheaper view:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">generateOrthogonalPrimitiveEffects</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalStructuralSpec</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralState</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralState</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">effects</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EffectBuffer</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (canUseExteriorView(start, target)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> appendExteriorGammaAndDeltaEffects(spec, start, target, effects);
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (canUseVectorSlotView(start, target)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> appendBrauerPermutationTraceEffects(spec, start, target, effects);
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> appendHodgeEffectsIfMiddleForm(spec, start, target, effects);
+}
+</pre>
+</div>
+
+<p>
+Stage 4 acceptance:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">a mixed tensor label times a form expands without compact projectors
+form-only paths still use the efficient exterior/gamma view
+Gram separation removes dependent mixed candidates
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org577be21" class="outline-2">
+<h2 id="org577be21">Stage 5: Mixed Tensor With Spinors</h2>
+<div class="outline-text-2" id="text-org577be21">
+<p>
+This is the hard part.  A non-form tensor label times a spinor needs gamma
+trace removal and gamma insertion/action between vector slots and spinor
+indices.  It cannot be solved by exterior-form ranks alone.
+</p>
+
+<p>
+Required primitive moves:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">vector-slot identity/permutation
+metric trace insertion and contraction
+gamma trace from one vector slot into a spinor index
+gamma insertion from spinor bilinear into vector slots
+exterior gamma action for antisymmetric blocks
+spinor tower contraction and adjoint
+</pre>
+</div>
+
+<p>
+Possible effect representation:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalPrimitiveEffectKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    vector_permutation_delta,
+    vector_metric_trace,
+    vector_gamma_trace,
+    vector_gamma_insert,
+    exterior_gamma_action,
+    spinor_tower_contract,
+    spinor_tower_contract_adjoint,
+    hodge_project,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">OrthogonalPrimitiveEffect</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">OrthogonalPrimitiveEffectKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralState</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PrimitiveSignature</span>,
+};
+</pre>
+</div>
+
+<p>
+The same exact Gram algorithm should be used.  Only the primitive contraction
+table grows:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">delta-delta        -&gt; permutation loop count
+metric-metric      -&gt; Brauer loop count
+gamma-gamma        -&gt; Clifford contraction rule
+gamma-trace pairs  -&gt; dimension and rank factors
+mixed terms        -&gt; compose into a finite contraction graph
+</pre>
+</div>
+
+<p>
+Stage 5 acceptance:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">one non-form tensor label times a spinor expands with primitive atoms
+gamma-trace projector is idempotent
+gamma-trace channel is orthogonal to gamma-traceless output
+no compact tensor-spinor projector appears in expanded mode
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org0c56046" class="outline-2">
+<h2 id="org0c56046">Structural Program Cache</h2>
+<div class="outline-text-2" id="text-org0c56046">
+<p>
+Unify the current tensor-form and tensor-spinor program caches into one
+structural program cache.  The key is descriptor data, not a hand-written
+formula family name.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">StructuralProjectorProgramCache</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">entries</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(StructuralProgramCacheEntry) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index_by_hash</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.AutoHashMap</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>),
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">misses</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">termCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralProjectorProgramCache</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralProjectorSpec</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> projectorProgramTermCount(self.programFor(spec) <span style="color: #fb4934; font-weight: bold;">catch</span> |err| <span style="color: #fb4934; font-weight: bold;">switch</span> (err) {
+            <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedStructuralProjectorTerm,
+            <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorProgramTooLarge,
+            =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> 0,
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> err,
+        });
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendTerm</span>(
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralProjectorProgramCache</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(rendering.SymbolicAtom),
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StructuralProjectorSpec</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    ) !rendering.RationalId {
+        <span style="color: #fb4934; font-weight: bold;">return</span> appendStructuralProjectorTerm(
+            self.allocator,
+            atoms,
+            spec,
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.programFor(spec),
+            term_index,
+        );
+    }
+};
+</pre>
+</div>
+
+<p>
+The cache owns only small compiled projector programs.  It does not own emitted
+expressions.
+</p>
+</div>
+</div>
+<div id="outline-container-orged5ab7f" class="outline-2">
+<h2 id="orged5ab7f">Coverage Audits</h2>
+<div class="outline-text-2" id="text-orged5ab7f">
+<p>
+Coverage must tell us whether the structural route actually generalizes.  Add
+or preserve counters for:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">local_step_count
+expandable_step_count
+missing_step_count
+fully_expandable_path_count
+first_missing_projector
+distinct_structural_key_count
+distinct_structural_solved_key_count
+distinct_structural_unsupported_key_count
+largest unsupported structural keys
+</pre>
+</div>
+
+<p>
+During bridge removal, also report:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">steps solved by new structural descriptor
+steps solved only by old bridge
+steps unsupported by both
+</pre>
+</div>
+
+<p>
+The bridge count must be zero before deleting the old taxonomy.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfe4f66d" class="outline-2">
+<h2 id="orgfe4f66d">Tests</h2>
+<div class="outline-text-2" id="text-orgfe4f66d">
+<p>
+Tests should be few and mathematical.  Avoid tests that assert old atom order or
+old formula-kind taxonomy.
+</p>
+
+<p>
+Stage 1 tests:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">Spin(10) 16^12 path count is 73744
+coverage fully_expandable_path_count is 73744
+missing_step_count is 0
+expanded stream over the basis contains no named or compact projector atoms
+one non-Spin10 B/D form-spinor fixture uses dimension-derived data
+exact inverse Gram identity holds for a representative non-diagonal structural program
+</pre>
+</div>
+
+<p>
+Stage 3 tests:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">SO(10) 10 x 10 has scalar, antisymmetric 45, symmetric traceless 54
+the 54 projector is idempotent
+the scalar, 45, and 54 projectors are mutually orthogonal
+expanded 54 terms contain only metric/delta/permutation primitives
+</pre>
+</div>
+
+<p>
+Stage 5 tests:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">one non-form tensor label times spinor expands without compact projectors
+gamma trace and gamma-traceless projectors are orthogonal
+the relevant projector law is checked by exact contraction, not atom order
+</pre>
+</div>
+
+<p>
+Verification commands:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/context.zig
+zig test src/tensor-code/rendering.zig
+zig build test
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgd169c09" class="outline-2">
+<h2 id="orgd169c09">Implementation Order</h2>
+<div class="outline-text-2" id="text-orgd169c09">
+<p>
+The next implementation goal should do only Stage 1 unless the full
+\(16^{12}\) gate passes early.
+</p>
+
+<p>
+Recommended concrete order:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">1. Add orthogonal_structural_projection enum value.
+2. Add private orthogonal descriptors and descriptor parsing for current sector.
+3. Add conversion from descriptor step to StructuralProjectorSpec.
+4. Add generic StructuralProjectorProgramCache.
+5. Route termCount and appendTerm through the generic structural cache.
+6. Add bridge counters for old structural routes.
+7. Restore the full 73744 expansion gate.
+8. Remove old structural formula names only after bridge count is zero.
+9. Update status prose and stale counts.
+</pre>
+</div>
+
+<p>
+Do not start Stage 3 until Stage 1 and Stage 2 are verified.  Otherwise the
+pure tensor work will hide regressions in the workload that currently matters.
+</p>
+</div>
+</div>
+<div id="outline-container-org9bec3d0" class="outline-2">
+<h2 id="org9bec3d0">Non-Goals For The Next Goal</h2>
+<div class="outline-text-2" id="text-org9bec3d0">
+<p>
+Do not implement a generic ADE projector engine.
+</p>
+
+<p>
+Do not materialize expanded invariant expressions.
+</p>
+
+<p>
+Do not add public API unless another module must call it.
+</p>
+
+<p>
+Do not encode a new list of special SO(10) product families.
+</p>
+
+<p>
+Do not treat a compact Young projector as fully expanded in <code>.expanded_terms</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org753160e" class="outline-2">
+<h2 id="org753160e">Success Criterion</h2>
+<div class="outline-text-2" id="text-org753160e">
+<p>
+The implementation is successful when the current Spin(10) \(16^{12}\) basis
+streams fully expanded through the descriptor/cache path, the old structural
+route taxonomy has no remaining production use, and the code has a clear next
+extension point for pure \(SO(N)\) Young-shape tensor labels.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

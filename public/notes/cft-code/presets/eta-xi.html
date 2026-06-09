@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 09:37 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>eta-xi Preset</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">eta-xi Preset</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org79df304">Sphere Preset</a></li>
+<li><a href="#orgdbe472a">Rules</a></li>
+</ul>
+</div>
+</div>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#etaXiSphere"><code>etaXiSphere(comptime cfg: EtaXiSphereConfig) type</code></a></dt>
+<dd>etaXiSphere builds the generated preset type for the sphere eta-xi system.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+This node defines the fermionic \(\eta,\xi\) system on the sphere and records
+its torus draft metadata.  It lowers through <a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a> so the
+branch walker supplies the Grassmann signs and the zero-mode base case remains
+a compact residual consumer.
+</p>
+
+<p>
+The stringbook conventions are \(h_\eta=1\), \(h_\xi=0\), and
+\[
+  \eta(z)\xi(w)\sim {1\over z-w}.
+\]
+On higher genus surfaces, stringbook formula (\ref{xietacorr}) gives the full
+\(\eta,\xi,\phi\) correlator as prime-form products and theta-function ratios.
+For the pure torus \(\eta,\xi\) sector, expanding the extra \(\xi\) zero mode
+leaves the pair kernel \(\partial\log E\), the genus-one third-kind
+differential with residue \(1\).  The torus runtime therefore lowers that
+log-derivative kernel, not the prime form itself.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">shared</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"shared.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">declare</span> = shared.declare;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operators</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../expressions/operators.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Handle</span> = shared.Handle;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Builder</span> = *shared.Local;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Operator</span> = *shared.LocalOperator;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Spec</span> = declare.Spec;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = declare.wick;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode</span> = declare.zero_mode;
+</pre>
+</div>
+
+<p>
+The preset owns only the four chiral field families and its own zero-mode
+sectors.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">namespace</span> = <span style="color: #b8bb26; font-style: italic;">"eta_xi"</span>;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Family</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    eta,
+    xi,
+    etat,
+    xit,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ZeroSector</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    sphere,
+    torus,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>) operators.OperatorKindId {
+    <span style="color: #fb4934; font-weight: bold;">return</span> declare.familyKind(namespace, family);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">zeroSector</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sector</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ZeroSector</span>) zero_mode.Sector {
+    <span style="color: #fb4934; font-weight: bold;">return</span> declare.sectorId(namespace, sector);
+}
+</pre>
+</div>
+<div id="outline-container-org79df304" class="outline-2">
+<h2 id="org79df304">Sphere Preset</h2>
+<div class="outline-text-2" id="text-org79df304">
+<p>
+The public preset exposes only builders, named configs, text sinks, and the
+streaming correlator entry point.  Internal kind ids and rule tables stay
+inside the generated config.
+</p>
+
+<a id="etaXiSphere"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgbf99980"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EtaXiSphereConfig</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// etaXiSphere builds the generated preset type for the sphere eta-xi system.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etaXiSphere</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// op exposes eta-xi local operator builders.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = EtaXiSphereOp(cfg.include_antiholomorphic_copy);
+        <span style="color: #e0d3b9; font-style: italic;">/// config exposes named correlator configs for this preset.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = EtaXiSphereCorrelatorConfig(cfg);
+        <span style="color: #e0d3b9; font-style: italic;">/// text exposes bounded result-inspection sinks.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">text</span> = shared.text;
+        <span style="color: #e0d3b9; font-style: italic;">/// local constructs a label-preserving local-operator builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !Builder {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.Local.init(allocator);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator streams rule matches for eta-xi insertions.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+</pre>
+</div>
+
+<p>
+Derivative labels mean \(\partial^n\eta\) and \(\partial^n\xi\).  Only the
+undifferentiated \(\xi\) can saturate the constant zero mode.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">EtaXiSphereOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holomorphic</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// eta builds a holomorphic eta insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">eta</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(etaXiOperator(.eta)).single(local, z, n, .{});
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// xi builds a holomorphic xi insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">xi</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(etaXiOperator(.xi)).single(local, z, n, .{});
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> Holomorphic;
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// eta builds a holomorphic eta insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">eta</span> = Holomorphic.eta;
+        <span style="color: #e0d3b9; font-style: italic;">/// xi builds a holomorphic xi insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">xi</span> = Holomorphic.xi;
+
+        <span style="color: #e0d3b9; font-style: italic;">/// etat builds an antiholomorphic eta insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etat</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(etaXiOperator(.etat)).single(local, zbar, n, .{});
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// xit builds an antiholomorphic xi insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">xit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(etaXiOperator(.xit)).single(local, zbar, n, .{});
+        }
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgdbe472a" class="outline-2">
+<h2 id="orgdbe472a">Rules</h2>
+<div class="outline-text-2" id="text-orgdbe472a">
+<p>
+The Wick rule is the same first-order pole structure used by the generic
+differentiated-pole emitter.  Fermionic statistics are lowered as kind-id data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">holomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">antiholomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etaXi</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .none, holomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etatXit</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(.one, .none, antiholomorphicDifference(), -1, .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etaXiTorus</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{wick.term(&amp;.{wick.scalar(.one)}, &amp;.{wick.differentiatedGreenKernel(<span style="color: #b8bb26; font-style: italic;">"elliptic_prime_form_log_derivative"</span>, holomorphicDifference(), .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> })}, &amp;.{.none})});
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etatXitTorus</span>() wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{wick.term(&amp;.{wick.scalar(.one)}, &amp;.{wick.differentiatedGreenKernel(<span style="color: #b8bb26; font-style: italic;">"elliptic_prime_form_log_derivative"</span>, antiholomorphicDifference(), .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .include_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> })}, &amp;.{.none})});
+}
+</pre>
+</div>
+
+<p>
+The sphere zero-mode rules consume exactly one undifferentiated \(\xi\) per
+selected chiral copy.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereZeroSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_antiholomorphic_copy) [2]Spec.ZeroModeRule <span style="color: #fb4934; font-weight: bold;">else</span> [1]Spec.ZeroModeRule {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span> = Spec.ZeroModeRule{ .sector = zeroSector(.sphere), .expr = .{ .eta_xi_zero_mode = .{
+        .support = .sphere_holomorphic,
+        .xi_kind_ids = &amp;.{kind(.xi)},
+        .normalization = .one,
+    } } };
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!cfg.include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> [_]Spec.ZeroModeRule{holomorphic};
+    <span style="color: #fb4934; font-weight: bold;">return</span> [_]Spec.ZeroModeRule{
+        holomorphic,
+        .{ .sector = zeroSector(.sphere), .expr = .{ .eta_xi_zero_mode = .{
+            .support = .sphere_antiholomorphic,
+            .xi_kind_ids = &amp;.{kind(.xit)},
+            .normalization = .one,
+        } } },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_antiholomorphic_copy) [2]zero_mode.Rule <span style="color: #fb4934; font-weight: bold;">else</span> [1]zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = sphereZeroSpec(cfg);
+    <span style="color: #fb4934; font-weight: bold;">return</span> Spec.zeroModeRules(&amp;spec);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">torusZeroSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_antiholomorphic_copy) [2]Spec.ZeroModeRule <span style="color: #fb4934; font-weight: bold;">else</span> [1]Spec.ZeroModeRule {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span> = Spec.ZeroModeRule{ .sector = zeroSector(.torus), .expr = .{ .eta_xi_zero_mode = .{
+        .support = .torus_holomorphic,
+        .xi_kind_ids = &amp;.{kind(.xi)},
+        .normalization = .one,
+    } } };
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!cfg.include_antiholomorphic_copy) <span style="color: #fb4934; font-weight: bold;">return</span> [_]Spec.ZeroModeRule{holomorphic};
+    <span style="color: #fb4934; font-weight: bold;">return</span> [_]Spec.ZeroModeRule{
+        holomorphic,
+        .{ .sector = zeroSector(.torus), .expr = .{ .eta_xi_zero_mode = .{
+            .support = .torus_antiholomorphic,
+            .xi_kind_ids = &amp;.{kind(.xit)},
+            .normalization = .one,
+        } } },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">torusZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fb4934; font-weight: bold;">if</span> (cfg.include_antiholomorphic_copy) [2]zero_mode.Rule <span style="color: #fb4934; font-weight: bold;">else</span> [1]zero_mode.Rule {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = torusZeroSpec(cfg);
+    <span style="color: #fb4934; font-weight: bold;">return</span> Spec.zeroModeRules(&amp;spec);
+}
+</pre>
+</div>
+
+<p>
+The torus rules record the elliptic prime-form log derivative and the extra xi
+insertion required by stringbook.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_operator_spec</span> = [_]Spec.Operator{
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"eta"</span>, .kind = kind(.eta), .support = .holomorphic, .insertion = .single, .statistics = .fermionic },
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"xi"</span>, .kind = kind(.xi), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_operator_spec</span> = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"etat"</span>, .kind = kind(.etat), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic },
+    .{ .name = <span style="color: #b8bb26; font-style: italic;">"xit"</span>, .kind = kind(.xit), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_wick_spec</span> = [_]Spec.WickRule{
+    .{ .left = kind(.eta), .right = kind(.xi), .expr = etaXi() },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_wick_spec</span> = sphere_holomorphic_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.etat), .right = kind(.xit), .expr = etatXit() },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_wick_storage</span> = Spec.wickRules(&amp;sphere_holomorphic_wick_spec, &amp;sphere_holomorphic_operator_spec);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_wick_storage</span> = Spec.wickRules(&amp;sphere_full_wick_spec, &amp;sphere_full_operator_spec);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_fermion_storage</span> = Spec.fermionKinds(&amp;sphere_holomorphic_operator_spec);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_fermion_storage</span> = Spec.fermionKinds(&amp;sphere_full_operator_spec);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_holomorphic_zero_spec</span> = sphereZeroSpec(.{ .include_antiholomorphic_copy = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_full_zero_spec</span> = sphereZeroSpec(.{});
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_holomorphic_wick_spec</span> = [_]Spec.WickRule{
+    .{ .left = kind(.eta), .right = kind(.xi), .expr = etaXiTorus(), .coordinate_kernels = &amp;.{.elliptic_prime_form_log_derivative} },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_full_wick_spec</span> = torus_holomorphic_wick_spec ++ [_]Spec.WickRule{
+    .{ .left = kind(.etat), .right = kind(.xit), .expr = etatXitTorus(), .coordinate_kernels = &amp;.{.elliptic_prime_form_log_derivative} },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_holomorphic_wick_storage</span> = Spec.wickRules(&amp;torus_holomorphic_wick_spec, &amp;sphere_holomorphic_operator_spec);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_full_wick_storage</span> = Spec.wickRules(&amp;torus_full_wick_spec, &amp;sphere_full_operator_spec);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_holomorphic_zero_spec</span> = torusZeroSpec(.{ .include_antiholomorphic_copy = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> });
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_full_zero_spec</span> = torusZeroSpec(.{});
+</pre>
+</div>
+
+<p>
+The asserts pin both the sphere runtime and the torus metadata so later
+elliptic work cannot silently drop theory data.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etaXiSphereSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) Spec.Theory {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .operators = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_operator_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_operator_spec,
+        .wick_rules = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_wick_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_wick_spec,
+        .zero_modes = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) &amp;sphere_full_zero_spec <span style="color: #fb4934; font-weight: bold;">else</span> &amp;sphere_holomorphic_zero_spec,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_draft_spec</span> = Spec.Theory{
+    .surface = .{
+        .kind = .torus,
+        .coordinate_model = .elliptic,
+        .modular_parameters = &amp;.{<span style="color: #b8bb26; font-style: italic;">"tau"</span>},
+        .source = .stringbook,
+    },
+    .operators = &amp;sphere_full_operator_spec,
+    .wick_rules = &amp;torus_full_wick_spec,
+    .zero_modes = &amp;torus_full_zero_spec,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">etaXiOperator</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Family</span>) Spec.Operator {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind_id</span> = kind(family);
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (sphere_full_operator_spec) |operator| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (operator.kind == kind_id) <span style="color: #fb4934; font-weight: bold;">return</span> operator;
+    }
+    <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"missing eta-xi operator spec"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assertSphereSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">spec</span> = etaXiSphereSpec(include_antiholomorphic_copy);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.wick_rules.len != wick_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi sphere spec Wick count does not match lowered rules"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.zero_modes.len != zero_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi sphere spec zero-mode count does not match lowered rules"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (spec.operators.len != fermion_count) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi sphere spec fermion coverage does not match lowered rules"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assertTorusDraftSpec</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.surface.kind != .torus) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec surface kind is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.surface.coordinate_model != .elliptic) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec coordinate model is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.surface.modular_parameters.len != 1) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec modular metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.surface.source != .stringbook) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec source convention is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.operators.len != sphere_full_operator_spec.len) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec operator metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.wick_rules.len != sphere_full_wick_spec.len) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec Wick metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_prime_form_log_derivative) != 2) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec prime-form log-derivative metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_prime_form) != 0) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec uses the prime form instead of its log derivative"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .rational_pole) != 0) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec still uses rational pole metadata"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.zero_modes.len != 2) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec zero-mode metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.zeroModeConsumeKindCount(torus_draft_spec.zero_modes[0]) != 1) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec holomorphic zero-mode coverage is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.zeroModeConsumeKindCount(torus_draft_spec.zero_modes[1]) != 1) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"eta-xi torus draft spec antiholomorphic zero-mode coverage is incomplete"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">EtaXiSphereRules</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_wick</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) sphere_full_wick_storage <span style="color: #fb4934; font-weight: bold;">else</span> sphere_holomorphic_wick_storage;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_torus_wick</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) torus_full_wick_storage <span style="color: #fb4934; font-weight: bold;">else</span> torus_holomorphic_wick_storage;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">selected_fermions</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (include_antiholomorphic_copy) sphere_full_fermion_storage <span style="color: #fb4934; font-weight: bold;">else</span> sphere_holomorphic_fermion_storage;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;selected_wick;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;selected_torus_wick;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_fermion_kinds</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = &amp;selected_fermions;
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">EtaXiSphereCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cfg</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EtaXiSphereConfig</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = EtaXiSphereRules(cfg.include_antiholomorphic_copy);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_zero_storage</span> = sphereZeroStorage(cfg);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_zero_storage</span> = torusZeroStorage(cfg);
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> {
+            assertSphereSpec(cfg.include_antiholomorphic_copy, rules.sphere_wick.len, sphere_zero_storage.len, rules.sphere_fermion_kinds.len);
+            assertTorusDraftSpec();
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// sphere selects eta-xi sphere Wick and xi zero-mode rules.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = declare.correlatorConfig(.{
+            .wick_rules = rules.sphere_wick,
+            .zero_modes = &amp;sphere_zero_storage,
+            .fermion_kinds = rules.sphere_fermion_kinds,
+        }){};
+
+        <span style="color: #e0d3b9; font-style: italic;">/// torus selects eta-xi torus prime-form log-derivative Wick and xi zero-mode rules.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus</span> = declare.correlatorConfig(.{
+            .wick_rules = rules.torus_wick,
+            .zero_modes = &amp;torus_zero_storage,
+            .fermion_kinds = rules.sphere_fermion_kinds,
+        }){};
+    };
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-08</p>
+</div>
+</body>
+</html>

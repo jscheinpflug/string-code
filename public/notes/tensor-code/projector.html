@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 09:51 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tensor Projector</title>
@@ -190,12 +190,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -214,10 +221,19 @@ projector identities and derivation labels; it does not construct formulas.
 <a id="ProjectorConvention"></a>
 <a id="ProjectorRole"></a>
 <a id="ProductChannelKey"></a>
+<a id="ProjectorExpansionSpan"></a>
+<a id="ProjectorExpansionCounters"></a>
+<a id="ProjectorDescriptor"></a>
 <a id="BasisChangeKey"></a>
 <a id="Store"></a>
 <a id="ProjectorKey"></a>
 <a id="ProjectorKind"></a>
+<a id="ExpansionSource"></a>
+<a id="ExpansionStatus"></a>
+<a id="ProjectorFormulaKind"></a>
+<a id="ProjectorFormulaAudit"></a>
+<a id="ProjectorDerivation"></a>
+<a id="expansionStatusCovers"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="org058083a"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">realization</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"realization.zig"</span>);
@@ -245,7 +261,29 @@ projector identities and derivation labels; it does not construct formulas.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProductChannelKey</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.ChannelHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">store.IrrepHandle</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicity_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorExpansionSpan names cached local expansion terms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorExpansionSpan</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorExpansionCounters stores cache-hit evidence for local expansions.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorExpansionCounters</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">named_hits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">named_misses</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">formula_hits</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">formula_misses</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorDescriptor exposes read-only metadata for a projector id.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorDescriptor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">role</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorRole</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">convention</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorConvention</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivation</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorDerivation</span>,
 };
 
 <span style="color: #e0d3b9; font-style: italic;">/// BasisChangeKey identifies a change of invariant-basis convention.
@@ -258,6 +296,9 @@ projector identities and derivation labels; it does not construct formulas.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Store</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">records</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ProjectorRecord) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(ProjectorExpansionTermRecord) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.ArrayList</span>(rendering.SymbolicAtom) = .empty,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">counters</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorExpansionCounters</span> = .{},
 
     <span style="color: #e0d3b9; font-style: italic;">/// init constructs an empty projector store.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Store {
@@ -266,22 +307,132 @@ projector identities and derivation labels; it does not construct formulas.
 
     <span style="color: #e0d3b9; font-style: italic;">/// deinit releases projector-store memory.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        self.atoms.deinit(self.allocator);
+        self.terms.deinit(self.allocator);
         self.records.deinit(self.allocator);
         self.* = Store.init(self.allocator);
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// internProjector returns a stable id for a projector identity.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internProjector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKind</span>) !ProjectorId {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">internProjector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivation</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorDerivation</span>) !ProjectorId {
         <span style="color: #fb4934; font-weight: bold;">for</span> (self.records.items, 0..) |record, index| {
             <span style="color: #fb4934; font-weight: bold;">if</span> (projectorKeyEql(record.key, key)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
         }
         <span style="color: #fb4934; font-weight: bold;">try</span> self.records.append(self.allocator, .{
             .key = key,
-            .kind = kind,
+            .derivation = derivation,
             .term_offset = 0,
             .term_len = 0,
+            .formula_cached = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
         });
         <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.records.items.len - 1);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// projectorDerivation returns compact derivation metadata for an id.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projectorDerivation</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) ?ProjectorDerivation {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(id);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.records.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.records.items[index].derivation;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// projectorDescriptor returns read-only metadata for a projector id.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">projectorDescriptor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) ?ProjectorDescriptor {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(id);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.records.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.records.items[index];
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .role = record.key.role,
+            .convention = record.key.convention,
+            .derivation = record.derivation,
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// expansionStatus returns the current expansion state for an id.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">expansionStatus</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) ?ExpansionStatus {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (self.projectorDerivation(id)) |derivation| derivation.status <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// canExpandToTerms reports whether an id has a route to streamed terms.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">canExpandToTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.expansionStatus(id) == .expandable_terms;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// canRenderMode reports whether a projector can satisfy a render mode.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">canRenderMode</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mode</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.ProjectorRenderMode</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">status</span> = self.expansionStatus(id) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> expansionStatusCovers(status, mode);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// ensureNamedExpansion returns a cached one-term named expansion.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ensureNamedExpansion</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) !ProjectorExpansionSpan {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(id);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.records.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownProjector;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!self.canRenderMode(id, .named)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorExpansionNotImplemented;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = &amp;self.records.items[index];
+        <span style="color: #fb4934; font-weight: bold;">if</span> (record.term_len != 0) {
+            self.counters.named_hits += 1;
+            <span style="color: #fb4934; font-weight: bold;">return</span> .{ .offset = record.term_offset, .len = record.term_len };
+        }
+        self.counters.named_misses += 1;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.atoms.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.atoms.append(self.allocator, .{ .named_operator = .{
+            .kind = .projector,
+            .operator_id = id,
+            .first_index = 0,
+            .index_len = 0,
+        } });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.atoms.pop();
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(self.terms.items.len);
+        <span style="color: #fb4934; font-weight: bold;">try</span> self.terms.append(self.allocator, .{
+            .coefficient = rendering.rationalOne(),
+            .atom_offset = atom_offset,
+            .atom_len = 1,
+        });
+        <span style="color: #fb4934; font-weight: bold;">errdefer</span> _ = self.terms.pop();
+
+        record.term_offset = term_offset;
+        record.term_len = 1;
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .offset = term_offset, .len = 1 };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// ensureFormulaProgram records the cached executable formula route for an id.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ensureFormulaProgram</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorId</span>) !ProjectorFormulaKind {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(id);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.records.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnknownProjector;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!self.canRenderMode(id, .expanded_terms)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorExpansionNotImplemented;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = &amp;self.records.items[index];
+        <span style="color: #fb4934; font-weight: bold;">if</span> (record.derivation.formula_kind == .named_only) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.ProjectorExpansionNotImplemented;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (record.formula_cached) {
+            self.counters.formula_hits += 1;
+        } <span style="color: #fb4934; font-weight: bold;">else</span> {
+            self.counters.formula_misses += 1;
+            record.formula_cached = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> record.derivation.formula_kind;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// expansionTerm returns one borrowed cached expansion term.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">expansionTerm</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">span</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorExpansionSpan</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?rendering.SymbolicTerm {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (term_index &gt;= span.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(span.offset + term_index);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (index &gt;= self.terms.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">record</span> = self.terms.items[index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(record.atom_offset);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + record.atom_len;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (end &gt; self.atoms.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .coefficient = record.coefficient,
+            .atoms = self.atoms.items[start..end],
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// expansionCounters returns cache-hit counters for local expansion data.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">expansionCounters</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Store</span>) ProjectorExpansionCounters {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.counters;
     }
 };
 
@@ -301,12 +452,131 @@ projector identities and derivation labels; it does not construct formulas.
     backend_specific_verified,
 };
 
+<span style="color: #e0d3b9; font-style: italic;">/// ExpansionSource records the stored route used for future expansion.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpansionSource</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    none,
+    casimir_polynomial,
+    idempotent_split,
+    highest_weight_solver,
+    backend_specific_verified,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ExpansionStatus records how far a projector can currently be expanded.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ExpansionStatus</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    not_requested,
+    expandable_named,
+    expandable_blocks,
+    expandable_terms,
+    blocked_missing_formula,
+    blocked_unverified_identity,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorFormulaKind records the executable local formula route.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorFormulaKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
+    named_only,
+    identity,
+    orthogonal_vector_metric,
+    orthogonal_spinor_pair,
+    orthogonal_gamma_trace,
+    orthogonal_gamma_traceless,
+    orthogonal_spinor_form_channel,
+    orthogonal_form_pair,
+    orthogonal_form_spinor_channel,
+    cartan_product_channel,
+    orthogonal_structural_projection,
+    orthogonal_spinor_tower_form_channel,
+    orthogonal_spinor_tower_middle_form_channel,
+    orthogonal_spinor_tower_opposite_form_channel,
+    orthogonal_spinor_tower_opposite_lower_channel,
+    orthogonal_tensor_spinor_tower_channel,
+    orthogonal_tensor_spinor_form_power_channel,
+    orthogonal_tensor_spinor_tower_raise_channel,
+    orthogonal_tensor_spinor_opposite_tower_lower_channel,
+    orthogonal_tensor_spinor_opposite_shift_channel,
+    orthogonal_tensor_spinor_opposite_all_shift_channel,
+    orthogonal_tensor_spinor_opposite_form_add_channel,
+    orthogonal_tensor_spinor_opposite_rank_split_channel,
+    orthogonal_tensor_spinor_shift_channel,
+    orthogonal_tensor_spinor_rank_wrap_shift_channel,
+    orthogonal_tensor_spinor_rank_split_channel,
+    orthogonal_tensor_spinor_terminal_channel,
+    orthogonal_tensor_spinor_opposite_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_add_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_add_shift_terminal_channel,
+    orthogonal_tensor_spinor_opposite_rank_split_terminal_channel,
+    orthogonal_tensor_spinor_opposite_shift_terminal_channel,
+    orthogonal_tensor_spinor_rank_wrap_terminal_channel,
+    orthogonal_tensor_spinor_rank_split_terminal_channel,
+    orthogonal_tensor_spinor_form_terminal_channel,
+    orthogonal_tensor_spinor_form_add_terminal_channel,
+    orthogonal_tensor_spinor_form_power_terminal_channel,
+    orthogonal_tensor_spinor_form_tower_channel,
+    orthogonal_tensor_spinor_form_tower_terminal_channel,
+    orthogonal_tensor_spinor_form_tower_remove_shift_channel,
+    orthogonal_tensor_spinor_form_tower_shift_down_channel,
+    orthogonal_tensor_spinor_form_tower_all_shift_down_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_merge_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_remove_shift_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_shift_down_channel,
+    orthogonal_tensor_form_spinor_channel,
+    orthogonal_tensor_form_spinor_preserve_channel,
+    orthogonal_tensor_form_spinor_shift_channel,
+    orthogonal_tensor_form_spinor_remove_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_two_channel,
+    orthogonal_tensor_form_spinor_mixed_shift_down_channel,
+    orthogonal_tensor_form_spinor_all_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_any_channel,
+    orthogonal_tensor_spinor_middle_form_channel,
+    backend_specific_structure,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorFormulaAudit records symbolic checks passed by a formula route.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorFormulaAudit</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">normalized</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">idempotent</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel_separated</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">gamma_traceless</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// verified reports whether all required projector-law checks passed.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">verified</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorFormulaAudit</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.normalized <span style="color: #fb4934; font-weight: bold;">and</span> self.idempotent <span style="color: #fb4934; font-weight: bold;">and</span> self.channel_separated;
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ProjectorDerivation stores the construction route and expansion state.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorDerivation</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">source</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpansionSource</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">status</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpansionStatus</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">formula_kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorFormulaKind</span> = .named_only,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">formula_audit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorFormulaAudit</span> = .{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// expansionStatusCovers reports whether stored expansion data is sufficient.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">expansionStatusCovers</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">status</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ExpansionStatus</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mode</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.ProjectorRenderMode</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (mode) {
+        .named =&gt; status == .expandable_named <span style="color: #fb4934; font-weight: bold;">or</span> status == .expandable_blocks <span style="color: #fb4934; font-weight: bold;">or</span> status == .expandable_terms,
+        .expanded_blocks =&gt; status == .expandable_blocks <span style="color: #fb4934; font-weight: bold;">or</span> status == .expandable_terms,
+        .expanded_terms =&gt; status == .expandable_terms,
+    };
+}
+
 <span style="color: #e0d3b9; font-style: italic;">/// ProjectorRecord stores one local kernel and its derivation kind.
 </span><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKey</span>,
-    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivation</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ProjectorDerivation</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">term_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">term_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">formula_cached</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ProjectorExpansionTermRecord</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rendering.RationalId</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
 };
 
 <span style="color: #e0d3b9; font-style: italic;">/// ProjectorAudit stores local splitting diagnostics for feasibility studies.
@@ -330,7 +600,8 @@ projector identities and derivation labels; it does not construct formulas.
         .product_channel =&gt; |left_key| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
             .product_channel =&gt; |right_key| left_key.left.value == right_key.left.value <span style="color: #fb4934; font-weight: bold;">and</span>
                 left_key.right.value == right_key.right.value <span style="color: #fb4934; font-weight: bold;">and</span>
-                left_key.target.value == right_key.target.value,
+                left_key.output.value == right_key.output.value <span style="color: #fb4934; font-weight: bold;">and</span>
+                left_key.multiplicity_copy == right_key.multiplicity_copy,
             <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
         },
         .boundary_realization =&gt; |left_handle| <span style="color: #fb4934; font-weight: bold;">switch</span> (right) {
@@ -347,7 +618,7 @@ projector identities and derivation labels; it does not construct formulas.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-07</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

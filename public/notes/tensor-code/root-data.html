@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 09:51 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tensor Root Data</title>
@@ -190,12 +190,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -231,6 +238,16 @@ times <code>quadratic_casimir_scale</code>.
 <a id="dualDynkin"></a>
 <a id="dimension"></a>
 <a id="quadraticCasimir"></a>
+<a id="dynkinDifferenceInPositiveRootCone"></a>
+<a id="PositiveRootCone"></a>
+<a id="innerProductDynkin"></a>
+<a id="innerProductDynkinRoot"></a>
+<a id="rootDynkinLabel"></a>
+<a id="rationalAdd"></a>
+<a id="rationalSub"></a>
+<a id="rationalMulInt"></a>
+<a id="rationalDiv"></a>
+<a id="PositiveRoots"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="org47cb797"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"symmetry.zig"</span>);
@@ -294,6 +311,11 @@ times <code>quadratic_casimir_scale</code>.
     <span style="color: #e0d3b9; font-style: italic;">/// cartan returns one Cartan matrix entry.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">cartan</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">col</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> {
         <span style="color: #fb4934; font-weight: bold;">return</span> cartanEntry(self.algebra, row, col);
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// positiveRoots returns the positive roots in simple-root coordinates.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">positiveRoots</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RootDatum</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !PositiveRoots {
+        <span style="color: #fb4934; font-weight: bold;">return</span> PositiveRoots.init(allocator, self.algebra);
     }
 };
 
@@ -376,6 +398,119 @@ times <code>quadratic_casimir_scale</code>.
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">try</span> mul(total, conventions.quadratic_casimir_scale);
 }
 
+<span style="color: #e0d3b9; font-style: italic;">/// dynkinDifferenceInPositiveRootCone tests whether higher-lower is a non-negative simple-root sum.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dynkinDifferenceInPositiveRootCone</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">higher</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">lower</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cone</span> = <span style="color: #fb4934; font-weight: bold;">try</span> PositiveRootCone.init(allocator, algebra);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> cone.deinit(allocator);
+    <span style="color: #fb4934; font-weight: bold;">return</span> cone.containsDifference(higher, lower);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// PositiveRootCone caches inverse Cartan data for dominance-order checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PositiveRootCone</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">inverse</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>,
+
+    <span style="color: #e0d3b9; font-style: italic;">/// init validates an algebra and caches its inverse Cartan matrix.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>) !PositiveRootCone {
+        <span style="color: #fb4934; font-weight: bold;">try</span> validateSimple(algebra);
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{
+            .algebra = algebra,
+            .inverse = <span style="color: #fb4934; font-weight: bold;">try</span> inverseCartan(allocator, algebra),
+        };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases cached cone-test storage.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRootCone</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+        allocator.free(self.inverse);
+        self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// containsDifference tests whether higher-lower is a non-negative simple-root sum.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">containsDifference</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRootCone</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">higher</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">lower</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rank_value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = self.algebra.rank;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (higher.len != rank_value <span style="color: #fb4934; font-weight: bold;">or</span> lower.len != rank_value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">any_positive</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..rank_value) |root_index| {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span> = Rational{};
+            <span style="color: #fb4934; font-weight: bold;">for</span> (0..rank_value) |dynkin_index| {
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">difference</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, higher[dynkin_index]) - <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, lower[dynkin_index]);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (difference == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+                coefficient = <span style="color: #fb4934; font-weight: bold;">try</span> add(coefficient, <span style="color: #fb4934; font-weight: bold;">try</span> mulInt(self.inverse[root_index * rank_value + dynkin_index], difference));
+            }
+            <span style="color: #fb4934; font-weight: bold;">if</span> (coefficient.denominator != 1) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (coefficient.numerator &lt; 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (coefficient.numerator &gt; 0) any_positive = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> any_positive;
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// innerProductDynkin computes the exact inner product of two Dynkin-coordinate weights.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">innerProductDynkin</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">try</span> validateSimple(algebra);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rank_value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = algebra.rank;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (left.len != rank_value <span style="color: #fb4934; font-weight: bold;">or</span> right.len != rank_value) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">inverse</span> = <span style="color: #fb4934; font-weight: bold;">try</span> inverseCartan(allocator, algebra);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> allocator.free(inverse);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">total</span> = Rational{};
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..rank_value) |i| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (left[i] == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..rank_value) |j| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (right[j] == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, left[i]) * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, right[j]);
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">gram</span> = <span style="color: #fb4934; font-weight: bold;">try</span> mul(simpleRootScale(algebra, i), inverse[i * rank_value + j]);
+            total = <span style="color: #fb4934; font-weight: bold;">try</span> add(total, <span style="color: #fb4934; font-weight: bold;">try</span> mulInt(gram, factor));
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> total;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// innerProductDynkinRoot computes the exact inner product of a weight with a root.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">innerProductDynkinRoot</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">root</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">try</span> validateSimple(algebra);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (weight.len != algebra.rank <span style="color: #fb4934; font-weight: bold;">or</span> root.len != algebra.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">total</span> = Rational{};
+    <span style="color: #fb4934; font-weight: bold;">for</span> (root, 0..) |coefficient, index| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (coefficient == 0 <span style="color: #fb4934; font-weight: bold;">or</span> weight[index] == 0) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, coefficient) * <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>, weight[index]);
+        total = <span style="color: #fb4934; font-weight: bold;">try</span> add(total, <span style="color: #fb4934; font-weight: bold;">try</span> mulInt(simpleRootScale(algebra, index), factor));
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> total;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rootDynkinLabel writes one root as Dynkin coordinates.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rootDynkinLabel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">root</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> validateSimple(algebra);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (root.len != algebra.rank <span style="color: #fb4934; font-weight: bold;">or</span> out.len != algebra.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (0..algebra.rank) |index| {
+        out[index] = pairing(algebra, root, index);
+    }
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rationalAdd returns the exact sum of two rationals.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rationalAdd</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> add(left, right);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rationalSub returns the exact difference of two rationals.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rationalSub</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> sub(left, right);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rationalMulInt multiplies an exact rational by an integer.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rationalMulInt</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i128</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> mulInt(value, factor);
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// rationalDiv returns the exact quotient of two rationals.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rationalDiv</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Rational</span>) !Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> div(left, right);
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateDynkinLabel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">algebra</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">symmetry.SimpleLieAlgebra</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
     <span style="color: #fb4934; font-weight: bold;">try</span> validateSimple(algebra);
     <span style="color: #fb4934; font-weight: bold;">if</span> (label.len != algebra.rank) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidDynkinRank;
@@ -428,7 +563,8 @@ times <code>quadratic_casimir_scale</code>.
     <span style="color: #fb4934; font-weight: bold;">return</span> (row == left <span style="color: #fb4934; font-weight: bold;">and</span> col == right) <span style="color: #fb4934; font-weight: bold;">or</span> (row == right <span style="color: #fb4934; font-weight: bold;">and</span> col == left);
 }
 
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PositiveRoots</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+<span style="color: #e0d3b9; font-style: italic;">/// PositiveRoots owns positive roots in flat simple-root coordinates.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PositiveRoots</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">roots</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
@@ -487,12 +623,19 @@ times <code>quadratic_casimir_scale</code>.
         }
     }
 
-    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRoots</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// deinit releases positive-root storage.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">deinit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRoots</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
         allocator.free(self.roots);
         self.* = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
     }
 
-    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">root</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRoots</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// count returns the number of stored positive roots.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">count</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRoots</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> self.len;
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// root returns one positive root in simple-root coordinates.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">root</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PositiveRoots</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = index * self.rank;
         <span style="color: #fb4934; font-weight: bold;">return</span> self.roots[start .. start + self.rank];
     }
@@ -668,7 +811,7 @@ times <code>quadratic_casimir_scale</code>.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-07</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>
