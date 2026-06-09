@@ -196,6 +196,24 @@ pub const Store = struct {
         return record.algebra;
     }
 
+    /// simpleAlgebra returns the simple algebra behind an internal handle.
+    pub fn simpleAlgebra(self: Store, handle: AlgebraHandle) ?symmetry.SimpleLieAlgebra {
+        const record = self.algebraRecord(handle) orelse return null;
+        return switch (record.spec) {
+            .simple => |simple| simple,
+            .u1 => null,
+        };
+    }
+
+    /// irrepDynkin returns the borrowed Dynkin label behind an irrep handle.
+    pub fn irrepDynkin(self: Store, handle: IrrepHandle) ?[]const i16 {
+        const record = self.irrepRecord(handle) orelse return null;
+        return switch (record.label) {
+            .dynkin => |label| label,
+            .u1_charge => null,
+        };
+    }
+
     fn algebraRecord(self: Store, handle: AlgebraHandle) ?AlgebraRecord {
         const index: usize = @intCast(handle.value);
         if (index >= self.algebras.items.len) return null;

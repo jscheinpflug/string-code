@@ -1,0 +1,428 @@
+:PROPERTIES:
+:ID:       20260608T120000.000000
+:END:
+#+title: Finite Projector Gram Solver Plan
+#+auto_tangle: nil
+
+This plan extends [[id:20260608T001500.000000][Projector Solver Handoff]] and
+the current [[id:20260608T001501.000000][Projector Constructor]] work.  The
+goal is to replace hand-written projector-family lowering with a finite
+dimension-parametric contraction algorithm.  The current hand-written cases are
+to be kept as fixtures and normalization checks only.
+
+The implementation follows =AGENTS.md=: simple procedural Zig, lean fixed-size
+records, no large intermediate symbolic expressions, parallelizable data flow,
+minimal public API, concise literate source, and tests only for precise
+mathematical invariants.
+
+* Core Problem
+
+The current structural projector path already has the correct outer algorithm:
+
+#+begin_src text :tangle no
+channel -> candidate words -> Gram matrix -> independent pivots
+        -> inverse Gram -> streamed sum E_i G^{-1}_{ij} E_j^dagger
+#+end_src
+
+The missing mathematical engine is the Gram entry evaluator.  At present the
+structural inner product behaves like a Kronecker delta on primitive words:
+equal words have norm one and distinct words are orthogonal.  That makes every
+new nontrivial projector family look like it needs a new hand-written rule.
+
+The replacement is a finite Clifford-exterior contraction algebra.  Candidate
+generation should enumerate all admissible primitive signatures from rank,
+chirality, tower, and duality metadata.  Gram computation should then reduce
+word pairs by exact universal contraction identities.
+
+* Mathematical Model
+
+The orthogonal backend works in dimension =N= with these primitive invariant
+objects:
+
+#+begin_src text :tangle no
+form delta on exterior powers
+metric contraction and metric insertion
+antisymmetrized Clifford block Gamma(r)
+Gamma(r) acting on exterior form slots
+Hodge star and middle-form projectors
+spinor tower contraction and its adjoint
+spinor pairing
+#+end_src
+
+The finite rank rule behind the form/gamma part is:
+
+#+begin_src text :tangle no
+q = p + r - 2 c
+0 <= c <= min(p, r)
+q >= 0
+q <= N
+#+end_src
+
+Here =p= is the source form rank, =r= is the Clifford block rank, =c= is the
+number of metric contractions, and =q= is the target form rank.  This one rule
+generates the cases currently appearing as add-rank, shift-rank, split-rank,
+rank-wrap, trace, and gamma-wedge moves.
+
+Chirality is checked by parity:
+
+#+begin_src text :tangle no
+even r preserves chirality
+odd r flips chirality
+unknown or zero chirality metadata is accepted only when the current code
+already treats it as a same-chirality fallback
+#+end_src
+
+Hodge data is attached only when =2 p = N= or =2 q = N= and the channel asks
+for self-dual or anti-self-dual projection.  Hodge signs and Hodge-square
+factors are part of the contraction table, not separate projector families.
+
+Spinor tower maps are represented as raising/lowering steps with:
+
+#+begin_src text :tangle no
+tower_delta in {-1, 0, +1}
+optional emitted or consumed form rank
+chirality parity of the spinor action
+normalization key depending on N, tower power, and form rank
+#+end_src
+
+* Solver Data Structures
+
+Keep all new records private to the projector constructor until another module
+really needs them.
+
+#+begin_src text :tangle no
+ExteriorGammaAction
+    dimension: u8
+    input_rank: u8
+    gamma_rank: u8
+    contraction_count: u8
+    output_rank: u8
+    chirality_parity: u1
+    duality: Duality
+
+PrimitiveSignature
+    kind: ProjectorPrimitiveKind
+    input_block: IndexRef
+    output_block: IndexRef
+    auxiliary_block: IndexRef
+    action: ExteriorGammaAction or empty
+    tower_input_power: u8
+    tower_output_power: u8
+    tower_form_rank: u8
+    normalization_tag: u8
+
+ContractionAccumulator
+    coefficient: Rational
+    remaining_form_profile: u128
+    remaining_tower_power: u8
+    chirality: u8
+    duality: Duality
+    is_zero: bool
+#+end_src
+
+These records are descriptions of local intertwiners, not rendered symbolic
+expressions.  Rendering still happens only when a selected program term is
+streamed.
+
+* Candidate Generation
+
+Replace named projector-family generation with a profile search over primitive
+signatures.
+
+The procedure is:
+
+#+begin_src text :tangle no
+1. Build a StructuralSearchState from the channel source.
+2. Build the target StructuralSearchState from the channel output.
+3. Enumerate primitive signatures valid from current state toward target:
+   - form deltas for carried equal profile slots;
+   - exterior gamma actions satisfying q = p + r - 2 c;
+   - Hodge action when middle-rank duality is requested;
+   - spinor tower lowering or raising when tower powers differ by one;
+   - form-spinor adjoint action as tower creation from a pure form state.
+4. Append signatures to a fixed ProjectorCandidateWord.
+5. Stop at max_structural_search_depth.
+6. Append only unique candidate words.
+7. Let the Gram pivot stage remove dependent candidates.
+#+end_src
+
+The enumeration must not branch on compact formula-kind names.  It may reject a
+channel using only mathematical metadata: dimension, profile ranks, chirality,
+duality, spinor presence, and tower powers.
+
+For the current Spin(10) stress case, keep the existing caps unless a failing
+channel proves they are too small:
+
+#+begin_src text :tangle no
+max primitives per word = 6
+max candidates = 8
+max Gram entries = 64
+#+end_src
+
+If the cap is exceeded, return an explicit unsupported error and log or expose
+the compact structural key for audit.  Do not allocate a larger heap expression
+as a fallback.
+
+* Gram Contraction Algorithm
+
+Replace =structuralCandidateInnerProduct= with a finite exact evaluator:
+
+#+begin_src text :tangle no
+inner(left_word, right_word):
+    acc = identity accumulator
+    walk adjoint(left_word) followed by right_word
+    for each adjacent reducible primitive pair:
+        reduce by contraction table
+        multiply acc.coefficient
+        update compact state
+        if mismatch implies zero, return 0
+    if all open indices close to the channel identity, return acc.coefficient
+    otherwise return unsupported
+#+end_src
+
+The first implementation should use direct procedural pair reductions rather
+than building a symbolic rewrite system.  The table is small and finite.
+
+Required reductions:
+
+#+begin_src text :tangle no
+form_delta . form_delta
+form_delta . exterior_gamma_action
+exterior_gamma_action^dagger . exterior_gamma_action
+Gamma(r)^dagger . Gamma(s)
+Hodge^dagger . Hodge
+Hodge . exterior_gamma_action at middle rank
+spinor_tower_contract^dagger . spinor_tower_contract
+spinor_tower_contract . spinor_tower_contract^dagger
+form-spinor-adjoint paired with its adjoint
+#+end_src
+
+Each reduction returns an exact =Rational=.  Unsupported reductions are not
+allowed to masquerade as zero.  Zero is returned only when rank, block,
+chirality, tower, or duality metadata proves orthogonality.
+
+* Program Cache Key
+
+Cache compiled programs by mathematical structure, not operator id.
+
+#+begin_src text :tangle no
+StructuralProgramKey
+    dimension
+    source form profile
+    target form profile
+    source tower power
+    target tower power
+    source/output/right spinor flags
+    chirality metadata
+    duality
+    primitive signature sequence hash when needed
+#+end_src
+
+Many of the 200000 projector occurrences should collapse to a much smaller set
+of keys.  The audit should report distinct structural keys, not only occurrence
+counts.
+
+* Using Current Hand-Written Cases As Fixtures
+
+The currently solved cases become tests for the general solver.  They are not
+the model for production branching.
+
+Fixture groups:
+
+#+begin_src text :tangle no
+terminal gamma_insert plus carried form_delta
+gamma_rank_split plus carried form_delta
+middle-form hodge_project
+gamma_wedge_shift
+spinor_tower_contract
+spinor_tower_contract_adjoint
+form-to-spinor adjoint contraction
+vector-spinor traceless off-diagonal Gram case
+#+end_src
+
+Each fixture should check compact mathematical program data:
+
+#+begin_src text :tangle no
+candidate count
+primitive signature sequence
+Gram entries
+pivot count
+inverse Gram entries
+emitted atom kinds for one streamed term
+#+end_src
+
+Do not compare huge rendered formulas.  These tests should protect exact
+normalizations and prevent regression while allowing the production generator
+to become general.
+
+Once a fixture passes through the generic path, remove or bypass the equivalent
+production family branch.  The fixture expected data can still mention the old
+case name for readability.
+
+* Implementation Phases
+
+** Phase 1: Add Signature Records
+
+Add private records in the projector constructor literate file:
+
+#+begin_src text :tangle no
+ExteriorGammaAction
+PrimitiveSignature
+ContractionAccumulator
+StructuralProgramKey
+#+end_src
+
+Provide only small helper functions:
+
+#+begin_src text :tangle no
+makeExteriorGammaAction
+primitiveToSignature
+signatureEql
+signatureChiralityValid
+signatureProfileTransition
+#+end_src
+
+No public declarations are needed in this phase.
+
+** Phase 2: Generic Exterior-Gamma Enumeration
+
+Add a procedure that enumerates valid exterior gamma actions from a source
+profile to a target profile by looping over:
+
+#+begin_src text :tangle no
+source rank p
+gamma rank r
+contraction count c
+target rank q = p + r - 2 c
+#+end_src
+
+It should produce the same signatures currently represented by
+=gamma_insert=, =gamma_wedge_shift=, =gamma_rank_split=, and future rank-wrap
+forms.  Existing primitive atom kinds may still be used for output emission.
+
+** Phase 3: Exact One-Block Gram Table
+
+Implement the contraction table for one primitive block plus carried deltas.
+This must reproduce the current single-candidate cases before trying larger
+multi-word channels.
+
+Required first successes:
+
+#+begin_src text :tangle no
+terminal gamma_insert fixture
+gamma_wedge_shift fixture
+gamma_rank_split fixture
+hodge_project fixture
+#+end_src
+
+** Phase 4: Tower Gram Table
+
+Implement spinor tower raise/lower contractions.  Reproduce the current tower
+fixtures without using the old family-specific inner products.
+
+Required first successes:
+
+#+begin_src text :tangle no
+spinor_tower_contract fixture
+spinor_tower_contract_adjoint fixture
+form-to-spinor adjoint fixture
+#+end_src
+
+** Phase 5: Non-Orthogonal Candidate Gram Entries
+
+Enable nonzero off-diagonal Gram entries for distinct primitive words.  The
+vector-spinor traceless projector already demonstrates why this matters, but a
+structural Clifford-exterior fixture must also cover it.
+
+The acceptance condition is that the generic structural path can produce a
+Gram matrix with at least one nonzero off-diagonal entry, pivot it exactly, and
+stream the resulting mixed projector terms.
+
+** Phase 6: Remove Production Dependence On Family Rules
+
+After the fixtures pass, simplify production routing:
+
+#+begin_src text :tangle no
+compact projector -> structural spec -> generic candidate enumeration
+                  -> exact Gram contraction -> streamed emission
+#+end_src
+
+Keep formula-kind classification only where it is needed to build the structural
+spec from compact metadata.  It must not decide projector mathematics.
+
+** Phase 7: Audit And Iterate By Unsupported Keys
+
+Refresh [[id:20260607T194513.918965][Projector Formula Status]] after each
+phase.  Report:
+
+#+begin_src text :tangle no
+remaining compact projector occurrences
+remaining distinct structural keys
+largest unsupported structural-key groups
+number of keys solved by generic Gram path
+number of projector occurrences solved by generic Gram path
+#+end_src
+
+The next implementation step is chosen by missing contraction identity, not by
+compact formula family name.
+
+* Validation Commands
+
+Focused checks:
+
+#+begin_src text :tangle no
+zig test src/tensor-code/projector-constructor.zig
+zig fmt --check src/tensor-code/projector-constructor.zig
+#+end_src
+
+Full tensor-code checks:
+
+#+begin_src text :tangle no
+zig test src/tensor-code/tensor-code.zig
+zig fmt --check src/tensor-code/projector-constructor.zig src/tensor-code/context.zig
+#+end_src
+
+Org/source mirror checks are required after touching tangled files.  The org
+file must be the source of truth for new implementation blocks.
+
+* Success Criteria
+
+The implementation is successful when:
+
+#+begin_src text :tangle no
+1. structuralCandidateInnerProduct is no longer equality-only;
+2. current handwritten cases pass as generic-solver fixtures;
+3. at least one structural fixture has a nonzero off-diagonal Gram entry;
+4. projector emission remains streamed;
+5. no large symbolic expression trees are allocated;
+6. the audit reports unsupported structural keys rather than only family names;
+7. Spin(10) 16^12 coverage improves by solving keys through the generic path.
+#+end_src
+
+The deeper success criterion is that future work adds missing contraction
+identities to a finite table, not new projector-family branches.
+
+* Explicit Non-Goals
+
+Do not:
+
+#+begin_src text :tangle no
+lower another visible compact family by hand;
+add a primitive atom without its adjoint contraction rule;
+store expanded gamma expressions;
+increase candidate caps silently;
+make solver records public before another module needs them;
+write broad tests that only prove syntax or rendering noise;
+count occurrence decrease as success unless it used the generic Gram path.
+#+end_src
+
+* Next Concrete Step
+
+Start with Phase 1 and Phase 2 in the literate projector constructor.  The
+first visible milestone is:
+
+#+begin_src text :tangle no
+generic exterior-gamma enumeration reproduces the existing
+gamma_insert, gamma_wedge_shift, gamma_rank_split, and hodge_project fixtures
+without route-local projector-family rules.
+#+end_src

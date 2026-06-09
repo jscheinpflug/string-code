@@ -1,0 +1,1106 @@
+:PROPERTIES:
+:ID:       20260607T000001.000000
+:END:
+#+title: Generic Highest-Weight Backend
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../src/tensor-code/generic-highest-weight-backend.zig :mkdirp yes
+
+This backend is the correctness backend for ADE tensor products.  The first
+storage layer is flat: all Dynkin coordinates share one signed buffer, while
+weight records carry offsets into that buffer.  The initial generator handles
+Weyl-orbit characters: minuscule representations and simply-laced adjoints.
+General non-minuscule characters still return a typed missing capability until
+Freudenthal recursion is implemented.
+
+#+begin_src zig
+const std = @import("std");
+const backend = @import("backend.zig");
+const decomposition = @import("decomposition.zig");
+const projector = @import("projector.zig");
+const rendering = @import("rendering.zig");
+const root_data = @import("root-data.zig");
+const store = @import("representation-store.zig");
+const symmetry = @import("symmetry.zig");
+
+/// WeightRef points into the flat Dynkin-coordinate buffer.
+pub const WeightRef = struct {
+    dynkin_offset: u32,
+};
+
+/// WeightMultiplicity stores one weight and its multiplicity.
+pub const WeightMultiplicity = struct {
+    weight: WeightRef,
+    multiplicity: u32,
+};
+
+/// ProductAudit stores compact evidence for one character-subtraction run.
+pub const ProductAudit = struct {
+    product_multiset_size: u32 = 0,
+    channel_count: u32 = 0,
+    dimension_sum: u128 = 0,
+};
+
+/// BackendCounters stores cache-hit evidence for backend hot paths.
+pub const BackendCounters = struct {
+    weight_system_hits: u64 = 0,
+    weight_system_misses: u64 = 0,
+    product_hits: u64 = 0,
+    product_misses: u64 = 0,
+};
+#+end_src
+
+Each cached system stores one contiguous span of weight records and one
+contiguous span of signed Dynkin coordinates.  The rank is stored once on the
+system, not per weight.
+
+#+begin_src zig
+/// Backend owns generic highest-weight caches and capability functions.
+pub const Backend = struct {
+    allocator: std.mem.Allocator,
+    conventions: root_data.AlgebraConventions,
+    systems: std.ArrayList(WeightSystem) = .empty,
+    weights: std.ArrayList(WeightMultiplicity) = .empty,
+    dynkin_coords: std.ArrayList(i32) = .empty,
+    product_audits: std.ArrayList(ProductAudit) = .empty,
+    system_index: std.AutoHashMap(u64, backend.WeightSystemHandle),
+    counters: BackendCounters = .{},
+
+    /// init constructs an empty generic backend cache.
+    pub fn init(allocator: std.mem.Allocator, conventions: root_data.AlgebraConventions) Backend {
+        return .{
+            .allocator = allocator,
+            .conventions = conventions,
+            .system_index = std.AutoHashMap(u64, backend.WeightSystemHandle).init(allocator),
+        };
+    }
+
+    /// deinit releases cached weight-system memory.
+    pub fn deinit(self: *Backend) void {
+        self.system_index.deinit();
+        self.product_audits.deinit(self.allocator);
+        self.dynkin_coords.deinit(self.allocator);
+        self.weights.deinit(self.allocator);
+        self.systems.deinit(self.allocator);
+        self.* = Backend.init(self.allocator, self.conventions);
+    }
+
+    /// record returns one family-specific capability record backed by this state.
+    pub fn record(self: *Backend, id: backend.BackendId, family: symmetry.LieFamily) backend.Record {
+        return .{
+            .id = id,
+            .state = self,
+            .family = family,
+            .root_conventions = self.conventions,
+            .capabilities = .{
+                .validate_algebra = validateAlgebra,
+                .irrep_metadata = irrepMetadata,
+                .weight_system = weightSystem,
+                .decompose_product = decomposeProduct,
+                .local_projector = localProjector,
+                .primitive_invariants = primitiveInvariants,
+                .render_projector = renderProjector,
+            },
+        };
+    }
+
+    /// weightSystemForIrrep returns a cached weight system when implemented.
+    pub fn weightSystemForIrrep(self: *Backend, representations: *store.Store, algebra: store.AlgebraHandle, irrep: store.IrrepHandle) !backend.WeightSystemHandle {
+        const key = weightSystemKey(algebra, irrep);
+        if (self.system_index.get(key)) |handle| {
+            self.counters.weight_system_hits += 1;
+            return handle;
+        }
+        self.counters.weight_system_misses += 1;
+
+        const simple = representations.simpleAlgebra(algebra) orelse return error.UnsupportedAlgebraFamily;
+        try validateSupported(simple);
+        const label = representations.irrepDynkin(irrep) orelse return error.InvalidIrrepForAlgebra;
+        if (label.len != simple.rank) return error.InvalidDynkinRank;
+        if (!isZeroDynkin(label)) {
+            return self.cacheWeylOrbitSystem(key, simple, label, representations.irrepMetadata(irrep));
+        }
+
+        return self.cacheSingletSystem(key, simple.rank);
+    }
+
+    /// decomposeProductForKey computes and caches a binary product decomposition.
+    pub fn decomposeProductForKey(self: *Backend, representations: *store.Store, decompositions: *decomposition.Store, key: decomposition.ProductKey) !decomposition.ProductDecompositionHandle {
+        if (decompositions.findProduct(key)) |handle| {
+            self.counters.product_hits += 1;
+            return handle;
+        }
+        self.counters.product_misses += 1;
+
+        const left_algebra = representations.irrepAlgebra(key.left) orelse return error.UnknownIrrep;
+        const right_algebra = representations.irrepAlgebra(key.right) orelse return error.UnknownIrrep;
+        if (left_algebra.value != right_algebra.value) return error.MixedProductAlgebras;
+        const simple = representations.simpleAlgebra(left_algebra) orelse return error.UnsupportedAlgebraFamily;
+
+        const right_system = try self.weightSystemForIrrep(representations, right_algebra, key.right);
+        return self.decomposeProductByShiftedWeights(representations, decompositions, key, left_algebra, simple, key.left, right_system);
+    }
+
+    fn decomposeProductByShiftedWeights(self: *Backend, representations: *store.Store, decompositions: *decomposition.Store, original_key: decomposition.ProductKey, algebra: store.AlgebraHandle, simple: symmetry.SimpleLieAlgebra, base: store.IrrepHandle, factor_system: backend.WeightSystemHandle) !decomposition.ProductDecompositionHandle {
+        const base_label = representations.irrepDynkin(base) orelse return error.InvalidIrrepForAlgebra;
+        if (base_label.len != simple.rank) return error.InvalidDynkinRank;
+
+        const factor_weights = self.weightSystemWeights(factor_system) orelse return error.UnknownWeightSystem;
+        var signed_terms: std.ArrayList(SignedProductTerm) = .empty;
+        defer signed_terms.deinit(self.allocator);
+
+        for (factor_weights) |weight| {
+            const dynkin = self.weightDynkin(weight.weight, simple.rank) orelse return error.UnknownWeightSystem;
+            var output = [_]i32{0} ** 256;
+            const signed_multiplicity = try dominantShiftedWeight(output[0..simple.rank], simple, base_label, dynkin);
+            const signed = signed_multiplicity orelse continue;
+            const channel = channel: {
+                const label = try dynkinToI16(self.allocator, output[0..simple.rank]);
+                defer self.allocator.free(label);
+                break :channel try representations.internIrrep(algebra, .{ .dynkin = label });
+            };
+            try addSignedTerm(self.allocator, &signed_terms, channel, signed * @as(i32, @intCast(weight.multiplicity)));
+        }
+
+        var terms: std.ArrayList(decomposition.ProductTerm) = .empty;
+        defer terms.deinit(self.allocator);
+        try appendPositiveTerms(self.allocator, &terms, signed_terms.items);
+        const audit = try productAudit(representations.*, terms.items, @intCast(factor_weights.len));
+        try self.product_audits.append(self.allocator, audit);
+        return try decompositions.internProduct(original_key, terms.items);
+    }
+
+    /// latestProductAudit returns the most recent compact product audit.
+    pub fn latestProductAudit(self: Backend) ?ProductAudit {
+        if (self.product_audits.items.len == 0) return null;
+        return self.product_audits.items[self.product_audits.items.len - 1];
+    }
+
+    /// backendCounters returns compact cache-hit counters.
+    pub fn backendCounters(self: Backend) BackendCounters {
+        return self.counters;
+    }
+
+    /// weightSystemAudit returns counters for a cached weight system.
+    pub fn weightSystemAudit(self: Backend, handle: backend.WeightSystemHandle) ?backend.WeightSystemAudit {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.systems.items.len) return null;
+        return self.systems.items[index].audit;
+    }
+
+    /// weightSystemWeights returns the flat weight records for a cached system.
+    pub fn weightSystemWeights(self: Backend, handle: backend.WeightSystemHandle) ?[]const WeightMultiplicity {
+        const system = self.weightSystemRecord(handle) orelse return null;
+        const start: usize = @intCast(system.weights_offset);
+        const end = start + system.weights_len;
+        return self.weights.items[start..end];
+    }
+
+    /// weightDynkin returns one borrowed Dynkin-coordinate slice.
+    pub fn weightDynkin(self: Backend, weight: WeightRef, rank: u8) ?[]const i32 {
+        const start: usize = @intCast(weight.dynkin_offset);
+        const end = start + rank;
+        if (end > self.dynkin_coords.items.len) return null;
+        return self.dynkin_coords.items[start..end];
+    }
+
+    fn cacheSingletSystem(self: *Backend, key: u64, rank: u8) !backend.WeightSystemHandle {
+        const coord_offset: u32 = @intCast(self.dynkin_coords.items.len);
+        try self.dynkin_coords.appendNTimes(self.allocator, 0, rank);
+        errdefer self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        const weight_offset: u32 = @intCast(self.weights.items.len);
+        try self.weights.append(self.allocator, .{
+            .weight = .{ .dynkin_offset = coord_offset },
+            .multiplicity = 1,
+        });
+        errdefer _ = self.weights.pop();
+
+        const handle = backend.WeightSystemHandle.init(@intCast(self.systems.items.len));
+        try self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = 1,
+            .rank = rank,
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = rank,
+            .audit = .{ .weight_count = 1, .total_multiplicity = 1 },
+        });
+        errdefer _ = self.systems.pop();
+
+        try self.system_index.put(key, handle);
+        return handle;
+    }
+
+    fn cacheWeylOrbitSystem(self: *Backend, key: u64, simple: symmetry.SimpleLieAlgebra, label: []const i16, metadata: ?store.IrrepMetadata) !backend.WeightSystemHandle {
+        const expected_dimension = if (metadata) |value| value.dimension orelse return error.MissingIrrepDimension else return error.MissingIrrepDimension;
+        const datum = try root_data.RootDatum.init(simple, self.conventions);
+        var orbit = try WeylOrbit.init(self.allocator, simple.rank, label);
+        defer orbit.deinit(self.allocator);
+        try orbit.close(self.allocator, datum);
+
+        const orbit_dimension: u128 = orbit.len;
+        if (expected_dimension == orbit_dimension) {
+            return self.cacheOrbitSystem(key, orbit, 0);
+        }
+
+        if (isSimplyLaced(simple) and expected_dimension == orbit_dimension + simple.rank) {
+            return self.cacheOrbitSystem(key, orbit, simple.rank);
+        }
+
+        return self.cacheFreudenthalSystem(key, simple, label, expected_dimension);
+    }
+
+    fn cacheFreudenthalSystem(self: *Backend, key: u64, simple: symmetry.SimpleLieAlgebra, label: []const i16, expected_dimension: u128) !backend.WeightSystemHandle {
+        const datum = try root_data.RootDatum.init(simple, self.conventions);
+        var builder = try FreudenthalBuilder.init(self.allocator, simple.rank, label);
+        defer builder.deinit(self.allocator);
+        try builder.close(self.allocator, datum, label, expected_dimension);
+        return self.cacheGeneratedSystem(key, builder);
+    }
+
+    fn weightSystemRecord(self: Backend, handle: backend.WeightSystemHandle) ?WeightSystem {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.systems.items.len) return null;
+        return self.systems.items[index];
+    }
+
+    fn cacheOrbitSystem(self: *Backend, key: u64, orbit: WeylOrbit, zero_multiplicity: u32) !backend.WeightSystemHandle {
+        const rank: usize = orbit.rank;
+        const coord_offset: u32 = @intCast(self.dynkin_coords.items.len);
+        try self.dynkin_coords.appendSlice(self.allocator, orbit.coords.items);
+        errdefer self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        if (zero_multiplicity > 0) {
+            try self.dynkin_coords.appendNTimes(self.allocator, 0, rank);
+        }
+
+        const weight_offset: u32 = @intCast(self.weights.items.len);
+        errdefer self.weights.shrinkRetainingCapacity(weight_offset);
+        for (0..orbit.len) |weight_index| {
+            try self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + @as(u32, @intCast(weight_index * rank)) },
+                .multiplicity = 1,
+            });
+        }
+        if (zero_multiplicity > 0) {
+            try self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + @as(u32, @intCast(orbit.len * rank)) },
+                .multiplicity = zero_multiplicity,
+            });
+        }
+
+        const weight_count = orbit.len + @intFromBool(zero_multiplicity > 0);
+        const total_multiplicity = @as(u128, orbit.len) + zero_multiplicity;
+        const handle = backend.WeightSystemHandle.init(@intCast(self.systems.items.len));
+        try self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = @intCast(weight_count),
+            .rank = @intCast(rank),
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = @intCast(weight_count * rank),
+            .audit = .{ .weight_count = @intCast(weight_count), .total_multiplicity = total_multiplicity },
+        });
+        errdefer _ = self.systems.pop();
+
+        try self.system_index.put(key, handle);
+        return handle;
+    }
+
+    fn cacheGeneratedSystem(self: *Backend, key: u64, builder: FreudenthalBuilder) !backend.WeightSystemHandle {
+        const coord_offset: u32 = @intCast(self.dynkin_coords.items.len);
+        try self.dynkin_coords.appendSlice(self.allocator, builder.coords.items);
+        errdefer self.dynkin_coords.shrinkRetainingCapacity(coord_offset);
+
+        const weight_offset: u32 = @intCast(self.weights.items.len);
+        errdefer self.weights.shrinkRetainingCapacity(weight_offset);
+        for (builder.weights.items) |entry| {
+            try self.weights.append(self.allocator, .{
+                .weight = .{ .dynkin_offset = coord_offset + entry.dynkin_offset },
+                .multiplicity = entry.multiplicity,
+            });
+        }
+
+        const handle = backend.WeightSystemHandle.init(@intCast(self.systems.items.len));
+        try self.systems.append(self.allocator, .{
+            .weights_offset = weight_offset,
+            .weights_len = @intCast(builder.weights.items.len),
+            .rank = builder.rank,
+            .dynkin_coords_offset = coord_offset,
+            .dynkin_coords_len = @intCast(builder.coords.items.len),
+            .audit = .{ .weight_count = @intCast(builder.weights.items.len), .total_multiplicity = builder.total_multiplicity },
+        });
+        errdefer _ = self.systems.pop();
+
+        try self.system_index.put(key, handle);
+        return handle;
+    }
+};
+#+end_src
+
+The opaque capability functions keep the registry simple.  Missing operations
+are typed errors, not successful opaque placeholders.
+
+#+begin_src zig
+const WeightSystem = struct {
+    weights_offset: u32,
+    weights_len: u32,
+    rank: u8,
+    dynkin_coords_offset: u32,
+    dynkin_coords_len: u32,
+    audit: backend.WeightSystemAudit,
+};
+
+const ResidualWeight = struct {
+    dynkin_offset: u32,
+    multiplicity: i128,
+};
+
+const SignedProductTerm = struct {
+    irrep: store.IrrepHandle,
+    multiplicity: i32,
+};
+
+const ProductCharacter = struct {
+    allocator: std.mem.Allocator,
+    rank: u8,
+    weights: std.ArrayList(ResidualWeight) = .empty,
+    dynkin_coords: std.ArrayList(i32) = .empty,
+    weight_index: std.AutoHashMap(u64, u32),
+    collision_next: std.ArrayList(u32) = .empty,
+
+    fn init(allocator: std.mem.Allocator, rank: u8) ProductCharacter {
+        return .{
+            .allocator = allocator,
+            .rank = rank,
+            .weight_index = std.AutoHashMap(u64, u32).init(allocator),
+        };
+    }
+
+    fn deinit(self: *ProductCharacter) void {
+        self.collision_next.deinit(self.allocator);
+        self.weight_index.deinit();
+        self.dynkin_coords.deinit(self.allocator);
+        self.weights.deinit(self.allocator);
+        self.* = undefined;
+    }
+
+    fn addProduct(self: *ProductCharacter, ghw: Backend, left: backend.WeightSystemHandle, right: backend.WeightSystemHandle) !void {
+        const left_system = ghw.weightSystemRecord(left) orelse return error.UnknownWeightSystem;
+        const right_system = ghw.weightSystemRecord(right) orelse return error.UnknownWeightSystem;
+        if (left_system.rank != self.rank or right_system.rank != self.rank) return error.MixedProductAlgebras;
+        const left_weights = ghw.weightSystemWeights(left) orelse return error.UnknownWeightSystem;
+        const right_weights = ghw.weightSystemWeights(right) orelse return error.UnknownWeightSystem;
+
+        var sum = [_]i32{0} ** 256;
+        for (left_weights) |left_weight| {
+            const left_dynkin = ghw.weightDynkin(left_weight.weight, self.rank) orelse return error.UnknownWeightSystem;
+            for (right_weights) |right_weight| {
+                const right_dynkin = ghw.weightDynkin(right_weight.weight, self.rank) orelse return error.UnknownWeightSystem;
+                for (0..self.rank) |index| {
+                    sum[index] = left_dynkin[index] + right_dynkin[index];
+                }
+                const multiplicity = @as(i128, left_weight.multiplicity) * @as(i128, right_weight.multiplicity);
+                try self.addWeight(sum[0..self.rank], multiplicity);
+            }
+        }
+    }
+
+    fn addWeight(self: *ProductCharacter, dynkin: []const i32, multiplicity: i128) !void {
+        if (multiplicity == 0) return;
+        if (self.findWeight(dynkin)) |index| {
+            self.weights.items[index].multiplicity += multiplicity;
+            return;
+        }
+
+        const offset: u32 = @intCast(self.dynkin_coords.items.len);
+        try self.dynkin_coords.appendSlice(self.allocator, dynkin);
+        errdefer self.dynkin_coords.shrinkRetainingCapacity(offset);
+        const hash = dynkinHash(dynkin);
+        const previous_head = self.weight_index.get(hash);
+        try self.weights.append(self.allocator, .{
+            .dynkin_offset = offset,
+            .multiplicity = multiplicity,
+        });
+        errdefer _ = self.weights.pop();
+        try self.collision_next.append(self.allocator, previous_head orelse std.math.maxInt(u32));
+        errdefer _ = self.collision_next.pop();
+        try self.weight_index.put(hash, @intCast(self.weights.items.len - 1));
+    }
+
+    fn subtractSystem(self: *ProductCharacter, ghw: Backend, system: backend.WeightSystemHandle, factor: i128) !void {
+        const weights = ghw.weightSystemWeights(system) orelse return error.UnknownWeightSystem;
+        for (weights) |entry| {
+            const dynkin = ghw.weightDynkin(entry.weight, self.rank) orelse return error.UnknownWeightSystem;
+            const index = self.findWeight(dynkin) orelse return error.CharacterSubtractionMissingWeight;
+            const amount = factor * @as(i128, entry.multiplicity);
+            if (self.weights.items[index].multiplicity < amount) return error.NegativeCharacterResidual;
+            self.weights.items[index].multiplicity -= amount;
+        }
+    }
+
+    fn highestDominantIndex(self: ProductCharacter, allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra) !?usize {
+        var cone = try root_data.PositiveRootCone.init(allocator, algebra);
+        defer cone.deinit(allocator);
+
+        var best: ?usize = null;
+        for (self.weights.items, 0..) |entry, index| {
+            if (entry.multiplicity <= 0) continue;
+            const candidate = self.weight(index);
+            if (!isDominantDynkin(candidate)) continue;
+
+            var below_other = false;
+            for (self.weights.items, 0..) |other_entry, other_index| {
+                if (other_index == index or other_entry.multiplicity <= 0) continue;
+                const other = self.weight(other_index);
+                if (!isDominantDynkin(other)) continue;
+                if (try cone.containsDifference(other, candidate)) {
+                    below_other = true;
+                    break;
+                }
+            }
+            if (below_other) continue;
+
+            if (best == null or lexLess(self.weight(best.?), candidate)) best = index;
+        }
+        return best;
+    }
+
+    fn isZero(self: ProductCharacter) bool {
+        for (self.weights.items) |entry| {
+            if (entry.multiplicity != 0) return false;
+        }
+        return true;
+    }
+
+    fn weight(self: ProductCharacter, index: usize) []const i32 {
+        const start: usize = @intCast(self.weights.items[index].dynkin_offset);
+        return self.dynkin_coords.items[start .. start + self.rank];
+    }
+
+    fn findWeight(self: ProductCharacter, dynkin: []const i32) ?usize {
+        var cursor = self.weight_index.get(dynkinHash(dynkin)) orelse return null;
+        while (cursor != std.math.maxInt(u32)) {
+            const index: usize = @intCast(cursor);
+            if (std.mem.eql(i32, self.weight(index), dynkin)) return index;
+            cursor = self.collision_next.items[index];
+        }
+        return null;
+    }
+};
+
+const GeneratedWeight = struct {
+    dynkin_offset: u32,
+    multiplicity: u32,
+};
+
+const FreudenthalBuilder = struct {
+    rank: u8,
+    weights: std.ArrayList(GeneratedWeight) = .empty,
+    coords: std.ArrayList(i32) = .empty,
+    total_multiplicity: u128 = 0,
+
+    fn init(allocator: std.mem.Allocator, rank: u8, label: []const i16) !FreudenthalBuilder {
+        var out = FreudenthalBuilder{ .rank = rank };
+        errdefer out.deinit(allocator);
+        try out.appendI16(allocator, label, 1);
+        out.total_multiplicity = 1;
+        return out;
+    }
+
+    fn deinit(self: *FreudenthalBuilder, allocator: std.mem.Allocator) void {
+        self.coords.deinit(allocator);
+        self.weights.deinit(allocator);
+        self.* = undefined;
+    }
+
+    fn close(self: *FreudenthalBuilder, allocator: std.mem.Allocator, datum: root_data.RootDatum, highest_i16: []const i16, expected_dimension: u128) !void {
+        var roots = try datum.positiveRoots(allocator);
+        defer roots.deinit(allocator);
+
+        var highest = [_]i32{0} ** 256;
+        for (highest_i16, 0..) |entry, index| highest[index] = entry;
+
+        var cursor: usize = 0;
+        while (cursor < self.weights.items.len) : (cursor += 1) {
+            var current = [_]i32{0} ** 256;
+            @memcpy(current[0..self.rank], self.weight(cursor));
+            for (0..self.rank) |root_index| {
+                var candidate = [_]i32{0} ** 256;
+                try subtractSimpleRoot(candidate[0..self.rank], current[0..self.rank], datum, root_index);
+                if (self.find(candidate[0..self.rank]) != null) continue;
+
+                const candidate_multiplicity = try freudenthalMultiplicity(allocator, datum, roots, highest[0..self.rank], candidate[0..self.rank], self.*);
+                if (candidate_multiplicity == 0) continue;
+                try self.appendI32(allocator, candidate[0..self.rank], candidate_multiplicity);
+                self.total_multiplicity = try std.math.add(u128, self.total_multiplicity, candidate_multiplicity);
+                if (self.total_multiplicity > expected_dimension) return error.WeightSystemDimensionOverflow;
+            }
+        }
+
+        if (self.total_multiplicity != expected_dimension) return error.WeightSystemDimensionMismatch;
+    }
+
+    fn weight(self: FreudenthalBuilder, index: usize) []const i32 {
+        const start: usize = @intCast(self.weights.items[index].dynkin_offset);
+        return self.coords.items[start .. start + self.rank];
+    }
+
+    fn multiplicity(self: FreudenthalBuilder, index: usize) u32 {
+        return self.weights.items[index].multiplicity;
+    }
+
+    fn find(self: FreudenthalBuilder, label: []const i32) ?usize {
+        for (self.weights.items, 0..) |_, index| {
+            if (std.mem.eql(i32, self.weight(index), label)) return index;
+        }
+        return null;
+    }
+
+    fn appendI16(self: *FreudenthalBuilder, allocator: std.mem.Allocator, label: []const i16, multiplicity_value: u32) !void {
+        var buffer = [_]i32{0} ** 256;
+        for (label, 0..) |entry, index| buffer[index] = entry;
+        try self.appendI32(allocator, buffer[0..label.len], multiplicity_value);
+    }
+
+    fn appendI32(self: *FreudenthalBuilder, allocator: std.mem.Allocator, label: []const i32, multiplicity_value: u32) !void {
+        const offset: u32 = @intCast(self.coords.items.len);
+        try self.coords.appendSlice(allocator, label);
+        errdefer self.coords.shrinkRetainingCapacity(offset);
+        try self.weights.append(allocator, .{
+            .dynkin_offset = offset,
+            .multiplicity = multiplicity_value,
+        });
+    }
+};
+
+const WeylOrbit = struct {
+    rank: u8,
+    len: u32 = 0,
+    coords: std.ArrayList(i32) = .empty,
+
+    fn init(allocator: std.mem.Allocator, rank: u8, label: []const i16) !WeylOrbit {
+        var out = WeylOrbit{ .rank = rank };
+        errdefer out.deinit(allocator);
+        try out.appendLabel(allocator, label);
+        return out;
+    }
+
+    fn deinit(self: *WeylOrbit, allocator: std.mem.Allocator) void {
+        self.coords.deinit(allocator);
+        self.* = undefined;
+    }
+
+    fn close(self: *WeylOrbit, allocator: std.mem.Allocator, datum: root_data.RootDatum) !void {
+        var cursor: u32 = 0;
+        while (cursor < self.len) : (cursor += 1) {
+            var current = [_]i32{0} ** 256;
+            @memcpy(current[0..self.rank], self.weight(cursor));
+            for (0..self.rank) |root_index| {
+                var reflected = [_]i32{0} ** 256;
+                try reflectSimpleRoot(reflected[0..self.rank], current[0..self.rank], datum, root_index);
+                try self.appendUnique(allocator, reflected[0..self.rank]);
+            }
+        }
+    }
+
+    fn weight(self: WeylOrbit, index: u32) []const i32 {
+        const start: usize = @intCast(index * self.rank);
+        return self.coords.items[start .. start + self.rank];
+    }
+
+    fn appendLabel(self: *WeylOrbit, allocator: std.mem.Allocator, label: []const i16) !void {
+        var buffer = [_]i32{0} ** 256;
+        for (label, 0..) |entry, index| buffer[index] = entry;
+        try self.append(allocator, buffer[0..label.len]);
+    }
+
+    fn appendUnique(self: *WeylOrbit, allocator: std.mem.Allocator, label: []const i32) !void {
+        for (0..self.len) |index| {
+            if (std.mem.eql(i32, self.weight(@intCast(index)), label)) return;
+        }
+        try self.append(allocator, label);
+    }
+
+    fn append(self: *WeylOrbit, allocator: std.mem.Allocator, label: []const i32) !void {
+        try self.coords.appendSlice(allocator, label);
+        self.len += 1;
+    }
+};
+
+fn validateAlgebra(_: *anyopaque, algebra: symmetry.SimpleLieAlgebra) anyerror!void {
+    try validateSupported(algebra);
+}
+
+fn irrepMetadata(_: *anyopaque, _: store.AlgebraHandle, _: store.IrrepHandle) anyerror!store.IrrepMetadata {
+    return error.BackendMetadataNotImplemented;
+}
+
+fn weightSystem(state: *anyopaque, representations: *store.Store, algebra: store.AlgebraHandle, irrep: store.IrrepHandle) anyerror!backend.WeightSystemHandle {
+    const self: *Backend = @ptrCast(@alignCast(state));
+    return self.weightSystemForIrrep(representations, algebra, irrep);
+}
+
+fn decomposeProduct(state: *anyopaque, representations: *store.Store, decompositions: *decomposition.Store, key: decomposition.ProductKey) anyerror!decomposition.ProductDecompositionHandle {
+    const self: *Backend = @ptrCast(@alignCast(state));
+    return self.decomposeProductForKey(representations, decompositions, key);
+}
+
+fn localProjector(_: *anyopaque, _: projector.ProjectorKey) anyerror!projector.ProjectorId {
+    return error.LocalProjectorNotImplemented;
+}
+
+fn primitiveInvariants(_: *anyopaque, _: []const store.IrrepHandle) anyerror!backend.PrimitiveInvariantSpan {
+    return error.PrimitiveInvariantsNotImplemented;
+}
+
+fn renderProjector(_: *anyopaque, _: projector.ProjectorId, _: backend.RenderConvention, _: *anyopaque) anyerror!void {
+    return error.ProjectorRenderingNotImplemented;
+}
+#+end_src
+
+Supported families match the Clebsch-Gordan milestone: \(A\), \(B\), \(D\),
+and \(E_6,E_7,E_8\).  \(C,F,G\) are rejected until a backend implements them.
+
+#+begin_src zig
+fn validateSupported(algebra: symmetry.SimpleLieAlgebra) !void {
+    try root_data.validateSimple(algebra);
+    switch (algebra.family) {
+        .a, .b, .d, .e6, .e7, .e8 => {},
+        else => return error.UnsupportedAlgebraFamily,
+    }
+}
+
+fn isSimplyLaced(algebra: symmetry.SimpleLieAlgebra) bool {
+    return switch (algebra.family) {
+        .a, .d, .e6, .e7, .e8 => true,
+        else => false,
+    };
+}
+
+fn isZeroDynkin(label: []const i16) bool {
+    for (label) |entry| {
+        if (entry != 0) return false;
+    }
+    return true;
+}
+
+fn weightSystemKey(algebra: store.AlgebraHandle, irrep: store.IrrepHandle) u64 {
+    return (@as(u64, algebra.value) << 32) | @as(u64, irrep.value);
+}
+#+end_src
+
+Freudenthal generation and dominance ordering need only small Dynkin-label
+operations in the hot path.  These helpers operate on caller-provided slices.
+
+#+begin_src zig
+fn isDominantDynkin(label: []const i32) bool {
+    for (label) |entry| {
+        if (entry < 0) return false;
+    }
+    return true;
+}
+
+fn lexLess(left: []const i32, right: []const i32) bool {
+    for (left, right) |left_entry, right_entry| {
+        if (left_entry < right_entry) return true;
+        if (left_entry > right_entry) return false;
+    }
+    return false;
+}
+
+fn dynkinToI16(allocator: std.mem.Allocator, label: []const i32) ![]i16 {
+    const out = try allocator.alloc(i16, label.len);
+    errdefer allocator.free(out);
+    for (label, 0..) |entry, index| {
+        if (entry < 0) return error.InvalidDynkinLabel;
+        out[index] = std.math.cast(i16, entry) orelse return error.DynkinLabelOverflow;
+    }
+    return out;
+}
+
+fn dynkinHash(label: []const i32) u64 {
+    var hash: u64 = 14695981039346656037;
+    for (label) |entry| {
+        const bits: u32 = @bitCast(entry);
+        hash ^= bits;
+        hash *%= 1099511628211;
+    }
+    hash ^= label.len;
+    hash *%= 1099511628211;
+    return hash;
+}
+
+fn dominantShiftedWeight(out: []i32, algebra: symmetry.SimpleLieAlgebra, base_label: []const i16, minuscule_weight: []const i32) !?i32 {
+    if (out.len != algebra.rank or base_label.len != algebra.rank or minuscule_weight.len != algebra.rank) return error.InvalidDynkinRank;
+    const datum = try root_data.RootDatum.init(algebra, .{});
+
+    var current = [_]i32{0} ** 256;
+    for (0..algebra.rank) |index| {
+        current[index] = @as(i32, base_label[index]) + minuscule_weight[index] + 1;
+    }
+
+    var sign: i32 = 1;
+    var guard: usize = 0;
+    while (guard < 1024) : (guard += 1) {
+        var reflection_index: ?usize = null;
+        for (0..algebra.rank) |index| {
+            if (current[index] == 0) return null;
+            if (current[index] < 0 and reflection_index == null) reflection_index = index;
+        }
+        const root_index = reflection_index orelse break;
+
+        var reflected = [_]i32{0} ** 256;
+        try reflectSimpleRoot(reflected[0..algebra.rank], current[0..algebra.rank], datum, root_index);
+        @memcpy(current[0..algebra.rank], reflected[0..algebra.rank]);
+        sign = -sign;
+    } else {
+        return error.WeylReflectionDidNotConverge;
+    }
+
+    for (0..algebra.rank) |index| {
+        if (current[index] <= 0) return null;
+        out[index] = current[index] - 1;
+    }
+    return sign;
+}
+
+fn addSignedTerm(allocator: std.mem.Allocator, terms: *std.ArrayList(SignedProductTerm), irrep: store.IrrepHandle, signed_multiplicity: i32) !void {
+    if (signed_multiplicity == 0) return;
+    for (terms.items) |*term| {
+        if (term.irrep.value != irrep.value) continue;
+        term.multiplicity = try std.math.add(i32, term.multiplicity, signed_multiplicity);
+        return;
+    }
+    try terms.append(allocator, .{
+        .irrep = irrep,
+        .multiplicity = signed_multiplicity,
+    });
+}
+
+fn appendPositiveTerms(allocator: std.mem.Allocator, out: *std.ArrayList(decomposition.ProductTerm), signed_terms: []const SignedProductTerm) !void {
+    for (signed_terms) |term| {
+        if (term.multiplicity == 0) continue;
+        if (term.multiplicity < 0) return error.NegativeShiftedWeightMultiplicity;
+        try out.append(allocator, .{
+            .irrep = term.irrep,
+            .multiplicity = std.math.cast(u16, term.multiplicity) orelse return error.ChannelMultiplicityOverflow,
+        });
+    }
+}
+
+fn productAudit(representations: store.Store, terms: []const decomposition.ProductTerm, product_multiset_size: u32) !ProductAudit {
+    var dimension_sum: u128 = 0;
+    for (terms) |term| {
+        const metadata = representations.irrepMetadata(term.irrep) orelse return error.UnknownIrrep;
+        const dimension = metadata.dimension orelse return error.MissingIrrepDimension;
+        dimension_sum = try std.math.add(u128, dimension_sum, try std.math.mul(u128, dimension, term.multiplicity));
+    }
+    return .{
+        .product_multiset_size = product_multiset_size,
+        .channel_count = @intCast(terms.len),
+        .dimension_sum = dimension_sum,
+    };
+}
+
+fn freudenthalMultiplicity(allocator: std.mem.Allocator, datum: root_data.RootDatum, roots: root_data.PositiveRoots, highest: []const i32, candidate: []const i32, generated: FreudenthalBuilder) !u32 {
+    var highest_shifted = [_]i32{0} ** 256;
+    var candidate_shifted = [_]i32{0} ** 256;
+    for (0..datum.rank()) |index| {
+        highest_shifted[index] = highest[index] + 1;
+        candidate_shifted[index] = candidate[index] + 1;
+    }
+
+    const highest_norm = try root_data.innerProductDynkin(allocator, datum.algebra, highest_shifted[0..datum.rank()], highest_shifted[0..datum.rank()]);
+    const candidate_norm = try root_data.innerProductDynkin(allocator, datum.algebra, candidate_shifted[0..datum.rank()], candidate_shifted[0..datum.rank()]);
+    const denominator = try root_data.rationalSub(highest_norm, candidate_norm);
+    if (denominator.numerator <= 0) return 0;
+
+    var sum = root_data.Rational{};
+    for (0..roots.count()) |root_index| {
+        const root = roots.root(root_index);
+        var root_dynkin = [_]i32{0} ** 256;
+        try root_data.rootDynkinLabel(datum.algebra, root, root_dynkin[0..datum.rank()]);
+
+        var probe = [_]i32{0} ** 256;
+        @memcpy(probe[0..datum.rank()], candidate);
+        while (true) {
+            for (0..datum.rank()) |index| probe[index] += root_dynkin[index];
+            const probe_slice = probe[0..datum.rank()];
+            if (!std.mem.eql(i32, probe_slice, highest) and
+                !(try root_data.dynkinDifferenceInPositiveRootCone(allocator, datum.algebra, highest, probe_slice))) break;
+
+            if (generated.find(probe_slice)) |known_index| {
+                const product = try root_data.innerProductDynkinRoot(datum.algebra, probe_slice, root);
+                const contribution = try root_data.rationalMulInt(product, generated.multiplicity(known_index));
+                sum = try root_data.rationalAdd(sum, contribution);
+            }
+        }
+    }
+
+    if (sum.numerator == 0) return 0;
+    const quotient = try root_data.rationalDiv(try root_data.rationalMulInt(sum, 2), denominator);
+    if (quotient.numerator <= 0) return 0;
+    if (quotient.denominator != 1) return error.NonIntegralFreudenthalMultiplicity;
+    return std.math.cast(u32, quotient.numerator) orelse error.FreudenthalMultiplicityOverflow;
+}
+
+fn subtractSimpleRoot(out: []i32, input: []const i32, datum: root_data.RootDatum, root_index: usize) !void {
+    if (out.len != input.len or input.len != datum.rank()) return error.InvalidDynkinRank;
+    for (input, 0..) |entry, row| {
+        out[row] = entry - try datum.cartan(row, root_index);
+    }
+}
+
+fn reflectSimpleRoot(out: []i32, input: []const i32, datum: root_data.RootDatum, root_index: usize) !void {
+    if (out.len != input.len or input.len != datum.rank()) return error.InvalidDynkinRank;
+    const coefficient = input[root_index];
+    for (input, 0..) |entry, row| {
+        out[row] = entry - coefficient * try datum.cartan(row, root_index);
+    }
+}
+#+end_src
+
+The first weight-system checks cover the required flat-cache audits that do
+not need Freudenthal: minuscule Spin weights and the simply-laced E8 adjoint.
+
+#+begin_src zig
+test "generic backend caches Weyl-orbit weight audits" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const so10 = try representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const spinor = try representations.internIrrep(so10, .{ .dynkin = &.{ 0, 0, 0, 0, 1 } });
+    const spinor_weights = try ghw.weightSystemForIrrep(&representations, so10, spinor);
+    try testing.expectEqual(@as(u32, 16), ghw.weightSystemAudit(spinor_weights).?.weight_count);
+    try testing.expectEqual(@as(u128, 16), ghw.weightSystemAudit(spinor_weights).?.total_multiplicity);
+    const vector_spinor = try representations.internIrrep(so10, .{ .dynkin = &.{ 1, 0, 0, 0, 1 } });
+    const vector_spinor_weights = try ghw.weightSystemForIrrep(&representations, so10, vector_spinor);
+    try testing.expectEqual(@as(u128, 144), ghw.weightSystemAudit(vector_spinor_weights).?.total_multiplicity);
+
+    const so9 = try representations.internAlgebra(.{ .simple = .{ .family = .b, .rank = 4 } });
+    const so9_spinor = try representations.internIrrep(so9, .{ .dynkin = &.{ 0, 0, 0, 1 } });
+    const so9_spinor_weights = try ghw.weightSystemForIrrep(&representations, so9, so9_spinor);
+    try testing.expectEqual(@as(u32, 16), ghw.weightSystemAudit(so9_spinor_weights).?.weight_count);
+    try testing.expectEqual(@as(u128, 16), ghw.weightSystemAudit(so9_spinor_weights).?.total_multiplicity);
+
+    const e8 = try representations.internAlgebra(.{ .simple = .{ .family = .e8, .rank = 8 } });
+    const adjoint = try representations.internIrrep(e8, .{ .dynkin = &.{ 0, 0, 0, 0, 0, 0, 1, 0 } });
+    const adjoint_weights = try ghw.weightSystemForIrrep(&representations, e8, adjoint);
+    try testing.expectEqual(@as(u32, 241), ghw.weightSystemAudit(adjoint_weights).?.weight_count);
+    try testing.expectEqual(@as(u128, 248), ghw.weightSystemAudit(adjoint_weights).?.total_multiplicity);
+}
+#+end_src
+
+The first product-decomposition check uses the generic character-subtraction
+path and stores real product terms in the decomposition cache.
+
+#+begin_src zig
+test "generic backend decomposes SU2 fundamental square" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var decompositions = decomposition.Store.init(testing.allocator);
+    defer decompositions.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const su2 = try representations.internAlgebra(.{ .simple = .{ .family = .a, .rank = 1 } });
+    const fundamental = try representations.internIrrep(su2, .{ .dynkin = &.{1} });
+    const handle = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = fundamental,
+        .right = fundamental,
+    });
+    const again = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = fundamental,
+        .right = fundamental,
+    });
+    try testing.expectEqual(handle.value, again.value);
+    const counters = ghw.backendCounters();
+    try testing.expectEqual(@as(u64, 1), counters.product_misses);
+    try testing.expectEqual(@as(u64, 1), counters.product_hits);
+    try testing.expect(counters.weight_system_misses >= 1);
+
+    const terms = decompositions.productTerms(handle).?;
+    try testing.expectEqual(@as(usize, 2), terms.len);
+
+    var saw_singlet = false;
+    var saw_adjoint = false;
+    for (terms) |term| {
+        try testing.expectEqual(@as(u16, 1), term.multiplicity);
+        const label = representations.irrepDynkin(term.irrep).?;
+        if (std.mem.eql(i16, label, &.{0})) saw_singlet = true;
+        if (std.mem.eql(i16, label, &.{2})) saw_adjoint = true;
+    }
+    try testing.expect(saw_singlet);
+    try testing.expect(saw_adjoint);
+
+    const audit = ghw.latestProductAudit().?;
+    try testing.expectEqual(@as(u32, 2), audit.product_multiset_size);
+    try testing.expectEqual(@as(u32, 2), audit.channel_count);
+    try testing.expectEqual(@as(u128, 4), audit.dimension_sum);
+}
+
+test "generic backend decomposes Spin10 vector times spinor" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var decompositions = decomposition.Store.init(testing.allocator);
+    defer decompositions.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const so10 = try representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const vector = try representations.internIrrep(so10, .{ .dynkin = &.{ 1, 0, 0, 0, 0 } });
+    const spinor = try representations.internIrrep(so10, .{ .dynkin = &.{ 0, 0, 0, 0, 1 } });
+    const handle = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = vector,
+        .right = spinor,
+    });
+
+    const terms = decompositions.productTerms(handle).?;
+    try testing.expectEqual(@as(usize, 2), terms.len);
+
+    var saw_conjugate_spinor = false;
+    var saw_vector_spinor = false;
+    for (terms) |term| {
+        try testing.expectEqual(@as(u16, 1), term.multiplicity);
+        const label = representations.irrepDynkin(term.irrep).?;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 1, 0 })) saw_conjugate_spinor = true;
+        if (std.mem.eql(i16, label, &.{ 1, 0, 0, 0, 1 })) saw_vector_spinor = true;
+    }
+    try testing.expect(saw_conjugate_spinor);
+    try testing.expect(saw_vector_spinor);
+
+    const audit = ghw.latestProductAudit().?;
+    try testing.expectEqual(@as(u32, 2), audit.channel_count);
+    try testing.expectEqual(@as(u128, 160), audit.dimension_sum);
+}
+
+test "generic backend decomposes Spin10 spinor square" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var decompositions = decomposition.Store.init(testing.allocator);
+    defer decompositions.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const so10 = try representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const spinor = try representations.internIrrep(so10, .{ .dynkin = &.{ 0, 0, 0, 0, 1 } });
+    const handle = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = spinor,
+        .right = spinor,
+    });
+
+    const terms = decompositions.productTerms(handle).?;
+    try testing.expectEqual(@as(usize, 3), terms.len);
+
+    var saw_vector = false;
+    var saw_three_form = false;
+    var saw_self_dual_five_form = false;
+    for (terms) |term| {
+        try testing.expectEqual(@as(u16, 1), term.multiplicity);
+        const label = representations.irrepDynkin(term.irrep).?;
+        if (std.mem.eql(i16, label, &.{ 1, 0, 0, 0, 0 })) saw_vector = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 1, 0, 0 })) saw_three_form = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 0, 2 })) saw_self_dual_five_form = true;
+    }
+    try testing.expect(saw_vector);
+    try testing.expect(saw_three_form);
+    try testing.expect(saw_self_dual_five_form);
+
+    const audit = ghw.latestProductAudit().?;
+    try testing.expectEqual(@as(u32, 3), audit.channel_count);
+    try testing.expectEqual(@as(u128, 256), audit.dimension_sum);
+}
+
+test "generic backend decomposes Spin10 conjugate spinor square" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var decompositions = decomposition.Store.init(testing.allocator);
+    defer decompositions.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const so10 = try representations.internAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const conjugate_spinor = try representations.internIrrep(so10, .{ .dynkin = &.{ 0, 0, 0, 1, 0 } });
+    const handle = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = conjugate_spinor,
+        .right = conjugate_spinor,
+    });
+
+    const terms = decompositions.productTerms(handle).?;
+    try testing.expectEqual(@as(usize, 3), terms.len);
+
+    var saw_vector = false;
+    var saw_three_form = false;
+    var saw_anti_self_dual_five_form = false;
+    for (terms) |term| {
+        try testing.expectEqual(@as(u16, 1), term.multiplicity);
+        const label = representations.irrepDynkin(term.irrep).?;
+        if (std.mem.eql(i16, label, &.{ 1, 0, 0, 0, 0 })) saw_vector = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 1, 0, 0 })) saw_three_form = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 2, 0 })) saw_anti_self_dual_five_form = true;
+    }
+    try testing.expect(saw_vector);
+    try testing.expect(saw_three_form);
+    try testing.expect(saw_anti_self_dual_five_form);
+
+    const audit = ghw.latestProductAudit().?;
+    try testing.expectEqual(@as(u32, 3), audit.channel_count);
+    try testing.expectEqual(@as(u128, 256), audit.dimension_sum);
+}
+
+test "generic backend decomposes E8 adjoint square" {
+    const testing = std.testing;
+
+    var representations = store.Store.init(testing.allocator, .{});
+    defer representations.deinit();
+    var decompositions = decomposition.Store.init(testing.allocator);
+    defer decompositions.deinit();
+    var ghw = Backend.init(testing.allocator, .{});
+    defer ghw.deinit();
+
+    const e8 = try representations.internAlgebra(.{ .simple = .{ .family = .e8, .rank = 8 } });
+    const adjoint = try representations.internIrrep(e8, .{ .dynkin = &.{ 0, 0, 0, 0, 0, 0, 1, 0 } });
+    const handle = try ghw.decomposeProductForKey(&representations, &decompositions, .{
+        .left = adjoint,
+        .right = adjoint,
+    });
+
+    const terms = decompositions.productTerms(handle).?;
+    try testing.expectEqual(@as(usize, 5), terms.len);
+
+    var saw_singlet = false;
+    var saw_adjoint = false;
+    var saw_3875 = false;
+    var saw_27000 = false;
+    var saw_30380 = false;
+    for (terms) |term| {
+        try testing.expectEqual(@as(u16, 1), term.multiplicity);
+        const label = representations.irrepDynkin(term.irrep).?;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 0, 0, 0, 0, 0 })) saw_singlet = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 0, 0, 0, 1, 0 })) saw_adjoint = true;
+        if (std.mem.eql(i16, label, &.{ 1, 0, 0, 0, 0, 0, 0, 0 })) saw_3875 = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 0, 0, 0, 2, 0 })) saw_27000 = true;
+        if (std.mem.eql(i16, label, &.{ 0, 0, 0, 0, 0, 1, 0, 0 })) saw_30380 = true;
+    }
+    try testing.expect(saw_singlet);
+    try testing.expect(saw_adjoint);
+    try testing.expect(saw_3875);
+    try testing.expect(saw_27000);
+    try testing.expect(saw_30380);
+
+    const audit = ghw.latestProductAudit().?;
+    try testing.expectEqual(@as(u32, 5), audit.channel_count);
+    try testing.expectEqual(@as(u128, 61504), audit.dimension_sum);
+}
+#+end_src

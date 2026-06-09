@@ -1,6 +1,8 @@
+const std = @import("std");
 const context = @import("context.zig");
 const coupling = @import("coupling.zig");
 const kernel = @import("kernel.zig");
+const projector = @import("projector.zig");
 const realization = @import("realization.zig");
 const rendering = @import("rendering.zig");
 const root_data = @import("root-data.zig");
@@ -30,6 +32,22 @@ pub const RealizationChannel = realization.RealizationChannel;
 pub const BasisHandle = coupling.BasisHandle;
 /// InvariantHandle names one invariant inside a basis.
 pub const InvariantHandle = coupling.InvariantHandle;
+/// BasisAudit stores compact evidence for one generated path basis.
+pub const BasisAudit = coupling.BasisAudit;
+/// FormulaCoverageAudit stores formula-readiness counters for a generated basis.
+pub const FormulaCoverageAudit = context.FormulaCoverageAudit;
+/// ProjectorDescriptor exposes read-only metadata for a projector id.
+pub const ProjectorDescriptor = projector.ProjectorDescriptor;
+/// ProjectorRole records what mathematical object a projector selects.
+pub const ProjectorRole = projector.ProjectorRole;
+/// ProductChannelKey identifies one target channel inside a binary product.
+pub const ProductChannelKey = projector.ProductChannelKey;
+/// ProjectorDerivation stores the construction route and expansion state.
+pub const ProjectorDerivation = projector.ProjectorDerivation;
+/// ProjectorFormulaKind records the executable local formula route.
+pub const ProjectorFormulaKind = projector.ProjectorFormulaKind;
+/// ProjectorFormulaAudit records symbolic checks passed by a formula route.
+pub const ProjectorFormulaAudit = projector.ProjectorFormulaAudit;
 /// Context is an opaque handle to tensor-code stores and caches.
 pub const Context = context.Context;
 /// ContextOptions configures algebra and rendering defaults.
@@ -56,6 +74,218 @@ pub const EvalOptions = rendering.EvalOptions;
 pub const SymbolicTerm = rendering.SymbolicTerm;
 /// SymbolicAtom stores one symbolic invariant contraction atom.
 pub const SymbolicAtom = rendering.SymbolicAtom;
+/// SymbolicAtomTag names one symbolic atom variant.
+pub const SymbolicAtomTag = rendering.SymbolicAtomTag;
+/// AtomLoweringAudit records how far streamed atoms have been lowered.
+pub const AtomLoweringAudit = rendering.AtomLoweringAudit;
+/// AtomLoweringAuditSink accumulates atom-lowering counters from terms.
+pub const AtomLoweringAuditSink = rendering.AtomLoweringAuditSink;
+/// GammaMatrix stores one explicit spinor-vector Clifford atom.
+pub const GammaMatrix = rendering.GammaMatrix;
+/// GammaForm stores one explicit spinor bilinear coupled to a form irrep.
+pub const GammaForm = rendering.GammaForm;
+/// GammaAction stores an antisymmetric gamma form acting on a spinor.
+pub const GammaAction = rendering.GammaAction;
+/// CliffordProduct stores one reduced gamma-product term.
+pub const CliffordProduct = rendering.CliffordProduct;
+/// CartanProduct stores a compact highest-weight product projection.
+pub const CartanProduct = rendering.CartanProduct;
+/// TensorSpinorProjection stores a compact form-valued spinor-tower channel.
+pub const TensorSpinorProjection = rendering.TensorSpinorProjection;
+/// TensorFormProjection stores a compact tensor-spinor terminal channel.
+pub const TensorFormProjection = rendering.TensorFormProjection;
+/// GammaTrace stores the gamma-trace part of a vector-spinor projector.
+pub const GammaTrace = rendering.GammaTrace;
+/// SpinorPair stores one explicit invariant spinor bilinear atom.
+pub const SpinorPair = rendering.SpinorPair;
+/// VectorSpinorIdentity stores the identity on a vector-spinor slot.
+pub const VectorSpinorIdentity = rendering.VectorSpinorIdentity;
+/// StructureConstant stores one backend-specific invariant tensor atom.
+pub const StructureConstant = rendering.StructureConstant;
+/// RationalValue is a decoded small exact rational coefficient.
+pub const RationalValue = rendering.RationalValue;
+/// GammaBlock stores one internal antisymmetrized gamma factor.
+pub const GammaBlock = rendering.GammaBlock;
+/// CliffordProductTerm stores one grade term in a gamma-block product.
+pub const CliffordProductTerm = rendering.CliffordProductTerm;
+/// CliffordProductExpansion stores the small finite grade expansion.
+pub const CliffordProductExpansion = rendering.CliffordProductExpansion;
+/// CliffordVectorSource identifies which input gamma block owns a vector.
+pub const CliffordVectorSource = rendering.CliffordVectorSource;
+/// CliffordMetricContraction stores one metric between input gamma slots.
+pub const CliffordMetricContraction = rendering.CliffordMetricContraction;
+/// CliffordFreeVector stores one uncontracted vector slot in output order.
+pub const CliffordFreeVector = rendering.CliffordFreeVector;
+/// CliffordProductMetricFactor names one metric in a reduced gamma product.
+pub const CliffordProductMetricFactor = rendering.CliffordProductMetricFactor;
+/// CliffordProductFreeVectorFactor maps one input slot into the output gamma.
+pub const CliffordProductFreeVectorFactor = rendering.CliffordProductFreeVectorFactor;
+/// CliffordProductFactor stores one explicit factor of a reduced product atom.
+pub const CliffordProductFactor = rendering.CliffordProductFactor;
+/// CliffordProductFactorRecord stores one streamed factor with product context.
+pub const CliffordProductFactorRecord = rendering.CliffordProductFactorRecord;
+/// CliffordProductFactorScan summarizes and validates lowered reducer factors.
+pub const CliffordProductFactorScan = rendering.CliffordProductFactorScan;
+/// CliffordProductFactorAuditSink accumulates factor scans from rendered terms.
+pub const CliffordProductFactorAuditSink = rendering.CliffordProductFactorAuditSink;
+/// CliffordContractionPlan stores metric pairs and residual gamma slots.
+pub const CliffordContractionPlan = rendering.CliffordContractionPlan;
+/// GammaChirality classifies chiral spinor conventions for gamma renderers.
+pub const GammaChirality = rendering.GammaChirality;
+/// NamedOperatorKind classifies compact backend-rendered operators.
+pub const NamedOperatorKind = rendering.NamedOperatorKind;
+/// FilterDecision is the tri-state result for streamed expansion filters.
+pub const FilterDecision = rendering.FilterDecision;
+/// ExpansionFilter decides whether streamed terms should continue or emit.
+pub const ExpansionFilter = rendering.ExpansionFilter;
+/// ExpansionAudit stores compact counters from streamed expansion.
+pub const ExpansionAudit = rendering.ExpansionAudit;
 
 /// TensorExprId names a tensor expression stored by tensor-code.
 pub const TensorExprId = kernel.TensorExprId;
+
+/// gammaChiralityTag returns a compact chirality tag for a spinor Dynkin label.
+pub const gammaChiralityTag = rendering.gammaChiralityTag;
+/// orthogonalDimension returns the vector dimension for B/D algebras.
+pub const orthogonalDimension = rendering.orthogonalDimension;
+/// gammaDualityValid checks whether a gamma block duality tag matches its grade.
+pub const gammaDualityValid = rendering.gammaDualityValid;
+/// gammaProductExpansion returns the grade expansion of two gamma blocks.
+pub const gammaProductExpansion = rendering.gammaProductExpansion;
+/// gammaProductContractionPlan returns metrics and free slots for one product term.
+pub const gammaProductContractionPlan = rendering.gammaProductContractionPlan;
+/// cliffordProductTerm decodes the grade term stored in a streamed atom.
+pub const cliffordProductTerm = rendering.cliffordProductTerm;
+/// cliffordProductContractionPlan reconstructs the metric/free-slot plan.
+pub const cliffordProductContractionPlan = rendering.cliffordProductContractionPlan;
+/// cliffordProductFactorCount returns the number of explicit factors in an atom.
+pub const cliffordProductFactorCount = rendering.cliffordProductFactorCount;
+/// cliffordProductFactorAt returns one metric or residual vector factor.
+pub const cliffordProductFactorAt = rendering.cliffordProductFactorAt;
+/// streamCliffordProductFactors emits factors from compact or lowered reducers.
+pub const streamCliffordProductFactors = rendering.streamCliffordProductFactors;
+/// scanCliffordProductFactors validates and counts compact or lowered factors.
+pub const scanCliffordProductFactors = rendering.scanCliffordProductFactors;
+/// appendLoweredCliffordProductAtoms replaces reducer atoms with factor atoms.
+pub const appendLoweredCliffordProductAtoms = rendering.appendLoweredCliffordProductAtoms;
+/// rationalValue decodes an exact rational coefficient.
+pub const rationalValue = rendering.rationalValue;
+
+test "tensor root exposes invariant basis audit" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const su2 = try ctx.registerAlgebra(.{ .simple = .{ .family = .a, .rank = 1 } });
+    const fundamental = try ctx.registerIrrep(su2, .{ .dynkin = &.{1} });
+    const leg = ExternalLeg.primitive(fundamental, &.{
+        .init(.fundamental, "i"),
+    });
+    const basis = try ctx.invariantBasis(.{
+        .algebra = su2,
+        .external_legs = &.{ leg, leg, leg, leg },
+    });
+
+    const audit: BasisAudit = ctx.basisAudit(basis).?;
+    try testing.expectEqual(@as(u128, 2), ctx.basisInvariantCount(basis).?);
+    try testing.expectEqual(@as(u128, 2), audit.path_count);
+    try testing.expectEqual(@as(u32, 2), audit.stored_path_count);
+}
+
+test "tensor root exposes ADE formula coverage and basis streaming" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const su3 = try ctx.registerAlgebra(.{ .simple = .{ .family = .a, .rank = 2 } });
+    const fundamental = try ctx.registerIrrep(su3, .{ .dynkin = &.{ 1, 0 } });
+    const leg = ExternalLeg.primitive(fundamental, &.{
+        .init(.fundamental, "i"),
+    });
+    const basis = try ctx.invariantBasis(.{
+        .algebra = su3,
+        .external_legs = &.{ leg, leg, leg },
+    });
+
+    const coverage: FormulaCoverageAudit = try ctx.basisFormulaCoverageAudit(basis);
+    try testing.expectEqual(@as(u32, 1), coverage.path_count);
+    try testing.expectEqual(@as(u64, 2), coverage.local_step_count);
+    try testing.expectEqual(@as(u64, 2), coverage.expandable_step_count);
+    try testing.expectEqual(@as(u64, 0), coverage.missing_step_count);
+    try testing.expectEqual(@as(u32, 1), coverage.fully_expandable_path_count);
+
+    var sink: RootCountingSink = .{};
+    const audit = try ctx.renderBasisFiltered(basis, .{ .projectors = .expanded_terms }, ExpansionFilter.acceptAll(), &sink);
+    try testing.expectEqual(@as(u64, 1), audit.invariants);
+    try testing.expectEqual(@as(u64, 1), audit.emitted);
+    try testing.expectEqual(@as(u32, 1), sink.term_count);
+    try testing.expectEqual(@as(u32, 1), sink.epsilon_count);
+    try testing.expectEqual(@as(u32, 0), sink.projector_operator_count);
+
+    const e6 = try ctx.registerAlgebra(.{ .simple = .{ .family = .e6, .rank = 6 } });
+    const e6_fundamental = try ctx.registerIrrep(e6, .{ .dynkin = &.{ 1, 0, 0, 0, 0, 0 } });
+    const e6_leg = ExternalLeg.primitive(e6_fundamental, &.{
+        .init(.fundamental, "i"),
+    });
+    const e6_basis = try ctx.invariantBasis(.{
+        .algebra = e6,
+        .external_legs = &.{ e6_leg, e6_leg, e6_leg },
+    });
+    const e6_coverage: FormulaCoverageAudit = try ctx.basisFormulaCoverageAudit(e6_basis);
+    try testing.expectEqual(@as(u32, 1), e6_coverage.path_count);
+    try testing.expectEqual(@as(u64, 2), e6_coverage.expandable_step_count);
+    try testing.expectEqual(@as(u64, 0), e6_coverage.missing_step_count);
+
+    var e6_sink: RootCountingSink = .{};
+    const e6_audit = try ctx.renderBasisFiltered(e6_basis, .{ .projectors = .expanded_terms }, ExpansionFilter.acceptAll(), &e6_sink);
+    try testing.expectEqual(@as(u64, 1), e6_audit.invariants);
+    try testing.expectEqual(@as(u64, 1), e6_audit.emitted);
+    try testing.expectEqual(@as(u32, 1), e6_sink.term_count);
+    try testing.expectEqual(@as(u32, 1), e6_sink.structure_constant_count);
+    try testing.expectEqual(@as(u32, 0), e6_sink.projector_operator_count);
+
+    const e8 = try ctx.registerAlgebra(.{ .simple = .{ .family = .e8, .rank = 8 } });
+    const e8_adjoint = try ctx.registerIrrep(e8, .{ .dynkin = &.{ 0, 0, 0, 0, 0, 0, 1, 0 } });
+    const e8_leg = ExternalLeg.primitive(e8_adjoint, &.{
+        .init(.adjoint, "a"),
+    });
+    const e8_basis = try ctx.invariantBasis(.{
+        .algebra = e8,
+        .external_legs = &.{ e8_leg, e8_leg, e8_leg },
+    });
+    const e8_coverage: FormulaCoverageAudit = try ctx.basisFormulaCoverageAudit(e8_basis);
+    try testing.expectEqual(@as(u32, 1), e8_coverage.path_count);
+    try testing.expectEqual(@as(u64, 2), e8_coverage.expandable_step_count);
+    try testing.expectEqual(@as(u64, 0), e8_coverage.missing_step_count);
+
+    var e8_sink: RootCountingSink = .{};
+    const e8_audit = try ctx.renderBasisFiltered(e8_basis, .{ .projectors = .expanded_terms }, ExpansionFilter.acceptAll(), &e8_sink);
+    try testing.expectEqual(@as(u64, 1), e8_audit.invariants);
+    try testing.expectEqual(@as(u64, 1), e8_audit.emitted);
+    try testing.expectEqual(@as(u32, 1), e8_sink.term_count);
+    try testing.expectEqual(@as(u32, 1), e8_sink.structure_constant_count);
+    try testing.expectEqual(@as(u32, 0), e8_sink.projector_operator_count);
+}
+
+const RootCountingSink = struct {
+    term_count: u32 = 0,
+    epsilon_count: u32 = 0,
+    structure_constant_count: u32 = 0,
+    projector_operator_count: u32 = 0,
+
+    pub fn emitTerm(self: *RootCountingSink, term: SymbolicTerm) !void {
+        self.term_count += 1;
+        for (term.atoms) |atom| {
+            switch (atom) {
+                .epsilon => self.epsilon_count += 1,
+                .structure_constant => self.structure_constant_count += 1,
+                .named_operator => |operator| {
+                    if (operator.kind == .projector) self.projector_operator_count += 1;
+                },
+                else => {},
+            }
+        }
+    }
+};

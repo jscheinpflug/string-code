@@ -61,6 +61,11 @@ pub const RootDatum = struct {
     pub fn cartan(self: RootDatum, row: usize, col: usize) !i16 {
         return cartanEntry(self.algebra, row, col);
     }
+
+    /// positiveRoots returns the positive roots in simple-root coordinates.
+    pub fn positiveRoots(self: RootDatum, allocator: std.mem.Allocator) !PositiveRoots {
+        return PositiveRoots.init(allocator, self.algebra);
+    }
 };
 
 /// validateSimple rejects unsupported or rank-inconsistent simple algebras.
@@ -142,6 +147,119 @@ pub fn quadraticCasimir(allocator: std.mem.Allocator, algebra: symmetry.SimpleLi
     return try mul(total, conventions.quadratic_casimir_scale);
 }
 
+/// dynkinDifferenceInPositiveRootCone tests whether higher-lower is a non-negative simple-root sum.
+pub fn dynkinDifferenceInPositiveRootCone(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra, higher: []const i32, lower: []const i32) !bool {
+    var cone = try PositiveRootCone.init(allocator, algebra);
+    defer cone.deinit(allocator);
+    return cone.containsDifference(higher, lower);
+}
+
+/// PositiveRootCone caches inverse Cartan data for dominance-order checks.
+pub const PositiveRootCone = struct {
+    algebra: symmetry.SimpleLieAlgebra,
+    inverse: []Rational,
+
+    /// init validates an algebra and caches its inverse Cartan matrix.
+    pub fn init(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra) !PositiveRootCone {
+        try validateSimple(algebra);
+        return .{
+            .algebra = algebra,
+            .inverse = try inverseCartan(allocator, algebra),
+        };
+    }
+
+    /// deinit releases cached cone-test storage.
+    pub fn deinit(self: *PositiveRootCone, allocator: std.mem.Allocator) void {
+        allocator.free(self.inverse);
+        self.* = undefined;
+    }
+
+    /// containsDifference tests whether higher-lower is a non-negative simple-root sum.
+    pub fn containsDifference(self: PositiveRootCone, higher: []const i32, lower: []const i32) !bool {
+        const rank_value: usize = self.algebra.rank;
+        if (higher.len != rank_value or lower.len != rank_value) return error.InvalidDynkinRank;
+
+        var any_positive = false;
+        for (0..rank_value) |root_index| {
+            var coefficient = Rational{};
+            for (0..rank_value) |dynkin_index| {
+                const difference = @as(i128, higher[dynkin_index]) - @as(i128, lower[dynkin_index]);
+                if (difference == 0) continue;
+                coefficient = try add(coefficient, try mulInt(self.inverse[root_index * rank_value + dynkin_index], difference));
+            }
+            if (coefficient.denominator != 1) return false;
+            if (coefficient.numerator < 0) return false;
+            if (coefficient.numerator > 0) any_positive = true;
+        }
+        return any_positive;
+    }
+};
+
+/// innerProductDynkin computes the exact inner product of two Dynkin-coordinate weights.
+pub fn innerProductDynkin(allocator: std.mem.Allocator, algebra: symmetry.SimpleLieAlgebra, left: []const i32, right: []const i32) !Rational {
+    try validateSimple(algebra);
+    const rank_value: usize = algebra.rank;
+    if (left.len != rank_value or right.len != rank_value) return error.InvalidDynkinRank;
+
+    const inverse = try inverseCartan(allocator, algebra);
+    defer allocator.free(inverse);
+
+    var total = Rational{};
+    for (0..rank_value) |i| {
+        if (left[i] == 0) continue;
+        for (0..rank_value) |j| {
+            if (right[j] == 0) continue;
+            const factor = @as(i128, left[i]) * @as(i128, right[j]);
+            const gram = try mul(simpleRootScale(algebra, i), inverse[i * rank_value + j]);
+            total = try add(total, try mulInt(gram, factor));
+        }
+    }
+    return total;
+}
+
+/// innerProductDynkinRoot computes the exact inner product of a weight with a root.
+pub fn innerProductDynkinRoot(algebra: symmetry.SimpleLieAlgebra, weight: []const i32, root: []const u8) !Rational {
+    try validateSimple(algebra);
+    if (weight.len != algebra.rank or root.len != algebra.rank) return error.InvalidDynkinRank;
+
+    var total = Rational{};
+    for (root, 0..) |coefficient, index| {
+        if (coefficient == 0 or weight[index] == 0) continue;
+        const factor = @as(i128, coefficient) * @as(i128, weight[index]);
+        total = try add(total, try mulInt(simpleRootScale(algebra, index), factor));
+    }
+    return total;
+}
+
+/// rootDynkinLabel writes one root as Dynkin coordinates.
+pub fn rootDynkinLabel(algebra: symmetry.SimpleLieAlgebra, root: []const u8, out: []i32) !void {
+    try validateSimple(algebra);
+    if (root.len != algebra.rank or out.len != algebra.rank) return error.InvalidDynkinRank;
+    for (0..algebra.rank) |index| {
+        out[index] = pairing(algebra, root, index);
+    }
+}
+
+/// rationalAdd returns the exact sum of two rationals.
+pub fn rationalAdd(left: Rational, right: Rational) !Rational {
+    return add(left, right);
+}
+
+/// rationalSub returns the exact difference of two rationals.
+pub fn rationalSub(left: Rational, right: Rational) !Rational {
+    return sub(left, right);
+}
+
+/// rationalMulInt multiplies an exact rational by an integer.
+pub fn rationalMulInt(value: Rational, factor: i128) !Rational {
+    return mulInt(value, factor);
+}
+
+/// rationalDiv returns the exact quotient of two rationals.
+pub fn rationalDiv(left: Rational, right: Rational) !Rational {
+    return div(left, right);
+}
+
 fn validateDynkinLabel(algebra: symmetry.SimpleLieAlgebra, label: []const i16) !void {
     try validateSimple(algebra);
     if (label.len != algebra.rank) return error.InvalidDynkinRank;
@@ -194,7 +312,8 @@ fn edge(row: usize, col: usize, left: usize, right: usize) bool {
     return (row == left and col == right) or (row == right and col == left);
 }
 
-const PositiveRoots = struct {
+/// PositiveRoots owns positive roots in flat simple-root coordinates.
+pub const PositiveRoots = struct {
     rank: usize,
     roots: []u8,
     len: usize = 0,
@@ -253,12 +372,19 @@ const PositiveRoots = struct {
         }
     }
 
-    fn deinit(self: *PositiveRoots, allocator: std.mem.Allocator) void {
+    /// deinit releases positive-root storage.
+    pub fn deinit(self: *PositiveRoots, allocator: std.mem.Allocator) void {
         allocator.free(self.roots);
         self.* = undefined;
     }
 
-    fn root(self: PositiveRoots, index: usize) []const u8 {
+    /// count returns the number of stored positive roots.
+    pub fn count(self: PositiveRoots) usize {
+        return self.len;
+    }
+
+    /// root returns one positive root in simple-root coordinates.
+    pub fn root(self: PositiveRoots, index: usize) []const u8 {
         const start = index * self.rank;
         return self.roots[start .. start + self.rank];
     }

@@ -41,7 +41,7 @@ const free_fermion_zero_modes = [_]d.ZeroModeRule{
 };
 pub const free_fermion_descriptor = d.Descriptor{
     .theory_symbol = 0,
-    .theory_hash = 977950975,
+    .theory_hash = 2434621218,
     .symbols = &free_fermion_symbols,
     .parameters = &free_fermion_parameters,
     .quantum_numbers = &free_fermion_quantum_numbers,
@@ -86,7 +86,7 @@ const eta_xi_sphere_zero_modes = [_]d.ZeroModeRule{
 };
 pub const eta_xi_sphere_descriptor = d.Descriptor{
     .theory_symbol = 0,
-    .theory_hash = 1241056459,
+    .theory_hash = 3503175150,
     .symbols = &eta_xi_sphere_symbols,
     .parameters = &eta_xi_sphere_parameters,
     .quantum_numbers = &eta_xi_sphere_quantum_numbers,
@@ -132,7 +132,7 @@ const eta_xi_torus_zero_modes = [_]d.ZeroModeRule{
 };
 pub const eta_xi_torus_descriptor = d.Descriptor{
     .theory_symbol = 0,
-    .theory_hash = 1142146412,
+    .theory_hash = 407931773,
     .symbols = &eta_xi_torus_symbols,
     .parameters = &eta_xi_torus_parameters,
     .quantum_numbers = &eta_xi_torus_quantum_numbers,
@@ -177,7 +177,7 @@ const bc_zero_modes = [_]d.ZeroModeRule{
 };
 pub const bc_descriptor = d.Descriptor{
     .theory_symbol = 0,
-    .theory_hash = 3973857308,
+    .theory_hash = 4050535685,
     .symbols = &bc_symbols,
     .parameters = &bc_parameters,
     .quantum_numbers = &bc_quantum_numbers,
@@ -236,7 +236,7 @@ const free_boson_zero_modes = [_]d.ZeroModeRule{
 };
 pub const free_boson_descriptor = d.Descriptor{
     .theory_symbol = 0,
-    .theory_hash = 1328671544,
+    .theory_hash = 2253941521,
     .symbols = &free_boson_symbols,
     .parameters = &free_boson_parameters,
     .quantum_numbers = &free_boson_quantum_numbers,

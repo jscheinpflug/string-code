@@ -24,7 +24,29 @@ pub const ProjectorRole = union(enum) {
 pub const ProductChannelKey = struct {
     left: store.IrrepHandle,
     right: store.IrrepHandle,
-    target: store.ChannelHandle,
+    output: store.IrrepHandle,
+    multiplicity_copy: u16,
+};
+
+/// ProjectorExpansionSpan names cached local expansion terms.
+pub const ProjectorExpansionSpan = struct {
+    offset: u32,
+    len: u32,
+};
+
+/// ProjectorExpansionCounters stores cache-hit evidence for local expansions.
+pub const ProjectorExpansionCounters = struct {
+    named_hits: u64 = 0,
+    named_misses: u64 = 0,
+    formula_hits: u64 = 0,
+    formula_misses: u64 = 0,
+};
+
+/// ProjectorDescriptor exposes read-only metadata for a projector id.
+pub const ProjectorDescriptor = struct {
+    role: ProjectorRole,
+    convention: ProjectorConvention,
+    derivation: ProjectorDerivation,
 };
 
 /// BasisChangeKey identifies a change of invariant-basis convention.
@@ -37,6 +59,9 @@ pub const BasisChangeKey = struct {
 pub const Store = struct {
     allocator: std.mem.Allocator,
     records: std.ArrayList(ProjectorRecord) = .empty,
+    terms: std.ArrayList(ProjectorExpansionTermRecord) = .empty,
+    atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
+    counters: ProjectorExpansionCounters = .{},
 
     /// init constructs an empty projector store.
     pub fn init(allocator: std.mem.Allocator) Store {
@@ -45,22 +70,132 @@ pub const Store = struct {
 
     /// deinit releases projector-store memory.
     pub fn deinit(self: *Store) void {
+        self.atoms.deinit(self.allocator);
+        self.terms.deinit(self.allocator);
         self.records.deinit(self.allocator);
         self.* = Store.init(self.allocator);
     }
 
     /// internProjector returns a stable id for a projector identity.
-    pub fn internProjector(self: *Store, key: ProjectorKey, kind: ProjectorKind) !ProjectorId {
+    pub fn internProjector(self: *Store, key: ProjectorKey, derivation: ProjectorDerivation) !ProjectorId {
         for (self.records.items, 0..) |record, index| {
             if (projectorKeyEql(record.key, key)) return @intCast(index);
         }
         try self.records.append(self.allocator, .{
             .key = key,
-            .kind = kind,
+            .derivation = derivation,
             .term_offset = 0,
             .term_len = 0,
+            .formula_cached = false,
         });
         return @intCast(self.records.items.len - 1);
+    }
+
+    /// projectorDerivation returns compact derivation metadata for an id.
+    pub fn projectorDerivation(self: Store, id: ProjectorId) ?ProjectorDerivation {
+        const index: usize = @intCast(id);
+        if (index >= self.records.items.len) return null;
+        return self.records.items[index].derivation;
+    }
+
+    /// projectorDescriptor returns read-only metadata for a projector id.
+    pub fn projectorDescriptor(self: Store, id: ProjectorId) ?ProjectorDescriptor {
+        const index: usize = @intCast(id);
+        if (index >= self.records.items.len) return null;
+        const record = self.records.items[index];
+        return .{
+            .role = record.key.role,
+            .convention = record.key.convention,
+            .derivation = record.derivation,
+        };
+    }
+
+    /// expansionStatus returns the current expansion state for an id.
+    pub fn expansionStatus(self: Store, id: ProjectorId) ?ExpansionStatus {
+        return if (self.projectorDerivation(id)) |derivation| derivation.status else null;
+    }
+
+    /// canExpandToTerms reports whether an id has a route to streamed terms.
+    pub fn canExpandToTerms(self: Store, id: ProjectorId) bool {
+        return self.expansionStatus(id) == .expandable_terms;
+    }
+
+    /// canRenderMode reports whether a projector can satisfy a render mode.
+    pub fn canRenderMode(self: Store, id: ProjectorId, mode: rendering.ProjectorRenderMode) bool {
+        const status = self.expansionStatus(id) orelse return false;
+        return expansionStatusCovers(status, mode);
+    }
+
+    /// ensureNamedExpansion returns a cached one-term named expansion.
+    pub fn ensureNamedExpansion(self: *Store, id: ProjectorId) !ProjectorExpansionSpan {
+        const index: usize = @intCast(id);
+        if (index >= self.records.items.len) return error.UnknownProjector;
+        if (!self.canRenderMode(id, .named)) return error.ProjectorExpansionNotImplemented;
+
+        const record = &self.records.items[index];
+        if (record.term_len != 0) {
+            self.counters.named_hits += 1;
+            return .{ .offset = record.term_offset, .len = record.term_len };
+        }
+        self.counters.named_misses += 1;
+
+        const atom_offset: u32 = @intCast(self.atoms.items.len);
+        try self.atoms.append(self.allocator, .{ .named_operator = .{
+            .kind = .projector,
+            .operator_id = id,
+            .first_index = 0,
+            .index_len = 0,
+        } });
+        errdefer _ = self.atoms.pop();
+
+        const term_offset: u32 = @intCast(self.terms.items.len);
+        try self.terms.append(self.allocator, .{
+            .coefficient = rendering.rationalOne(),
+            .atom_offset = atom_offset,
+            .atom_len = 1,
+        });
+        errdefer _ = self.terms.pop();
+
+        record.term_offset = term_offset;
+        record.term_len = 1;
+        return .{ .offset = term_offset, .len = 1 };
+    }
+
+    /// ensureFormulaProgram records the cached executable formula route for an id.
+    pub fn ensureFormulaProgram(self: *Store, id: ProjectorId) !ProjectorFormulaKind {
+        const index: usize = @intCast(id);
+        if (index >= self.records.items.len) return error.UnknownProjector;
+        if (!self.canRenderMode(id, .expanded_terms)) return error.ProjectorExpansionNotImplemented;
+
+        const record = &self.records.items[index];
+        if (record.derivation.formula_kind == .named_only) return error.ProjectorExpansionNotImplemented;
+        if (record.formula_cached) {
+            self.counters.formula_hits += 1;
+        } else {
+            self.counters.formula_misses += 1;
+            record.formula_cached = true;
+        }
+        return record.derivation.formula_kind;
+    }
+
+    /// expansionTerm returns one borrowed cached expansion term.
+    pub fn expansionTerm(self: Store, span: ProjectorExpansionSpan, term_index: u32) ?rendering.SymbolicTerm {
+        if (term_index >= span.len) return null;
+        const index: usize = @intCast(span.offset + term_index);
+        if (index >= self.terms.items.len) return null;
+        const record = self.terms.items[index];
+        const start: usize = @intCast(record.atom_offset);
+        const end = start + record.atom_len;
+        if (end > self.atoms.items.len) return null;
+        return .{
+            .coefficient = record.coefficient,
+            .atoms = self.atoms.items[start..end],
+        };
+    }
+
+    /// expansionCounters returns cache-hit counters for local expansion data.
+    pub fn expansionCounters(self: Store) ProjectorExpansionCounters {
+        return self.counters;
     }
 };
 
@@ -80,12 +215,131 @@ pub const ProjectorKind = enum {
     backend_specific_verified,
 };
 
+/// ExpansionSource records the stored route used for future expansion.
+pub const ExpansionSource = enum {
+    none,
+    casimir_polynomial,
+    idempotent_split,
+    highest_weight_solver,
+    backend_specific_verified,
+};
+
+/// ExpansionStatus records how far a projector can currently be expanded.
+pub const ExpansionStatus = enum {
+    not_requested,
+    expandable_named,
+    expandable_blocks,
+    expandable_terms,
+    blocked_missing_formula,
+    blocked_unverified_identity,
+};
+
+/// ProjectorFormulaKind records the executable local formula route.
+pub const ProjectorFormulaKind = enum {
+    named_only,
+    identity,
+    orthogonal_vector_metric,
+    orthogonal_spinor_pair,
+    orthogonal_gamma_trace,
+    orthogonal_gamma_traceless,
+    orthogonal_spinor_form_channel,
+    orthogonal_form_pair,
+    orthogonal_form_spinor_channel,
+    cartan_product_channel,
+    orthogonal_structural_projection,
+    orthogonal_spinor_tower_form_channel,
+    orthogonal_spinor_tower_middle_form_channel,
+    orthogonal_spinor_tower_opposite_form_channel,
+    orthogonal_spinor_tower_opposite_lower_channel,
+    orthogonal_tensor_spinor_tower_channel,
+    orthogonal_tensor_spinor_form_power_channel,
+    orthogonal_tensor_spinor_tower_raise_channel,
+    orthogonal_tensor_spinor_opposite_tower_lower_channel,
+    orthogonal_tensor_spinor_opposite_shift_channel,
+    orthogonal_tensor_spinor_opposite_all_shift_channel,
+    orthogonal_tensor_spinor_opposite_form_add_channel,
+    orthogonal_tensor_spinor_opposite_rank_split_channel,
+    orthogonal_tensor_spinor_shift_channel,
+    orthogonal_tensor_spinor_rank_wrap_shift_channel,
+    orthogonal_tensor_spinor_rank_split_channel,
+    orthogonal_tensor_spinor_terminal_channel,
+    orthogonal_tensor_spinor_opposite_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_add_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_add_shift_terminal_channel,
+    orthogonal_tensor_spinor_opposite_rank_split_terminal_channel,
+    orthogonal_tensor_spinor_opposite_shift_terminal_channel,
+    orthogonal_tensor_spinor_rank_wrap_terminal_channel,
+    orthogonal_tensor_spinor_rank_split_terminal_channel,
+    orthogonal_tensor_spinor_form_terminal_channel,
+    orthogonal_tensor_spinor_form_add_terminal_channel,
+    orthogonal_tensor_spinor_form_power_terminal_channel,
+    orthogonal_tensor_spinor_form_tower_channel,
+    orthogonal_tensor_spinor_form_tower_terminal_channel,
+    orthogonal_tensor_spinor_form_tower_remove_shift_channel,
+    orthogonal_tensor_spinor_form_tower_shift_down_channel,
+    orthogonal_tensor_spinor_form_tower_all_shift_down_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_terminal_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_merge_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_remove_shift_channel,
+    orthogonal_tensor_spinor_opposite_form_tower_shift_down_channel,
+    orthogonal_tensor_form_spinor_channel,
+    orthogonal_tensor_form_spinor_preserve_channel,
+    orthogonal_tensor_form_spinor_shift_channel,
+    orthogonal_tensor_form_spinor_remove_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_two_channel,
+    orthogonal_tensor_form_spinor_mixed_shift_down_channel,
+    orthogonal_tensor_form_spinor_all_shift_down_channel,
+    orthogonal_tensor_form_spinor_shift_down_any_channel,
+    orthogonal_tensor_spinor_middle_form_channel,
+    backend_specific_structure,
+};
+
+/// ProjectorFormulaAudit records symbolic checks passed by a formula route.
+pub const ProjectorFormulaAudit = struct {
+    normalized: bool = false,
+    idempotent: bool = false,
+    channel_separated: bool = false,
+    gamma_traceless: bool = false,
+
+    /// verified reports whether all required projector-law checks passed.
+    pub fn verified(self: ProjectorFormulaAudit) bool {
+        return self.normalized and self.idempotent and self.channel_separated;
+    }
+};
+
+/// ProjectorDerivation stores the construction route and expansion state.
+pub const ProjectorDerivation = struct {
+    kind: ProjectorKind,
+    source: ExpansionSource,
+    status: ExpansionStatus,
+    formula_kind: ProjectorFormulaKind = .named_only,
+    formula_audit: ProjectorFormulaAudit = .{},
+};
+
+/// expansionStatusCovers reports whether stored expansion data is sufficient.
+pub fn expansionStatusCovers(status: ExpansionStatus, mode: rendering.ProjectorRenderMode) bool {
+    return switch (mode) {
+        .named => status == .expandable_named or status == .expandable_blocks or status == .expandable_terms,
+        .expanded_blocks => status == .expandable_blocks or status == .expandable_terms,
+        .expanded_terms => status == .expandable_terms,
+    };
+}
+
 /// ProjectorRecord stores one local kernel and its derivation kind.
 const ProjectorRecord = struct {
     key: ProjectorKey,
-    kind: ProjectorKind,
+    derivation: ProjectorDerivation,
     term_offset: u32,
     term_len: u32,
+    formula_cached: bool,
+};
+
+const ProjectorExpansionTermRecord = struct {
+    coefficient: rendering.RationalId,
+    atom_offset: u32,
+    atom_len: u16,
 };
 
 /// ProjectorAudit stores local splitting diagnostics for feasibility studies.
@@ -109,7 +363,8 @@ fn projectorRoleEql(left: ProjectorRole, right: ProjectorRole) bool {
         .product_channel => |left_key| switch (right) {
             .product_channel => |right_key| left_key.left.value == right_key.left.value and
                 left_key.right.value == right_key.right.value and
-                left_key.target.value == right_key.target.value,
+                left_key.output.value == right_key.output.value and
+                left_key.multiplicity_copy == right_key.multiplicity_copy,
             else => false,
         },
         .boundary_realization => |left_handle| switch (right) {

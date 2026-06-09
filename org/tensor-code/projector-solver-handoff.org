@@ -1,0 +1,567 @@
+:PROPERTIES:
+:ID:       20260608T001500.000000
+:END:
+#+title: Projector Solver Handoff
+#+auto_tangle: nil
+
+This handoff describes the projector solver that must replace the current
+special-case lowering path.  It is also a guardrail against the recurring
+failure mode: reducing one visible compact family at a time and mistaking that
+for progress toward a general solver.  It follows the tensor-code rules in
+=AGENTS.md=: simple procedural code, lean data, no large intermediate
+expressions, and streamed output.
+
+* Goal Statement
+
+Build the general explicit-projector engine, not a collection of projector
+lowering patches.
+
+The deliverable is a reusable solver that takes a representation-theoretic
+channel, enumerates admissible primitive intertwiner words, removes dependent
+candidates by exact local Gram computation, and streams the explicit projector
+
+#+begin_src text :tangle no
+P = sum E_i (G^-1)_ij E_j^dagger
+#+end_src
+
+as primitive symbolic atoms.  The engine must be backend-driven and must apply
+to tensor-spinor, tensor-form, spinor-tower, and later non-\(16^{12}\) channels
+without adding production branches per projector family.
+
+The primary success criterion is:
+
+#+begin_src text :tangle no
+compact projector kind -> structural channel key
+                         -> candidate generator
+                         -> exact contraction table
+                         -> Gram pivot/inverse
+                         -> streamed explicit terms
+#+end_src
+
+The secondary success criterion is a decrease in compact projector occurrence
+counts.  A count decrease alone is not progress unless it comes from the engine
+path above.
+
+Existing known formulas may be reused only as fixtures, normalization checks,
+and backend contraction examples.  They are not acceptable as new production
+special cases.
+
+* Current Verified State
+
+The current verified Spin(10) \(16^{12}\) lowered stream is recorded in
+[[id:20260607T194513.918965][Projector Formula Status]].  The important counts are:
+
+#+begin_src text :tangle no
+basis_count = 73744
+terms = 73744
+compact_formula_atoms = 211222
+
+tensor_spinor_projection = 205002
+tensor_form_projection = 6220
+spinor_tower_contract = 84
+spinor_tower_contract_adjoint = 84
+tensor_form_gamma_wedge = 48648
+tensor_form_gamma_map = 21331
+tensor_form_gamma_map_adjoint = 21331
+#+end_src
+
+The invariant paths exist.  The problem is not path generation.  The remaining
+work is to turn every compact local projector atom into explicit streamed
+symbolic atoms: gamma forms/actions, Clifford factors, metrics, deltas,
+spinor pairings, Hodge/epsilon atoms, and structure constants where relevant.
+
+There are unverified in-progress edits around middle-form lowering and duality
+metadata.  They must not be counted as solved until the focused and full
+tensor-code tests pass and the audit is refreshed.  The projector-constructor
+org/source mirror is also known to need synchronization before more code is
+added in that area.
+
+* Why The Work Drifted Into Special Cases
+
+Nothing in the goal justified redoing special cases.  The goal asked for
+explicit projector expressions, performance, and generalization beyond the
+current \(16^{12}\) tensor-spinor stress case.  The correct interpretation was:
+build the program that constructs projectors from channel data.
+
+The drift happened because I used the concrete \(SO(10)\), \(16^{12}\), and
+gamma-output target as the implementation unit.  I watched the largest visible
+compact families, recognized closed forms for some of them, and patched those
+families directly.  That produced useful local pieces such as terminal gamma
+forms, rank-split gamma maps, and local term-streaming support, but it did not
+force the missing object to exist.
+
+The false acceptance criterion was "compact count decreased".  The correct
+criterion is "this compact projector now routes through candidate generation,
+exact contractions, Gram dependency removal, and streamed program emission".
+
+The recurring failure pattern was:
+
+#+begin_src text :tangle no
+compact family observed
+  -> infer a closed form for that family
+  -> add atom or metadata branch
+  -> update counts
+  -> still no general solver
+#+end_src
+
+This must stop.  Existing special-case formulas are now test fixtures and
+backend examples.  They are not the architecture.
+
+The review rule for future work is simple: if the next change can be described
+mainly by the family name it handles, it is probably the wrong change.  If it
+can be described by a candidate generator, contraction rule, Gram solver step,
+or streamed program emitter, it is probably moving the solver forward.
+
+* Required Solver
+
+The solver is representation-channel agnostic.  It must work beyond
+tensor-spinors.  A backend supplies primitive intertwiner generators and exact
+contraction rules.  The solver owns candidate selection, exact Gram solving,
+and streamed projector emission.
+
+The core data flow is:
+
+#+begin_src text :tangle no
+ProjectorChannel
+  -> backend enumerate candidate words
+  -> backend exact word-pair contraction table
+  -> fixed small Gram matrix
+  -> exact rank-revealing pivot selection
+  -> inverse Gram on pivot submatrix
+  -> streamed P = sum E_i (G^-1)_ij E_j^dagger
+#+end_src
+
+No step may allocate an expanded tensor expression.  Candidate words and Gram
+matrices are fixed-size stack records for the current Spin(10) stream.
+
+The solver output is an explicit expression program.  It is not shuffled
+metadata and it is not a renamed compact projector atom.
+
+* Minimal Data Model
+
+The solver should use these private, backend-independent records:
+
+#+begin_src text :tangle no
+ProjectorChannel
+    algebra family/rank/dimension
+    source representation metadata
+    target representation metadata
+    formula kind or backend channel tag
+    chirality/duality/tower/form profiles
+
+PrimitiveWord
+    primitive kind
+    input block ids
+    output block ids
+    ranks
+    chirality
+    duality
+
+CandidateWord
+    short fixed array of PrimitiveWord
+
+ProjectorProgram
+    candidate words
+    pivot candidate indices
+    inverse Gram entries
+    term iterator state
+#+end_src
+
+The candidate word is not a rendered =SymbolicAtom=.  Rendering happens only
+when one program term is emitted.
+
+* Backend Contract
+
+Each backend must provide two procedural callbacks:
+
+#+begin_src text :tangle no
+enumerateCandidates(channel, candidate_buffer) -> count
+innerProduct(channel, left_candidate, right_candidate) -> exact rational or unsupported
+#+end_src
+
+For the orthogonal backend, candidate primitive kinds initially include:
+
+#+begin_src text :tangle no
+form_delta
+metric_trace
+gamma_form
+gamma_action
+gamma_trace
+gamma_rank_split
+hodge_star
+spinor_pair
+spinor_tower_contract
+#+end_src
+
+The exact contraction table must cover at least:
+
+#+begin_src text :tangle no
+form_delta . form_delta
+metric_trace . metric_trace
+gamma_form . gamma_form
+gamma_action . gamma_action
+gamma_trace . gamma_trace
+gamma_rank_split . gamma_rank_split
+hodge_star . hodge_star
+hodge_star . gamma_form/action where middle-form duality applies
+spinor_pair . spinor_pair
+spinor_tower_contract . spinor_tower_contract
+#+end_src
+
+Returning a residual symbolic product is not allowed.  If a contraction is not
+implemented, return an explicit unsupported error and keep the compact
+projector out of the "solved" count.
+
+The backend may introduce a new primitive only when its action and adjoint
+contractions are specified.  A primitive without contraction rules is just a
+new compact atom and should not enter the solved path.
+
+* Algorithm Details
+
+** Candidate Generation
+
+Generate candidates from representation metadata, not from already emitted
+atoms.  For each channel:
+
+1. reject impossible rank/profile/chirality/duality cases immediately;
+2. append every admissible primitive word to a fixed candidate buffer;
+3. reject if the buffer cap is exceeded;
+4. do not collapse "ambiguous" candidates by hand;
+5. let the Gram solve remove dependencies.
+
+For Spin(10) \(16^{12}\), the initial cap should remain small:
+
+#+begin_src text :tangle no
+max primitives per word = 6
+max candidates = 8
+max Gram entries = 64
+#+end_src
+
+If a real channel exceeds this cap, record the channel key and fail loudly.
+
+** Dependency Removal
+
+Given candidates \(E_i\), compute
+
+#+begin_src text :tangle no
+G_ij = E_i^dagger E_j
+#+end_src
+
+using backend contractions.  Then:
+
+1. fill the symmetric Gram matrix in row-major fixed storage;
+2. run exact fraction-free rank-revealing elimination on the candidate columns;
+3. record pivot candidate indices in order;
+4. copy only the pivot-pivot Gram submatrix;
+5. invert that small submatrix exactly;
+6. store only the pivot indices and inverse Gram entries.
+
+This is the only allowed implementation of "remove dependent candidates".
+No component sampling, no overcomplete invariant list, no string expression
+linear algebra.
+
+The elimination must be deterministic.  Candidate order comes from the backend
+enumerator; the first nonzero pivot in that order is selected.  For the small
+matrices expected here, exact rational arithmetic is acceptable, but the
+implementation should still avoid avoidable fraction swell by using
+fraction-free row operations or integer common-denominator normalization when
+all contractions share a small denominator.
+
+The solver must never simplify a rendered expression to test independence.
+Independence is a property of the candidate Gram matrix over exact scalars.
+
+** Emission
+
+Program emission streams terms:
+
+#+begin_src text :tangle no
+for pivot i
+  for pivot j
+    if inverse_gram[i,j] != 0
+      clear scratch atoms
+      append E_i atoms
+      append adjoint(E_j) atoms
+      emit coefficient inverse_gram[i,j]
+#+end_src
+
+The local renderer already has fixed local term-index arrays and scratch atom
+buffers.  Multi-term projector programs must plug into that path.
+
+* Performance Envelope
+
+The expensive work must be structural, not per invariant occurrence.  Compile
+one =ProjectorProgram= per structural channel key, cache it, and reuse it for
+all occurrences.
+
+For the current Spin(10) \(16^{12}\) stream the starting caps are:
+
+#+begin_src text :tangle no
+candidate words per structural channel <= 8
+Gram matrix per structural channel      <= 8 x 8 = 64 scalars
+pivot inverse per channel               <= 8 x 8 = 64 scalars
+primitive words per candidate           <= 6
+#+end_src
+
+If a channel needs more, the program should fail with the channel key and the
+observed count.  Do not silently allocate a larger matrix.
+
+The number of compact projector occurrences is large:
+
+#+begin_src text :tangle no
+compact_formula_atoms = 211222
+tensor_spinor_projection = 205002
+tensor_form_projection = 6220
+#+end_src
+
+Those are occurrence counts, not solver compilations.  The cache key must
+collapse repeated structural channels:
+
+#+begin_src text :tangle no
+algebra family/rank/dimension
+formula kind or backend channel tag
+source/target representation labels
+form profile and tower profile
+chirality and duality
+multiplicity copy and normalization convention
+#+end_src
+
+The main runtime target is therefore:
+
+#+begin_src text :tangle no
+compile cost:  O(number of structural channels * candidates^3)
+emit cost:     O(number of occurrences * nonzero inverse-Gram entries)
+memory:        O(max candidates^2 + local scratch atoms)
+#+end_src
+
+No full Gram matrix should be built over invariant paths or over generated
+invariants.  The only Gram matrix is the local candidate-word Gram matrix for a
+single representation channel.
+
+* What Counts As Progress
+
+A change counts as progress only if it moves compact projectors through the
+general solver path.
+
+Allowed:
+
+- add a backend primitive kind used by candidate generation;
+- add an exact contraction table entry;
+- add a candidate generator for a representation-channel class;
+- route a compact formula kind through =compileProjectorProgram= and the term
+  emitter;
+- convert an existing special-case lowerer into a backend test fixture.
+
+Not allowed as progress:
+
+- adding another direct =if formula_kind == ...= output branch without using
+  the solver;
+- adding a new atom that just repackages compact metadata;
+- updating fixed audit counts without a solver route;
+- running full \(16^{12}\) tests after tiny metadata changes and calling that
+  progress.
+
+* Existing Cases As Fixtures
+
+Existing explicit cases are valuable, but only as fixtures for the general
+solver.  They should be used to prove that candidate generation, Gram
+dependency removal, and streamed emission reproduce known formulas.
+
+Initial fixture set:
+
+#+begin_src text :tangle no
+rank-split gamma map          one-candidate solver route
+terminal gamma form           primitive emission sanity check
+middle-form Hodge projection  duality-aware candidate generation
+vector-spinor traceless       first dependent multi-term projector
+#+end_src
+
+Each fixture must check one precise invariant.  Do not add broad tests just to
+make a family pass.  Useful fixture checks are:
+
+#+begin_src text :tangle no
+candidate count before pivots
+pivot count after Gram elimination
+nonzero inverse-Gram entries
+streamed primitive atom kinds
+coefficient normalization
+compact atom count delta in a focused audit
+#+end_src
+
+Once a fixture passes through the solver, delete or quarantine the direct
+production lowerer for that case.  Keeping both paths hides regressions.
+
+* Solver Pseudocode
+
+The implementation should be procedural and data-oriented.  The hot path is
+structural program lookup plus term emission; solving is cached by channel key.
+
+#+begin_src text :tangle no
+renderLocalProjector(channel, occurrence, sink):
+    key = makeProjectorProgramKey(channel)
+    program = program_cache.find(key)
+    if program missing:
+        candidates.clear()
+        backend.enumerateCandidates(channel, &candidates)
+        program = compileProjectorProgram(channel, candidates, backend)
+        program_cache.insert(key, program)
+
+    for term_index in 0 .. program.term_count:
+        scratch.clear()
+        appendProjectorProgramTerm(program, term_index, occurrence, &scratch)
+        sink.emit(scratch)
+#+end_src
+
+Compilation must not inspect rendered strings.
+
+#+begin_src text :tangle no
+compileProjectorProgram(channel, candidates, backend):
+    gram.clear()
+    for i in 0 .. candidates.count:
+        for j in 0 .. i + 1:
+            value = backend.innerProduct(channel, candidates[i], candidates[j])
+            gram[i,j] = value
+            gram[j,i] = value
+
+    pivots = selectPivotsFractionFree(gram)
+    pivot_gram = copyPivotSubmatrix(gram, pivots)
+    inverse = invertSmallExactMatrix(pivot_gram)
+    return ProjectorProgram(candidates, pivots, inverse)
+#+end_src
+
+Term emission appends atoms directly into caller-owned scratch memory.
+
+#+begin_src text :tangle no
+appendProjectorProgramTerm(program, term_index, occurrence, scratch):
+    i, j = decodeNonzeroInverseEntry(program, term_index)
+    appendCandidateWordAtoms(program.candidates[i], occurrence.output, scratch)
+    appendAdjointCandidateWordAtoms(program.candidates[j], occurrence.input, scratch)
+    scratch.coefficient *= program.inverse_gram[i,j]
+#+end_src
+
+* Performance Work
+
+The required performance gains are not from algebraic string simplification.
+They come from doing the small structural solve once and making occurrence
+emission cheap.
+
+Key optimizations:
+
+- structural cache: compile one program per channel key, not per projector
+  occurrence;
+- fixed buffers: candidate words, Gram entries, pivots, inverse entries, and
+  scratch atoms stay in bounded arrays;
+- early rejection: rank, chirality, duality, and profile checks happen before a
+  candidate word is appended;
+- symmetric Gram fill: compute only the lower triangle and mirror it;
+- exact scalar contractions: backend returns scalars, never residual symbolic
+  products;
+- fraction-free elimination: reduce rational swell before inversion;
+- sparse emission: iterate nonzero inverse-Gram entries only;
+- no rendered-expression comparison: independence and normalization are decided
+  before rendering;
+- audit by structural key: report unsolved keys and occurrence counts together
+  so the largest cached wins are visible.
+
+Expected gain for the current backlog:
+
+#+begin_src text :tangle no
+current work unit:       211222 compact projector occurrences
+target solve work unit:  distinct structural channel keys
+per-key solve size:      <= 8 x 8 Gram for the initial Spin(10) stream
+per-occurrence work:     append primitive atoms for nonzero program terms
+avoided work:            no large invariant Gram, no expression trees,
+                         no string simplification, no repeated local solving
+#+end_src
+
+If a candidate cap is exceeded, record the channel key and fail the focused
+audit.  Raising caps is a design change, not an automatic fallback.
+
+* Step-by-Step Roadmap
+
+1. Synchronize [[id:20260608T001501.000000][Projector Constructor]] org/source
+   state before more solver code is added.  Then finish the
+   backend-independent solver entry point:
+
+#+begin_src text :tangle no
+compileProjectorProgram(candidates, contraction_table) -> ProjectorProgram
+appendProjectorProgramTerm(program, term_index, sink/scratch)
+#+end_src
+
+2. Add the structural program cache and cache key.  The key must include
+   algebra, channel tag, source/target representation data, form/tower profile,
+   chirality, duality, multiplicity copy, and normalization convention.
+
+3. Add a deliberately dependent candidate fixture.  The test must prove that
+   dependency removal comes from the Gram matrix, not from candidate-name
+   filtering.
+
+4. Route rank-split gamma-map through the cache, solver, and term emitter.  It
+   is the smallest verified end-to-end path.
+
+5. Add the first nontrivial orthogonal contraction table:
+
+#+begin_src text :tangle no
+gamma_trace . gamma_trace
+gamma_form . gamma_form
+gamma_action . gamma_action
+form_delta . form_delta
+#+end_src
+
+6. Route vector-spinor traceless through the same solver.  It is already a
+   known two-term projector and should become the first multi-term proof.
+
+7. Route tensor-form middle channels through candidate generation and Hodge
+   contractions.  Existing middle-form special cases become tests only.
+
+8. Add focused audits grouped by structural key:
+
+#+begin_src text :tangle no
+unsolved key
+occurrence count
+candidate count
+first unsupported contraction
+compact atom kind
+#+end_src
+
+9. Route tensor-spinor projection families through the same candidate and
+   contraction machinery.  These are the main backlog:
+
+#+begin_src text :tangle no
+tensor_spinor_projection = 205086
+#+end_src
+
+10. Remove or quarantine direct production special cases once their fixture
+    passes through the solver.
+
+11. Recompute the full stream audit only after a solver milestone:
+
+#+begin_src sh :tangle no
+ZIG_GLOBAL_CACHE_DIR=$PWD/.zig-cache-global \
+ZIG_LOCAL_CACHE_DIR=$PWD/.zig-cache-local \
+zig test src/tensor-code/tensor-code.zig
+#+end_src
+
+* Immediate Next Gate
+
+The next implementation must not lower another formula family directly.
+The next implementation must finish and use a generic =ProjectorProgram= term
+iterator, with a backend contraction callback.  Rank-split can remain the
+smallest path through the solver; vector-spinor traceless should be the first
+dependent multi-term projector.
+
+If the next code change cannot be described as one of:
+
+#+begin_src text :tangle no
+candidate generator
+contraction table entry
+Gram solver use
+program term emitter
+solver-routed formula kind
+#+end_src
+
+then it is probably another special case and should not be done.
+
+If a compact formula cannot yet be solved because a primitive is missing, the
+next step is to define the primitive's data representation and exact
+contraction rules.  The next step is not to emit another compact atom under a
+new name.

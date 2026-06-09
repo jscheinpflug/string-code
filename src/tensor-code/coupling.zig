@@ -58,10 +58,48 @@ pub const TensorExpansionTerm = struct {
     scalar_id: u32,
 };
 
+/// CouplingStep stores one local channel choice in the canonical tree.
+pub const CouplingStep = struct {
+    left: store.IrrepHandle,
+    right: store.IrrepHandle,
+    output: store.IrrepHandle,
+    multiplicity_copy: u16,
+    projector: projector.ProjectorId,
+};
+
+/// CouplingPath stores a flat span of local coupling steps.
+pub const CouplingPath = struct {
+    step_offset: u32,
+    step_len: u16,
+};
+
+/// CouplingPathSpan stores paths belonging to one basis handle.
+pub const CouplingPathSpan = struct {
+    offset: u32,
+    len: u32,
+};
+
+/// BasisAudit stores compact evidence for one generated path basis.
+pub const BasisAudit = struct {
+    path_count: u128 = 0,
+    stored_path_count: u32 = 0,
+    step_count: u32 = 0,
+    /// distinct_projector_count counts local coupling-step projectors.
+    distinct_projector_count: u32 = 0,
+    boundary_projector_count: u32 = 0,
+    total_projector_count: u32 = 0,
+    max_path_step_len: u16 = 0,
+};
+
 /// Store owns interned invariant-basis requests.
 pub const Store = struct {
     allocator: std.mem.Allocator,
     requests: std.ArrayList(InvariantBasisRequest) = .empty,
+    path_counts: std.ArrayList(u128) = .empty,
+    basis_audits: std.ArrayList(BasisAudit) = .empty,
+    basis_paths: std.ArrayList(CouplingPathSpan) = .empty,
+    paths: std.ArrayList(CouplingPath) = .empty,
+    steps: std.ArrayList(CouplingStep) = .empty,
 
     /// init constructs an empty coupling store.
     pub fn init(allocator: std.mem.Allocator) Store {
@@ -73,45 +111,108 @@ pub const Store = struct {
         for (self.requests.items) |request| {
             freeRequest(self.allocator, request);
         }
+        self.steps.deinit(self.allocator);
+        self.paths.deinit(self.allocator);
+        self.basis_paths.deinit(self.allocator);
+        self.basis_audits.deinit(self.allocator);
+        self.path_counts.deinit(self.allocator);
         self.requests.deinit(self.allocator);
         self.* = Store.init(self.allocator);
     }
 
     /// internBasisRequest returns a stable basis handle for a request.
     pub fn internBasisRequest(self: *Store, request: InvariantBasisRequest) !BasisHandle {
+        return self.internBasisRequestWithCount(request, 0);
+    }
+
+    /// internBasisRequestWithCount stores a basis request and its path-count audit.
+    pub fn internBasisRequestWithCount(self: *Store, request: InvariantBasisRequest, path_count: u128) !BasisHandle {
+        return self.internBasisRequestWithPaths(request, path_count, &.{}, &.{}, 0);
+    }
+
+    /// internBasisRequestWithPaths stores a basis request and compact path records.
+    pub fn internBasisRequestWithPaths(self: *Store, request: InvariantBasisRequest, path_count: u128, paths: []const CouplingPath, steps: []const CouplingStep, boundary_projector_count: u32) !BasisHandle {
         for (self.requests.items, 0..) |stored, index| {
             if (requestEql(stored, request)) {
+                self.path_counts.items[index] = path_count;
+                self.basis_audits.items[index] = try makeBasisAudit(self.allocator, path_count, paths, steps, boundary_projector_count);
                 return BasisHandle.init(@intCast(index));
             }
         }
 
+        const audit = try makeBasisAudit(self.allocator, path_count, paths, steps, boundary_projector_count);
         const owned = try cloneRequest(self.allocator, request);
         errdefer freeRequest(self.allocator, owned);
         try self.requests.append(self.allocator, owned);
+        errdefer _ = self.requests.pop();
+        try self.path_counts.append(self.allocator, path_count);
+        errdefer _ = self.path_counts.pop();
+        try self.basis_audits.append(self.allocator, audit);
+        errdefer _ = self.basis_audits.pop();
+
+        const step_offset: u32 = @intCast(self.steps.items.len);
+        try self.steps.appendSlice(self.allocator, steps);
+        errdefer self.steps.shrinkRetainingCapacity(step_offset);
+
+        const path_offset: u32 = @intCast(self.paths.items.len);
+        for (paths) |path| {
+            try self.paths.append(self.allocator, .{
+                .step_offset = step_offset + path.step_offset,
+                .step_len = path.step_len,
+            });
+        }
+        errdefer self.paths.shrinkRetainingCapacity(path_offset);
+
+        try self.basis_paths.append(self.allocator, .{
+            .offset = path_offset,
+            .len = @intCast(paths.len),
+        });
+        errdefer _ = self.basis_paths.pop();
         return BasisHandle.init(@intCast(self.requests.items.len - 1));
     }
-};
 
-/// CouplingInput names either an external leg or a previous coupling node.
-const CouplingInput = union(enum) {
-    external: realization.ExternalLegHandle,
-    node: u32,
-};
+    /// basisPathCount returns the audited path count for a basis handle.
+    pub fn basisPathCount(self: Store, handle: BasisHandle) ?u128 {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.path_counts.items.len) return null;
+        return self.path_counts.items[index];
+    }
 
-/// CouplingNodeRecord stores one binary coupling step.
-const CouplingNodeRecord = struct {
-    left: CouplingInput,
-    right: CouplingInput,
-    output: store.ChannelHandle,
-    kernel: projector.ProjectorId,
-};
+    /// basisAudit returns compact generation counters for a basis handle.
+    pub fn basisAudit(self: Store, handle: BasisHandle) ?BasisAudit {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.basis_audits.items.len) return null;
+        return self.basis_audits.items[index];
+    }
 
-/// CouplingPathRecord stores a compact invariant basis element.
-const CouplingPathRecord = struct {
-    external_offset: u32,
-    external_len: u16,
-    node_offset: u32,
-    node_len: u16,
+    /// basisRequest returns the stored request for a basis handle.
+    pub fn basisRequest(self: Store, handle: BasisHandle) ?InvariantBasisRequest {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.requests.items.len) return null;
+        return self.requests.items[index];
+    }
+
+    /// basisPathSpan returns the stored path span for a basis handle.
+    pub fn basisPathSpan(self: Store, handle: BasisHandle) ?CouplingPathSpan {
+        const index: usize = @intCast(handle.value);
+        if (index >= self.basis_paths.items.len) return null;
+        return self.basis_paths.items[index];
+    }
+
+    /// basisPaths returns the compact paths for a basis handle.
+    pub fn basisPaths(self: Store, handle: BasisHandle) ?[]const CouplingPath {
+        const span = self.basisPathSpan(handle) orelse return null;
+        const start: usize = @intCast(span.offset);
+        const end = start + span.len;
+        return self.paths.items[start..end];
+    }
+
+    /// pathSteps returns the local steps for one compact path.
+    pub fn pathSteps(self: Store, path: CouplingPath) []const CouplingStep {
+        const start: usize = @intCast(path.step_offset);
+        const end = start + path.step_len;
+        return self.steps.items[start..end];
+    }
 };
 
 /// BasisRecord stores one generated invariant basis.
@@ -205,6 +306,30 @@ fn namedIndicesEql(left: []const realization.NamedIndex, right: []const realizat
 fn optionalStringEql(left: ?[]const u8, right: ?[]const u8) bool {
     if (left == null or right == null) return left == null and right == null;
     return std.mem.eql(u8, left.?, right.?);
+}
+
+fn makeBasisAudit(allocator: std.mem.Allocator, path_count: u128, paths: []const CouplingPath, steps: []const CouplingStep, boundary_projector_count: u32) !BasisAudit {
+    var projectors = std.AutoHashMap(projector.ProjectorId, void).init(allocator);
+    defer projectors.deinit();
+    for (steps) |step| {
+        try projectors.put(step.projector, {});
+    }
+    const distinct_projector_count: u32 = @intCast(projectors.count());
+
+    var max_path_step_len: u16 = 0;
+    for (paths) |path| {
+        if (path.step_len > max_path_step_len) max_path_step_len = path.step_len;
+    }
+
+    return .{
+        .path_count = path_count,
+        .stored_path_count = @intCast(paths.len),
+        .step_count = @intCast(steps.len),
+        .distinct_projector_count = distinct_projector_count,
+        .boundary_projector_count = boundary_projector_count,
+        .total_projector_count = distinct_projector_count + boundary_projector_count,
+        .max_path_step_len = max_path_step_len,
+    };
 }
 
 fn cloneRequest(allocator: std.mem.Allocator, request: InvariantBasisRequest) !InvariantBasisRequest {

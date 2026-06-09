@@ -191,6 +191,11 @@ pub const Store = struct {
         return spec.targetIrrep();
     }
 
+    /// realizationSpecFor returns the stored realization specification for a handle.
+    pub fn realizationSpecFor(self: Store, handle: RealizationHandle) ?RealizationSpec {
+        return self.realizationSpec(handle);
+    }
+
     fn realizationSpec(self: Store, handle: RealizationHandle) ?RealizationSpec {
         const index: usize = @intCast(handle.value);
         if (index >= self.specs.items.len) return null;

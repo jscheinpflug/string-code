@@ -1,4 +1,6 @@
+const std = @import("std");
 const coupling = @import("coupling.zig");
+const symmetry = @import("symmetry.zig");
 
 /// SignatureConvention selects the metric convention for rendering/evaluation.
 pub const SignatureConvention = enum {
@@ -27,11 +29,104 @@ pub const RenderOptions = struct {
     projectors: ProjectorRenderMode = .named,
     signature: SignatureConvention = .complex,
     preserve_caller_index_names: bool = true,
+    stream_clifford_product_factors: bool = false,
+    lower_clifford_product_atoms: bool = false,
+    gamma_only: bool = false,
+};
+
+/// FilterDecision is the tri-state result for a streamed expansion prefix.
+pub const FilterDecision = enum {
+    accept,
+    reject,
+    undecided,
+};
+
+/// ExpansionAudit stores compact counters from streamed expansion.
+pub const ExpansionAudit = struct {
+    invariants: u64 = 0,
+    accepted: u64 = 0,
+    rejected: u64 = 0,
+    undecided: u64 = 0,
+    emitted: u64 = 0,
+    boundary_projector_atoms: u64 = 0,
+    local_projector_atoms: u64 = 0,
+    clifford_product_factors: u64 = 0,
+    max_frontier: u32 = 0,
+
+    /// recordDecision updates filter counters for one term or prefix.
+    pub fn recordDecision(self: *ExpansionAudit, decision: FilterDecision) void {
+        switch (decision) {
+            .accept => self.accepted += 1,
+            .reject => self.rejected += 1,
+            .undecided => self.undecided += 1,
+        }
+    }
+
+    /// merge adds counters from another streamed expansion.
+    pub fn merge(self: *ExpansionAudit, other: ExpansionAudit) void {
+        self.invariants += other.invariants;
+        self.accepted += other.accepted;
+        self.rejected += other.rejected;
+        self.undecided += other.undecided;
+        self.emitted += other.emitted;
+        self.boundary_projector_atoms += other.boundary_projector_atoms;
+        self.local_projector_atoms += other.local_projector_atoms;
+        self.clifford_product_factors += other.clifford_product_factors;
+        self.max_frontier = @max(self.max_frontier, other.max_frontier);
+    }
+};
+
+/// ExpansionFilter decides whether streamed terms should continue or emit.
+pub const ExpansionFilter = struct {
+    state: ?*anyopaque = null,
+    decide_fn: *const fn (?*anyopaque, SymbolicTerm) anyerror!FilterDecision = acceptAllDecision,
+
+    /// acceptAll constructs a filter that emits every completed term.
+    pub fn acceptAll() ExpansionFilter {
+        return .{ .decide_fn = acceptAllDecision };
+    }
+
+    /// rejectAll constructs a filter that rejects every term or prefix.
+    pub fn rejectAll() ExpansionFilter {
+        return .{ .decide_fn = rejectAllDecision };
+    }
+
+    /// rejectsAll reports whether every term can be rejected before expansion.
+    pub fn rejectsAll(self: ExpansionFilter) bool {
+        return self.state == null and self.decide_fn == rejectAllDecision;
+    }
+
+    /// withoutOperatorKind rejects terms containing one named operator kind.
+    pub fn withoutOperatorKind(kind: NamedOperatorKind) ExpansionFilter {
+        return .{
+            .state = @ptrFromInt(@as(usize, @intFromEnum(kind)) + 1),
+            .decide_fn = withoutOperatorKindDecision,
+        };
+    }
+
+    /// decide applies the filter to a borrowed symbolic term.
+    pub fn decide(self: ExpansionFilter, term: SymbolicTerm) !FilterDecision {
+        return self.decide_fn(self.state, term);
+    }
 };
 
 /// EvalOptions controls component evaluation of one invariant.
 pub const EvalOptions = struct {
     signature: SignatureConvention = .complex,
+};
+
+/// EvaluationAudit stores counters from streamed symbolic evaluation.
+pub const EvaluationAudit = struct {
+    terms: u64 = 0,
+    rejected: u64 = 0,
+    lowered_clifford_factors: u64 = 0,
+};
+
+/// EvaluationTerm stores one lowered symbolic term for evaluation consumers.
+pub const EvaluationTerm = struct {
+    coefficient: RationalId,
+    /// atoms is borrowed and valid only until the sink returns.
+    atoms: []const SymbolicAtom,
 };
 
 /// IndexRef names one symbolic index in a rendered term.
@@ -40,17 +135,466 @@ pub const IndexRef = u32;
 /// IndexBlockId names a compact antisymmetric or ordered index block.
 pub const IndexBlockId = u32;
 
-/// RationalId names an exact rational coefficient in the scalar store.
-pub const RationalId = u32;
+/// RationalId stores one exact rational coefficient by value.
+pub const RationalId = struct {
+    numerator: i128,
+    denominator: u128,
+};
+
+/// RationalValue is a decoded exact rational coefficient.
+pub const RationalValue = RationalId;
 
 /// GammaBlock stores one internal antisymmetrized gamma factor.
-const GammaBlock = struct {
+pub const GammaBlock = struct {
     spinor_left: IndexRef,
     spinor_right: IndexRef,
     vector_block: IndexBlockId,
     rank: u8,
     chirality: u8,
     duality: DualityTag = .none,
+};
+
+/// CliffordProductTerm stores one grade term in a gamma-block product.
+pub const CliffordProductTerm = struct {
+    rank: u8,
+    contractions: u8,
+    coefficient: i64,
+    duality: DualityTag = .none,
+};
+
+/// CliffordVectorSource identifies which input gamma block owns a vector.
+pub const CliffordVectorSource = enum {
+    left,
+    right,
+};
+
+/// CliffordMetricContraction stores one metric between input gamma slots.
+pub const CliffordMetricContraction = struct {
+    left_offset: u8,
+    right_offset: u8,
+};
+
+/// CliffordFreeVector stores one uncontracted vector slot in output order.
+pub const CliffordFreeVector = struct {
+    source: CliffordVectorSource,
+    offset: u8,
+};
+
+/// CliffordProductMetricFactor names one metric in a reduced gamma product.
+pub const CliffordProductMetricFactor = struct {
+    left_block: IndexBlockId,
+    right_block: IndexBlockId,
+    left_offset: u8,
+    right_offset: u8,
+};
+
+/// CliffordProductFreeVectorFactor maps one input slot into the output gamma.
+pub const CliffordProductFreeVectorFactor = struct {
+    source: CliffordVectorSource,
+    input_block: IndexBlockId,
+    input_offset: u8,
+    output_offset: u8,
+};
+
+/// CliffordProductFactor stores one explicit factor of a reduced product atom.
+pub const CliffordProductFactor = union(enum) {
+    metric: CliffordProductMetricFactor,
+    output_vector: CliffordProductFreeVectorFactor,
+};
+
+/// CliffordProductFactorRecord stores one streamed factor with product context.
+pub const CliffordProductFactorRecord = struct {
+    atom_index: u32,
+    factor_index: u16,
+    left_operator_id: u32,
+    right_operator_id: u32,
+    orthogonal_dimension: u16,
+    output_rank: u8,
+    coefficient: i64,
+    output_duality: DualityTag = .none,
+    factor: CliffordProductFactor,
+};
+
+/// CliffordProductFactorScan summarizes and validates lowered reducer factors.
+pub const CliffordProductFactorScan = struct {
+    product_count: u32 = 0,
+    factor_count: u32 = 0,
+    metric_count: u32 = 0,
+    output_vector_count: u32 = 0,
+    first_atom_index: ?u32 = null,
+    last_atom_index: ?u32 = null,
+    first_orthogonal_dimension: ?u16 = null,
+    first_output_rank: ?u8 = null,
+    first_coefficient: ?i64 = null,
+
+    /// merge adds another factor scan into this accumulator.
+    pub fn merge(self: *CliffordProductFactorScan, other: CliffordProductFactorScan) !void {
+        if (other.product_count == 0) return;
+        self.product_count = try addScanCount(self.product_count, other.product_count);
+        self.factor_count = try addScanCount(self.factor_count, other.factor_count);
+        self.metric_count = try addScanCount(self.metric_count, other.metric_count);
+        self.output_vector_count = try addScanCount(self.output_vector_count, other.output_vector_count);
+        if (self.first_atom_index == null) {
+            self.first_atom_index = other.first_atom_index;
+            self.first_orthogonal_dimension = other.first_orthogonal_dimension;
+            self.first_output_rank = other.first_output_rank;
+            self.first_coefficient = other.first_coefficient;
+        }
+        self.last_atom_index = other.last_atom_index;
+    }
+
+    /// recordTerm validates one term and accumulates its factor scan.
+    pub fn recordTerm(self: *CliffordProductFactorScan, term: SymbolicTerm) !void {
+        try self.merge(try scanCliffordProductFactors(term));
+    }
+};
+
+/// CliffordProductExpansion stores the small finite grade expansion.
+pub const CliffordProductExpansion = struct {
+    terms: [256]CliffordProductTerm = undefined,
+    len: u16 = 0,
+
+    fn append(self: *CliffordProductExpansion, term: CliffordProductTerm) !void {
+        if (self.len >= self.terms.len) return error.GammaProductTooLarge;
+        self.terms[self.len] = term;
+        self.len += 1;
+    }
+
+    /// slice returns the initialized product terms.
+    pub fn slice(self: *const CliffordProductExpansion) []const CliffordProductTerm {
+        return self.terms[0..self.len];
+    }
+};
+
+/// CliffordContractionPlan stores metric pairs and residual gamma slots.
+pub const CliffordContractionPlan = struct {
+    metrics: [256]CliffordMetricContraction = undefined,
+    metric_len: u16 = 0,
+    free_vectors: [256]CliffordFreeVector = undefined,
+    free_len: u16 = 0,
+
+    fn appendMetric(self: *CliffordContractionPlan, metric: CliffordMetricContraction) !void {
+        if (self.metric_len >= self.metrics.len) return error.GammaProductTooLarge;
+        self.metrics[self.metric_len] = metric;
+        self.metric_len += 1;
+    }
+
+    fn appendFreeVector(self: *CliffordContractionPlan, vector: CliffordFreeVector) !void {
+        if (self.free_len >= self.free_vectors.len) return error.GammaProductTooLarge;
+        self.free_vectors[self.free_len] = vector;
+        self.free_len += 1;
+    }
+
+    /// metricSlice returns the initialized cross-block metric contractions.
+    pub fn metricSlice(self: *const CliffordContractionPlan) []const CliffordMetricContraction {
+        return self.metrics[0..self.metric_len];
+    }
+
+    /// freeVectorSlice returns residual gamma vector slots in output order.
+    pub fn freeVectorSlice(self: *const CliffordContractionPlan) []const CliffordFreeVector {
+        return self.free_vectors[0..self.free_len];
+    }
+};
+
+/// GammaMatrix stores one explicit spinor-vector Clifford atom.
+pub const GammaMatrix = struct {
+    operator_id: u32,
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    vector: IndexRef,
+    orthogonal_dimension: u16,
+    rank: u8 = 1,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// GammaForm stores one explicit spinor bilinear coupled to a form irrep.
+pub const GammaForm = struct {
+    operator_id: u32,
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    form: IndexRef,
+    orthogonal_dimension: u16,
+    rank: u8,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// GammaAction stores an antisymmetric gamma form acting on a spinor.
+pub const GammaAction = struct {
+    operator_id: u32,
+    form: IndexRef,
+    spinor_input: IndexRef,
+    spinor_output: IndexRef,
+    orthogonal_dimension: u16,
+    rank: u8,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// CliffordProduct stores one reduced gamma-product term.
+pub const CliffordProduct = struct {
+    left_operator_id: u32,
+    right_operator_id: u32,
+    left_block: IndexBlockId,
+    right_block: IndexBlockId,
+    orthogonal_dimension: u16,
+    left_rank: u8,
+    right_rank: u8,
+    output_rank: u8,
+    contractions: u8,
+    metric_count: u16,
+    free_vector_count: u16,
+    coefficient: i64,
+    left_duality: DualityTag = .none,
+    right_duality: DualityTag = .none,
+    output_duality: DualityTag = .none,
+};
+
+/// CartanProduct stores a compact highest-weight product projection.
+pub const CartanProduct = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+};
+
+/// IdentityRoute stores the explicit identity product with a singlet factor.
+pub const IdentityRoute = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+};
+
+/// SpinorSymmetricProduct stores the spinor-tower Cartan product formula.
+pub const SpinorSymmetricProduct = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+    orthogonal_dimension: u16,
+    left_power: u16,
+    right_power: u16,
+    output_power: u16,
+    chirality: u8 = 0,
+};
+
+/// SpinorTowerContract stores one contraction lowering a spinor tower by one spinor.
+pub const SpinorTowerContract = struct {
+    operator_id: u32,
+    input_tower: IndexRef,
+    spinor: IndexRef,
+    output_tower: IndexRef,
+    output_form: IndexBlockId = 0,
+    orthogonal_dimension: u16,
+    input_power: u16,
+    output_power: u16,
+    form_rank: u8 = 0,
+    chirality: u8 = 0,
+};
+
+/// SpinorTowerContractAdjoint stores the adjoint of a spinor-tower contraction.
+pub const SpinorTowerContractAdjoint = struct {
+    operator_id: u32,
+    input_tower: IndexRef,
+    spinor: IndexRef,
+    output_tower: IndexRef,
+    input_form: IndexBlockId = 0,
+    orthogonal_dimension: u16,
+    input_power: u16,
+    output_power: u16,
+    form_rank: u8 = 0,
+    chirality: u8 = 0,
+};
+
+/// SpinorIndexDelta stores one primitive spinor Kronecker-delta route.
+pub const SpinorIndexDelta = struct {
+    operator_id: u32,
+    source_tower: IndexRef,
+    output_tower: IndexRef,
+    source_slot: u16,
+    output_slot: u16,
+    chirality: u8 = 0,
+};
+
+/// TensorSpinorProjection stores a compact form-valued spinor-tower channel.
+pub const TensorSpinorProjection = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+    orthogonal_dimension: u16,
+    left_has_spinor: bool = true,
+    right_has_spinor: bool = true,
+    output_has_spinor: bool = true,
+    right_chirality: u8 = 255,
+    input_form_profile: u128 = 0,
+    input_form_count: u8 = 0,
+    input_tower_power: u16 = 0,
+    form_rank: u8,
+    form_count: u8 = 1,
+    form_mask: u64 = 0,
+    form_profile: u128 = 0,
+    tower_power: u16,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// TensorFormProjection stores a compact tensor-form terminal channel.
+pub const TensorFormProjection = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+    orthogonal_dimension: u16,
+    input_form_profile: u128 = 0,
+    input_form_mask: u64,
+    output_form_profile: u128,
+    output_form_count: u8,
+    output_form_rank: u8 = 0,
+    output_duality: DualityTag = .none,
+    right_chirality: u8 = 0,
+    chirality: u8 = 0,
+};
+
+/// ExteriorGammaActionAtom stores the primitive exterior gamma contraction.
+pub const ExteriorGammaActionAtom = struct {
+    operator_id: u32,
+    input_form: IndexBlockId,
+    gamma_form: IndexBlockId,
+    output_form: IndexBlockId,
+    spinor_input: IndexRef,
+    spinor_output: IndexRef,
+    orthogonal_dimension: u16,
+    input_rank: u8,
+    gamma_rank: u8,
+    output_rank: u8,
+    contraction_count: u8,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// FormRankSplitDelta stores the primitive generalized delta for a rank split.
+pub const FormRankSplitDelta = struct {
+    source_form: IndexBlockId,
+    lower_form: IndexBlockId,
+    upper_form: IndexBlockId,
+    source_rank: u8,
+    lower_rank: u8,
+    upper_rank: u8,
+};
+
+/// TensorFormGammaWedge stores a terminal tensor-spinor gamma-wedge formula.
+pub const TensorFormGammaWedge = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+    orthogonal_dimension: u16,
+    input_form_mask: u64,
+    input_form_profile: u128,
+    input_form_count: u8,
+    output_form_profile: u128,
+    output_form_count: u8,
+    inserted_rank: u8,
+    action_input_rank: u8 = 0,
+    action_output_rank: u8 = 0,
+    action_contraction_count: u8 = 0,
+    chirality: u8 = 0,
+    duality: DualityTag = .none,
+};
+
+/// TensorFormGammaMap stores one explicit gamma map between form profiles.
+pub const TensorFormGammaMap = struct {
+    operator_id: u32,
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    input_form: IndexBlockId,
+    output_lower_form: IndexBlockId,
+    output_upper_form: IndexBlockId,
+    orthogonal_dimension: u16,
+    source_rank: u8,
+    lower_rank: u8,
+    upper_rank: u8,
+    chirality: u8 = 0,
+};
+
+/// TensorFormGammaMapAdjoint stores the adjoint of a gamma rank-split map.
+pub const TensorFormGammaMapAdjoint = struct {
+    operator_id: u32,
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    input_lower_form: IndexBlockId,
+    input_upper_form: IndexBlockId,
+    output_form: IndexBlockId,
+    orthogonal_dimension: u16,
+    source_rank: u8,
+    lower_rank: u8,
+    upper_rank: u8,
+    chirality: u8 = 0,
+};
+
+/// TensorFormSpinorPair stores a form-preserving terminal spinor pairing formula.
+pub const TensorFormSpinorPair = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+    orthogonal_dimension: u16,
+    input_form_mask: u64,
+    input_form_profile: u128,
+    input_form_count: u8,
+    output_form_profile: u128,
+    output_form_count: u8,
+    left_chirality: u8 = 0,
+    right_chirality: u8 = 0,
+};
+
+/// ProductIdentity stores the identity product with a singlet factor.
+pub const ProductIdentity = struct {
+    operator_id: u32,
+    left: IndexRef,
+    right: IndexRef,
+    output: IndexRef,
+};
+
+/// StructureConstant stores one backend-specific invariant tensor atom.
+pub const StructureConstant = struct {
+    operator_id: u32,
+    first: IndexRef,
+    second: IndexRef,
+    third: IndexRef,
+    family: symmetry.LieFamily,
+    rank: u8,
+};
+
+/// SpinorPair stores one explicit invariant spinor bilinear atom.
+pub const SpinorPair = struct {
+    operator_id: u32,
+    spinor_left: IndexRef,
+    spinor_right: IndexRef,
+    orthogonal_dimension: u16,
+    chirality_left: u8 = 0,
+    chirality_right: u8 = 0,
+};
+
+/// VectorSpinorIdentity stores the identity on a vector-spinor slot.
+pub const VectorSpinorIdentity = struct {
+    operator_id: u32,
+    vector: IndexRef,
+    spinor: IndexRef,
+    orthogonal_dimension: u16,
+    chirality: u8 = 0,
+};
+
+/// GammaTrace stores the gamma-trace part of a vector-spinor projector.
+pub const GammaTrace = struct {
+    operator_id: u32,
+    vector: IndexRef,
+    spinor: IndexRef,
+    orthogonal_dimension: u16,
+    chirality: u8 = 0,
 };
 
 /// DualityTag records middle-form self-duality data.
@@ -60,15 +604,393 @@ pub const DualityTag = enum {
     anti_self_dual,
 };
 
+/// GammaChirality classifies chiral spinor conventions for gamma renderers.
+pub const GammaChirality = enum(u8) {
+    none = 0,
+    left = 1,
+    right = 2,
+};
+
+/// gammaChiralityTag returns a compact chirality tag for a spinor Dynkin label.
+pub fn gammaChiralityTag(simple: symmetry.SimpleLieAlgebra, label: []const i16) GammaChirality {
+    if (!isSpinorDynkin(simple, label)) return .none;
+    return switch (simple.family) {
+        .b => .none,
+        .d => if (label[label.len - 2] == 1) .left else .right,
+        else => .none,
+    };
+}
+
+/// orthogonalDimension returns the vector dimension for B/D algebras.
+pub fn orthogonalDimension(simple: symmetry.SimpleLieAlgebra) u16 {
+    return switch (simple.family) {
+        .b => @as(u16, simple.rank) * 2 + 1,
+        .d => @as(u16, simple.rank) * 2,
+        else => 0,
+    };
+}
+
+/// gammaDualityValid checks whether a gamma block duality tag matches its grade.
+pub fn gammaDualityValid(orthogonal_dimension: u16, rank: u8, duality: DualityTag) bool {
+    if (orthogonal_dimension == 0 or rank > orthogonal_dimension) return false;
+    return switch (duality) {
+        .none => true,
+        .self_dual, .anti_self_dual => @as(u16, rank) * 2 == orthogonal_dimension,
+    };
+}
+
+/// gammaProductExpansion returns the grade expansion of two gamma blocks.
+pub fn gammaProductExpansion(orthogonal_dimension: u16, left_rank: u8, right_rank: u8, left_duality: DualityTag, right_duality: DualityTag) !CliffordProductExpansion {
+    if (!gammaDualityValid(orthogonal_dimension, left_rank, left_duality)) return error.InvalidGammaRank;
+    if (!gammaDualityValid(orthogonal_dimension, right_rank, right_duality)) return error.InvalidGammaRank;
+
+    var expansion: CliffordProductExpansion = .{};
+    const max_contractions = @min(left_rank, right_rank);
+    for (0..@as(usize, max_contractions) + 1) |contractions| {
+        const contraction_count: u8 = @intCast(contractions);
+        const rank = left_rank + right_rank - 2 * contraction_count;
+        if (rank > orthogonal_dimension) continue;
+        const coefficient = try gammaProductCoefficient(left_rank, right_rank, contraction_count);
+        try expansion.append(.{
+            .rank = rank,
+            .contractions = contraction_count,
+            .coefficient = coefficient,
+            .duality = gammaProductOutputDuality(orthogonal_dimension, rank, left_duality, right_duality),
+        });
+    }
+    return expansion;
+}
+
+/// gammaProductContractionPlan returns metrics and free slots for one product term.
+pub fn gammaProductContractionPlan(left_rank: u8, right_rank: u8, term: CliffordProductTerm) !CliffordContractionPlan {
+    if (term.contractions > @min(left_rank, right_rank)) return error.InvalidGammaProductTerm;
+    if (term.rank != left_rank + right_rank - 2 * term.contractions) return error.InvalidGammaProductTerm;
+
+    var plan: CliffordContractionPlan = .{};
+    const left_free_count = left_rank - term.contractions;
+    for (0..left_free_count) |offset| {
+        try plan.appendFreeVector(.{ .source = .left, .offset = @intCast(offset) });
+    }
+    for (0..term.contractions) |offset| {
+        try plan.appendMetric(.{
+            .left_offset = @intCast(left_free_count + offset),
+            .right_offset = @intCast(offset),
+        });
+    }
+    for (term.contractions..right_rank) |offset| {
+        try plan.appendFreeVector(.{ .source = .right, .offset = @intCast(offset) });
+    }
+    return plan;
+}
+
+/// cliffordProductTerm decodes the grade term stored in a streamed atom.
+pub fn cliffordProductTerm(product: CliffordProduct) CliffordProductTerm {
+    return .{
+        .rank = product.output_rank,
+        .contractions = product.contractions,
+        .coefficient = product.coefficient,
+        .duality = product.output_duality,
+    };
+}
+
+/// cliffordProductContractionPlan reconstructs the metric/free-slot plan.
+pub fn cliffordProductContractionPlan(product: CliffordProduct) !CliffordContractionPlan {
+    if (!gammaDualityValid(product.orthogonal_dimension, product.left_rank, product.left_duality)) return error.InvalidGammaProductTerm;
+    if (!gammaDualityValid(product.orthogonal_dimension, product.right_rank, product.right_duality)) return error.InvalidGammaProductTerm;
+    if (!gammaDualityValid(product.orthogonal_dimension, product.output_rank, product.output_duality)) return error.InvalidGammaProductTerm;
+    const term = cliffordProductTerm(product);
+    const plan = try gammaProductContractionPlan(product.left_rank, product.right_rank, term);
+    if (plan.metric_len != product.metric_count or plan.free_len != product.free_vector_count) return error.InvalidGammaProductTerm;
+    return plan;
+}
+
+/// cliffordProductFactorCount returns the number of explicit factors in an atom.
+pub fn cliffordProductFactorCount(product: CliffordProduct) !u16 {
+    const plan = try cliffordProductContractionPlan(product);
+    return plan.metric_len + plan.free_len;
+}
+
+/// cliffordProductFactorAt returns one metric or residual vector factor.
+pub fn cliffordProductFactorAt(product: CliffordProduct, index: u16) !CliffordProductFactor {
+    const plan = try cliffordProductContractionPlan(product);
+    if (index < plan.metric_len) {
+        const metric = plan.metricSlice()[index];
+        return .{ .metric = .{
+            .left_block = product.left_block,
+            .right_block = product.right_block,
+            .left_offset = metric.left_offset,
+            .right_offset = metric.right_offset,
+        } };
+    }
+
+    const free_index = index - plan.metric_len;
+    if (free_index >= plan.free_len) return error.CliffordProductFactorOutOfBounds;
+    const vector = plan.freeVectorSlice()[free_index];
+    return .{ .output_vector = .{
+        .source = vector.source,
+        .input_block = if (vector.source == .left) product.left_block else product.right_block,
+        .input_offset = vector.offset,
+        .output_offset = @intCast(free_index),
+    } };
+}
+
+/// streamCliffordProductFactors emits factors from compact or lowered reducers.
+pub fn streamCliffordProductFactors(term: SymbolicTerm, sink: anytype) !u32 {
+    var emitted: u32 = 0;
+    for (term.atoms, 0..) |atom, atom_index| {
+        const product = switch (atom) {
+            .clifford_product => |product| product,
+            .clifford_product_factor => |record| {
+                try sink.emitCliffordProductFactor(record);
+                emitted += 1;
+                continue;
+            },
+            else => continue,
+        };
+        const plan = try cliffordProductContractionPlan(product);
+        var factor_index: u16 = 0;
+        for (plan.metricSlice()) |metric| {
+            try sink.emitCliffordProductFactor(.{
+                .atom_index = @intCast(atom_index),
+                .factor_index = factor_index,
+                .left_operator_id = product.left_operator_id,
+                .right_operator_id = product.right_operator_id,
+                .orthogonal_dimension = product.orthogonal_dimension,
+                .output_rank = product.output_rank,
+                .coefficient = product.coefficient,
+                .output_duality = product.output_duality,
+                .factor = .{ .metric = .{
+                    .left_block = product.left_block,
+                    .right_block = product.right_block,
+                    .left_offset = metric.left_offset,
+                    .right_offset = metric.right_offset,
+                } },
+            });
+            factor_index += 1;
+            emitted += 1;
+        }
+        for (plan.freeVectorSlice(), 0..) |vector, free_index| {
+            try sink.emitCliffordProductFactor(.{
+                .atom_index = @intCast(atom_index),
+                .factor_index = factor_index,
+                .left_operator_id = product.left_operator_id,
+                .right_operator_id = product.right_operator_id,
+                .orthogonal_dimension = product.orthogonal_dimension,
+                .output_rank = product.output_rank,
+                .coefficient = product.coefficient,
+                .output_duality = product.output_duality,
+                .factor = .{ .output_vector = .{
+                    .source = vector.source,
+                    .input_block = if (vector.source == .left) product.left_block else product.right_block,
+                    .input_offset = vector.offset,
+                    .output_offset = @intCast(free_index),
+                } },
+            });
+            factor_index += 1;
+            emitted += 1;
+        }
+    }
+    return emitted;
+}
+
+/// scanCliffordProductFactors validates and counts compact or lowered factors.
+pub fn scanCliffordProductFactors(term: SymbolicTerm) !CliffordProductFactorScan {
+    var scan: CliffordProductFactorScan = .{};
+    var current_lowered_atom: ?u32 = null;
+    var next_lowered_factor_index: u16 = 0;
+    var current_left_operator_id: u32 = 0;
+    var current_right_operator_id: u32 = 0;
+    var current_dimension: u16 = 0;
+    var current_output_rank: u8 = 0;
+    var current_coefficient: i64 = 0;
+    var current_duality: DualityTag = .none;
+
+    for (term.atoms, 0..) |atom, atom_index| {
+        switch (atom) {
+            .clifford_product => |product| {
+                const plan = try cliffordProductContractionPlan(product);
+                try recordCliffordProductScanHeader(&scan, @intCast(atom_index), product.orthogonal_dimension, product.output_rank, product.coefficient);
+                scan.factor_count += plan.metric_len + plan.free_len;
+                scan.metric_count += plan.metric_len;
+                scan.output_vector_count += plan.free_len;
+            },
+            .clifford_product_factor => |record| {
+                if (current_lowered_atom) |current_atom| {
+                    if (record.atom_index == current_atom) {
+                        if (record.factor_index != next_lowered_factor_index) return error.InvalidCliffordProductFactorSequence;
+                        if (record.left_operator_id != current_left_operator_id or
+                            record.right_operator_id != current_right_operator_id or
+                            record.orthogonal_dimension != current_dimension or
+                            record.output_rank != current_output_rank or
+                            record.coefficient != current_coefficient or
+                            record.output_duality != current_duality)
+                        {
+                            return error.InvalidCliffordProductFactorSequence;
+                        }
+                    } else {
+                        if (record.atom_index <= current_atom) return error.InvalidCliffordProductFactorSequence;
+                        if (record.factor_index != 0) return error.InvalidCliffordProductFactorSequence;
+                        try recordCliffordProductScanHeader(&scan, record.atom_index, record.orthogonal_dimension, record.output_rank, record.coefficient);
+                        current_lowered_atom = record.atom_index;
+                        current_left_operator_id = record.left_operator_id;
+                        current_right_operator_id = record.right_operator_id;
+                        current_dimension = record.orthogonal_dimension;
+                        current_output_rank = record.output_rank;
+                        current_coefficient = record.coefficient;
+                        current_duality = record.output_duality;
+                    }
+                } else {
+                    if (record.factor_index != 0) return error.InvalidCliffordProductFactorSequence;
+                    try recordCliffordProductScanHeader(&scan, record.atom_index, record.orthogonal_dimension, record.output_rank, record.coefficient);
+                    current_lowered_atom = record.atom_index;
+                    current_left_operator_id = record.left_operator_id;
+                    current_right_operator_id = record.right_operator_id;
+                    current_dimension = record.orthogonal_dimension;
+                    current_output_rank = record.output_rank;
+                    current_coefficient = record.coefficient;
+                    current_duality = record.output_duality;
+                }
+
+                next_lowered_factor_index = record.factor_index + 1;
+                scan.factor_count += 1;
+                switch (record.factor) {
+                    .metric => scan.metric_count += 1,
+                    .output_vector => scan.output_vector_count += 1,
+                }
+            },
+            else => {},
+        }
+    }
+    return scan;
+}
+
+fn recordCliffordProductScanHeader(scan: *CliffordProductFactorScan, atom_index: u32, dimension: u16, output_rank: u8, coefficient: i64) !void {
+    if (scan.product_count == std.math.maxInt(u32)) return error.CliffordProductScanTooLarge;
+    scan.product_count += 1;
+    if (scan.first_atom_index == null) {
+        scan.first_atom_index = atom_index;
+        scan.first_orthogonal_dimension = dimension;
+        scan.first_output_rank = output_rank;
+        scan.first_coefficient = coefficient;
+    }
+    scan.last_atom_index = atom_index;
+}
+
+fn addScanCount(left: u32, right: u32) !u32 {
+    return std.math.add(u32, left, right) catch error.CliffordProductScanTooLarge;
+}
+
+fn addAuditAtomCount(left: u64, right: usize) !u64 {
+    return std.math.add(u64, left, @intCast(right)) catch error.CliffordProductScanTooLarge;
+}
+
+fn addAuditCount(left: u64, right: u64) !u64 {
+    return std.math.add(u64, left, right) catch error.CliffordProductScanTooLarge;
+}
+
+/// appendLoweredCliffordProductAtoms replaces reducer atoms with factor atoms.
+pub fn appendLoweredCliffordProductAtoms(allocator: std.mem.Allocator, lowered_atoms: *std.ArrayList(SymbolicAtom), term: SymbolicTerm) !u32 {
+    var lowered_factor_count: u32 = 0;
+    for (term.atoms, 0..) |atom, atom_index| {
+        const product = switch (atom) {
+            .clifford_product => |product| product,
+            else => {
+                try lowered_atoms.append(allocator, atom);
+                continue;
+            },
+        };
+        const plan = try cliffordProductContractionPlan(product);
+        var factor_index: u16 = 0;
+        for (plan.metricSlice()) |metric| {
+            try lowered_atoms.append(allocator, .{ .clifford_product_factor = .{
+                .atom_index = @intCast(atom_index),
+                .factor_index = factor_index,
+                .left_operator_id = product.left_operator_id,
+                .right_operator_id = product.right_operator_id,
+                .orthogonal_dimension = product.orthogonal_dimension,
+                .output_rank = product.output_rank,
+                .coefficient = product.coefficient,
+                .output_duality = product.output_duality,
+                .factor = .{ .metric = .{
+                    .left_block = product.left_block,
+                    .right_block = product.right_block,
+                    .left_offset = metric.left_offset,
+                    .right_offset = metric.right_offset,
+                } },
+            } });
+            factor_index += 1;
+            lowered_factor_count += 1;
+        }
+        for (plan.freeVectorSlice(), 0..) |vector, free_index| {
+            try lowered_atoms.append(allocator, .{ .clifford_product_factor = .{
+                .atom_index = @intCast(atom_index),
+                .factor_index = factor_index,
+                .left_operator_id = product.left_operator_id,
+                .right_operator_id = product.right_operator_id,
+                .orthogonal_dimension = product.orthogonal_dimension,
+                .output_rank = product.output_rank,
+                .coefficient = product.coefficient,
+                .output_duality = product.output_duality,
+                .factor = .{ .output_vector = .{
+                    .source = vector.source,
+                    .input_block = if (vector.source == .left) product.left_block else product.right_block,
+                    .input_offset = vector.offset,
+                    .output_offset = @intCast(free_index),
+                } },
+            } });
+            factor_index += 1;
+            lowered_factor_count += 1;
+        }
+    }
+    return lowered_factor_count;
+}
+
+/// NamedOperatorKind classifies compact backend-rendered operators.
+pub const NamedOperatorKind = enum {
+    projector,
+    gamma,
+    metric,
+    epsilon,
+    structure_constant,
+    custom,
+};
+
 /// SymbolicAtom stores one symbolic invariant contraction atom.
 pub const SymbolicAtom = union(enum) {
     metric_pair: struct { left: IndexRef, right: IndexRef },
+    gamma_matrix: GammaMatrix,
+    gamma_form: GammaForm,
+    gamma_action: GammaAction,
+    clifford_product: CliffordProduct,
+    clifford_product_factor: CliffordProductFactorRecord,
+    identity_route: IdentityRoute,
+    spinor_symmetrized_product: SpinorSymmetricProduct,
+    spinor_index_delta: SpinorIndexDelta,
+    spinor_tower_contract: SpinorTowerContract,
+    spinor_tower_contract_adjoint: SpinorTowerContractAdjoint,
+    product_identity: ProductIdentity,
+    cartan_product: CartanProduct,
+    tensor_spinor_projection: TensorSpinorProjection,
+    tensor_form_projection: TensorFormProjection,
+    exterior_gamma_action: ExteriorGammaActionAtom,
+    form_rank_split_delta: FormRankSplitDelta,
+    tensor_form_gamma_wedge: TensorFormGammaWedge,
+    tensor_form_gamma_map: TensorFormGammaMap,
+    tensor_form_gamma_map_adjoint: TensorFormGammaMapAdjoint,
+    tensor_form_spinor_pair: TensorFormSpinorPair,
+    gamma_trace: GammaTrace,
+    spinor_pair: SpinorPair,
+    vector_spinor_identity: VectorSpinorIdentity,
+    structure_constant: StructureConstant,
     generalized_delta: struct { upper: IndexBlockId, lower: IndexBlockId },
     epsilon: struct { block: IndexBlockId },
     hodge_star: struct { input: IndexBlockId, output: IndexBlockId },
     antisymmetrizer: struct { block: IndexBlockId },
-    named_operator: struct { operator_id: u32, first_index: u32, index_len: u16 },
+    named_operator: struct { kind: NamedOperatorKind, operator_id: u32, first_index: u32, index_len: u16 },
 };
+
+/// SymbolicAtomTag names one symbolic atom variant.
+pub const SymbolicAtomTag = std.meta.Tag(SymbolicAtom);
 
 /// SymbolicTerm stores one streamed coefficient times symbolic atoms.
 pub const SymbolicTerm = struct {
@@ -77,9 +999,248 @@ pub const SymbolicTerm = struct {
     atoms: []const SymbolicAtom,
 };
 
+/// AtomLoweringAudit records how far streamed atoms have been lowered.
+pub const AtomLoweringAudit = struct {
+    term_count: u64 = 0,
+    atom_count: u64 = 0,
+    primitive_atoms: u64 = 0,
+    compact_formula_atoms: u64 = 0,
+    named_operator_atoms: u64 = 0,
+    named_projector_atoms: u64 = 0,
+    clifford_product_atoms: u64 = 0,
+    clifford_product_factor_atoms: u64 = 0,
+    product_identity_atoms: u64 = 0,
+    cartan_product_atoms: u64 = 0,
+    tensor_spinor_projection_atoms: u64 = 0,
+    tensor_form_projection_atoms: u64 = 0,
+    structural_atoms: u64 = 0,
+    spinor_symmetrized_product_atoms: u64 = 0,
+    spinor_tower_contract_atoms: u64 = 0,
+    spinor_tower_contract_adjoint_atoms: u64 = 0,
+    tensor_form_gamma_wedge_atoms: u64 = 0,
+    tensor_form_gamma_map_atoms: u64 = 0,
+    tensor_form_gamma_map_adjoint_atoms: u64 = 0,
+    gamma_trace_atoms: u64 = 0,
+    vector_spinor_identity_atoms: u64 = 0,
+    first_compact_kind: ?SymbolicAtomTag = null,
+    first_structural_kind: ?SymbolicAtomTag = null,
+
+    /// recordTerm classifies one borrowed rendered term.
+    pub fn recordTerm(self: *AtomLoweringAudit, term: SymbolicTerm) !void {
+        self.term_count = try addAuditCount(self.term_count, 1);
+        self.atom_count = try addAuditAtomCount(self.atom_count, term.atoms.len);
+        for (term.atoms) |atom| {
+            try self.recordAtom(atom);
+        }
+    }
+
+    fn recordAtom(self: *AtomLoweringAudit, atom: SymbolicAtom) !void {
+        switch (atom) {
+            .metric_pair,
+            .gamma_matrix,
+            .gamma_form,
+            .gamma_action,
+            .spinor_pair,
+            .structure_constant,
+            .generalized_delta,
+            .epsilon,
+            .hodge_star,
+            .antisymmetrizer,
+            .identity_route,
+            .spinor_index_delta,
+            .exterior_gamma_action,
+            .form_rank_split_delta,
+            .tensor_form_spinor_pair,
+            => self.primitive_atoms = try addAuditCount(self.primitive_atoms, 1),
+            .spinor_symmetrized_product => try self.recordStructural(atom, &self.spinor_symmetrized_product_atoms),
+            .spinor_tower_contract => try self.recordStructural(atom, &self.spinor_tower_contract_atoms),
+            .spinor_tower_contract_adjoint => try self.recordStructural(atom, &self.spinor_tower_contract_adjoint_atoms),
+            .tensor_form_gamma_wedge => try self.recordStructural(atom, &self.tensor_form_gamma_wedge_atoms),
+            .tensor_form_gamma_map => try self.recordStructural(atom, &self.tensor_form_gamma_map_atoms),
+            .tensor_form_gamma_map_adjoint => try self.recordStructural(atom, &self.tensor_form_gamma_map_adjoint_atoms),
+            .clifford_product_factor => {
+                self.primitive_atoms = try addAuditCount(self.primitive_atoms, 1);
+                self.clifford_product_factor_atoms = try addAuditCount(self.clifford_product_factor_atoms, 1);
+            },
+            .clifford_product => {
+                self.clifford_product_atoms = try addAuditCount(self.clifford_product_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .product_identity => {
+                self.product_identity_atoms = try addAuditCount(self.product_identity_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .cartan_product => {
+                self.cartan_product_atoms = try addAuditCount(self.cartan_product_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .tensor_spinor_projection => {
+                self.tensor_spinor_projection_atoms = try addAuditCount(self.tensor_spinor_projection_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .tensor_form_projection => {
+                self.tensor_form_projection_atoms = try addAuditCount(self.tensor_form_projection_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .gamma_trace => {
+                self.gamma_trace_atoms = try addAuditCount(self.gamma_trace_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .vector_spinor_identity => {
+                self.vector_spinor_identity_atoms = try addAuditCount(self.vector_spinor_identity_atoms, 1);
+                try self.recordCompact(atom);
+            },
+            .named_operator => |operator| {
+                self.named_operator_atoms = try addAuditCount(self.named_operator_atoms, 1);
+                if (operator.kind == .projector) self.named_projector_atoms = try addAuditCount(self.named_projector_atoms, 1);
+                try self.recordCompact(atom);
+            },
+        }
+    }
+
+    fn recordCompact(self: *AtomLoweringAudit, atom: SymbolicAtom) !void {
+        self.compact_formula_atoms = try addAuditCount(self.compact_formula_atoms, 1);
+        if (self.first_compact_kind == null) self.first_compact_kind = std.meta.activeTag(atom);
+    }
+
+    fn recordStructural(self: *AtomLoweringAudit, atom: SymbolicAtom, counter: *u64) !void {
+        counter.* = try addAuditCount(counter.*, 1);
+        self.structural_atoms = try addAuditCount(self.structural_atoms, 1);
+        if (self.first_structural_kind == null) self.first_structural_kind = std.meta.activeTag(atom);
+        try self.recordCompact(atom);
+    }
+
+    /// gammaOnly returns true when no compact or structural atom remains.
+    pub fn gammaOnly(self: AtomLoweringAudit) bool {
+        return self.compact_formula_atoms == 0 and
+            self.structural_atoms == 0 and
+            self.named_projector_atoms == 0 and
+            self.tensor_spinor_projection_atoms == 0 and
+            self.tensor_form_projection_atoms == 0 and
+            self.clifford_product_atoms == 0;
+    }
+};
+
+/// GammaOnlyAudit records compact and structural blockers for gamma-only terms.
+pub const GammaOnlyAudit = AtomLoweringAudit;
+
+/// AtomLoweringAuditSink accumulates atom-lowering counters from terms.
+pub const AtomLoweringAuditSink = struct {
+    audit: AtomLoweringAudit = .{},
+
+    /// emitTerm records one rendered symbolic term.
+    pub fn emitTerm(self: *AtomLoweringAuditSink, term: SymbolicTerm) !void {
+        try self.audit.recordTerm(term);
+    }
+};
+
+/// CliffordProductFactorAuditSink accumulates factor scans from rendered terms.
+pub const CliffordProductFactorAuditSink = struct {
+    term_count: u32 = 0,
+    atom_count: u64 = 0,
+    scan: CliffordProductFactorScan = .{},
+
+    /// emitTerm records one rendered symbolic term.
+    pub fn emitTerm(self: *CliffordProductFactorAuditSink, term: SymbolicTerm) !void {
+        self.term_count = try addScanCount(self.term_count, 1);
+        self.atom_count = try addAuditAtomCount(self.atom_count, term.atoms.len);
+        try self.scan.recordTerm(term);
+    }
+};
+
 /// emitTerm sends one symbolic term to a caller-provided sink.
 pub fn emitTerm(sink: anytype, term: SymbolicTerm) !void {
     try sink.emitTerm(term);
+}
+
+/// emitEvaluationTerm sends one evaluation term to a caller-provided sink.
+pub fn emitEvaluationTerm(sink: anytype, term: EvaluationTerm) !void {
+    try sink.emitEvaluationTerm(term);
+}
+
+/// rationalOne returns the coefficient id for one.
+pub fn rationalOne() RationalId {
+    return .{ .numerator = 1, .denominator = 1 };
+}
+
+/// rationalEql compares two exact rational coefficients.
+pub fn rationalEql(left: RationalId, right: RationalId) bool {
+    return left.numerator == right.numerator and left.denominator == right.denominator;
+}
+
+/// rationalFromSmall normalizes an exact rational coefficient.
+pub fn rationalFromSmall(numerator: i64, denominator: u64) !RationalId {
+    if (denominator == 0) return error.InvalidRationalDenominator;
+    if (numerator == 0) return .{ .numerator = 0, .denominator = 1 };
+    const divisor = gcdU128(absI128(numerator), denominator);
+    return .{
+        .numerator = @divExact(@as(i128, numerator), @as(i128, @intCast(divisor))),
+        .denominator = @divExact(@as(u128, denominator), divisor),
+    };
+}
+
+/// rationalValue decodes a coefficient id produced by rationalFromSmall.
+pub fn rationalValue(id: RationalId) RationalValue {
+    return id;
+}
+
+fn absI128(value: i128) u128 {
+    if (value == std.math.minInt(i128)) return @as(u128, 1) << 127;
+    return if (value < 0) @intCast(-value) else @intCast(value);
+}
+
+fn gcdU128(left: u128, right: u128) u128 {
+    var a = left;
+    var b = right;
+    while (b != 0) {
+        const remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+    return if (a == 0) 1 else a;
+}
+
+fn gammaProductCoefficient(left_rank: u8, right_rank: u8, contractions: u8) !i64 {
+    var coefficient: i64 = 1;
+    coefficient = try checkedMulI64(coefficient, try binomialI64(left_rank, contractions));
+    coefficient = try checkedMulI64(coefficient, try binomialI64(right_rank, contractions));
+    coefficient = try checkedMulI64(coefficient, try factorialI64(contractions));
+    const contraction_pairs = if (contractions < 2) 0 else @as(u16, contractions) * (@as(u16, contractions) - 1) / 2;
+    if (contraction_pairs % 2 == 1) coefficient = -coefficient;
+    return coefficient;
+}
+
+fn gammaProductOutputDuality(orthogonal_dimension: u16, rank: u8, left_duality: DualityTag, right_duality: DualityTag) DualityTag {
+    if (@as(u16, rank) * 2 != orthogonal_dimension) return .none;
+    if (left_duality != .none) return left_duality;
+    if (right_duality != .none) return right_duality;
+    return .none;
+}
+
+fn binomialI64(n: u8, k: u8) !i64 {
+    if (k > n) return 0;
+    const choose = @min(k, n - k);
+    var result: i64 = 1;
+    var divisor: u8 = 1;
+    while (divisor <= choose) : (divisor += 1) {
+        const numerator = n - choose + divisor;
+        result = try checkedMulI64(result, numerator);
+        result = @divExact(result, divisor);
+    }
+    return result;
+}
+
+fn factorialI64(n: u8) !i64 {
+    if (n < 2) return 1;
+    var result: i64 = 1;
+    for (2..@as(usize, n) + 1) |factor| {
+        result = try checkedMulI64(result, @intCast(factor));
+    }
+    return result;
+}
+
+fn checkedMulI64(left: i64, right: i64) !i64 {
+    return std.math.mul(i64, left, right) catch error.GammaProductCoefficientOverflow;
 }
 
 /// RenderedTermSpan stores a compact range of already emitted terms.
@@ -93,3 +1254,326 @@ const ReductionTerm = struct {
     invariant: coupling.InvariantHandle,
     coefficient: RationalId,
 };
+
+fn acceptAllDecision(_: ?*anyopaque, _: SymbolicTerm) anyerror!FilterDecision {
+    return .accept;
+}
+
+fn rejectAllDecision(_: ?*anyopaque, _: SymbolicTerm) anyerror!FilterDecision {
+    return .reject;
+}
+
+fn isSpinorDynkin(simple: symmetry.SimpleLieAlgebra, label: []const i16) bool {
+    if (label.len != simple.rank) return false;
+    switch (simple.family) {
+        .b => {
+            if (label.len == 0 or label[label.len - 1] != 1) return false;
+            for (label[0 .. label.len - 1]) |entry| {
+                if (entry != 0) return false;
+            }
+            return true;
+        },
+        .d => {
+            if (label.len < 2) return false;
+            const left = label.len - 2;
+            const right = label.len - 1;
+            if (!((label[left] == 1 and label[right] == 0) or (label[left] == 0 and label[right] == 1))) return false;
+            for (label[0..left]) |entry| {
+                if (entry != 0) return false;
+            }
+            return true;
+        },
+        else => return false,
+    }
+}
+
+fn withoutOperatorKindDecision(state: ?*anyopaque, term: SymbolicTerm) anyerror!FilterDecision {
+    const rejected_kind: NamedOperatorKind = @enumFromInt(@intFromPtr(state.?) - 1);
+    for (term.atoms) |atom| {
+        switch (atom) {
+            .gamma_matrix, .gamma_form, .gamma_action, .exterior_gamma_action, .clifford_product, .clifford_product_factor, .gamma_trace, .tensor_form_gamma_wedge, .tensor_form_gamma_map, .tensor_form_gamma_map_adjoint => if (rejected_kind == .gamma) return .reject,
+            .metric_pair, .spinor_pair, .tensor_form_spinor_pair => if (rejected_kind == .metric) return .reject,
+            .epsilon => if (rejected_kind == .epsilon) return .reject,
+            .structure_constant => if (rejected_kind == .structure_constant) return .reject,
+            .product_identity, .cartan_product, .tensor_spinor_projection, .tensor_form_projection => if (rejected_kind == .projector) return .reject,
+            .named_operator => |operator| if (operator.kind == rejected_kind) return .reject,
+            else => {},
+        }
+    }
+    return .undecided;
+}
+
+test "rendering expands gamma product grades without dense tensors" {
+    const testing = std.testing;
+
+    const vector_square = try gammaProductExpansion(10, 1, 1, .none, .none);
+    try testing.expectEqual(@as(u16, 2), vector_square.len);
+    try testing.expectEqual(@as(u8, 2), vector_square.slice()[0].rank);
+    try testing.expectEqual(@as(u8, 0), vector_square.slice()[0].contractions);
+    try testing.expectEqual(@as(i64, 1), vector_square.slice()[0].coefficient);
+    try testing.expectEqual(@as(u8, 0), vector_square.slice()[1].rank);
+    try testing.expectEqual(@as(u8, 1), vector_square.slice()[1].contractions);
+    try testing.expectEqual(@as(i64, 1), vector_square.slice()[1].coefficient);
+
+    const vector_on_three_form = try gammaProductExpansion(10, 3, 1, .none, .none);
+    try testing.expectEqual(@as(u16, 2), vector_on_three_form.len);
+    try testing.expectEqual(@as(u8, 4), vector_on_three_form.slice()[0].rank);
+    try testing.expectEqual(@as(i64, 1), vector_on_three_form.slice()[0].coefficient);
+    try testing.expectEqual(@as(u8, 2), vector_on_three_form.slice()[1].rank);
+    try testing.expectEqual(@as(u8, 1), vector_on_three_form.slice()[1].contractions);
+    try testing.expectEqual(@as(i64, 3), vector_on_three_form.slice()[1].coefficient);
+
+    const two_form_square = try gammaProductExpansion(10, 2, 2, .none, .none);
+    try testing.expectEqual(@as(u16, 3), two_form_square.len);
+    try testing.expectEqual(@as(u8, 4), two_form_square.slice()[0].rank);
+    try testing.expectEqual(@as(i64, 1), two_form_square.slice()[0].coefficient);
+    try testing.expectEqual(@as(u8, 2), two_form_square.slice()[1].rank);
+    try testing.expectEqual(@as(u8, 1), two_form_square.slice()[1].contractions);
+    try testing.expectEqual(@as(i64, 4), two_form_square.slice()[1].coefficient);
+    try testing.expectEqual(@as(u8, 0), two_form_square.slice()[2].rank);
+    try testing.expectEqual(@as(u8, 2), two_form_square.slice()[2].contractions);
+    try testing.expectEqual(@as(i64, -2), two_form_square.slice()[2].coefficient);
+}
+
+test "rendering validates gamma product rank and duality" {
+    const testing = std.testing;
+
+    const middle = try gammaProductExpansion(10, 5, 1, .self_dual, .none);
+    try testing.expectEqual(@as(u16, 2), middle.len);
+    try testing.expectEqual(@as(u8, 4), middle.slice()[1].rank);
+    try testing.expectEqual(DualityTag.none, middle.slice()[1].duality);
+
+    try testing.expectError(error.InvalidGammaRank, gammaProductExpansion(10, 3, 1, .self_dual, .none));
+    try testing.expectError(error.InvalidGammaRank, gammaProductExpansion(10, 11, 1, .none, .none));
+}
+
+test "rendering plans gamma product metric contractions" {
+    const testing = std.testing;
+
+    const expansion = try gammaProductExpansion(10, 3, 1, .none, .none);
+    const contracted = expansion.slice()[1];
+    const plan = try gammaProductContractionPlan(3, 1, contracted);
+    try testing.expectEqual(@as(u16, 1), plan.metric_len);
+    try testing.expectEqual(@as(u8, 2), plan.metricSlice()[0].left_offset);
+    try testing.expectEqual(@as(u8, 0), plan.metricSlice()[0].right_offset);
+    try testing.expectEqual(@as(u16, 2), plan.free_len);
+    try testing.expectEqual(CliffordVectorSource.left, plan.freeVectorSlice()[0].source);
+    try testing.expectEqual(@as(u8, 0), plan.freeVectorSlice()[0].offset);
+    try testing.expectEqual(CliffordVectorSource.left, plan.freeVectorSlice()[1].source);
+    try testing.expectEqual(@as(u8, 1), plan.freeVectorSlice()[1].offset);
+
+    const scalar = (try gammaProductExpansion(10, 1, 1, .none, .none)).slice()[1];
+    const scalar_plan = try gammaProductContractionPlan(1, 1, scalar);
+    try testing.expectEqual(@as(u16, 1), scalar_plan.metric_len);
+    try testing.expectEqual(@as(u16, 0), scalar_plan.free_len);
+
+    try testing.expectError(error.InvalidGammaProductTerm, gammaProductContractionPlan(1, 1, .{
+        .rank = 1,
+        .contractions = 1,
+        .coefficient = 1,
+    }));
+}
+
+test "rendering decodes streamed clifford product atoms" {
+    const testing = std.testing;
+
+    const expansion = try gammaProductExpansion(10, 3, 1, .none, .none);
+    const contracted = expansion.slice()[1];
+    const plan = try gammaProductContractionPlan(3, 1, contracted);
+    const product: CliffordProduct = .{
+        .left_operator_id = 1,
+        .right_operator_id = 2,
+        .left_block = 3,
+        .right_block = 3,
+        .orthogonal_dimension = 10,
+        .left_rank = 3,
+        .right_rank = 1,
+        .output_rank = contracted.rank,
+        .contractions = contracted.contractions,
+        .metric_count = plan.metric_len,
+        .free_vector_count = plan.free_len,
+        .coefficient = contracted.coefficient,
+    };
+
+    const decoded = cliffordProductTerm(product);
+    try testing.expectEqual(contracted.rank, decoded.rank);
+    try testing.expectEqual(contracted.contractions, decoded.contractions);
+    try testing.expectEqual(contracted.coefficient, decoded.coefficient);
+    const decoded_plan = try cliffordProductContractionPlan(product);
+    try testing.expectEqual(plan.metric_len, decoded_plan.metric_len);
+    try testing.expectEqual(plan.free_len, decoded_plan.free_len);
+    try testing.expectEqual(@as(u16, 3), try cliffordProductFactorCount(product));
+
+    const first_factor = try cliffordProductFactorAt(product, 0);
+    try testing.expectEqual(std.meta.Tag(CliffordProductFactor).metric, std.meta.activeTag(first_factor));
+    try testing.expectEqual(@as(IndexBlockId, 3), first_factor.metric.left_block);
+    try testing.expectEqual(@as(u8, 2), first_factor.metric.left_offset);
+    try testing.expectEqual(@as(u8, 0), first_factor.metric.right_offset);
+
+    const second_factor = try cliffordProductFactorAt(product, 1);
+    try testing.expectEqual(std.meta.Tag(CliffordProductFactor).output_vector, std.meta.activeTag(second_factor));
+    try testing.expectEqual(CliffordVectorSource.left, second_factor.output_vector.source);
+    try testing.expectEqual(@as(u8, 0), second_factor.output_vector.input_offset);
+    try testing.expectEqual(@as(u8, 0), second_factor.output_vector.output_offset);
+
+    try testing.expectError(error.CliffordProductFactorOutOfBounds, cliffordProductFactorAt(product, 3));
+
+    const FactorSink = struct {
+        count: u32 = 0,
+        metric_count: u32 = 0,
+        output_vector_count: u32 = 0,
+        first_atom_index: ?u32 = null,
+        first_factor_index: ?u16 = null,
+        first_output_rank: ?u8 = null,
+        first_coefficient: ?i64 = null,
+
+        fn emitCliffordProductFactor(self: *@This(), record: CliffordProductFactorRecord) !void {
+            self.count += 1;
+            if (self.first_atom_index == null) self.first_atom_index = record.atom_index;
+            if (self.first_factor_index == null) self.first_factor_index = record.factor_index;
+            if (self.first_output_rank == null) self.first_output_rank = record.output_rank;
+            if (self.first_coefficient == null) self.first_coefficient = record.coefficient;
+            switch (record.factor) {
+                .metric => self.metric_count += 1,
+                .output_vector => self.output_vector_count += 1,
+            }
+        }
+    };
+    const term_atoms = [_]SymbolicAtom{
+        .{ .metric_pair = .{ .left = 10, .right = 11 } },
+        .{ .clifford_product = product },
+    };
+    const term: SymbolicTerm = .{
+        .coefficient = rationalOne(),
+        .atoms = &term_atoms,
+    };
+    var factor_sink: FactorSink = .{};
+    try testing.expectEqual(@as(u32, 3), try streamCliffordProductFactors(term, &factor_sink));
+    try testing.expectEqual(@as(u32, 3), factor_sink.count);
+    try testing.expectEqual(@as(u32, 1), factor_sink.metric_count);
+    try testing.expectEqual(@as(u32, 2), factor_sink.output_vector_count);
+    try testing.expectEqual(@as(u32, 1), factor_sink.first_atom_index.?);
+    try testing.expectEqual(@as(u16, 0), factor_sink.first_factor_index.?);
+    try testing.expectEqual(product.output_rank, factor_sink.first_output_rank.?);
+    try testing.expectEqual(product.coefficient, factor_sink.first_coefficient.?);
+
+    var lowered_atoms: std.ArrayList(SymbolicAtom) = .empty;
+    defer lowered_atoms.deinit(testing.allocator);
+    try testing.expectEqual(@as(u32, 3), try appendLoweredCliffordProductAtoms(testing.allocator, &lowered_atoms, term));
+    try testing.expectEqual(@as(usize, 4), lowered_atoms.items.len);
+    try testing.expectEqual(std.meta.Tag(SymbolicAtom).metric_pair, std.meta.activeTag(lowered_atoms.items[0]));
+    try testing.expectEqual(std.meta.Tag(SymbolicAtom).clifford_product_factor, std.meta.activeTag(lowered_atoms.items[1]));
+    try testing.expectEqual(@as(u32, 1), lowered_atoms.items[1].clifford_product_factor.atom_index);
+    try testing.expectEqual(@as(u16, 0), lowered_atoms.items[1].clifford_product_factor.factor_index);
+    try testing.expectEqual(product.left_operator_id, lowered_atoms.items[1].clifford_product_factor.left_operator_id);
+    try testing.expectEqual(product.right_operator_id, lowered_atoms.items[1].clifford_product_factor.right_operator_id);
+    try testing.expectEqual(product.orthogonal_dimension, lowered_atoms.items[1].clifford_product_factor.orthogonal_dimension);
+    try testing.expectEqual(product.output_rank, lowered_atoms.items[1].clifford_product_factor.output_rank);
+    try testing.expectEqual(product.coefficient, lowered_atoms.items[1].clifford_product_factor.coefficient);
+    const lowered_term: SymbolicTerm = .{
+        .coefficient = rationalOne(),
+        .atoms = lowered_atoms.items,
+    };
+    var lowered_factor_sink: FactorSink = .{};
+    try testing.expectEqual(@as(u32, 3), try streamCliffordProductFactors(lowered_term, &lowered_factor_sink));
+    try testing.expectEqual(@as(u32, 3), lowered_factor_sink.count);
+    try testing.expectEqual(@as(u32, 1), lowered_factor_sink.metric_count);
+    try testing.expectEqual(@as(u32, 2), lowered_factor_sink.output_vector_count);
+    try testing.expectEqual(@as(u32, 1), lowered_factor_sink.first_atom_index.?);
+    try testing.expectEqual(@as(u16, 0), lowered_factor_sink.first_factor_index.?);
+    try testing.expectEqual(product.output_rank, lowered_factor_sink.first_output_rank.?);
+    try testing.expectEqual(product.coefficient, lowered_factor_sink.first_coefficient.?);
+
+    const compact_scan = try scanCliffordProductFactors(term);
+    try testing.expectEqual(@as(u32, 1), compact_scan.product_count);
+    try testing.expectEqual(@as(u32, 3), compact_scan.factor_count);
+    try testing.expectEqual(@as(u32, 1), compact_scan.metric_count);
+    try testing.expectEqual(@as(u32, 2), compact_scan.output_vector_count);
+    try testing.expectEqual(@as(u32, 1), compact_scan.first_atom_index.?);
+    try testing.expectEqual(@as(u32, 1), compact_scan.last_atom_index.?);
+    try testing.expectEqual(product.orthogonal_dimension, compact_scan.first_orthogonal_dimension.?);
+    try testing.expectEqual(product.output_rank, compact_scan.first_output_rank.?);
+    try testing.expectEqual(product.coefficient, compact_scan.first_coefficient.?);
+
+    const lowered_scan = try scanCliffordProductFactors(lowered_term);
+    try testing.expectEqual(compact_scan.product_count, lowered_scan.product_count);
+    try testing.expectEqual(compact_scan.factor_count, lowered_scan.factor_count);
+    try testing.expectEqual(compact_scan.metric_count, lowered_scan.metric_count);
+    try testing.expectEqual(compact_scan.output_vector_count, lowered_scan.output_vector_count);
+    try testing.expectEqual(compact_scan.first_atom_index.?, lowered_scan.first_atom_index.?);
+    try testing.expectEqual(compact_scan.first_orthogonal_dimension.?, lowered_scan.first_orthogonal_dimension.?);
+    try testing.expectEqual(compact_scan.first_output_rank.?, lowered_scan.first_output_rank.?);
+    try testing.expectEqual(compact_scan.first_coefficient.?, lowered_scan.first_coefficient.?);
+
+    var accumulated_scan: CliffordProductFactorScan = .{};
+    try accumulated_scan.recordTerm(term);
+    try accumulated_scan.recordTerm(lowered_term);
+    try testing.expectEqual(@as(u32, 2), accumulated_scan.product_count);
+    try testing.expectEqual(@as(u32, 6), accumulated_scan.factor_count);
+    try testing.expectEqual(@as(u32, 2), accumulated_scan.metric_count);
+    try testing.expectEqual(@as(u32, 4), accumulated_scan.output_vector_count);
+    try testing.expectEqual(compact_scan.first_atom_index.?, accumulated_scan.first_atom_index.?);
+    try testing.expectEqual(lowered_scan.last_atom_index.?, accumulated_scan.last_atom_index.?);
+    try testing.expectEqual(compact_scan.first_orthogonal_dimension.?, accumulated_scan.first_orthogonal_dimension.?);
+    try testing.expectEqual(compact_scan.first_output_rank.?, accumulated_scan.first_output_rank.?);
+    try testing.expectEqual(compact_scan.first_coefficient.?, accumulated_scan.first_coefficient.?);
+
+    var audit_sink: CliffordProductFactorAuditSink = .{};
+    try audit_sink.emitTerm(term);
+    try audit_sink.emitTerm(lowered_term);
+    try testing.expectEqual(@as(u32, 2), audit_sink.term_count);
+    try testing.expectEqual(@as(u64, @intCast(term.atoms.len + lowered_term.atoms.len)), audit_sink.atom_count);
+    try testing.expectEqual(accumulated_scan.product_count, audit_sink.scan.product_count);
+    try testing.expectEqual(accumulated_scan.factor_count, audit_sink.scan.factor_count);
+    try testing.expectEqual(accumulated_scan.metric_count, audit_sink.scan.metric_count);
+    try testing.expectEqual(accumulated_scan.output_vector_count, audit_sink.scan.output_vector_count);
+
+    var lowering_sink: AtomLoweringAuditSink = .{};
+    try lowering_sink.emitTerm(term);
+    try lowering_sink.emitTerm(lowered_term);
+    try testing.expectEqual(@as(u64, 2), lowering_sink.audit.term_count);
+    try testing.expectEqual(@as(u64, 6), lowering_sink.audit.atom_count);
+    try testing.expectEqual(@as(u64, 5), lowering_sink.audit.primitive_atoms);
+    try testing.expectEqual(@as(u64, 1), lowering_sink.audit.compact_formula_atoms);
+    try testing.expectEqual(@as(u64, 1), lowering_sink.audit.clifford_product_atoms);
+    try testing.expectEqual(@as(u64, 3), lowering_sink.audit.clifford_product_factor_atoms);
+    try testing.expectEqual(SymbolicAtomTag.clifford_product, lowering_sink.audit.first_compact_kind.?);
+    try testing.expect(!lowering_sink.audit.gammaOnly());
+
+    var gamma_only_audit: AtomLoweringAudit = .{};
+    try gamma_only_audit.recordTerm(lowered_term);
+    try testing.expect(gamma_only_audit.gammaOnly());
+
+    const structural_atoms = [_]SymbolicAtom{.{ .spinor_tower_contract = .{
+        .operator_id = 7,
+        .input_tower = 1,
+        .spinor = 2,
+        .output_tower = 3,
+        .orthogonal_dimension = 10,
+        .input_power = 4,
+        .output_power = 3,
+        .form_rank = 1,
+        .chirality = 2,
+    } }};
+    var structural_audit: AtomLoweringAudit = .{};
+    try structural_audit.recordTerm(.{
+        .coefficient = rationalOne(),
+        .atoms = &structural_atoms,
+    });
+    try testing.expect(!structural_audit.gammaOnly());
+    try testing.expectEqual(@as(u64, 1), structural_audit.structural_atoms);
+    try testing.expectEqual(@as(u64, 1), structural_audit.spinor_tower_contract_atoms);
+    try testing.expectEqual(SymbolicAtomTag.spinor_tower_contract, structural_audit.first_structural_kind.?);
+
+    var malformed = lowered_atoms.items[1];
+    malformed.clifford_product_factor.factor_index = 1;
+    const malformed_atoms = [_]SymbolicAtom{malformed};
+    try testing.expectError(error.InvalidCliffordProductFactorSequence, scanCliffordProductFactors(.{
+        .coefficient = rationalOne(),
+        .atoms = &malformed_atoms,
+    }));
+
+    var inconsistent = product;
+    inconsistent.metric_count += 1;
+    try testing.expectError(error.InvalidGammaProductTerm, cliffordProductContractionPlan(inconsistent));
+}

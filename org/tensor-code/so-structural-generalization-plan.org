@@ -1,0 +1,812 @@
+:PROPERTIES:
+:ID:       20260609T120000.000000
+:END:
+#+title: SO Structural Generalization Plan
+#+auto_tangle: nil
+
+This note is the implementation reference for the next goal.  It refines
+[[id:20260608T001500.000000][Projector Solver Handoff]] and
+[[id:20260608T120000.000000][Finite Projector Gram Solver Plan]] into a staged
+plan for the orthogonal backend in [[id:20260605T075909.433647][Tensor-Code]].
+It keeps the Spin(10) \(16^{12}\) workload from
+[[id:20260607T194513.918965][Projector Formula Status]] as the non-regression
+gate, while extending the representation model toward general \(SO(N)\)
+tensor labels.
+
+The implementation follows =AGENTS.md=: simple procedural Zig, lean fixed-size
+records, streamed expressions only, minimal public API, and tests only for
+precise mathematical invariants.  No stage may allocate the full expanded
+\(73744\)-element basis or a full local expression tree.
+
+* Fresh Agent Starting Context
+
+Start from the literate files and keep tangled Zig in sync:
+
+#+begin_src text :tangle no
+org/tensor-code/context.org                  -> src/tensor-code/context.zig
+org/tensor-code/projector-constructor.org    -> src/tensor-code/projector-constructor.zig
+org/tensor-code/projector.org                -> src/tensor-code/projector.zig
+org/tensor-code/rendering.org                -> src/tensor-code/rendering.zig
+#+end_src
+
+The immediate implementation target is Stage 1 only.  Do not start pure
+Young-shape tensor support while the current form/spinor/tower sector still
+depends on the old channel taxonomy.
+
+The relevant current code entry points are:
+
+#+begin_src text :tangle no
+context.zig:
+  localProductFormulaKind
+  localProductFormulaAudit
+  appendLocalFormulaStepAtomForKind
+  localFormulaStepTermCount
+  appendLocalFormulaProjectionStepTerm
+  basisFormulaCoverageAudit
+  orthogonalFormInfo / ordinaryTensorFormInfo
+  spinorTowerInfo / orthogonalTensorSpinorInfo
+
+projector-constructor.zig:
+  TensorFormProjectionProgramCache
+  TensorSpinorProjectionProgramCache
+  StructuralProjectorSpec
+  structuralProjectorTermCount
+  appendStructuralProjectorTerm
+  enumerateOrthogonalStructuralCandidateWords
+  generateOrthogonalStructuralPrimitiveEffects
+  compileStructuralProjectorProgram
+
+projector.zig:
+  ProjectorFormulaKind
+  ProjectorFormulaAudit
+#+end_src
+
+The current structural implementation already has the right inner shape:
+
+#+begin_src text :tangle no
+endpoint spec -> candidate words -> exact Gram program -> streamed term
+#+end_src
+
+The problem is the outer routing: production code still names many narrow
+orthogonal tensor-spinor/tensor-form channel families.  Stage 1 should replace
+that route selection by one descriptor/cache path for the already-supported
+form/spinor/tower sector.
+
+If the current branch's coverage audit allows missing structural formulas, do
+not treat that as the target behavior.  The goal reinstates the strict gate:
+the Spin(10) \(16^{12}\) basis must stream fully expanded with no missing local
+steps and no compact projector placeholders.
+
+* Goal
+
+Replace the current Spin(10)-shaped local formula taxonomy by one
+dimension-parametric orthogonal structural projector path.
+
+The first useful slice is not the full \(SO(N)\) tensor problem.  It is the
+current exterior-form/spinor sector, because that sector already produces the
+\(73744\) Spin(10) \(16^{12}\) invariant basis.  Once this workload is routed
+through a single descriptor and exact Gram program cache, the same descriptor
+can be widened to pure tensor and mixed tensor-form-spinor labels.
+
+The target pipeline is:
+
+#+begin_src text :tangle no
+Dynkin labels
+  -> orthogonal descriptor
+  -> local structural channel
+  -> primitive candidate words
+  -> exact Gram matrix and independent pivots
+  -> streamed inverse-Gram projector terms
+  -> primitive symbolic atoms
+#+end_src
+
+Expanded rendering must emit primitive symbolic atoms only.  It must not emit:
+
+#+begin_src text :tangle no
+named_operator(projector)
+tensor_spinor_projection
+tensor_form_projection
+young_projector
+any unresolved compact projector placeholder
+#+end_src
+
+Allowed primitive atoms are explicit gamma, metric, delta, spinor-pair,
+Hodge/epsilon, Clifford-product-factor, permutation, and trace-contraction
+atoms, with rational coefficients.
+
+* Scope Boundary
+
+The plan targets \(B_n\) and \(D_n\), i.e. \(SO(2n+1)\), \(SO(2n)\), and their
+spin covers where spinors occur.  It does not attempt generic ADE projector
+construction.
+
+The eventual \(SO(N)\) descriptor should cover:
+
+#+begin_src text :tangle no
+scalar
+vector Young shape
+exterior form profile
+spinor chirality and spinor tower
+mixed tensor-form-spinor profile
+middle-form duality in D_n
+#+end_src
+
+The first implementation stage covers the current form/spinor/tower sector.
+Pure tensor labels such as =[2,0,0,0,0]= and mixed tensor labels such as
+=[1,1,0,0,0]= are added only after the descriptor route has preserved full
+\(16^{12}\) expansion.
+
+Large local shapes may exceed fixed constructor limits.  Such cases must return
+a typed unsupported error in expanded mode.  They must not silently fall back to
+compact placeholders.
+
+* Data Model
+
+The central new object is a private orthogonal descriptor.  It is not a public
+API.  It is the small record that lets the context classify a local product
+without naming every special family.
+
+#+begin_src zig :tangle no
+const OrthogonalIrrepKind = enum {
+    scalar,
+    form_profile,
+    vector_young_shape,
+    spinor_tower,
+    tensor_spinor,
+    unsupported,
+};
+
+const OrthogonalIrrepDescriptor = struct {
+    kind: OrthogonalIrrepKind,
+    dimension: u16,
+
+    // Exterior/form sector.  A rank-r form is a one-column Young block.
+    form_profile: u128 = 0,
+    form_mask: u64 = 0,
+    form_count: u8 = 0,
+    form_total_power: u8 = 0,
+    form_duality: rendering.DualityTag = .none,
+
+    // Tensor sector.  Keep shapes compact and bounded.
+    young_row_count: u8 = 0,
+    young_rows: [max_young_rows]u8 = [_]u8{0} ** max_young_rows,
+
+    // Spin sector.  Chirality 0 means no chirality or unknown.
+    has_spinor: bool = false,
+    chirality: u8 = 0,
+    tower_power: u16 = 0,
+};
+#+end_src
+
+Use fixed arrays and bit-packed profiles because this data is visited for every
+local coupling step.  Heap allocation is not needed for the common rank sizes
+in the current workload.
+
+The local structural channel is just three descriptors plus index locations:
+
+#+begin_src zig :tangle no
+const OrthogonalStructuralStep = struct {
+    operator_id: u32,
+    dimension: u16,
+    left: OrthogonalEndpoint,
+    right: OrthogonalEndpoint,
+    output: OrthogonalEndpoint,
+    multiplicity_copy: u16,
+};
+
+const OrthogonalEndpoint = struct {
+    irrep: OrthogonalIrrepDescriptor,
+    index: rendering.IndexRef,
+};
+#+end_src
+
+This descriptor replaces production dependence on enum names like
+=orthogonal_tensor_spinor_opposite_form_tower_shift_down_channel=.  Those names
+may remain briefly as bridges while the descriptor path reaches full coverage,
+but they should not be the final routing API.
+
+* Descriptor Parsing
+
+The parser must be cheap.  It runs during formula classification and coverage
+audits.  It must not compile a Gram program just to decide whether a local
+route is possible.
+
+Parsing order:
+
+#+begin_src text :tangle no
+1. reject non-B/D families
+2. parse scalar
+3. parse known exterior forms and middle forms
+4. parse spinor or spinor tower
+5. parse form-profile plus spinor tower
+6. parse vector Young shape
+7. otherwise unsupported
+#+end_src
+
+Possible structure:
+
+#+begin_src zig :tangle no
+fn orthogonalIrrepDescriptor(simple: symmetry.SimpleLieAlgebra, label: []const i16)
+    OrthogonalIrrepDescriptor
+{
+    if (label.len != simple.rank) return unsupportedDescriptor();
+    switch (simple.family) {
+        .b, .d => {},
+        else => return unsupportedDescriptor(),
+    }
+
+    const dimension = rendering.orthogonalDimension(simple);
+
+    if (isZeroDynkin(label)) {
+        return .{ .kind = .scalar, .dimension = dimension };
+    }
+
+    if (orthogonalFormInfo(simple, label)) |form| {
+        return descriptorFromSingleForm(dimension, form);
+    }
+
+    if (orthogonalTensorSpinorInfo(simple, label)) |info| {
+        return descriptorFromTensorSpinor(dimension, info);
+    }
+
+    if (spinorTowerInfo(simple, label)) |tower| {
+        return descriptorFromSpinorTower(dimension, tower);
+    }
+
+    if (ordinaryTensorFormInfo(simple, label)) |forms| {
+        return descriptorFromFormProfile(dimension, forms);
+    }
+
+    if (orthogonalYoungShape(simple, label)) |shape| {
+        return descriptorFromYoungShape(dimension, shape);
+    }
+
+    return unsupportedDescriptor();
+}
+#+end_src
+
+The final =orthogonalYoungShape= parser is a later stage.  For Stage 1 it can
+return =null= for labels outside the current form/spinor sector.
+
+* Formula Routing
+
+The current context-side route selection is a long ordered list of recognizers.
+Replace the structural part with one structural descriptor check.
+
+The final route classifier should have this shape:
+
+#+begin_src zig :tangle no
+fn localProductFormulaKind(self: *Impl, step: coupling.CouplingStep)
+    projector.ProjectorFormulaKind
+{
+    if (self.isIdentityProductStep(step)) return .identity;
+    if (self.isOrthogonalVectorMetricStep(step)) return .orthogonal_vector_metric;
+    if (self.isOrthogonalSpinorPairSingletStep(step)) return .orthogonal_spinor_pair;
+    if (self.isOrthogonalSpinorSpinorVectorStep(step)) return .orthogonal_spinor_form_channel;
+    if (self.orthogonalSpinorSpinorFormStep(step) != null) return .orthogonal_spinor_form_channel;
+    if (self.isOrthogonalFormPairSingletStep(step)) return .orthogonal_form_pair;
+    if (self.orthogonalFormSpinorStep(step) != null) return .orthogonal_form_spinor_channel;
+    if (self.isCartanProductStep(step)) return .cartan_product_channel;
+
+    if (self.orthogonalStructuralStep(step, 0, 1, 2) != null) {
+        return .orthogonal_structural_projection;
+    }
+
+    if (self.isA2FundamentalPairToAntiFundamentalStep(step)) return .backend_specific_structure;
+    if (self.isA2AntiFundamentalFundamentalSingletStep(step)) return .backend_specific_structure;
+    if (self.isE6FundamentalPairToDualFundamentalStep(step)) return .backend_specific_structure;
+    if (self.isE6DualFundamentalFundamentalSingletStep(step)) return .backend_specific_structure;
+    if (self.isSimpleAdjointAdjointStep(step)) return .backend_specific_structure;
+    if (self.isSimpleAdjointPairSingletStep(step)) return .backend_specific_structure;
+    return .named_only;
+}
+#+end_src
+
+The structural route is accepted only when the descriptor is in the supported
+sector and the right endpoint is an admissible local factor for the current
+constructor stage.
+
+* Stage 1: Refactor The Current Sector
+
+Stage 1 is the high-value refactor.  It covers the existing exterior
+form/spinor/tower workload and must preserve full Spin(10) \(16^{12}\)
+expanded streaming.
+
+Implementation tasks:
+
+1. Add =orthogonal_structural_projection= to =ProjectorFormulaKind=.
+2. Add =OrthogonalIrrepDescriptor= and =OrthogonalStructuralStep= privately in
+   the context or a private helper section.
+3. Implement descriptor construction for the current supported sector using
+   existing helpers:
+   - =orthogonalFormInfo=
+   - =outputFormSetInfo=
+   - =ordinaryTensorFormInfo=
+   - =spinorTowerInfo=
+   - =orthogonalTensorSpinorInfo=
+4. Convert =OrthogonalStructuralStep= to
+   =projector_constructor.StructuralProjectorSpec=.
+5. Add a generic structural program cache beside the existing tensor-form and
+   tensor-spinor caches.
+6. Route =.orthogonal_structural_projection= through this cache for term count
+   and term emission.
+7. Keep old structural formula kinds as temporary bridges only where the new
+   route has a zero term count.
+8. Remove bridges only after the full \(16^{12}\) gate passes.
+
+The direct structural term path should avoid building compact projection atoms
+only to decode them again:
+
+#+begin_src zig :tangle no
+fn localStructuralTermCount(self: *Impl, step: coupling.CouplingStep) !u8 {
+    const structural = self.orthogonalStructuralStep(step, 0, 1, 2) orelse return 0;
+    const spec = structuralProjectorSpecFromOrthogonalStep(structural);
+    return self.structural_projection_programs.termCount(spec);
+}
+
+fn appendLocalStructuralTerm(
+    self: *Impl,
+    atoms: *std.ArrayList(rendering.SymbolicAtom),
+    step: coupling.CouplingStep,
+    left_index: rendering.IndexRef,
+    right_index: rendering.IndexRef,
+    output_index: rendering.IndexRef,
+    term_index: u8,
+) !rendering.RationalId {
+    const structural = self.orthogonalStructuralStep(
+        step,
+        left_index,
+        right_index,
+        output_index,
+    ) orelse return error.ProjectorExpansionNotImplemented;
+    const spec = structuralProjectorSpecFromOrthogonalStep(structural);
+    return self.structural_projection_programs.appendTerm(atoms, spec, term_index);
+}
+#+end_src
+
+Stage 1 acceptance:
+
+#+begin_src text :tangle no
+Spin(10) 16^12 path_count == 73744
+fully_expandable_path_count == 73744
+missing_step_count == 0
+first_missing_projector == null
+expanded streaming over all paths succeeds
+expanded stream contains no named or compact projector atoms
+#+end_src
+
+** Stage 1 Bridge Strategy
+
+The bridge exists only to keep the implementation incremental.  It is not a
+new abstraction and it should be deleted as soon as its count is zero.
+
+The classifier should prefer the new route:
+
+#+begin_src text :tangle no
+if primitive route applies:
+    use primitive formula kind
+else if descriptor route parses and structural term count is nonzero:
+    use orthogonal_structural_projection
+else if old structural recognizer still solves the same step:
+    use old formula kind and increment bridge audit
+else:
+    named_only
+#+end_src
+
+Do not compile Gram programs in the hot classifier just to test every step.
+Use cheap descriptor parsing first.  Term counts may be asked during formula
+coverage and expanded streaming, where the program cache already amortizes
+compilation.
+
+Bridge diagnostics should distinguish:
+
+#+begin_src text :tangle no
+new_structural_step_count
+new_structural_solved_step_count
+old_bridge_step_count
+unsupported_structural_step_count
+first_unsupported_structural_key
+#+end_src
+
+The old bridge may call existing appenders and caches.  It must not emit
+compact placeholders in =.expanded_terms=.  If an old bridge cannot emit a
+primitive stream, it should be counted as unsupported, not as solved.
+
+When =old_bridge_step_count == 0= on the full \(16^{12}\) audit, remove the old
+structural formula names from =ProjectorFormulaKind= and simplify
+=isGramFormulaKind= to the single =orthogonal_structural_projection= route.
+
+* Stage 2: Delete The Structural Taxonomy
+
+Once Stage 1 passes, remove the old structural enum names and their context
+recognizers.  Keep primitive formula kinds, because they are mathematical
+primitives rather than path-taxonomy artifacts.
+
+Keep:
+
+#+begin_src text :tangle no
+identity
+orthogonal_vector_metric
+orthogonal_spinor_pair
+orthogonal_gamma_trace
+orthogonal_gamma_traceless
+orthogonal_spinor_form_channel
+orthogonal_form_pair
+orthogonal_form_spinor_channel
+cartan_product_channel
+orthogonal_structural_projection
+backend_specific_structure
+named_only
+#+end_src
+
+Remove production dependence on structural names such as:
+
+#+begin_src text :tangle no
+orthogonal_spinor_tower_form_channel
+orthogonal_tensor_spinor_tower_channel
+orthogonal_tensor_spinor_rank_split_terminal_channel
+orthogonal_tensor_form_spinor_shift_down_any_channel
+...
+#+end_src
+
+Tests must stop asserting old formula-kind names.  They should assert:
+
+#+begin_src text :tangle no
+the local step is structural
+the structural program has nonzero term count
+the emitted stream is primitive
+the expected endpoint ranks/profiles/chiralities are present
+#+end_src
+
+* Stage 3: Pure Tensor Young Shapes
+
+After the current \(16^{12}\) sector is stable, add pure tensor labels.  These
+are not hard because they avoid spinor gamma algebra.  They require vector-slot
+Young symmetries and trace subtraction.
+
+The descriptor should parse labels like:
+
+#+begin_src text :tangle no
+D5 [2,0,0,0,0] -> symmetric traceless rank-2 tensor
+D5 [1,1,0,0,0] -> mixed Young tensor
+D5 [0,2,0,0,0] -> higher tensor shape
+#+end_src
+
+Use a bounded vector-slot model:
+
+#+begin_src zig :tangle no
+const YoungShape = struct {
+    row_count: u8,
+    rows: [max_young_rows]u8,
+    box_count: u8,
+};
+
+const VectorSlotProjectorSpec = struct {
+    operator_id: u32,
+    dimension: u16,
+    input: rendering.IndexRef,
+    output: rendering.IndexRef,
+    shape: YoungShape,
+};
+#+end_src
+
+The pure tensor projector is a Brauer/Young projector:
+
+#+begin_src text :tangle no
+candidate words = row permutations, column antisymmetrizations, trace insertions
+Gram matrix = exact contraction count in dimension N
+projector = E_i (G^-1)_ij E_j^dagger
+streamed term = coefficient * permutation deltas * metric contractions
+#+end_src
+
+Possible pseudocode:
+
+#+begin_src zig :tangle no
+fn enumerateYoungCandidates(shape: YoungShape, out: *CandidateBuffer) !void {
+    try appendRowSymmetryWords(shape, out);
+    try appendColumnAntisymmetryWords(shape, out);
+    try appendTraceRemovalWords(shape, out);
+    try uniqueCandidates(out);
+}
+
+fn youngCandidateInnerProduct(dimension: u16, left: CandidateWord, right: CandidateWord)
+    !Rational
+{
+    var contraction: BrauerContraction = .{};
+    try composeCandidateAdjoint(&contraction, left);
+    try composeCandidate(&contraction, right);
+    return evaluateBrauerLoops(dimension, contraction);
+}
+
+fn appendYoungProjectorTerm(
+    allocator: std.mem.Allocator,
+    atoms: *std.ArrayList(rendering.SymbolicAtom),
+    spec: VectorSlotProjectorSpec,
+    program: ProjectorProgram,
+    term_index: u8,
+) !rendering.RationalId {
+    const term = program.term(term_index) orelse return error.ProjectorTermOutOfBounds;
+    try appendPermutationDeltaAtoms(allocator, atoms, spec, term.left_word);
+    try appendMetricTraceAtoms(allocator, atoms, spec, term.left_word);
+    try appendAdjointPermutationDeltaAtoms(allocator, atoms, spec, term.right_word);
+    return term.coefficient;
+}
+#+end_src
+
+Stage 3 acceptance:
+
+#+begin_src text :tangle no
+SO(10): 10 x 10 decomposes with scalar, 45, and 54 channels
+the 54 channel [2,0,0,0,0] streams as primitive metric/delta terms
+the scalar, antisymmetric, and symmetric-traceless projectors are orthogonal
+projector squares equal projectors under exact contraction
+#+end_src
+
+* Stage 4: Mixed Tensor With Forms
+
+Forms are tensor Young shapes with one column, but the current code treats them
+with compact form profiles because that is efficient for gamma algebra.  The
+mixed tensor-form stage should bridge these views without expanding form slots
+unnecessarily.
+
+Required operations:
+
+#+begin_src text :tangle no
+tensor slot permutation
+form block antisymmetrization
+metric contraction between tensor and form slots
+metric insertion into tensor or form slots
+trace removal for tensor outputs
+Hodge projection for middle forms
+#+end_src
+
+The descriptor conversion should keep both views when useful:
+
+#+begin_src zig :tangle no
+const OrthogonalIrrepDescriptor = struct {
+    // ...
+    young_rows: [max_young_rows]u8,
+    form_profile: u128,
+    form_mask: u64,
+    has_form_view: bool,
+    has_young_view: bool,
+};
+#+end_src
+
+The candidate generator can then choose the cheaper view:
+
+#+begin_src zig :tangle no
+fn generateOrthogonalPrimitiveEffects(
+    spec: OrthogonalStructuralSpec,
+    start: StructuralState,
+    target: StructuralState,
+    effects: *EffectBuffer,
+) !void {
+    if (canUseExteriorView(start, target)) {
+        try appendExteriorGammaAndDeltaEffects(spec, start, target, effects);
+    }
+    if (canUseVectorSlotView(start, target)) {
+        try appendBrauerPermutationTraceEffects(spec, start, target, effects);
+    }
+    try appendHodgeEffectsIfMiddleForm(spec, start, target, effects);
+}
+#+end_src
+
+Stage 4 acceptance:
+
+#+begin_src text :tangle no
+a mixed tensor label times a form expands without compact projectors
+form-only paths still use the efficient exterior/gamma view
+Gram separation removes dependent mixed candidates
+#+end_src
+
+* Stage 5: Mixed Tensor With Spinors
+
+This is the hard part.  A non-form tensor label times a spinor needs gamma
+trace removal and gamma insertion/action between vector slots and spinor
+indices.  It cannot be solved by exterior-form ranks alone.
+
+Required primitive moves:
+
+#+begin_src text :tangle no
+vector-slot identity/permutation
+metric trace insertion and contraction
+gamma trace from one vector slot into a spinor index
+gamma insertion from spinor bilinear into vector slots
+exterior gamma action for antisymmetric blocks
+spinor tower contraction and adjoint
+#+end_src
+
+Possible effect representation:
+
+#+begin_src zig :tangle no
+const OrthogonalPrimitiveEffectKind = enum {
+    vector_permutation_delta,
+    vector_metric_trace,
+    vector_gamma_trace,
+    vector_gamma_insert,
+    exterior_gamma_action,
+    spinor_tower_contract,
+    spinor_tower_contract_adjoint,
+    hodge_project,
+};
+
+const OrthogonalPrimitiveEffect = struct {
+    kind: OrthogonalPrimitiveEffectKind,
+    next: StructuralState,
+    signature: PrimitiveSignature,
+};
+#+end_src
+
+The same exact Gram algorithm should be used.  Only the primitive contraction
+table grows:
+
+#+begin_src text :tangle no
+delta-delta        -> permutation loop count
+metric-metric      -> Brauer loop count
+gamma-gamma        -> Clifford contraction rule
+gamma-trace pairs  -> dimension and rank factors
+mixed terms        -> compose into a finite contraction graph
+#+end_src
+
+Stage 5 acceptance:
+
+#+begin_src text :tangle no
+one non-form tensor label times a spinor expands with primitive atoms
+gamma-trace projector is idempotent
+gamma-trace channel is orthogonal to gamma-traceless output
+no compact tensor-spinor projector appears in expanded mode
+#+end_src
+
+* Structural Program Cache
+
+Unify the current tensor-form and tensor-spinor program caches into one
+structural program cache.  The key is descriptor data, not a hand-written
+formula family name.
+
+#+begin_src zig :tangle no
+pub const StructuralProjectorProgramCache = struct {
+    allocator: std.mem.Allocator,
+    entries: std.ArrayList(StructuralProgramCacheEntry) = .empty,
+    index_by_hash: std.AutoHashMap(u64, u32),
+    hits: u64 = 0,
+    misses: u64 = 0,
+
+    pub fn termCount(self: *StructuralProjectorProgramCache, spec: StructuralProjectorSpec) !u8 {
+        return projectorProgramTermCount(self.programFor(spec) catch |err| switch (err) {
+            error.UnsupportedStructuralProjectorTerm,
+            error.ProjectorProgramTooLarge,
+            => return 0,
+            else => return err,
+        });
+    }
+
+    pub fn appendTerm(
+        self: *StructuralProjectorProgramCache,
+        atoms: *std.ArrayList(rendering.SymbolicAtom),
+        spec: StructuralProjectorSpec,
+        term_index: u8,
+    ) !rendering.RationalId {
+        return appendStructuralProjectorTerm(
+            self.allocator,
+            atoms,
+            spec,
+            try self.programFor(spec),
+            term_index,
+        );
+    }
+};
+#+end_src
+
+The cache owns only small compiled projector programs.  It does not own emitted
+expressions.
+
+* Coverage Audits
+
+Coverage must tell us whether the structural route actually generalizes.  Add
+or preserve counters for:
+
+#+begin_src text :tangle no
+local_step_count
+expandable_step_count
+missing_step_count
+fully_expandable_path_count
+first_missing_projector
+distinct_structural_key_count
+distinct_structural_solved_key_count
+distinct_structural_unsupported_key_count
+largest unsupported structural keys
+#+end_src
+
+During bridge removal, also report:
+
+#+begin_src text :tangle no
+steps solved by new structural descriptor
+steps solved only by old bridge
+steps unsupported by both
+#+end_src
+
+The bridge count must be zero before deleting the old taxonomy.
+
+* Tests
+
+Tests should be few and mathematical.  Avoid tests that assert old atom order or
+old formula-kind taxonomy.
+
+Stage 1 tests:
+
+#+begin_src text :tangle no
+Spin(10) 16^12 path count is 73744
+coverage fully_expandable_path_count is 73744
+missing_step_count is 0
+expanded stream over the basis contains no named or compact projector atoms
+one non-Spin10 B/D form-spinor fixture uses dimension-derived data
+exact inverse Gram identity holds for a representative non-diagonal structural program
+#+end_src
+
+Stage 3 tests:
+
+#+begin_src text :tangle no
+SO(10) 10 x 10 has scalar, antisymmetric 45, symmetric traceless 54
+the 54 projector is idempotent
+the scalar, 45, and 54 projectors are mutually orthogonal
+expanded 54 terms contain only metric/delta/permutation primitives
+#+end_src
+
+Stage 5 tests:
+
+#+begin_src text :tangle no
+one non-form tensor label times spinor expands without compact projectors
+gamma trace and gamma-traceless projectors are orthogonal
+the relevant projector law is checked by exact contraction, not atom order
+#+end_src
+
+Verification commands:
+
+#+begin_src sh :tangle no
+zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/context.zig
+zig test src/tensor-code/rendering.zig
+zig build test
+#+end_src
+
+* Implementation Order
+
+The next implementation goal should do only Stage 1 unless the full
+\(16^{12}\) gate passes early.
+
+Recommended concrete order:
+
+#+begin_src text :tangle no
+1. Add orthogonal_structural_projection enum value.
+2. Add private orthogonal descriptors and descriptor parsing for current sector.
+3. Add conversion from descriptor step to StructuralProjectorSpec.
+4. Add generic StructuralProjectorProgramCache.
+5. Route termCount and appendTerm through the generic structural cache.
+6. Add bridge counters for old structural routes.
+7. Restore the full 73744 expansion gate.
+8. Remove old structural formula names only after bridge count is zero.
+9. Update status prose and stale counts.
+#+end_src
+
+Do not start Stage 3 until Stage 1 and Stage 2 are verified.  Otherwise the
+pure tensor work will hide regressions in the workload that currently matters.
+
+* Non-Goals For The Next Goal
+
+Do not implement a generic ADE projector engine.
+
+Do not materialize expanded invariant expressions.
+
+Do not add public API unless another module must call it.
+
+Do not encode a new list of special SO(10) product families.
+
+Do not treat a compact Young projector as fully expanded in =.expanded_terms=.
+
+* Success Criterion
+
+The implementation is successful when the current Spin(10) \(16^{12}\) basis
+streams fully expanded through the descriptor/cache path, the old structural
+route taxonomy has no remaining production use, and the code has a clear next
+extension point for pure \(SO(N)\) Young-shape tensor labels.

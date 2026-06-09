@@ -1,0 +1,330 @@
+:PROPERTIES:
+:ID:       20260608T204500.000000
+:END:
+#+title: Gamma-Only Rendering Plan
+
+This note defines the next renderer milestone after the finite projector Gram
+solver in [[id:20260608T120000.000000][Finite Projector Gram Solver Plan]].  The current expanded path removes
+compact projector atoms, but it is not yet gamma-only: it can still emit
+structural atoms such as =spinor_symmetrized_product=, =spinor_tower_contract=,
+=spinor_tower_contract_adjoint=, =tensor_form_gamma_wedge=, and related
+tensor-form/tensor-spinor formula atoms.
+
+The goal is a systematic lowering compiler, not hardcoded rewrites for the
+Spin(10) \(16^{12}\) example.  Each structural atom must lower from its stored
+rank/profile/chirality metadata into a streamed product of primitive gamma
+objects and invariant contractions:
+
+- gamma matrices/forms/actions;
+- spinor pairings \(C\);
+- metrics, generalized deltas, antisymmetrizers, Hodge/epsilon factors;
+- explicit Clifford-product metric and free-vector factors.
+
+The compiler should be data-driven by the same finite structural programs used
+by [[id:20260608T001501.000000][Projector Constructor]].  It should work for any supported orthogonal
+tensor-form or tensor-spinor channel whose metadata determines a finite gamma
+formula.  The required stress target is the entire Spin(10) \(16^{12}\) basis:
+all \(73744\) paths must render in gamma-only notation.
+
+* Mathematical Lowering Model
+
+Fix an orthogonal space \(V\) of dimension \(N\), metric \(g\), exterior powers
+\(\Lambda^r V\), and spinor modules \(S_\chi\).  A rendered term should be a
+finite rational linear combination of contractions built from:
+
+\[
+  g_{ab},\qquad
+  \Delta^{a_1\ldots a_r}_{b_1\ldots b_r}
+    = r!\,\delta^{[a_1}_{b_1}\cdots\delta^{a_r]}_{b_r},
+  \qquad
+  \varepsilon_{a_1\ldots a_N},
+  \qquad
+  C_{\alpha\beta},
+  \qquad
+  \Gamma^{(r)}_{\alpha\beta;a_1\ldots a_r}.
+\]
+
+Antisymmetrization is unit-weight in the code path: the exact rational
+coefficient attached to a streamed term carries all normalization.  The Hodge
+operator on \(r=N/2\) middle forms is
+
+\[
+  (*\omega)_{a_1\ldots a_r}
+    = \frac{1}{r!}\varepsilon_{a_1\ldots a_r b_1\ldots b_r}
+      \omega^{b_1\ldots b_r},
+  \qquad
+  P_\pm=\frac12(1\pm *).
+\]
+
+The finite Gram solver already constructs projector programs as words in
+primitive maps and attaches exact rational coefficients from the inverse Gram
+matrix.  Gamma-only lowering must therefore lower each primitive map to its
+canonical tensor contraction, then keep the existing Gram coefficient.  It must
+not introduce family-specific constants outside the finite Gram contraction.
+
+* Primitive Map Formulas
+
+The implementation should lower =ProjectorPrimitiveKind= values, not rendered
+operator ids.  Every formula below is determined by
+\(N\), input/output ranks, chirality, duality, and form-profile metadata.
+
+** Form Delta
+
+For a carried rank-\(r\) form block,
+
+\[
+  D_r(\omega)_{a_1\ldots a_r}
+    = \Delta^{b_1\ldots b_r}_{a_1\ldots a_r}
+      \omega_{b_1\ldots b_r}.
+\]
+
+This lowers to one generalized delta.  It is already primitive enough, but the
+gamma-only TeX renderer must print it as \(\Delta\), not as a route atom.
+
+** Gamma Insert
+
+For a spinor bilinear terminal inserting an \(r\)-form,
+
+\[
+  I_r(\psi,\eta)_{a_1\ldots a_r}
+    = \Gamma^{(r)}_{\alpha\beta;a_1\ldots a_r}
+      \psi^\alpha\eta^\beta .
+\]
+
+The dual map is the corresponding gamma action on a spinor:
+
+\[
+  A_r(\omega,\eta)^\alpha
+    = \Gamma^{(r)\alpha}{}_{\beta;a_1\ldots a_r}
+      \omega^{a_1\ldots a_r}\eta^\beta .
+\]
+
+The chirality check is exactly the existing parity rule:
+\(\Gamma^{(r)}:S_{\chi_1}\otimes S_{\chi_2}\to\Lambda^rV\) is valid only when
+the stored chiralities match the rank parity used by
+=spinorBilinearChiralityValid= and =spinorActionChiralityValid=.
+
+** Exterior Gamma Action
+
+For an input \(p\)-form and a gamma block of rank \(k\), the canonical
+contraction with \(c\) metric pairings has output rank
+
+\[
+  q=p+k-2c .
+\]
+
+In components:
+
+\[
+  E_{p,k,c}(\omega,\psi)_{a_1\ldots a_q}
+  =
+  \Delta^{\,b_1\ldots b_{p-c}\ d_1\ldots d_{k-c}}_{a_1\ldots a_q}
+  g^{u_1v_1}\cdots g^{u_cv_c}
+  \omega_{b_1\ldots b_{p-c}u_1\ldots u_c}
+  \Gamma^{(k)}_{\alpha\beta;
+    d_1\ldots d_{k-c}v_1\ldots v_c}
+  \psi^\beta .
+\]
+
+This one formula covers =gamma_action=, =gamma_wedge_shift=, and the
+gamma-action part of tower/form-spinor transitions.  The special wedge case is
+\(c=0\).  The lowering code should enumerate \((p,k,c,q)\) through the
+existing =ExteriorGammaAction= signature rather than branching by formula
+kind.
+
+** Gamma Rank Split
+
+For a rank split \(r\to \ell+u\), separate the carried lower form indices from
+the spinor bilinear upper block:
+
+\[
+  R_{r,\ell,u}(\omega,\psi,\eta)_{a_1\ldots a_\ell,\ b_1\ldots b_u}
+  =
+  \Delta^{c_1\ldots c_\ell d_1\ldots d_u}
+         _{a_1\ldots a_\ell b_1\ldots b_u}
+  \omega_{c_1\ldots c_\ell d_1\ldots d_u}
+  \Gamma^{(u)}_{\alpha\beta;b_1\ldots b_u}
+  \psi^\alpha\eta^\beta .
+\]
+
+The adjoint contracts the \((\ell,u)\) output blocks back to the source rank
+with the same generalized delta.  This is the systematic replacement for
+=tensor_form_gamma_map= and =tensor_form_gamma_map_adjoint= atoms.
+
+** Hodge Project
+
+A middle-form channel lowers to
+
+\[
+  P_\sigma = \frac12(D_r+\sigma *),\qquad \sigma\in\{+1,-1\}.
+\]
+
+The lowering emits two streamed branches: one generalized-delta branch and one
+epsilon/Hodge branch with coefficient \(\sigma/2\).  No =tensor_form_gamma_wedge=
+placeholder should remain for self-dual or anti-self-dual channels.
+
+** Spinor Tower Product
+
+The current =spinor_symmetrized_product= atom represents the multiplication
+
+\[
+  \mu_{p,q}:\operatorname{Sym}^p S_\chi\otimes
+  \operatorname{Sym}^q S_\chi\to\operatorname{Sym}^{p+q}S_\chi .
+\]
+
+Lowering must inline it as a streamed sum over \((p,q)\)-shuffles:
+
+\[
+  \mu_{p,q}
+  =
+  \frac{1}{\binom{p+q}{p}}
+  \sum_{\sigma\in\operatorname{Sh}(p,q)}
+  \delta^{\gamma_{\sigma(1)}}_{\alpha_1}\cdots
+  \delta^{\gamma_{\sigma(p)}}_{\alpha_p}
+  \delta^{\gamma_{\sigma(p+1)}}_{\beta_1}\cdots
+  \delta^{\gamma_{\sigma(p+q)}}_{\beta_q}.
+\]
+
+The renderer should not print a new symmetric-product atom.  It should either
+compose these spinor Kronecker deltas away while threading internal spinor
+slots, or emit explicit spinor-delta contractions if a later component backend
+needs them.  The TeX artifact for the requested term should show the composed
+gamma products, not =SymSpin=.
+
+** Spinor Tower Contract and Adjoint
+
+For \(m>0\), the tower contraction is the universal gamma contraction
+
+\[
+  T_{m,r}:
+  \operatorname{Sym}^m S_\chi\otimes S_{\chi'}
+  \to
+  \operatorname{Sym}^{m-1}S_\chi\otimes\Lambda^rV ,
+\]
+
+\[
+  T_{m,r}(\psi_1\cdots\psi_m,\eta)
+  =
+  \frac1m\sum_{i=1}^m
+  \psi_1\cdots\widehat{\psi_i}\cdots\psi_m
+  \otimes
+  \Gamma^{(r)}_{\alpha_i\beta;a_1\ldots a_r}
+  \eta^\beta .
+\]
+
+The adjoint inserts a spinor into the symmetric tower by the transpose map
+with respect to \(C\) and the exterior metric:
+
+\[
+  T^\dagger_{m,r}:
+  \operatorname{Sym}^{m-1}S_\chi\otimes\Lambda^rV\otimes S_{\chi'}
+  \to
+  \operatorname{Sym}^mS_\chi .
+\]
+
+In lowering, both maps become streamed sums of gamma bilinears plus explicit
+shuffle routing.  Their normalization must be verified by exact contraction:
+the lowered \(T^\dagger T\) inner product must equal the
+=spinorTowerPrimitiveNorm= used by the Gram solver.
+
+* Compiler Procedure
+
+1. Add a gamma-only render option and a =GammaOnlyAudit=.
+2. Reuse the existing structural projector program enumeration and inverse
+   Gram coefficients.
+3. Replace each structural atom emission site with a two-mode path:
+   normal expanded rendering may keep structural atoms; gamma-only rendering
+   calls a primitive lowerer for each =ProjectorPrimitive= in the candidate
+   word.
+4. Lower each primitive by streaming its canonical formula above into a small
+   term frontier.  Branching primitives such as Hodge and symmetric shuffles
+   must emit depth-first; do not allocate the full product expansion.
+5. Compose pure routing maps immediately when possible.  In particular,
+   =spinor_symmetrized_product= and free-vector Clifford routing should update
+   index-block wiring rather than survive as output atoms.
+6. Preserve exact rational coefficients throughout.  The only coefficients
+   introduced by the lowerer are the canonical ones in the formulas above
+   \((1/m)\), shuffle factors, Hodge \((1/2)\), signs, and the existing Gram
+   coefficients.
+7. After lowering a term, classify every emitted atom.  If any structural atom
+   remains, reject the term and record the atom tag plus the structural metadata
+   that selected it.
+
+* Verification Identities
+
+Each primitive lowerer must be checked against the same exact contraction
+engine used by the Gram solver.
+
+For candidate words \(W_i,W_j\), let \(\mathcal L(W)\) be the gamma-only
+lowering.  The central invariant is
+
+\[
+  \langle W_i,W_j\rangle_{\mathrm{structural}}
+  =
+  \langle \mathcal L(W_i),\mathcal L(W_j)\rangle_{\gamma}
+\]
+
+for every primitive word admitted by a projector program.  This catches missing
+shuffle factors, Hodge signs, gamma-product coefficients, and tower
+normalization errors.
+
+Adjoints are verified by
+
+\[
+  \langle Pu,v\rangle=\langle u,P^\dagger v\rangle
+\]
+
+for =gamma_insert=/=gamma_action=, =gamma_rank_split=/adjoint=,
+=spinor_tower_contract=/adjoint=, and =hodge_project=.  Middle-form projectors
+also satisfy
+
+\[
+  P_\sigma^2=P_\sigma,\qquad P_+P_-=0.
+\]
+
+Projector programs keep their existing idempotence check after lowering:
+
+\[
+  \Pi^2=\Pi
+\]
+
+under exact rational contraction.  The gamma-only renderer is accepted only
+when the lowered program has the same Gram matrix, the same projector rank, and
+the emitted stream contains no structural atom tags.
+
+* Required Output Contract
+
+A gamma-only render mode must stream terms without materializing large
+intermediate expressions.  Its audit rejects all compact and structural formula
+atoms:
+
+- no named projector atoms;
+- no =tensor_spinor_projection= or =tensor_form_projection=;
+- no =spinor_symmetrized_product=, =spinor_tower_contract=,
+  =spinor_tower_contract_adjoint=, or =tensor_form_gamma_wedge=;
+- no compact =clifford_product= atoms after Clifford lowering.
+
+Allowed atoms are only the primitive gamma/contraction layer listed above.
+
+* Smoke Milestone
+
+Render one actual Spin(10) \(16^{12}\) basis path, preferably invariant path
+=0=, to TeX/PDF through the real renderer.  The document must include an audit
+with the selected path id, emitted summand count, atom/factor count, and zero
+remaining compact or structural formula atoms.  This milestone is only a
+smoke test for formatting and the first lowering families; it is not sufficient
+for completion.
+
+* Required Milestone
+
+Run the gamma-only audit over all \(73744\) Spin(10) \(16^{12}\) paths.  The
+implementation is complete only when every path renders gamma-only through the
+real renderer.  No path may emit a structural atom, a compact projector atom, or
+an unsupported tensor-form/tensor-spinor projection term.
+
+During development, failures must report the first unsupported structural
+family and the metadata needed to add its systematic lowerer.  Such failures
+are diagnostics only; they are not an acceptable final state for this goal.
+
+See [[id:20260607T194513.918965][Projector Formula Status]] for the current backlog and [[id:20260606T190106.000000][Tensor Rendering]]
+for the streamed symbolic term interface.

@@ -45,4 +45,5 @@ test "root CFT API exposes selected constructors without implementation namespac
     try testing.expect(!@hasDecl(@This(), "kernel"));
     try testing.expect(!@hasDecl(@This(), "theory"));
     try testing.expect(!@hasDecl(@This(), "expressions"));
+    try testing.expect(!@hasDecl(@This(), "Generated"));
 }
