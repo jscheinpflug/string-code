@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:17 -->
+<!-- 2026-06-09 Tue 15:38 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CFT-Code</title>
@@ -138,6 +138,7 @@
     <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -157,11 +158,21 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
     <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -233,6 +244,10 @@ As far as dependencies go, this module only depends on <a href="/notes/tensor-co
 <dd>Bc groups the public bc-ghost preset constructors.</dd>
 <dt><a href="#FreeFermion"><code>FreeFermion = preset_impl.FreeFermion</code></a></dt>
 <dd>FreeFermion groups the public NS free-fermion preset constructors.</dd>
+<dt><a href="#IndexSort"><code>IndexSort = @import(&quot;presets/shared.zig&quot;).IndexSort</code></a></dt>
+<dd>IndexSort classifies typed target indices accepted by runtime preset builders.</dd>
+<dt><a href="#PrimitivePairKernels"><code>PrimitivePairKernels = @import(&quot;presets/primitive_pair_kernels.zig&quot;)</code></a></dt>
+<dd>PrimitivePairKernels exposes primitive free-field pair-kernel classifiers.</dd>
 <dt><a href="#EtaXi"><code>EtaXi = preset_impl.EtaXi</code></a></dt>
 <dd>EtaXi groups the public eta-xi preset constructors.</dd>
 </dl>
@@ -249,6 +264,8 @@ As far as dependencies go, this module only depends on <a href="/notes/tensor-co
 <a id="FreeBoson"></a>
 <a id="Bc"></a>
 <a id="FreeFermion"></a>
+<a id="IndexSort"></a>
+<a id="PrimitivePairKernels"></a>
 <a id="EtaXi"></a>
 <a id="product"></a>
 <a id="boundary"></a>
@@ -261,6 +278,10 @@ As far as dependencies go, this module only depends on <a href="/notes/tensor-co
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bc</span> = preset_impl.Bc;
 <span style="color: #e0d3b9; font-style: italic;">/// FreeFermion groups the public NS free-fermion preset constructors.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FreeFermion</span> = preset_impl.FreeFermion;
+<span style="color: #e0d3b9; font-style: italic;">/// IndexSort classifies typed target indices accepted by runtime preset builders.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexSort</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"presets/shared.zig"</span>).IndexSort;
+<span style="color: #e0d3b9; font-style: italic;">/// PrimitivePairKernels exposes primitive free-field pair-kernel classifiers.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PrimitivePairKernels</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"presets/primitive_pair_kernels.zig"</span>);
 <span style="color: #e0d3b9; font-style: italic;">/// EtaXi groups the public eta-xi preset constructors.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EtaXi</span> = preset_impl.EtaXi;
 <span style="color: #e0d3b9; font-style: italic;">/// product builds the generated preset type for a product of independent bulk presets.
@@ -274,10 +295,12 @@ As far as dependencies go, this module only depends on <a href="/notes/tensor-co
 This root block is the public CFT API for now.  It intentionally groups each
 CFT family behind one compact object and does not export raw Wick-rule data,
 correlator configs, generated-kernel internals, or the preset implementation
-namespace.  Application modules such as on-shell code, SFT code, NLSM code,
-and pure-spinor code should build theories through the constructors above; a
-later public user-defined-CFT DSL should be one deliberate export rather than
-a leak of the preset runtime.
+namespace.  The only additional low-level export is <code>IndexSort</code>: NLSM-style
+clients need it to lower typed target indices into the generic free-field
+presets without importing preset internals.  Application modules such as
+on-shell code, SFT code, NLSM code, and pure-spinor code should build theories
+through the constructors above; a later public user-defined-CFT DSL should be
+one deliberate export rather than a leak of the preset runtime.
 </p>
 
 <div class="toc-nav api-section tests-section">
@@ -291,6 +314,8 @@ a leak of the preset runtime.
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"FreeBoson"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"Bc"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"FreeFermion"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"IndexSort"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"PrimitivePairKernels"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"EtaXi"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"product"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"boundary"</span>));

@@ -2,6 +2,7 @@ const std = @import("std");
 const geometry = @import("local_geometry_reducer.zig");
 const counterterms = @import("counterterms.zig");
 const plan = @import("diagram_plan.zig");
+const pair = @import("pairing_engine.zig");
 const pole = @import("pole_extractor.zig");
 const rnc = @import("rnc_vertices.zig");
 const scheme = @import("scheme.zig");
@@ -22,6 +23,16 @@ pub const KernelReductionSummary = struct {
 
 fn productKernelFamily(candidate: plan.DiagramCandidateRow) counterterms.KernelFamily {
     return switch (candidate.loop_order) {
+        0 => .scaleless_tadpole,
+        1 => .bubble,
+        2 => .nested_bubble,
+        3 => .sunset,
+        else => .vacuum,
+    };
+}
+
+fn loopKernelFamily(loop_order: u8) counterterms.KernelFamily {
+    return switch (loop_order) {
         0 => .scaleless_tadpole,
         1 => .bubble,
         2 => .nested_bubble,
@@ -96,6 +107,58 @@ fn vertexFactor(row: rnc.RncVertexRow) counterterms.Rational {
     };
 }
 
+fn accumulateVertexTensors(
+    catalog: []const rnc.RncVertexRow,
+    vertices: []const plan.VertexMultiplicity,
+    atoms: []geometry.TensorAtom,
+    slots: []geometry.TensorSlot,
+    atom_count: *usize,
+    slot_count: *usize,
+    next_slot_id: *u32,
+    combinatorial: *counterterms.Rational,
+    automorphism_denominator: u32,
+) !void {
+    combinatorial.* = .{ .numerator = 1, .denominator = automorphism_denominator };
+
+    for (vertices) |entry| {
+        const row = catalog[entry.vertex_index];
+        const factor = vertexFactor(row);
+
+        var repeat_index: u8 = 0;
+        while (repeat_index < entry.multiplicity) : (repeat_index += 1) {
+            combinatorial.* = try combinatorial.*.mul(factor);
+            for (row.tensors) |tensor| try appendTensorAtom(tensor, atoms, atom_count, slots, slot_count, next_slot_id);
+        }
+    }
+}
+
+fn branchKernelSignature(branch: pair.PairingBranchRow) counterterms.KernelSignature {
+    const pair_total = branch.kernel_factors.len;
+    const propagator_len: u8 = @intCast(@min(pair_total * 2, 8));
+    var propagator_powers = [_]u8{0} ** 8;
+    var primitive_pair_histogram = [_]u8{0} ** 8;
+    var numerator_rank: u8 = 0;
+
+    for (branch.kernel_factors, 0..) |factor, index| {
+        const slot = index * 2;
+        if (slot < propagator_powers.len) propagator_powers[slot] = factor.propagator_power;
+        if (slot + 1 < propagator_powers.len) propagator_powers[slot + 1] = factor.propagator_power;
+        const kind_index = @intFromEnum(factor.kind);
+        if (kind_index < primitive_pair_histogram.len) primitive_pair_histogram[kind_index] +|= 1;
+        numerator_rank +|= factor.numerator_rank;
+    }
+
+    return .{
+        .family = loopKernelFamily(branch.loop_order),
+        .loop_order = branch.loop_order,
+        .propagator_len = propagator_len,
+        .propagator_powers = propagator_powers,
+        .primitive_pair_histogram = primitive_pair_histogram,
+        .numerator_rank = numerator_rank,
+        .external_derivative_order = branch.background.d_x0 + branch.background.dbar_x0,
+    };
+}
+
 /// streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.
 pub fn streamKernelTerms(
     request: KernelReductionRequest,
@@ -111,18 +174,8 @@ pub fn streamKernelTerms(
         var atom_count: usize = 0;
         var slot_count: usize = 0;
         var next_slot_id: u32 = 1;
-        var combinatorial = counterterms.Rational{ .numerator = 1, .denominator = candidate.automorphism_denominator };
-
-        for (candidate.vertices) |entry| {
-            const row = catalog[entry.vertex_index];
-            const factor = vertexFactor(row);
-
-            var repeat_index: u8 = 0;
-            while (repeat_index < entry.multiplicity) : (repeat_index += 1) {
-                combinatorial = try combinatorial.mul(factor);
-                for (row.tensors) |tensor| try appendTensorAtom(tensor, scratch_atoms, &atom_count, scratch_slots, &slot_count, &next_slot_id);
-            }
-        }
+        var combinatorial = counterterms.Rational{};
+        try accumulateVertexTensors(catalog, candidate.vertices, scratch_atoms, scratch_slots, &atom_count, &slot_count, &next_slot_id, &combinatorial, candidate.automorphism_denominator);
 
         const propagator_len: u8 = @intCast(@min(candidate.internal_propagator_count * 2, 8));
         var propagator_powers = [_]u8{0} ** 8;
@@ -142,6 +195,44 @@ pub fn streamKernelTerms(
                 .numerator_rank = @intCast(candidate.total_fermion_field_count),
                 .external_derivative_order = candidate.background.d_x0 + candidate.background.dbar_x0,
             },
+            .term = .{
+                .atoms = scratch_atoms[0..atom_count],
+            },
+        });
+        summary.emitted_count += 1;
+    }
+
+    return summary;
+}
+
+/// streamKernelTermsFromPairingBranches lowers explicit pairing branches to reduced kernel rows.
+pub fn streamKernelTermsFromPairingBranches(
+    request: KernelReductionRequest,
+    catalog: []const rnc.RncVertexRow,
+    branches: []const pair.PairingBranchRow,
+    sink: anytype,
+    scratch_atoms: []geometry.TensorAtom,
+    scratch_slots: []geometry.TensorSlot,
+) !KernelReductionSummary {
+    var summary = KernelReductionSummary{};
+
+    for (branches) |branch| {
+        var atom_count: usize = 0;
+        var slot_count: usize = 0;
+        var next_slot_id: u32 = 1;
+        var combinatorial = counterterms.Rational{};
+        try accumulateVertexTensors(catalog, branch.vertices, scratch_atoms, scratch_slots, &atom_count, &slot_count, &next_slot_id, &combinatorial, branch.automorphism_denominator);
+
+        const pair_total = branch.boson_pair_count + branch.left_fermion_pair_count + branch.right_fermion_pair_count;
+        std.debug.assert(pair_total == branch.kernel_factors.len);
+
+        try sink.emit(.{
+            .scheme = request.scheme,
+            .local_operator = request.local_operator,
+            .target_flavor = request.target_flavor,
+            .alpha_prime_power = request.alpha_prime_power,
+            .combinatorial = combinatorial.normalized(),
+            .kernel = branchKernelSignature(branch),
             .term = .{
                 .atoms = scratch_atoms[0..atom_count],
             },
@@ -319,6 +410,30 @@ test "one-loop bootstrap pipeline reaches a beta row" {
         }
     };
 
+    const PairingSink = struct {
+        rows: []pair.PairingBranchRow,
+        pair_storage: []pair.PairingEntry,
+        kernel_storage: []pair.PairKernelFactor,
+        count: usize = 0,
+        pair_offset: usize = 0,
+        kernel_offset: usize = 0,
+
+        pub fn emit(self: *@This(), row: pair.PairingBranchRow) !void {
+            const pair_start = self.pair_offset;
+            const pair_end = pair_start + row.pairs.len;
+            const kernel_start = self.kernel_offset;
+            const kernel_end = kernel_start + row.kernel_factors.len;
+            std.mem.copyForwards(pair.PairingEntry, self.pair_storage[pair_start..pair_end], row.pairs);
+            std.mem.copyForwards(pair.PairKernelFactor, self.kernel_storage[kernel_start..kernel_end], row.kernel_factors);
+            self.rows[self.count] = row;
+            self.rows[self.count].pairs = self.pair_storage[pair_start..pair_end];
+            self.rows[self.count].kernel_factors = self.kernel_storage[kernel_start..kernel_end];
+            self.count += 1;
+            self.pair_offset = pair_end;
+            self.kernel_offset = kernel_end;
+        }
+    };
+
     const KernelSink = struct {
         rows: []pole.KernelTermRow,
         count: usize = 0,
@@ -347,15 +462,27 @@ test "one-loop bootstrap pipeline reaches a beta row" {
         .include_fermions = false,
     }, catalog, &candidate_sink, &multiplicities, &vertices);
 
+    var branch_storage: [2]pair.PairingBranchRow = undefined;
+    var pair_storage: [2]pair.PairingEntry = undefined;
+    var kernel_factor_storage: [2]pair.PairKernelFactor = undefined;
+    var pairing_sink = PairingSink{ .rows = &branch_storage, .pair_storage = &pair_storage, .kernel_storage = &kernel_factor_storage };
+    var occurrences: [8]pair.PairingOccurrence = undefined;
+    var species_ids: [8]u16 = undefined;
+    var branch_pairs: [4]pair.PairingEntry = undefined;
+    var branch_kernel_factors: [4]pair.PairKernelFactor = undefined;
+    var used: [8]bool = undefined;
+    const pairing_summary = try pair.streamPairingBranches(catalog, candidate_storage[0..candidate_sink.count], &pairing_sink, &occurrences, &species_ids, &branch_pairs, &branch_kernel_factors, &used);
+    try testing.expectEqual(@as(usize, 1), pairing_summary.emitted_count);
+
     var kernel_storage: [2]pole.KernelTermRow = undefined;
     var kernel_sink = KernelSink{ .rows = &kernel_storage };
     var atoms: [8]geometry.TensorAtom = undefined;
     var slots: [32]geometry.TensorSlot = undefined;
-    _ = try streamKernelTerms(.{
+    _ = try streamKernelTermsFromPairingBranches(.{
         .scheme = scheme.stringbookMS(),
         .local_operator = .metric_beta,
         .alpha_prime_power = 1,
-    }, catalog, candidate_storage[0..candidate_sink.count], &kernel_sink, &atoms, &slots);
+    }, catalog, branch_storage[0..pairing_sink.count], &kernel_sink, &atoms, &slots);
 
     var poles: [2]counterterms.PoleRow = undefined;
     const pole_summary = try pole.extractPoleRows(kernel_storage[0..kernel_sink.count], pole.stringbookBootstrapRules(), &poles);
@@ -365,4 +492,5 @@ test "one-loop bootstrap pipeline reaches a beta row" {
     const beta_summary = try beta.assembleBetaRows(poles[0..pole_summary.emitted_pole_count], .{ .local_operator = .metric_beta }, &beta_rows);
     try testing.expectEqual(@as(usize, 1), beta_summary.beta_count);
     try testing.expectEqual(counterterms.Rational{ .numerator = 1, .denominator = 3 }, beta_rows[0].coefficient);
+    try testing.expectEqual(@as(u8, 0), kernel_storage[0].kernel.numerator_rank);
 }

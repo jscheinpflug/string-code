@@ -3,6 +3,7 @@ const scheme = @import("scheme.zig");
 const counterterms = @import("counterterms.zig");
 const rnc = @import("rnc_vertices.zig");
 const plan = @import("diagram_plan.zig");
+const pair = @import("pairing_engine.zig");
 const wick = @import("wick_signatures.zig");
 const reduce = @import("kernel_signature_reducer.zig");
 const pole = @import("pole_extractor.zig");
@@ -46,6 +47,8 @@ pub const VertexSymmetry = rnc.VertexSymmetry;
 pub const RncVertexRow = rnc.RncVertexRow;
 /// RncRequest selects the bootstrap vertex families emitted by the first generator.
 pub const RncRequest = rnc.RncRequest;
+/// streamComponentVertices emits the first explicit component-RNC vertex families.
+pub const streamComponentVertices = rnc.streamComponentVertices;
 /// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
 pub const streamBootstrapVertices = rnc.streamBootstrapVertices;
 /// BackgroundLegCount fixes the local operator signature required at the end of one branch.
@@ -58,6 +61,22 @@ pub const VertexMultiplicity = plan.VertexMultiplicity;
 pub const DiagramCandidateRow = plan.DiagramCandidateRow;
 /// streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.
 pub const streamDiagramCandidates = plan.streamDiagramCandidates;
+/// PairSpecies identifies one independently pairable quantum field species.
+pub const PairSpecies = pair.PairSpecies;
+/// PairingOccurrence is one flattened quantum field occurrence in a candidate multiset.
+pub const PairingOccurrence = pair.PairingOccurrence;
+/// PairingEntry is one explicit field pairing inside a branch.
+pub const PairingEntry = pair.PairingEntry;
+/// PairKernelKind names the differentiated free propagator carried by one pair.
+pub const PairKernelKind = pair.PairKernelKind;
+/// PairKernelFactor records the local kernel contribution of one explicit pair.
+pub const PairKernelFactor = pair.PairKernelFactor;
+/// PairingBranchRow is one explicit pairing branch before kernel reduction.
+pub const PairingBranchRow = pair.PairingBranchRow;
+/// PairingSummary reports how many explicit pairing branches were emitted.
+pub const PairingSummary = pair.PairingSummary;
+/// streamPairingBranches enumerates admissible explicit pairings for candidate multisets.
+pub const streamPairingBranches = pair.streamPairingBranches;
 /// WickSignatureRow is one pairable candidate summary before explicit branch generation.
 pub const WickSignatureRow = wick.WickSignatureRow;
 /// WickSignatureSummary reports how many candidates survive the pairability checks.
@@ -70,6 +89,8 @@ pub const KernelReductionRequest = reduce.KernelReductionRequest;
 pub const KernelReductionSummary = reduce.KernelReductionSummary;
 /// streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.
 pub const streamKernelTerms = reduce.streamKernelTerms;
+/// streamKernelTermsFromPairingBranches lowers explicit pairing branches to reduced kernel rows.
+pub const streamKernelTermsFromPairingBranches = reduce.streamKernelTermsFromPairingBranches;
 /// streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.
 pub const streamKernelTermsFromWickSignatures = reduce.streamKernelTermsFromWickSignatures;
 /// EpsilonSign fixes whether the regulated dimension is 2-epsilon or 2+epsilon.
@@ -94,19 +115,25 @@ pub const KernelSignature = counterterms.KernelSignature;
 pub const PoleRow = counterterms.PoleRow;
 /// BetaRow is one assembled simple-pole contribution in the operator basis.
 pub const BetaRow = counterterms.BetaRow;
-/// KernelTermRow is one reduced local branch before pole extraction.
+/// KernelTermRow is one reduced local branch before analytic kernel evaluation.
 pub const KernelTermRow = pole.KernelTermRow;
-/// LocalityClass records whether one master family contributes a local pole.
+/// LocalityClass records whether one evaluated contribution is local, nonlocal, or scaleless.
 pub const LocalityClass = pole.LocalityClass;
-/// PoleResidue stores one Laurent-coefficient contribution for a matched rule.
-pub const PoleResidue = pole.PoleResidue;
-/// KernelPoleRule maps one reduced kernel signature to local pole data.
-pub const KernelPoleRule = pole.KernelPoleRule;
-/// PoleExtractionSummary reports how the kernel rows were classified.
-pub const PoleExtractionSummary = pole.PoleExtractionSummary;
-/// stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.
-pub const stringbookBootstrapRules = pole.stringbookBootstrapRules;
-/// extractPoleRows matches reduced kernel signatures to explicit local pole rules.
+/// KernelEvaluationContribution stores one Laurent or finite contribution of a matched kernel family.
+pub const KernelEvaluationContribution = pole.KernelEvaluationContribution;
+/// KernelEvaluationRule maps one reduced kernel signature to explicit evaluated contributions.
+pub const KernelEvaluationRule = pole.KernelEvaluationRule;
+/// KernelEvaluationRow is one analytic contribution emitted after kernel evaluation.
+pub const KernelEvaluationRow = pole.KernelEvaluationRow;
+/// KernelEvaluationSummary reports how the kernel rows were classified and emitted.
+pub const KernelEvaluationSummary = pole.KernelEvaluationSummary;
+/// PoleProjectionSummary reports how evaluated rows were projected to local pole rows.
+pub const PoleProjectionSummary = pole.PoleProjectionSummary;
+/// stringbookBootstrapEvaluations returns the first explicit evaluation table used for low-loop checks.
+pub const stringbookBootstrapEvaluations = pole.stringbookBootstrapEvaluations;
+/// evaluateKernelRows matches reduced kernel signatures to explicit Laurent/finite evaluation rules.
+pub const evaluateKernelRows = pole.evaluateKernelRows;
+/// extractPoleRows projects the local pole part of evaluated kernel rows.
 pub const extractPoleRows = pole.extractPoleRows;
 /// BetaAssemblyOptions selects the subset of pole rows converted to beta rows.
 pub const BetaAssemblyOptions = beta.BetaAssemblyOptions;
@@ -121,10 +148,14 @@ test "nlsm root exposes only compact local reducer rows" {
     try testing.expect(@hasDecl(@This(), "TensorSlotSort"));
     try testing.expect(@hasDecl(@This(), "reduceLocalTerm"));
     try testing.expect(@hasDecl(@This(), "RncVertexRow"));
+    try testing.expect(@hasDecl(@This(), "streamComponentVertices"));
     try testing.expect(@hasDecl(@This(), "DiagramCandidateRow"));
+    try testing.expect(@hasDecl(@This(), "PairingBranchRow"));
     try testing.expect(@hasDecl(@This(), "WickSignatureRow"));
     try testing.expect(@hasDecl(@This(), "streamKernelTerms"));
     try testing.expect(@hasDecl(@This(), "stringbookMS"));
+    try testing.expect(@hasDecl(@This(), "KernelEvaluationRow"));
+    try testing.expect(@hasDecl(@This(), "evaluateKernelRows"));
     try testing.expect(@hasDecl(@This(), "PoleRow"));
     try testing.expect(@hasDecl(@This(), "extractPoleRows"));
     try testing.expect(@hasDecl(@This(), "assembleBetaRows"));

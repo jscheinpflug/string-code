@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 16:50 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Contact Terms</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/contact-terms.html">NLSM Contact Terms</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Contact Terms</h1>
+<p>
+This note adds the first explicit contact-term channel to the generic RNC
+pipeline.
+</p>
+
+<p>
+The point is narrow.  The component source table now records the raw metric
+fermion-derivative vertices
+\[
+{1\over 3}R_{\mu\rho\sigma\nu}\,\xi^\rho\xi^\sigma\,\psi_L^\mu\bar\partial\psi_L^\nu,
+\qquad
+{1\over 3}R_{\mu\rho\sigma\nu}\,\xi^\rho\xi^\sigma\,\psi_R^\mu\partial\psi_R^\nu.
+\]
+These are genuine component vertices.  They are not primitive Wick vertices in
+the free chiral theory.  Their singular contribution is distributional,
+\[
+\bar\partial_z {1\over z-w} \sim \delta^2(z-w),
+\qquad
+\partial_z {1\over \bar z-\bar w} \sim \delta^2(z-w),
+\]
+so they belong on a contact channel, not in the ordinary pair-kernel
+inventory.
+</p>
+
+<p>
+At this stage we still do not evaluate those contact terms all the way to a
+renormalized pole.  That would require combining them with the same
+regularization and local-integral bookkeeping used by the ordinary kernel
+evaluator.  The immediate job here is to make them visible as compact streamed
+rows so the later evaluator can consume them without re-reading the component
+source note.
+</p>
+
+<a id="ContactChirality"></a>
+<a id="ContactKernelKind"></a>
+<a id="ContactTermRow"></a>
+<a id="ContactRequest"></a>
+<a id="streamContactTerms"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org95098d1"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">component</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"component_rnc_expansion.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContactChirality records which chiral differentiated fermion produced the contact term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContactChirality</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    left,
+    right,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContactKernelKind records the local distributional identity used to collapse one raw component row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContactKernelKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    chiral_fermion_delta,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContactTermRow is one component-level contact contribution before loop-kernel evaluation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContactTermRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.LocalCountertermKind</span> = .metric_beta,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_flavor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.GeometryFlavor</span> = .generic_riemannian,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">chirality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactChirality</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactKernelKind</span> = .chiral_fermion_delta,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">loop_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.Rational</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorTerm</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ContactRequest selects the component contact rows emitted from the source table.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ContactRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.SourceWorldsheet</span> = .n1_1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 2,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_flavor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.GeometryFlavor</span> = .generic_riemannian,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.LocalCountertermKind</span> = .metric_beta,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme_override</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">scheme.DimRegMS</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerTensorKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.SourceVertexTensorKind</span>) geometry.TensorAtomKind {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
+        .metric =&gt; .metric,
+        .riemann =&gt; .riemann,
+        .covariant_derivative_riemann =&gt; .covariant_derivative,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">termFromSource</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span>) !geometry.TensorTerm {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.tensors.len &gt; atoms_storage.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.tensors, 0..) |tensor, atom_index| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_count</span> = tensor.slot_sorts.len + tensor.covariant_derivative_count;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (next_slot + slot_count &gt; slot_storage.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = slot_storage[next_slot .. next_slot + tensor.slot_sorts.len];
+        <span style="color: #fb4934; font-weight: bold;">for</span> (tensor.slot_sorts, 0..) |sort, index| {
+            slots[index] = .{
+                .id = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(next_slot + index + 1),
+                .sort = sort,
+            };
+        }
+        next_slot += tensor.slot_sorts.len;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_slots</span> = slot_storage[next_slot .. next_slot + tensor.covariant_derivative_count];
+        <span style="color: #fb4934; font-weight: bold;">for</span> (derivative_slots, 0..) |*slot, index| {
+            slot.* = .{
+                .id = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(next_slot + index + 1),
+                .sort = .real_tangent,
+            };
+        }
+        next_slot += tensor.covariant_derivative_count;
+
+        atoms_storage[atom_index] = .{
+            .kind = lowerTensorKind(tensor.kind),
+            .slots = slots,
+            .derivative_slots = derivative_slots,
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .coefficient = row.coefficient,
+        .atoms = atoms_storage[0..row.tensors.len],
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">chiralityFromRow</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>) ?ContactChirality {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+        .psi_left =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> .left,
+        .psi_right =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> .right,
+        .xi =&gt; {},
+    };
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isSupportedContactRow</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> row.family == .fermion_metric_derivative_riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.channel == .contact_only;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamContactTerms emits contact-channel component rows as compact local contact descriptors.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamContactTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        downstream: <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(sink),
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactRequest</span>,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!isSupportedContactRow(row)) <span style="color: #fb4934; font-weight: bold;">return</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_storage</span>: [16]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">chirality</span> = chiralityFromRow(row) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidContactRow;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span> = (counterterms.Rational{
+                .numerator = row.coefficient,
+                .denominator = row.symmetry_denominator,
+            }).normalized();
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span> = <span style="color: #fb4934; font-weight: bold;">try</span> termFromSource(row, &amp;atoms_storage, &amp;slot_storage);
+
+            <span style="color: #fb4934; font-weight: bold;">try</span> self.downstream.emit(.{
+                .scheme = self.request.scheme_override <span style="color: #fb4934; font-weight: bold;">orelse</span> scheme.stringbookMS(),
+                .local_operator = self.request.local_operator,
+                .target_flavor = self.request.target_flavor,
+                .chirality = chirality,
+                .kernel = .chiral_fermion_delta,
+                .loop_order = 1,
+                .alpha_prime_power = self.request.alpha_prime_power,
+                .coefficient = coefficient,
+                .term = term,
+            });
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">source_sink</span> = SourceSink{ .downstream = sink, .request = request };
+    <span style="color: #fb4934; font-weight: bold;">try</span> component.streamSources(.{
+        .worldsheet = request.worldsheet,
+        .max_xi_order = request.max_xi_order,
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .include_higher_metric_terms = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .include_contact_only = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    }, &amp;source_sink);
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Contact Terms</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"contact term stream emits only raw differentiated fermion metric rows"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactTermRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactTermRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.count == self.rows.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ContactTermRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{ .rows = &amp;rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamContactTerms(.{}, &amp;sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), sink.count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(ContactChirality.left, rows[0].chirality);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(ContactChirality.right, rows[1].chirality);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.Rational{ .numerator = 1, .denominator = 3 }, rows[0].coefficient);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.LocalCountertermKind.metric_beta, rows[0].local_operator);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), rows[0].term.atoms.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(geometry.TensorAtomKind.riemann, rows[0].term.atoms[0].kind);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

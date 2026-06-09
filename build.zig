@@ -24,6 +24,9 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/nlsm-code/nlsm-code.zig"),
         .target = target,
         .optimize = optimize,
+        .imports = &.{
+            .{ .name = "cft-code", .module = cft_mod },
+        },
     });
 
     const root_mod = b.addModule("string-code", .{
@@ -90,4 +93,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_root_tests.step);
     test_step.dependOn(&run_nlsm_tests.step);
     test_step.dependOn(&run_generated_abi_tests.step);
+
+    const test_nlsm_step = b.step("test-nlsm", "Run nlsm-code tests");
+    test_nlsm_step.dependOn(&run_nlsm_tests.step);
 }

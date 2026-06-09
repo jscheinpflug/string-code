@@ -1,4 +1,5 @@
 const std = @import("std");
+const component = @import("component_rnc_expansion.zig");
 const geometry = @import("local_geometry_reducer.zig");
 
 /// WorldsheetModel selects the free-field content used by the RNC job.
@@ -80,6 +81,37 @@ pub const RncRequest = struct {
     include_fermions: bool = true,
 };
 
+fn sourceWorldsheet(worldsheet: WorldsheetModel) ?component.SourceWorldsheet {
+    return switch (worldsheet) {
+        .bosonic => .bosonic,
+        .n1_1 => .n1_1,
+        .n2_2, .n4_4 => null,
+    };
+}
+
+fn lowerFieldKind(kind: component.SourceFieldKind) FieldKind {
+    return switch (kind) {
+        .xi => .xi,
+        .psi_left => .psi_left,
+        .psi_right => .psi_right,
+    };
+}
+
+fn lowerBackgroundLegKind(kind: component.SourceBackgroundLegKind) BackgroundLegKind {
+    return switch (kind) {
+        .d_x0 => .d_x0,
+        .dbar_x0 => .dbar_x0,
+    };
+}
+
+fn lowerTensorKind(kind: component.SourceVertexTensorKind) VertexTensorKind {
+    return switch (kind) {
+        .metric => .metric,
+        .riemann => .riemann,
+        .covariant_derivative_riemann => .covariant_derivative_riemann,
+    };
+}
+
 fn matchesRequest(row: RncVertexRow, request: RncRequest) bool {
     if (row.worldsheet != request.worldsheet) return false;
     if (row.xi_order > request.max_xi_order) return false;
@@ -90,6 +122,74 @@ fn matchesRequest(row: RncVertexRow, request: RncRequest) bool {
         .xi => {},
     };
     return true;
+}
+
+fn emitLoweredSource(row: component.ComponentSourceRow, sink: anytype) !void {
+    var fields_storage: [8]VertexField = undefined;
+    if (row.fields.len > fields_storage.len) return error.TooManySourceFields;
+    for (row.fields, 0..) |field, index| {
+        fields_storage[index] = .{
+            .kind = lowerFieldKind(field.kind),
+            .target_sort = field.target_sort,
+            .derivatives = .{
+                .holomorphic = field.derivatives.holomorphic,
+                .antiholomorphic = field.derivatives.antiholomorphic,
+            },
+        };
+    }
+
+    var legs_storage: [4]BackgroundLeg = undefined;
+    if (row.background_legs.len > legs_storage.len) return error.TooManySourceBackgroundLegs;
+    for (row.background_legs, 0..) |leg, index| {
+        legs_storage[index] = .{
+            .kind = lowerBackgroundLegKind(leg.kind),
+            .target_sort = leg.target_sort,
+        };
+    }
+
+    var tensors_storage: [4]VertexTensor = undefined;
+    if (row.tensors.len > tensors_storage.len) return error.TooManySourceTensors;
+    for (row.tensors, 0..) |tensor, index| {
+        tensors_storage[index] = .{
+            .kind = lowerTensorKind(tensor.kind),
+            .slot_sorts = tensor.slot_sorts,
+            .covariant_derivative_count = tensor.covariant_derivative_count,
+        };
+    }
+
+    try sink.emit(.{
+        .worldsheet = switch (row.worldsheet) {
+            .bosonic => .bosonic,
+            .n1_1 => .n1_1,
+        },
+        .xi_order = row.xi_order,
+        .fields = fields_storage[0..row.fields.len],
+        .background_legs = legs_storage[0..row.background_legs.len],
+        .tensors = tensors_storage[0..row.tensors.len],
+        .coefficient = row.coefficient,
+        .alpha_prime_power = row.alpha_prime_power,
+        .symmetry = .{ .denominator = row.symmetry_denominator },
+    });
+}
+
+/// streamComponentVertices emits the first explicit component-RNC vertex families.
+pub fn streamComponentVertices(request: RncRequest, sink: anytype) !void {
+    const worldsheet = sourceWorldsheet(request.worldsheet) orelse return;
+    const LoweringSink = struct {
+        downstream: @TypeOf(sink),
+
+        fn emit(self: *@This(), row: component.ComponentSourceRow) !void {
+            try emitLoweredSource(row, self.downstream);
+        }
+    };
+
+    var lowering_sink = LoweringSink{ .downstream = sink };
+    try component.streamSources(.{
+        .worldsheet = worldsheet,
+        .max_xi_order = request.max_xi_order,
+        .include_fermions = request.include_fermions,
+        .include_higher_metric_terms = true,
+    }, &lowering_sink);
 }
 
 /// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
@@ -227,4 +327,57 @@ test "n1-1 bootstrap includes fermion curvature row when requested" {
         };
     }
     try testing.expect(found_fermions);
+}
+
+test "component generator emits mixed fermion-connection and higher metric families" {
+    const testing = std.testing;
+    const Sink = struct {
+        rows: []RncVertexRow,
+        count: usize = 0,
+
+        fn emit(self: *@This(), row: RncVertexRow) !void {
+            if (self.count == self.rows.len) return error.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    var rows: [16]RncVertexRow = undefined;
+    var sink = Sink{ .rows = &rows };
+    try streamComponentVertices(.{ .worldsheet = .n1_1, .max_xi_order = 4, .include_fermions = true }, &sink);
+    try testing.expectEqual(@as(usize, 10), sink.count);
+
+    var found_nabla_r = false;
+    var found_nabla2_r = false;
+    var found_r2 = false;
+    var found_left_connection_r = false;
+    var found_right_connection_r = false;
+    var found_left_connection_nabla_r = false;
+    var found_right_connection_nabla_r = false;
+    for (rows[0..sink.count]) |row| {
+        if (row.xi_order == 3 and row.tensors.len == 1 and row.tensors[0].kind == .covariant_derivative_riemann and row.tensors[0].covariant_derivative_count == 1 and row.background_legs.len == 2) {
+            found_nabla_r = true;
+        }
+        if (row.xi_order == 4 and row.tensors.len == 1 and row.tensors[0].kind == .covariant_derivative_riemann and row.tensors[0].covariant_derivative_count == 2 and row.background_legs.len == 2) {
+            found_nabla2_r = true;
+        }
+        if (row.xi_order == 4 and row.tensors.len == 2 and row.tensors[0].kind == .riemann and row.tensors[1].kind == .riemann) {
+            found_r2 = true;
+        }
+        if (row.xi_order == 1 and row.fields.len == 3 and row.background_legs.len == 1 and row.tensors.len == 1 and row.tensors[0].kind == .riemann and row.coefficient == -1 and row.symmetry.denominator == 3) {
+            if (row.background_legs[0].kind == .dbar_x0 and row.fields[1].kind == .psi_left and row.fields[2].kind == .psi_left) found_left_connection_r = true;
+            if (row.background_legs[0].kind == .d_x0 and row.fields[1].kind == .psi_right and row.fields[2].kind == .psi_right) found_right_connection_r = true;
+        }
+        if (row.xi_order == 2 and row.fields.len == 4 and row.background_legs.len == 1 and row.tensors.len == 1 and row.tensors[0].kind == .covariant_derivative_riemann and row.tensors[0].covariant_derivative_count == 1 and row.coefficient == -1 and row.symmetry.denominator == 6) {
+            if (row.background_legs[0].kind == .dbar_x0 and row.fields[2].kind == .psi_left and row.fields[3].kind == .psi_left) found_left_connection_nabla_r = true;
+            if (row.background_legs[0].kind == .d_x0 and row.fields[2].kind == .psi_right and row.fields[3].kind == .psi_right) found_right_connection_nabla_r = true;
+        }
+    }
+    try testing.expect(found_nabla_r);
+    try testing.expect(found_nabla2_r);
+    try testing.expect(found_r2);
+    try testing.expect(found_left_connection_r);
+    try testing.expect(found_right_connection_r);
+    try testing.expect(found_left_connection_nabla_r);
+    try testing.expect(found_right_connection_nabla_r);
 }

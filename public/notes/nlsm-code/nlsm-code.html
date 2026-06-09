@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:59 -->
+<!-- 2026-06-09 Tue 15:38 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NLSM-Code</title>
@@ -138,6 +138,7 @@
     <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -160,11 +161,13 @@
     <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
     <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
     <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
     <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
-    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
     <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
     <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
@@ -239,7 +242,9 @@ This is an overview of NLSM-Code.
 <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
 <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
 <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+<li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
 <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+<li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
 <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
 <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
 <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
@@ -309,6 +314,20 @@ generated job dispatch without widening the public surface.
 <dd>VertexMultiplicity records one catalog row and its multiplicity in a candidate multiset.</dd>
 <dt><a href="#DiagramCandidateRow"><code>DiagramCandidateRow = plan.DiagramCandidateRow</code></a></dt>
 <dd>DiagramCandidateRow is one compact candidate multiset before explicit Wick pairing.</dd>
+<dt><a href="#PairSpecies"><code>PairSpecies = pair.PairSpecies</code></a></dt>
+<dd>PairSpecies identifies one independently pairable quantum field species.</dd>
+<dt><a href="#PairingOccurrence"><code>PairingOccurrence = pair.PairingOccurrence</code></a></dt>
+<dd>PairingOccurrence is one flattened quantum field occurrence in a candidate multiset.</dd>
+<dt><a href="#PairingEntry"><code>PairingEntry = pair.PairingEntry</code></a></dt>
+<dd>PairingEntry is one explicit field pairing inside a branch.</dd>
+<dt><a href="#PairKernelKind"><code>PairKernelKind = pair.PairKernelKind</code></a></dt>
+<dd>PairKernelKind names the differentiated free propagator carried by one pair.</dd>
+<dt><a href="#PairKernelFactor"><code>PairKernelFactor = pair.PairKernelFactor</code></a></dt>
+<dd>PairKernelFactor records the local kernel contribution of one explicit pair.</dd>
+<dt><a href="#PairingBranchRow"><code>PairingBranchRow = pair.PairingBranchRow</code></a></dt>
+<dd>PairingBranchRow is one explicit pairing branch before kernel reduction.</dd>
+<dt><a href="#PairingSummary"><code>PairingSummary = pair.PairingSummary</code></a></dt>
+<dd>PairingSummary reports how many explicit pairing branches were emitted.</dd>
 <dt><a href="#WickSignatureRow"><code>WickSignatureRow = wick.WickSignatureRow</code></a></dt>
 <dd>WickSignatureRow is one pairable candidate summary before explicit branch generation.</dd>
 <dt><a href="#WickSignatureSummary"><code>WickSignatureSummary = wick.WickSignatureSummary</code></a></dt>
@@ -338,15 +357,19 @@ generated job dispatch without widening the public surface.
 <dt><a href="#BetaRow"><code>BetaRow = counterterms.BetaRow</code></a></dt>
 <dd>BetaRow is one assembled simple-pole contribution in the operator basis.</dd>
 <dt><a href="#KernelTermRow"><code>KernelTermRow = pole.KernelTermRow</code></a></dt>
-<dd>KernelTermRow is one reduced local branch before pole extraction.</dd>
+<dd>KernelTermRow is one reduced local branch before analytic kernel evaluation.</dd>
 <dt><a href="#LocalityClass"><code>LocalityClass = pole.LocalityClass</code></a></dt>
-<dd>LocalityClass records whether one master family contributes a local pole.</dd>
-<dt><a href="#PoleResidue"><code>PoleResidue = pole.PoleResidue</code></a></dt>
-<dd>PoleResidue stores one Laurent-coefficient contribution for a matched rule.</dd>
-<dt><a href="#KernelPoleRule"><code>KernelPoleRule = pole.KernelPoleRule</code></a></dt>
-<dd>KernelPoleRule maps one reduced kernel signature to local pole data.</dd>
-<dt><a href="#PoleExtractionSummary"><code>PoleExtractionSummary = pole.PoleExtractionSummary</code></a></dt>
-<dd>PoleExtractionSummary reports how the kernel rows were classified.</dd>
+<dd>LocalityClass records whether one evaluated contribution is local, nonlocal, or scaleless.</dd>
+<dt><a href="#KernelEvaluationContribution"><code>KernelEvaluationContribution = pole.KernelEvaluationContribution</code></a></dt>
+<dd>KernelEvaluationContribution stores one Laurent or finite contribution of a matched kernel family.</dd>
+<dt><a href="#KernelEvaluationRule"><code>KernelEvaluationRule = pole.KernelEvaluationRule</code></a></dt>
+<dd>KernelEvaluationRule maps one reduced kernel signature to explicit evaluated contributions.</dd>
+<dt><a href="#KernelEvaluationRow"><code>KernelEvaluationRow = pole.KernelEvaluationRow</code></a></dt>
+<dd>KernelEvaluationRow is one analytic contribution emitted after kernel evaluation.</dd>
+<dt><a href="#KernelEvaluationSummary"><code>KernelEvaluationSummary = pole.KernelEvaluationSummary</code></a></dt>
+<dd>KernelEvaluationSummary reports how the kernel rows were classified and emitted.</dd>
+<dt><a href="#PoleProjectionSummary"><code>PoleProjectionSummary = pole.PoleProjectionSummary</code></a></dt>
+<dd>PoleProjectionSummary reports how evaluated rows were projected to local pole rows.</dd>
 <dt><a href="#BetaAssemblyOptions"><code>BetaAssemblyOptions = beta.BetaAssemblyOptions</code></a></dt>
 <dd>BetaAssemblyOptions selects the subset of pole rows converted to beta rows.</dd>
 <dt><a href="#BetaAssemblySummary"><code>BetaAssemblySummary = beta.BetaAssemblySummary</code></a></dt>
@@ -356,22 +379,30 @@ generated job dispatch without widening the public surface.
 <dl>
 <dt><a href="#reduceLocalTerm"><code>reduceLocalTerm = geometry.reduceLocalTerm</code></a></dt>
 <dd>reduceLocalTerm filters one streamed local geometry term into caller storage.</dd>
+<dt><a href="#streamComponentVertices"><code>streamComponentVertices = rnc.streamComponentVertices</code></a></dt>
+<dd>streamComponentVertices emits the first explicit component-RNC vertex families.</dd>
 <dt><a href="#streamBootstrapVertices"><code>streamBootstrapVertices = rnc.streamBootstrapVertices</code></a></dt>
 <dd>streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.</dd>
 <dt><a href="#streamDiagramCandidates"><code>streamDiagramCandidates = plan.streamDiagramCandidates</code></a></dt>
 <dd>streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.</dd>
+<dt><a href="#streamPairingBranches"><code>streamPairingBranches = pair.streamPairingBranches</code></a></dt>
+<dd>streamPairingBranches enumerates admissible explicit pairings for candidate multisets.</dd>
 <dt><a href="#streamWickSignatures"><code>streamWickSignatures = wick.streamWickSignatures</code></a></dt>
 <dd>streamWickSignatures emits the pairable species-count summary of each candidate multiset.</dd>
 <dt><a href="#streamKernelTerms"><code>streamKernelTerms = reduce.streamKernelTerms</code></a></dt>
 <dd>streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.</dd>
+<dt><a href="#streamKernelTermsFromPairingBranches"><code>streamKernelTermsFromPairingBranches = reduce.streamKernelTermsFromPairingBranches</code></a></dt>
+<dd>streamKernelTermsFromPairingBranches lowers explicit pairing branches to reduced kernel rows.</dd>
 <dt><a href="#streamKernelTermsFromWickSignatures"><code>streamKernelTermsFromWickSignatures = reduce.streamKernelTermsFromWickSignatures</code></a></dt>
 <dd>streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.</dd>
 <dt><a href="#stringbookMS"><code>stringbookMS = scheme.stringbookMS</code></a></dt>
 <dd>stringbookMS returns the fixed dimensional-regularization/minimal-subtraction scheme.</dd>
-<dt><a href="#stringbookBootstrapRules"><code>stringbookBootstrapRules = pole.stringbookBootstrapRules</code></a></dt>
-<dd>stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.</dd>
+<dt><a href="#stringbookBootstrapEvaluations"><code>stringbookBootstrapEvaluations = pole.stringbookBootstrapEvaluations</code></a></dt>
+<dd>stringbookBootstrapEvaluations returns the first explicit evaluation table used for low-loop checks.</dd>
+<dt><a href="#evaluateKernelRows"><code>evaluateKernelRows = pole.evaluateKernelRows</code></a></dt>
+<dd>evaluateKernelRows matches reduced kernel signatures to explicit Laurent/finite evaluation rules.</dd>
 <dt><a href="#extractPoleRows"><code>extractPoleRows = pole.extractPoleRows</code></a></dt>
-<dd>extractPoleRows matches reduced kernel signatures to explicit local pole rules.</dd>
+<dd>extractPoleRows projects the local pole part of evaluated kernel rows.</dd>
 <dt><a href="#assembleBetaRows"><code>assembleBetaRows = beta.assembleBetaRows</code></a></dt>
 <dd>assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.</dd>
 </dl>
@@ -397,18 +428,28 @@ generated job dispatch without widening the public surface.
 <a id="VertexSymmetry"></a>
 <a id="RncVertexRow"></a>
 <a id="RncRequest"></a>
+<a id="streamComponentVertices"></a>
 <a id="streamBootstrapVertices"></a>
 <a id="BackgroundLegCount"></a>
 <a id="DiagramPlanRequest"></a>
 <a id="VertexMultiplicity"></a>
 <a id="DiagramCandidateRow"></a>
 <a id="streamDiagramCandidates"></a>
+<a id="PairSpecies"></a>
+<a id="PairingOccurrence"></a>
+<a id="PairingEntry"></a>
+<a id="PairKernelKind"></a>
+<a id="PairKernelFactor"></a>
+<a id="PairingBranchRow"></a>
+<a id="PairingSummary"></a>
+<a id="streamPairingBranches"></a>
 <a id="WickSignatureRow"></a>
 <a id="WickSignatureSummary"></a>
 <a id="streamWickSignatures"></a>
 <a id="KernelReductionRequest"></a>
 <a id="KernelReductionSummary"></a>
 <a id="streamKernelTerms"></a>
+<a id="streamKernelTermsFromPairingBranches"></a>
 <a id="streamKernelTermsFromWickSignatures"></a>
 <a id="EpsilonSign"></a>
 <a id="SubtractionScheme"></a>
@@ -423,10 +464,13 @@ generated job dispatch without widening the public surface.
 <a id="BetaRow"></a>
 <a id="KernelTermRow"></a>
 <a id="LocalityClass"></a>
-<a id="PoleResidue"></a>
-<a id="KernelPoleRule"></a>
-<a id="PoleExtractionSummary"></a>
-<a id="stringbookBootstrapRules"></a>
+<a id="KernelEvaluationContribution"></a>
+<a id="KernelEvaluationRule"></a>
+<a id="KernelEvaluationRow"></a>
+<a id="KernelEvaluationSummary"></a>
+<a id="PoleProjectionSummary"></a>
+<a id="stringbookBootstrapEvaluations"></a>
+<a id="evaluateKernelRows"></a>
 <a id="extractPoleRows"></a>
 <a id="BetaAssemblyOptions"></a>
 <a id="BetaAssemblySummary"></a>
@@ -437,6 +481,7 @@ generated job dispatch without widening the public surface.
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rnc</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rnc_vertices.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">plan</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"diagram_plan.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"pairing_engine.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"wick_signatures.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reduce</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"kernel_signature_reducer.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pole</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"pole_extractor.zig"</span>);
@@ -480,6 +525,8 @@ generated job dispatch without widening the public surface.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncVertexRow</span> = rnc.RncVertexRow;
 <span style="color: #e0d3b9; font-style: italic;">/// RncRequest selects the bootstrap vertex families emitted by the first generator.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncRequest</span> = rnc.RncRequest;
+<span style="color: #e0d3b9; font-style: italic;">/// streamComponentVertices emits the first explicit component-RNC vertex families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamComponentVertices</span> = rnc.streamComponentVertices;
 <span style="color: #e0d3b9; font-style: italic;">/// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamBootstrapVertices</span> = rnc.streamBootstrapVertices;
 <span style="color: #e0d3b9; font-style: italic;">/// BackgroundLegCount fixes the local operator signature required at the end of one branch.
@@ -492,6 +539,22 @@ generated job dispatch without widening the public surface.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DiagramCandidateRow</span> = plan.DiagramCandidateRow;
 <span style="color: #e0d3b9; font-style: italic;">/// streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamDiagramCandidates</span> = plan.streamDiagramCandidates;
+<span style="color: #e0d3b9; font-style: italic;">/// PairSpecies identifies one independently pairable quantum field species.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairSpecies</span> = pair.PairSpecies;
+<span style="color: #e0d3b9; font-style: italic;">/// PairingOccurrence is one flattened quantum field occurrence in a candidate multiset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingOccurrence</span> = pair.PairingOccurrence;
+<span style="color: #e0d3b9; font-style: italic;">/// PairingEntry is one explicit field pairing inside a branch.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingEntry</span> = pair.PairingEntry;
+<span style="color: #e0d3b9; font-style: italic;">/// PairKernelKind names the differentiated free propagator carried by one pair.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairKernelKind</span> = pair.PairKernelKind;
+<span style="color: #e0d3b9; font-style: italic;">/// PairKernelFactor records the local kernel contribution of one explicit pair.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairKernelFactor</span> = pair.PairKernelFactor;
+<span style="color: #e0d3b9; font-style: italic;">/// PairingBranchRow is one explicit pairing branch before kernel reduction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingBranchRow</span> = pair.PairingBranchRow;
+<span style="color: #e0d3b9; font-style: italic;">/// PairingSummary reports how many explicit pairing branches were emitted.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingSummary</span> = pair.PairingSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// streamPairingBranches enumerates admissible explicit pairings for candidate multisets.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamPairingBranches</span> = pair.streamPairingBranches;
 <span style="color: #e0d3b9; font-style: italic;">/// WickSignatureRow is one pairable candidate summary before explicit branch generation.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickSignatureRow</span> = wick.WickSignatureRow;
 <span style="color: #e0d3b9; font-style: italic;">/// WickSignatureSummary reports how many candidates survive the pairability checks.
@@ -504,6 +567,8 @@ generated job dispatch without widening the public surface.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelReductionSummary</span> = reduce.KernelReductionSummary;
 <span style="color: #e0d3b9; font-style: italic;">/// streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamKernelTerms</span> = reduce.streamKernelTerms;
+<span style="color: #e0d3b9; font-style: italic;">/// streamKernelTermsFromPairingBranches lowers explicit pairing branches to reduced kernel rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamKernelTermsFromPairingBranches</span> = reduce.streamKernelTermsFromPairingBranches;
 <span style="color: #e0d3b9; font-style: italic;">/// streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamKernelTermsFromWickSignatures</span> = reduce.streamKernelTermsFromWickSignatures;
 <span style="color: #e0d3b9; font-style: italic;">/// EpsilonSign fixes whether the regulated dimension is 2-epsilon or 2+epsilon.
@@ -528,19 +593,25 @@ generated job dispatch without widening the public surface.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleRow</span> = counterterms.PoleRow;
 <span style="color: #e0d3b9; font-style: italic;">/// BetaRow is one assembled simple-pole contribution in the operator basis.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaRow</span> = counterterms.BetaRow;
-<span style="color: #e0d3b9; font-style: italic;">/// KernelTermRow is one reduced local branch before pole extraction.
+<span style="color: #e0d3b9; font-style: italic;">/// KernelTermRow is one reduced local branch before analytic kernel evaluation.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelTermRow</span> = pole.KernelTermRow;
-<span style="color: #e0d3b9; font-style: italic;">/// LocalityClass records whether one master family contributes a local pole.
+<span style="color: #e0d3b9; font-style: italic;">/// LocalityClass records whether one evaluated contribution is local, nonlocal, or scaleless.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalityClass</span> = pole.LocalityClass;
-<span style="color: #e0d3b9; font-style: italic;">/// PoleResidue stores one Laurent-coefficient contribution for a matched rule.
-</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleResidue</span> = pole.PoleResidue;
-<span style="color: #e0d3b9; font-style: italic;">/// KernelPoleRule maps one reduced kernel signature to local pole data.
-</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelPoleRule</span> = pole.KernelPoleRule;
-<span style="color: #e0d3b9; font-style: italic;">/// PoleExtractionSummary reports how the kernel rows were classified.
-</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleExtractionSummary</span> = pole.PoleExtractionSummary;
-<span style="color: #e0d3b9; font-style: italic;">/// stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.
-</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">stringbookBootstrapRules</span> = pole.stringbookBootstrapRules;
-<span style="color: #e0d3b9; font-style: italic;">/// extractPoleRows matches reduced kernel signatures to explicit local pole rules.
+<span style="color: #e0d3b9; font-style: italic;">/// KernelEvaluationContribution stores one Laurent or finite contribution of a matched kernel family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelEvaluationContribution</span> = pole.KernelEvaluationContribution;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelEvaluationRule maps one reduced kernel signature to explicit evaluated contributions.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelEvaluationRule</span> = pole.KernelEvaluationRule;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelEvaluationRow is one analytic contribution emitted after kernel evaluation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelEvaluationRow</span> = pole.KernelEvaluationRow;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelEvaluationSummary reports how the kernel rows were classified and emitted.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelEvaluationSummary</span> = pole.KernelEvaluationSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// PoleProjectionSummary reports how evaluated rows were projected to local pole rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleProjectionSummary</span> = pole.PoleProjectionSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// stringbookBootstrapEvaluations returns the first explicit evaluation table used for low-loop checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">stringbookBootstrapEvaluations</span> = pole.stringbookBootstrapEvaluations;
+<span style="color: #e0d3b9; font-style: italic;">/// evaluateKernelRows matches reduced kernel signatures to explicit Laurent/finite evaluation rules.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">evaluateKernelRows</span> = pole.evaluateKernelRows;
+<span style="color: #e0d3b9; font-style: italic;">/// extractPoleRows projects the local pole part of evaluated kernel rows.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extractPoleRows</span> = pole.extractPoleRows;
 <span style="color: #e0d3b9; font-style: italic;">/// BetaAssemblyOptions selects the subset of pole rows converted to beta rows.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaAssemblyOptions</span> = beta.BetaAssemblyOptions;
@@ -563,10 +634,14 @@ generated job dispatch without widening the public surface.
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"TensorSlotSort"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"reduceLocalTerm"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"RncVertexRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"streamComponentVertices"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"DiagramCandidateRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"PairingBranchRow"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"WickSignatureRow"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"streamKernelTerms"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"stringbookMS"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"KernelEvaluationRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"evaluateKernelRows"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"PoleRow"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"extractPoleRows"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"assembleBetaRows"</span>));

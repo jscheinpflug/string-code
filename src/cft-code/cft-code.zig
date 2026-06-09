@@ -6,6 +6,10 @@ pub const FreeBoson = preset_impl.FreeBoson;
 pub const Bc = preset_impl.Bc;
 /// FreeFermion groups the public NS free-fermion preset constructors.
 pub const FreeFermion = preset_impl.FreeFermion;
+/// IndexSort classifies typed target indices accepted by runtime preset builders.
+pub const IndexSort = @import("presets/shared.zig").IndexSort;
+/// PrimitivePairKernels exposes primitive free-field pair-kernel classifiers.
+pub const PrimitivePairKernels = @import("presets/primitive_pair_kernels.zig");
 /// EtaXi groups the public eta-xi preset constructors.
 pub const EtaXi = preset_impl.EtaXi;
 /// product builds the generated preset type for a product of independent bulk presets.
@@ -18,6 +22,8 @@ test "root CFT API exposes selected constructors without implementation namespac
     try testing.expect(@hasDecl(@This(), "FreeBoson"));
     try testing.expect(@hasDecl(@This(), "Bc"));
     try testing.expect(@hasDecl(@This(), "FreeFermion"));
+    try testing.expect(@hasDecl(@This(), "IndexSort"));
+    try testing.expect(@hasDecl(@This(), "PrimitivePairKernels"));
     try testing.expect(@hasDecl(@This(), "EtaXi"));
     try testing.expect(@hasDecl(@This(), "product"));
     try testing.expect(@hasDecl(@This(), "boundary"));

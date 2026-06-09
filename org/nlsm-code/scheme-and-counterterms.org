@@ -140,8 +140,15 @@ pub const KernelFamily = enum(u8) {
 pub const KernelSignature = struct {
     family: KernelFamily,
     loop_order: u8,
+    vertex_count: u8 = 0,
+    pair_count: u8 = 0,
+    background_d_x0: u8 = 0,
+    background_dbar_x0: u8 = 0,
     propagator_len: u8 = 0,
     propagator_powers: [8]u8 = [_]u8{0} ** 8,
+    primitive_pair_histogram: [8]u8 = [_]u8{0} ** 8,
+    left_fermion_derivative_order_total: u16 = 0,
+    right_fermion_derivative_order_total: u16 = 0,
     numerator_rank: u8 = 0,
     external_derivative_order: u8 = 0,
 

@@ -1,20 +1,42 @@
 :PROPERTIES:
 :ID:       20260609T204000.000000
 :END:
-#+title: NLSM Pole Extractor
+#+title: NLSM Kernel Evaluator
 #+auto_tangle: t
 #+PROPERTY: header-args:zig :tangle ../../src/nlsm-code/pole_extractor.zig :mkdirp yes
 
-This note implements the first explicit bridge from reduced loop-kernel
-signatures to local pole rows.  The extractor does not know what target
-geometry means.  It only carries the target flavor and the local tensor term
-through unchanged, so the same machinery works for the ordinary real-RNC
-type-II calculation and later CY3/K3 specializations.
+This note widens the old pole-only stage into a real kernel evaluator.  The
+reduced branch rows emitted by the contraction side are matched against an
+explicit analytic rule table.  The output is no longer only the UV pole.
+Instead we emit a streamed analytic row that can carry:
 
-The rule table is intentionally explicit.  The contraction stage emits compact
-=KernelSignature= rows.  The pole extractor matches those signatures against a
-small analytic table derived in the note and emits the local
-[[id:20260609T201500.000000][NLSM Scheme And Counterterms]] rows needed by beta assembly.
+- Laurent poles in \(\epsilon\);
+- local finite pieces;
+- nonlocal finite pieces;
+- explicit powers of \(\log \mu\).
+
+That split matters physically.  For beta functions, only the local pole
+projection is needed.  For more general quantization problems, such as
+perturbed two-point functions and spectrum shifts, the finite and nonlocal
+pieces must survive as first-class output.
+
+The current evaluator is still a bootstrap rule table, but it no longer
+pretends that every two-loop branch with two external derivative legs is the
+same object.  The reduced signature now keeps:
+
+- loop order;
+- vertex count;
+- pair count;
+- separate \(\partial X_0\) and \(\bar\partial X_0\) background-leg counts;
+- primitive pair-kernel histogram;
+- total derivative order on left-moving fermion pairs;
+- total derivative order on right-moving fermion pairs;
+- propagator powers and numerator rank.
+
+This is enough to assign a distinct analytic signature to the first mixed
+supersymmetric two-loop branch built from one left-moving and one right-moving
+connection vertex, even though the current bootstrap rule table still maps it
+to the same placeholder Laurent template as the other nested-bubble examples.
 
 #+begin_src zig
 const std = @import("std");
@@ -22,7 +44,7 @@ const geometry = @import("local_geometry_reducer.zig");
 const scheme = @import("scheme.zig");
 const counterterms = @import("counterterms.zig");
 
-/// KernelTermRow is one reduced local branch before pole extraction.
+/// KernelTermRow is one reduced local branch before analytic kernel evaluation.
 pub const KernelTermRow = struct {
     scheme: scheme.DimRegMS,
     local_operator: counterterms.LocalCountertermKind,
@@ -33,32 +55,68 @@ pub const KernelTermRow = struct {
     term: geometry.TensorTerm,
 };
 
-/// LocalityClass records whether one master family contributes a local pole.
+/// LocalityClass records whether one evaluated contribution is local, nonlocal, or scaleless.
 pub const LocalityClass = enum(u8) {
     local,
     non_local,
     scaleless,
 };
 
-/// PoleResidue stores one Laurent-coefficient contribution for a matched rule.
-pub const PoleResidue = struct {
-    pole_order: u8,
-    residue: counterterms.Rational,
-};
-
-/// KernelPoleRule maps one reduced kernel signature to local pole data.
-pub const KernelPoleRule = struct {
-    signature: counterterms.KernelSignature,
+/// KernelEvaluationContribution stores one Laurent or finite contribution of a matched kernel family.
+pub const KernelEvaluationContribution = struct {
     locality: LocalityClass = .local,
-    residues: []const PoleResidue = &.{},
+    pole_order: u8 = 0,
+    log_mu_power: u8 = 0,
+    coefficient: counterterms.Rational,
 };
 
-/// PoleExtractionSummary reports how the kernel rows were classified.
-pub const PoleExtractionSummary = struct {
-    emitted_pole_count: usize = 0,
+/// KernelEvaluationRule maps one reduced kernel signature to explicit evaluated contributions.
+pub const KernelEvaluationRule = struct {
+    signature: counterterms.KernelSignature,
+    contributions: []const KernelEvaluationContribution = &.{},
+};
+
+/// KernelEvaluationRow is one analytic contribution emitted after kernel evaluation.
+pub const KernelEvaluationRow = struct {
+    scheme: scheme.DimRegMS,
+    local_operator: counterterms.LocalCountertermKind,
+    target_flavor: geometry.GeometryFlavor = .generic_riemannian,
+    loop_order: u8,
+    alpha_prime_power: i16 = 0,
+    locality: LocalityClass,
+    pole_order: u8 = 0,
+    log_mu_power: u8 = 0,
+    coefficient: counterterms.Rational,
+    kernel: counterterms.KernelSignature,
+    term: geometry.TensorTerm,
+
+    /// isPole reports whether the row carries a nonzero Laurent pole.
+    pub fn isPole(self: KernelEvaluationRow) bool {
+        return self.pole_order != 0;
+    }
+
+    /// isFinite reports whether the row contributes at epsilon^0.
+    pub fn isFinite(self: KernelEvaluationRow) bool {
+        return self.pole_order == 0;
+    }
+};
+
+/// KernelEvaluationSummary reports how the kernel rows were classified and emitted.
+pub const KernelEvaluationSummary = struct {
+    emitted_count: usize = 0,
+    emitted_local_count: u32 = 0,
+    emitted_non_local_count: u32 = 0,
+    emitted_finite_count: u32 = 0,
     scaleless_count: u32 = 0,
-    non_local_count: u32 = 0,
     unmatched_count: u32 = 0,
+};
+
+/// PoleProjectionSummary reports how evaluated rows were projected to local pole rows.
+pub const PoleProjectionSummary = struct {
+    emitted_pole_count: usize = 0,
+    skipped_finite_count: u32 = 0,
+    skipped_non_local_count: u32 = 0,
+    skipped_scaleless_count: u32 = 0,
 };
 
 fn sameSignature(left: counterterms.KernelSignature, right: counterterms.KernelSignature) bool {
@@ -67,19 +125,20 @@ fn sameSignature(left: counterterms.KernelSignature, right: counterterms.KernelS
         left.propagator_len == right.propagator_len and
         left.numerator_rank == right.numerator_rank and
         left.external_derivative_order == right.external_derivative_order and
+        std.mem.eql(u8, left.primitive_pair_histogram[0..], right.primitive_pair_histogram[0..]) and
         std.mem.eql(u8, left.propagator_powers[0..], right.propagator_powers[0..]);
 }
 
-fn findRule(rules: []const KernelPoleRule, signature: counterterms.KernelSignature) ?KernelPoleRule {
+fn findRule(rules: []const KernelEvaluationRule, signature: counterterms.KernelSignature) ?KernelEvaluationRule {
     for (rules) |rule| {
         if (sameSignature(rule.signature, signature)) return rule;
     }
     return null;
 }
 
-/// extractPoleRows matches reduced kernel signatures to explicit local pole rules.
-pub fn extractPoleRows(rows: []const KernelTermRow, rules: []const KernelPoleRule, output: []counterterms.PoleRow) !PoleExtractionSummary {
-    var summary = PoleExtractionSummary{};
+/// evaluateKernelRows matches reduced kernel signatures to explicit Laurent/finite evaluation rules.
+pub fn evaluateKernelRows(rows: []const KernelTermRow, rules: []const KernelEvaluationRule, output: []KernelEvaluationRow) !KernelEvaluationSummary {
+    var summary = KernelEvaluationSummary{};
 
     for (rows) |row| {
         if (row.kernel.isScaleless()) {
@@ -92,54 +151,103 @@ pub fn extractPoleRows(rows: []const KernelTermRow, rules: []const KernelPoleRul
             continue;
         };
 
-        switch (rule.locality) {
-            .scaleless => {
-                summary.scaleless_count += 1;
-                continue;
-            },
-            .non_local => {
-                summary.non_local_count += 1;
-                continue;
-            },
-            .local => {},
+        if (rule.contributions.len == 0) {
+            summary.scaleless_count += 1;
+            continue;
         }
 
-        for (rule.residues) |residue| {
-            if (summary.emitted_pole_count == output.len) return error.OutputTooSmall;
-            output[summary.emitted_pole_count] = .{
+        for (rule.contributions) |contribution| {
+            if (contribution.locality == .scaleless) {
+                summary.scaleless_count += 1;
+                continue;
+            }
+            if (summary.emitted_count == output.len) return error.OutputTooSmall;
+
+            output[summary.emitted_count] = .{
                 .scheme = row.scheme,
                 .local_operator = row.local_operator,
                 .target_flavor = row.target_flavor,
                 .loop_order = row.kernel.loop_order,
-                .pole_order = residue.pole_order,
                 .alpha_prime_power = row.alpha_prime_power,
-                .residue = try row.combinatorial.mul(residue.residue),
+                .locality = contribution.locality,
+                .pole_order = contribution.pole_order,
+                .log_mu_power = contribution.log_mu_power,
+                .coefficient = try row.combinatorial.mul(contribution.coefficient),
                 .kernel = row.kernel,
                 .term = row.term,
             };
-            summary.emitted_pole_count += 1;
+            summary.emitted_count += 1;
+            switch (contribution.locality) {
+                .local => summary.emitted_local_count += 1,
+                .non_local => summary.emitted_non_local_count += 1,
+                .scaleless => unreachable,
+            }
+            if (contribution.pole_order == 0) summary.emitted_finite_count += 1;
         }
     }
 
     return summary;
 }
 
-const bubble_residues = [_]PoleResidue{
-    .{ .pole_order = 1, .residue = .{ .numerator = 1, .denominator = 1 } },
+/// extractPoleRows projects the local pole part of evaluated kernel rows.
+pub fn extractPoleRows(rows: []const KernelEvaluationRow, output: []counterterms.PoleRow) !PoleProjectionSummary {
+    var summary = PoleProjectionSummary{};
+
+    for (rows) |row| {
+        switch (row.locality) {
+            .scaleless => {
+                summary.skipped_scaleless_count += 1;
+                continue;
+            },
+            .non_local => {
+                summary.skipped_non_local_count += 1;
+                continue;
+            },
+            .local => {},
+        }
+
+        if (!row.isPole()) {
+            summary.skipped_finite_count += 1;
+            continue;
+        }
+
+        if (summary.emitted_pole_count == output.len) return error.OutputTooSmall;
+        output[summary.emitted_pole_count] = .{
+            .scheme = row.scheme,
+            .local_operator = row.local_operator,
+            .target_flavor = row.target_flavor,
+            .loop_order = row.loop_order,
+            .pole_order = row.pole_order,
+            .alpha_prime_power = row.alpha_prime_power,
+            .residue = row.coefficient,
+            .kernel = row.kernel,
+            .term = row.term,
+        };
+        summary.emitted_pole_count += 1;
+    }
+
+    return summary;
+}
+
+const bubble_contributions = [_]KernelEvaluationContribution{
+    .{ .locality = .local, .pole_order = 1, .coefficient = .{ .numerator = 1, .denominator = 1 } },
+    .{ .locality = .local, .pole_order = 0, .coefficient = .{ .numerator = 2, .denominator = 1 } },
+    .{ .locality = .non_local, .pole_order = 0, .log_mu_power = 1, .coefficient = .{ .numerator = -1, .denominator = 1 } },
 };
 
-const nested_bubble_residues = [_]PoleResidue{
-    .{ .pole_order = 2, .residue = .{ .numerator = 1, .denominator = 2 } },
-    .{ .pole_order = 1, .residue = .{ .numerator = 3, .denominator = 2 } },
+const nested_bubble_contributions = [_]KernelEvaluationContribution{
+    .{ .locality = .local, .pole_order = 2, .coefficient = .{ .numerator = 1, .denominator = 2 } },
+    .{ .locality = .local, .pole_order = 1, .coefficient = .{ .numerator = 3, .denominator = 2 } },
+    .{ .locality = .local, .pole_order = 0, .log_mu_power = 1, .coefficient = .{ .numerator = 5, .denominator = 2 } },
 };
 
-const bootstrap_rules = [_]KernelPoleRule{
+const bootstrap_rules = [_]KernelEvaluationRule{
     .{
         .signature = .{
             .family = .scaleless_tadpole,
             .loop_order = 1,
         },
-        .locality = .scaleless,
+        .contributions = &.{},
     },
     .{
         .signature = .{
@@ -147,9 +255,10 @@ const bootstrap_rules = [_]KernelPoleRule{
             .loop_order = 1,
             .propagator_len = 2,
             .propagator_powers = [_]u8{ 1, 1, 0, 0, 0, 0, 0, 0 },
+            .primitive_pair_histogram = [_]u8{ 1, 0, 0, 0, 0, 0, 0, 0 },
             .external_derivative_order = 2,
         },
-        .residues = &bubble_residues,
+        .contributions = &bubble_contributions,
     },
     .{
         .signature = .{
@@ -157,18 +266,19 @@ const bootstrap_rules = [_]KernelPoleRule{
             .loop_order = 2,
             .propagator_len = 4,
             .propagator_powers = [_]u8{ 1, 1, 1, 1, 0, 0, 0, 0 },
+            .primitive_pair_histogram = [_]u8{ 2, 0, 0, 0, 0, 0, 0, 0 },
             .external_derivative_order = 2,
         },
-        .residues = &nested_bubble_residues,
+        .contributions = &nested_bubble_contributions,
     },
 };
 
-/// stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.
-pub fn stringbookBootstrapRules() []const KernelPoleRule {
+/// stringbookBootstrapEvaluations returns the first explicit evaluation table used for low-loop checks.
+pub fn stringbookBootstrapEvaluations() []const KernelEvaluationRule {
     return &bootstrap_rules;
 }
 
-test "pole extractor emits local rows from matched signatures" {
+test "kernel evaluator emits pole, finite, and nonlocal rows from matched signatures" {
     const testing = std.testing;
     const slots = [_]geometry.TensorSlot{
         .{ .id = 1, .sort = .real_tangent },
@@ -191,11 +301,15 @@ test "pole extractor emits local rows from matched signatures" {
         .term = .{ .atoms = &atoms },
     }};
 
-    var output: [2]counterterms.PoleRow = undefined;
-    const summary = try extractPoleRows(&rows, stringbookBootstrapRules(), &output);
-    try testing.expectEqual(@as(usize, 1), summary.emitted_pole_count);
+    var output: [4]KernelEvaluationRow = undefined;
+    const summary = try evaluateKernelRows(&rows, stringbookBootstrapEvaluations(), &output);
+    try testing.expectEqual(@as(usize, 3), summary.emitted_count);
+    try testing.expectEqual(@as(u32, 2), summary.emitted_local_count);
+    try testing.expectEqual(@as(u32, 1), summary.emitted_non_local_count);
+    try testing.expectEqual(@as(u32, 2), summary.emitted_finite_count);
     try testing.expectEqual(@as(u8, 1), output[0].pole_order);
-    try testing.expectEqual(counterterms.LocalCountertermKind.metric_beta, output[0].local_operator);
+    try testing.expectEqual(@as(u8, 1), output[2].log_mu_power);
+    try testing.expectEqual(LocalityClass.non_local, output[2].locality);
 }
 
 test "pole extractor preserves calabi-yau target flavor for later quotients" {
@@ -220,14 +334,62 @@ test "pole extractor preserves calabi-yau target flavor for later quotients" {
         .term = .{ .atoms = &atoms },
     }};
 
-    var output: [4]counterterms.PoleRow = undefined;
-    const summary = try extractPoleRows(&rows, stringbookBootstrapRules(), &output);
-    try testing.expectEqual(@as(usize, 2), summary.emitted_pole_count);
-    try testing.expectEqual(geometry.GeometryFlavor.calabi_yau, output[0].target_flavor);
-    try testing.expectEqual(counterterms.LocalCountertermKind.kahler_potential_beta, output[0].local_operator);
+    var evaluated: [4]KernelEvaluationRow = undefined;
+    const evaluation_summary = try evaluateKernelRows(&rows, stringbookBootstrapEvaluations(), &evaluated);
+    try testing.expectEqual(@as(usize, 3), evaluation_summary.emitted_count);
+    try testing.expectEqual(geometry.GeometryFlavor.calabi_yau, evaluated[0].target_flavor);
+
+    var poles: [4]counterterms.PoleRow = undefined;
+    const pole_summary = try extractPoleRows(evaluated[0..evaluation_summary.emitted_count], &poles);
+    try testing.expectEqual(@as(usize, 2), pole_summary.emitted_pole_count);
+    try testing.expectEqual(counterterms.LocalCountertermKind.kahler_potential_beta, poles[0].local_operator);
+    try testing.expectEqual(geometry.GeometryFlavor.calabi_yau, poles[0].target_flavor);
 }
 
-test "pole extractor drops scaleless signatures and reports unmatched rows" {
+test "pole extractor drops finite and nonlocal evaluated rows" {
+    const testing = std.testing;
+    const rows = [_]KernelEvaluationRow{
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 1,
+            .locality = .local,
+            .pole_order = 0,
+            .coefficient = .{ .numerator = 2, .denominator = 1 },
+            .kernel = .{ .family = .bubble, .loop_order = 1 },
+            .term = .{},
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 1,
+            .locality = .non_local,
+            .log_mu_power = 1,
+            .coefficient = .{ .numerator = -1, .denominator = 1 },
+            .kernel = .{ .family = .bubble, .loop_order = 1 },
+            .term = .{},
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 1,
+            .locality = .local,
+            .pole_order = 1,
+            .coefficient = .{ .numerator = 1, .denominator = 3 },
+            .kernel = .{ .family = .bubble, .loop_order = 1 },
+            .term = .{},
+        },
+    };
+
+    var output: [2]counterterms.PoleRow = undefined;
+    const summary = try extractPoleRows(&rows, &output);
+    try testing.expectEqual(@as(usize, 1), summary.emitted_pole_count);
+    try testing.expectEqual(@as(u32, 1), summary.skipped_finite_count);
+    try testing.expectEqual(@as(u32, 1), summary.skipped_non_local_count);
+    try testing.expectEqual(@as(u8, 1), output[0].pole_order);
+}
+
+test "kernel evaluator reports scaleless and unmatched rows" {
     const testing = std.testing;
     const rows = [_]KernelTermRow{
         .{
@@ -244,10 +406,10 @@ test "pole extractor drops scaleless signatures and reports unmatched rows" {
         },
     };
 
-    var output: [1]counterterms.PoleRow = undefined;
-    const summary = try extractPoleRows(&rows, stringbookBootstrapRules(), &output);
+    var output: [1]KernelEvaluationRow = undefined;
+    const summary = try evaluateKernelRows(&rows, stringbookBootstrapEvaluations(), &output);
     try testing.expectEqual(@as(u32, 1), summary.scaleless_count);
     try testing.expectEqual(@as(u32, 1), summary.unmatched_count);
-    try testing.expectEqual(@as(usize, 0), summary.emitted_pole_count);
+    try testing.expectEqual(@as(usize, 0), summary.emitted_count);
 }
 #+end_src

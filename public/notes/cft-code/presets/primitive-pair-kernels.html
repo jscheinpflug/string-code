@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 15:56 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Primitive Pair Kernels</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">Primitive Pair Kernels</h1>
+<p>
+This note exposes the smallest reusable slice of the free-field preset data for
+consumers that need local contraction type information but do not need the full
+correlator engine.  The intended client is <code>nlsm-code</code>: it already performs its
+own streamed branch enumeration, but it should not re-declare which primitive
+free-boson and free-fermion pair kernels exist.
+</p>
+
+<p>
+The rule inventory is exactly the one already encoded in the sphere presets:
+</p>
+
+<ul class="org-ul">
+<li>free boson: \(X X\), \(\partial X\,X\), \(\bar\partial X\,X\),
+\(\partial X\,\partial X\), \(\bar\partial X\,\bar\partial X\);</li>
+<li>free fermion: \(\psi\psi\), \(\partial\psi\,\psi\),
+\(\partial\psi\,\partial\psi\), and the antiholomorphic copy
+\(\tilde\psi\tilde\psi\), \(\bar\partial\tilde\psi\,\tilde\psi\),
+\(\bar\partial\tilde\psi\,\bar\partial\tilde\psi\).</li>
+</ul>
+
+<p>
+In particular there is no primitive mixed \(\partial X\,\bar\partial X\) Wick
+rule here.  If a later scheme needs a contact term built from that structure,
+it should be introduced in the regularization layer, not invented as a free
+pair kernel.
+</p>
+
+<p>
+On the fermion side the differentiated kernels are not new input.  They are
+derived mechanically from the chiral free propagators,
+\[
+\langle \psi(z)\psi(w)\rangle \sim {1\over z-w},
+\qquad
+\langle \tilde\psi(\bar z)\tilde\psi(\bar w)\rangle \sim {1\over \bar z-\bar w},
+\]
+by applying at most one derivative to each side in the current primitive
+inventory.  That is why the classifier accepts derivative profiles and returns
+the corresponding differentiated chiral kernel rather than treating
+\(\partial\psi\,\psi\) as unrelated new data.
+</p>
+
+<a id="DerivativeProfile"></a>
+<a id="BosonSpherePairKernel"></a>
+<a id="FermionSpherePairKernel"></a>
+<a id="classifyFreeBosonSphereKernel"></a>
+<a id="classifyFreeFermionSphereKernel"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org73b196b"><span style="color: #e0d3b9; font-style: italic;">/// DerivativeProfile records the local worldsheet derivative content of one free field.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DerivativeProfile</span> = <span style="color: #fb4934; font-weight: bold;">packed</span> <span style="color: #fb4934; font-weight: bold;">struct</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BosonSpherePairKernel names one primitive free-boson sphere pair kernel.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BosonSpherePairKernel</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    x_x_logarithm,
+    d_x_x_logarithm,
+    d_xt_x_logarithm,
+    d_x_d_x_pole,
+    d_xt_d_xt_pole,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// FermionSpherePairKernel records the chiral derivative count of one free-fermion pair kernel.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FermionSpherePairKernel</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_total</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validBosonProfile</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">profile</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (profile.holomorphic != 0 <span style="color: #fb4934; font-weight: bold;">and</span> profile.antiholomorphic != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> profile.holomorphic &lt;= 1 <span style="color: #fb4934; font-weight: bold;">and</span> profile.antiholomorphic &lt;= 1;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// classifyFreeBosonSphereKernel returns the primitive free-boson sphere kernel for one field pair.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">classifyFreeBosonSphereKernel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>) ?BosonSpherePairKernel {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!validBosonProfile(left) <span style="color: #fb4934; font-weight: bold;">or</span> !validBosonProfile(right)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic_total</span> = left.holomorphic + right.holomorphic;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic_total</span> = left.antiholomorphic + right.antiholomorphic;
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (holomorphic_total == 0 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_total == 0) <span style="color: #fb4934; font-weight: bold;">return</span> .x_x_logarithm;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (holomorphic_total == 1 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_total == 0) <span style="color: #fb4934; font-weight: bold;">return</span> .d_x_x_logarithm;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (holomorphic_total == 0 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_total == 1) <span style="color: #fb4934; font-weight: bold;">return</span> .d_xt_x_logarithm;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (holomorphic_total == 2 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_total == 0) <span style="color: #fb4934; font-weight: bold;">return</span> .d_x_d_x_pole;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (holomorphic_total == 0 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_total == 2) <span style="color: #fb4934; font-weight: bold;">return</span> .d_xt_d_xt_pole;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validFermionProfile</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">profile</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (antiholomorphic) {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (profile.holomorphic != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (profile.antiholomorphic != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// classifyFreeFermionSphereKernel returns the primitive free-fermion sphere kernel for one chirality.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">classifyFreeFermionSphereKernel</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">DerivativeProfile</span>) ?FermionSpherePairKernel {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!validFermionProfile(antiholomorphic, left) <span style="color: #fb4934; font-weight: bold;">or</span> !validFermionProfile(antiholomorphic, right)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .derivative_total = <span style="color: #fb4934; font-weight: bold;">if</span> (antiholomorphic)
+        left.antiholomorphic + right.antiholomorphic
+    <span style="color: #fb4934; font-weight: bold;">else</span>
+        left.holomorphic + right.holomorphic };
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Primitive Pair Kernels</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"primitive boson kernels match the free-boson sphere rule inventory"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.x_x_logarithm, classifyFreeBosonSphereKernel(.{}, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.d_x_x_logarithm, classifyFreeBosonSphereKernel(.{ .holomorphic = 1 }, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.d_x_x_logarithm, classifyFreeBosonSphereKernel(.{}, .{ .holomorphic = 1 }).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.d_xt_x_logarithm, classifyFreeBosonSphereKernel(.{ .antiholomorphic = 1 }, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.d_x_d_x_pole, classifyFreeBosonSphereKernel(.{ .holomorphic = 1 }, .{ .holomorphic = 1 }).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(BosonSpherePairKernel.d_xt_d_xt_pole, classifyFreeBosonSphereKernel(.{ .antiholomorphic = 1 }, .{ .antiholomorphic = 1 }).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(?BosonSpherePairKernel, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>), classifyFreeBosonSphereKernel(.{ .holomorphic = 1 }, .{ .antiholomorphic = 1 }));
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"primitive fermion kernels keep the two chiral copies separate"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 0 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, .{}, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 1 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, .{ .holomorphic = 1 }, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 2 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, .{ .holomorphic = 1 }, .{ .holomorphic = 1 }).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 0 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .{}, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 1 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .{ .antiholomorphic = 1 }, .{}).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FermionSpherePairKernel{ .derivative_total = 7 }, classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, .{ .antiholomorphic = 3 }, .{ .antiholomorphic = 4 }).?);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(?FermionSpherePairKernel, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>), classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, .{ .antiholomorphic = 1 }, .{}));
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

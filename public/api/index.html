@@ -136,6 +136,7 @@
     <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -158,11 +159,14 @@
     <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/contact-terms.html">NLSM Contact Terms</a></li>
     <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
     <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
     <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
-    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
     <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
     <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
@@ -230,6 +234,10 @@
   <dd>Bc groups the public bc-ghost preset constructors.</dd>
   <dt><a href="/notes/cft-code/cft-code.html#FreeFermion"><code>FreeFermion = preset_impl.FreeFermion</code></a></dt>
   <dd>FreeFermion groups the public NS free-fermion preset constructors.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#IndexSort"><code>IndexSort = @import(&quot;presets/shared.zig&quot;).IndexSort</code></a></dt>
+  <dd>IndexSort classifies typed target indices accepted by runtime preset builders.</dd>
+  <dt><a href="/notes/cft-code/cft-code.html#PrimitivePairKernels"><code>PrimitivePairKernels = @import(&quot;presets/primitive_pair_kernels.zig&quot;)</code></a></dt>
+  <dd>PrimitivePairKernels exposes primitive free-field pair-kernel classifiers.</dd>
   <dt><a href="/notes/cft-code/cft-code.html#EtaXi"><code>EtaXi = preset_impl.EtaXi</code></a></dt>
   <dd>EtaXi groups the public eta-xi preset constructors.</dd>
   <dt><a href="/notes/cft-code/cft-code.html#product"><code>product = preset_impl.product</code></a></dt>
@@ -283,6 +291,8 @@
   <dd>RncVertexRow is one streamed local RNC interaction or free quadratic row.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#RncRequest"><code>RncRequest = rnc.RncRequest</code></a></dt>
   <dd>RncRequest selects the bootstrap vertex families emitted by the first generator.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamComponentVertices"><code>streamComponentVertices = rnc.streamComponentVertices</code></a></dt>
+  <dd>streamComponentVertices emits the first explicit component-RNC vertex families.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#streamBootstrapVertices"><code>streamBootstrapVertices = rnc.streamBootstrapVertices</code></a></dt>
   <dd>streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#BackgroundLegCount"><code>BackgroundLegCount = plan.BackgroundLegCount</code></a></dt>
@@ -295,6 +305,22 @@
   <dd>DiagramCandidateRow is one compact candidate multiset before explicit Wick pairing.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#streamDiagramCandidates"><code>streamDiagramCandidates = plan.streamDiagramCandidates</code></a></dt>
   <dd>streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairSpecies"><code>PairSpecies = pair.PairSpecies</code></a></dt>
+  <dd>PairSpecies identifies one independently pairable quantum field species.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairingOccurrence"><code>PairingOccurrence = pair.PairingOccurrence</code></a></dt>
+  <dd>PairingOccurrence is one flattened quantum field occurrence in a candidate multiset.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairingEntry"><code>PairingEntry = pair.PairingEntry</code></a></dt>
+  <dd>PairingEntry is one explicit field pairing inside a branch.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairKernelKind"><code>PairKernelKind = pair.PairKernelKind</code></a></dt>
+  <dd>PairKernelKind names the differentiated free propagator carried by one pair.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairKernelFactor"><code>PairKernelFactor = pair.PairKernelFactor</code></a></dt>
+  <dd>PairKernelFactor records the local kernel contribution of one explicit pair.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairingBranchRow"><code>PairingBranchRow = pair.PairingBranchRow</code></a></dt>
+  <dd>PairingBranchRow is one explicit pairing branch before kernel reduction.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PairingSummary"><code>PairingSummary = pair.PairingSummary</code></a></dt>
+  <dd>PairingSummary reports how many explicit pairing branches were emitted.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamPairingBranches"><code>streamPairingBranches = pair.streamPairingBranches</code></a></dt>
+  <dd>streamPairingBranches enumerates admissible explicit pairings for candidate multisets.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#WickSignatureRow"><code>WickSignatureRow = wick.WickSignatureRow</code></a></dt>
   <dd>WickSignatureRow is one pairable candidate summary before explicit branch generation.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#WickSignatureSummary"><code>WickSignatureSummary = wick.WickSignatureSummary</code></a></dt>
@@ -307,6 +333,8 @@
   <dd>KernelReductionSummary reports how many candidates were lowered successfully.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#streamKernelTerms"><code>streamKernelTerms = reduce.streamKernelTerms</code></a></dt>
   <dd>streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamKernelTermsFromPairingBranches"><code>streamKernelTermsFromPairingBranches = reduce.streamKernelTermsFromPairingBranches</code></a></dt>
+  <dd>streamKernelTermsFromPairingBranches lowers explicit pairing branches to reduced kernel rows.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#streamKernelTermsFromWickSignatures"><code>streamKernelTermsFromWickSignatures = reduce.streamKernelTermsFromWickSignatures</code></a></dt>
   <dd>streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#EpsilonSign"><code>EpsilonSign = scheme.EpsilonSign</code></a></dt>
@@ -332,19 +360,25 @@
   <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaRow"><code>BetaRow = counterterms.BetaRow</code></a></dt>
   <dd>BetaRow is one assembled simple-pole contribution in the operator basis.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelTermRow"><code>KernelTermRow = pole.KernelTermRow</code></a></dt>
-  <dd>KernelTermRow is one reduced local branch before pole extraction.</dd>
+  <dd>KernelTermRow is one reduced local branch before analytic kernel evaluation.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#LocalityClass"><code>LocalityClass = pole.LocalityClass</code></a></dt>
-  <dd>LocalityClass records whether one master family contributes a local pole.</dd>
-  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleResidue"><code>PoleResidue = pole.PoleResidue</code></a></dt>
-  <dd>PoleResidue stores one Laurent-coefficient contribution for a matched rule.</dd>
-  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelPoleRule"><code>KernelPoleRule = pole.KernelPoleRule</code></a></dt>
-  <dd>KernelPoleRule maps one reduced kernel signature to local pole data.</dd>
-  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleExtractionSummary"><code>PoleExtractionSummary = pole.PoleExtractionSummary</code></a></dt>
-  <dd>PoleExtractionSummary reports how the kernel rows were classified.</dd>
-  <dt><a href="/notes/nlsm-code/nlsm-code.html#stringbookBootstrapRules"><code>stringbookBootstrapRules = pole.stringbookBootstrapRules</code></a></dt>
-  <dd>stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.</dd>
+  <dd>LocalityClass records whether one evaluated contribution is local, nonlocal, or scaleless.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelEvaluationContribution"><code>KernelEvaluationContribution = pole.KernelEvaluationContribution</code></a></dt>
+  <dd>KernelEvaluationContribution stores one Laurent or finite contribution of a matched kernel family.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelEvaluationRule"><code>KernelEvaluationRule = pole.KernelEvaluationRule</code></a></dt>
+  <dd>KernelEvaluationRule maps one reduced kernel signature to explicit evaluated contributions.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelEvaluationRow"><code>KernelEvaluationRow = pole.KernelEvaluationRow</code></a></dt>
+  <dd>KernelEvaluationRow is one analytic contribution emitted after kernel evaluation.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelEvaluationSummary"><code>KernelEvaluationSummary = pole.KernelEvaluationSummary</code></a></dt>
+  <dd>KernelEvaluationSummary reports how the kernel rows were classified and emitted.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleProjectionSummary"><code>PoleProjectionSummary = pole.PoleProjectionSummary</code></a></dt>
+  <dd>PoleProjectionSummary reports how evaluated rows were projected to local pole rows.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#stringbookBootstrapEvaluations"><code>stringbookBootstrapEvaluations = pole.stringbookBootstrapEvaluations</code></a></dt>
+  <dd>stringbookBootstrapEvaluations returns the first explicit evaluation table used for low-loop checks.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#evaluateKernelRows"><code>evaluateKernelRows = pole.evaluateKernelRows</code></a></dt>
+  <dd>evaluateKernelRows matches reduced kernel signatures to explicit Laurent/finite evaluation rules.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#extractPoleRows"><code>extractPoleRows = pole.extractPoleRows</code></a></dt>
-  <dd>extractPoleRows matches reduced kernel signatures to explicit local pole rules.</dd>
+  <dd>extractPoleRows projects the local pole part of evaluated kernel rows.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaAssemblyOptions"><code>BetaAssemblyOptions = beta.BetaAssemblyOptions</code></a></dt>
   <dd>BetaAssemblyOptions selects the subset of pole rows converted to beta rows.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaAssemblySummary"><code>BetaAssemblySummary = beta.BetaAssemblySummary</code></a></dt>

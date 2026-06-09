@@ -1,0 +1,1019 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 16:19 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Component RNC Expansion</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Component RNC Expansion</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org617311b">Explicit Vertex Families</a></li>
+<li><a href="#orgd8a76da">Lowering Convention For Raw Fermion Derivatives</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note adds the first real component-level source table behind the RNC
+vertex generator.  The goal is narrow: replace the fully hand-written finished
+vertex catalog by a source table whose rows still remember <i>which</i> component
+term they came from.
+</p>
+
+<p>
+This is not yet the full type-II expansion.  It is the first explicit slice:
+</p>
+
+<ul class="org-ul">
+<li>bosonic kinetic term;</li>
+<li>bosonic \(R\,\xi^2 \partial X_0 \bar\partial X_0\) term;</li>
+<li>bosonic \(\nabla R\,\xi^3 \partial X_0 \bar\partial X_0\) term;</li>
+<li>bosonic \(\nabla^2 R\,\xi^4 \partial X_0 \bar\partial X_0\) term;</li>
+<li>bosonic \(R^2 \xi^4 \partial X_0 \bar\partial X_0\) term;</li>
+<li>left/right fermion-connection terms
+\(\bar\partial X_0\,\xi\,\psi_L\psi_L\,R\),
+\(\partial X_0\,\xi\,\psi_R\psi_R\,R\),
+\(\bar\partial X_0\,\xi^2\,\psi_L\psi_L\,\nabla R\),
+\(\partial X_0\,\xi^2\,\psi_R\psi_R\,\nabla R\);</li>
+<li>raw metric-expansion fermion-derivative terms
+\(\xi^2\,\psi_L\,\bar\partial\psi_L\,R\),
+\(\xi^2\,\psi_R\,\partial\psi_R\,R\),
+stored on a contact-only channel;</li>
+<li>the \(N=(1,1)\) quartic fermion-curvature term.</li>
+</ul>
+
+<p>
+That is enough to stop pretending the metric-sector source is just a finished
+row list, while still keeping the code lean and stream-first.
+</p>
+
+<p>
+The mixed fermion rows are the first terms generated by expanding the target
+connection in
+\[
+G<sub>&mu;&nu;</sub>(X)&psi;^&mu; {\cal D}<sub>\bar z</sub>&psi;^&nu;
+</p>
+<ul class="org-ul">
+<li>G<sub>&mu;&nu;</sub>(X)\widetilde&psi;^&mu; {\cal D}<sub>z</sub>\widetilde&psi;^&nu;</li>
+</ul>
+<p>
+\]
+about \(X_0\) in real RNC.  Since \(\Gamma^\mu{}_{\nu\rho}(X_0)=0\), the first
+nontrivial terms come from the Taylor series of the connection itself,
+\[
+&Gamma;^&mu;<sub>&nu;&rho;</sub>(X<sub>0</sub>+&xi;)
+= -{1\over 3}\big(R^&mu;<sub>&nu;&rho;&sigma;</sub>+R^&mu;<sub>&rho;&nu;&sigma;</sub>\big)&xi;^&sigma;
+-{1\over 6}&nabla;<sub>&lambda;</sub>
+\big(R^&mu;<sub>&nu;&rho;&sigma;</sub>+R^&mu;<sub>&rho;&nu;&sigma;</sub>\big)&xi;^&sigma;&xi;^&lambda;
+</p>
+<ul class="org-ul">
+<li>&ctdot;.</li>
+</ul>
+<p>
+\]
+This is why the mixed \(R\) rows carry coefficient \(-1/3\), and the mixed
+\(\nabla R\) rows carry coefficient \(-1/6\).  The current source table keeps
+only the terms with one surviving background leg \(\partial X_0\) or
+\(\bar\partial X_0\), because those are the first mixed vertices needed by the
+metric-counterterm pipeline already implemented downstream.
+</p>
+<div id="outline-container-org617311b" class="outline-2">
+<h2 id="org617311b">Explicit Vertex Families</h2>
+<div class="outline-text-2" id="text-org617311b">
+<p>
+This section writes the actual local vertices used by the current source
+table.  The code below does not try to re-derive them symbolically.  Instead,
+it stores the field content, background legs, tensor family, and rational
+coefficient for each term in a compact streamed row.  The formulas here fix
+what those rows mean.
+</p>
+
+<p>
+We keep only the terms relevant to the present metric-counterterm pipeline,
+namely those with surviving background legs \(\partial X_0\) and
+\(\bar\partial X_0\), together with the quartic fermion-curvature term.  Up to
+overall conventions already fixed in the component action note, the vertices
+currently implemented are:
+</p>
+
+<ol class="org-ol">
+<li>Free bosonic kinetic term</li>
+</ol>
+
+<p>
+\[
+V_{\rm kin}^{(\xi)}
+= g_{\mu\nu}(X_0)\,\partial \xi^\mu\,\bar\partial \xi^\nu.
+\]
+</p>
+
+<p>
+This is the quadratic term that defines the free bosonic propagator.
+</p>
+
+<ol class="org-ol">
+<li>Bosonic curvature mass vertex</li>
+</ol>
+
+<p>
+\[
+V_{R\xi^2}
+= {1\over 3}\,
+R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\rho \xi^\sigma\,
+\partial X_0^\mu \bar\partial X_0^\nu.
+\]
+</p>
+
+<p>
+The row therefore carries coefficient \(+1\) and symmetry denominator \(3\).
+</p>
+
+<ol class="org-ol">
+<li>Bosonic first-derivative curvature vertex</li>
+</ol>
+
+<p>
+\[
+V_{\nabla R\,\xi^3}
+= {1\over 6}\,
+\nabla_\lambda R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\lambda \xi^\rho \xi^\sigma\,
+\partial X_0^\mu \bar\partial X_0^\nu.
+\]
+</p>
+
+<p>
+The row carries coefficient \(+1\) and symmetry denominator \(6\).
+</p>
+
+<ol class="org-ol">
+<li>Bosonic second-derivative curvature vertex</li>
+</ol>
+
+<p>
+\[
+V_{\nabla^2 R\,\xi^4}
+= {1\over 20}\,
+\nabla_\kappa \nabla_\lambda R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\kappa \xi^\lambda \xi^\rho \xi^\sigma\,
+\partial X_0^\mu \bar\partial X_0^\nu.
+\]
+</p>
+
+<p>
+The row carries coefficient \(+1\) and symmetry denominator \(20\).
+</p>
+
+<ol class="org-ol">
+<li>Bosonic \(R^2 \xi^4\) vertex</li>
+</ol>
+
+<p>
+\[
+V_{R^2\xi^4}
+= {2\over 45}\,
+R_{\mu\rho\sigma\alpha}(X_0)\,
+R^\alpha{}_{\lambda\kappa\nu}(X_0)\,
+\xi^\rho \xi^\sigma \xi^\lambda \xi^\kappa\,
+\partial X_0^\mu \bar\partial X_0^\nu.
+\]
+</p>
+
+<p>
+This is the first composite-curvature bosonic vertex in the current table, so
+the row carries coefficient \(2\) and symmetry denominator \(45\).
+</p>
+
+<ol class="org-ol">
+<li>Left-moving connection-curvature mixed vertex</li>
+</ol>
+
+<p>
+\[
+V^{(L)}_{\Gamma \sim R\xi}
+= -{1\over 3}\,
+\bar\partial X_0^\rho\,
+\big(R_{\mu\rho\nu\sigma}+R_{\nu\rho\mu\sigma}\big)(X_0)\,
+\xi^\sigma\,
+\psi_L^\mu \psi_L^\nu.
+\]
+</p>
+
+<p>
+The code stores this as one \(\xi\), two left-moving fermions, one surviving
+\(\bar\partial X_0\) leg, one Riemann tensor, coefficient \(-1\), denominator
+\(3\).
+</p>
+
+<ol class="org-ol">
+<li>Right-moving connection-curvature mixed vertex</li>
+</ol>
+
+<p>
+\[
+V^{(R)}_{\Gamma \sim R\xi}
+= -{1\over 3}\,
+\partial X_0^\rho\,
+\big(R_{\mu\rho\nu\sigma}+R_{\nu\rho\mu\sigma}\big)(X_0)\,
+\xi^\sigma\,
+\psi_R^\mu \psi_R^\nu.
+\]
+</p>
+
+<p>
+This is the right-moving copy of the previous vertex, differing only in the
+surviving background leg and fermion chirality.
+</p>
+
+<ol class="org-ol">
+<li>Left-moving first-derivative connection-curvature mixed vertex</li>
+</ol>
+
+<p>
+\[
+V^{(L)}_{\Gamma \sim \nabla R\,\xi^2}
+= -{1\over 6}\,
+\bar\partial X_0^\rho\,
+\nabla_\lambda
+\big(R_{\mu\rho\nu\sigma}+R_{\nu\rho\mu\sigma}\big)(X_0)\,
+\xi^\lambda \xi^\sigma\,
+\psi_L^\mu \psi_L^\nu.
+\]
+</p>
+
+<p>
+The row carries coefficient \(-1\), denominator \(6\), two \(\xi\) fields,
+two left-moving fermions, and one covariant-derivative Riemann tensor.
+</p>
+
+<ol class="org-ol">
+<li>Right-moving first-derivative connection-curvature mixed vertex</li>
+</ol>
+
+<p>
+\[
+V^{(R)}_{\Gamma \sim \nabla R\,\xi^2}
+= -{1\over 6}\,
+\partial X_0^\rho\,
+\nabla_\lambda
+\big(R_{\mu\rho\nu\sigma}+R_{\nu\rho\mu\sigma}\big)(X_0)\,
+\xi^\lambda \xi^\sigma\,
+\psi_R^\mu \psi_R^\nu.
+\]
+</p>
+
+<p>
+This is again the chirality-reflected copy of the left-moving vertex.
+</p>
+
+<ol class="org-ol">
+<li>Quartic fermion-curvature vertex</li>
+</ol>
+
+<p>
+\[
+V_{\psi^2\widetilde\psi^2 R}
+= {1\over 4}\,
+R_{\mu\nu\rho\sigma}(X_0)\,
+\psi_L^\mu \psi_L^\nu \psi_R^\rho \psi_R^\sigma.
+\]
+</p>
+
+<p>
+At the current row level we only need the field content and the attached
+Riemann tensor.  The overall normalization convention of the component action
+is fixed once, and the row therefore carries the corresponding single-tensor
+quartic fermion entry.
+</p>
+
+<ol class="org-ol">
+<li>Left-moving raw metric-derivative fermion vertex</li>
+</ol>
+
+<p>
+\[
+V^{(L)}_{g\xi^2\psi\bar\partial\psi}
+= {1\over 3}\,
+R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\rho\xi^\sigma\,
+\psi_L^\mu \bar\partial \psi_L^\nu.
+\]
+</p>
+
+<ol class="org-ol">
+<li>Right-moving raw metric-derivative fermion vertex</li>
+</ol>
+
+<p>
+\[
+V^{(R)}_{g\xi^2\psi\partial\psi}
+= {1\over 3}\,
+R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\rho\xi^\sigma\,
+\psi_R^\mu \partial \psi_R^\nu.
+\]
+</p>
+
+<p>
+These last two rows are real component vertices, and the source table now keeps
+them explicitly.  They are <i>not</i> emitted on the primitive lowering channel.
+Instead they are tagged as <code>contact_only</code>, because in the current free chiral
+scheme they only hit the singular propagator through a contact derivative,
+\[
+\bar\partial_z {1\over z-w} = 2\pi \delta^2(z-w),
+\qquad
+\partial_z {1\over \bar z-\bar w} = 2\pi \delta^2(z-w),
+\]
+up to the standard distributional convention for the right-moving copy.  That
+is enough to say what they are and where they belong in the calculation,
+without pretending that they are ordinary primitive Wick kernels.
+</p>
+
+<p>
+These ten displayed vertices are exactly the families presently emitted for
+the \(N=(1,1)\) source table.  The next missing sector is not another bosonic
+mass-type term.  It is the differentiated-fermion sector coming from the
+metric expansion inside \(g_{\mu\nu}(X)\psi^\mu \bar\partial \psi^\nu\) and
+its right-moving partner.
+</p>
+
+<p>
+The primitive free-field blocker is now gone: <code>cft-code</code> carries arbitrary
+chiral fermion derivative order as data.  The remaining missing step is more
+specific.  The raw component action is written with \(\bar\partial \psi_L\)
+and \(\partial \psi_R\), whereas the free chiral correlator language is
+organized around holomorphic derivatives of \(\psi_L(z)\) and
+antiholomorphic derivatives of \(\psi_R(\bar z)\).  Before new rows are added
+here, that lowering convention has to be written explicitly in the note rather
+than smuggled into the source table.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd8a76da" class="outline-2">
+<h2 id="orgd8a76da">Lowering Convention For Raw Fermion Derivatives</h2>
+<div class="outline-text-2" id="text-orgd8a76da">
+<p>
+The next missing component sector begins with the metric expansion inside the
+fermion kinetic bilinear,
+\[
+G_{\mu\nu}(X)\psi_L^\mu \bar\partial \psi_L^\nu
+\qquad\text{and}\qquad
+G_{\mu\nu}(X)\psi_R^\mu \partial \psi_R^\nu.
+\]
+In real RNC, the first nontrivial coefficient from the metric itself is
+\[
+G<sub>&mu;&nu;</sub>(X)
+= G<sub>&mu;&nu;</sub>(X<sub>0</sub>)
+</p>
+<ul class="org-ul">
+<li>{1\over 3}R<sub>&mu;&rho;&sigma;&nu;</sub>(X<sub>0</sub>)&xi;^&rho;&xi;^&sigma;</li>
+<li>&ctdot;,</li>
+</ul>
+<p>
+\]
+so the raw component vertices would start as
+\[
+V^{(L)}_{g\xi^2\psi\bar\partial\psi}
+= {1\over 3}\,
+R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\rho\xi^\sigma\,
+\psi_L^\mu \bar\partial \psi_L^\nu,
+\]
+\[
+V^{(R)}_{g\xi^2\psi\partial\psi}
+= {1\over 3}\,
+R_{\mu\rho\sigma\nu}(X_0)\,
+\xi^\rho\xi^\sigma\,
+\psi_R^\mu \partial \psi_R^\nu.
+\]
+</p>
+
+<p>
+At the level of the free chiral theory, however, the singular fermion
+two-point functions are
+\[
+\langle \psi_L(z)\psi_L(w)\rangle \sim {1\over z-w},
+\qquad
+\langle \psi_R(\bar z)\psi_R(\bar w)\rangle \sim {1\over \bar z-\bar w}.
+\]
+Therefore the <i>primitive</i> differentiated kernels are obtained by acting with
+\(\partial_z,\partial_w\) on the left-moving pair and
+\(\partial_{\bar z},\partial_{\bar w}\) on the right-moving pair.  A raw
+\(\bar\partial\psi_L\) or \(\partial\psi_R\) does not directly define such a
+primitive singular kernel.  Away from contact terms, it annihilates the free
+chiral propagator.  Any remaining contact contribution belongs to the
+regularization/contact-term policy, not to the primitive free-field inventory.
+</p>
+
+<p>
+This fixes the present lowering convention:
+</p>
+
+<ol class="org-ol">
+<li>a raw worldsheet derivative on a chiral fermion is <i>not</i> lowered
+automatically to a primitive pair kernel of the opposite chirality;</li>
+<li>the raw
+\(g\xi^2\psi\bar\partial\psi\) and \(g\xi^2\psi\partial\psi\) vertices are
+retained in the component source table, but on a separate <code>contact_only</code>
+channel;</li>
+<li>only rows on the <code>primitive</code> channel are emitted by the present
+<code>streamSources</code> API used by <code>rnc_vertices</code>;</li>
+<li>a future contact-term evaluator may request the <code>contact_only</code> rows
+explicitly and combine them with the regularization layer.</li>
+</ol>
+
+<p>
+This is why the present primitive source emission still stops at the
+connection-generated fermion vertices and the quartic fermion-curvature term,
+even though the component table itself now also records the raw metric
+fermion-derivative rows.
+</p>
+
+<p>
+The source module now enforces this boundary directly: only <code>primitive</code> rows
+are required to satisfy the chiral lowering rule that every left-moving
+fermion carries zero antiholomorphic derivative count and every right-moving
+fermion carries zero holomorphic derivative count.  The raw metric
+fermion-derivative rows violate that rule by construction, so they are stored
+on the separate <code>contact_only</code> channel instead of being mis-lowered.
+</p>
+
+<a id="SourceWorldsheet"></a>
+<a id="SourceFieldKind"></a>
+<a id="SourceBackgroundLegKind"></a>
+<a id="SourceVertexTensorKind"></a>
+<a id="SourceFamily"></a>
+<a id="SourceLoweringChannel"></a>
+<a id="SourceDerivatives"></a>
+<a id="SourceField"></a>
+<a id="SourceBackgroundLeg"></a>
+<a id="SourceTensor"></a>
+<a id="ComponentSourceRow"></a>
+<a id="SourceRequest"></a>
+<a id="streamSources"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgb77ac5b"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceWorldsheet selects the component sigma-model field content carried by one source row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceWorldsheet</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    bosonic,
+    n1_1,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceFieldKind identifies one quantum field occurrence in a component source term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceFieldKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    xi,
+    psi_left,
+    psi_right,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceBackgroundLegKind identifies one surviving background leg in a component source term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceBackgroundLegKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    d_x0,
+    dbar_x0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceVertexTensorKind names one background tensor family in the component expansion.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceVertexTensorKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    metric,
+    riemann,
+    covariant_derivative_riemann,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceFamily names the first explicit component RNC families emitted by the source table.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceFamily</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    kinetic,
+    riemann_mass,
+    nabla_riemann_mass,
+    nabla2_riemann_mass,
+    riemann_square_mass,
+    fermion_connection_riemann,
+    fermion_connection_nabla_riemann,
+    fermion_metric_derivative_riemann,
+    fermion_riemann,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceLoweringChannel records whether a source row lowers to primitive Wick kernels or only to contact terms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceLoweringChannel</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    primitive,
+    contact_only,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceDerivatives stores the worldsheet derivative content of one source field.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceDerivatives</span> = <span style="color: #fb4934; font-weight: bold;">packed</span> <span style="color: #fb4934; font-weight: bold;">struct</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceField is one quantum field occurrence in a source row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceField</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceFieldKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = .real_tangent,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceDerivatives</span> = .{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceBackgroundLeg is one uncontracted local background leg.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceBackgroundLeg</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceBackgroundLegKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = .real_tangent,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// SourceTensor is one target-space tensor occurrence in a source row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceTensor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceVertexTensorKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_sorts</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">covariant_derivative_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ComponentSourceRow is one explicit component-level RNC source term before lowering.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ComponentSourceRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">family</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceFamily</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceWorldsheet</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">channel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceLoweringChannel</span> = .primitive,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceField</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">background_legs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceBackgroundLeg</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceTensor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry_denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SourceRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceWorldsheet</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_fermions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_higher_metric_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_contact_only</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span> = SourceDerivatives;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">real</span> = geometry.TensorSlotSort.real_tangent;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_kinetic_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .holomorphic = 1 } },
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .antiholomorphic = 1 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_curvature_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_nabla_curvature_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_nabla2_curvature_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_background_legs</span> = [_]SourceBackgroundLeg{
+    .{ .kind = .d_x0, .target_sort = real },
+    .{ .kind = .dbar_x0, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">metric_tensor_sorts</span> = [_]geometry.TensorSlotSort{ real, real };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">riemann_tensor_sorts</span> = [_]geometry.TensorSlotSort{ real, real, real, real };
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_kinetic_tensors</span> = [_]SourceTensor{
+    .{ .kind = .metric, .slot_sorts = &amp;metric_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_curvature_tensors</span> = [_]SourceTensor{
+    .{ .kind = .riemann, .slot_sorts = &amp;riemann_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_nabla_curvature_tensors</span> = [_]SourceTensor{
+    .{ .kind = .covariant_derivative_riemann, .slot_sorts = &amp;riemann_tensor_sorts, .covariant_derivative_count = 1 },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_nabla2_curvature_tensors</span> = [_]SourceTensor{
+    .{ .kind = .covariant_derivative_riemann, .slot_sorts = &amp;riemann_tensor_sorts, .covariant_derivative_count = 2 },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_riemann_square_tensors</span> = [_]SourceTensor{
+    .{ .kind = .riemann, .slot_sorts = &amp;riemann_tensor_sorts },
+    .{ .kind = .riemann, .slot_sorts = &amp;riemann_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_curvature_fields</span> = [_]SourceField{
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_connection_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_connection_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_nabla_connection_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_nabla_connection_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_metric_derivative_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real, .derivatives = d{ .antiholomorphic = 1 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_metric_derivative_fields</span> = [_]SourceField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real, .derivatives = d{ .holomorphic = 1 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_background_leg</span> = [_]SourceBackgroundLeg{
+    .{ .kind = .dbar_x0, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_background_leg</span> = [_]SourceBackgroundLeg{
+    .{ .kind = .d_x0, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_curvature_tensors</span> = [_]SourceTensor{
+    .{ .kind = .riemann, .slot_sorts = &amp;riemann_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">source_rows</span> = [_]ComponentSourceRow{
+    .{ .family = .kinetic, .worldsheet = .bosonic, .xi_order = 2, .fields = &amp;bosonic_kinetic_fields, .tensors = &amp;bosonic_kinetic_tensors },
+    .{ .family = .riemann_mass, .worldsheet = .bosonic, .xi_order = 2, .fields = &amp;bosonic_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_curvature_tensors, .symmetry_denominator = 3 },
+    .{ .family = .nabla_riemann_mass, .worldsheet = .bosonic, .xi_order = 3, .fields = &amp;bosonic_nabla_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_nabla_curvature_tensors, .symmetry_denominator = 6 },
+    .{ .family = .nabla2_riemann_mass, .worldsheet = .bosonic, .xi_order = 4, .fields = &amp;bosonic_nabla2_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_nabla2_curvature_tensors, .symmetry_denominator = 20 },
+    .{ .family = .riemann_square_mass, .worldsheet = .bosonic, .xi_order = 4, .fields = &amp;bosonic_nabla2_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_riemann_square_tensors, .coefficient = 2, .symmetry_denominator = 45 },
+    .{ .family = .kinetic, .worldsheet = .n1_1, .xi_order = 2, .fields = &amp;bosonic_kinetic_fields, .tensors = &amp;bosonic_kinetic_tensors },
+    .{ .family = .riemann_mass, .worldsheet = .n1_1, .xi_order = 2, .fields = &amp;bosonic_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_curvature_tensors, .symmetry_denominator = 3 },
+    .{ .family = .nabla_riemann_mass, .worldsheet = .n1_1, .xi_order = 3, .fields = &amp;bosonic_nabla_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_nabla_curvature_tensors, .symmetry_denominator = 6 },
+    .{ .family = .nabla2_riemann_mass, .worldsheet = .n1_1, .xi_order = 4, .fields = &amp;bosonic_nabla2_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_nabla2_curvature_tensors, .symmetry_denominator = 20 },
+    .{ .family = .riemann_square_mass, .worldsheet = .n1_1, .xi_order = 4, .fields = &amp;bosonic_nabla2_curvature_fields, .background_legs = &amp;bosonic_background_legs, .tensors = &amp;bosonic_riemann_square_tensors, .coefficient = 2, .symmetry_denominator = 45 },
+    .{ .family = .fermion_connection_riemann, .worldsheet = .n1_1, .xi_order = 1, .fields = &amp;left_fermion_connection_fields, .background_legs = &amp;left_fermion_background_leg, .tensors = &amp;bosonic_curvature_tensors, .coefficient = -1, .symmetry_denominator = 3 },
+    .{ .family = .fermion_connection_riemann, .worldsheet = .n1_1, .xi_order = 1, .fields = &amp;right_fermion_connection_fields, .background_legs = &amp;right_fermion_background_leg, .tensors = &amp;bosonic_curvature_tensors, .coefficient = -1, .symmetry_denominator = 3 },
+    .{ .family = .fermion_connection_nabla_riemann, .worldsheet = .n1_1, .xi_order = 2, .fields = &amp;left_fermion_nabla_connection_fields, .background_legs = &amp;left_fermion_background_leg, .tensors = &amp;bosonic_nabla_curvature_tensors, .coefficient = -1, .symmetry_denominator = 6 },
+    .{ .family = .fermion_connection_nabla_riemann, .worldsheet = .n1_1, .xi_order = 2, .fields = &amp;right_fermion_nabla_connection_fields, .background_legs = &amp;right_fermion_background_leg, .tensors = &amp;bosonic_nabla_curvature_tensors, .coefficient = -1, .symmetry_denominator = 6 },
+    .{ .family = .fermion_metric_derivative_riemann, .worldsheet = .n1_1, .channel = .contact_only, .xi_order = 2, .fields = &amp;left_fermion_metric_derivative_fields, .tensors = &amp;bosonic_curvature_tensors, .symmetry_denominator = 3 },
+    .{ .family = .fermion_metric_derivative_riemann, .worldsheet = .n1_1, .channel = .contact_only, .xi_order = 2, .fields = &amp;right_fermion_metric_derivative_fields, .tensors = &amp;bosonic_curvature_tensors, .symmetry_denominator = 3 },
+    .{ .family = .fermion_riemann, .worldsheet = .n1_1, .xi_order = 0, .fields = &amp;fermion_curvature_fields, .tensors = &amp;fermion_curvature_tensors },
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldMatchesCurrentLowering</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceField</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+        .xi =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .psi_left =&gt; field.derivatives.antiholomorphic == 0,
+        .psi_right =&gt; field.derivatives.holomorphic == 0,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rowMatchesCurrentLowering</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!fieldMatchesCurrentLowering(field)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">matchesRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceRequest</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.worldsheet != request.worldsheet) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.channel == .contact_only <span style="color: #fb4934; font-weight: bold;">and</span> !request.include_contact_only) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order &gt; request.max_xi_order) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!request.include_higher_metric_terms) <span style="color: #fb4934; font-weight: bold;">switch</span> (row.family) {
+        .kinetic, .riemann_mass, .fermion_connection_riemann, .fermion_metric_derivative_riemann, .fermion_riemann =&gt; {},
+        .nabla_riemann_mass, .nabla2_riemann_mass, .riemann_square_mass, .fermion_connection_nabla_riemann =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    };
+    <span style="color: #fb4934; font-weight: bold;">if</span> (request.include_fermions) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+        .psi_left, .psi_right =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        .xi =&gt; {},
+    };
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamSources emits the first explicit component RNC source families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamSources</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SourceRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (source_rows) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!matchesRequest(row, request)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.channel == .primitive <span style="color: #fb4934; font-weight: bold;">and</span> !rowMatchesCurrentLowering(row)) {
+            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedFermionDerivativeLowering;
+        }
+        <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(row);
+    }
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Component RNC Expansion / Lowering Convention For Raw Fermion Derivatives</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"contact-only differentiated fermion metric rows are opt-in"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.count == self.rows.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_rows</span>: [16]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">primitive_sink</span> = Sink{ .rows = &amp;primitive_rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamSources(.{
+        .worldsheet = .n1_1,
+        .max_xi_order = 2,
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .include_higher_metric_terms = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    }, &amp;primitive_sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 6), primitive_sink.count);
+    <span style="color: #fb4934; font-weight: bold;">for</span> (primitive_rows[0..primitive_sink.count]) |row| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(SourceLoweringChannel.primitive, row.channel);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">all_rows</span>: [16]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ComponentSourceRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">all_sink</span> = Sink{ .rows = &amp;all_rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamSources(.{
+        .worldsheet = .n1_1,
+        .max_xi_order = 2,
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .include_higher_metric_terms = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .include_contact_only = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    }, &amp;all_sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 8), all_sink.count);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_left_raw</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_right_raw</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (all_rows[0..all_sink.count]) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.family != .fermion_metric_derivative_riemann) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(SourceLoweringChannel.contact_only, row.channel);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.fields.len != 4) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.fields[2].kind == .psi_left <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].kind == .psi_left <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].derivatives.antiholomorphic == 1) {
+            found_left_raw = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.fields[2].kind == .psi_right <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].kind == .psi_right <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].derivatives.holomorphic == 1) {
+            found_right_raw = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_left_raw);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_right_raw);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

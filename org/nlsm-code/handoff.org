@@ -14,10 +14,13 @@ The implemented pipeline is now:
 
 1. bootstrap RNC vertex rows;
 2. candidate diagram multisets;
-3. Wick-species pairability signatures;
-4. reduced kernel-signature rows;
-5. explicit pole rows from a small rule table;
-6. beta rows from simple poles.
+3. explicit pairing branches driven by the =cft-code= correlator, with
+   differentiated propagator factors;
+4. optional Wick-species pairability summaries;
+5. reduced kernel-signature rows;
+6. evaluated kernel rows carrying pole, finite, and nonlocal data;
+7. explicit pole rows as a projection;
+8. beta rows from simple poles.
 
 The relevant notes and tangled modules are:
 
@@ -26,8 +29,12 @@ The relevant notes and tangled modules are:
   - =src/nlsm-code/counterterms.zig=
 - [[id:20260609T210500.000000][NLSM RNC Vertices]]
   - =src/nlsm-code/rnc_vertices.zig=
+- [[id:20260610T001500.000000][NLSM Component RNC Expansion]]
+  - =src/nlsm-code/component_rnc_expansion.zig=
 - [[id:20260609T212500.000000][NLSM Diagram Plan]]
   - =src/nlsm-code/diagram_plan.zig=
+- [[id:20260609T224500.000000][NLSM Pairing Engine]]
+  - =src/nlsm-code/pairing_engine.zig=
 - [[id:20260609T221500.000000][NLSM Wick Signatures]]
   - =src/nlsm-code/wick_signatures.zig=
 - [[id:20260609T215000.000000][NLSM Kernel Signature Reducer]]
@@ -44,11 +51,117 @@ The current public root exposes:
 - target-geometry reducer rows;
 - RNC vertex rows;
 - diagram candidate rows;
+- pairing branch rows;
 - Wick-signature rows;
 - kernel-term rows;
 - pole rows;
 - beta rows;
 - the fixed stringbook-style \(d=2-\epsilon\) MS scheme.
+
+The current root entry points that matter operationally are:
+
+- =streamBootstrapVertices=
+- =streamDiagramCandidates=
+- =streamPairingBranches=
+- =streamWickSignatures=
+- =streamKernelTerms=
+- =streamKernelTermsFromPairingBranches=
+- =streamKernelTermsFromWickSignatures=
+- =stringbookBootstrapEvaluations=
+- =evaluateKernelRows=
+- =extractPoleRows=
+- =assembleBetaRows=
+
+* Module Contracts
+
+The current module boundaries are already useful and should be preserved unless
+there is a hard reason to change them.
+
+1. =rnc_vertices.zig=
+
+   Owns only vertex rows and the bootstrap catalog.  It should eventually emit
+   the real type-II component RNC expansion, but it should not know anything
+   about poles, beta functions, or target cohomology.
+
+2. =diagram_plan.zig=
+
+   Owns only candidate multisets and loop/background counting.  It is not the
+   place to do Wick contractions or geometry canonicalization.
+
+3. =wick_signatures.zig=
+
+   Owns pairability by quantum species.  It remains a cheap filter and summary
+   layer.  The explicit pairing engine now lives in =pairing_engine.zig=.
+
+4. =kernel_signature_reducer.zig=
+
+   Owns the bridge from candidate or Wick-summary data to reduced kernel rows.
+   It may accumulate combinatorial weights and target tensors, but it should
+   not evaluate master integrals or collapse terms by geometry identities.
+
+5. =pole_extractor.zig=
+
+   Owns the analytic kernel-evaluation map from reduced signatures to Laurent,
+   finite, and nonlocal rows.  Pole extraction is now only a projection of that
+   broader evaluator.
+
+6. =beta_assembly.zig=
+
+   Owns only the simple-pole to beta-row conversion in the fixed MS scheme.
+   It should remain a deterministic post-processing stage over local pole rows.
+
+7. =local_geometry_reducer.zig=
+
+   Owns only cheap local target-geometry quotients.  It is not yet the full
+   tensor canonicalizer.
+
+* Exact Bootstrap Shortcuts Still Present
+
+These shortcuts are intentional for now.  They must be removed in a specific
+order, not all at once.
+
+1. The vertex catalog is fixed by hand.
+
+   This is acceptable only because the current target is the one-loop bootstrap
+   path.  The next real step is to replace this with a streamed component RNC
+   expansion while preserving the same row format.
+
+2. Diagram planning is multiset-level only.
+
+   There is no explicit connected-graph or automorphism analysis beyond the
+   current coarse counting.  That is acceptable for the present bootstrap
+   invariants, but not for the real four-loop job.
+
+3. Wick signatures count species, not pairings.
+
+   =streamWickSignatures= is only a consistency filter plus a compact summary.
+   It is not the actual Wick engine.
+
+4. Kernel reduction still uses a bootstrap kernel dictionary.
+
+   The branch path now consumes explicit pairings and explicit
+   differentiated-propagator rows.  What is still bootstrap is the reduced
+   master-family dictionary used downstream by =pole_extractor.zig=.
+
+5. Kernel evaluation uses a bootstrap rule table.
+
+   The current =stringbookBootstrapEvaluations= table is enough for the low-loop
+   checks only.  It should be treated as scaffolding.
+
+* Open Technical Risks
+
+The next implementer should keep these risks visible:
+
+- candidate rows carry slices into caller-owned storage, so any sink that keeps
+  them must copy the =vertices= slice immediately;
+- combinatorial factors must remain exact rationals all the way through pole
+  extraction;
+- modules that import =cft-code= should be verified through the build graph,
+  since isolated leaf =zig test= runs do not wire sibling package modules;
+- =external_derivative_order= in the current kernel rows refers to surviving
+  background operator legs, not to derivatives on quantum lines;
+- CY3/K3 compatibility depends on preserving =target_flavor= and keeping
+  target-specific quotients out of the generic contraction and pole layers.
 
 * What Is Real Already
 
@@ -57,7 +170,24 @@ The following statements are already true in code:
 - combinatorial rational factors are preserved explicitly;
 - target flavor is carried through the pipeline, so later CY3/K3 quotients can
   reuse the same contraction, pole, and beta layers;
-- a one-loop bootstrap path reaches a beta row end-to-end;
+- a one-loop bootstrap path reaches a beta row end-to-end through explicit
+  pairing branches;
+- mixed \(d\xi\) and \(\bar d\xi\) primitive pairs are now excluded at the
+  pairing stage, matching the current free-field sphere inventory in
+  =cft-code=;
+- the =nlsm-code= build graph now imports =cft-code= directly, so the
+  primitive pair-kernel inventory and the accepted Wick branches are sourced
+  from the worldsheet module rather than kept as a separate NLSM-only copy;
+- action vertices are lowered as local insertions at a common worldsheet point
+  without normal-order protection, because the same-point \(\xi\xi\)
+  contractions inside one interaction vertex are part of the counterterm
+  computation, not something to subtract away in advance;
+- fermion branch signs now survive into =PairingBranchRow= and therefore into
+  the reduced kernel coefficient;
+- the reduced kernel signature now preserves vertex count, pair count, and the
+  separate \(\partial X_0\), \(\bar\partial X_0\) background-leg counts, so
+  the first mixed supersymmetric two-loop branch is no longer collapsed onto
+  the old bosonic placeholder signature;
 - the code remains stream-first and does not materialize large symbolic sums.
 
 This satisfies the immediate =AGENTS.md= constraints:
@@ -74,8 +204,13 @@ Several pieces are still placeholder technology, not the final \(R^4\) engine.
 
 1. RNC vertices
 
-   The current vertex generator emits a fixed bootstrap catalog, not a full
-   component expansion of the type-II action in real RNC.
+   The current vertex generator now lowers a first explicit component source
+   table.  It already includes the pure bosonic metric-sector rows, the first
+   mixed fermion-connection rows
+   \(\partial X_0\,\xi\,\psi\psi\,R\) and
+   \(\partial X_0\,\xi^2\,\psi\psi\,\nabla R\), and the quartic
+   fermion-curvature row.  It is still not the full type-II action in real
+   RNC.
 
 2. Diagram planning
 
@@ -84,14 +219,19 @@ Several pieces are still placeholder technology, not the final \(R^4\) engine.
 
 3. Wick stage
 
-   =wick_signatures.zig= only checks pairability by species and derivative
-   weight.  It is not yet the explicit pairing engine.
+   =pairing_engine.zig= now lowers the current bosonic and =N=(1,1)= bootstrap
+   candidates into the actual =cft-code= correlator and reconstructs pairing
+   branches from the streamed Wick events.  What remains bootstrap is the
+   narrow primitive-kernel classifier that compresses those branch events into
+   the present reduced kernel signature.  =wick_signatures.zig= remains a
+   consistency-summary layer.
 
 4. Kernel reduction
 
-   =kernel_signature_reducer.zig= uses a summary-level mapping from candidate
-   data to kernel signatures.  It does not yet derive signatures from explicit
-   Wick branches.
+   =kernel_signature_reducer.zig= now consumes explicit pairing branches and
+   their differentiated propagator factors, but its reduced signature is still
+   matched against a bootstrap low-loop pole library.  It does not yet encode
+   the full master-family data needed for the four-loop type-II job.
 
 5. Pole rules
 
@@ -110,9 +250,9 @@ Several pieces are still placeholder technology, not the final \(R^4\) engine.
 At handoff time the following commands pass:
 
 #+begin_src text :tangle no
-zig test src/nlsm-code/wick_signatures.zig
+zig build test-nlsm
+zig test src/nlsm-code/pole_extractor.zig
 zig test src/nlsm-code/kernel_signature_reducer.zig
-zig test src/nlsm-code/nlsm-code.zig
 #+end_src
 
 The module-local suites also transitively cover:
@@ -121,6 +261,7 @@ The module-local suites also transitively cover:
 - =counterterms.zig=
 - =rnc_vertices.zig=
 - =diagram_plan.zig=
+- =pairing_engine.zig=
 - =pole_extractor.zig=
 - =beta_assembly.zig=
 - =local_geometry_reducer.zig=
@@ -130,24 +271,44 @@ The module-local suites also transitively cover:
 The next steps should follow the physics dependency graph and should stay
 aligned with =AGENTS.md=: keep modules narrow, stream-first, and literal.
 
-1. Replace Wick summaries with an explicit pairing engine
+1. Widen the reduced kernel signature
 
-   Add a module that consumes one =WickSignatureRow= and enumerates admissible
-   pairings by species and derivative pattern.  It should emit branch rows, not
-   symbolic expressions.  This is the first genuinely necessary step before the
-   four-loop calculation becomes credible.
+   The branch stage now comes from the real correlator backend for the current
+   bootstrap worldsheet models.  The next bottleneck is downstream:
+   =KernelSignature= is still a small low-loop descriptor.  It has to grow to
+   represent the master families needed by the four-loop type-II job.
 
-2. Route kernel reduction through explicit Wick branches
+2. Replace the remaining bootstrap kernel dictionary
 
-   Once pairings are explicit, =kernel_signature_reducer.zig= should stop using
-   the current summary-level shortcut and instead accumulate kernel signatures
-   from actual branch data.
+   =kernel_signature_reducer.zig= already consumes explicit branch kernel data.
+   The next revision should widen the reduced signature so the pole extractor
+   can distinguish the real master families needed beyond the present low-loop
+   scaffold.  The first step of that widening is already done: mixed
+   left/right connection branches now survive as distinct two-loop signatures.
 
 3. Replace the bootstrap RNC catalog with a real type-II component expansion
 
-   Add a note/module for the real RNC component vertices of the \(N=(1,1)\)
-   worldsheet model in ordinary real coordinates.  Keep the row format, replace
-   the source of rows.
+   This work has started: the current component table already replaces the old
+   fixed catalog for the first metric and mixed connection families.  It now
+   also records the raw fermion-metric derivative vertices
+   \(\xi^2\psi_L\bar\partial\psi_L R\),
+   \(\xi^2\psi_R\partial\psi_R R\) on a separate =contact_only= channel.
+   Those rows are part of the component expansion, but they are not emitted by
+   the present primitive lowering path.  The next missing vertex sectors are
+   the higher-order connection terms beyond the present \(-{1\over 3}R\,\xi\)
+   and \(-{1\over 6}\nabla R\,\xi^2\) rows.  The first contact-term boundary is
+   now in code as well: =contact_terms.zig= streams the raw differentiated rows
+   as compact =ContactTermRow= descriptors instead of leaving them implicit.
+
+   This is no longer blocked by primitive free-field support: the chiral
+   fermion derivative count now flows through =cft-code=, the pairing layer,
+   and the reduced kernel signature.  The present boundary is sharper.  The
+   raw component rows are stored, but they are classified as =contact_only=
+   because \(\bar\partial(1/(z-w))\) and \(\partial(1/(\bar z-\bar w))\) are
+   distributional contact terms rather than primitive chiral kernels.  The
+   remaining step is therefore to integrate those =ContactTermRow= descriptors
+   into the same regulated local-evaluation path as the ordinary kernel rows,
+   not to guess a primitive lowering for them.
 
 4. Extend the pole extractor to real master families
 
@@ -165,6 +326,51 @@ aligned with =AGENTS.md=: keep modules narrow, stream-first, and literal.
 
    The effective-action map must remain a post-processing stage.  Do not mix
    it into contraction, pole extraction, or beta assembly.
+
+* Immediate File Targets
+
+The next concrete notes/modules to add should be:
+
+1. revise [[id:20260609T224500.000000][NLSM Pairing Engine]]
+   - keep the current branch row format
+   - replace the bootstrap derivative classifier by =cft-code=-sourced local
+     contraction kernels
+
+2. revise [[id:20260609T215000.000000][NLSM Kernel Signature Reducer]]
+   - widen the reduced signature from the present low-loop bootstrap dictionary
+   - keep branch-driven kernel reduction as the only contraction-facing path
+
+3. =component-rnc-expansion.org=
+   - =src/nlsm-code/component_rnc_expansion.zig=
+   - extend the current component table to the differentiated-fermion sector
+     before attempting the full four-loop type-II vertex budget
+
+4. revise [[id:20260609T204000.000000][NLSM Pole Extractor]]
+   - add named low-loop master-family rules derived once in the note
+
+5. =riemannian-r4-canonicalizer.org=
+   - strengthen the current local geometry reducer for the generic \(R^4\)
+     real-RNC calculation before any CY3/K3 specialization work
+
+* End-To-End Invariant To Preserve
+
+While the implementation evolves, the following bootstrap invariant should keep
+passing:
+
+#+begin_src text :tangle no
+streamBootstrapVertices
+  -> streamDiagramCandidates
+  -> streamPairingBranches
+  -> streamKernelTermsFromPairingBranches
+  -> evaluateKernelRows
+  -> extractPoleRows
+  -> assembleBetaRows
+#+end_src
+
+For the current bosonic one-loop metric check, that path must continue to emit
+one beta row with coefficient \(1/3\).  If that fails while refactoring the
+middle stages, the change should be treated as a regression until the intended
+new normalization is derived and documented explicitly.
 
 * CY3 And K3 Alignment
 

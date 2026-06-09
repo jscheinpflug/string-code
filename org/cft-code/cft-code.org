@@ -20,6 +20,10 @@ pub const FreeBoson = preset_impl.FreeBoson;
 pub const Bc = preset_impl.Bc;
 /// FreeFermion groups the public NS free-fermion preset constructors.
 pub const FreeFermion = preset_impl.FreeFermion;
+/// IndexSort classifies typed target indices accepted by runtime preset builders.
+pub const IndexSort = @import("presets/shared.zig").IndexSort;
+/// PrimitivePairKernels exposes primitive free-field pair-kernel classifiers.
+pub const PrimitivePairKernels = @import("presets/primitive_pair_kernels.zig");
 /// EtaXi groups the public eta-xi preset constructors.
 pub const EtaXi = preset_impl.EtaXi;
 /// product builds the generated preset type for a product of independent bulk presets.
@@ -32,6 +36,8 @@ test "root CFT API exposes selected constructors without implementation namespac
     try testing.expect(@hasDecl(@This(), "FreeBoson"));
     try testing.expect(@hasDecl(@This(), "Bc"));
     try testing.expect(@hasDecl(@This(), "FreeFermion"));
+    try testing.expect(@hasDecl(@This(), "IndexSort"));
+    try testing.expect(@hasDecl(@This(), "PrimitivePairKernels"));
     try testing.expect(@hasDecl(@This(), "EtaXi"));
     try testing.expect(@hasDecl(@This(), "product"));
     try testing.expect(@hasDecl(@This(), "boundary"));
@@ -66,7 +72,9 @@ test "root CFT API exposes selected constructors without implementation namespac
 This root block is the public CFT API for now.  It intentionally groups each
 CFT family behind one compact object and does not export raw Wick-rule data,
 correlator configs, generated-kernel internals, or the preset implementation
-namespace.  Application modules such as on-shell code, SFT code, NLSM code,
-and pure-spinor code should build theories through the constructors above; a
-later public user-defined-CFT DSL should be one deliberate export rather than
-a leak of the preset runtime.
+namespace.  The only additional low-level export is =IndexSort=: NLSM-style
+clients need it to lower typed target indices into the generic free-field
+presets without importing preset internals.  Application modules such as
+on-shell code, SFT code, NLSM code, and pure-spinor code should build theories
+through the constructors above; a later public user-defined-CFT DSL should be
+one deliberate export rather than a leak of the preset runtime.

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:39 -->
+<!-- 2026-06-09 Tue 15:38 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NLSM RNC Vertices</title>
@@ -138,6 +138,7 @@
     <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -160,12 +161,18 @@
     <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
-    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
     <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
     <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
     <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -218,13 +225,25 @@
 <div id="content" class="content">
 <h1 class="title">NLSM RNC Vertices</h1>
 <p>
-This note fixes the streamed row shape used by the RNC vertex stage.  The
-first implementation does not expand the full type-II action automatically.
-It defines the row format and emits a bootstrap family of metric-sector
-vertices sufficient to drive low-loop checks and the later four-loop
-enumerator.  The same row format is used for generic real Riemannian targets
-and for later CY3/K3 specializations; only the target-flavor quotient changes
-downstream.
+This note fixes the streamed row shape used by the RNC vertex stage.  The row
+format stays the same, but the source of rows is now split in two:
+</p>
+
+<ul class="org-ul">
+<li><code>streamBootstrapVertices</code> keeps the old small regression catalog for low-loop
+checks;</li>
+<li><code>streamComponentVertices</code> lowers the first explicit component-RNC source
+table from <a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a>.</li>
+</ul>
+
+<p>
+This is still not the full type-II action.  It is the first real component
+slice: the metric-sector \(R\), \(\nabla R\), \(\nabla^2 R\), and \(R^2\)
+families, the first mixed fermion-connection families from
+\(G_{\mu\nu}\psi^\mu {\cal D}\psi^\nu\), plus the \(N=(1,1)\) quartic
+fermion-curvature term.  The same row format is used for generic real
+Riemannian targets and for later CY3/K3 specializations; only the
+target-flavor quotient changes downstream.
 </p>
 
 <a id="WorldsheetModel"></a>
@@ -238,9 +257,11 @@ downstream.
 <a id="VertexSymmetry"></a>
 <a id="RncVertexRow"></a>
 <a id="RncRequest"></a>
+<a id="streamComponentVertices"></a>
 <a id="streamBootstrapVertices"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="orgd994269"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">component</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"component_rnc_expansion.zig"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
 
 <span style="color: #e0d3b9; font-style: italic;">/// WorldsheetModel selects the free-field content used by the RNC job.
@@ -322,6 +343,37 @@ downstream.
     <span style="color: #83a598; font-weight: bold; font-style: italic;">include_fermions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
 };
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sourceWorldsheet</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetModel</span>) ?component.SourceWorldsheet {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (worldsheet) {
+        .bosonic =&gt; .bosonic,
+        .n1_1 =&gt; .n1_1,
+        .n2_2, .n4_4 =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerFieldKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.SourceFieldKind</span>) FieldKind {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
+        .xi =&gt; .xi,
+        .psi_left =&gt; .psi_left,
+        .psi_right =&gt; .psi_right,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerBackgroundLegKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.SourceBackgroundLegKind</span>) BackgroundLegKind {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
+        .d_x0 =&gt; .d_x0,
+        .dbar_x0 =&gt; .dbar_x0,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerTensorKind</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.SourceVertexTensorKind</span>) VertexTensorKind {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
+        .metric =&gt; .metric,
+        .riemann =&gt; .riemann,
+        .covariant_derivative_riemann =&gt; .covariant_derivative_riemann,
+    };
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">matchesRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncRequest</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
     <span style="color: #fb4934; font-weight: bold;">if</span> (row.worldsheet != request.worldsheet) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
     <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order &gt; request.max_xi_order) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
@@ -332,6 +384,74 @@ downstream.
         .xi =&gt; {},
     };
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitLoweredSource</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields_storage</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexField</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.fields.len &gt; fields_storage.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManySourceFields;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields, 0..) |field, index| {
+        fields_storage[index] = .{
+            .kind = lowerFieldKind(field.kind),
+            .target_sort = field.target_sort,
+            .derivatives = .{
+                .holomorphic = field.derivatives.holomorphic,
+                .antiholomorphic = field.derivatives.antiholomorphic,
+            },
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">legs_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackgroundLeg</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.background_legs.len &gt; legs_storage.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManySourceBackgroundLegs;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.background_legs, 0..) |leg, index| {
+        legs_storage[index] = .{
+            .kind = lowerBackgroundLegKind(leg.kind),
+            .target_sort = leg.target_sort,
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexTensor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.tensors.len &gt; tensors_storage.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManySourceTensors;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.tensors, 0..) |tensor, index| {
+        tensors_storage[index] = .{
+            .kind = lowerTensorKind(tensor.kind),
+            .slot_sorts = tensor.slot_sorts,
+            .covariant_derivative_count = tensor.covariant_derivative_count,
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(.{
+        .worldsheet = <span style="color: #fb4934; font-weight: bold;">switch</span> (row.worldsheet) {
+            .bosonic =&gt; .bosonic,
+            .n1_1 =&gt; .n1_1,
+        },
+        .xi_order = row.xi_order,
+        .fields = fields_storage[0..row.fields.len],
+        .background_legs = legs_storage[0..row.background_legs.len],
+        .tensors = tensors_storage[0..row.tensors.len],
+        .coefficient = row.coefficient,
+        .alpha_prime_power = row.alpha_prime_power,
+        .symmetry = .{ .denominator = row.symmetry_denominator },
+    });
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamComponentVertices emits the first explicit component-RNC vertex families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamComponentVertices</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span> = sourceWorldsheet(request.worldsheet) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LoweringSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        downstream: <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(sink),
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">component.ComponentSourceRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">try</span> emitLoweredSource(row, self.downstream);
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">lowering_sink</span> = LoweringSink{ .downstream = sink };
+    <span style="color: #fb4934; font-weight: bold;">try</span> component.streamSources(.{
+        .worldsheet = worldsheet,
+        .max_xi_order = request.max_xi_order,
+        .include_fermions = request.include_fermions,
+        .include_higher_metric_terms = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+    }, &amp;lowering_sink);
 }
 
 <span style="color: #e0d3b9; font-style: italic;">/// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
@@ -478,12 +598,68 @@ downstream.
     }
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_fermions);
 }
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"component generator emits mixed fermion-connection and higher metric families"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.count == self.rows.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: [16]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{ .rows = &amp;rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamComponentVertices(.{ .worldsheet = .n1_1, .max_xi_order = 4, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }, &amp;sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 10), sink.count);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_nabla_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_nabla2_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_r2</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_left_connection_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_right_connection_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_left_connection_nabla_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_right_connection_nabla_r</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows[0..sink.count]) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order == 3 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].kind == .covariant_derivative_riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].covariant_derivative_count == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.background_legs.len == 2) {
+            found_nabla_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order == 4 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].kind == .covariant_derivative_riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].covariant_derivative_count == 2 <span style="color: #fb4934; font-weight: bold;">and</span> row.background_legs.len == 2) {
+            found_nabla2_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order == 4 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors.len == 2 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].kind == .riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[1].kind == .riemann) {
+            found_r2 = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields.len == 3 <span style="color: #fb4934; font-weight: bold;">and</span> row.background_legs.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].kind == .riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.coefficient == -1 <span style="color: #fb4934; font-weight: bold;">and</span> row.symmetry.denominator == 3) {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (row.background_legs[0].kind == .dbar_x0 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[1].kind == .psi_left <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[2].kind == .psi_left) found_left_connection_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (row.background_legs[0].kind == .d_x0 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[1].kind == .psi_right <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[2].kind == .psi_right) found_right_connection_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order == 2 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields.len == 4 <span style="color: #fb4934; font-weight: bold;">and</span> row.background_legs.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].kind == .covariant_derivative_riemann <span style="color: #fb4934; font-weight: bold;">and</span> row.tensors[0].covariant_derivative_count == 1 <span style="color: #fb4934; font-weight: bold;">and</span> row.coefficient == -1 <span style="color: #fb4934; font-weight: bold;">and</span> row.symmetry.denominator == 6) {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (row.background_legs[0].kind == .dbar_x0 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[2].kind == .psi_left <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].kind == .psi_left) found_left_connection_nabla_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (row.background_legs[0].kind == .d_x0 <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[2].kind == .psi_right <span style="color: #fb4934; font-weight: bold;">and</span> row.fields[3].kind == .psi_right) found_right_connection_nabla_r = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_nabla_r);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_nabla2_r);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_r2);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_left_connection_r);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_right_connection_r);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_left_connection_nabla_r);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_right_connection_nabla_r);
+}
 </pre>
 </div>
 
 </div>
 </div>
 </div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

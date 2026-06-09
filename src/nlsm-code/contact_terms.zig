@@ -1,0 +1,166 @@
+const std = @import("std");
+const geometry = @import("local_geometry_reducer.zig");
+const scheme = @import("scheme.zig");
+const counterterms = @import("counterterms.zig");
+const component = @import("component_rnc_expansion.zig");
+
+/// ContactChirality records which chiral differentiated fermion produced the contact term.
+pub const ContactChirality = enum(u8) {
+    left,
+    right,
+};
+
+/// ContactKernelKind records the local distributional identity used to collapse one raw component row.
+pub const ContactKernelKind = enum(u8) {
+    chiral_fermion_delta,
+};
+
+/// ContactTermRow is one component-level contact contribution before loop-kernel evaluation.
+pub const ContactTermRow = struct {
+    scheme: scheme.DimRegMS,
+    local_operator: counterterms.LocalCountertermKind = .metric_beta,
+    target_flavor: geometry.GeometryFlavor = .generic_riemannian,
+    chirality: ContactChirality,
+    kernel: ContactKernelKind = .chiral_fermion_delta,
+    loop_order: u8 = 1,
+    alpha_prime_power: i16 = 0,
+    coefficient: counterterms.Rational,
+    term: geometry.TensorTerm,
+};
+
+/// ContactRequest selects the component contact rows emitted from the source table.
+pub const ContactRequest = struct {
+    worldsheet: component.SourceWorldsheet = .n1_1,
+    max_xi_order: u8 = 2,
+    target_flavor: geometry.GeometryFlavor = .generic_riemannian,
+    local_operator: counterterms.LocalCountertermKind = .metric_beta,
+    alpha_prime_power: i16 = 0,
+    scheme_override: ?scheme.DimRegMS = null,
+};
+
+fn lowerTensorKind(kind: component.SourceVertexTensorKind) geometry.TensorAtomKind {
+    return switch (kind) {
+        .metric => .metric,
+        .riemann => .riemann,
+        .covariant_derivative_riemann => .covariant_derivative,
+    };
+}
+
+fn termFromSource(row: component.ComponentSourceRow, atoms_storage: []geometry.TensorAtom, slot_storage: []geometry.TensorSlot) !geometry.TensorTerm {
+    if (row.tensors.len > atoms_storage.len) return error.OutputTooSmall;
+
+    var next_slot: usize = 0;
+    for (row.tensors, 0..) |tensor, atom_index| {
+        const slot_count = tensor.slot_sorts.len + tensor.covariant_derivative_count;
+        if (next_slot + slot_count > slot_storage.len) return error.OutputTooSmall;
+
+        const slots = slot_storage[next_slot .. next_slot + tensor.slot_sorts.len];
+        for (tensor.slot_sorts, 0..) |sort, index| {
+            slots[index] = .{
+                .id = @intCast(next_slot + index + 1),
+                .sort = sort,
+            };
+        }
+        next_slot += tensor.slot_sorts.len;
+
+        const derivative_slots = slot_storage[next_slot .. next_slot + tensor.covariant_derivative_count];
+        for (derivative_slots, 0..) |*slot, index| {
+            slot.* = .{
+                .id = @intCast(next_slot + index + 1),
+                .sort = .real_tangent,
+            };
+        }
+        next_slot += tensor.covariant_derivative_count;
+
+        atoms_storage[atom_index] = .{
+            .kind = lowerTensorKind(tensor.kind),
+            .slots = slots,
+            .derivative_slots = derivative_slots,
+        };
+    }
+
+    return .{
+        .coefficient = row.coefficient,
+        .atoms = atoms_storage[0..row.tensors.len],
+    };
+}
+
+fn chiralityFromRow(row: component.ComponentSourceRow) ?ContactChirality {
+    for (row.fields) |field| switch (field.kind) {
+        .psi_left => return .left,
+        .psi_right => return .right,
+        .xi => {},
+    };
+    return null;
+}
+
+fn isSupportedContactRow(row: component.ComponentSourceRow) bool {
+    return row.family == .fermion_metric_derivative_riemann and row.channel == .contact_only;
+}
+
+/// streamContactTerms emits contact-channel component rows as compact local contact descriptors.
+pub fn streamContactTerms(request: ContactRequest, sink: anytype) !void {
+    const SourceSink = struct {
+        downstream: @TypeOf(sink),
+        request: ContactRequest,
+
+        fn emit(self: *@This(), row: component.ComponentSourceRow) !void {
+            if (!isSupportedContactRow(row)) return;
+
+            var atoms_storage: [4]geometry.TensorAtom = undefined;
+            var slot_storage: [16]geometry.TensorSlot = undefined;
+            const chirality = chiralityFromRow(row) orelse return error.InvalidContactRow;
+            const coefficient = (counterterms.Rational{
+                .numerator = row.coefficient,
+                .denominator = row.symmetry_denominator,
+            }).normalized();
+            const term = try termFromSource(row, &atoms_storage, &slot_storage);
+
+            try self.downstream.emit(.{
+                .scheme = self.request.scheme_override orelse scheme.stringbookMS(),
+                .local_operator = self.request.local_operator,
+                .target_flavor = self.request.target_flavor,
+                .chirality = chirality,
+                .kernel = .chiral_fermion_delta,
+                .loop_order = 1,
+                .alpha_prime_power = self.request.alpha_prime_power,
+                .coefficient = coefficient,
+                .term = term,
+            });
+        }
+    };
+
+    var source_sink = SourceSink{ .downstream = sink, .request = request };
+    try component.streamSources(.{
+        .worldsheet = request.worldsheet,
+        .max_xi_order = request.max_xi_order,
+        .include_fermions = true,
+        .include_higher_metric_terms = true,
+        .include_contact_only = true,
+    }, &source_sink);
+}
+
+test "contact term stream emits only raw differentiated fermion metric rows" {
+    const testing = std.testing;
+    const Sink = struct {
+        rows: []ContactTermRow,
+        count: usize = 0,
+
+        fn emit(self: *@This(), row: ContactTermRow) !void {
+            if (self.count == self.rows.len) return error.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    var rows: [4]ContactTermRow = undefined;
+    var sink = Sink{ .rows = &rows };
+    try streamContactTerms(.{}, &sink);
+    try testing.expectEqual(@as(usize, 2), sink.count);
+    try testing.expectEqual(ContactChirality.left, rows[0].chirality);
+    try testing.expectEqual(ContactChirality.right, rows[1].chirality);
+    try testing.expectEqual(counterterms.Rational{ .numerator = 1, .denominator = 3 }, rows[0].coefficient);
+    try testing.expectEqual(counterterms.LocalCountertermKind.metric_beta, rows[0].local_operator);
+    try testing.expectEqual(@as(usize, 1), rows[0].term.atoms.len);
+    try testing.expectEqual(geometry.TensorAtomKind.riemann, rows[0].term.atoms[0].kind);
+}

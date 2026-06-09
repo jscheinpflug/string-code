@@ -1,0 +1,949 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 15:58 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Pairing Engine</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Pairing Engine</h1>
+<p>
+This note replaces the species-count Wick summary by an explicit pairing stage
+fed by the actual <code>cft-code</code> correlator for the current bootstrap worldsheet
+models.  Each admissible branch says two things:
+</p>
+
+<ul class="org-ul">
+<li>which quantum field occurrences were paired;</li>
+<li>which primitive free-field kernel each pair carries.</li>
+</ul>
+
+<p>
+The second point is constrained by <a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair
+Kernels</a> in <code>cft-code</code>.  The <code>nlsm-code</code> build now depends on <code>cft-code</code> at
+the package boundary, so the primitive free-field inventory is single-sourced
+again.  This matters physically.  The free theory does not contain an
+independent primitive \(\langle \partial \xi
+\,\bar\partial \xi \rangle\) Wick rule in the current sphere preset inventory.
+A branch that would require such a primitive pair is therefore dropped here
+rather than relabelled as a new local propagator family.
+</p>
+
+<p>
+That keeps the separation clean:
+</p>
+
+<ul class="org-ul">
+<li><code>cft-code</code> owns the primitive free-field two-point rule inventory;</li>
+<li><code>nlsm-code</code> owns branch enumeration for RNC vertices.</li>
+</ul>
+
+<p>
+The same separation now applies to differentiated fermion pairs.  The pairing
+engine does not invent a special NLSM-only \(\partial\psi\,\psi\) rule.  It
+asks <code>cft-code</code> for the chiral derivative profile of the free-fermion pair and
+receives back the corresponding derived kernel kind.
+</p>
+
+<p>
+There is one physics point that must be fixed here.  The RNC interaction
+vertices are lowered as local insertions at one worldsheet point, <i>without</i>
+normal-order protection.  If they were normal ordered, the local
+\(\xi\xi\) self-contractions inside a single interaction vertex would be
+removed, but those local contractions are part of the counterterm already at
+one loop.  Normal ordering is a statement about composite operators.  The
+background-field interaction vertex is part of the action, so the correlator
+must see its same-point contractions.
+</p>
+
+<p>
+The same row format remains suitable for later CY3/K3 work because the pairing
+engine still knows only quantum species, worldsheet derivatives, and branch
+signs.  It does not know target-space cohomology or K\"ahler quotients.
+</p>
+
+<a id="PairSpecies"></a>
+<a id="PairingOccurrence"></a>
+<a id="PairingEntry"></a>
+<a id="PairKernelKind"></a>
+<a id="PairKernelFactor"></a>
+<a id="PairingBranchRow"></a>
+<a id="PairingSummary"></a>
+<a id="streamPairingBranches"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org29b63f6"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cft</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"cft-code"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cft_pair</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"cft-code"</span>).PrimitivePairKernels;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">plan</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"diagram_plan.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rnc</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rnc_vertices.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairSpecies identifies one independently pairable quantum field species.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairSpecies</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    boson,
+    left_fermion,
+    right_fermion,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairingOccurrence is one flattened quantum field occurrence in a candidate multiset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingOccurrence</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrence_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">species</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairSpecies</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">source_vertex_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">field_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.WorldsheetDerivatives</span> = .{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairingEntry is one explicit field pairing inside a branch.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingEntry</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left_occurrence</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right_occurrence</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">species</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairSpecies</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairKernelKind names the primitive free propagator carried by one pair.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairKernelKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    xi_xi,
+    d_xi_xi,
+    dbar_xi_xi,
+    d_xi_d_xi,
+    dbar_xi_dbar_xi,
+    psi_left_psi_left,
+    psi_right_psi_right,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairKernelFactor records the local kernel contribution of one explicit pair.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairKernelFactor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">propagator_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">numerator_rank</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairingBranchRow is one explicit pairing branch before kernel reduction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingBranchRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.WorldsheetModel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">loop_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">background</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.BackgroundLegCount</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">automorphism_denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_pair_weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">vertices</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = &amp;.{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairingSummary reports how many explicit pairing branches were emitted.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairingSummary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">emitted_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rejected_unpaired_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rejected_auxiliary_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldSpecies</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.VertexField</span>) !PairSpecies {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+        .xi =&gt; .boson,
+        .psi_left =&gt; .left_fermion,
+        .psi_right =&gt; .right_fermion,
+        .auxiliary =&gt; <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedAuxiliaryField,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">derivativeWeight</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">occurrence</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> occurrence.derivatives.holomorphic + occurrence.derivatives.antiholomorphic;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">derivativeProfile</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.WorldsheetDerivatives</span>) cft_pair.DerivativeProfile {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .holomorphic = derivatives.holomorphic,
+        .antiholomorphic = derivatives.antiholomorphic,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">classifyBosonKernel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>) ?PairKernelFactor {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = cft_pair.classifyFreeBosonSphereKernel(derivativeProfile(left.derivatives), derivativeProfile(right.derivatives)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (kernel) {
+        .x_x_logarithm =&gt; .{ .kind = .xi_xi },
+        .d_x_x_logarithm =&gt; .{ .kind = .d_xi_xi, .numerator_rank = 1 },
+        .d_xt_x_logarithm =&gt; .{ .kind = .dbar_xi_xi, .numerator_rank = 1 },
+        .d_x_d_x_pole =&gt; .{ .kind = .d_xi_d_xi, .numerator_rank = 2 },
+        .d_xt_d_xt_pole =&gt; .{ .kind = .dbar_xi_dbar_xi, .numerator_rank = 2 },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">classifyPairKernel</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">species</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairSpecies</span>) ?PairKernelFactor {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (species) {
+        .boson =&gt; classifyBosonKernel(left, right),
+        .left_fermion =&gt; {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = cft_pair.classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, derivativeProfile(left.derivatives), derivativeProfile(right.derivatives)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+            <span style="color: #fb4934; font-weight: bold;">return</span> .{
+                .kind = .psi_left_psi_left,
+                .derivative_order = kernel.derivative_total,
+                .numerator_rank = 1 + kernel.derivative_total,
+            };
+        },
+        .right_fermion =&gt; {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = cft_pair.classifyFreeFermionSphereKernel(<span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, derivativeProfile(left.derivatives), derivativeProfile(right.derivatives)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+            <span style="color: #fb4934; font-weight: bold;">return</span> .{
+                .kind = .psi_right_psi_right,
+                .derivative_order = kernel.derivative_total,
+                .numerator_rank = 1 + kernel.derivative_total,
+            };
+        },
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">firstUnused</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (used, 0..) |flag, index| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!flag) <span style="color: #fb4934; font-weight: bold;">return</span> index;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">enumerateSpeciesPairings</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ids</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">species</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairSpecies</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_pair_weight</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NextCtx</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_fn</span>: <span style="color: #fb4934; font-weight: bold;">fn</span> (*NextCtx, *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyerror</span>!<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">NextCtx</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = firstUnused(used) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> next_fn(next_ctx, pair_count, derivative_pair_weight);
+    used[start] = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    <span style="color: #fb4934; font-weight: bold;">defer</span> used[start] = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">partner</span> = start + 1;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (partner &lt; ids.len) : (partner += 1) {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (used[partner]) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        used[partner] = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        <span style="color: #fb4934; font-weight: bold;">defer</span> used[partner] = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span> = occurrences[ids[start]];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = occurrences[ids[partner]];
+        <span style="color: #fb4934; font-weight: bold;">if</span> (pair_count.* == pairs.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.PairScratchTooSmall;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (pair_count.* == kernel_factors.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.KernelFactorScratchTooSmall;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">weight</span> = derivativeWeight(left) + derivativeWeight(right);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span> = classifyPairKernel(left, right, species) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        pairs[pair_count.*] = .{
+            .left_occurrence = left.occurrence_id,
+            .right_occurrence = right.occurrence_id,
+            .species = species,
+            .derivative_weight = weight,
+        };
+        kernel_factors[pair_count.*] = factor;
+        pair_count.* += 1;
+        derivative_pair_weight.* += weight;
+        <span style="color: #fb4934; font-weight: bold;">try</span> enumerateSpeciesPairings(occurrences, ids, used, species, pairs, kernel_factors, pair_count, derivative_pair_weight, NextCtx, next_fn, next_ctx);
+        derivative_pair_weight.* -= weight;
+        pair_count.* -= 1;
+    }
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamPairingBranches enumerates admissible explicit pairings for candidate multisets.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamPairingBranches</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">candidates</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_occurrences</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_species_ids</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_pairs</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_kernel_factors</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_used</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+) !PairingSummary {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = PairingSummary{};
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (candidates) |candidate| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch_occurrences.len &lt; candidate.total_quantum_field_count) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OccurrenceScratchTooSmall;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch_species_ids.len &lt; candidate.total_quantum_field_count) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.SpeciesScratchTooSmall;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch_pairs.len &lt; candidate.total_quantum_field_count / 2) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.PairScratchTooSmall;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch_kernel_factors.len &lt; candidate.total_quantum_field_count / 2) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.KernelFactorScratchTooSmall;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch_used.len &lt; candidate.total_quantum_field_count) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UsedScratchTooSmall;
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrence_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">has_auxiliary</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (candidate.vertices) |entry| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span> = catalog[entry.vertex_index];
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">repeat_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0;
+            <span style="color: #fb4934; font-weight: bold;">while</span> (repeat_index &lt; entry.multiplicity) : (repeat_index += 1) {
+                <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields, 0..) |field, field_index| {
+                    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">species</span> = fieldSpecies(field) <span style="color: #fb4934; font-weight: bold;">catch</span> {
+                        has_auxiliary = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+                        <span style="color: #fb4934; font-weight: bold;">break</span>;
+                    };
+                    scratch_occurrences[occurrence_count] = .{
+                        .occurrence_id = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(occurrence_count),
+                        .species = species,
+                        .source_vertex_index = entry.vertex_index,
+                        .field_index = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(field_index),
+                        .derivatives = field.derivatives,
+                    };
+                    occurrence_count += 1;
+                }
+                <span style="color: #fb4934; font-weight: bold;">if</span> (has_auxiliary) <span style="color: #fb4934; font-weight: bold;">break</span>;
+            }
+            <span style="color: #fb4934; font-weight: bold;">if</span> (has_auxiliary) <span style="color: #fb4934; font-weight: bold;">break</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (has_auxiliary) {
+            summary.rejected_auxiliary_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (scratch_occurrences[0..occurrence_count]) |occurrence| <span style="color: #fb4934; font-weight: bold;">switch</span> (occurrence.species) {
+            .boson =&gt; boson_count += 1,
+            .left_fermion =&gt; left_count += 1,
+            .right_fermion =&gt; right_count += 1,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (boson_count % 2 != 0 <span style="color: #fb4934; font-weight: bold;">or</span> left_count % 2 != 0 <span style="color: #fb4934; font-weight: bold;">or</span> right_count % 2 != 0) {
+            summary.rejected_unpaired_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = boson_count;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = boson_count + left_count;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (scratch_occurrences[0..occurrence_count], 0..) |occurrence, index| <span style="color: #fb4934; font-weight: bold;">switch</span> (occurrence.species) {
+            .boson =&gt; {
+                scratch_species_ids[boson_offset] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+                boson_offset += 1;
+            },
+            .left_fermion =&gt; {
+                scratch_species_ids[left_offset] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+                left_offset += 1;
+            },
+            .right_fermion =&gt; {
+                scratch_species_ids[right_offset] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+                right_offset += 1;
+            },
+        };
+
+        <span style="color: #fe8019; font-weight: bold;">@memset</span>(scratch_used[0..occurrence_count], <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_ids</span> = scratch_species_ids[0..boson_count];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_ids</span> = scratch_species_ids[boson_count .. boson_count + left_count];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_ids</span> = scratch_species_ids[boson_count + left_count .. boson_count + left_count + right_count];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_used</span> = scratch_used[0..boson_count];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_used</span> = scratch_used[boson_count .. boson_count + left_count];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_used</span> = scratch_used[boson_count + left_count .. boson_count + left_count + right_count];
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_pair_weight</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EmitCtx</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            sink_ptr: <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(sink),
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">summary_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingSummary</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs_ptr</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors_ptr</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fermion_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fermion_pair_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RightCtx</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">emit_ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EmitCtx</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">right_ids</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">right_used</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LeftCtx</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">right_ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RightCtx</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">left_ids</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">left_used</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BosonCtx</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">left_ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LeftCtx</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_ids</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+            <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_used</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">emit_fn</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">call</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">EmitCtx</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_weight_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">try</span> ctx.sink_ptr.emit(.{
+                    .worldsheet = ctx.candidate_row.worldsheet,
+                    .loop_order = ctx.candidate_row.loop_order,
+                    .background = ctx.candidate_row.background,
+                    .automorphism_denominator = ctx.candidate_row.automorphism_denominator,
+                    .boson_pair_count = ctx.boson_pair_count,
+                    .left_fermion_pair_count = ctx.left_fermion_pair_count,
+                    .right_fermion_pair_count = ctx.right_fermion_pair_count,
+                    .derivative_pair_weight = derivative_weight_ptr.*,
+                    .vertices = ctx.candidate_row.vertices,
+                    .pairs = ctx.pairs_ptr[0..pair_count_ptr.*],
+                    .kernel_factors = ctx.kernel_factors_ptr[0..pair_count_ptr.*],
+                });
+                ctx.summary_ptr.emitted_count += 1;
+            }
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_fn</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">call</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RightCtx</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_weight_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (ctx.right_ids.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> emit_fn.call(ctx.emit_ctx, pair_count_ptr, derivative_weight_ptr);
+                <span style="color: #fb4934; font-weight: bold;">return</span> enumerateSpeciesPairings(
+                    ctx.occurrences,
+                    ctx.right_ids,
+                    ctx.right_used,
+                    .right_fermion,
+                    ctx.emit_ctx.pairs_ptr,
+                    ctx.emit_ctx.kernel_factors_ptr,
+                    pair_count_ptr,
+                    derivative_weight_ptr,
+                    EmitCtx,
+                    emit_fn.call,
+                    ctx.emit_ctx,
+                );
+            }
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_fn</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">call</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LeftCtx</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_weight_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (ctx.left_ids.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> right_fn.call(ctx.right_ctx, pair_count_ptr, derivative_weight_ptr);
+                <span style="color: #fb4934; font-weight: bold;">return</span> enumerateSpeciesPairings(
+                    ctx.occurrences,
+                    ctx.left_ids,
+                    ctx.left_used,
+                    .left_fermion,
+                    ctx.right_ctx.emit_ctx.pairs_ptr,
+                    ctx.right_ctx.emit_ctx.kernel_factors_ptr,
+                    pair_count_ptr,
+                    derivative_weight_ptr,
+                    RightCtx,
+                    right_fn.call,
+                    ctx.right_ctx,
+                );
+            }
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_fn</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">call</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ctx</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BosonCtx</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_count_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_weight_ptr</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (ctx.boson_ids.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> left_fn.call(ctx.left_ctx, pair_count_ptr, derivative_weight_ptr);
+                <span style="color: #fb4934; font-weight: bold;">return</span> enumerateSpeciesPairings(
+                    ctx.occurrences,
+                    ctx.boson_ids,
+                    ctx.boson_used,
+                    .boson,
+                    ctx.left_ctx.right_ctx.emit_ctx.pairs_ptr,
+                    ctx.left_ctx.right_ctx.emit_ctx.kernel_factors_ptr,
+                    pair_count_ptr,
+                    derivative_weight_ptr,
+                    LeftCtx,
+                    left_fn.call,
+                    ctx.left_ctx,
+                );
+            }
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">emit_ctx</span> = EmitCtx{
+            .sink_ptr = sink,
+            .candidate_row = candidate,
+            .summary_ptr = &amp;summary,
+            .pairs_ptr = scratch_pairs[0 .. occurrence_count / 2],
+            .kernel_factors_ptr = scratch_kernel_factors[0 .. occurrence_count / 2],
+            .boson_pair_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(boson_count / 2),
+            .left_fermion_pair_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(left_count / 2),
+            .right_fermion_pair_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(right_count / 2),
+        };
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_ctx</span> = RightCtx{
+            .emit_ctx = &amp;emit_ctx,
+            .occurrences = scratch_occurrences[0..occurrence_count],
+            .right_ids = right_ids,
+            .right_used = right_used,
+        };
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_ctx</span> = LeftCtx{
+            .right_ctx = &amp;right_ctx,
+            .occurrences = scratch_occurrences[0..occurrence_count],
+            .left_ids = left_ids,
+            .left_used = left_used,
+        };
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">boson_ctx</span> = BosonCtx{
+            .left_ctx = &amp;left_ctx,
+            .occurrences = scratch_occurrences[0..occurrence_count],
+            .boson_ids = boson_ids,
+            .boson_used = boson_used,
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> boson_fn.call(&amp;boson_ctx, &amp;pair_count, &amp;derivative_pair_weight);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Pairing Engine</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pairing engine keeps the one-loop bosonic metric candidate pairable"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CandidateSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = self.vertex_offset;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + row.vertices.len;
+            std.mem.copyForwards(plan.VertexMultiplicity, self.vertex_storage[start..end], row.vertices);
+            self.rows[self.count] = row;
+            self.rows[self.count].vertices = self.vertex_storage[start..end];
+            self.count += 1;
+            self.vertex_offset = end;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BranchSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_start</span> = self.pair_offset;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_end</span> = pair_start + row.pairs.len;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_start</span> = self.kernel_offset;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_end</span> = kernel_start + row.kernel_factors.len;
+            std.mem.copyForwards(PairingEntry, self.pair_storage[pair_start..pair_end], row.pairs);
+            std.mem.copyForwards(PairKernelFactor, self.kernel_storage[kernel_start..kernel_end], row.kernel_factors);
+            self.rows[self.count] = row;
+            self.rows[self.count].pairs = self.pair_storage[pair_start..pair_end];
+            self.rows[self.count].kernel_factors = self.kernel_storage[kernel_start..kernel_end];
+            self.count += 1;
+            self.pair_offset = pair_end;
+            self.kernel_offset = kernel_end;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_sink</span> = VertexSink{ .rows = &amp;catalog_storage };
+    <span style="color: #fb4934; font-weight: bold;">try</span> rnc.streamBootstrapVertices(.{ .worldsheet = .bosonic, .max_xi_order = 2, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> }, &amp;vertex_sink);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = catalog_storage[0..vertex_sink.count];
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertex_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_sink</span> = CandidateSink{ .rows = &amp;candidate_storage, .vertex_storage = &amp;candidate_vertex_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicities</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertices</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">try</span> plan.streamDiagramCandidates(.{
+        .worldsheet = .bosonic,
+        .loop_order = 1,
+        .max_vertices = 1,
+        .required_background = .{ .d_x0 = 1, .dbar_x0 = 1 },
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    }, catalog, &amp;candidate_sink, &amp;multiplicities, &amp;vertices);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_storage</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_storage</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_storage</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_sink</span> = BranchSink{ .rows = &amp;branch_storage, .pair_storage = &amp;pair_storage, .kernel_storage = &amp;kernel_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">species_ids</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> streamPairingBranches(catalog, candidate_storage[0..candidate_sink.count], &amp;branch_sink, &amp;occurrences, &amp;species_ids, &amp;pairs, &amp;kernel_factors, &amp;used);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.emitted_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), branch_storage[0].boson_pair_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), branch_storage[0].pairs.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), branch_storage[0].kernel_factors.len);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(PairKernelKind.xi_xi, branch_storage[0].kernel_factors[0].kind);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pairing engine rejects odd fermion content"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertices</span> = [_]plan.VertexMultiplicity{
+        .{ .vertex_index = 0, .multiplicity = 1 },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = [_]plan.DiagramCandidateRow{.{
+        .worldsheet = .n1_1,
+        .vertex_count = 1,
+        .distinct_vertex_count = 1,
+        .internal_propagator_count = 1,
+        .loop_order = 1,
+        .total_quantum_field_count = 1,
+        .total_fermion_field_count = 1,
+        .background = .{},
+        .automorphism_denominator = 1,
+        .vertices = &amp;candidate_vertices,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span> = [_]rnc.VertexField{
+        .{ .kind = .psi_left },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = [_]rnc.RncVertexRow{.{
+        .worldsheet = .n1_1,
+        .xi_order = 0,
+        .fields = &amp;fields,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">species_ids</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> streamPairingBranches(&amp;catalog, &amp;candidate, &amp;sink, &amp;occurrences, &amp;species_ids, &amp;pairs, &amp;kernel_factors, &amp;used);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), summary.emitted_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 1), summary.rejected_unpaired_count);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pairing engine drops mixed d-xi dbar-xi primitive pairs absent from cft-code"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertices</span> = [_]plan.VertexMultiplicity{
+        .{ .vertex_index = 0, .multiplicity = 1 },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = [_]plan.DiagramCandidateRow{.{
+        .worldsheet = .bosonic,
+        .vertex_count = 1,
+        .distinct_vertex_count = 1,
+        .internal_propagator_count = 1,
+        .loop_order = 1,
+        .total_quantum_field_count = 2,
+        .total_fermion_field_count = 0,
+        .background = .{},
+        .automorphism_denominator = 1,
+        .vertices = &amp;candidate_vertices,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span> = [_]rnc.VertexField{
+        .{ .kind = .xi, .derivatives = .{ .holomorphic = 1 } },
+        .{ .kind = .xi, .derivatives = .{ .antiholomorphic = 1 } },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = [_]rnc.RncVertexRow{.{
+        .worldsheet = .bosonic,
+        .xi_order = 2,
+        .fields = &amp;fields,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            _ = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">species_ids</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> streamPairingBranches(&amp;catalog, &amp;candidate, &amp;sink, &amp;occurrences, &amp;species_ids, &amp;pairs, &amp;kernel_factors, &amp;used);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), summary.emitted_count);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pairing engine classifies differentiated chiral fermion pairs from cft-code profiles"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertices</span> = [_]plan.VertexMultiplicity{
+        .{ .vertex_index = 0, .multiplicity = 1 },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = [_]plan.DiagramCandidateRow{.{
+        .worldsheet = .n1_1,
+        .vertex_count = 1,
+        .distinct_vertex_count = 1,
+        .internal_propagator_count = 1,
+        .loop_order = 1,
+        .total_quantum_field_count = 2,
+        .total_fermion_field_count = 2,
+        .background = .{},
+        .automorphism_denominator = 1,
+        .vertices = &amp;candidate_vertices,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span> = [_]rnc.VertexField{
+        .{ .kind = .psi_left, .derivatives = .{ .holomorphic = 1 } },
+        .{ .kind = .psi_left },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = [_]rnc.RncVertexRow{.{
+        .worldsheet = .n1_1,
+        .xi_order = 0,
+        .fields = &amp;fields,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingBranchRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.row = row;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">occurrences</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingOccurrence</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">species_ids</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pairs</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairingEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_factors</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairKernelFactor</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">used</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> streamPairingBranches(&amp;catalog, &amp;candidate, &amp;sink, &amp;occurrences, &amp;species_ids, &amp;pairs, &amp;kernel_factors, &amp;used);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.emitted_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(sink.row != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(PairKernelKind.psi_left_psi_left, sink.row.?.kernel_factors[0].kind);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, 1), sink.row.?.kernel_factors[0].derivative_order);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, 2), sink.row.?.kernel_factors[0].numerator_rank);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

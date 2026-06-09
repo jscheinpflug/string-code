@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:17 -->
+<!-- 2026-06-09 Tue 16:19 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Type II R4 Implementation Plan</title>
@@ -138,6 +138,7 @@
     <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/primitive-pair-kernels.html">Primitive Pair Kernels</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -157,11 +158,21 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/component-rnc-expansion.html">NLSM Component RNC Expansion</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pairing-engine.html">NLSM Pairing Engine</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Kernel Evaluator</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
     <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -417,10 +428,12 @@ Operationally, the code should implement this as:
 </ol>
 
 <p>
-This is why the contraction pipeline is asked only for local pole terms and
-why the main inspection target is the simple-pole coefficient in the metric
-operator basis <a href="#ref-1" class="cite">[1]</a> <a href="#ref-4" class="cite">[4]</a>
-<a href="#ref-5" class="cite">[5]</a>.
+This is why the beta-function path ultimately reads only the local simple pole.
+But the more general quantization pipeline should keep the broader analytic
+kernel-evaluation data as well: finite local pieces, nonlocal pieces, and
+explicit \(\log\mu\) dependence.  The beta-function projection is only one
+consumer of that wider row type <a href="#ref-1" class="cite">[1]</a>
+<a href="#ref-4" class="cite">[4]</a> <a href="#ref-5" class="cite">[5]</a>.
 </p>
 </div>
 </div>
@@ -460,11 +473,14 @@ The whole calculation should be represented as a stream pipeline:
 <li><code>RncVertexGenerator</code> emits local RNC vertices by order in \(\xi\);</li>
 <li><code>DiagramPlan</code> emits only vertex multisets compatible with the requested loop
 order and external operator;</li>
-<li><code>WickKernel</code> contracts free boson and free fermion lines using <code>cft-code</code>;</li>
+<li><code>WickKernel</code> contracts free boson and free fermion lines using <code>cft-code</code>
+and emits explicit differentiated propagator factors branch by branch;</li>
 <li><code>KernelSignatureReducer</code> rewrites each branch to a compact loop-integral
 signature plus a local tensor word;</li>
-<li><code>PoleExtractor</code> evaluates the signature in \(d=2-\epsilon\) and emits
-<code>PoleRow</code>;</li>
+<li><code>KernelEvaluator</code> evaluates the signature in \(d=2-\epsilon\) and emits
+Laurent, finite, and nonlocal evaluation rows;</li>
+<li><code>PoleExtractor</code> projects the local pole part when a renormalization job
+needs it;</li>
 <li><code>LocalGeometryReducer</code> canonicalizes the tensor word;</li>
 <li><code>BetaAssembler</code> converts the simple pole to the MS beta function;</li>
 <li><code>ActionMatcher</code> quotients by field redefinitions and matches the
@@ -474,6 +490,17 @@ amplitude-normalized \(R^4\) basis.</li>
 <p>
 No stage should materialize the full expanded action or the full diagram sum.
 Every stage streams rows to the next stage.
+</p>
+
+<p>
+At this stage there is one point that must stay explicit.  The interaction
+vertices coming from the background-field expansion are <i>not</i> lowered as
+normal-ordered local products.  If one normal-orders them, one removes the
+same-point \(\xi\xi\) self-contractions inside a single interaction vertex,
+but those are precisely the local contractions that feed the metric
+counterterm already at one loop.  For the renormalization problem, the vertex
+is a local insertion at one worldsheet point, not a pre-subtracted composite
+operator.
 </p>
 </div>
 </div>
@@ -526,7 +553,37 @@ The generator must emit separate vertex families for:
 <li>cubic and higher interaction terms carrying \(R\), \(\nabla R\),
 \(\nabla^2 R\), and higher background tensors;</li>
 <li>fermionic interaction terms carrying curvature couplings.</li>
-</ul></li>
+</ul>
+
+<p>
+The first concrete mixed families should come from the target connection in
+\(G_{\mu\nu}\psi^\mu {\cal D}\psi^\nu\), since these are already visible in
+the existing free-field backend:
+</p>
+
+<ul class="org-ul">
+<li>\(\bar\partial X_0\,\xi\,\psi_L\psi_L\,R\),</li>
+<li>\(\partial X_0\,\xi\,\psi_R\psi_R\,R\),</li>
+<li>\(\bar\partial X_0\,\xi^2\,\psi_L\psi_L\,\nabla R\),</li>
+<li>\(\partial X_0\,\xi^2\,\psi_R\psi_R\,\nabla R\).</li>
+</ul>
+
+<p>
+These rows come from the RNC Taylor series of the Levi-Civita connection,
+so their coefficients are fixed directly by
+\(\Gamma \sim -{1\over 3} R\,\xi - {1\over 6}\nabla R\,\xi^2 + \cdots\).
+They should be emitted before any vertex that requires derivatives on the
+fermion fields themselves.  The primitive free-field layer now supports
+arbitrary chiral fermion derivative order, so the remaining issue is not
+the Wick kernel inventory.  The raw component-action terms with
+\(\bar\partial\psi_L\) and \(\partial\psi_R\) are now kept explicitly in
+the component source table, but on a separate <code>contact_only</code> channel.  This
+is the correct scheme-level statement: they do not define primitive chiral
+kernels, but only contact contributions through
+\(\bar\partial(1/(z-w))\) and its right-moving analogue.  The next module
+therefore needs to evaluate those contact rows against the regularization
+scheme, rather than forcing them through the primitive Wick path.
+</p></li>
 
 <li><p>
 Do not emit symbolic formulas as strings or trees.
@@ -629,6 +686,17 @@ Use the existing free-boson system with \(X\), \(\partial X\),
 \(\bar\partial X\), and the newly added \(X X\), \(\partial X X\),
 \(\bar\partial X X\) rules.  In the RNC job these fields represent the
 tangent fluctuations \(\xi^\mu\).
+</p>
+
+<p>
+The contraction stage should not collapse the result immediately to a loop
+family label.  It should first emit explicit local pair factors such as
+\(\langle \xi \xi \rangle\) and \(\langle \partial \xi\, \xi \rangle\).
+A mixed \(\langle \partial \xi\, \bar\partial \xi \rangle\) structure is
+not a primitive free-field Wick rule in the present sphere inventory; if a
+scheme later needs a contact term of that type, it should enter through the
+regularization layer.  Only the reducer is allowed to forget the local
+pair-kernel information.
 </p></li>
 
 <li><p>
@@ -1147,6 +1215,9 @@ invariant.
 </ol></div>
 </div>
 </div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

@@ -118,10 +118,12 @@ Operationally, the code should implement this as:
 3. feed only the simple-pole residue into =BetaAssembler=;
 4. keep the map from =PoleRow= to =BetaRow= explicit in the note and the code.
 
-This is why the contraction pipeline is asked only for local pole terms and
-why the main inspection target is the simple-pole coefficient in the metric
-operator basis [cite:@yinStringbook] [cite:@Tseytlin:1986tt]
-[cite:@Tseytlin:1986ws].
+This is why the beta-function path ultimately reads only the local simple pole.
+But the more general quantization pipeline should keep the broader analytic
+kernel-evaluation data as well: finite local pieces, nonlocal pieces, and
+explicit \(\log\mu\) dependence.  The beta-function projection is only one
+consumer of that wider row type [cite:@yinStringbook]
+[cite:@Tseytlin:1986tt] [cite:@Tseytlin:1986ws].
 
 * Loop Order And Calculation Target
 
@@ -147,18 +149,30 @@ The whole calculation should be represented as a stream pipeline:
 1. =RncVertexGenerator= emits local RNC vertices by order in \(\xi\);
 2. =DiagramPlan= emits only vertex multisets compatible with the requested loop
    order and external operator;
-3. =WickKernel= contracts free boson and free fermion lines using =cft-code=;
+3. =WickKernel= contracts free boson and free fermion lines using =cft-code=
+   and emits explicit differentiated propagator factors branch by branch;
 4. =KernelSignatureReducer= rewrites each branch to a compact loop-integral
    signature plus a local tensor word;
-5. =PoleExtractor= evaluates the signature in \(d=2-\epsilon\) and emits
-   =PoleRow=;
-6. =LocalGeometryReducer= canonicalizes the tensor word;
-7. =BetaAssembler= converts the simple pole to the MS beta function;
-8. =ActionMatcher= quotients by field redefinitions and matches the
+5. =KernelEvaluator= evaluates the signature in \(d=2-\epsilon\) and emits
+   Laurent, finite, and nonlocal evaluation rows;
+6. =PoleExtractor= projects the local pole part when a renormalization job
+   needs it;
+7. =LocalGeometryReducer= canonicalizes the tensor word;
+8. =BetaAssembler= converts the simple pole to the MS beta function;
+9. =ActionMatcher= quotients by field redefinitions and matches the
    amplitude-normalized \(R^4\) basis.
 
 No stage should materialize the full expanded action or the full diagram sum.
 Every stage streams rows to the next stage.
+
+At this stage there is one point that must stay explicit.  The interaction
+vertices coming from the background-field expansion are /not/ lowered as
+normal-ordered local products.  If one normal-orders them, one removes the
+same-point \(\xi\xi\) self-contractions inside a single interaction vertex,
+but those are precisely the local contractions that feed the metric
+counterterm already at one loop.  For the renormalization problem, the vertex
+is a local insertion at one worldsheet point, not a pre-subtracted composite
+operator.
 
 * Worldsheet Model
 
@@ -192,6 +206,33 @@ The RNC generator is the first place where the code becomes the paper.
    - cubic and higher interaction terms carrying \(R\), \(\nabla R\),
      \(\nabla^2 R\), and higher background tensors;
    - fermionic interaction terms carrying curvature couplings.
+
+   The first concrete mixed families should come from the target connection in
+   \(G_{\mu\nu}\psi^\mu {\cal D}\psi^\nu\), since these are already visible in
+   the existing free-field backend:
+
+   - \(\bar\partial X_0\,\xi\,\psi_L\psi_L\,R\),
+   - \(\partial X_0\,\xi\,\psi_R\psi_R\,R\),
+   - \(\bar\partial X_0\,\xi^2\,\psi_L\psi_L\,\nabla R\),
+   - \(\partial X_0\,\xi^2\,\psi_R\psi_R\,\nabla R\).
+
+   These rows come from the RNC Taylor series of the Levi-Civita connection,
+   so their coefficients are fixed directly by
+   \(\Gamma \sim -{1\over 3} R\,\xi - {1\over 6}\nabla R\,\xi^2 + \cdots\).
+   They should be emitted before any vertex that requires derivatives on the
+   fermion fields themselves.  The primitive free-field layer now supports
+   arbitrary chiral fermion derivative order, so the remaining issue is not
+   the Wick kernel inventory.  The raw component-action terms with
+   \(\bar\partial\psi_L\) and \(\partial\psi_R\) are now kept explicitly in
+   the component source table, but on a separate =contact_only= channel.  This
+   is the correct scheme-level statement: they do not define primitive chiral
+   kernels, but only contact contributions through
+   \(\bar\partial(1/(z-w))\) and its right-moving analogue.  The code now has
+   the first explicit contact stream in =contact_terms.zig=: these rows are
+   emitted as compact =ContactTermRow= descriptors carrying chirality, exact
+   rational source coefficient, and local tensor content.  The next module
+   therefore needs to evaluate those contact rows against the regularization
+   scheme, rather than forcing them through the primitive Wick path.
 
 2. Do not emit symbolic formulas as strings or trees.
 
@@ -255,6 +296,15 @@ At the contraction level, we reuse =cft-code= directly.
    \(\bar\partial X\), and the newly added \(X X\), \(\partial X X\),
    \(\bar\partial X X\) rules.  In the RNC job these fields represent the
    tangent fluctuations \(\xi^\mu\).
+
+   The contraction stage should not collapse the result immediately to a loop
+   family label.  It should first emit explicit local pair factors such as
+   \(\langle \xi \xi \rangle\) and \(\langle \partial \xi\, \xi \rangle\).
+   A mixed \(\langle \partial \xi\, \bar\partial \xi \rangle\) structure is
+   not a primitive free-field Wick rule in the present sphere inventory; if a
+   scheme later needs a contact term of that type, it should enter through the
+   regularization layer.  Only the reducer is allowed to forget the local
+   pair-kernel information.
 
 2. Fermions
 
