@@ -44,7 +44,7 @@ pub const AtomicBody = struct {
 };
 
 /// An identifier for operator kind
-pub const OperatorKindId = u8;
+pub const OperatorKindId = u32;
 /// An identifier for operator extra information
 pub const OperatorExtraId = u32;
 #+end_src
@@ -55,7 +55,7 @@ An operator kind contains what is required to define a local operator at the CFT
 pub const OperatorKind = struct {
     holomorphicity: Holomorphicity,
     conformal_weights: ConformalWeights,
-    quantum_numbers: tensor.symmetry.QuantumNumbers,
+    quantum_numbers: tensor.QuantumNumbers,
     supported_correlator_tactics: []const CorrelatorTactic,
 };
 #+end_src

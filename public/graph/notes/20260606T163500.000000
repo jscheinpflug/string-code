@@ -7,643 +7,1348 @@
 
 #+interface:
 
-Presets are the physics-facing constructors for common CFT data.  They sit
-between [[id:20260605T090102.250727][Theory]] and [[id:20260606T150002.000000][CFT Kernel]]: a user asks for a free
-boson, a \(bc\) system, a product, or a boundary extension, and receives a small
-generated type with operator builders and correlator entry points.
+Presets are the physics-facing constructors for common worldsheet CFT data.
+They sit between [[id:20260605T090102.250727][Theory]] and
+[[id:20260606T150002.000000][CFT Kernel]].  A user asks for a free boson, a \(bc\)
+system, a product theory, or a boundary extension, and receives a generated
+type with a small operator namespace and named correlator configs.
 
-This file is intentionally modest.  The current kernel does not yet execute
-Wick contractions, so these presets establish the API and stable operator
-families without pretending to compute correlators.  The lowering to compact
-rule tables will happen inside the future DSL.
+The implementation is split by audit target:
 
-#+begin_src zig
-const operators = @import("expressions/operators.zig");
-const coefficient = @import("expressions/coefficient.zig");
-const theory = @import("theory/theory.zig");
-const tensor = @import("tensor-code");
-#+end_src
+- [[id:20260606T183100.000000][Preset Shared Runtime]] defines compact handles,
+  local-operator input, Wick templates, zero-mode templates, and the streaming
+  correlator boundary.
+- [[id:20260606T183200.000000][Free Boson Preset]] defines the free-boson bulk and
+  Neumann/Dirichlet disk data.
+- [[id:20260606T183300.000000][bc Preset]] defines the \(bc\) sphere and disk data.
+- [[id:20260608T090000.000000][Free Fermion Preset]] defines the NS free fermion
+  on the sphere.
+- [[id:20260608T100000.000000][eta-xi Preset]] defines the \(\eta,\xi\) system
+  on the sphere and records its torus draft metadata.
+- [[id:20260606T183400.000000][Preset Composition]] joins bulk sectors and boundary
+  extensions without introducing a new runtime operator representation.
+- [[id:20260609T004000.000000][Lisp Preset Compiler]] and the Lisp preset nodes
+  declare descriptor fixtures that are translated to the generated Zig ABI
+  module for REPL use.
 
-* Handles And Conventions
-
-The preset API uses handles, not owned symbolic payloads.  This keeps the user
-surface compact and lets later stores decide how momenta, profiles, tensors,
-and Chan-Paton factors are represented.
-
-#+begin_src zig
-/// Handle groups compact ids used by preset operator builders.
-pub const Handle = struct {
-    /// Coord names a holomorphic or antiholomorphic coordinate variable.
-    pub const Coord = coefficient.Variable;
-    /// BoundaryCoord names a real boundary coordinate variable.
-    pub const BoundaryCoord = coefficient.Variable;
-    /// Index names a target-space vector index.
-    pub const Index = u32;
-    /// Momentum names a target-space momentum expression.
-    pub const Momentum = u32;
-    /// Profile names a selected presentation of a target-space profile.
-    pub const Profile = u32;
-    /// TargetFunction names a position-space target profile.
-    pub const TargetFunction = u32;
-    /// FourierTransform names a Fourier-space target profile.
-    pub const FourierTransform = u32;
-    /// TargetPoint names a point in target space.
-    pub const TargetPoint = u32;
-    /// TensorProjector names a tensor-code projector expression.
-    pub const TensorProjector = tensor.kernel.TensorExprId;
-    /// BoundaryStack names stacked boundary-condition Chan-Paton data.
-    pub const BoundaryStack = u32;
-    /// PolynomialProfileTerm stores one finite polynomial profile term.
-    pub const PolynomialProfileTerm = struct {
-        coefficient: u32,
-        power: u16,
-    };
-};
-
-/// ConventionScalar stores small convention constants used by preset builders.
-pub const ConventionScalar = union(enum) {
-    one,
-    rational: struct { numerator: i64, denominator: i64 },
-    symbol: []const u8,
-};
-
-/// FreeBosonConvention selects the normalization convention for the free boson.
-pub const FreeBosonConvention = enum {
-    stringbook,
-    prototype,
-};
-#+end_src
-
-The default free-boson convention follows the stringbook normalization
-\[
-  T^X=-{1\over \alpha'}\,\partial X^\mu\partial X_\mu,
-\]
-and the corresponding Polyakov/free-field conventions [cite:@yinStringbook].
-The \(bc\) preset uses
-\[
-  b(z)c(0)\sim {1\over z},\qquad
-  T^{\rm gh}=-(\partial b)c-2b\partial c,
-\]
-and the sphere normalization
-\[
-  \left\langle\prod_{i=1}^3 c(z_i)\tilde c(\bar z_i)\right\rangle
-  = |z_{12}z_{13}z_{23}|^2
-\]
-[cite:@yinStringbook].
-
-* Operator Helpers
-
-For now an operator body id is just a stable kind number.  The future body store
-will attach label spans for indices, momenta, profiles, derivative labels, and
-Chan-Paton factors.  We do not allocate such a store here.
+This node is an internal preset bridge used by [[id:20260603T063945.054265][CFT-Code]].
+It is not the user API.  It re-exports only the declarations the root CFT API
+needs to build compact family objects such as =FreeBoson= and =Bc=.  Raw
+Wick-rule data, correlator config records, and runtime resolver types stay in
+[[id:20260606T183100.000000][Preset Shared Runtime]] for implementation modules.
 
 #+begin_src zig
-const BodyKind = enum(operators.OperatorBodyId) {
-    x = 1,
-    d_x = 2,
-    d_xt = 3,
-    exp_x = 4,
-    profile_x = 5,
-    b = 16,
-    c = 17,
-    bt = 18,
-    ct = 19,
-    d_x_boundary = 32,
-    exp_x_boundary = 33,
-    profile_x_boundary = 34,
-    b_boundary = 48,
-    c_boundary = 49,
-};
+const shared = @import("presets/shared.zig");
+const declare = shared.declare;
+const free_boson = @import("presets/free_boson.zig");
+const bc = @import("presets/bc.zig");
+const free_fermion = @import("presets/free_fermion.zig");
+const eta_xi = @import("presets/eta_xi.zig");
+const composition = @import("presets/composition.zig");
 
-fn pairInsertion(z: Handle.Coord, zbar: Handle.Coord) operators.OperatorInsertion {
-    return .{ .pair = .{
-        .holomorphic_position = z,
-        .antiholomorphic_position = zbar,
-        .holomorphic_derivatives = 0,
-        .antiholomorphic_derivatives = 0,
-    } };
-}
-
-fn singleInsertion(z: Handle.Coord, derivatives: u8) operators.OperatorInsertion {
-    return .{ .single = .{
-        .position = z,
-        .derivatives = derivatives,
-    } };
-}
-
-fn operator(kind: BodyKind, insertion: operators.OperatorInsertion) operators.Operator {
-    return .{
-        .insertion = insertion,
-        .body = @intFromEnum(kind),
-    };
-}
+const freeBoson = free_boson.freeBoson;
+const bcSphere = bc.bcSphere;
+const freeFermionSphere = free_fermion.freeFermionSphere;
+const etaXiSphere = eta_xi.etaXiSphere;
+const freeBosonBoundary = free_boson.boundaryExtension;
+const bcDiskBoundary = bc.boundaryExtension;
 #+end_src
 
-* Free Boson
+* Shared Bridge
 
-The free boson preset is a bulk theory.  Its public data is just dimension and
-normalization choice.  \(SO(D)\) tensor invariants and momentum algebra are
-handled by [[id:20260605T075909.433647][Tensor-Code]] later; the preset only fixes the operator families.
+Scalar convention helpers are available only to preset implementation modules.
+The root CFT API intentionally does not re-export them.
 
 #+begin_src zig
-/// FreeBosonConfig declares a noncompact D-dimensional free boson preset.
-pub const FreeBosonConfig = struct {
-    dimension: u16,
-    alpha_prime: ConventionScalar = .{ .symbol = "alpha_prime" },
-    convention: FreeBosonConvention = .stringbook,
-    explicit_x: bool = true,
-};
-
-/// freeBoson builds the API type for a noncompact free-boson CFT.
-pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
-    return struct {
-        const preset_kind = PresetKind.free_boson;
-        const preset_config = cfg;
-
-        /// op exposes free-boson local operator builders.
-        pub const op = FreeBosonOp;
-        /// profile exposes profile-presentation builders.
-        pub const profile = ProfileOp;
-        /// config exposes named correlator configs for this preset.
-        pub const config = SphereConfig;
-
-        /// correlator evaluates free-boson insertions with a compiled config.
-        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
-            _ = config_ptr;
-            _ = ops;
-            _ = sink;
-            return error.NotImplemented;
-        }
-    };
-}
+const scalars = declare.scalars;
 #+end_src
 
-The derivative label convention is \(dX(\mu,n,z)=\partial^{n+1}X^\mu(z)\).
-An explicit \(X\) body is present because position-space profiles and NLSM
-expansions naturally produce logarithmic Green kernels.
+Small private sink adapters keep tests focused on the event they inspect.
 
 #+begin_src zig
-const FreeBosonOp = struct {
-    /// X builds an explicit bulk free-boson field insertion.
-    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        _ = mu;
-        return operator(.x, pairInsertion(z, zbar));
-    }
-
-    /// dX builds a holomorphic derivative field insertion.
-    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
-        _ = mu;
-        return operator(.d_x, singleInsertion(z, n));
-    }
-
-    /// dXt builds an antiholomorphic derivative field insertion.
-    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
-        _ = mu;
-        return operator(.d_xt, singleInsertion(zbar, n));
-    }
-
-    /// expX builds a normal-ordered plane-wave insertion.
-    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        _ = k;
-        return operator(.exp_x, pairInsertion(z, zbar));
-    }
-
-    /// profile builds a target-space profile insertion.
-    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        _ = f;
-        return operator(.profile_x, pairInsertion(z, zbar));
-    }
-};
+fn noopWickTermStart(_: anytype, _: anytype) !void {}
+fn noopWickScalar(_: anytype, _: anytype) !void {}
+fn noopWickCoordinate(_: anytype, _: anytype) !void {}
+fn noopWickTensor(_: anytype, _: anytype) !void {}
+fn noopWickAction(_: anytype, _: anytype) !void {}
+fn noopWickTermEnd(_: anytype) !void {}
+fn noopZeroModeFactor(_: anytype, _: anytype) !void {}
+fn noopZeroModeBaseEnd(_: anytype) !void {}
 #+end_src
 
-Profiles are presentation handles.  Position-space profiles keep the zero-mode
-integral explicit; Fourier profiles reduce to plane waves; polynomial profiles
-support Riemann-normal-coordinate expansions.
+* Preset Families
+
+The constructor bridge is grouped by CFT family.  The root public API can
+re-export these family objects without proliferating flat constructor names.
 
 #+begin_src zig
-const ProfileOp = struct {
-    /// positionSpace selects the exact residual position-space profile presentation.
-    pub fn positionSpace(f: Handle.TargetFunction) Handle.Profile {
-        return f;
-    }
-
-    /// fourier selects the Fourier-space profile presentation.
-    pub fn fourier(f_hat: Handle.FourierTransform) Handle.Profile {
-        return f_hat;
-    }
-
-    /// polynomialRnc selects a finite polynomial profile presentation.
-    pub fn polynomialRnc(point: Handle.TargetPoint, terms: []const Handle.PolynomialProfileTerm) Handle.Profile {
-        _ = terms;
-        return point;
-    }
+/// FreeBoson groups the free-boson preset constructors.
+pub const FreeBoson = struct {
+    /// make builds the generated preset type for a noncompact free-boson CFT.
+    pub const make = free_boson.freeBoson;
+    /// boundary declares the Neumann/Dirichlet free-boson boundary extension.
+    pub const boundary = free_boson.boundaryExtension;
 };
+
+/// Bc groups the bc-ghost preset constructors.
+pub const Bc = struct {
+    /// sphere builds the generated preset type for the sphere bc ghost CFT.
+    pub const sphere = bc.bcSphere;
+    /// diskBoundary declares boundary and mixed bulk-boundary bc rules on the disk.
+    pub const diskBoundary = bc.boundaryExtension;
+};
+
+/// FreeFermion groups the NS free-fermion preset constructors.
+pub const FreeFermion = struct {
+    /// sphere builds the generated preset type for sphere NS free fermions.
+    pub const sphere = free_fermion.freeFermionSphere;
+};
+
+/// EtaXi groups the eta-xi preset constructors.
+pub const EtaXi = struct {
+    /// sphere builds the generated preset type for the sphere eta-xi system.
+    pub const sphere = eta_xi.etaXiSphere;
+};
+
+/// product builds the generated preset type for a product of independent bulk presets.
+pub const product = composition.product;
+/// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
+pub const boundary = composition.boundary;
 #+end_src
 
-* bc Sphere
-
-The \(bc\) sphere preset is independent of the matter CFT.  Stringbook fixes
-the local OPE \(b(z)c(0)\sim z^{-1}\), the weights \(h_b=2\),
-\(h_c=-1\), and the sphere top-form normalization [cite:@yinStringbook].
-
-#+begin_src zig
-/// BcSphereConfig declares the holomorphic bc system and optional antiholomorphic copy.
-pub const BcSphereConfig = struct {
-    include_antiholomorphic_copy: bool = true,
-};
-
-/// bcSphere builds the API type for the sphere bc ghost CFT.
-pub fn bcSphere(comptime cfg: BcSphereConfig) type {
-    return struct {
-        const preset_kind = PresetKind.bc_sphere;
-        const preset_config = cfg;
-
-        /// op exposes bc ghost local operator builders.
-        pub const op = BcSphereOp;
-        /// config exposes named correlator configs for this preset.
-        pub const config = SphereConfig;
-
-        /// correlator evaluates bc insertions with a compiled config.
-        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
-            _ = config_ptr;
-            _ = ops;
-            _ = sink;
-            return error.NotImplemented;
-        }
-    };
-}
-#+end_src
-
-Derivative labels mean \(\partial^n b\), \(\partial^n c\), and the
-antiholomorphic copies.
-
-#+begin_src zig
-const BcSphereOp = struct {
-    /// b builds a holomorphic b-ghost insertion.
-    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
-        return operator(.b, singleInsertion(z, n));
-    }
-
-    /// c builds a holomorphic c-ghost insertion.
-    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
-        return operator(.c, singleInsertion(z, n));
-    }
-
-    /// bt builds an antiholomorphic b-ghost insertion.
-    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
-        return operator(.bt, singleInsertion(zbar, n));
-    }
-
-    /// ct builds an antiholomorphic c-ghost insertion.
-    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
-        return operator(.ct, singleInsertion(zbar, n));
-    }
-};
-#+end_src
-
-* Product
-
-Tensor products are products of sector data and quantum-number lists.  There is
-no runtime tensor-product payload.  At this milestone the product API exposes
-the implemented bulk builders directly: free bosons and \(bc\) ghosts.
-
-#+begin_src zig
-/// product builds the API type for a product of independent bulk presets.
-pub fn product(comptime factors: anytype) type {
-    return struct {
-        const preset_kind = PresetKind.product;
-        const preset_factors = factors;
-
-        /// op exposes the joined operator builders of the product factors.
-        pub const op = ProductOp(factors);
-        /// config exposes named correlator configs for this product preset.
-        pub const config = SphereConfig;
-
-        /// correlator evaluates product-theory insertions with a compiled config.
-        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
-            _ = config_ptr;
-            _ = ops;
-            _ = sink;
-            return error.NotImplemented;
-        }
-    };
-}
-
-fn ProductOp(comptime factors: anytype) type {
-    _ = factors;
-    return BulkProductOp;
-}
-
-const BulkProductOp = struct {
-    /// X builds an explicit bulk free-boson field insertion.
-    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return FreeBosonOp.X(mu, z, zbar);
-    }
-
-    /// dX builds a holomorphic derivative field insertion.
-    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
-        return FreeBosonOp.dX(mu, n, z);
-    }
-
-    /// dXt builds an antiholomorphic derivative field insertion.
-    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
-        return FreeBosonOp.dXt(mu, n, zbar);
-    }
-
-    /// expX builds a normal-ordered plane-wave insertion.
-    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return FreeBosonOp.expX(k, z, zbar);
-    }
-
-    /// profile builds a target-space profile insertion.
-    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return FreeBosonOp.profile(f, z, zbar);
-    }
-
-    /// b builds a holomorphic b-ghost insertion.
-    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
-        return BcSphereOp.b(n, z);
-    }
-
-    /// c builds a holomorphic c-ghost insertion.
-    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
-        return BcSphereOp.c(n, z);
-    }
-
-    /// bt builds an antiholomorphic b-ghost insertion.
-    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
-        return BcSphereOp.bt(n, zbar);
-    }
-
-    /// ct builds an antiholomorphic c-ghost insertion.
-    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
-        return BcSphereOp.ct(n, zbar);
-    }
-};
-#+end_src
-
-* Boundary Extensions
-
-The bulk CFT remains boundary-free.  A BCFT is formed only by applying boundary
-extensions to a chosen bulk theory.  This mirrors the stringbook distinction
-between the bulk field and its boundary limit.  In particular,
-\[
-  \partial^n X(y)=\lim_{z\to y}\partial^nX(z),
-\]
-and \(\partial X(y)\) is not \(\partial_yX(y)\): for Neumann
-\(\partial_yX=2\partial X\), while for Dirichlet \(\partial_yX=0\)
-[cite:@yinStringbook].
-
-#+begin_src zig
-const BoundaryExtensionKind = enum {
-    free_boson_boundary,
-    bc_disk,
-};
-
-const BoundaryExtension = struct {
-    kind: BoundaryExtensionKind,
-    chan_paton: ?Handle.BoundaryStack = null,
-};
-
-/// FreeBosonBoundaryConfig declares Neumann and Dirichlet data for a brane.
-pub const FreeBosonBoundaryConfig = struct {
-    neumann: Handle.TensorProjector,
-    dirichlet: Handle.TensorProjector,
-    dirichlet_position: Handle.TargetPoint,
-    chan_paton: ?Handle.BoundaryStack = null,
-};
-
-/// freeBosonBoundary declares the Neumann/Dirichlet free-boson boundary extension.
-pub fn freeBosonBoundary(comptime cfg: FreeBosonBoundaryConfig) BoundaryExtension {
-    _ = cfg.neumann;
-    _ = cfg.dirichlet;
-    _ = cfg.dirichlet_position;
-    return .{ .kind = .free_boson_boundary, .chan_paton = cfg.chan_paton };
-}
-#+end_src
-
-The boundary free-boson builders expose stringbook's holomorphic boundary
-limit.  A real boundary derivative can be built later at expression level if a
-client wants it.
-
-#+begin_src zig
-const FreeBosonBoundaryOp = struct {
-    /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
-    pub fn dXBoundary(mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        _ = mu;
-        return operator(.d_x_boundary, singleInsertion(y, n));
-    }
-
-    /// expXBoundary builds a Neumann boundary plane-wave insertion.
-    pub fn expXBoundary(k: Handle.Momentum, y: Handle.BoundaryCoord) operators.Operator {
-        _ = k;
-        return operator(.exp_x_boundary, singleInsertion(y, 0));
-    }
-
-    /// profileBoundary builds a boundary profile insertion.
-    pub fn profileBoundary(f: Handle.Profile, y: Handle.BoundaryCoord) operators.Operator {
-        _ = f;
-        return operator(.profile_x_boundary, singleInsertion(y, 0));
-    }
-};
-#+end_src
-
-The boundary \(bc\) extension supplies boundary ghosts and mixed bulk-boundary
-rules for disk amplitudes.  The rules are not executed here yet; they are part
-of the future lowered Wick table.
-
-#+begin_src zig
-/// BcDiskConfig declares the disk boundary extension for the bc ghost system.
-pub const BcDiskConfig = struct {
-    include_mixed_bulk_boundary: bool = true,
-};
-
-/// bcDiskBoundary declares boundary and mixed bulk-boundary bc rules on the disk.
-pub fn bcDiskBoundary(comptime cfg: BcDiskConfig) BoundaryExtension {
-    _ = cfg;
-    return .{ .kind = .bc_disk };
-}
-
-const BcDiskBoundaryOp = struct {
-    /// bBoundary builds a boundary b-ghost insertion.
-    pub fn bBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        return operator(.b_boundary, singleInsertion(y, n));
-    }
-
-    /// cBoundary builds a boundary c-ghost insertion.
-    pub fn cBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        return operator(.c_boundary, singleInsertion(y, n));
-    }
-};
-#+end_src
-
-The boundary builder merges the bulk operator namespace with the selected
-boundary namespaces.  Chan-Paton data remains an optional label on boundary
-extensions and may point to tensor-code structures later.
-
-#+begin_src zig
-/// boundary builds the API type for a BCFT from a bulk preset and boundary extensions.
-pub fn boundary(comptime Bulk: type, comptime extensions: anytype) type {
-    return struct {
-        const preset_kind = PresetKind.boundary;
-        const bulk = Bulk;
-        const boundary_extensions = extensions;
-
-        /// op exposes bulk and boundary operator builders.
-        pub const op = BoundaryOp(Bulk, extensions);
-        /// config exposes named correlator configs for this BCFT.
-        pub const config = DiskConfig;
-
-        /// correlator evaluates BCFT insertions with a compiled config.
-        pub fn correlator(config_ptr: *const theory.Runtime.CorrelatorConfig, ops: anytype, sink: anytype) !void {
-            _ = config_ptr;
-            _ = ops;
-            _ = sink;
-            return error.NotImplemented;
-        }
-    };
-}
-
-fn BoundaryOp(comptime Bulk: type, comptime extensions: anytype) type {
-    _ = Bulk;
-    _ = extensions;
-    return BoundaryProductOp;
-}
-
-const BoundaryProductOp = struct {
-    /// X builds an explicit bulk free-boson field insertion.
-    pub fn X(mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.X(mu, z, zbar);
-    }
-
-    /// dX builds a holomorphic derivative field insertion.
-    pub fn dX(mu: Handle.Index, n: u8, z: Handle.Coord) operators.Operator {
-        return BulkProductOp.dX(mu, n, z);
-    }
-
-    /// dXt builds an antiholomorphic derivative field insertion.
-    pub fn dXt(mu: Handle.Index, n: u8, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.dXt(mu, n, zbar);
-    }
-
-    /// expX builds a normal-ordered plane-wave insertion.
-    pub fn expX(k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.expX(k, z, zbar);
-    }
-
-    /// profile builds a target-space profile insertion.
-    pub fn profile(f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.profile(f, z, zbar);
-    }
-
-    /// b builds a holomorphic b-ghost insertion.
-    pub fn b(n: u8, z: Handle.Coord) operators.Operator {
-        return BulkProductOp.b(n, z);
-    }
-
-    /// c builds a holomorphic c-ghost insertion.
-    pub fn c(n: u8, z: Handle.Coord) operators.Operator {
-        return BulkProductOp.c(n, z);
-    }
-
-    /// bt builds an antiholomorphic b-ghost insertion.
-    pub fn bt(n: u8, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.bt(n, zbar);
-    }
-
-    /// ct builds an antiholomorphic c-ghost insertion.
-    pub fn ct(n: u8, zbar: Handle.Coord) operators.Operator {
-        return BulkProductOp.ct(n, zbar);
-    }
-
-    /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
-    pub fn dXBoundary(mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        return FreeBosonBoundaryOp.dXBoundary(mu, n, y);
-    }
-
-    /// expXBoundary builds a Neumann boundary plane-wave insertion.
-    pub fn expXBoundary(k: Handle.Momentum, y: Handle.BoundaryCoord) operators.Operator {
-        return FreeBosonBoundaryOp.expXBoundary(k, y);
-    }
-
-    /// profileBoundary builds a boundary profile insertion.
-    pub fn profileBoundary(f: Handle.Profile, y: Handle.BoundaryCoord) operators.Operator {
-        return FreeBosonBoundaryOp.profileBoundary(f, y);
-    }
-
-    /// bBoundary builds a boundary b-ghost insertion.
-    pub fn bBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        return BcDiskBoundaryOp.bBoundary(n, y);
-    }
-
-    /// cBoundary builds a boundary c-ghost insertion.
-    pub fn cBoundary(n: u8, y: Handle.BoundaryCoord) operators.Operator {
-        return BcDiskBoundaryOp.cBoundary(n, y);
-    }
-};
-#+end_src
-
-* Minimal Config Data
-
-The correlator receives a pointer to a compact config.  The numeric ids here
-are placeholders until the DSL lowers presets into [[id:20260605T090102.250727][Theory]] rule tables.
-
-#+begin_src zig
-const SphereConfig = struct {
-    /// sphere selects sphere Wick and zero-mode rules.
-    pub const sphere = theory.Runtime.CorrelatorConfig{
-        .wick_rules = 0,
-        .zero_modes = 0,
-    };
-};
-
-const DiskConfig = struct {
-    /// disk selects disk Wick and zero-mode rules.
-    pub const disk = theory.Runtime.CorrelatorConfig{
-        .wick_rules = 1,
-        .zero_modes = 1,
-    };
-};
-#+end_src
-
-* Private Data
-
-The only private generic data left here is the preset tag used by generated
-types.  The actual rule tables remain future DSL output.
-
-#+begin_src zig
-const PresetKind = enum {
-    free_boson,
-    bc_sphere,
-    product,
-    boundary,
-};
-#+end_src
-
-* API Check
-
-This test checks one concept: the public preset API composes bulk factors and
-boundary extensions without asking the caller to touch theory internals.
+* Interface Checks
+
+The tests here are intentionally behavioral.  They check concepts that should
+survive later implementation work: composition exposes only selected
+namespaces, rule slices compose from the supplied factors, labels remain
+out-of-line, and the current correlator boundary streams primitive Wick terms
+rather than allocating a final expression.
 
 #+begin_src zig
 test "presets compose operator builders without exposing theory tables" {
     const testing = @import("std").testing;
 
-    const FreeBoson = freeBoson(.{ .dimension = 26 });
-    const BosonicSphere = product(.{ FreeBoson, bcSphere(.{}) });
-    const BosonicDisk = boundary(BosonicSphere, .{
-        freeBosonBoundary(.{
-            .neumann = 1,
-            .dirichlet = 2,
-            .dirichlet_position = 3,
-        }),
-        bcDiskBoundary(.{}),
+    const X = freeBoson(.{ .dimension = 26 });
+    const BosonicSphere = product(.{ X, bcSphere(.{}) });
+    const XBoundary = freeBosonBoundary(.{
+        .neumann = X.target.subspace(&.{ 0, 1, 2, 3 }),
+        .dirichlet = X.target.complement(&.{ 0, 1, 2, 3 }),
+        .dirichlet_position = X.target.point("x0"),
+        .chan_paton = X.target.boundaryStack("stack"),
+    });
+    const GhostBoundary = bcDiskBoundary(.{});
+    const BosonicDisk = boundary(BosonicSphere, .{ XBoundary, GhostBoundary });
+
+    var local = try BosonicDisk.local(testing.allocator);
+    defer local.deinit();
+
+    const k = try local.momentum("k");
+    const y = try local.boundaryCoord("y");
+    const x = try @TypeOf(XBoundary).op.expXBoundary(&local, k, y);
+    const c = try @TypeOf(GhostBoundary).op.cBoundary(&local, 0, y);
+    const ops = try local.ops(.{ x, c });
+
+    try testing.expect(!@hasDecl(@TypeOf(BosonicDisk.config.disk), "wick_rules"));
+    try testing.expect(!@hasDecl(@TypeOf(BosonicDisk.config.disk), "pair_lookup"));
+    try testing.expect(!@hasDecl(@TypeOf(BosonicDisk.config.disk), "zero_modes"));
+    try testing.expect(!@hasDecl(@TypeOf(BosonicDisk.config.disk), "config_entries"));
+    try testing.expect(!@hasDecl(@TypeOf(X.config.sphere), "wick_rules"));
+    const LocalType = @typeInfo(@TypeOf(local)).pointer.child;
+    try testing.expect(@typeInfo(LocalType) == .@"opaque");
+    try testing.expect(!@hasDecl(LocalType, "symbol"));
+    try testing.expect(!@hasDecl(LocalType, "op"));
+    try testing.expect(!@hasDecl(LocalType, "add"));
+    try testing.expect(!@hasDecl(LocalType, "normalOrdered"));
+    try testing.expect(!@hasDecl(LocalType, "finish"));
+    const OpsType = @typeInfo(@TypeOf(ops)).pointer.child;
+    try testing.expect(@typeInfo(OpsType) == .@"opaque");
+    try testing.expect(!@hasDecl(OpsType, "operators"));
+    try testing.expect(!@hasDecl(OpsType, "labels"));
+}
+
+test "preset composition plumbing stays inside shared lowering" {
+    const testing = @import("std").testing;
+
+    try testing.expect(!@hasDecl(shared, "ConfigEntry"));
+    try testing.expect(!@hasDecl(shared, "correlatorSliceCount"));
+    try testing.expect(!@hasDecl(shared, "appendCorrelatorSlice"));
+    try testing.expect(!@hasDecl(shared, "boundaryExtensionSliceCount"));
+    try testing.expect(!@hasDecl(shared, "appendBoundaryExtensionSlice"));
+    try testing.expect(!@hasDecl(shared, "mergeSphereConfigs"));
+    try testing.expect(!@hasDecl(shared, "mergeBoundaryConfig"));
+    try testing.expect(@hasDecl(shared, "declare"));
+    try testing.expect(@hasDecl(shared.declare, "mergeSphereConfigs"));
+    try testing.expect(@hasDecl(shared.declare, "mergeBoundaryConfig"));
+    try testing.expect(!@hasDecl(shared, "Spec"));
+    try testing.expect(!@hasDecl(shared, "wick"));
+    try testing.expect(!@hasDecl(shared, "zero_mode"));
+    try testing.expect(!@hasDecl(shared, "scalars"));
+    try testing.expect(@hasDecl(shared.declare, "Spec"));
+    try testing.expect(@hasDecl(shared.declare, "wick"));
+    try testing.expect(@hasDecl(shared.declare, "zero_mode"));
+    try testing.expect(@hasDecl(shared.declare, "scalars"));
+}
+
+test "preset rules and namespaces compose from supplied factors" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const Ghost = bcSphere(.{});
+    const MatterOnly = product(.{X});
+    const GhostOnly = product(.{Ghost});
+    const MatterGhost = product(.{ X, Ghost });
+
+    try testing.expect(@hasDecl(MatterOnly.config, "sphere"));
+    try testing.expect(@hasDecl(GhostOnly.config, "sphere"));
+    try testing.expect(@hasDecl(MatterGhost.config, "sphere"));
+    try testing.expect(!@hasDecl(MatterGhost.op, "free_boson"));
+    try testing.expect(!@hasDecl(MatterGhost.op, "bc"));
+
+    const XBoundary = freeBosonBoundary(.{
+        .neumann = X.target.subspace(&.{ 0, 1, 2, 3 }),
+        .dirichlet = X.target.complement(&.{ 0, 1, 2, 3 }),
+        .dirichlet_position = X.target.point("x0"),
+    });
+    const GhostBoundary = bcDiskBoundary(.{});
+    const DiskMatter = boundary(MatterGhost, .{XBoundary});
+    const DiskMatterGhost = boundary(MatterGhost, .{ XBoundary, GhostBoundary });
+
+    try testing.expect(@hasDecl(DiskMatter.op, "bulk"));
+    try testing.expect(@hasDecl(DiskMatterGhost.op, "bulk"));
+    try testing.expect(!@hasDecl(@TypeOf(DiskMatter.config.disk), "wick_rules"));
+    try testing.expect(!@hasDecl(@TypeOf(DiskMatterGhost.config.disk), "wick_rules"));
+}
+
+test "local operator tokens are owned by their builder" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var first = try X.local(testing.allocator);
+    defer first.deinit();
+    var second = try X.local(testing.allocator);
+    defer second.deinit();
+
+    const mu = try first.index("mu");
+    const z = try first.coord("z");
+    const dx = try X.op.dX(&first, mu, 0, z);
+
+    try testing.expectError(error.InvalidLocalOperator, second.ops(.{dx}));
+}
+
+test "preset compile-time flags change generated public behavior" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const HolomorphicBc = bcSphere(.{ .include_antiholomorphic_copy = false });
+    const MatterGhost = product(.{ X, HolomorphicBc });
+    const BoundaryOnlyGhost = boundary(HolomorphicBc, .{
+        bcDiskBoundary(.{ .include_mixed_bulk_boundary = false }),
     });
 
-    const x = BosonicDisk.op.expXBoundary(4, 10);
-    const c = BosonicDisk.op.cBoundary(0, 11);
+    try testing.expect(@hasDecl(HolomorphicBc.op, "b"));
+    try testing.expect(!@hasDecl(HolomorphicBc.op, "bt"));
+    try testing.expect(@hasDecl(MatterGhost.config, "sphere"));
+    try testing.expect(@hasDecl(BoundaryOnlyGhost.op, "bulk"));
+    try testing.expect(!@hasDecl(@TypeOf(BoundaryOnlyGhost.config.disk), "wick_rules"));
 
-    try testing.expectEqual(@intFromEnum(BodyKind.exp_x_boundary), x.body);
-    try testing.expectEqual(@intFromEnum(BodyKind.c_boundary), c.body);
+    const FullGhostDisk = boundary(HolomorphicBc, .{bcDiskBoundary(.{})});
+
+    var local = try FullGhostDisk.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const y = try local.boundaryCoord("y");
+    const ops = try local.ops(.{
+        try HolomorphicBc.op.b(&local, 0, z),
+        try @TypeOf(bcDiskBoundary(.{})).op.cBoundary(&local, 0, y),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+        pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
+
+        wick_terms: usize = 0,
+
+        /// emitWickTermStart counts one streamed primitive contraction.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.wick_terms += 1;
+        }
+    };
+
+    var full_sink = Sink{};
+    try FullGhostDisk.correlator(&FullGhostDisk.config.disk, ops, &full_sink);
+    try testing.expectEqual(@as(usize, 1), full_sink.wick_terms);
+
+    var boundary_only_sink = Sink{};
+    try BoundaryOnlyGhost.correlator(&BoundaryOnlyGhost.config.disk, ops, &boundary_only_sink);
+    try testing.expectEqual(@as(usize, 0), boundary_only_sink.wick_terms);
+}
+
+test "free fermion sphere uses generic fermionic Wick signs" {
+    const testing = @import("std").testing;
+
+    const Psi = freeFermionSphere(.{ .dimension = 10 });
+
+    var local = try Psi.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const rho = try local.index("rho");
+    const sigma = try local.index("sigma");
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const ops = try local.ops(.{
+        try Psi.op.psi(&local, mu, 0, z1),
+        try Psi.op.psi(&local, nu, 0, z2),
+        try Psi.op.psi(&local, rho, 0, z3),
+        try Psi.op.psi(&local, sigma, 0, z4),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+        pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
+
+        branch_count: usize = 0,
+        primitive_count: usize = 0,
+        negative_branch_count: usize = 0,
+        pending_negative: bool = false,
+
+        /// emitWickBranchSign records signs supplied by the generic branch walker.
+        pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
+            if (sign < 0) self.pending_negative = true;
+        }
+
+        /// emitWickTermStart records the first primitive term of each Wick branch.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.primitive_count += 1;
+            if ((self.primitive_count % 2) == 1) {
+                self.branch_count += 1;
+                if (self.pending_negative) {
+                    self.negative_branch_count += 1;
+                    self.pending_negative = false;
+                }
+            }
+        }
+    };
+
+    var sink = Sink{};
+    try Psi.correlator(&Psi.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 3), sink.branch_count);
+    try testing.expectEqual(@as(usize, 6), sink.primitive_count);
+    try testing.expectEqual(@as(usize, 1), sink.negative_branch_count);
+    try testing.expect(!@hasDecl(@TypeOf(Psi.config.sphere), "fermion_kinds"));
+    try testing.expect(!@hasDecl(@TypeOf(Psi.config.sphere), "pair_lookup"));
+}
+
+test "eta-xi sphere saturates one xi zero mode" {
+    const testing = @import("std").testing;
+
+    const EtaXiPreset = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try EtaXiPreset.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const xi = try EtaXiPreset.op.xi(&local, 0, z);
+
+    const SaturatedSink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        zero_mode_count: usize = 0,
+        base_count: usize = 0,
+        coordinate: ?shared.Handle.Coord = null,
+
+        /// emitZeroModeFactor records the single xi constant-mode factor.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .eta_xi_zero_mode => |zero| {
+                    try testing.expectEqual(.sphere_holomorphic, zero.support);
+                    try testing.expectEqual(@as(u8, 0), zero.xi.derivative_order);
+                    self.zero_mode_count += 1;
+                    self.coordinate = @as(shared.Handle.Coord, @enumFromInt(zero.xi.coordinate));
+                },
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records a completed zero-mode base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_count += 1;
+        }
+    };
+
+    var saturated_sink = SaturatedSink{};
+    const saturated_ops = try local.ops(.{xi});
+    try EtaXiPreset.correlator(&EtaXiPreset.config.sphere, saturated_ops, &saturated_sink);
+    try testing.expectEqual(@as(usize, 1), saturated_sink.zero_mode_count);
+    try testing.expectEqual(@as(usize, 1), saturated_sink.base_count);
+    try testing.expectEqual(z, saturated_sink.coordinate.?);
+
+    var derivative_local = try EtaXiPreset.local(testing.allocator);
+    defer derivative_local.deinit();
+    const zd = try derivative_local.coord("z");
+    const xi_derivative = try EtaXiPreset.op.xi(&derivative_local, 1, zd);
+    var rejected_sink = SaturatedSink{};
+    const rejected_ops = try derivative_local.ops(.{xi_derivative});
+    try EtaXiPreset.correlator(&EtaXiPreset.config.sphere, rejected_ops, &rejected_sink);
+    try testing.expectEqual(@as(usize, 0), rejected_sink.zero_mode_count);
+    try testing.expectEqual(@as(usize, 0), rejected_sink.base_count);
+    try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.sphere), "zero_modes"));
+    try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.sphere), "fermion_kinds"));
+}
+
+test "eta-xi torus lowers prime-form log-derivative Wick and xi zero mode" {
+    const testing = @import("std").testing;
+
+    const EtaXiPreset = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try EtaXiPreset.local(testing.allocator);
+    defer local.deinit();
+
+    const z_eta = try local.coord("z_eta");
+    const z_xi_a = try local.coord("z_xi_a");
+    const z_xi_b = try local.coord("z_xi_b");
+    const ops = try local.ops(.{
+        try EtaXiPreset.op.eta(&local, 0, z_eta),
+        try EtaXiPreset.op.xi(&local, 0, z_xi_a),
+        try EtaXiPreset.op.xi(&local, 0, z_xi_b),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        term_count: usize = 0,
+        kernel_count: usize = 0,
+        zero_mode_count: usize = 0,
+        base_count: usize = 0,
+
+        /// emitWickTermStart records one eta-xi torus primitive contraction.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.term_count += 1;
+        }
+
+        /// emitWickCoordinate requires the elliptic prime-form log derivative.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .green_kernel => |kernel| {
+                    try testing.expectEqualStrings("elliptic_prime_form_log_derivative", kernel.name);
+                    try testing.expectEqual(@as(u8, 0), kernel.left_derivatives);
+                    try testing.expectEqual(@as(u8, 0), kernel.right_derivatives);
+                    self.kernel_count += 1;
+                },
+                else => return error.UnexpectedTorusKernel,
+            }
+        }
+
+        /// emitZeroModeFactor requires the torus holomorphic xi zero mode.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .eta_xi_zero_mode => |zero| {
+                    try testing.expectEqual(.torus_holomorphic, zero.support);
+                    try testing.expectEqual(@as(u8, 0), zero.xi.derivative_order);
+                    self.zero_mode_count += 1;
+                },
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records one successful torus base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_count += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try EtaXiPreset.correlator(&EtaXiPreset.config.torus, ops, &sink);
+    try testing.expectEqual(@as(usize, 2), sink.term_count);
+    try testing.expectEqual(@as(usize, 2), sink.kernel_count);
+    try testing.expectEqual(@as(usize, 2), sink.zero_mode_count);
+    try testing.expectEqual(@as(usize, 2), sink.base_count);
+    try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.torus), "wick_rules"));
+    try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.torus), "zero_modes"));
+}
+
+test "compact text sink inspects a small correlator without custom callbacks" {
+    const testing = @import("std").testing;
+    const Buffer = struct {
+        bytes: [512]u8 = undefined,
+        len: usize = 0,
+
+        pub fn writeAll(self: *@This(), data: []const u8) !void {
+            if (self.len + data.len > self.bytes.len) return error.NoSpaceLeft;
+            @memcpy(self.bytes[self.len..][0..data.len], data);
+            self.len += data.len;
+        }
+
+        fn slice(self: *const @This()) []const u8 {
+            return self.bytes[0..self.len];
+        }
+    };
+
+    const X = freeBoson(.{ .dimension = 10 });
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const z = try local.coord("z");
+    const w = try local.coord("w");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z),
+        try X.op.dX(&local, nu, 0, w),
+    });
+
+    var buffer = Buffer{};
+    var text = X.text.compact(&buffer, .small);
+    try X.correlator(&X.config.sphere, ops, &text);
+    try testing.expect(@import("std").mem.indexOf(u8, buffer.slice(), "eta(") != null);
+}
+
+test "bc zero modes consume c jets by top-form saturation" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 1, z2),
+        try Ghost.op.c(&local, 2, z3),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        factor_count: usize = 0,
+        base_end_count: usize = 0,
+        derivative_sum: u16 = 0,
+
+        /// emitZeroModeFactor records the top-form factor emitted by the base case.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            self.factor_count += 1;
+            switch (factor) {
+                .bc_top_form => |top| {
+                    if (top.support != .sphere_holomorphic) return error.UnexpectedBcSupport;
+                    self.derivative_sum = @as(u16, top.jets[0].derivative_order) + top.jets[1].derivative_order + top.jets[2].derivative_order;
+                },
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records that every residual insertion was consumed.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_end_count += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.factor_count);
+    try testing.expectEqual(@as(usize, 1), sink.base_end_count);
+    try testing.expectEqual(@as(u16, 3), sink.derivative_sum);
+}
+
+test "disk bc zero modes use one doubled chiral top form" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{});
+    const GhostBoundary = bcDiskBoundary(.{});
+    const Disk = boundary(Ghost, .{GhostBoundary});
+
+    var local = try Disk.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const zbar = try local.coord("zbar");
+    const y = try local.boundaryCoord("y");
+    const ops = try local.ops(.{
+        try Disk.op.bulk.c(&local, 0, z),
+        try Disk.op.bulk.ct(&local, 0, zbar),
+        try @TypeOf(GhostBoundary).op.cBoundary(&local, 0, y),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        saw_disk_doubled: bool = false,
+
+        /// emitZeroModeFactor records whether the doubled disk top form was emitted.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .bc_top_form => |top| self.saw_disk_doubled = top.support == .disk_doubled,
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd accepts the successful zero-mode base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            _ = self;
+        }
+    };
+
+    var sink = Sink{};
+    try Disk.correlator(&Disk.config.disk, ops, &sink);
+    try testing.expect(sink.saw_disk_doubled);
+}
+
+test "free boson zero modes emit momentum delta and profile presentations" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const k = try local.momentum("k");
+    const z = try local.coord("z");
+    const zbar = try local.coord("zbar");
+    const f0 = try local.targetFunction("f");
+    const fhat = try local.fourierTransform("fhat");
+    const coeff = try local.profileCoefficient("a");
+    const point = try local.targetPoint("x0");
+    const position_profile = X.profile.positionSpace(f0);
+    const fourier_profile = X.profile.fourier(fhat);
+    const polynomial_profile = X.profile.polynomialRnc(point, .{.{ coeff, 2 }});
+    const ops = try local.ops(.{
+        try X.op.expX(&local, k, z, zbar),
+        try X.op.profile(&local, position_profile, z, zbar),
+        try X.op.profile(&local, fourier_profile, z, zbar),
+        try X.op.profile(&local, polynomial_profile, z, zbar),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        delta_count: usize = 0,
+        gaussian_count: usize = 0,
+        fourier_count: usize = 0,
+        polynomial_count: usize = 0,
+        base_end_count: usize = 0,
+        two_pi_power: u16 = 0,
+
+        /// emitZeroModeFactor records each free-boson zero-mode factor by presentation.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_delta => |delta| {
+                    self.delta_count += 1;
+                    self.two_pi_power = delta.two_pi_power;
+                    if (delta.projector != null or delta.momenta.len != 1) return error.UnexpectedMomentumDelta;
+                },
+                .profile_gaussian_differential => self.gaussian_count += 1,
+                .profile_fourier_integral => self.fourier_count += 1,
+                .profile_polynomial_integral => self.polynomial_count += 1,
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records that all profile and plane-wave residuals were consumed.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_end_count += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.delta_count);
+    try testing.expectEqual(@as(u16, 10), sink.two_pi_power);
+    try testing.expectEqual(@as(usize, 1), sink.gaussian_count);
+    try testing.expectEqual(@as(usize, 1), sink.fourier_count);
+    try testing.expectEqual(@as(usize, 1), sink.polynomial_count);
+    try testing.expectEqual(@as(usize, 1), sink.base_end_count);
+}
+
+test "disk free boson zero modes emit Neumann delta and Dirichlet phase" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const XBoundary = freeBosonBoundary(.{
+        .neumann = X.target.subspace(&.{ 0, 1, 2, 3 }),
+        .dirichlet = X.target.complement(&.{ 0, 1, 2, 3 }),
+        .dirichlet_position = X.target.point("x0"),
+    });
+    const Disk = boundary(product(.{X}), .{XBoundary});
+
+    var local = try Disk.local(testing.allocator);
+    defer local.deinit();
+
+    const k = try local.momentum("k");
+    const y = try local.boundaryCoord("y");
+    const ops = try local.ops(.{
+        try @TypeOf(XBoundary).op.expXBoundary(&local, k, y),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        delta_count: usize = 0,
+        phase_count: usize = 0,
+        base_end_count: usize = 0,
+        two_pi_power: u16 = 0,
+        saw_disk_scalar: bool = false,
+        saw_projector: bool = false,
+        saw_position: bool = false,
+
+        /// emitZeroModeFactor records Neumann momentum conservation and Dirichlet phase data.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_delta => |delta| {
+                    self.delta_count += 1;
+                    self.two_pi_power = delta.two_pi_power;
+                    self.saw_projector = delta.projector != null;
+                    switch (delta.scalar) {
+                        .monomial => |monomial| self.saw_disk_scalar = monomial.atom != null and monomial.atom_power == 1,
+                        else => return error.UnexpectedDiskNormalization,
+                    }
+                    if (delta.momenta.len != 1) return error.UnexpectedMomentumDelta;
+                },
+                .dirichlet_phase => |phase| {
+                    self.phase_count += 1;
+                    self.saw_position = phase.momenta.len == 1;
+                    switch (phase.position) {
+                        .target_point => {},
+                        else => return error.UnexpectedDirichletPosition,
+                    }
+                },
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records that the disk constant mode consumed the insertion.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_end_count += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Disk.correlator(&Disk.config.disk, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.delta_count);
+    try testing.expectEqual(@as(usize, 1), sink.phase_count);
+    try testing.expectEqual(@as(u16, 4), sink.two_pi_power);
+    try testing.expect(sink.saw_disk_scalar);
+    try testing.expect(sink.saw_projector);
+    try testing.expect(sink.saw_position);
+    try testing.expectEqual(@as(usize, 1), sink.base_end_count);
+}
+
+test "unconsumed free boson derivative kills the zero-mode base case" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const z = try local.coord("z");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        base_end_count: usize = 0,
+
+        /// emitZeroModeFactor fails if an unconsumed derivative field emits a zero-mode factor.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {
+            return error.UnexpectedZeroModeFactor;
+        }
+
+        /// emitZeroModeBaseEnd fails because the derivative residual should not be consumed.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_end_count += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 0), sink.base_end_count);
+}
+
+test "pair Wick streams preset scalar atoms through correlator" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const preset_alpha = scalars.atom("free_boson", "alpha_prime");
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const z = try local.coord("z");
+    const w = try local.coord("w");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z),
+        try X.op.dX(&local, nu, 0, w),
+    });
+
+    switch (scalars.rational(2, 4)) {
+        .rational => |value| {
+            try testing.expectEqual(@as(i64, 1), value.numerator);
+            try testing.expectEqual(@as(i64, 2), value.denominator);
+        },
+        else => return error.UnexpectedScalarShape,
+    }
+
+    const Sink = struct {
+        expected_alpha: @TypeOf(preset_alpha),
+        saw_scalar: bool = false,
+        saw_coordinate: bool = false,
+
+        /// emitWickTermStart accepts the primitive free-boson contraction.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickScalar checks the configured alpha-prime atom.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .monomial => |monomial| {
+                        if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2) return error.UnexpectedScalarFactor;
+                        if (monomial.imaginary_power != 0 or monomial.atom_power != 1) return error.UnexpectedScalarFactor;
+                        try testing.expectEqual(self.expected_alpha, monomial.atom.?);
+                        self.saw_scalar = true;
+                    },
+                    else => return error.UnexpectedScalarShape,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate checks the differentiated two-point pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.exponent != -2) return error.UnexpectedCoordinateFactor;
+                    self.saw_coordinate = true;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor accepts the contracted target-space tensor.
+        pub fn emitWickTensor(_: *@This(), _: anytype) !void {}
+
+        /// emitWickAction rejects unexpected action factors.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedAction;
+        }
+
+        /// emitWickTermEnd accepts the completed primitive contraction.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeFactor accepts the empty free-boson constant mode.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {}
+
+        /// emitZeroModeBaseEnd accepts the full contraction base case.
+        pub fn emitZeroModeBaseEnd(_: *@This()) !void {}
+    };
+
+    var sink = Sink{ .expected_alpha = preset_alpha };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expect(sink.saw_scalar);
+    try testing.expect(sink.saw_coordinate);
+}
+
+test "pair Wick resolves derivative action on a vector profile" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const z = try local.coord("z");
+    const w = try local.coord("w");
+    const wbar = try local.coord("wbar");
+    const f0 = try local.targetFunction("f");
+    const f = X.profile.positionSpace(f0);
+
+    const dx = try X.op.dX(&local, mu, 0, z);
+    const profile = try X.op.profileVector(&local, f, nu, w, wbar);
+    const ops = try local.ops(.{ dx, profile });
+
+    const Sink = struct {
+        term_count: usize = 0,
+        scalar_count: usize = 0,
+        coordinate_count: usize = 0,
+        tensor_count: usize = 0,
+        action_count: usize = 0,
+        saw_scalar: bool = false,
+        saw_coordinate: bool = false,
+        saw_tensor_none: bool = false,
+        saw_action: bool = false,
+        expected_z: u32,
+        expected_w: u32,
+        expected_profile: u32,
+        expected_index: u32,
+
+        /// emitWickTermStart records the single primitive profile Wick term.
+        pub fn emitWickTermStart(self: *@This(), event: anytype) !void {
+            if (event.left_index != 0 or event.right_index != 1 or event.term_index != 0) return error.UnexpectedWickTermEvent;
+            self.term_count += 1;
+        }
+
+        /// emitWickScalar checks the expected free-boson profile scalar.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            self.scalar_count += 1;
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .monomial => |monomial| {
+                        if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2 or monomial.atom == null) return error.UnexpectedScalarFactor;
+                        self.saw_scalar = true;
+                    },
+                    else => return error.UnexpectedScalarFactor,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate checks the resolved profile pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            self.coordinate_count += 1;
+            if (factor.scalar.numerator != 1 or factor.scalar.denominator != 1) return error.UnexpectedCoordinateScalar;
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.coordinate.left != self.expected_z or power.coordinate.right != self.expected_w or power.exponent != -1) return error.UnexpectedCoordinateFactor;
+                    self.saw_coordinate = true;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor checks that no tensor numerator is emitted.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            self.tensor_count += 1;
+            switch (factor) {
+                .none => self.saw_tensor_none = true,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickAction checks the profile-derivative action.
+        pub fn emitWickAction(self: *@This(), factor: anytype) !void {
+            self.action_count += 1;
+            switch (factor) {
+                .profile_derivative => |action| {
+                    switch (action.profile) {
+                        .symbol => |value| if (value != self.expected_profile) return error.UnexpectedProfileLabel,
+                        else => return error.UnexpectedProfileLabel,
+                    }
+                    switch (action.index) {
+                        .symbol => |value| if (value != self.expected_index) return error.UnexpectedIndexLabel,
+                        else => return error.UnexpectedIndexLabel,
+                    }
+                    self.saw_action = true;
+                },
+                else => return error.UnexpectedProfileAction,
+            }
+        }
+
+        /// emitWickTermEnd accepts the completed primitive term.
+        pub fn emitWickTermEnd(self: *@This()) !void {
+            _ = self;
+        }
+
+        /// emitZeroModeFactor accepts the surviving profile zero-mode factor.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {}
+
+        /// emitZeroModeBaseEnd accepts the successful residual base case.
+        pub fn emitZeroModeBaseEnd(_: *@This()) !void {}
+    };
+
+    var sink = Sink{
+        .expected_z = @intFromEnum(z),
+        .expected_w = @intFromEnum(w),
+        .expected_profile = @intFromEnum(f),
+        .expected_index = @intFromEnum(mu),
+    };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.term_count);
+    try testing.expectEqual(@as(usize, 1), sink.scalar_count);
+    try testing.expectEqual(@as(usize, 1), sink.coordinate_count);
+    try testing.expectEqual(@as(usize, 1), sink.tensor_count);
+    try testing.expectEqual(@as(usize, 1), sink.action_count);
+    try testing.expect(sink.saw_scalar);
+    try testing.expect(sink.saw_coordinate);
+    try testing.expect(sink.saw_tensor_none);
+    try testing.expect(sink.saw_action);
+
+    const coeff = try local.profileCoefficient("a");
+    const x0 = try local.targetPoint("x0");
+    const polynomial_linear = X.profile.polynomialRnc(x0, .{.{ coeff, 1 }});
+    const polynomial_quadratic = X.profile.polynomialRnc(x0, .{.{ coeff, 2 }});
+    try testing.expect(@intFromEnum(polynomial_linear) != @intFromEnum(polynomial_quadratic));
+}
+
+test "pair Wick resolves config-backed boundary projectors" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const XBoundary = freeBosonBoundary(.{
+        .neumann = X.target.subspace(&.{ 0, 1, 2, 3 }),
+        .dirichlet = X.target.complement(&.{ 0, 1, 2, 3 }),
+        .dirichlet_position = X.target.point("x0"),
+    });
+    const Disk = boundary(product(.{X}), .{XBoundary});
+    const neumann = X.target.subspace(&.{ 0, 1, 2, 3 });
+
+    var local = try Disk.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const y = try local.boundaryCoord("y");
+    const y2 = try local.boundaryCoord("y2");
+    const left = try @TypeOf(XBoundary).op.dXBoundary(&local, mu, 0, y);
+    const right = try @TypeOf(XBoundary).op.dXBoundary(&local, nu, 1, y2);
+    const ops = try local.ops(.{ left, right });
+
+    const Sink = struct {
+        term_count: usize = 0,
+        scalar_count: usize = 0,
+        coordinate_count: usize = 0,
+        tensor_count: usize = 0,
+        action_count: usize = 0,
+        saw_scalar: bool = false,
+        saw_coordinate: bool = false,
+        saw_projector: bool = false,
+        expected_y: u32,
+        expected_y2: u32,
+        expected_neumann: u32,
+
+        /// emitWickTermStart records the single boundary Wick term.
+        pub fn emitWickTermStart(self: *@This(), event: anytype) !void {
+            if (event.left_index != 0 or event.right_index != 1 or event.term_index != 0) return error.UnexpectedWickTermEvent;
+            self.term_count += 1;
+        }
+
+        /// emitWickScalar checks the boundary free-boson scalar factor.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            self.scalar_count += 1;
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .monomial => |monomial| {
+                        if (monomial.rational.numerator != -1 or monomial.rational.denominator != 1 or monomial.atom == null) return error.UnexpectedScalarFactor;
+                        self.saw_scalar = true;
+                    },
+                    else => return error.UnexpectedScalarFactor,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate checks the differentiated boundary pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            self.coordinate_count += 1;
+            if (factor.scalar.numerator != 2 or factor.scalar.denominator != 1) return error.UnexpectedCoordinateScalar;
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.coordinate.left != self.expected_y or power.coordinate.right != self.expected_y2 or power.exponent != -3) return error.UnexpectedCoordinateFactor;
+                    self.saw_coordinate = true;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor checks that the Neumann projector resolves from config.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            self.tensor_count += 1;
+            switch (factor) {
+                .projector_metric => |projector_metric| switch (projector_metric.projector) {
+                    .config => |value| switch (value) {
+                        .tensor_projector => |projector| {
+                            if (@intFromEnum(projector) != self.expected_neumann) return error.UnexpectedProjectorConfig;
+                            self.saw_projector = true;
+                        },
+                        else => return error.UnexpectedProjectorConfig,
+                    },
+                    else => return error.UnexpectedProjectorSource,
+                },
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickAction counts unexpected profile actions.
+        pub fn emitWickAction(self: *@This(), factor: anytype) !void {
+            _ = factor;
+            self.action_count += 1;
+        }
+
+        /// emitWickTermEnd accepts the completed boundary term.
+        pub fn emitWickTermEnd(self: *@This()) !void {
+            _ = self;
+        }
+
+        /// emitZeroModeFactor accepts disk empty-base normalization factors.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {}
+
+        /// emitZeroModeBaseEnd accepts the successful full contraction base case.
+        pub fn emitZeroModeBaseEnd(_: *@This()) !void {}
+    };
+
+    var sink = Sink{
+        .expected_y = @intFromEnum(y),
+        .expected_y2 = @intFromEnum(y2),
+        .expected_neumann = @intFromEnum(neumann),
+    };
+    try Disk.correlator(&Disk.config.disk, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.term_count);
+    try testing.expectEqual(@as(usize, 1), sink.scalar_count);
+    try testing.expectEqual(@as(usize, 1), sink.coordinate_count);
+    try testing.expectEqual(@as(usize, 1), sink.tensor_count);
+    try testing.expectEqual(@as(usize, 0), sink.action_count);
+    try testing.expect(sink.saw_scalar);
+    try testing.expect(sink.saw_coordinate);
+    try testing.expect(sink.saw_projector);
+}
+#+end_src
+
+#+begin_src zig
+test "recursive correlator enumerates free-boson pairings without dangling branches" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z1),
+        try X.op.dX(&local, mu, 0, z2),
+        try X.op.dX(&local, mu, 0, z3),
+        try X.op.dX(&local, mu, 0, z4),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        wick_terms: usize = 0,
+        zero_modes: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickTermStart counts one primitive contraction in an accepted branch.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.wick_terms += 1;
+        }
+
+        /// emitWickAction rejects unexpected action factors.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedAction;
+        }
+
+        /// emitZeroModeFactor counts the free-boson constant-mode factor.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_delta => self.zero_modes += 1,
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd counts one accepted full Wick branch.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 6), sink.wick_terms);
+    try testing.expectEqual(@as(usize, 3), sink.zero_modes);
+    try testing.expectEqual(@as(usize, 3), sink.base_cases);
+}
+
+test "recursive correlator leaves bc top-form residuals after all b contractions" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const z5 = try local.coord("z5");
+    const z6 = try local.coord("z6");
+    const z7 = try local.coord("z7");
+    const ops = try local.ops(.{
+        try Ghost.op.b(&local, 0, z1),
+        try Ghost.op.b(&local, 0, z2),
+        try Ghost.op.c(&local, 0, z3),
+        try Ghost.op.c(&local, 0, z4),
+        try Ghost.op.c(&local, 0, z5),
+        try Ghost.op.c(&local, 0, z6),
+        try Ghost.op.c(&local, 0, z7),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        wick_terms: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickTermStart counts one b-c contraction in an accepted branch.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.wick_terms += 1;
+        }
+
+        /// emitWickAction rejects unexpected action factors.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedAction;
+        }
+
+        /// emitZeroModeFactor accepts the surviving c-zero-mode top form.
+        pub fn emitZeroModeFactor(_: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .bc_top_form => {},
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd counts one accepted full Wick branch.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 40), sink.wick_terms);
+    try testing.expectEqual(@as(usize, 20), sink.base_cases);
+}
+
+test "recursive correlator emits fermion signs for bc pair crossings" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const z5 = try local.coord("z5");
+    const z6 = try local.coord("z6");
+    const z7 = try local.coord("z7");
+    const ops = try local.ops(.{
+        try Ghost.op.b(&local, 0, z1),
+        try Ghost.op.b(&local, 0, z2),
+        try Ghost.op.c(&local, 0, z3),
+        try Ghost.op.c(&local, 0, z4),
+        try Ghost.op.c(&local, 0, z5),
+        try Ghost.op.c(&local, 0, z6),
+        try Ghost.op.c(&local, 0, z7),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        negative_signs: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickBranchSign records negative fermion branch signs.
+        pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
+            if (sign != -1) return error.UnexpectedBranchSign;
+            self.negative_signs += 1;
+        }
+
+        /// emitWickTermStart accepts a primitive contraction.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickAction rejects unexpected action factors.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedAction;
+        }
+
+        /// emitZeroModeFactor accepts the surviving c-zero-mode top form.
+        pub fn emitZeroModeFactor(_: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .bc_top_form => {},
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd counts one accepted full Wick branch.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 10), sink.negative_signs);
+    try testing.expectEqual(@as(usize, 20), sink.base_cases);
 }
 #+end_src

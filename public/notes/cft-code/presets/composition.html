@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-07 Sun 06:45 -->
+<!-- 2026-06-09 Tue 09:37 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Preset Composition</title>
@@ -44,11 +44,21 @@
 <div class="toc-section">
   <div class="toc-row">
     <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
     <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
   </div>
   <ul class="toc-entries" hidden>
     <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
     <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
     <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
   </ul>
 </div>
@@ -74,6 +84,40 @@
 <div class="toc-section">
   <div class="toc-row">
     <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
     <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
   </div>
 </div>
@@ -91,7 +135,9 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
     <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -108,6 +154,12 @@
     <span class="toc-toggle"></span>
     <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
   </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
 </div>
 <div class="toc-section">
   <div class="toc-row">
@@ -184,205 +236,54 @@ runtime vocabulary from <a href="/notes/cft-code/presets/shared.html">Preset Sha
 The important invariant is that tensor products do not allocate a new runtime
 operator representation.  Product quantum numbers remain lists at theory level;
 runtime local operators are still just insertion data, a body kind, and a label
-span.  Composition therefore joins operator namespaces and concatenates rule
-slices at compile time.
+span.  Composition asks the shared lowering path to merge opaque configs, so it
+does not name config-entry records or slice append helpers.
 </p>
 
 <div class="org-src-container">
 <pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">shared</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"shared.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">declare</span> = shared.declare;
 
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../kernel.zig"</span>);
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CorrelatorConfig</span> = shared.CorrelatorConfig;
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Local</span> = shared.Local;
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = shared.wick;
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode</span> = shared.zero_mode;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Builder</span> = *shared.Local;
 </pre>
 </div>
 <div id="outline-container-org4fa6038" class="outline-2">
 <h2 id="org4fa6038">Product CFTs</h2>
 <div class="outline-text-2" id="text-org4fa6038">
 <p>
-A product preset forms its rules from the generated sphere config of each
-factor.  Convenience operator aliases are intentionally explicit: for example
-<code>product(.{FreeBoson})</code> has <code>op.free_boson</code> and no <code>op.bc</code>.  Future presets can
-compose through their configs immediately; adding a friendly <code>op</code> namespace is
-a separate user-facing alias decision.
+A product preset forms its sphere config from the generated sphere config of
+each factor.  It deliberately does not synthesize preset-named operator
+namespaces.  Future friendly aliases belong in the user DSL layer, not in the
+lowering path.
 </p>
 
 <a id="product"></a>
 <div class="org-src-container">
-<pre class="src src-zig" id="orgbe14693"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EmptyOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {};
-
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KnownOpNamespace</span> = <span style="color: #fb4934; font-weight: bold;">enum</span> {
-    free_boson,
-    bc_sphere,
-};
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasPresetKind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KnownOpNamespace</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
-            .free_boson =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor, <span style="color: #b8bb26; font-style: italic;">"is_free_boson_preset"</span>)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
-            .bc_sphere =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor, <span style="color: #b8bb26; font-style: italic;">"is_bc_sphere_preset"</span>)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">FactorWithKind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KnownOpNamespace</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">switch</span> (kind) {
-            .free_boson =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor, <span style="color: #b8bb26; font-style: italic;">"is_free_boson_preset"</span>)) <span style="color: #fb4934; font-weight: bold;">return</span> Factor,
-            .bc_sphere =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor, <span style="color: #b8bb26; font-style: italic;">"is_bc_sphere_preset"</span>)) <span style="color: #fb4934; font-weight: bold;">return</span> Factor,
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">unreachable</span>;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">factorHasSphereConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Factor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
-    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor, <span style="color: #b8bb26; font-style: italic;">"config"</span>) <span style="color: #fb4934; font-weight: bold;">and</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Factor.config, <span style="color: #b8bb26; font-style: italic;">"sphere"</span>);
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereWickCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) count += Factor.config.sphere.wick_rules.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereZeroCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) count += Factor.config.sphere.zero_modes.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereConfigCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) count += Factor.config.sphere.config_entries.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereWickStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [productSphereWickCount(factors)]wick.Rule {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [productSphereWickCount(factors)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) {
-            <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (Factor.config.sphere.wick_rules) |rule| {
-                storage[index] = rule;
-                index += 1;
-            }
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [productSphereZeroCount(factors)]zero_mode.Rule {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [productSphereZeroCount(factors)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) {
-            <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (Factor.config.sphere.zero_modes) |rule| {
-                storage[index] = rule;
-                index += 1;
-            }
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productSphereConfigStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [productSphereConfigCount(factors)]shared.ConfigEntry {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [productSphereConfigCount(factors)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.ConfigEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (factors) |Factor| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Factor)) {
-            <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (Factor.config.sphere.config_entries) |entry| {
-                storage[index] = entry;
-                index += 1;
-            }
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ProductRules</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick_storage</span> = productSphereWickStorage(factors);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick_index_storage</span> = shared.wickRuleIndexStorage(&amp;sphere_wick_storage);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_zero_storage</span> = productSphereZeroStorage(factors);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_config_storage</span> = productSphereConfigStorage(factors);
-
-        <span style="color: #e0d3b9; font-style: italic;">/// sphere_wick lists primitive Wick rules contributed by product factors.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;sphere_wick_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// sphere_wick_index maps ordered operator-kind pairs to product sphere rules.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick_index</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.WickRuleIndexEntry</span> = &amp;sphere_wick_index_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// sphere_zero_modes lists zero-mode rules contributed by product factors.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_zero_modes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = &amp;sphere_zero_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// sphere_config_entries lists typed config values contributed by product factors.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_config_entries</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.ConfigEntry</span> = &amp;sphere_config_storage;
-    };
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ProductCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = ProductRules(factors);
+<pre class="src src-zig" id="orgbe14693"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ProductCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">merged</span> = declare.mergeSphereConfigs(factors);
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
         <span style="color: #e0d3b9; font-style: italic;">/// sphere selects composed product Wick and zero-mode rules.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = CorrelatorConfig{
-            .wick_rules = rules.sphere_wick,
-            .wick_rule_index = rules.sphere_wick_index,
-            .zero_modes = rules.sphere_zero_modes,
-            .config_entries = rules.sphere_config_entries,
-        };
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = merged.config;
     };
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ProductOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">has_free_boson</span> = hasPresetKind(factors, .free_boson);
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">has_bc</span> = hasPresetKind(factors, .bc_sphere);
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_free_boson <span style="color: #fb4934; font-weight: bold;">and</span> has_bc) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// free_boson exposes free-boson builders contributed by the product.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">free_boson</span> = FactorWithKind(factors, .free_boson).op;
-            <span style="color: #e0d3b9; font-style: italic;">/// bc exposes bc-ghost builders contributed by the product.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bc</span> = FactorWithKind(factors, .bc_sphere).op;
-        };
-    }
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_free_boson) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// free_boson exposes free-boson builders contributed by the product.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">free_boson</span> = FactorWithKind(factors, .free_boson).op;
-        };
-    }
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_bc) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// bc exposes bc-ghost builders contributed by the product.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bc</span> = FactorWithKind(factors, .bc_sphere).op;
-        };
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> EmptyOp;
 }
 
 <span style="color: #e0d3b9; font-style: italic;">/// product builds the generated preset type for a product of independent bulk presets.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">product</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-        <span style="color: #e0d3b9; font-style: italic;">/// op exposes the joined operator builders of the product factors.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = ProductOp(factors);
+        <span style="color: #e0d3b9; font-style: italic;">/// op is intentionally empty; use the factor builders passed to product.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {};
         <span style="color: #e0d3b9; font-style: italic;">/// config exposes named correlator configs for this product preset.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = ProductCorrelatorConfig(factors);
-        <span style="color: #e0d3b9; font-style: italic;">/// rules exposes the preset-authored product Wick rule templates.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = ProductRules(factors);
-
+        <span style="color: #e0d3b9; font-style: italic;">/// text exposes bounded result-inspection sinks.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">text</span> = shared.text;
         <span style="color: #e0d3b9; font-style: italic;">/// local constructs a label-preserving local-operator builder.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Local {
-            <span style="color: #fb4934; font-weight: bold;">return</span> Local.init(allocator);
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !Builder {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.Local.init(allocator);
         }
 
         <span style="color: #e0d3b9; font-style: italic;">/// correlator streams rule matches for product-theory insertions.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfig</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
             <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
         }
     };
@@ -395,170 +296,31 @@ a separate user-facing alias decision.
 <h2 id="org61d32a9">Boundary Extensions</h2>
 <div class="outline-text-2" id="text-org61d32a9">
 <p>
-A BCFT is built from a bulk preset plus explicit boundary extensions.  The
-bulk preset remains boundary-free; boundary data contributes new operator
-families, mixed Wick rules, zero-mode caveats, and optional Chan-Paton stack
-data.
+A BCFT is built from a bulk preset plus explicit boundary extensions.  The bulk
+preset remains boundary-free; boundary data contributes new operator families,
+mixed Wick rules, zero-mode caveats, and optional Chan-Paton stack data.
+Boundary-local builders remain on the extension handles passed to <code>boundary</code>,
+so composition does not inspect preset names to create aliases.
 </p>
 
-<div class="org-src-container">
-<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">free_boson_boundary_kind</span> = shared.extensionKind(<span style="color: #b8bb26; font-style: italic;">"free_boson_boundary"</span>);
-<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bc_disk_kind</span> = shared.extensionKind(<span style="color: #b8bb26; font-style: italic;">"bc_disk"</span>);
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasBoundaryExtension</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (extension.kind == kind) {
-            <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ExtensionWithKind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (extension.kind == kind) {
-            <span style="color: #fb4934; font-weight: bold;">return</span> extension.op;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">unreachable</span>;
-}
-</pre>
-</div>
-
 <p>
-The disk config is formed from the bulk config payload plus the rule slices
-and config payloads selected by boundary extensions.  Chan-Paton stacks enter
-through the same typed config stream as projectors and target positions.
+The disk config is formed by the shared merge helper.  Composition keeps only
+the physics-facing bulk/extension relationship and does not see packed config
+entries, slice selectors, or append procedures.
 </p>
 
 <a id="boundary"></a>
 <div class="org-src-container">
-<pre class="src src-zig" id="org9bf2e36"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryWickCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        count += extension.wick_rules.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryZeroCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        count += extension.zero_modes.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryConfigCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Bulk)) Bulk.config.sphere.config_entries.len <span style="color: #fb4934; font-weight: bold;">else</span> 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        count += extension.config_entries.len;
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> count;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryWickStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [boundaryWickCount(extensions)]wick.Rule {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [boundaryWickCount(extensions)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extension.wick_rules) |rule| {
-            storage[index] = rule;
-            index += 1;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryZeroStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [boundaryZeroCount(extensions)]zero_mode.Rule {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [boundaryZeroCount(extensions)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extension.zero_modes) |rule| {
-            storage[index] = rule;
-            index += 1;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">boundaryConfigStorage</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) [boundaryConfigCount(Bulk, extensions)]shared.ConfigEntry {
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [boundaryConfigCount(Bulk, extensions)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.ConfigEntry</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
-    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
-    <span style="color: #fb4934; font-weight: bold;">if</span> (factorHasSphereConfig(Bulk)) {
-        <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (Bulk.config.sphere.config_entries) |entry| {
-            storage[index] = entry;
-            index += 1;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extensions) |extension| {
-        <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (extension.config_entries) |entry| {
-            storage[index] = entry;
-            index += 1;
-        }
-    }
-    <span style="color: #fb4934; font-weight: bold;">return</span> storage;
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BoundaryRules</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_wick_storage</span> = boundaryWickStorage(extensions);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_wick_index_storage</span> = shared.wickRuleIndexStorage(&amp;disk_wick_storage);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_zero_storage</span> = boundaryZeroStorage(extensions);
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_config_storage</span> = boundaryConfigStorage(Bulk, extensions);
-
-        <span style="color: #e0d3b9; font-style: italic;">/// disk_wick lists primitive Wick rules contributed by boundary extensions.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_wick</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span> = &amp;disk_wick_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// disk_wick_index maps ordered operator-kind pairs to composed disk rules.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_wick_index</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.WickRuleIndexEntry</span> = &amp;disk_wick_index_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// disk_zero_modes lists zero-mode rules contributed by boundary extensions.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_zero_modes</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">zero_mode.Rule</span> = &amp;disk_zero_storage;
-        <span style="color: #e0d3b9; font-style: italic;">/// disk_config_entries lists typed config values contributed by the bulk and boundary extensions.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk_config_entries</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">shared.ConfigEntry</span> = &amp;disk_config_storage;
-    };
-}
-
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BoundaryCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = BoundaryRules(Bulk, extensions);
+<pre class="src src-zig" id="org9bf2e36"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BoundaryCorrelatorConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">merged</span> = declare.mergeBoundaryConfig(Bulk, extensions);
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
         <span style="color: #e0d3b9; font-style: italic;">/// disk selects composed boundary Wick and zero-mode rules.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk</span> = CorrelatorConfig{
-            .wick_rules = rules.disk_wick,
-            .wick_rule_index = rules.disk_wick_index,
-            .zero_modes = rules.disk_zero_modes,
-            .config_entries = rules.disk_config_entries,
-        };
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">disk</span> = merged.config;
     };
 }
 
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">BoundaryOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Bulk</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extensions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">has_free_boson_boundary</span> = hasBoundaryExtension(extensions, free_boson_boundary_kind);
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">has_bc_boundary</span> = hasBoundaryExtension(extensions, bc_disk_kind);
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_free_boson_boundary <span style="color: #fb4934; font-weight: bold;">and</span> has_bc_boundary) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// bulk exposes the bulk operator namespaces.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span> = Bulk.op;
-            <span style="color: #e0d3b9; font-style: italic;">/// free_boson_boundary exposes selected free-boson boundary builders.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">free_boson_boundary</span> = ExtensionWithKind(extensions, free_boson_boundary_kind);
-            <span style="color: #e0d3b9; font-style: italic;">/// bc_boundary exposes selected bc boundary builders.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bc_boundary</span> = ExtensionWithKind(extensions, bc_disk_kind);
-        };
-    }
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_free_boson_boundary) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// bulk exposes the bulk operator namespaces.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span> = Bulk.op;
-            <span style="color: #e0d3b9; font-style: italic;">/// free_boson_boundary exposes selected free-boson boundary builders.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">free_boson_boundary</span> = ExtensionWithKind(extensions, free_boson_boundary_kind);
-        };
-    }
-    <span style="color: #fb4934; font-weight: bold;">if</span> (has_bc_boundary) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
-            <span style="color: #e0d3b9; font-style: italic;">/// bulk exposes the bulk operator namespaces.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span> = Bulk.op;
-            <span style="color: #e0d3b9; font-style: italic;">/// bc_boundary exposes selected bc boundary builders.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bc_boundary</span> = ExtensionWithKind(extensions, bc_disk_kind);
-        };
-    }
+    _ = extensions;
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
         <span style="color: #e0d3b9; font-style: italic;">/// bulk exposes the bulk operator namespaces.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bulk</span> = Bulk.op;
@@ -572,16 +334,15 @@ through the same typed config stream as projectors and target positions.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = BoundaryOp(Bulk, extensions);
         <span style="color: #e0d3b9; font-style: italic;">/// config exposes named correlator configs for this BCFT.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = BoundaryCorrelatorConfig(Bulk, extensions);
-        <span style="color: #e0d3b9; font-style: italic;">/// rules exposes the preset-authored boundary Wick rule templates.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = BoundaryRules(Bulk, extensions);
-
+        <span style="color: #e0d3b9; font-style: italic;">/// text exposes bounded result-inspection sinks.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">text</span> = shared.text;
         <span style="color: #e0d3b9; font-style: italic;">/// local constructs a label-preserving local-operator builder.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Local {
-            <span style="color: #fb4934; font-weight: bold;">return</span> Local.init(allocator);
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) !Builder {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.Local.init(allocator);
         }
 
         <span style="color: #e0d3b9; font-style: italic;">/// correlator streams rule matches for BCFT insertions.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfig</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
             <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
         }
     };
@@ -590,6 +351,9 @@ through the same typed config stream as projectors and target positions.
 </div>
 </div>
 </div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-08</p>
 </div>
 </body>
 </html>

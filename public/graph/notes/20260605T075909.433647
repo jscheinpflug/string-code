@@ -7,15 +7,217 @@
 
 #+api:
 
-This module handles the representation theory of different [[id:20260606T085016.945165][Symmetry]] algebras necessary for the calculations in other accompanying modules. Its killer feature is an extremely efficient generator of [[id:20260606T085254.829431][Clebsch-Gordan]] coefficients, but it also defines some basic invariant tensors, their canonicalization (of indices).
+This module handles finite-dimensional representation data for the symmetry
+algebras used by the other modules.  For a Lie algebra \(\mathfrak g\), the
+central problem is to construct bases of
+\[
+  \operatorname{Hom}_{\mathfrak g}
+  \left(T,\;R_1\otimes\cdots\otimes R_k\right),
+\]
+usually with \(T=\mathbf 1\).  These bases are Clebsch-Gordan data and
+invariant tensors.  Concrete index notation, such as gamma matrices, Young
+symmetrizers, metrics, epsilons, or structure constants, is a rendering layer
+over this representation-theoretic basis.
 
-The public module exposes only the two tensor-code boundaries.  Clients use
-[[id:20260606T085016.945165][Symmetry]] for representation data and [[id:20260606T150001.000000][Tensor Kernel]] for tensor-expression handles
-and streaming invariant sources consumed by [[id:20260603T063945.054265][CFT-Code]].
+The public module exposes named declarations directly.  Source files such as
+[[id:20260606T085016.945165][Symmetry]] and [[id:20260606T150001.000000][Tensor Kernel]]
+organize implementation and prose, but clients should import this node and use
+the individual public declarations below.  The caller-facing object is =Context=:
+it registers algebras, irreps, and realizations, then returns compact handles
+for invariant bases and rendered/evaluated output streams.
 
 #+begin_src zig
-/// symmetry exposes compact Lie-algebra and representation data.
-pub const symmetry = @import("symmetry.zig");
-/// kernel exposes tensor expression handles and streamed invariant sources.
-pub const kernel = @import("kernel.zig");
+const context = @import("context.zig");
+const coupling = @import("coupling.zig");
+const kernel = @import("kernel.zig");
+const realization = @import("realization.zig");
+const rendering = @import("rendering.zig");
+const root_data = @import("root-data.zig");
+const store = @import("representation-store.zig");
+const symmetry = @import("symmetry.zig");
+
+/// SimpleLieAlgebra stores the simple family and rank.
+pub const SimpleLieAlgebra = symmetry.SimpleLieAlgebra;
+/// LieFamily names the supported simple Lie families.
+pub const LieFamily = symmetry.LieFamily;
+/// QuantumNumbers is the tensor-product list of representation ids.
+pub const QuantumNumbers = symmetry.QuantumNumbers;
+/// RepresentationId names a representation in a representation store.
+pub const RepresentationId = symmetry.RepresentationId;
+/// TensorStructure stores simple built-in tensor structures.
+pub const TensorStructure = symmetry.TensorStructure;
+
+/// AlgebraHandle names a registered Lie algebra in a tensor context.
+pub const AlgebraHandle = store.AlgebraHandle;
+/// IrrepHandle names an abstract irreducible representation.
+pub const IrrepHandle = store.IrrepHandle;
+/// RealizationHandle names a concrete index realization of an irrep.
+pub const RealizationHandle = realization.RealizationHandle;
+/// RealizationChannel selects one irrep copy inside a realization product.
+pub const RealizationChannel = realization.RealizationChannel;
+/// BasisHandle names a generated invariant basis.
+pub const BasisHandle = coupling.BasisHandle;
+/// InvariantHandle names one invariant inside a basis.
+pub const InvariantHandle = coupling.InvariantHandle;
+/// Context is an opaque handle to tensor-code stores and caches.
+pub const Context = context.Context;
+/// ContextOptions configures algebra and rendering defaults.
+pub const ContextOptions = context.ContextOptions;
+/// AlgebraConventions selects configurable exact-algebra normalizations.
+pub const AlgebraConventions = root_data.AlgebraConventions;
+/// AlgebraSpec describes a requested algebra before it is interned.
+pub const AlgebraSpec = store.AlgebraSpec;
+/// IrrepSpec describes a requested representation before it is interned.
+pub const IrrepSpec = store.IrrepSpec;
+/// ExternalLeg describes a public invariant leg with named free indices.
+pub const ExternalLeg = realization.ExternalLeg;
+/// RealizationSpec describes a primitive or projected external index model.
+pub const RealizationSpec = realization.RealizationSpec;
+/// InvariantBasisRequest is the CFT-facing request for invariant tensors.
+pub const InvariantBasisRequest = coupling.InvariantBasisRequest;
+/// TensorExpansionTerm stores a CFT coefficient attached to one invariant id.
+pub const TensorExpansionTerm = coupling.TensorExpansionTerm;
+/// RenderOptions controls streamed invariant rendering.
+pub const RenderOptions = rendering.RenderOptions;
+/// EvalOptions controls component evaluation of one invariant.
+pub const EvalOptions = rendering.EvalOptions;
+/// SymbolicTerm stores one streamed coefficient times symbolic atoms.
+pub const SymbolicTerm = rendering.SymbolicTerm;
+/// SymbolicAtom stores one symbolic invariant contraction atom.
+pub const SymbolicAtom = rendering.SymbolicAtom;
+
+/// TensorExprId names a tensor expression stored by tensor-code.
+pub const TensorExprId = kernel.TensorExprId;
 #+end_src
+
+This root block is the public tensor-code API for now.  The compatibility
+exports =QuantumNumbers=, =RepresentationId=, and =TensorStructure= come from
+[[id:20260606T085016.945165][Symmetry]], while =TensorExprId= comes from
+[[id:20260606T150001.000000][Tensor Kernel]].  They exist because CFT data
+structures currently store compact tensor and representation ids.
+
+The central workflow is:
+
+1. register an algebra with =Context.registerAlgebra=;
+2. register abstract irreps by Dynkin labels with =Context.registerIrrep=;
+3. optionally register concrete index models with =Context.registerRealization=;
+4. request a basis with =Context.invariantBasis=;
+5. stream a concrete convention with =Context.renderInvariant= or
+   =Context.evaluateInvariant=.
+
+The constructors are deliberately on the public data records, so callers do not
+need to import implementation helpers:
+
+#+begin_src zig :tangle no
+var ctx = try tensor.Context.init(allocator);
+defer ctx.deinit();
+const algebra = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+const spinor = try ctx.registerIrrep(algebra, .{ .dynkin = &.{ 0, 0, 0, 0, 1 } });
+const leg = tensor.ExternalLeg.primitive(spinor, &.{
+    .init(.spinor, "a"),
+});
+const basis = try ctx.invariantBasis(.{
+    .algebra = algebra,
+    .external_legs = &.{leg},
+});
+#+end_src
+
+Conventions are configurable at context construction:
+
+#+begin_src zig :tangle no
+var ctx = try tensor.Context.initWithOptions(allocator, .{
+    .algebra_conventions = .{
+        .quadratic_casimir_scale = .{ .numerator = 1, .denominator = 1 },
+    },
+    .default_signature = .complex,
+});
+defer ctx.deinit();
+#+end_src
+
+Helper enums inside requests and render options are intentionally not root
+exports; callers can use inferred literals such as =.singlet=, =.auto=,
+=.vector=, and =.complex=.  Cache handles, decomposition handles, channel
+handles, stream sources, schema records, and backend capability tables stay
+behind this boundary until a caller needs them.
+
+* Public API Glossary
+
+- Lie algebra \(\mathfrak g\): the symmetry algebra, such as \(A_n\), \(D_n\),
+  or \(E_8\).  Tensor-code uses \(\mathfrak g\) to decide which tensor
+  structures are invariant.
+
+- Root datum: the Cartan matrix, simple roots, coroots, and weight lattice
+  conventions used internally for \(\mathfrak g\).  CFT code should not handle
+  this directly.
+
+- Irrep: an irreducible representation of \(\mathfrak g\).  For simple Lie
+  algebras this is identified by Dynkin labels, not by dimension.
+
+- Dynkin label: the integer highest-weight label of an irrep.  It is the
+  stable representation id used by the mathematics layer.
+
+- Tensor product decomposition: the expansion
+  \[
+    R\otimes S = \bigoplus_T m_T T
+  \]
+  into irreps \(T\) with multiplicities \(m_T\).  Tensor-code caches this
+  compactly; it does not expand component tensors during decomposition.
+
+- Multiplicity: the number of independent copies of the same irrep inside a
+  product.  A dimension is never enough to distinguish these copies.
+
+- Channel: one copy of an irrep inside a tensor product.  If
+  \(R\otimes S\) contains two copies of \(T\), those two copies have the same
+  irrep but different channel copy labels.
+
+- Realization: a concrete index model for an irrep.  A realization may be
+  primitive, such as one spinor index, or constrained, such as a traceless or
+  projected tensor product.
+
+- Backend: the internal family-specific capability table described in
+  [[id:20260606T210001.000000][Tensor Backend]].  It supplies decomposition,
+  local projector, primitive invariant, and rendering routines for a Lie
+  family without changing the public request flow.
+
+- Primitive realization: a representation whose public indices are already
+  the natural storage indices, such as a vector index, spinor index,
+  fundamental index, or adjoint index.
+
+- Constrained realization: a representation embedded in a larger ambient
+  tensor product, such as the \(144\subset 10\otimes 16\) gamma-traceless
+  channel.  Tensor-code records the boundary projector once and then treats the
+  leg as the irrep, not as the full ambient product at every internal step.
+
+- Index: a caller-named free slot in a realization.  An index name is not a
+  representation by itself.
+
+- External leg: one field/operator tensor slot supplied by a caller.  It has
+  an irrep, a realization, and named free indices.
+
+- Intertwiner: a \(\mathfrak g\)-equivariant map between representations.
+  Clebsch-Gordan coefficients are component formulas for such maps.
+
+- Invariant: a basis vector in
+  \[
+    \operatorname{Hom}_{\mathfrak g}
+    \left(T,\;R_1\otimes\cdots\otimes R_k\right).
+  \]
+  Usually \(T=\mathbf 1\), so the invariant is a singlet tensor.
+
+- Coupling path: the compact internal description of one invariant as a tree
+  of local Clebsch-Gordan maps.
+
+- Projector: an idempotent intertwiner selecting one channel or constrained
+  realization from an ambient product.  Projectors may be rendered as named
+  operators, block formulas, or fully expanded symbolic terms.
+
+- Renderer: the procedure that turns an invariant id into concrete notation,
+  such as \(\delta\)'s, \(\epsilon\)'s, Young symmetrizers, gamma matrices, or
+  structure constants.
+
+- Signature convention: the metric and Clifford-algebra convention used when
+  rendering or evaluating components.  Complex, Euclidean, and Lorentzian
+  signatures are conventions on the same abstract representation data.
+
+- Tensor expansion: the object CFT code carries: rational-function ids times
+  tensor invariant ids.  It does not require expanded tensor formulas.

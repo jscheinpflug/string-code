@@ -6,6 +6,6 @@
 5. The data flow must allow for paralellization when needed.
 6. Each module exports the bare minimum interface required by other modules or the user.
 7. The user-facing API is kept minimal and concise. Do not make declarations public by default, only when needed by another module or user-facing API.
-8. Write a literal program (in the sense of Knuth) in .org files in /org (code blocks tangled to zig /src), creating an org-roam node for each file and linking (via org-roam id) to other nodes in the literal text. 
+8. Write a literal program (in the sense of Knuth) in .org files in /org (code blocks tangled to zig /src), creating an org-roam node for each file and linking (via org-roam id) to other nodes in the literal text. Every folder /name/ gets a name.org file describing the contents of the folder, the ideas behind it.
 9. The prose is kept concise, to the point and explains the essential idea behind each logically independent block of code. Code blocks are kept short - one per idea. Every public declaration has a brief `///` comment describing it.
 10. Only write tests when absolutely necessary. Never create tests just to have something pass. The tests must have a clear purpose and must test a precise idea/invariant of the code, not language specifics and syntax.

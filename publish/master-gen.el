@@ -387,7 +387,7 @@ Extracts /// doc comments immediately preceding each pub declaration."
 (defun mgn/insert-api-latex (sigs &optional label)
   "Insert LaTeX API listing for SIGS at point, preceded by LABEL (default 'Interface')."
   (let ((title (or label "Interface")))
-    (insert (format "#+latex: \\medskip\\noindent{\\small\\textsc{%s}}\\hfill\\rule[0.5ex]{0.75\\linewidth}{0.3pt}\\par\\smallskip\n"
+    (insert (format "#+latex: \\medskip\\noindent{\\textsc{%s}}\\hfill\\rule[0.5ex]{0.75\\linewidth}{0.3pt}\\par\\smallskip\n"
                     title)))
   (dolist (group '(("fn" . "Functions") ("type" . "Types")
                    ("error" . "Errors") ("const" . "Constants")))

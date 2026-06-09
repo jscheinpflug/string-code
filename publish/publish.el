@@ -157,7 +157,8 @@ KEYS is the list of all cited key strings in document order."
                           (if (string= j "") (funcall fld 'booktitle) j)))
                (volume  (funcall fld 'volume))
                (pages   (funcall fld 'pages))
-               (doi     (funcall fld 'doi)))
+               (doi     (funcall fld 'doi))
+               (url     (funcall fld 'url)))
           (format "<li id=\"ref-%d\">%s (%s). <em>%s</em>%s%s%s%s</li>"
                   (cdr pair) author year title
                   (if (not (string= journal "")) (format ", %s" journal) "")
@@ -165,7 +166,11 @@ KEYS is the list of all cited key strings in document order."
                   (if (not (string= pages  "")) (format ", %s" pages)  "")
                   (if (not (string= doi    ""))
                       (format ". doi:<a href=\"https://doi.org/%s\">%s</a>" doi doi)
-                    "."))))
+                    (if (not (string= url ""))
+                        (format ". <a href=\"%s\">%s</a>"
+                                url
+                                (replace-regexp-in-string "^https?://" "" url))
+                      ".")))))
       ordered "\n")
      "\n</ol></div>")))
 

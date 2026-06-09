@@ -6,3 +6,770 @@
 #+PROPERTY: header-args:zig :tangle ../../src/tensor-code/clebsch-gordan.zig :mkdirp yes
 
 #+interface:
+
+This node is the handoff for implementing the tensor-code backend that will
+eventually generate Clebsch-Gordan data and invariant tensor bases.  The first
+backend milestone is not explicit CG coefficients.  It is a reliable,
+generic, cached decomposition engine:
+\[
+  R\otimes S = \bigoplus_T m_T T.
+\]
+The CG generator will consume these decompositions to enumerate coupling paths
+to a target representation, usually the singlet \(\mathbf 1\).
+
+* Goals
+
+The implementation must follow [[file:../../AGENTS.md][AGENTS.md]]:
+
+- write simple explicit procedural Zig;
+- design lean data structures first;
+- avoid large intermediate symbolic expressions;
+- keep data flows parallelizable;
+- expose the bare minimum public API;
+- keep the CFT-facing API in [[id:20260605T075909.433647][Tensor-Code]];
+- keep internal backend/decomposition/projector details out of the public root
+  unless a caller actually needs them;
+- document the implementation in org-roam nodes and keep prose concise.
+
+The mathematical and product requirements are:
+
+- support \(A_n\) for \(SU(N)\);
+- support \(B_n,D_n\) for \(SO(N)\) and \(Spin(N)\);
+- support \(E_6,E_7,E_8\), with \(E_8\) a key target;
+- do not overfocus the architecture on \(SO(10)\), even though \(Spin(10)\)
+  is the main stress test;
+- identify irreps by Dynkin labels, not dimensions;
+- treat multiplicities as first-class channel copies;
+- distinguish abstract irreps from concrete index realizations;
+- support constrained realizations such as \(144\subset 10\otimes16\) without
+  carrying the full ambient tensor product through every internal step;
+- represent large invariant bases as compact coupling paths, not dense tensor
+  components;
+- render explicit gamma/projector formulas only on demand and by streaming
+  terms to a sink;
+- make every projector appearing in a returned result fully expandable.
+
+The goals are concrete:
+
+1. Abstract representation theory must be correct first.  Irreps are Dynkin
+   labels; decompositions have explicit multiplicities; channels are not
+   identified by dimension.
+2. Large invariant bases must be stored as compact coupling paths.  A basis
+   element is a recipe: external legs, intermediate channels, and local
+   projector/CG kernel ids.
+3. Projectors in returned results must not be opaque tokens.  A projector id
+   may be the compact storage form, but it must carry enough derivation data to
+   expand into concrete symbolic terms later.
+4. Expansion must be streamed.  Fully expandable does not mean eagerly
+   expanded.  It means the renderer can enumerate the terms without inventing
+   missing identities or asking the user for hidden Fierz relations.
+5. The runnable target is not merely obtaining \(73744\) abstract basis
+   expressions.  The runnable target is also being able to expand each selected
+   basis element through a caller-supplied filter, and for the resulting stream
+   to be consumed at high throughput by CFT/correlator code.
+6. Filters are part of the execution model.  They may discard terms by index
+   support, operator kind, realization leg, component assignment, symmetry,
+   coefficient class, or target downstream contraction.  The renderer must
+   apply filters while streaming, not after materializing the full expansion.
+   Partial filtering must be sound: a partial product may be rejected only
+   when no completion can survive.  Otherwise the filter must return
+   =undecided= and the expansion continues.
+7. Coupling-tree policy is part of the basis convention.  Build one canonical
+   tree first, and certify independence for that tree.  Multiple trees are
+   different bases unless a basis-change or reduction map is explicitly
+   constructed.
+8. Fierz and projector identities must be derived from the backend
+   construction: channel decomposition, idempotent splitting, highest-weight
+   solvers, Casimir separation where valid, and explicit residual linear
+   algebra only when necessary.  They are not user-supplied tables.
+9. Compute estimates must include projector expansion cost.  Counting coupling
+   paths alone is insufficient if each path contains a projector whose
+   expansion is large.
+
+The motivating stress target remains:
+\[
+  \dim\operatorname{Hom}_{Spin(10)}(\mathbf 1,16^{12}) = 73744.
+\]
+Those \(73744\) objects should be records describing coupling paths and local
+projector ids.  They should not be expanded into component tensors during basis
+enumeration.  However, every projector id in those paths must be traceable to
+a stored expansion procedure.  When the caller asks for concrete notation,
+rendering should stream terms built from metrics, epsilons, named operators,
+gamma-like backend operators, or projector blocks.  The stream must be
+filterable as it is produced.  A successful implementation is one where a
+downstream consumer can iterate through selected expanded terms without waiting
+for the full expansion of all \(73744\) invariants to be allocated.
+
+* Non-Solutions
+
+The following are explicitly not acceptable:
+
+- Returning only abstract representation-theory counts.  Counts are useful for
+  feasibility, but CFT code needs actual invariant handles and eventually
+  streamable tensor expressions.
+- Returning opaque named projectors with no derivation recipe.  A compact
+  projector id is acceptable only if the backend can expand it.
+- Returning compact coupling paths with no efficient expansion path.  A list
+  of \(73744\) abstract expressions is not enough.
+- Expanding all \(73744\) basis elements into memory before filtering.  Filters
+  must be pushed into the streaming expansion loop.
+- Treating rendering as a slow debug printer.  Rendering is part of the
+  runnable computational path and must feed downstream correlator code at a
+  fast pace.
+- Treating \(144\subset10\otimes16\) as \(10\otimes16\) throughout all
+  internal coupling steps and projecting only at the very end.  The realization
+  projector belongs at the boundary.
+- Relying on hand-entered Fierz identities.  Identities must follow from the
+  algebraic construction and verified projector/idempotent relations.
+- Building dense tensors or dense component spaces such as \(16^{12}\).
+- Designing an \(SO(10)\)-only system.  \(Spin(10)\) is a stress test, not the
+  architecture.
+- Making gamma matrices part of the generic public ADE API.  Gamma-like
+  objects are backend-rendered named operators or internal SO/Spin atoms.
+- Optimizing by hiding mathematical ambiguity.  Multiplicity copies,
+  realization channels, basis conventions, and signature/rendering conventions
+  must be explicit.
+- Rejecting a partial expanded term because the current prefix does not yet
+  match a filter.  Prefix filters must distinguish =reject= from =undecided=.
+- Concatenating paths from several coupling trees and calling the union a
+  larger independent basis.  This is allowed only after constructing and
+  applying a basis-change or reduction map.
+
+* Weasel Modes And Required Evidence
+
+An implementation is not accepted because it can print plausible data.  It
+must produce the required records and expose enough evidence that the records
+are real.  The following failure modes are common and must be rejected during
+review:
+
+- Claiming a "fast structure generator" that only returns the count of
+  invariants.  Required evidence: stored basis handles with inspectable path
+  records, one record per basis element.
+- Returning a list of abstract labels without local channel data.  Required
+  evidence: each path stores the coupling tree, intermediate channel handles,
+  multiplicity-copy ids, and local projector/CG kernel ids.
+- Returning projectors as names such as =P_144= with no expansion route.
+  Required evidence: every projector id reports its derivation kind and an
+  expansion source, or returns a typed =NotExpandable= error before it appears
+  in a returned basis.
+- Using an overcomplete gamma-monomial list and calling it a basis.  Required
+  evidence: basis construction happens in representation/multiplicity space
+  before rendering; gamma terms are a rendering of already-independent basis
+  elements.
+- Running a dense component-space linear solve and hiding the cost behind a
+  small output.  Required evidence: logs/counters for maximum allocated weight
+  multiset size, path count, projector count, and no allocations proportional
+  to \(16^{12}\) or another full tensor component space.
+- Filtering after materializing all expanded terms.  Required evidence:
+  filters are called during expansion, and a reject-all filter allocates no
+  large output buffer.
+- Failing to distinguish multiplicity copies.  Required evidence:
+  decomposition terms include multiplicity, and local kernels/projectors
+  carry the selected copy.
+- Treating projected realizations as ambient products until the final output.
+  Required evidence: external legs using constrained realizations carry a
+  boundary projector once, and internal coupling uses the target irrep.
+- Claiming independence from successful numerical spot checks only.  Required
+  evidence: independence follows from the decomposition path construction, and
+  numerical/rendered checks are secondary audits.
+- Hardcoding known decompositions for the acceptance tests.  Required
+  evidence: tests include at least one generated decomposition not present as a
+  literal special case, and the backend exposes counters showing which generic
+  procedure produced it.
+
+Every major stage must produce a compact audit record:
+
+- algebra and convention ids;
+- input irreps;
+- number of weights generated;
+- total weight multiplicity;
+- product multiset size;
+- decomposition channel count;
+- sum of channel dimensions times multiplicities;
+- number of basis paths;
+- number of distinct projector ids;
+- maximum known projector expansion size, if available;
+- filter accept/reject/undecided counts during streamed expansion.
+
+These audits are mandatory internal milestone evidence, not optional debug
+output.  They are not user-facing API by default, but each backend milestone
+must produce enough audit data to prove that it is doing the promised
+computation.
+
+* Independence By Construction
+
+The basis must be independent before rendering.  The construction should be:
+
+1. For each binary product \(R\otimes S\), decompose into irreps:
+   \[
+     R\otimes S=\bigoplus_T M_{RS}^T\otimes T.
+   \]
+   Here \(M_{RS}^T\) is the finite multiplicity space.  If \(m_T=\dim
+   M_{RS}^T\), choose a basis vector \(e_i\) for each copy \(i=0,\dots,m_T-1\).
+2. A local CG kernel is an intertwiner selecting one basis vector in
+   \(M_{RS}^T\).  Distinct multiplicity-copy ids are distinct basis vectors in
+   that multiplicity space.
+3. For a fixed canonical coupling tree, a global path is a product of local
+   choices: at every internal node, choose the output channel and
+   multiplicity-copy basis vector.
+4. The set of all paths ending in the requested target \(T\), usually
+   \(\mathbf 1\), is a basis of the multiplicity space
+   \[
+     \operatorname{Hom}_{\mathfrak g}
+     \left(T,\;R_1\otimes\cdots\otimes R_n\right)
+   \]
+   for that tree and basis convention.
+
+Independence follows for that fixed tree because the decomposition is a direct
+sum of irreducible channels and explicit multiplicity spaces.  We are not
+selecting linearly independent gamma expressions from an overcomplete list.  We
+are selecting basis vectors in multiplicity spaces and composing intertwiners
+along one tree convention.
+
+Different tree policies give different coordinate systems on the same
+multiplicity space.  They must not be concatenated.  If the implementation
+later supports several trees, each tree must separately produce the target
+multiplicity.  The combined count across trees is not an independence
+certificate; it is redundant data until a basis-change or reduction map is
+available.
+
+Rendered formulas may look dependent because gamma matrices, epsilons,
+metrics, and projector blocks satisfy identities.  Those identities are part
+of the rendering backend.  They must not be used to define the abstract basis.
+Rendering must be a faithful expansion of the already-selected path basis in a
+chosen convention.  If a renderer cannot prove or verify faithfulness for a
+convention, it must report a typed error or mark the expansion as an audit
+target; it must not silently collapse or add basis elements.
+
+Required independence checks:
+
+- The number of emitted basis paths equals the target multiplicity computed by
+  dynamic programming over decompositions.
+- For every binary decomposition, the sum
+  \[
+    \sum_T m_T\dim T
+  \]
+  equals \(\dim R\,\dim S\).
+- Local projector records for a product channel must satisfy the abstract
+  projector laws in their construction record: idempotency and channel
+  separation.  When explicit formulas exist, audits should verify
+  \(P_iP_j=\delta_{ij}P_i\) in the chosen representation of the local product.
+- Boundary realization projectors must satisfy the same rule: e.g.
+  \(144\subset10\otimes16\) is represented by an idempotent whose image has
+  dimension \(144\), and the complementary channel is accounted for.
+- Rendered term streams are audits of the basis, not the source of the basis.
+  Component evaluation or filtered numerical checks can catch renderer bugs
+  but cannot replace the multiplicity-space construction.
+
+* Implementation Instructions
+
+Proceed in this order.  Do not skip ahead to rendered gamma formulas or
+high-level invariant counts.
+
+1. Implement the backend registry privately in =Context=.  It must select a
+   backend by algebra family and return typed unsupported-capability errors.
+2. Implement flat weight storage and a weight-system cache.  Store signed
+   weight coordinates in one buffer and weight records as offsets.  Add audit
+   counters for weight count and total multiplicity.
+3. Implement the generic highest-weight weight-system generator.  Validate it
+   on known dimensions before any tensor-product code is accepted.
+4. Implement tensor-product character multiplication and subtraction.  The
+   result must be flat product terms with multiplicities.  Store the result in
+   [[id:20260606T210002.000000][Tensor Decomposition]].
+5. Add decomposition acceptance tests:
+   \(SU(2):2\otimes2=1\oplus3\),
+   \(Spin(10):10\otimes16=16\oplus144\),
+   \(Spin(10):16\otimes16=10\oplus120\oplus126\), and
+   \(E_8:248\otimes248\) with the known channels.
+6. Implement dynamic-programming path counting to a target using cached binary
+   decompositions.  This is still counting, but it must use the same channel
+   records that path enumeration will use.
+7. Implement path enumeration for one canonical coupling tree.  Each emitted
+   path must store its local channel choices and multiplicity-copy ids.  The
+   path count must equal the dynamic count.  Do not enumerate several trees
+   until basis-change or reduction maps exist.
+8. Implement projector identity creation.  Each projector id must record its
+   role, convention, derivation kind, and expansion obligation.
+9. Implement a minimal expansion interface that can walk one path and call a
+   sink with streamed symbolic terms.  At first it may return typed
+   =NotImplemented= for missing local formulas, but it must not return opaque
+   successful placeholders.
+10. Implement filters inside the expansion loop.  The filter decision is
+    tri-state: =accept=, =reject=, or =undecided=.  A partial term can be
+    rejected only when rejection is final under all completions.  Prove with a
+    reject-all filter test that no large output buffer is allocated.
+11. Only after the generic path and projector infrastructure is correct, add
+    specialized SO/Spin gamma/projector renderers, SU tableau/Gelfand-Tsetlin
+    optimizations, or E-type special renderers.
+
+At every step, prefer the smallest working data structure.  Add a new
+abstraction only when it removes real duplication or separates a hot data path.
+Do not add public exports for backend internals unless CFT code has a concrete
+call site that needs them.
+
+* Current State
+
+The public API is rooted at [[id:20260605T075909.433647][Tensor-Code]].  Public
+callers create a context, register an algebra, register irreps, optionally
+register concrete realizations, and request an invariant basis:
+
+#+begin_src zig :tangle no
+var ctx = try tensor.Context.init(allocator);
+defer ctx.deinit();
+
+const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+const spinor = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 0, 0, 0, 0, 1 } });
+const leg = tensor.ExternalLeg.primitive(spinor, &.{
+    .init(.spinor, "a"),
+});
+const basis = try ctx.invariantBasis(.{
+    .algebra = so10,
+    .external_legs = &.{leg},
+});
+#+end_src
+
+Conventions are configurable at context construction:
+
+#+begin_src zig :tangle no
+var ctx = try tensor.Context.initWithOptions(allocator, .{
+    .algebra_conventions = .{
+        .quadratic_casimir_scale = .{ .numerator = 1, .denominator = 1 },
+    },
+    .default_signature = .complex,
+});
+defer ctx.deinit();
+#+end_src
+
+The current substrate is:
+
+- [[id:20260606T230001.000000][Tensor Root Data]] validates supported simple algebras,
+  stores Cartan data, computes positive roots, dual Dynkin labels, Weyl
+  dimensions, and quadratic Casimirs.
+- [[id:20260606T190101.000000][Tensor Representation Store]] interns algebras and
+  irreps.  It computes metadata from Dynkin labels and provides explicit
+  =dualIrrep= lookup without recursively closing registration under duals.
+- [[id:20260606T190103.000000][Tensor Realization]] records concrete external
+  index shapes.  Projected realizations store a selected channel, so a
+  constrained leg such as \(144\subset 10\otimes16\) is a first-class boundary
+  realization.
+- [[id:20260606T210002.000000][Tensor Decomposition]] owns the binary product
+  decomposition cache.  It stores flat product terms and has a hash index keyed
+  by the pair of irrep handles.
+- [[id:20260606T210003.000000][Tensor Projector]] owns projector identities:
+  product-channel projectors, boundary-realization projectors, and basis-change
+  projectors.
+- [[id:20260606T210001.000000][Tensor Backend]] defines the internal backend
+  capability contract.
+- [[id:20260606T190106.000000][Tensor Rendering]] defines streamed symbolic
+  terms.  =SymbolicTerm= carries borrowed slices valid only until the sink
+  returns.  The public root does not expose a gamma-specific type; SO/Spin
+  renderers can emit backend operators through generic symbolic atoms.
+
+Build-checked metadata cases currently include:
+
+- \(B_4\): vector \(9\), spinor \(16\);
+- \(D_5\): vector \(10\), spinor \(16\), vector-spinor \(144\);
+- \(E_6\): fundamental \(27\);
+- \(E_7\): fundamental \(56\);
+- \(E_8\): adjoint \(248\).
+
+The following are still intentionally not implemented:
+
+- binary decomposition algorithms;
+- weight-system generation;
+- channel-path enumeration;
+- local CG/projector construction;
+- explicit gamma or projector expansion execution;
+- expansion filters and downstream stream consumers;
+- =Context.renderInvariant=;
+- =Context.evaluateInvariant=.
+
+* Backend Goal
+
+The first backend should be a generic highest-weight backend.  It should be a
+correctness backend and cache builder, not yet a family-specific optimized
+renderer.  Its first job is to answer:
+
+1. is this algebra supported?
+2. what is the weight system of this irrep?
+3. what is the decomposition of \(R\otimes S\)?
+4. what stable projector identity corresponds to one product channel?
+
+The backend must not allocate dense tensor-product component spaces.  It may
+construct compact weight multisets and flat cache records.
+
+* Backend Build Order
+
+** 1. Backend registry
+
+Add an internal backend registry owned by the private =Context= implementation.
+It maps =LieFamily= to a backend record and selects a backend from an algebra
+family.  It should not be exported from [[id:20260605T075909.433647][Tensor-Code]].
+
+Start with one backend implementation:
+
+- file: =generic-highest-weight-backend.zig=;
+- supports \(A_n,B_n,D_n,E_6,E_7,E_8\);
+- returns typed missing-capability errors for unimplemented operations.
+
+The registry should make no CFT-facing API changes.  CFT code still asks the
+context for invariant bases.
+
+** 2. Root-data helpers
+
+Use [[id:20260606T230001.000000][Tensor Root Data]] as the source of algebra
+conventions.  Do not duplicate Cartan matrices or exceptional diagrams in the
+backend.
+
+The backend will need internal helpers for:
+
+- rank;
+- Cartan entries;
+- simple-root reflection on weights;
+- dominant-weight test;
+- highest-weight validation;
+- exact rational inner products where Freudenthal or Casimir formulas need
+  them.
+
+Keep these helper APIs internal unless a later caller clearly needs them.
+
+** 3. Weight storage
+
+Weights are not public API.  Store them in flat buffers:
+
+#+begin_src zig :tangle no
+const WeightRef = struct {
+    dynkin_offset: u32,
+};
+
+const WeightMultiplicity = struct {
+    weight: WeightRef,
+    multiplicity: u32,
+};
+#+end_src
+
+The actual Dynkin-coordinate arrays should live in one flat signed buffer,
+probably =i32= once tensor products become large enough.  Signed coordinates
+are necessary because intermediate weights and reflected weights need not be
+dominant.
+
+Store rank once on the weight-system span or get it from the algebra.  Do not
+store rank in every weight record.  Do not allocate one heap object per weight.
+
+** 4. Weight-system generator
+
+Implement a cached weight-system generator for one highest-weight irrep.
+Freudenthal multiplicity recursion is the generic first choice because it
+works uniformly for the supported simple families.
+
+Cache key:
+
+#+begin_src zig :tangle no
+const WeightSystemKey = struct {
+    algebra: store.AlgebraHandle,
+    irrep: store.IrrepHandle,
+};
+#+end_src
+
+Cache value:
+
+#+begin_src zig :tangle no
+const WeightSystem = struct {
+    weights_offset: u32,
+    weights_len: u32,
+    rank: u8,
+    dynkin_coords_offset: u32,
+    dynkin_coords_len: u32,
+};
+#+end_src
+
+Acceptance checks:
+
+- \(D_5\) spinor has total weight multiplicity \(16\);
+- \(D_5\) vector has total weight multiplicity \(10\);
+- \(B_4\) spinor has total weight multiplicity \(16\);
+- \(E_8\) adjoint has total weight multiplicity \(248\).
+
+** 5. Tensor-product decomposition
+
+Use character subtraction first.  It is generic and easier to audit than a
+family-specific closed formula.
+
+Algorithm:
+
+1. get cached weight systems for \(R\) and \(S\);
+2. add all pairs of weights to build the weight multiset for \(R\otimes S\);
+3. find a maximal dominant weight still present, using one deterministic
+   dominance-order rule;
+4. its remaining multiplicity is the multiplicity of the next channel;
+5. subtract that many copies of the cached character of that highest weight;
+6. repeat until the multiset is empty.
+
+The dominance selection rule must be explicit and stable.  A practical first
+rule is:
+
+1. scan only weights with positive residual multiplicity;
+2. discard non-dominant weights;
+3. choose a dominant weight not strictly below another remaining dominant
+   weight in the root partial order;
+4. break ties by lexicographic Dynkin labels.
+
+After every subtraction, no residual multiplicity may become negative.  A
+negative residual is a backend bug, not a recoverable ambiguity.  The selected
+channel multiplicity is the residual multiplicity of the selected highest
+weight before subtraction.
+
+The audit invariant after each subtraction is:
+\[
+  \chi_{\mathrm{remaining}}+\sum_i m_i\chi_{T_i}
+  = \chi_R\chi_S .
+\]
+The final residual character must be zero.  This catches lost multiplicities,
+wrong dominant-weight selection, and incorrect subtraction signs.
+
+This is not the final fastest algorithm.  It is the first trusted backend.  It
+will become the oracle against which specialized \(SO/Spin\), \(SU\), and
+exceptional backends are checked.
+
+Acceptance checks:
+
+- \(SU(2): 2\otimes2 = 1\oplus3\);
+- \(Spin(10): 10\otimes16 = 16\oplus144\);
+- \(Spin(10): 16\otimes16 = 10\oplus120\oplus126\);
+- \(E_8: 248\otimes248\) matches the known decomposition, including
+  multiplicities and dimensions.
+
+** 6. Decomposition cache integration
+
+The backend writes decompositions into [[id:20260606T210002.000000][Tensor Decomposition]].
+The cache stores:
+
+- product key \(R,S\);
+- flat product terms \((T,m_T)\);
+- stable handle for repeated requests.
+
+The future internal context method should look like:
+
+#+begin_src zig :tangle no
+fn decomposeProduct(ctx: *Context, left: store.IrrepHandle, right: store.IrrepHandle) !decomposition.ProductDecompositionHandle
+#+end_src
+
+Do not expose this method publicly unless CFT code needs it.
+
+** 7. Projector identities and expansion obligations
+
+For each product term, the backend may create a product-channel projector
+identity in [[id:20260606T210003.000000][Tensor Projector]].  The first
+decomposition backend does not need to expand projector formulas immediately,
+but a successful basis result must not contain projector ids that have no
+expansion route.  Internal blocked records are allowed only if they fail before
+being returned as successful invariant data.  Each projector record needs
+enough information to recover an expansion path.
+
+The projector identity records:
+
+- left irrep;
+- right irrep;
+- target channel;
+- convention id;
+- derivation kind;
+- expansion source, such as Casimir polynomial, idempotent split,
+  highest-weight solver output, or backend-specific verified construction.
+
+Do not store expandability as a boolean.  The backend needs enough state to
+distinguish several useful stages:
+
+#+begin_src zig :tangle no
+const ExpansionStatus = enum {
+    not_requested,
+    expandable_named,
+    expandable_blocks,
+    expandable_terms,
+    blocked_missing_formula,
+    blocked_unverified_identity,
+};
+#+end_src
+
+=expandable_named= is only a rendering mode.  It is not proof that the
+projector satisfies the fully-expandable requirement.  A projector appearing in
+a successful invariant basis must have a derivation route that can reach
+=expandable_terms= in the requested convention, even when the caller chooses to
+render it as a compact name.
+
+Acceptance checks:
+
+- repeated requests return the same projector id;
+- multiplicity copies are explicit;
+- no symbolic projector expansion is allocated during decomposition;
+- every returned projector reports an =ExpansionStatus= in the requested
+  convention;
+- blocked projector statuses are typed errors before successful basis return,
+  not silently named placeholders;
+- a basis result rendered in named mode still audits that each local projector
+  has a term-expansion route.
+
+** 8. Backend capability implementation
+
+Update [[id:20260606T210001.000000][Tensor Backend]] only as needed to support the
+generic backend.  The expected internal procedures are:
+
+- =validateAlgebra=;
+- =irrepMetadata=, if a backend-specific metadata path is needed;
+- =weightSystem=;
+- =decomposeProduct=;
+- =localProjectorId=.
+
+Rendering remains =NotImplemented=.
+
+** 9. Expansion stream and filters
+
+Before explicit projector formulas are implemented, define the execution
+boundary they must satisfy.  The expansion API should be a streaming pipeline:
+
+#+begin_src zig :tangle no
+fn renderInvariantExpanded(
+    ctx: *Context,
+    basis: coupling.BasisHandle,
+    invariant: coupling.InvariantHandle,
+    options: rendering.RenderOptions,
+    filter: ExpansionFilter,
+    sink: anytype,
+) !void
+#+end_src
+
+The exact public shape may differ, but the semantics should not:
+
+#+begin_src zig :tangle no
+const FilterDecision = enum {
+    accept,
+    reject,
+    undecided,
+};
+#+end_src
+
+- the renderer walks the compact coupling path;
+- local projector expansions are pulled lazily;
+- each local expansion term is combined into the current partial term;
+- the filter is applied as early as possible to borrowed scratch terms;
+- accepted terms are emitted immediately to the sink;
+- rejected terms are not stored;
+- undecided partial terms may continue, but the implementation must track their
+  frontier size;
+- repeated local projector expansions are cached by projector id and
+  convention when doing so reduces work.
+
+Partial terms can be rejected only when the predicate is final and sound under
+all later factors.  Otherwise the filter must return =undecided=.  This is
+part of correctness, not just an optimization detail.
+
+Filter callbacks and sinks must not retain borrowed slices from streamed
+terms.  If a caller needs to keep a term, it must copy it into caller-owned
+storage.  This keeps the renderer free to reuse scratch buffers and prevents a
+hidden materialized expansion from growing behind the streaming interface.
+
+The filter is not a post-processing pass over a giant vector.  It is an
+execution hook that keeps the streamed expansion small enough to be useful.
+
+Possible filter predicates:
+
+- term contains or avoids a given external index block;
+- term uses only selected symbolic operator kinds;
+- term is compatible with a component assignment;
+- term can contribute to a downstream contraction;
+- term has a coefficient/operator class accepted by the target CFT routine.
+
+Acceptance checks:
+
+- expanding one invariant can stream terms without allocating the full
+  expansion;
+- expanding many invariants can reuse local projector expansions;
+- a filter that rejects all terms performs no large output allocation;
+- a filter that accepts a sparse subset scales with the accepted frontier plus
+  unavoidable local projector traversal, not with a materialized full basis.
+
+* Compute Model
+
+The first backend has four different compute scales:
+
+1. Decomposition compute: weight-system generation, tensor-product weight
+   multisets, and character subtraction.
+2. Path enumeration compute: dynamic programming over cached binary
+   decompositions to enumerate coupling paths to a target.
+3. Expansion compute: streaming the local projector/CG expansions appearing in
+   selected paths.
+4. Filter compute: deciding early which partial or complete expansion terms can
+   be discarded before they reach downstream CFT code.
+
+The first milestone implements the first scale and prepares records for the
+third and fourth.  It must not pretend expansion is free.  A \(73744\)-path
+result can be small as stored paths while still being expensive to render if
+each path contains large expandable projectors.  Therefore every feasibility
+estimate must track:
+
+- number of basis paths;
+- number of distinct local projector ids used by those paths;
+- maximum and total expected expansion terms per projector when known;
+- whether expansion can be shared across repeated projector ids;
+- whether expansion is requested as named, block-expanded, or term-expanded;
+- expected filter rejection rate;
+- whether filters can be applied to partial products or only complete terms;
+- number of undecided partial terms retained at each expansion layer;
+- sink throughput and backpressure behavior.
+
+* Data-Oriented Constraints
+
+The expensive objects are weight systems, tensor-product weight multisets,
+path records, and projector expansions.  Therefore:
+
+- cache weight systems by irrep handle;
+- store weights in flat buffers;
+- sort or hash compact weight keys, not heap-allocated slices;
+- store product decompositions as flat terms;
+- keep projector ids as small records;
+- cache projector expansions by projector id and convention when expansion is
+  requested repeatedly;
+- push filters into expansion loops;
+- emit accepted terms immediately;
+- stream rendered terms into sinks;
+- never build dense component tensors.
+
+The \(16^{12}\) target should produce coupling paths, not components.  A
+single dense tensor in \(16^{12}\) has \(16^{12}\) components, while the desired
+answer has \(73744\) basis paths.  The algorithm must scale with the number of
+channels and paths, not the full component space.
+
+* Explicit Non-Goals For First Backend
+
+Do not implement the following in the first backend:
+
+- gamma-matrix rendering;
+- bulk explicit projector expansion execution;
+- explicit CG coefficient tables;
+- higher-Casimir projector splitting;
+- sparse nullspace solvers;
+- parallel execution;
+- \(SU(N)\) Gelfand-Tsetlin or tableau optimized CGs;
+- \(SO/Spin\) Clifford-specialized renderers;
+- \(E_8\) adjoint-specialized renderers.
+
+Those belong after binary decomposition is correct, cached, and tested.  The
+data model must still be designed so these operations can be added without
+changing the meaning of existing projector ids.
+
+* Definition Of Done
+
+The backend handoff is complete when:
+
+- =zig build --global-cache-dir /tmp/zig-global-cache= passes;
+- all acceptance decompositions above pass;
+- weight systems are cached and flat;
+- product decompositions are cached by key;
+- no dense tensor component arrays are allocated;
+- =Context.invariantBasis= can internally request product decompositions;
+- projector records created by the backend have explicit expansion obligations;
+- expanded invariants can be streamed through a filter without materializing
+  their full term list;
+- repeated projector expansions can be cached and reused;
+- a downstream sink can consume accepted terms incrementally;
+- render/evaluate remain explicitly unimplemented until projector formulas and
+  term streaming are ready.

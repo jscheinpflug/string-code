@@ -5,20 +5,68 @@
 #+auto_tangle: t
 #+PROPERTY: header-args:zig :tangle ../../src/cft-code/cft-code.zig :mkdirp yes
 
-The following module is the worldsheet CFT core of the project. It defines symbolic [[id:20260605T082209.767536][Expressions]] used in worldsheet CFT calculations i.e. local [[id:20260603T094125.997360][Operators]] multiplied by nontrivial [[id:20260604T083119.372970][Coefficients]] and computes their [[id:20260603T094112.928043][OPE]] and [[id:20260603T094138.285453][Correlators]]. It can also generate a basis of local operator with a given set of quantum numbers via [[id:20260606T063253.759714][Basis-Generation]]. The data of a CFT or BCFT is defined in [[id:20260605T090102.250727][Theory]], exposed to users through [[id:20260606T163500.000000][Presets]], built by the DSL, and executed by [[id:20260606T150002.000000][CFT Kernel]].
+The following module is the worldsheet CFT core of the project. It defines symbolic [[id:20260605T082209.767536][Expressions]] used in worldsheet CFT calculations i.e. local [[id:20260603T094125.997360][Operators]] multiplied by nontrivial [[id:20260604T083119.372970][Coefficients]] and computes their [[id:20260603T094112.928043][OPE]] and [[id:20260603T094138.285453][Correlators]]. It can also generate a basis of local operator with a given set of quantum numbers via [[id:20260606T063253.759714][Basis-Generation]]. The data of a CFT or BCFT is specified by generated preset constructors and executed by [[id:20260606T150002.000000][CFT Kernel]].
 
-As far as dependencies go, this module only depends on [[id:20260605T075909.433647][Tensor-Code]], which forms an integral part of the definition of [[id:20260604T083119.372970][Coefficients]] and determines the properties of various quantum numbers of [[id:20260603T094125.997360][Operators]]. The module itself only exposes the symbolic [[id:20260605T082209.767536][Expressions]] manipulated by other parts of the code and [[id:20260603T094112.928043][OPE]], [[id:20260603T094138.285453][Correlators]].
+As far as dependencies go, this module only depends on [[id:20260605T075909.433647][Tensor-Code]], which forms an integral part of the definition of [[id:20260604T083119.372970][Coefficients]] and determines the properties of various quantum numbers of [[id:20260603T094125.997360][Operators]].  The public API follows [[id:20260605T075909.433647][Tensor-Code]]: implementation nodes such as [[id:20260606T163500.000000][Presets]], [[id:20260605T090102.250727][Theory]], and [[id:20260606T150002.000000][CFT Kernel]] organize the code, but clients import this root module and use the selected declarations below.
 
 #+api:
 
-Export [[id:20260605T082209.767536][Expressions]]
 #+begin_src zig
-/// expressions exposes symbolic CFT expression data.
-pub const expressions = @import("expressions/expressions.zig");
-/// theory exposes CFT and BCFT specification data consumed by generated kernels.
-pub const theory = @import("theory/theory.zig");
-/// kernel exposes the generated-kernel data structures used by the DSL.
-pub const kernel = @import("kernel.zig");
-/// presets exposes physics-facing CFT and BCFT preset constructors.
-pub const presets = @import("presets.zig");
+const preset_impl = @import("presets.zig");
+
+/// FreeBoson groups the public free-boson preset constructors.
+pub const FreeBoson = preset_impl.FreeBoson;
+/// Bc groups the public bc-ghost preset constructors.
+pub const Bc = preset_impl.Bc;
+/// FreeFermion groups the public NS free-fermion preset constructors.
+pub const FreeFermion = preset_impl.FreeFermion;
+/// EtaXi groups the public eta-xi preset constructors.
+pub const EtaXi = preset_impl.EtaXi;
+/// product builds the generated preset type for a product of independent bulk presets.
+pub const product = preset_impl.product;
+/// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
+pub const boundary = preset_impl.boundary;
+
+test "root CFT API exposes selected constructors without implementation namespaces" {
+    const testing = @import("std").testing;
+    try testing.expect(@hasDecl(@This(), "FreeBoson"));
+    try testing.expect(@hasDecl(@This(), "Bc"));
+    try testing.expect(@hasDecl(@This(), "FreeFermion"));
+    try testing.expect(@hasDecl(@This(), "EtaXi"));
+    try testing.expect(@hasDecl(@This(), "product"));
+    try testing.expect(@hasDecl(@This(), "boundary"));
+    try testing.expect(@hasDecl(FreeBoson, "make"));
+    try testing.expect(@hasDecl(FreeBoson, "boundary"));
+    try testing.expect(@hasDecl(Bc, "sphere"));
+    try testing.expect(@hasDecl(Bc, "diskBoundary"));
+    try testing.expect(@hasDecl(FreeFermion, "sphere"));
+    try testing.expect(@hasDecl(EtaXi, "sphere"));
+    try testing.expect(!@hasDecl(FreeBoson, "Config"));
+    try testing.expect(!@hasDecl(FreeBoson, "BoundaryConfig"));
+    try testing.expect(!@hasDecl(Bc, "SphereConfig"));
+    try testing.expect(!@hasDecl(Bc, "DiskConfig"));
+    try testing.expect(!@hasDecl(FreeFermion, "SphereConfig"));
+    try testing.expect(!@hasDecl(EtaXi, "SphereConfig"));
+    try testing.expect(!@hasDecl(@This(), "Handle"));
+    try testing.expect(!@hasDecl(@This(), "scalars"));
+    try testing.expect(!@hasDecl(@This(), "freeBoson"));
+    try testing.expect(!@hasDecl(@This(), "bcSphere"));
+    try testing.expect(!@hasDecl(@This(), "freeFermionSphere"));
+    try testing.expect(!@hasDecl(@This(), "etaXiSphere"));
+    try testing.expect(!@hasDecl(@This(), "freeBosonBoundary"));
+    try testing.expect(!@hasDecl(@This(), "bcDiskBoundary"));
+    try testing.expect(!@hasDecl(@This(), "presets"));
+    try testing.expect(!@hasDecl(@This(), "kernel"));
+    try testing.expect(!@hasDecl(@This(), "theory"));
+    try testing.expect(!@hasDecl(@This(), "expressions"));
+    try testing.expect(!@hasDecl(@This(), "Generated"));
+}
 #+end_src
+
+This root block is the public CFT API for now.  It intentionally groups each
+CFT family behind one compact object and does not export raw Wick-rule data,
+correlator configs, generated-kernel internals, or the preset implementation
+namespace.  Application modules such as on-shell code, SFT code, NLSM code,
+and pure-spinor code should build theories through the constructors above; a
+later public user-defined-CFT DSL should be one deliberate export rather than
+a leak of the preset runtime.

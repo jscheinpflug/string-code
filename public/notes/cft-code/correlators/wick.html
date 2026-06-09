@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-07 Sun 06:45 -->
+<!-- 2026-06-09 Tue 09:37 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Wick</title>
@@ -44,11 +44,21 @@
 <div class="toc-section">
   <div class="toc-row">
     <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
     <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
   </div>
   <ul class="toc-entries" hidden>
     <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
     <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
     <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
   </ul>
 </div>
@@ -74,6 +84,40 @@
 <div class="toc-section">
   <div class="toc-row">
     <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
     <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
   </div>
 </div>
@@ -91,7 +135,9 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
     <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
     <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
     <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
   </ul>
 </div>
@@ -108,6 +154,12 @@
     <span class="toc-toggle"></span>
     <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
   </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+  </ul>
 </div>
 <div class="toc-section">
   <div class="toc-row">
@@ -151,6 +203,632 @@
 </div>
 <div id="content" class="content">
 <h1 class="title">Wick</h1>
+<div class="toc-nav api-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Interface</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Functions</b></p>
+<dl>
+<dt><a href="#wickCorrelator"><code>wickCorrelator(comptime Tactic: type, config_ptr: *const Tactic.Config, ops: kernel.Call.MultiOp, sink: anytype) !void</code></a></dt>
+<dd>wickCorrelator streams all Wick branches accepted by the tactic base case.</dd>
+</dl>
+</div>
+</div>
+</div>
+<p>
+The Wick correlator is a generic driver.  It chooses primitive pair
+operations and manages stack-bounded branch state; the tactic owns all
+physics.  The first implementation works on original input occurrences.  It
+does not allocate an expression tree: a valid full branch is replayed directly
+to the sink as primitive Wick terms followed by the zero-mode base case.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../kernel.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">normal_ordering</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"../normal-ordering/normal-ordering.zig"</span>);
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairChoice</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">default_operator_count</span> = 128;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">no_candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0xffff;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairCandidate</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">mandatory_before_base</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_for_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = no_candidate_index,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_for_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = no_candidate_index,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairDepth</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> operator_count / 2;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairCandidateCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> (operator_count * (operator_count - 1)) / 2;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">tacticOperatorCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">comptime_int</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"traversal_operator_count"</span>)) Tactic.traversal_operator_count <span style="color: #fb4934; font-weight: bold;">else</span> default_operator_count;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">Scratch</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_indices</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">pair_stack</span>: [pairDepth(operator_count)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairChoice</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">candidates</span>: [pairCandidateCount(operator_count)]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairCandidate</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">first_candidate_by_operator</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">last_candidate_by_operator</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">first_candidate_by_left</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">end_candidate_by_left</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode_survivable</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">zero_mode_forced_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">parities</span>: [operator_count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">parity_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">init</span>() <span style="color: #fe8019; font-weight: bold;">@This</span>() {
+            <span style="color: #fb4934; font-weight: bold;">return</span> .{};
+        }
+    };
+}
+</pre>
+</div>
+
+<p>
+The driver first builds a compact pair-candidate list.  Tactics may provide a
+cheap count hook; otherwise a dry sink falls back to probing the pair emitter.
+Zero-mode viability follows the same pattern.  Valid branches are replayed
+once to the real sink, so invalid branches never leak prefix factors into the
+stream.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NullSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickTermStart discards a dry-run pair term boundary.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickScalar discards a dry-run scalar factor.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickCoordinate discards a dry-run coordinate factor.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickTensor discards a dry-run tensor factor.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickAction discards a dry-run action factor.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitWickTermEnd discards a dry-run pair term end.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitZeroModeFactor discards a dry-run zero-mode factor.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    <span style="color: #e0d3b9; font-style: italic;">/// emitZeroModeBaseEnd discards a dry-run zero-mode success marker.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">bit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 1) &lt;&lt; <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">initialLiveMask</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (len == operator_count) <span style="color: #fb4934; font-weight: bold;">return</span> ~<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, 0);
+    <span style="color: #fb4934; font-weight: bold;">return</span> bit(len) - 1;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">live</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> (mask &amp; bit(index)) != 0;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">firstLiveIndex</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">low</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = <span style="color: #fe8019; font-weight: bold;">@truncate</span>(mask);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (low != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@ctz</span>(low);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">high</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = <span style="color: #fe8019; font-weight: bold;">@truncate</span>(mask &gt;&gt; 64);
+    <span style="color: #fb4934; font-weight: bold;">return</span> 64 + <span style="color: #fe8019; font-weight: bold;">@ctz</span>(high);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">residualSlice</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (index &lt; len) : (index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (live(live_mask, index)) {
+            scratch.residual_indices[count] = index;
+            count += 1;
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> scratch.residual_indices[0..count];
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairTermCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"pairTermCount"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.pairTermCount(config_ptr, ops, left, right);
+    }
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">null_sink</span> = NullSink{};
+    <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.emitPairTerms(config_ptr, ops, left, right, &amp;null_sink);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairTermResiduals</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: *[2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"pairTermResiduals"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.pairTermResiduals(config_ptr, ops, left, right, term_index, residuals);
+    } <span style="color: #fb4934; font-weight: bold;">else</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairTermPayload</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"pairTermPayload"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.pairTermPayload(config_ptr, ops, left, right, term_index);
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(term_index);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairTermInfo</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: *[2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_count</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"pairTermInfo"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.pairTermInfo(config_ptr, ops, left, right, term_index, residuals, payload, residual_count);
+    }
+    payload.* = <span style="color: #fb4934; font-weight: bold;">try</span> pairTermPayload(Tactic, config_ptr, ops, left, right, term_index);
+    residual_count.* = <span style="color: #fb4934; font-weight: bold;">try</span> pairTermResiduals(Tactic, config_ptr, ops, left, right, term_index, residuals);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">residualsKeepPair</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">keeps_left</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">keeps_right</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (residuals) |residual| {
+        keeps_left = keeps_left <span style="color: #fb4934; font-weight: bold;">or</span> residual == left;
+        keeps_right = keeps_right <span style="color: #fb4934; font-weight: bold;">or</span> residual == right;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> keeps_left <span style="color: #fb4934; font-weight: bold;">and</span> keeps_right;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendCandidateForOperator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">last</span> = scratch.last_candidate_by_operator[operator_index];
+    <span style="color: #fb4934; font-weight: bold;">if</span> (last == no_candidate_index) {
+        scratch.first_candidate_by_operator[operator_index] = candidate_index;
+    } <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #fb4934; font-weight: bold;">if</span> (scratch.candidates[last].left == operator_index) {
+        scratch.candidates[last].next_for_left = candidate_index;
+    } <span style="color: #fb4934; font-weight: bold;">else</span> {
+        scratch.candidates[last].next_for_right = candidate_index;
+    }
+    scratch.last_candidate_by_operator[operator_index] = candidate_index;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">nextCandidateForOperator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairCandidate</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.left == operator_index) candidate.next_for_left <span style="color: #fb4934; font-weight: bold;">else</span> candidate.next_for_right;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">buildCandidates</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (operator_index &lt; ops.operators.len) : (operator_index += 1) {
+        scratch.first_candidate_by_operator[operator_index] = no_candidate_index;
+        scratch.last_candidate_by_operator[operator_index] = no_candidate_index;
+        scratch.first_candidate_by_left[operator_index] = no_candidate_index;
+        scratch.end_candidate_by_left[operator_index] = no_candidate_index;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (left &lt; ops.operators.len) : (left += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_start</span> = candidate_count;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = left + 1;
+        <span style="color: #fb4934; font-weight: bold;">while</span> (right &lt; ops.operators.len) : (right += 1) {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (normal_ordering.same(ops.operators[left], ops.operators[right])) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term_count</span> = <span style="color: #fb4934; font-weight: bold;">try</span> pairTermCount(Tactic, config_ptr, ops, left, right);
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+            <span style="color: #fb4934; font-weight: bold;">while</span> (term_index &lt; term_count) : (term_index += 1) {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (candidate_count == scratch.candidates.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManyWickCandidates;
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residuals</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+                <span style="color: #fb4934; font-weight: bold;">try</span> pairTermInfo(Tactic, config_ptr, ops, left, right, term_index, &amp;residuals, &amp;payload, &amp;residual_count);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (residual_count &gt; residuals.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManyWickTermResiduals;
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">compact_residuals</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+                <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+                <span style="color: #fb4934; font-weight: bold;">while</span> (residual_index &lt; residual_count) : (residual_index += 1) {
+                    compact_residuals[residual_index] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(residuals[residual_index]);
+                }
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">compact_candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(candidate_count);
+                scratch.candidates[candidate_count] = .{
+                    .left = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(left),
+                    .right = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(right),
+                    .term_index = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(term_index),
+                    .payload = payload,
+                    .residuals = compact_residuals,
+                    .residual_count = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(residual_count),
+                    .mandatory_before_base = residualsKeepPair(left, right, residuals[0..residual_count]),
+                };
+                appendCandidateForOperator(scratch, left, compact_candidate_index);
+                appendCandidateForOperator(scratch, right, compact_candidate_index);
+                candidate_count += 1;
+            }
+        }
+        <span style="color: #fb4934; font-weight: bold;">if</span> (candidate_count != left_start) {
+            scratch.first_candidate_by_left[left] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(left_start);
+            scratch.end_candidate_by_left[left] = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(candidate_count);
+        }
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> candidate_count;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">buildParities</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    scratch.parity_mask = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (index &lt; ops.operators.len) : (index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">parity</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"operatorParity"</span>)) Tactic.operatorParity(config_ptr, ops, index) <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        scratch.parities[index] = parity;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (parity) scratch.parity_mask |= bit(index);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">buildZeroModeSurvivability</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    scratch.zero_mode_forced_mask = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (index &lt; ops.operators.len) : (index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">survivable</span> = operatorCanRemainInZeroMode(Tactic, config_ptr, ops, index);
+        scratch.zero_mode_survivable[index] = survivable;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!survivable) scratch.zero_mode_forced_mask |= bit(index);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairSign</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">endpoints</span> = bit(left) | bit(right);
+    <span style="color: #fb4934; font-weight: bold;">if</span> ((scratch.parity_mask &amp; endpoints) != endpoints) <span style="color: #fb4934; font-weight: bold;">return</span> 1;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">below_right</span> = bit(right) - 1;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">below_or_at_left</span> = bit(left + 1) - 1;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">between</span> = below_right &amp; ~below_or_at_left;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">crossings</span> = <span style="color: #fe8019; font-weight: bold;">@popCount</span>(live_mask &amp; scratch.parity_mask &amp; between);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> ((crossings &amp; 1) == 0) 1 <span style="color: #fb4934; font-weight: bold;">else</span> -1;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">operatorCanRemainInZeroMode</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"operatorCanRemainInZeroMode"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.operatorCanRemainInZeroMode(config_ptr, ops, index);
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">firstForcedResidual</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>) ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">forced</span> = live_mask &amp; scratch.zero_mode_forced_mask;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">if</span> (forced == 0) <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">else</span> firstLiveIndex(forced);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">zeroModeSucceeds</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"zeroModeBaseCaseSucceeds"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.zeroModeBaseCaseSucceeds(config_ptr, ops, residual);
+    }
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">null_sink</span> = NullSink{};
+    <span style="color: #fb4934; font-weight: bold;">return</span> Tactic.emitZeroModeBaseCase(config_ptr, ops, residual, &amp;null_sink);
+}
+</pre>
+</div>
+
+<p>
+At a zero-mode base case, the branch stack is replayed before the base case so
+the sink receives one fully expanded streamed term.  Pair factors are not kept
+in memory.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitPairTerm</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">choice</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairChoice</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"emitPairTermPayload"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitPairTermPayload(config_ptr, ops, choice.left, choice.right, choice.payload, sink);
+        <span style="color: #fb4934; font-weight: bold;">return</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"emitPairTerm"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitPairTerm(config_ptr, ops, choice.left, choice.right, choice.term_index, sink);
+        <span style="color: #fb4934; font-weight: bold;">return</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (choice.term_index != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidWickTerm;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitPairTerms(config_ptr, ops, choice.left, choice.right, sink) == 0) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidWickBranch;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitBranch</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">depth</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (sign &lt; 0 <span style="color: #fb4934; font-weight: bold;">and</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"emitBranchSign"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitBranchSign(config_ptr, sign, sink);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (index &lt; depth) : (index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> emitPairTerm(Tactic, config_ptr, ops, scratch.pair_stack[index], sink);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!<span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitZeroModeBaseCase(config_ptr, ops, residual, sink)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidWickBranch;
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairResultLiveMask</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairCandidate</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next</span> = live_mask &amp; ~bit(candidate.left) &amp; ~bit(candidate.right);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (residual_index &lt; candidate.residual_count) : (residual_index += 1) {
+        next |= bit(candidate.residuals[residual_index]);
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> next;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairClearedLiveMask</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairCandidate</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> live_mask &amp; ~bit(candidate.left) &amp; ~bit(candidate.right);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasMandatoryCandidate</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">next_candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span> = next_candidate_index;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_index &lt; candidate_count) : (candidate_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (live(live_mask, candidate.left) <span style="color: #fb4934; font-weight: bold;">and</span> live(live_mask, candidate.right)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pureFullContraction</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> ((ops.operators.len &amp; 1) != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">operator_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (operator_index &lt; ops.operators.len) : (operator_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch.zero_mode_survivable[operator_index]) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_index &lt; candidate_count) : (candidate_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (scratch.candidates[candidate_index].residual_count != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pushBranchPairTerm</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairCandidate</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.pushBranchPairTerm(config_ptr, ops, candidate.left, candidate.right, candidate.payload, branch);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitAccumulatedBranch</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitAccumulatedBranch(config_ptr, ops, branch, sign, residual, sink);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitFullAccumulatedBranch</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"emitFullContractionBranch"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitFullContractionBranch(config_ptr, ops, branch, sign, sink);
+        <span style="color: #fb4934; font-weight: bold;">return</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> Tactic.emitAccumulatedBranch(config_ptr, ops, branch, sign, &amp;.{}, sink);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">walkFullAccumulated</span>(
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.BranchState</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">depth</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (live_mask == 0) {
+        <span style="color: #fb4934; font-weight: bold;">try</span> emitFullAccumulatedBranch(Tactic, config_ptr, ops, branch, sign, sink);
+        <span style="color: #fb4934; font-weight: bold;">return</span> 1;
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (depth == scratch.pair_stack.len) <span style="color: #fb4934; font-weight: bold;">return</span> 0;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">first</span> = firstLiveIndex(live_mask);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = scratch.first_candidate_by_left[first];
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_end</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = scratch.end_candidate_by_left[first];
+    <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_index &lt; candidate_end) : (candidate_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.left;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.right;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!live(live_mask, right)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saved</span> = branch.snapshot();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_mask</span> = pairClearedLiveMask(live_mask, candidate);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_sign</span> = sign * pairSign(scratch, live_mask, left, right);
+        <span style="color: #fb4934; font-weight: bold;">try</span> pushBranchPairTerm(Tactic, config_ptr, ops, branch, candidate);
+        branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walkFullAccumulated(Tactic, config_ptr, ops, scratch, branch, next_mask, depth + 1, next_sign, sink);
+        branch.restore(saved);
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">walkAccumulated</span>(
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.BranchState</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">depth</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">forced_residual</span> = firstForcedResidual(scratch, live_mask);
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (forced_residual == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">and</span> !hasMandatoryCandidate(scratch, live_mask, next_candidate_index, candidate_count)) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span> = residualSlice(scratch, ops.operators.len, live_mask);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> zeroModeSucceeds(Tactic, config_ptr, ops, residual)) {
+            <span style="color: #fb4934; font-weight: bold;">try</span> emitAccumulatedBranch(Tactic, config_ptr, ops, branch, sign, residual, sink);
+            branch_count += 1;
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (depth == scratch.pair_stack.len) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (forced_residual) |forced| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_link</span> = scratch.first_candidate_by_operator[forced];
+        <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_link != no_candidate_index) {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate_link;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+            candidate_link = nextCandidateForOperator(candidate, forced);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (candidate_index &lt; next_candidate_index) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.left;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.right;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!live(live_mask, left) <span style="color: #fb4934; font-weight: bold;">or</span> !live(live_mask, right)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saved</span> = branch.snapshot();
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_mask</span> = pairResultLiveMask(live_mask, candidate);
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_sign</span> = sign * pairSign(scratch, live_mask, left, right);
+            <span style="color: #fb4934; font-weight: bold;">try</span> pushBranchPairTerm(Tactic, config_ptr, ops, branch, candidate);
+            branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walkAccumulated(Tactic, config_ptr, ops, scratch, branch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, sink);
+            branch.restore(saved);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span> = next_candidate_index;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_index &lt; candidate_count) : (candidate_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.left;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.right;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!live(live_mask, left) <span style="color: #fb4934; font-weight: bold;">or</span> !live(live_mask, right)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">saved</span> = branch.snapshot();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_mask</span> = pairResultLiveMask(live_mask, candidate);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_sign</span> = sign * pairSign(scratch, live_mask, left, right);
+        <span style="color: #fb4934; font-weight: bold;">try</span> pushBranchPairTerm(Tactic, config_ptr, ops, branch, candidate);
+        branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walkAccumulated(Tactic, config_ptr, ops, scratch, branch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, sink);
+        branch.restore(saved);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+}
+
+</pre>
+</div>
+
+<p>
+The recursion enumerates pair subsets in lexicographic order, which prevents
+the same disjoint pairing set from being reached in multiple orders.  At each
+node it first tries the zero-mode base case, then extends the branch by one
+allowed pair.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">walk</span>(
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">live_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u128</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">depth</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sign</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">emit</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">forced_residual</span> = firstForcedResidual(scratch, live_mask);
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (forced_residual == <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span> <span style="color: #fb4934; font-weight: bold;">and</span> !hasMandatoryCandidate(scratch, live_mask, next_candidate_index, candidate_count)) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">residual</span> = residualSlice(scratch, ops.operators.len, live_mask);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> zeroModeSucceeds(Tactic, config_ptr, ops, residual)) {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (emit) <span style="color: #fb4934; font-weight: bold;">try</span> emitBranch(Tactic, config_ptr, ops, scratch, depth, sign, residual, sink);
+            branch_count += 1;
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (depth == scratch.pair_stack.len) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (forced_residual) |forced| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_link</span> = scratch.first_candidate_by_operator[forced];
+        <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_link != no_candidate_index) {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate_link;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+            candidate_link = nextCandidateForOperator(candidate, forced);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (candidate_index &lt; next_candidate_index) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.left;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.right;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!live(live_mask, left) <span style="color: #fb4934; font-weight: bold;">or</span> !live(live_mask, right)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_mask</span> = pairResultLiveMask(live_mask, candidate);
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_sign</span> = sign * pairSign(scratch, live_mask, left, right);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!emit) {
+                branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walk(Tactic, config_ptr, ops, scratch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, sink);
+                <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+                <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            }
+
+            scratch.pair_stack[depth] = .{ .left = candidate.left, .right = candidate.right, .term_index = candidate.term_index, .payload = candidate.payload };
+            branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walk(Tactic, config_ptr, ops, scratch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, sink);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+        }
+        <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_index</span> = next_candidate_index;
+    <span style="color: #fb4934; font-weight: bold;">while</span> (candidate_index &lt; candidate_count) : (candidate_index += 1) {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = scratch.candidates[candidate_index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.left;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = candidate.right;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!live(live_mask, left) <span style="color: #fb4934; font-weight: bold;">or</span> !live(live_mask, right)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_mask</span> = pairResultLiveMask(live_mask, candidate);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_sign</span> = sign * pairSign(scratch, live_mask, left, right);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!emit) {
+            branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walk(Tactic, config_ptr, ops, scratch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, sink);
+            <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        scratch.pair_stack[depth] = .{ .left = candidate.left, .right = candidate.right, .term_index = candidate.term_index, .payload = candidate.payload };
+        branch_count += <span style="color: #fb4934; font-weight: bold;">try</span> walk(Tactic, config_ptr, ops, scratch, next_mask, candidate_index + 1, candidate_count, depth + 1, next_sign, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, sink);
+        <span style="color: #fb4934; font-weight: bold;">if</span> (candidate.mandatory_before_base) <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> branch_count;
+}
+</pre>
+</div>
+
+<p>
+The public entry point is specialized by a comptime tactic.  A tactic provides
+the config type, primitive pair emitter, and zero-mode base-case emitter.
+</p>
+
+<a id="wickCorrelator"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgd0f94ec"><span style="color: #e0d3b9; font-style: italic;">/// wickCorrelator streams all Wick branches accepted by the tactic base case.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">wickCorrelator</span>(
+    <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Tactic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Tactic.Config</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">max_operator_count</span> = tacticOperatorCount(Tactic);
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_storage</span> = Scratch(max_operator_count).init();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch</span> = &amp;scratch_storage;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (ops.operators.len &gt; max_operator_count) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.TooManyWickOperators;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_count</span> = <span style="color: #fb4934; font-weight: bold;">try</span> buildCandidates(Tactic, config_ptr, ops, scratch);
+    buildParities(Tactic, config_ptr, ops, scratch);
+    buildZeroModeSurvivability(Tactic, config_ptr, ops, scratch);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"BranchState"</span>) <span style="color: #fb4934; font-weight: bold;">and</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"pushBranchPairTerm"</span>) <span style="color: #fb4934; font-weight: bold;">and</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(Tactic, <span style="color: #b8bb26; font-style: italic;">"emitAccumulatedBranch"</span>)) {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">branch</span> = Tactic.BranchState.init();
+        <span style="color: #fb4934; font-weight: bold;">if</span> (pureFullContraction(scratch, ops, candidate_count)) {
+            _ = <span style="color: #fb4934; font-weight: bold;">try</span> walkFullAccumulated(Tactic, config_ptr, ops, scratch, &amp;branch, initialLiveMask(max_operator_count, ops.operators.len), 0, 1, sink);
+            <span style="color: #fb4934; font-weight: bold;">return</span>;
+        }
+        _ = <span style="color: #fb4934; font-weight: bold;">try</span> walkAccumulated(Tactic, config_ptr, ops, scratch, &amp;branch, initialLiveMask(max_operator_count, ops.operators.len), 0, candidate_count, 0, 1, sink);
+        <span style="color: #fb4934; font-weight: bold;">return</span>;
+    }
+    _ = <span style="color: #fb4934; font-weight: bold;">try</span> walk(Tactic, config_ptr, ops, scratch, initialLiveMask(max_operator_count, ops.operators.len), 0, candidate_count, 0, 1, <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>, sink);
+}
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

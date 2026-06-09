@@ -36,7 +36,7 @@ pub const Stream = struct {
     pub const CoeffTerm = struct {
         scalar: Scalar,
         coordinate_factor: CoordinateFactor,
-        tensor_structure: ?tensor.kernel.TensorExprId,
+        tensor_structure: ?tensor.TensorExprId,
     };
 
     /// LocalTerm is one streamed projected local OPE term.
@@ -72,7 +72,7 @@ pub const Call = struct {
     pub const LabelValue = union(enum) {
         integer: i64,
         rational: RationalLabel,
-        tensor: tensor.kernel.TensorExprId,
+        tensor: tensor.TensorExprId,
         symbol: u32,
     };
 
@@ -86,6 +86,8 @@ pub const Call = struct {
         insertion: operators.OperatorInsertion,
         kind: operators.OperatorKindId,
         labels: theory.Id.LabelSpan,
+        /// Equal nonzero ids mark factors in the same normal-ordered product.
+        normal_order_group: u16 = 0,
     };
 
     /// MultiOp is an ordered collection of local operators and their label store.
