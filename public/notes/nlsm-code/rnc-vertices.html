@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:39 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM RNC Vertices</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM RNC Vertices</h1>
+<p>
+This note fixes the streamed row shape used by the RNC vertex stage.  The
+first implementation does not expand the full type-II action automatically.
+It defines the row format and emits a bootstrap family of metric-sector
+vertices sufficient to drive low-loop checks and the later four-loop
+enumerator.  The same row format is used for generic real Riemannian targets
+and for later CY3/K3 specializations; only the target-flavor quotient changes
+downstream.
+</p>
+
+<a id="WorldsheetModel"></a>
+<a id="FieldKind"></a>
+<a id="BackgroundLegKind"></a>
+<a id="WorldsheetDerivatives"></a>
+<a id="VertexField"></a>
+<a id="BackgroundLeg"></a>
+<a id="VertexTensorKind"></a>
+<a id="VertexTensor"></a>
+<a id="VertexSymmetry"></a>
+<a id="RncVertexRow"></a>
+<a id="RncRequest"></a>
+<a id="streamBootstrapVertices"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgd994269"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// WorldsheetModel selects the free-field content used by the RNC job.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetModel</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    bosonic,
+    n1_1,
+    n2_2,
+    n4_4,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// FieldKind identifies one quantum fluctuation field in an RNC vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    xi,
+    psi_left,
+    psi_right,
+    auxiliary,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BackgroundLegKind identifies one uncontracted local operator leg.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackgroundLegKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    d_x0,
+    dbar_x0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// WorldsheetDerivatives records the holomorphic and antiholomorphic derivative count.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetDerivatives</span> = <span style="color: #fb4934; font-weight: bold;">packed</span> <span style="color: #fb4934; font-weight: bold;">struct</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u4</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// VertexField is one quantum field occurrence inside a local RNC vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexField</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">FieldKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = .real_tangent,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetDerivatives</span> = .{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BackgroundLeg is one local operator leg that survives Wick contraction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackgroundLeg</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackgroundLegKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = .real_tangent,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// VertexTensorKind names the target-space tensor atom attached to a vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexTensorKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    metric,
+    riemann,
+    covariant_derivative_riemann,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// VertexTensor is one target-space tensor factor carried by a vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexTensor</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexTensorKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_sorts</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlotSort</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">covariant_derivative_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// VertexSymmetry stores the explicit combinatorial denominator of one vertex family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSymmetry</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">denominator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 1,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RncVertexRow is one streamed local RNC interaction or free quadratic row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncVertexRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetModel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexField</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">background_legs</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BackgroundLeg</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexTensor</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">VertexSymmetry</span> = .{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// RncRequest selects the bootstrap vertex families emitted by the first generator.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">worldsheet</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WorldsheetModel</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">max_xi_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">include_fermions</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">matchesRequest</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncRequest</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.worldsheet != request.worldsheet) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (row.xi_order &gt; request.max_xi_order) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (request.include_fermions) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+        .psi_left, .psi_right, .auxiliary =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        .xi =&gt; {},
+    };
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamBootstrapVertices</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (bootstrap_vertices) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!matchesRequest(row, request)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(row);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span> = WorldsheetDerivatives;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">real</span> = geometry.TensorSlotSort.real_tangent;
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_kinetic_fields</span> = [_]VertexField{
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .holomorphic = 1 } },
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .antiholomorphic = 1 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_curvature_fields</span> = [_]VertexField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_background_legs</span> = [_]BackgroundLeg{
+    .{ .kind = .d_x0, .target_sort = real },
+    .{ .kind = .dbar_x0, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_metric_tensor_sorts</span> = [_]geometry.TensorSlotSort{ real, real };
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_riemann_tensor_sorts</span> = [_]geometry.TensorSlotSort{ real, real, real, real };
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_kinetic_tensors</span> = [_]VertexTensor{
+    .{ .kind = .metric, .slot_sorts = &amp;bosonic_metric_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bosonic_curvature_tensors</span> = [_]VertexTensor{
+    .{ .kind = .riemann, .slot_sorts = &amp;bosonic_riemann_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_curvature_fields</span> = [_]VertexField{
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fermion_curvature_tensors</span> = [_]VertexTensor{
+    .{ .kind = .riemann, .slot_sorts = &amp;bosonic_riemann_tensor_sorts },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bootstrap_vertices</span> = [_]RncVertexRow{
+    .{
+        .worldsheet = .bosonic,
+        .xi_order = 2,
+        .fields = &amp;bosonic_kinetic_fields,
+        .tensors = &amp;bosonic_kinetic_tensors,
+    },
+    .{
+        .worldsheet = .bosonic,
+        .xi_order = 2,
+        .fields = &amp;bosonic_curvature_fields,
+        .background_legs = &amp;bosonic_background_legs,
+        .tensors = &amp;bosonic_curvature_tensors,
+        .symmetry = .{ .denominator = 3 },
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 2,
+        .fields = &amp;bosonic_kinetic_fields,
+        .tensors = &amp;bosonic_kinetic_tensors,
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 2,
+        .fields = &amp;bosonic_curvature_fields,
+        .background_legs = &amp;bosonic_background_legs,
+        .tensors = &amp;bosonic_curvature_tensors,
+        .symmetry = .{ .denominator = 3 },
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 0,
+        .fields = &amp;fermion_curvature_fields,
+        .tensors = &amp;fermion_curvature_tensors,
+        .symmetry = .{ .denominator = 1 },
+    },
+};
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM RNC Vertices</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"bosonic bootstrap emits only bosonic rows up to requested xi order"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.count == self.rows.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{ .rows = &amp;rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamBootstrapVertices(.{ .worldsheet = .bosonic, .max_xi_order = 2, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> }, &amp;sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), sink.count);
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows[0..sink.count]) |row| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(WorldsheetModel.bosonic, row.worldsheet);
+        <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(FieldKind.xi, field.kind);
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"n1-1 bootstrap includes fermion curvature row when requested"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (self.count == self.rows.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{ .rows = &amp;rows };
+    <span style="color: #fb4934; font-weight: bold;">try</span> streamBootstrapVertices(.{ .worldsheet = .n1_1, .max_xi_order = 2, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }, &amp;sink);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 3), sink.count);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found_fermions</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows[0..sink.count]) |row| {
+        <span style="color: #fb4934; font-weight: bold;">for</span> (row.fields) |field| <span style="color: #fb4934; font-weight: bold;">switch</span> (field.kind) {
+            .psi_left, .psi_right =&gt; found_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; {},
+        };
+    }
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(found_fermions);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

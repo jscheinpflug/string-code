@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:51 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Kernel Signature Reducer</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Kernel Signature Reducer</h1>
+<p>
+This note bridges the first candidate diagram plan to the pole extractor.  It
+consumes compact vertex-multiset rows from <a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a>, accumulates the
+local tensor factors and combinatorial weights carried by the chosen RNC
+vertices, and emits reduced kernel-signature rows for
+<a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a>.
+</p>
+
+<p>
+The reducer is intentionally narrow:
+</p>
+
+<ul class="org-ul">
+<li>it does not do Wick pairing;</li>
+<li>it does not evaluate loop integrals;</li>
+<li>it does not canonicalize geometry;</li>
+<li>it does preserve target flavor and local operator kind unchanged.</li>
+</ul>
+
+<p>
+That last point is what keeps the same bridge usable for the later CY3/K3
+quotients.
+</p>
+
+<a id="KernelReductionRequest"></a>
+<a id="KernelReductionSummary"></a>
+<a id="streamKernelTerms"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org51bc8d3"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">plan</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"diagram_plan.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pole</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"pole_extractor.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rnc</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rnc_vertices.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// KernelReductionRequest fixes the renormalization metadata attached to emitted kernel rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelReductionRequest</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_flavor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.GeometryFlavor</span> = .generic_riemannian,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// KernelReductionSummary reports how many candidates were lowered successfully.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelReductionSummary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">emitted_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">unsupported_tensor_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">productKernelFamily</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>) counterterms.KernelFamily {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (candidate.loop_order) {
+        0 =&gt; .scaleless_tadpole,
+        1 =&gt; .bubble,
+        2 =&gt; .nested_bubble,
+        3 =&gt; .sunset,
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; .vacuum,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">appendTensorAtom</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.VertexTensor</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_count</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_count</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">next_slot_id</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (atom_count.* == atoms.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.AtomScratchTooSmall;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_start</span> = slot_count.*;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (slot_start + tensor.slot_sorts.len &gt; slots.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.SlotScratchTooSmall;
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (tensor.slot_sorts, 0..) |sort, offset| {
+        slots[slot_start + offset] = .{
+            .id = next_slot_id.*,
+            .sort = sort,
+        };
+        next_slot_id.* += 1;
+    }
+    slot_count.* += tensor.slot_sorts.len;
+
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (tensor.kind) {
+        .metric =&gt; {
+            atoms[atom_count.*] = .{
+                .kind = .metric,
+                .slots = slots[slot_start .. slot_start + tensor.slot_sorts.len],
+            };
+        },
+        .riemann =&gt; {
+            atoms[atom_count.*] = .{
+                .kind = .riemann,
+                .slots = slots[slot_start .. slot_start + tensor.slot_sorts.len],
+            };
+        },
+        .covariant_derivative_riemann =&gt; {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_start</span> = slot_count.*;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (derivative_start + tensor.covariant_derivative_count &gt; slots.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.SlotScratchTooSmall;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_sort</span> = <span style="color: #fb4934; font-weight: bold;">if</span> (tensor.slot_sorts.len == 0) geometry.TensorSlotSort.real_tangent <span style="color: #fb4934; font-weight: bold;">else</span> tensor.slot_sorts[0];
+            <span style="color: #fb4934; font-weight: bold;">for</span> (0..tensor.covariant_derivative_count) |_| {
+                slots[slot_count.*] = .{
+                    .id = next_slot_id.*,
+                    .sort = derivative_sort,
+                };
+                next_slot_id.* += 1;
+                slot_count.* += 1;
+            }
+
+            atoms[atom_count.*] = .{
+                .kind = .covariant_derivative,
+                .slots = slots[slot_start .. slot_start + tensor.slot_sorts.len],
+                .derivative_slots = slots[derivative_start .. derivative_start + tensor.covariant_derivative_count],
+            };
+        },
+    }
+
+    atom_count.* += 1;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">vertexFactor</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>) counterterms.Rational {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .numerator = row.coefficient,
+        .denominator = row.symmetry.denominator,
+    };
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">streamKernelTerms</span>(
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KernelReductionRequest</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">candidates</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_atoms</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scratch_slots</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span>,
+) !KernelReductionSummary {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = KernelReductionSummary{};
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (candidates) |candidate| {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">next_slot_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 1;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">combinatorial</span> = counterterms.Rational{ .numerator = 1, .denominator = candidate.automorphism_denominator };
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (candidate.vertices) |entry| {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span> = catalog[entry.vertex_index];
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">factor</span> = vertexFactor(row);
+
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">repeat_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0;
+            <span style="color: #fb4934; font-weight: bold;">while</span> (repeat_index &lt; entry.multiplicity) : (repeat_index += 1) {
+                combinatorial = <span style="color: #fb4934; font-weight: bold;">try</span> combinatorial.mul(factor);
+                <span style="color: #fb4934; font-weight: bold;">for</span> (row.tensors) |tensor| <span style="color: #fb4934; font-weight: bold;">try</span> appendTensorAtom(tensor, scratch_atoms, &amp;atom_count, scratch_slots, &amp;slot_count, &amp;next_slot_id);
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">propagator_len</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(<span style="color: #fe8019; font-weight: bold;">@min</span>(candidate.internal_propagator_count * 2, 8));
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">propagator_powers</span> = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{0} ** 8;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (0..propagator_len) |index| propagator_powers[index] = 1;
+
+        <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(.{
+            .scheme = request.scheme,
+            .local_operator = request.local_operator,
+            .target_flavor = request.target_flavor,
+            .alpha_prime_power = request.alpha_prime_power,
+            .combinatorial = combinatorial.normalized(),
+            .kernel = .{
+                .family = productKernelFamily(candidate),
+                .loop_order = candidate.loop_order,
+                .propagator_len = propagator_len,
+                .propagator_powers = propagator_powers,
+                .numerator_rank = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(candidate.total_fermion_field_count),
+                .external_derivative_order = candidate.background.d_x0 + candidate.background.dbar_x0,
+            },
+            .term = .{
+                .atoms = scratch_atoms[0..atom_count],
+            },
+        });
+        summary.emitted_count += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Kernel Signature Reducer</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"kernel reducer lowers the one-loop bosonic metric candidate to a bubble row"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CandidateSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = self.vertex_offset;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + row.vertices.len;
+            std.mem.copyForwards(plan.VertexMultiplicity, self.vertex_storage[start..end], row.vertices);
+            self.rows[self.count] = row;
+            self.rows[self.count].vertices = self.vertex_storage[start..end];
+            self.count += 1;
+            self.vertex_offset = end;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_sink</span> = VertexSink{ .rows = &amp;catalog_storage };
+    <span style="color: #fb4934; font-weight: bold;">try</span> rnc.streamBootstrapVertices(.{ .worldsheet = .bosonic, .max_xi_order = 2, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> }, &amp;vertex_sink);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = catalog_storage[0..vertex_sink.count];
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertex_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_sink</span> = CandidateSink{ .rows = &amp;candidate_storage, .vertex_storage = &amp;candidate_vertex_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicities</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertices</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">try</span> plan.streamDiagramCandidates(.{
+        .worldsheet = .bosonic,
+        .loop_order = 1,
+        .max_vertices = 1,
+        .required_background = .{ .d_x0 = 1, .dbar_x0 = 1 },
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    }, catalog, &amp;candidate_sink, &amp;multiplicities, &amp;vertices);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_storage</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_sink</span> = KernelSink{ .rows = &amp;kernel_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: [32]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> streamKernelTerms(.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .metric_beta,
+        .alpha_prime_power = 1,
+    }, catalog, candidate_storage[0..candidate_sink.count], &amp;kernel_sink, &amp;atoms, &amp;slots);
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.emitted_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.KernelFamily.bubble, kernel_storage[0].kernel.family);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.Rational{ .numerator = 1, .denominator = 3 }, kernel_storage[0].combinatorial);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), kernel_storage[0].term.atoms.len);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"kernel reducer preserves calabi-yau flavor and rational combinatorics"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertices</span> = [_]plan.VertexMultiplicity{
+        .{ .vertex_index = 0, .multiplicity = 2 },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate</span> = [_]plan.DiagramCandidateRow{.{
+        .worldsheet = .n1_1,
+        .vertex_count = 2,
+        .distinct_vertex_count = 1,
+        .internal_propagator_count = 2,
+        .loop_order = 1,
+        .total_quantum_field_count = 4,
+        .total_fermion_field_count = 0,
+        .background = .{ .d_x0 = 2, .dbar_x0 = 2 },
+        .automorphism_denominator = 2,
+        .vertices = &amp;candidate_vertices,
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">real</span> = geometry.TensorSlotSort.real_tangent;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_sorts</span> = [_]geometry.TensorSlotSort{ real, real, real, real };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">background</span> = [_]rnc.BackgroundLeg{
+        .{ .kind = .d_x0, .target_sort = real },
+        .{ .kind = .dbar_x0, .target_sort = real },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span> = [_]rnc.VertexField{
+        .{ .kind = .xi, .target_sort = real },
+        .{ .kind = .xi, .target_sort = real },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span> = [_]rnc.VertexTensor{
+        .{ .kind = .riemann, .slot_sorts = &amp;tensor_sorts },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = [_]rnc.RncVertexRow{.{
+        .worldsheet = .n1_1,
+        .xi_order = 2,
+        .fields = &amp;fields,
+        .background_legs = &amp;background,
+        .tensors = &amp;tensors,
+        .coefficient = 2,
+        .symmetry = .{ .denominator = 3 },
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.row = value;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: [32]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    _ = <span style="color: #fb4934; font-weight: bold;">try</span> streamKernelTerms(.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .kahler_potential_beta,
+        .target_flavor = .calabi_yau,
+        .alpha_prime_power = 3,
+    }, &amp;catalog, &amp;candidate, &amp;sink, &amp;atoms, &amp;slots);
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(sink.row != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(geometry.GeometryFlavor.calabi_yau, sink.row.?.target_flavor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.Rational{ .numerator = 2, .denominator = 9 }, sink.row.?.combinatorial);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"one-loop bootstrap pipeline reaches a beta row"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">beta</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"beta_assembly.zig"</span>);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CandidateSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_storage</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_offset</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">start</span> = self.vertex_offset;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">end</span> = start + row.vertices.len;
+            std.mem.copyForwards(plan.VertexMultiplicity, self.vertex_storage[start..end], row.vertices);
+            self.rows[self.count] = row;
+            self.rows[self.count].vertices = self.vertex_storage[start..end];
+            self.count += 1;
+            self.vertex_offset = end;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelSink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emit</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">rnc.RncVertexRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertex_sink</span> = VertexSink{ .rows = &amp;catalog_storage };
+    <span style="color: #fb4934; font-weight: bold;">try</span> rnc.streamBootstrapVertices(.{ .worldsheet = .bosonic, .max_xi_order = 2, .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> }, &amp;vertex_sink);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">catalog</span> = catalog_storage[0..vertex_sink.count];
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.DiagramCandidateRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_vertex_storage</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">candidate_sink</span> = CandidateSink{ .rows = &amp;candidate_storage, .vertex_storage = &amp;candidate_vertex_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">multiplicities</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">vertices</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">plan.VertexMultiplicity</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">try</span> plan.streamDiagramCandidates(.{
+        .worldsheet = .bosonic,
+        .loop_order = 1,
+        .max_vertices = 1,
+        .required_background = .{ .d_x0 = 1, .dbar_x0 = 1 },
+        .include_fermions = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    }, catalog, &amp;candidate_sink, &amp;multiplicities, &amp;vertices);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_storage</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">pole.KernelTermRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel_sink</span> = KernelSink{ .rows = &amp;kernel_storage };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: [8]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: [32]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorSlot</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    _ = <span style="color: #fb4934; font-weight: bold;">try</span> streamKernelTerms(.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .metric_beta,
+        .alpha_prime_power = 1,
+    }, catalog, candidate_storage[0..candidate_sink.count], &amp;kernel_sink, &amp;atoms, &amp;slots);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">poles</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pole_summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> pole.extractPoleRows(kernel_storage[0..kernel_sink.count], pole.stringbookBootstrapRules(), &amp;poles);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), pole_summary.emitted_pole_count);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">beta_rows</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.BetaRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">beta_summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> beta.assembleBetaRows(poles[0..pole_summary.emitted_pole_count], .{ .local_operator = .metric_beta }, &amp;beta_rows);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), beta_summary.beta_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.Rational{ .numerator = 1, .denominator = 3 }, beta_rows[0].coefficient);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

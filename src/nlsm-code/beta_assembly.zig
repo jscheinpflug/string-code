@@ -1,0 +1,187 @@
+const std = @import("std");
+const counterterms = @import("counterterms.zig");
+const geometry = @import("local_geometry_reducer.zig");
+
+/// BetaAssemblyOptions selects the subset of pole rows converted to beta rows.
+pub const BetaAssemblyOptions = struct {
+    local_operator: ?counterterms.LocalCountertermKind = null,
+    require_stringbook_compatible: bool = true,
+};
+
+/// BetaAssemblySummary reports how the pole stream was consumed.
+pub const BetaAssemblySummary = struct {
+    beta_count: usize = 0,
+    simple_pole_count: u32 = 0,
+    ignored_higher_pole_count: u32 = 0,
+    rejected_operator_count: u32 = 0,
+    inconsistent_higher_pole_count: u32 = 0,
+};
+
+fn normalizedTerm(term: geometry.TensorTerm) geometry.TensorTerm {
+    var copy = term;
+    copy.coefficient = 1;
+    return copy;
+}
+
+fn sameBetaKey(left: counterterms.BetaRow, right: counterterms.PoleRow) bool {
+    return left.local_operator == right.local_operator and
+        left.target_flavor == right.target_flavor and
+        left.loop_order == right.loop_order and
+        left.alpha_prime_power == right.alpha_prime_power and
+        counterterms.sameTensorTermIgnoreCoefficient(left.term, right.term);
+}
+
+fn samePoleKey(left: counterterms.PoleRow, right: counterterms.PoleRow) bool {
+    return left.local_operator == right.local_operator and
+        left.target_flavor == right.target_flavor and
+        left.loop_order == right.loop_order and
+        left.alpha_prime_power == right.alpha_prime_power and
+        counterterms.sameTensorTermIgnoreCoefficient(left.term, right.term);
+}
+
+fn hasMatchingSimplePole(rows: []const counterterms.PoleRow, target: counterterms.PoleRow) bool {
+    for (rows) |row| {
+        if (row.pole_order != 1) continue;
+        if (samePoleKey(row, target)) return true;
+    }
+    return false;
+}
+
+/// assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.
+pub fn assembleBetaRows(rows: []const counterterms.PoleRow, options: BetaAssemblyOptions, output: []counterterms.BetaRow) !BetaAssemblySummary {
+    var summary = BetaAssemblySummary{};
+
+    for (rows) |row| {
+        if (options.require_stringbook_compatible and !row.scheme.isStringbookCompatible()) return error.UnsupportedScheme;
+
+        if (options.local_operator) |expected| {
+            if (row.local_operator != expected) {
+                summary.rejected_operator_count += 1;
+                continue;
+            }
+        }
+
+        if (row.pole_order != 1) {
+            summary.ignored_higher_pole_count += 1;
+            if (!hasMatchingSimplePole(rows, row)) summary.inconsistent_higher_pole_count += 1;
+            continue;
+        }
+
+        summary.simple_pole_count += 1;
+        const contribution = try counterterms.normalizedContribution(row);
+
+        var found: ?usize = null;
+        var index: usize = 0;
+        while (index < summary.beta_count) : (index += 1) {
+            if (sameBetaKey(output[index], row)) {
+                found = index;
+                break;
+            }
+        }
+
+        if (found) |beta_index| {
+            output[beta_index].coefficient = try output[beta_index].coefficient.add(contribution);
+            output[beta_index].source_simple_pole_count += 1;
+            continue;
+        }
+
+        if (summary.beta_count == output.len) return error.OutputTooSmall;
+        output[summary.beta_count] = .{
+            .scheme = row.scheme,
+            .local_operator = row.local_operator,
+            .target_flavor = row.target_flavor,
+            .loop_order = row.loop_order,
+            .alpha_prime_power = row.alpha_prime_power,
+            .coefficient = contribution,
+            .term = normalizedTerm(row.term),
+            .source_simple_pole_count = 1,
+        };
+        summary.beta_count += 1;
+    }
+
+    return summary;
+}
+
+test "beta assembly merges simple poles with the same local tensor word" {
+    const testing = std.testing;
+    const scheme = @import("scheme.zig");
+
+    const slots = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .real_tangent },
+        .{ .id = 2, .sort = .real_tangent },
+        .{ .id = 3, .sort = .real_tangent },
+        .{ .id = 4, .sort = .real_tangent },
+    };
+    const atoms = [_]geometry.TensorAtom{.{ .kind = .riemann, .slots = &slots }};
+    const term = geometry.TensorTerm{ .coefficient = 2, .atoms = &atoms };
+
+    const rows = [_]counterterms.PoleRow{
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 1,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 1, .denominator = 2 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 1,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 1, .denominator = 3 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 2,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 7, .denominator = 5 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+    };
+
+    var output: [2]counterterms.BetaRow = undefined;
+    const summary = try assembleBetaRows(&rows, .{ .local_operator = .metric_beta }, &output);
+    try testing.expectEqual(@as(usize, 1), summary.beta_count);
+    try testing.expectEqual(@as(u32, 2), summary.simple_pole_count);
+    try testing.expectEqual(@as(u32, 1), summary.ignored_higher_pole_count);
+    try testing.expectEqual(counterterms.Rational{ .numerator = 5, .denominator = 3 }, output[0].coefficient);
+    try testing.expectEqual(@as(i64, 1), output[0].term.coefficient);
+    try testing.expectEqual(@as(u16, 2), output[0].source_simple_pole_count);
+}
+
+test "beta assembly generalizes to kahler operator rows" {
+    const testing = std.testing;
+    const scheme = @import("scheme.zig");
+
+    const slots = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .antiholomorphic_tangent },
+    };
+    const atoms = [_]geometry.TensorAtom{.{ .kind = .ricci, .slots = &slots }};
+    const rows = [_]counterterms.PoleRow{.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .kahler_potential_beta,
+        .target_flavor = .calabi_yau,
+        .loop_order = 4,
+        .pole_order = 1,
+        .alpha_prime_power = 3,
+        .residue = .{ .numerator = 3, .denominator = 7 },
+        .kernel = .{ .family = .vacuum, .loop_order = 4 },
+        .term = .{ .atoms = &atoms },
+    }};
+
+    var output: [1]counterterms.BetaRow = undefined;
+    const summary = try assembleBetaRows(&rows, .{ .local_operator = .kahler_potential_beta }, &output);
+    try testing.expectEqual(@as(usize, 1), summary.beta_count);
+    try testing.expectEqual(counterterms.LocalCountertermKind.kahler_potential_beta, output[0].local_operator);
+    try testing.expectEqual(geometry.GeometryFlavor.calabi_yau, output[0].target_flavor);
+}

@@ -1,0 +1,230 @@
+const std = @import("std");
+const geometry = @import("local_geometry_reducer.zig");
+
+/// WorldsheetModel selects the free-field content used by the RNC job.
+pub const WorldsheetModel = enum(u8) {
+    bosonic,
+    n1_1,
+    n2_2,
+    n4_4,
+};
+
+/// FieldKind identifies one quantum fluctuation field in an RNC vertex.
+pub const FieldKind = enum(u8) {
+    xi,
+    psi_left,
+    psi_right,
+    auxiliary,
+};
+
+/// BackgroundLegKind identifies one uncontracted local operator leg.
+pub const BackgroundLegKind = enum(u8) {
+    d_x0,
+    dbar_x0,
+};
+
+/// WorldsheetDerivatives records the holomorphic and antiholomorphic derivative count.
+pub const WorldsheetDerivatives = packed struct(u8) {
+    holomorphic: u4 = 0,
+    antiholomorphic: u4 = 0,
+};
+
+/// VertexField is one quantum field occurrence inside a local RNC vertex.
+pub const VertexField = struct {
+    kind: FieldKind,
+    target_sort: geometry.TensorSlotSort = .real_tangent,
+    derivatives: WorldsheetDerivatives = .{},
+};
+
+/// BackgroundLeg is one local operator leg that survives Wick contraction.
+pub const BackgroundLeg = struct {
+    kind: BackgroundLegKind,
+    target_sort: geometry.TensorSlotSort = .real_tangent,
+};
+
+/// VertexTensorKind names the target-space tensor atom attached to a vertex.
+pub const VertexTensorKind = enum(u8) {
+    metric,
+    riemann,
+    covariant_derivative_riemann,
+};
+
+/// VertexTensor is one target-space tensor factor carried by a vertex.
+pub const VertexTensor = struct {
+    kind: VertexTensorKind,
+    slot_sorts: []const geometry.TensorSlotSort = &.{},
+    covariant_derivative_count: u8 = 0,
+};
+
+/// VertexSymmetry stores the explicit combinatorial denominator of one vertex family.
+pub const VertexSymmetry = struct {
+    denominator: u16 = 1,
+};
+
+/// RncVertexRow is one streamed local RNC interaction or free quadratic row.
+pub const RncVertexRow = struct {
+    worldsheet: WorldsheetModel,
+    xi_order: u8,
+    fields: []const VertexField = &.{},
+    background_legs: []const BackgroundLeg = &.{},
+    tensors: []const VertexTensor = &.{},
+    coefficient: i16 = 1,
+    alpha_prime_power: i16 = 0,
+    symmetry: VertexSymmetry = .{},
+};
+
+/// RncRequest selects the bootstrap vertex families emitted by the first generator.
+pub const RncRequest = struct {
+    worldsheet: WorldsheetModel,
+    max_xi_order: u8,
+    include_fermions: bool = true,
+};
+
+fn matchesRequest(row: RncVertexRow, request: RncRequest) bool {
+    if (row.worldsheet != request.worldsheet) return false;
+    if (row.xi_order > request.max_xi_order) return false;
+    if (request.include_fermions) return true;
+
+    for (row.fields) |field| switch (field.kind) {
+        .psi_left, .psi_right, .auxiliary => return false,
+        .xi => {},
+    };
+    return true;
+}
+
+/// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
+pub fn streamBootstrapVertices(request: RncRequest, sink: anytype) !void {
+    for (bootstrap_vertices) |row| {
+        if (!matchesRequest(row, request)) continue;
+        try sink.emit(row);
+    }
+}
+
+const d = WorldsheetDerivatives;
+const real = geometry.TensorSlotSort.real_tangent;
+
+const bosonic_kinetic_fields = [_]VertexField{
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .holomorphic = 1 } },
+    .{ .kind = .xi, .target_sort = real, .derivatives = d{ .antiholomorphic = 1 } },
+};
+
+const bosonic_curvature_fields = [_]VertexField{
+    .{ .kind = .xi, .target_sort = real },
+    .{ .kind = .xi, .target_sort = real },
+};
+
+const bosonic_background_legs = [_]BackgroundLeg{
+    .{ .kind = .d_x0, .target_sort = real },
+    .{ .kind = .dbar_x0, .target_sort = real },
+};
+
+const bosonic_metric_tensor_sorts = [_]geometry.TensorSlotSort{ real, real };
+const bosonic_riemann_tensor_sorts = [_]geometry.TensorSlotSort{ real, real, real, real };
+
+const bosonic_kinetic_tensors = [_]VertexTensor{
+    .{ .kind = .metric, .slot_sorts = &bosonic_metric_tensor_sorts },
+};
+
+const bosonic_curvature_tensors = [_]VertexTensor{
+    .{ .kind = .riemann, .slot_sorts = &bosonic_riemann_tensor_sorts },
+};
+
+const fermion_curvature_fields = [_]VertexField{
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_left, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+    .{ .kind = .psi_right, .target_sort = real },
+};
+
+const fermion_curvature_tensors = [_]VertexTensor{
+    .{ .kind = .riemann, .slot_sorts = &bosonic_riemann_tensor_sorts },
+};
+
+const bootstrap_vertices = [_]RncVertexRow{
+    .{
+        .worldsheet = .bosonic,
+        .xi_order = 2,
+        .fields = &bosonic_kinetic_fields,
+        .tensors = &bosonic_kinetic_tensors,
+    },
+    .{
+        .worldsheet = .bosonic,
+        .xi_order = 2,
+        .fields = &bosonic_curvature_fields,
+        .background_legs = &bosonic_background_legs,
+        .tensors = &bosonic_curvature_tensors,
+        .symmetry = .{ .denominator = 3 },
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 2,
+        .fields = &bosonic_kinetic_fields,
+        .tensors = &bosonic_kinetic_tensors,
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 2,
+        .fields = &bosonic_curvature_fields,
+        .background_legs = &bosonic_background_legs,
+        .tensors = &bosonic_curvature_tensors,
+        .symmetry = .{ .denominator = 3 },
+    },
+    .{
+        .worldsheet = .n1_1,
+        .xi_order = 0,
+        .fields = &fermion_curvature_fields,
+        .tensors = &fermion_curvature_tensors,
+        .symmetry = .{ .denominator = 1 },
+    },
+};
+
+test "bosonic bootstrap emits only bosonic rows up to requested xi order" {
+    const testing = std.testing;
+    const Sink = struct {
+        rows: []RncVertexRow,
+        count: usize = 0,
+
+        fn emit(self: *@This(), row: RncVertexRow) !void {
+            if (self.count == self.rows.len) return error.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    var rows: [4]RncVertexRow = undefined;
+    var sink = Sink{ .rows = &rows };
+    try streamBootstrapVertices(.{ .worldsheet = .bosonic, .max_xi_order = 2, .include_fermions = false }, &sink);
+    try testing.expectEqual(@as(usize, 2), sink.count);
+    for (rows[0..sink.count]) |row| {
+        try testing.expectEqual(WorldsheetModel.bosonic, row.worldsheet);
+        for (row.fields) |field| try testing.expectEqual(FieldKind.xi, field.kind);
+    }
+}
+
+test "n1-1 bootstrap includes fermion curvature row when requested" {
+    const testing = std.testing;
+    const Sink = struct {
+        rows: []RncVertexRow,
+        count: usize = 0,
+
+        fn emit(self: *@This(), row: RncVertexRow) !void {
+            if (self.count == self.rows.len) return error.OutputTooSmall;
+            self.rows[self.count] = row;
+            self.count += 1;
+        }
+    };
+
+    var rows: [8]RncVertexRow = undefined;
+    var sink = Sink{ .rows = &rows };
+    try streamBootstrapVertices(.{ .worldsheet = .n1_1, .max_xi_order = 2, .include_fermions = true }, &sink);
+    try testing.expectEqual(@as(usize, 3), sink.count);
+
+    var found_fermions = false;
+    for (rows[0..sink.count]) |row| {
+        for (row.fields) |field| switch (field.kind) {
+            .psi_left, .psi_right => found_fermions = true,
+            else => {},
+        };
+    }
+    try testing.expect(found_fermions);
+}

@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:29 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Beta Assembly</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Beta Assembly</h1>
+<p>
+This note implements the narrow algebraic step that converts streamed simple
+poles into beta-function rows.  It does not evaluate diagrams, and it does not
+quotient by field redefinitions.  It only enforces the fixed MS scheme
+boundary from the <a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a>.
+</p>
+
+<a id="BetaAssemblyOptions"></a>
+<a id="BetaAssemblySummary"></a>
+<a id="assembleBetaRows"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga1137d8"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// BetaAssemblyOptions selects the subset of pole rows converted to beta rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaAssemblyOptions</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.LocalCountertermKind</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">require_stringbook_compatible</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// BetaAssemblySummary reports how the pole stream was consumed.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaAssemblySummary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">beta_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">simple_pole_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">ignored_higher_pole_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">rejected_operator_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">inconsistent_higher_pole_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">normalizedTerm</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorTerm</span>) geometry.TensorTerm {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span> = term;
+    copy.coefficient = 1;
+    <span style="color: #fb4934; font-weight: bold;">return</span> copy;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sameBetaKey</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.BetaRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> left.local_operator == right.local_operator <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.target_flavor == right.target_flavor <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.loop_order == right.loop_order <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.alpha_prime_power == right.alpha_prime_power <span style="color: #fb4934; font-weight: bold;">and</span>
+        counterterms.sameTensorTermIgnoreCoefficient(left.term, right.term);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">samePoleKey</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> left.local_operator == right.local_operator <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.target_flavor == right.target_flavor <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.loop_order == right.loop_order <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.alpha_prime_power == right.alpha_prime_power <span style="color: #fb4934; font-weight: bold;">and</span>
+        counterterms.sameTensorTermIgnoreCoefficient(left.term, right.term);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasMatchingSimplePole</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">target</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.pole_order != 1) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (samePoleKey(row, target)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assembleBetaRows</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">BetaAssemblyOptions</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.BetaRow</span>) !BetaAssemblySummary {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = BetaAssemblySummary{};
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (options.require_stringbook_compatible <span style="color: #fb4934; font-weight: bold;">and</span> !row.scheme.isStringbookCompatible()) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.UnsupportedScheme;
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (options.local_operator) |expected| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (row.local_operator != expected) {
+                summary.rejected_operator_count += 1;
+                <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.pole_order != 1) {
+            summary.ignored_higher_pole_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">if</span> (!hasMatchingSimplePole(rows, row)) summary.inconsistent_higher_pole_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        summary.simple_pole_count += 1;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">contribution</span> = <span style="color: #fb4934; font-weight: bold;">try</span> counterterms.normalizedContribution(row);
+
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">found</span>: ?<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
+        <span style="color: #fb4934; font-weight: bold;">while</span> (index &lt; summary.beta_count) : (index += 1) {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (sameBetaKey(output[index], row)) {
+                found = index;
+                <span style="color: #fb4934; font-weight: bold;">break</span>;
+            }
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (found) |beta_index| {
+            output[beta_index].coefficient = <span style="color: #fb4934; font-weight: bold;">try</span> output[beta_index].coefficient.add(contribution);
+            output[beta_index].source_simple_pole_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (summary.beta_count == output.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+        output[summary.beta_count] = .{
+            .scheme = row.scheme,
+            .local_operator = row.local_operator,
+            .target_flavor = row.target_flavor,
+            .loop_order = row.loop_order,
+            .alpha_prime_power = row.alpha_prime_power,
+            .coefficient = contribution,
+            .term = normalizedTerm(row.term),
+            .source_simple_pole_count = 1,
+        };
+        summary.beta_count += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Beta Assembly</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"beta assembly merges simple poles with the same local tensor word"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .real_tangent },
+        .{ .id = 2, .sort = .real_tangent },
+        .{ .id = 3, .sort = .real_tangent },
+        .{ .id = 4, .sort = .real_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]geometry.TensorAtom{.{ .kind = .riemann, .slots = &amp;slots }};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span> = geometry.TensorTerm{ .coefficient = 2, .atoms = &amp;atoms };
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span> = [_]counterterms.PoleRow{
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 1,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 1, .denominator = 2 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 1,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 1, .denominator = 3 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .loop_order = 4,
+            .pole_order = 2,
+            .alpha_prime_power = 3,
+            .residue = .{ .numerator = 7, .denominator = 5 },
+            .kernel = .{ .family = .vacuum, .loop_order = 4 },
+            .term = term,
+        },
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.BetaRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> assembleBetaRows(&amp;rows, .{ .local_operator = .metric_beta }, &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.beta_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 2), summary.simple_pole_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 1), summary.ignored_higher_pole_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.Rational{ .numerator = 5, .denominator = 3 }, output[0].coefficient);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span>, 1), output[0].term.coefficient);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 2), output[0].source_simple_pole_count);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"beta assembly generalizes to kahler operator rows"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .antiholomorphic_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]geometry.TensorAtom{.{ .kind = .ricci, .slots = &amp;slots }};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span> = [_]counterterms.PoleRow{.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .kahler_potential_beta,
+        .target_flavor = .calabi_yau,
+        .loop_order = 4,
+        .pole_order = 1,
+        .alpha_prime_power = 3,
+        .residue = .{ .numerator = 3, .denominator = 7 },
+        .kernel = .{ .family = .vacuum, .loop_order = 4 },
+        .term = .{ .atoms = &amp;atoms },
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.BetaRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> assembleBetaRows(&amp;rows, .{ .local_operator = .kahler_potential_beta }, &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.beta_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.LocalCountertermKind.kahler_potential_beta, output[0].local_operator);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(geometry.GeometryFlavor.calabi_yau, output[0].target_flavor);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

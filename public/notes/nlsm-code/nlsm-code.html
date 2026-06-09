@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 13:17 -->
+<!-- 2026-06-09 Tue 13:59 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NLSM-Code</title>
@@ -157,11 +157,19 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
     <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -228,6 +236,14 @@ This is an overview of NLSM-Code.
 <ul class="org-ul">
 <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
 <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+<li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+<li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+<li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+<li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+<li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+<li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+<li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+<li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
 <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
 <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
 <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
@@ -263,11 +279,101 @@ generated job dispatch without widening the public surface.
 <dd>ReductionOptions selects the local quotient checks applied to one term.</dd>
 <dt><a href="#ReductionSummary"><code>ReductionSummary = geometry.ReductionSummary</code></a></dt>
 <dd>ReductionSummary reports the reducer decision without materializing a sum.</dd>
+<dt><a href="#WorldsheetModel"><code>WorldsheetModel = rnc.WorldsheetModel</code></a></dt>
+<dd>WorldsheetModel selects the free-field content used by the RNC job.</dd>
+<dt><a href="#FieldKind"><code>FieldKind = rnc.FieldKind</code></a></dt>
+<dd>FieldKind identifies one quantum fluctuation field in an RNC vertex.</dd>
+<dt><a href="#BackgroundLegKind"><code>BackgroundLegKind = rnc.BackgroundLegKind</code></a></dt>
+<dd>BackgroundLegKind identifies one uncontracted local operator leg.</dd>
+<dt><a href="#WorldsheetDerivatives"><code>WorldsheetDerivatives = rnc.WorldsheetDerivatives</code></a></dt>
+<dd>WorldsheetDerivatives records the holomorphic and antiholomorphic derivative count.</dd>
+<dt><a href="#VertexField"><code>VertexField = rnc.VertexField</code></a></dt>
+<dd>VertexField is one quantum field occurrence inside a local RNC vertex.</dd>
+<dt><a href="#BackgroundLeg"><code>BackgroundLeg = rnc.BackgroundLeg</code></a></dt>
+<dd>BackgroundLeg is one local operator leg that survives Wick contraction.</dd>
+<dt><a href="#VertexTensorKind"><code>VertexTensorKind = rnc.VertexTensorKind</code></a></dt>
+<dd>VertexTensorKind names the target-space tensor atom attached to a vertex.</dd>
+<dt><a href="#VertexTensor"><code>VertexTensor = rnc.VertexTensor</code></a></dt>
+<dd>VertexTensor is one target-space tensor factor carried by a vertex.</dd>
+<dt><a href="#VertexSymmetry"><code>VertexSymmetry = rnc.VertexSymmetry</code></a></dt>
+<dd>VertexSymmetry stores the explicit combinatorial denominator of one vertex family.</dd>
+<dt><a href="#RncVertexRow"><code>RncVertexRow = rnc.RncVertexRow</code></a></dt>
+<dd>RncVertexRow is one streamed local RNC interaction or free quadratic row.</dd>
+<dt><a href="#RncRequest"><code>RncRequest = rnc.RncRequest</code></a></dt>
+<dd>RncRequest selects the bootstrap vertex families emitted by the first generator.</dd>
+<dt><a href="#BackgroundLegCount"><code>BackgroundLegCount = plan.BackgroundLegCount</code></a></dt>
+<dd>BackgroundLegCount fixes the local operator signature required at the end of one branch.</dd>
+<dt><a href="#DiagramPlanRequest"><code>DiagramPlanRequest = plan.DiagramPlanRequest</code></a></dt>
+<dd>DiagramPlanRequest selects the candidate multiset families enumerated from one vertex catalog.</dd>
+<dt><a href="#VertexMultiplicity"><code>VertexMultiplicity = plan.VertexMultiplicity</code></a></dt>
+<dd>VertexMultiplicity records one catalog row and its multiplicity in a candidate multiset.</dd>
+<dt><a href="#DiagramCandidateRow"><code>DiagramCandidateRow = plan.DiagramCandidateRow</code></a></dt>
+<dd>DiagramCandidateRow is one compact candidate multiset before explicit Wick pairing.</dd>
+<dt><a href="#WickSignatureRow"><code>WickSignatureRow = wick.WickSignatureRow</code></a></dt>
+<dd>WickSignatureRow is one pairable candidate summary before explicit branch generation.</dd>
+<dt><a href="#WickSignatureSummary"><code>WickSignatureSummary = wick.WickSignatureSummary</code></a></dt>
+<dd>WickSignatureSummary reports how many candidates survive the pairability checks.</dd>
+<dt><a href="#KernelReductionRequest"><code>KernelReductionRequest = reduce.KernelReductionRequest</code></a></dt>
+<dd>KernelReductionRequest fixes the renormalization metadata attached to emitted kernel rows.</dd>
+<dt><a href="#KernelReductionSummary"><code>KernelReductionSummary = reduce.KernelReductionSummary</code></a></dt>
+<dd>KernelReductionSummary reports how many candidates were lowered successfully.</dd>
+<dt><a href="#EpsilonSign"><code>EpsilonSign = scheme.EpsilonSign</code></a></dt>
+<dd>EpsilonSign fixes whether the regulated dimension is 2-epsilon or 2+epsilon.</dd>
+<dt><a href="#SubtractionScheme"><code>SubtractionScheme = scheme.SubtractionScheme</code></a></dt>
+<dd>SubtractionScheme selects the pole-subtraction convention.</dd>
+<dt><a href="#BFieldEpsilonScheme"><code>BFieldEpsilonScheme = scheme.BFieldEpsilonScheme</code></a></dt>
+<dd>BFieldEpsilonScheme records the antisymmetric-tensor epsilon-frame policy.</dd>
+<dt><a href="#DimRegMS"><code>DimRegMS = scheme.DimRegMS</code></a></dt>
+<dd>DimRegMS describes one dimensional-regularization/minimal-subtraction scheme.</dd>
+<dt><a href="#Rational"><code>Rational = counterterms.Rational</code></a></dt>
+<dd>Rational stores one compact exact coefficient.</dd>
+<dt><a href="#LocalCountertermKind"><code>LocalCountertermKind = counterterms.LocalCountertermKind</code></a></dt>
+<dd>LocalCountertermKind names the local operator basis used by renormalization.</dd>
+<dt><a href="#KernelFamily"><code>KernelFamily = counterterms.KernelFamily</code></a></dt>
+<dd>KernelFamily identifies one regulated loop-integral family.</dd>
+<dt><a href="#KernelSignature"><code>KernelSignature = counterterms.KernelSignature</code></a></dt>
+<dd>KernelSignature stores the reduced loop-kernel descriptor emitted by one branch.</dd>
+<dt><a href="#PoleRow"><code>PoleRow = counterterms.PoleRow</code></a></dt>
+<dd>PoleRow is one local pole term emitted after loop-kernel evaluation.</dd>
+<dt><a href="#BetaRow"><code>BetaRow = counterterms.BetaRow</code></a></dt>
+<dd>BetaRow is one assembled simple-pole contribution in the operator basis.</dd>
+<dt><a href="#KernelTermRow"><code>KernelTermRow = pole.KernelTermRow</code></a></dt>
+<dd>KernelTermRow is one reduced local branch before pole extraction.</dd>
+<dt><a href="#LocalityClass"><code>LocalityClass = pole.LocalityClass</code></a></dt>
+<dd>LocalityClass records whether one master family contributes a local pole.</dd>
+<dt><a href="#PoleResidue"><code>PoleResidue = pole.PoleResidue</code></a></dt>
+<dd>PoleResidue stores one Laurent-coefficient contribution for a matched rule.</dd>
+<dt><a href="#KernelPoleRule"><code>KernelPoleRule = pole.KernelPoleRule</code></a></dt>
+<dd>KernelPoleRule maps one reduced kernel signature to local pole data.</dd>
+<dt><a href="#PoleExtractionSummary"><code>PoleExtractionSummary = pole.PoleExtractionSummary</code></a></dt>
+<dd>PoleExtractionSummary reports how the kernel rows were classified.</dd>
+<dt><a href="#BetaAssemblyOptions"><code>BetaAssemblyOptions = beta.BetaAssemblyOptions</code></a></dt>
+<dd>BetaAssemblyOptions selects the subset of pole rows converted to beta rows.</dd>
+<dt><a href="#BetaAssemblySummary"><code>BetaAssemblySummary = beta.BetaAssemblySummary</code></a></dt>
+<dd>BetaAssemblySummary reports how the pole stream was consumed.</dd>
 </dl>
 <p class="api-kind"><b>Constants</b></p>
 <dl>
 <dt><a href="#reduceLocalTerm"><code>reduceLocalTerm = geometry.reduceLocalTerm</code></a></dt>
 <dd>reduceLocalTerm filters one streamed local geometry term into caller storage.</dd>
+<dt><a href="#streamBootstrapVertices"><code>streamBootstrapVertices = rnc.streamBootstrapVertices</code></a></dt>
+<dd>streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.</dd>
+<dt><a href="#streamDiagramCandidates"><code>streamDiagramCandidates = plan.streamDiagramCandidates</code></a></dt>
+<dd>streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.</dd>
+<dt><a href="#streamWickSignatures"><code>streamWickSignatures = wick.streamWickSignatures</code></a></dt>
+<dd>streamWickSignatures emits the pairable species-count summary of each candidate multiset.</dd>
+<dt><a href="#streamKernelTerms"><code>streamKernelTerms = reduce.streamKernelTerms</code></a></dt>
+<dd>streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.</dd>
+<dt><a href="#streamKernelTermsFromWickSignatures"><code>streamKernelTermsFromWickSignatures = reduce.streamKernelTermsFromWickSignatures</code></a></dt>
+<dd>streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.</dd>
+<dt><a href="#stringbookMS"><code>stringbookMS = scheme.stringbookMS</code></a></dt>
+<dd>stringbookMS returns the fixed dimensional-regularization/minimal-subtraction scheme.</dd>
+<dt><a href="#stringbookBootstrapRules"><code>stringbookBootstrapRules = pole.stringbookBootstrapRules</code></a></dt>
+<dd>stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.</dd>
+<dt><a href="#extractPoleRows"><code>extractPoleRows = pole.extractPoleRows</code></a></dt>
+<dd>extractPoleRows matches reduced kernel signatures to explicit local pole rules.</dd>
+<dt><a href="#assembleBetaRows"><code>assembleBetaRows = beta.assembleBetaRows</code></a></dt>
+<dd>assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.</dd>
 </dl>
 </div>
 </div>
@@ -280,8 +386,61 @@ generated job dispatch without widening the public surface.
 <a id="ReductionOptions"></a>
 <a id="ReductionSummary"></a>
 <a id="reduceLocalTerm"></a>
+<a id="WorldsheetModel"></a>
+<a id="FieldKind"></a>
+<a id="BackgroundLegKind"></a>
+<a id="WorldsheetDerivatives"></a>
+<a id="VertexField"></a>
+<a id="BackgroundLeg"></a>
+<a id="VertexTensorKind"></a>
+<a id="VertexTensor"></a>
+<a id="VertexSymmetry"></a>
+<a id="RncVertexRow"></a>
+<a id="RncRequest"></a>
+<a id="streamBootstrapVertices"></a>
+<a id="BackgroundLegCount"></a>
+<a id="DiagramPlanRequest"></a>
+<a id="VertexMultiplicity"></a>
+<a id="DiagramCandidateRow"></a>
+<a id="streamDiagramCandidates"></a>
+<a id="WickSignatureRow"></a>
+<a id="WickSignatureSummary"></a>
+<a id="streamWickSignatures"></a>
+<a id="KernelReductionRequest"></a>
+<a id="KernelReductionSummary"></a>
+<a id="streamKernelTerms"></a>
+<a id="streamKernelTermsFromWickSignatures"></a>
+<a id="EpsilonSign"></a>
+<a id="SubtractionScheme"></a>
+<a id="BFieldEpsilonScheme"></a>
+<a id="DimRegMS"></a>
+<a id="stringbookMS"></a>
+<a id="Rational"></a>
+<a id="LocalCountertermKind"></a>
+<a id="KernelFamily"></a>
+<a id="KernelSignature"></a>
+<a id="PoleRow"></a>
+<a id="BetaRow"></a>
+<a id="KernelTermRow"></a>
+<a id="LocalityClass"></a>
+<a id="PoleResidue"></a>
+<a id="KernelPoleRule"></a>
+<a id="PoleExtractionSummary"></a>
+<a id="stringbookBootstrapRules"></a>
+<a id="extractPoleRows"></a>
+<a id="BetaAssemblyOptions"></a>
+<a id="BetaAssemblySummary"></a>
+<a id="assembleBetaRows"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="org58a2c45"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rnc</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"rnc_vertices.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">plan</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"diagram_plan.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"wick_signatures.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reduce</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"kernel_signature_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pole</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"pole_extractor.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">beta</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"beta_assembly.zig"</span>);
 
 <span style="color: #e0d3b9; font-style: italic;">/// GeometryFlavor selects the target-geometry quotient used by local reducers.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryFlavor</span> = geometry.GeometryFlavor;
@@ -299,6 +458,96 @@ generated job dispatch without widening the public surface.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionSummary</span> = geometry.ReductionSummary;
 <span style="color: #e0d3b9; font-style: italic;">/// reduceLocalTerm filters one streamed local geometry term into caller storage.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reduceLocalTerm</span> = geometry.reduceLocalTerm;
+<span style="color: #e0d3b9; font-style: italic;">/// WorldsheetModel selects the free-field content used by the RNC job.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetModel</span> = rnc.WorldsheetModel;
+<span style="color: #e0d3b9; font-style: italic;">/// FieldKind identifies one quantum fluctuation field in an RNC vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FieldKind</span> = rnc.FieldKind;
+<span style="color: #e0d3b9; font-style: italic;">/// BackgroundLegKind identifies one uncontracted local operator leg.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackgroundLegKind</span> = rnc.BackgroundLegKind;
+<span style="color: #e0d3b9; font-style: italic;">/// WorldsheetDerivatives records the holomorphic and antiholomorphic derivative count.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WorldsheetDerivatives</span> = rnc.WorldsheetDerivatives;
+<span style="color: #e0d3b9; font-style: italic;">/// VertexField is one quantum field occurrence inside a local RNC vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexField</span> = rnc.VertexField;
+<span style="color: #e0d3b9; font-style: italic;">/// BackgroundLeg is one local operator leg that survives Wick contraction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackgroundLeg</span> = rnc.BackgroundLeg;
+<span style="color: #e0d3b9; font-style: italic;">/// VertexTensorKind names the target-space tensor atom attached to a vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexTensorKind</span> = rnc.VertexTensorKind;
+<span style="color: #e0d3b9; font-style: italic;">/// VertexTensor is one target-space tensor factor carried by a vertex.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexTensor</span> = rnc.VertexTensor;
+<span style="color: #e0d3b9; font-style: italic;">/// VertexSymmetry stores the explicit combinatorial denominator of one vertex family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexSymmetry</span> = rnc.VertexSymmetry;
+<span style="color: #e0d3b9; font-style: italic;">/// RncVertexRow is one streamed local RNC interaction or free quadratic row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncVertexRow</span> = rnc.RncVertexRow;
+<span style="color: #e0d3b9; font-style: italic;">/// RncRequest selects the bootstrap vertex families emitted by the first generator.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">RncRequest</span> = rnc.RncRequest;
+<span style="color: #e0d3b9; font-style: italic;">/// streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamBootstrapVertices</span> = rnc.streamBootstrapVertices;
+<span style="color: #e0d3b9; font-style: italic;">/// BackgroundLegCount fixes the local operator signature required at the end of one branch.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BackgroundLegCount</span> = plan.BackgroundLegCount;
+<span style="color: #e0d3b9; font-style: italic;">/// DiagramPlanRequest selects the candidate multiset families enumerated from one vertex catalog.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DiagramPlanRequest</span> = plan.DiagramPlanRequest;
+<span style="color: #e0d3b9; font-style: italic;">/// VertexMultiplicity records one catalog row and its multiplicity in a candidate multiset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">VertexMultiplicity</span> = plan.VertexMultiplicity;
+<span style="color: #e0d3b9; font-style: italic;">/// DiagramCandidateRow is one compact candidate multiset before explicit Wick pairing.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DiagramCandidateRow</span> = plan.DiagramCandidateRow;
+<span style="color: #e0d3b9; font-style: italic;">/// streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamDiagramCandidates</span> = plan.streamDiagramCandidates;
+<span style="color: #e0d3b9; font-style: italic;">/// WickSignatureRow is one pairable candidate summary before explicit branch generation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickSignatureRow</span> = wick.WickSignatureRow;
+<span style="color: #e0d3b9; font-style: italic;">/// WickSignatureSummary reports how many candidates survive the pairability checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">WickSignatureSummary</span> = wick.WickSignatureSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// streamWickSignatures emits the pairable species-count summary of each candidate multiset.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamWickSignatures</span> = wick.streamWickSignatures;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelReductionRequest fixes the renormalization metadata attached to emitted kernel rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelReductionRequest</span> = reduce.KernelReductionRequest;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelReductionSummary reports how many candidates were lowered successfully.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelReductionSummary</span> = reduce.KernelReductionSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamKernelTerms</span> = reduce.streamKernelTerms;
+<span style="color: #e0d3b9; font-style: italic;">/// streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">streamKernelTermsFromWickSignatures</span> = reduce.streamKernelTermsFromWickSignatures;
+<span style="color: #e0d3b9; font-style: italic;">/// EpsilonSign fixes whether the regulated dimension is 2-epsilon or 2+epsilon.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">EpsilonSign</span> = scheme.EpsilonSign;
+<span style="color: #e0d3b9; font-style: italic;">/// SubtractionScheme selects the pole-subtraction convention.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">SubtractionScheme</span> = scheme.SubtractionScheme;
+<span style="color: #e0d3b9; font-style: italic;">/// BFieldEpsilonScheme records the antisymmetric-tensor epsilon-frame policy.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BFieldEpsilonScheme</span> = scheme.BFieldEpsilonScheme;
+<span style="color: #e0d3b9; font-style: italic;">/// DimRegMS describes one dimensional-regularization/minimal-subtraction scheme.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">DimRegMS</span> = scheme.DimRegMS;
+<span style="color: #e0d3b9; font-style: italic;">/// stringbookMS returns the fixed dimensional-regularization/minimal-subtraction scheme.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">stringbookMS</span> = scheme.stringbookMS;
+<span style="color: #e0d3b9; font-style: italic;">/// Rational stores one compact exact coefficient.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Rational</span> = counterterms.Rational;
+<span style="color: #e0d3b9; font-style: italic;">/// LocalCountertermKind names the local operator basis used by renormalization.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalCountertermKind</span> = counterterms.LocalCountertermKind;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelFamily identifies one regulated loop-integral family.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelFamily</span> = counterterms.KernelFamily;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelSignature stores the reduced loop-kernel descriptor emitted by one branch.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelSignature</span> = counterterms.KernelSignature;
+<span style="color: #e0d3b9; font-style: italic;">/// PoleRow is one local pole term emitted after loop-kernel evaluation.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleRow</span> = counterterms.PoleRow;
+<span style="color: #e0d3b9; font-style: italic;">/// BetaRow is one assembled simple-pole contribution in the operator basis.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaRow</span> = counterterms.BetaRow;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelTermRow is one reduced local branch before pole extraction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelTermRow</span> = pole.KernelTermRow;
+<span style="color: #e0d3b9; font-style: italic;">/// LocalityClass records whether one master family contributes a local pole.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalityClass</span> = pole.LocalityClass;
+<span style="color: #e0d3b9; font-style: italic;">/// PoleResidue stores one Laurent-coefficient contribution for a matched rule.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleResidue</span> = pole.PoleResidue;
+<span style="color: #e0d3b9; font-style: italic;">/// KernelPoleRule maps one reduced kernel signature to local pole data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelPoleRule</span> = pole.KernelPoleRule;
+<span style="color: #e0d3b9; font-style: italic;">/// PoleExtractionSummary reports how the kernel rows were classified.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleExtractionSummary</span> = pole.PoleExtractionSummary;
+<span style="color: #e0d3b9; font-style: italic;">/// stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">stringbookBootstrapRules</span> = pole.stringbookBootstrapRules;
+<span style="color: #e0d3b9; font-style: italic;">/// extractPoleRows matches reduced kernel signatures to explicit local pole rules.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">extractPoleRows</span> = pole.extractPoleRows;
+<span style="color: #e0d3b9; font-style: italic;">/// BetaAssemblyOptions selects the subset of pole rows converted to beta rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaAssemblyOptions</span> = beta.BetaAssemblyOptions;
+<span style="color: #e0d3b9; font-style: italic;">/// BetaAssemblySummary reports how the pole stream was consumed.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BetaAssemblySummary</span> = beta.BetaAssemblySummary;
+<span style="color: #e0d3b9; font-style: italic;">/// assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">assembleBetaRows</span> = beta.assembleBetaRows;
 </pre>
 </div>
 
@@ -313,7 +562,14 @@ generated job dispatch without widening the public surface.
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"GeometryFlavor"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"TensorSlotSort"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"reduceLocalTerm"</span>));
-    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"RncVertexRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"DiagramCandidateRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"WickSignatureRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"streamKernelTerms"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"stringbookMS"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"PoleRow"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"extractPoleRows"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"assembleBetaRows"</span>));
 }
 </pre>
 </div>

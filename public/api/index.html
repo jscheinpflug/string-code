@@ -155,11 +155,19 @@
   <ul class="toc-entries" hidden>
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
     <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
     <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -253,6 +261,96 @@
   <dd>ReductionSummary reports the reducer decision without materializing a sum.</dd>
   <dt><a href="/notes/nlsm-code/nlsm-code.html#reduceLocalTerm"><code>reduceLocalTerm = geometry.reduceLocalTerm</code></a></dt>
   <dd>reduceLocalTerm filters one streamed local geometry term into caller storage.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#WorldsheetModel"><code>WorldsheetModel = rnc.WorldsheetModel</code></a></dt>
+  <dd>WorldsheetModel selects the free-field content used by the RNC job.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#FieldKind"><code>FieldKind = rnc.FieldKind</code></a></dt>
+  <dd>FieldKind identifies one quantum fluctuation field in an RNC vertex.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BackgroundLegKind"><code>BackgroundLegKind = rnc.BackgroundLegKind</code></a></dt>
+  <dd>BackgroundLegKind identifies one uncontracted local operator leg.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#WorldsheetDerivatives"><code>WorldsheetDerivatives = rnc.WorldsheetDerivatives</code></a></dt>
+  <dd>WorldsheetDerivatives records the holomorphic and antiholomorphic derivative count.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#VertexField"><code>VertexField = rnc.VertexField</code></a></dt>
+  <dd>VertexField is one quantum field occurrence inside a local RNC vertex.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BackgroundLeg"><code>BackgroundLeg = rnc.BackgroundLeg</code></a></dt>
+  <dd>BackgroundLeg is one local operator leg that survives Wick contraction.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#VertexTensorKind"><code>VertexTensorKind = rnc.VertexTensorKind</code></a></dt>
+  <dd>VertexTensorKind names the target-space tensor atom attached to a vertex.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#VertexTensor"><code>VertexTensor = rnc.VertexTensor</code></a></dt>
+  <dd>VertexTensor is one target-space tensor factor carried by a vertex.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#VertexSymmetry"><code>VertexSymmetry = rnc.VertexSymmetry</code></a></dt>
+  <dd>VertexSymmetry stores the explicit combinatorial denominator of one vertex family.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#RncVertexRow"><code>RncVertexRow = rnc.RncVertexRow</code></a></dt>
+  <dd>RncVertexRow is one streamed local RNC interaction or free quadratic row.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#RncRequest"><code>RncRequest = rnc.RncRequest</code></a></dt>
+  <dd>RncRequest selects the bootstrap vertex families emitted by the first generator.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamBootstrapVertices"><code>streamBootstrapVertices = rnc.streamBootstrapVertices</code></a></dt>
+  <dd>streamBootstrapVertices emits the first fixed metric-sector RNC vertex families.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BackgroundLegCount"><code>BackgroundLegCount = plan.BackgroundLegCount</code></a></dt>
+  <dd>BackgroundLegCount fixes the local operator signature required at the end of one branch.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#DiagramPlanRequest"><code>DiagramPlanRequest = plan.DiagramPlanRequest</code></a></dt>
+  <dd>DiagramPlanRequest selects the candidate multiset families enumerated from one vertex catalog.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#VertexMultiplicity"><code>VertexMultiplicity = plan.VertexMultiplicity</code></a></dt>
+  <dd>VertexMultiplicity records one catalog row and its multiplicity in a candidate multiset.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#DiagramCandidateRow"><code>DiagramCandidateRow = plan.DiagramCandidateRow</code></a></dt>
+  <dd>DiagramCandidateRow is one compact candidate multiset before explicit Wick pairing.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamDiagramCandidates"><code>streamDiagramCandidates = plan.streamDiagramCandidates</code></a></dt>
+  <dd>streamDiagramCandidates enumerates candidate vertex multisets for one requested loop order.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#WickSignatureRow"><code>WickSignatureRow = wick.WickSignatureRow</code></a></dt>
+  <dd>WickSignatureRow is one pairable candidate summary before explicit branch generation.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#WickSignatureSummary"><code>WickSignatureSummary = wick.WickSignatureSummary</code></a></dt>
+  <dd>WickSignatureSummary reports how many candidates survive the pairability checks.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamWickSignatures"><code>streamWickSignatures = wick.streamWickSignatures</code></a></dt>
+  <dd>streamWickSignatures emits the pairable species-count summary of each candidate multiset.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelReductionRequest"><code>KernelReductionRequest = reduce.KernelReductionRequest</code></a></dt>
+  <dd>KernelReductionRequest fixes the renormalization metadata attached to emitted kernel rows.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelReductionSummary"><code>KernelReductionSummary = reduce.KernelReductionSummary</code></a></dt>
+  <dd>KernelReductionSummary reports how many candidates were lowered successfully.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamKernelTerms"><code>streamKernelTerms = reduce.streamKernelTerms</code></a></dt>
+  <dd>streamKernelTerms lowers candidate vertex multisets to reduced kernel-signature rows.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#streamKernelTermsFromWickSignatures"><code>streamKernelTermsFromWickSignatures = reduce.streamKernelTermsFromWickSignatures</code></a></dt>
+  <dd>streamKernelTermsFromWickSignatures lowers candidate data with an optional pairability summary.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#EpsilonSign"><code>EpsilonSign = scheme.EpsilonSign</code></a></dt>
+  <dd>EpsilonSign fixes whether the regulated dimension is 2-epsilon or 2+epsilon.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#SubtractionScheme"><code>SubtractionScheme = scheme.SubtractionScheme</code></a></dt>
+  <dd>SubtractionScheme selects the pole-subtraction convention.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BFieldEpsilonScheme"><code>BFieldEpsilonScheme = scheme.BFieldEpsilonScheme</code></a></dt>
+  <dd>BFieldEpsilonScheme records the antisymmetric-tensor epsilon-frame policy.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#DimRegMS"><code>DimRegMS = scheme.DimRegMS</code></a></dt>
+  <dd>DimRegMS describes one dimensional-regularization/minimal-subtraction scheme.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#stringbookMS"><code>stringbookMS = scheme.stringbookMS</code></a></dt>
+  <dd>stringbookMS returns the fixed dimensional-regularization/minimal-subtraction scheme.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#Rational"><code>Rational = counterterms.Rational</code></a></dt>
+  <dd>Rational stores one compact exact coefficient.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#LocalCountertermKind"><code>LocalCountertermKind = counterterms.LocalCountertermKind</code></a></dt>
+  <dd>LocalCountertermKind names the local operator basis used by renormalization.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelFamily"><code>KernelFamily = counterterms.KernelFamily</code></a></dt>
+  <dd>KernelFamily identifies one regulated loop-integral family.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelSignature"><code>KernelSignature = counterterms.KernelSignature</code></a></dt>
+  <dd>KernelSignature stores the reduced loop-kernel descriptor emitted by one branch.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleRow"><code>PoleRow = counterterms.PoleRow</code></a></dt>
+  <dd>PoleRow is one local pole term emitted after loop-kernel evaluation.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaRow"><code>BetaRow = counterterms.BetaRow</code></a></dt>
+  <dd>BetaRow is one assembled simple-pole contribution in the operator basis.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelTermRow"><code>KernelTermRow = pole.KernelTermRow</code></a></dt>
+  <dd>KernelTermRow is one reduced local branch before pole extraction.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#LocalityClass"><code>LocalityClass = pole.LocalityClass</code></a></dt>
+  <dd>LocalityClass records whether one master family contributes a local pole.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleResidue"><code>PoleResidue = pole.PoleResidue</code></a></dt>
+  <dd>PoleResidue stores one Laurent-coefficient contribution for a matched rule.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#KernelPoleRule"><code>KernelPoleRule = pole.KernelPoleRule</code></a></dt>
+  <dd>KernelPoleRule maps one reduced kernel signature to local pole data.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#PoleExtractionSummary"><code>PoleExtractionSummary = pole.PoleExtractionSummary</code></a></dt>
+  <dd>PoleExtractionSummary reports how the kernel rows were classified.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#stringbookBootstrapRules"><code>stringbookBootstrapRules = pole.stringbookBootstrapRules</code></a></dt>
+  <dd>stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#extractPoleRows"><code>extractPoleRows = pole.extractPoleRows</code></a></dt>
+  <dd>extractPoleRows matches reduced kernel signatures to explicit local pole rules.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaAssemblyOptions"><code>BetaAssemblyOptions = beta.BetaAssemblyOptions</code></a></dt>
+  <dd>BetaAssemblyOptions selects the subset of pole rows converted to beta rows.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#BetaAssemblySummary"><code>BetaAssemblySummary = beta.BetaAssemblySummary</code></a></dt>
+  <dd>BetaAssemblySummary reports how the pole stream was consumed.</dd>
+  <dt><a href="/notes/nlsm-code/nlsm-code.html#assembleBetaRows"><code>assembleBetaRows = beta.assembleBetaRows</code></a></dt>
+  <dd>assembleBetaRows converts simple-pole rows in the fixed MS scheme to beta rows.</dd>
 </dl>
   </div>
 </div>

@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:59 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Code Handoff</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/handoff.html">NLSM Code Handoff</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+    <li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Code Handoff</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org1d19935">Current State</a></li>
+<li><a href="#orgd5cb779">What Is Real Already</a></li>
+<li><a href="#org01a22db">What Is Still A Bootstrap</a></li>
+<li><a href="#org9eb77d7">Verified State</a></li>
+<li><a href="#org0474e7b">Next Step Order</a></li>
+<li><a href="#org7f0cf28">CY3 And K3 Alignment</a></li>
+<li><a href="#org6717a9e">Immediate Working Rules</a></li>
+</ul>
+</div>
+</div>
+<p>
+This note records the current implementation state of <code>nlsm-code</code> and the next
+steps for the generic type-II \(R^4\) computation.  It is a handoff note, not a
+design replacement: the detailed physics plan remains
+<a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a>.
+</p>
+<div id="outline-container-org1d19935" class="outline-2">
+<h2 id="org1d19935">Current State</h2>
+<div class="outline-text-2" id="text-org1d19935">
+<p>
+The implemented pipeline is now:
+</p>
+
+<ol class="org-ol">
+<li>bootstrap RNC vertex rows;</li>
+<li>candidate diagram multisets;</li>
+<li>Wick-species pairability signatures;</li>
+<li>reduced kernel-signature rows;</li>
+<li>explicit pole rows from a small rule table;</li>
+<li>beta rows from simple poles.</li>
+</ol>
+
+<p>
+The relevant notes and tangled modules are:
+</p>
+
+<ul class="org-ul">
+<li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/scheme.zig</code></li>
+<li><code>src/nlsm-code/counterterms.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/rnc_vertices.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/diagram_plan.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/wick-signatures.html">NLSM Wick Signatures</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/wick_signatures.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/kernel_signature_reducer.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/pole_extractor.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/beta_assembly.zig</code></li>
+</ul></li>
+<li><a href="/notes/nlsm-code/nlsm-code.html">NLSM-Code</a>
+<ul class="org-ul">
+<li><code>src/nlsm-code/nlsm-code.zig</code></li>
+</ul></li>
+</ul>
+
+<p>
+The current public root exposes:
+</p>
+
+<ul class="org-ul">
+<li>target-geometry reducer rows;</li>
+<li>RNC vertex rows;</li>
+<li>diagram candidate rows;</li>
+<li>Wick-signature rows;</li>
+<li>kernel-term rows;</li>
+<li>pole rows;</li>
+<li>beta rows;</li>
+<li>the fixed stringbook-style \(d=2-\epsilon\) MS scheme.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd5cb779" class="outline-2">
+<h2 id="orgd5cb779">What Is Real Already</h2>
+<div class="outline-text-2" id="text-orgd5cb779">
+<p>
+The following statements are already true in code:
+</p>
+
+<ul class="org-ul">
+<li>combinatorial rational factors are preserved explicitly;</li>
+<li>target flavor is carried through the pipeline, so later CY3/K3 quotients can
+reuse the same contraction, pole, and beta layers;</li>
+<li>a one-loop bootstrap path reaches a beta row end-to-end;</li>
+<li>the code remains stream-first and does not materialize large symbolic sums.</li>
+</ul>
+
+<p>
+This satisfies the immediate <code>AGENTS.md</code> constraints:
+</p>
+
+<ul class="org-ul">
+<li>explicit procedural code;</li>
+<li>lean row formats;</li>
+<li>no large intermediate symbolic expressions;</li>
+<li>minimal public API;</li>
+<li>literal-programming notes tied to narrow modules.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org01a22db" class="outline-2">
+<h2 id="org01a22db">What Is Still A Bootstrap</h2>
+<div class="outline-text-2" id="text-org01a22db">
+<p>
+Several pieces are still placeholder technology, not the final \(R^4\) engine.
+</p>
+
+<ol class="org-ol">
+<li><p>
+RNC vertices
+</p>
+
+<p>
+The current vertex generator emits a fixed bootstrap catalog, not a full
+component expansion of the type-II action in real RNC.
+</p></li>
+
+<li><p>
+Diagram planning
+</p>
+
+<p>
+The current plan enumerates candidate vertex multisets, not connected Wick
+graphs with explicit pairing data.
+</p></li>
+
+<li><p>
+Wick stage
+</p>
+
+<p>
+<code>wick_signatures.zig</code> only checks pairability by species and derivative
+weight.  It is not yet the explicit pairing engine.
+</p></li>
+
+<li><p>
+Kernel reduction
+</p>
+
+<p>
+<code>kernel_signature_reducer.zig</code> uses a summary-level mapping from candidate
+data to kernel signatures.  It does not yet derive signatures from explicit
+Wick branches.
+</p></li>
+
+<li><p>
+Pole rules
+</p>
+
+<p>
+<code>pole_extractor.zig</code> contains only a bootstrap low-loop table.  It is not
+yet the full dimensional-regularization master-family library needed for the
+four-loop calculation.
+</p></li>
+
+<li><p>
+Geometry reduction
+</p>
+
+<p>
+<code>local_geometry_reducer.zig</code> is still a cheap local quotient layer.  It does
+not yet perform the full generic-RNC tensor canonicalization needed for the
+final \(R^4\) invariant matching.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org9eb77d7" class="outline-2">
+<h2 id="org9eb77d7">Verified State</h2>
+<div class="outline-text-2" id="text-org9eb77d7">
+<p>
+At handoff time the following commands pass:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">zig test src/nlsm-code/wick_signatures.zig
+zig test src/nlsm-code/kernel_signature_reducer.zig
+zig test src/nlsm-code/nlsm-code.zig
+</pre>
+</div>
+
+<p>
+The module-local suites also transitively cover:
+</p>
+
+<ul class="org-ul">
+<li><code>scheme.zig</code></li>
+<li><code>counterterms.zig</code></li>
+<li><code>rnc_vertices.zig</code></li>
+<li><code>diagram_plan.zig</code></li>
+<li><code>pole_extractor.zig</code></li>
+<li><code>beta_assembly.zig</code></li>
+<li><code>local_geometry_reducer.zig</code></li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org0474e7b" class="outline-2">
+<h2 id="org0474e7b">Next Step Order</h2>
+<div class="outline-text-2" id="text-org0474e7b">
+<p>
+The next steps should follow the physics dependency graph and should stay
+aligned with <code>AGENTS.md</code>: keep modules narrow, stream-first, and literal.
+</p>
+
+<ol class="org-ol">
+<li><p>
+Replace Wick summaries with an explicit pairing engine
+</p>
+
+<p>
+Add a module that consumes one <code>WickSignatureRow</code> and enumerates admissible
+pairings by species and derivative pattern.  It should emit branch rows, not
+symbolic expressions.  This is the first genuinely necessary step before the
+four-loop calculation becomes credible.
+</p></li>
+
+<li><p>
+Route kernel reduction through explicit Wick branches
+</p>
+
+<p>
+Once pairings are explicit, <code>kernel_signature_reducer.zig</code> should stop using
+the current summary-level shortcut and instead accumulate kernel signatures
+from actual branch data.
+</p></li>
+
+<li><p>
+Replace the bootstrap RNC catalog with a real type-II component expansion
+</p>
+
+<p>
+Add a note/module for the real RNC component vertices of the \(N=(1,1)\)
+worldsheet model in ordinary real coordinates.  Keep the row format, replace
+the source of rows.
+</p></li>
+
+<li><p>
+Extend the pole extractor to real master families
+</p>
+
+<p>
+The next pole-extractor revision should introduce named low-loop master
+families derived once in the note and stored as explicit rules.  Only then
+should the code move to higher-loop families.
+</p></li>
+
+<li><p>
+Strengthen the local geometry reducer
+</p>
+
+<p>
+Add the generic real-Riemannian \(R^4\) tensor canonicalization needed for
+the ordinary type-II calculation.  Keep CY3/K3-specific quotient logic as
+later target-flavor specializations on top of that.
+</p></li>
+
+<li><p>
+Add action matching only after the beta tensor is stable
+</p>
+
+<p>
+The effective-action map must remain a post-processing stage.  Do not mix
+it into contraction, pole extraction, or beta assembly.
+</p></li>
+</ol>
+</div>
+</div>
+<div id="outline-container-org7f0cf28" class="outline-2">
+<h2 id="org7f0cf28">CY3 And K3 Alignment</h2>
+<div class="outline-text-2" id="text-org7f0cf28">
+<p>
+The current architecture already preserves the correct generalization boundary.
+The parts intended to be reusable for CY3/K3 are:
+</p>
+
+<ul class="org-ul">
+<li>scheme and counterterm rows;</li>
+<li>diagram planning;</li>
+<li>Wick pairability and later explicit pairing;</li>
+<li>kernel signature reduction;</li>
+<li>pole extraction;</li>
+<li>beta assembly.</li>
+</ul>
+
+<p>
+The parts expected to specialize later are:
+</p>
+
+<ul class="org-ul">
+<li>target-flavor quotient rules;</li>
+<li>complex/Kahler vertex catalogs;</li>
+<li>compactification/cohomology projection;</li>
+<li>final invariant matching in special holonomy bases.</li>
+</ul>
+
+<p>
+So the next engineering work should not fork the pipeline for CY3/K3.  It
+should strengthen the generic stages and only later add target-specific vertex
+catalogs and tensor quotients.
+</p>
+</div>
+</div>
+<div id="outline-container-org6717a9e" class="outline-2">
+<h2 id="org6717a9e">Immediate Working Rules</h2>
+<div class="outline-text-2" id="text-org6717a9e">
+<p>
+For the next implementer:
+</p>
+
+<ul class="org-ul">
+<li>do not widen the public API unless a later stage truly needs it;</li>
+<li>do not introduce expression trees where row streams suffice;</li>
+<li>preserve rational combinatorial factors exactly;</li>
+<li>keep every new public declaration documented in the note and in code;</li>
+<li>add tests only for actual invariants or pipeline contracts.</li>
+</ul>
+</div>
+</div>
+</div>
+</body>
+</html>

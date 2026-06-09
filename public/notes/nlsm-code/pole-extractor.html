@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:48 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Pole Extractor</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/beta-assembly.html">NLSM Beta Assembly</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/diagram-plan.html">NLSM Diagram Plan</a></li>
+    <li><a href="/notes/nlsm-code/kernel-signature-reducer.html">NLSM Kernel Signature Reducer</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/pole-extractor.html">NLSM Pole Extractor</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/rnc-vertices.html">NLSM RNC Vertices</a></li>
+    <li><a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a></li>
+    <li><a href="/notes/nlsm-code/type-ii-r4-implementation-plan.html">Type II R4 Implementation Plan</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Pole Extractor</h1>
+<p>
+This note implements the first explicit bridge from reduced loop-kernel
+signatures to local pole rows.  The extractor does not know what target
+geometry means.  It only carries the target flavor and the local tensor term
+through unchanged, so the same machinery works for the ordinary real-RNC
+type-II calculation and later CY3/K3 specializations.
+</p>
+
+<p>
+The rule table is intentionally explicit.  The contraction stage emits compact
+<code>KernelSignature</code> rows.  The pole extractor matches those signatures against a
+small analytic table derived in the note and emits the local
+<a href="/notes/nlsm-code/scheme-and-counterterms.html">NLSM Scheme And Counterterms</a> rows needed by beta assembly.
+</p>
+
+<a id="KernelTermRow"></a>
+<a id="LocalityClass"></a>
+<a id="PoleResidue"></a>
+<a id="KernelPoleRule"></a>
+<a id="PoleExtractionSummary"></a>
+<a id="extractPoleRows"></a>
+<a id="stringbookBootstrapRules"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orga665e63"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">geometry</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"local_geometry_reducer.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"scheme.zig"</span>);
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">counterterms</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"counterterms.zig"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// KernelTermRow is one reduced local branch before pole extraction.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelTermRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scheme</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">scheme.DimRegMS</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">local_operator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.LocalCountertermKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_flavor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.GeometryFlavor</span> = .generic_riemannian,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha_prime_power</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">combinatorial</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.Rational</span> = .{ .numerator = 1, .denominator = 1 },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kernel</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.KernelSignature</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">geometry.TensorTerm</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// LocalityClass records whether one master family contributes a local pole.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">LocalityClass</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    local,
+    non_local,
+    scaleless,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PoleResidue stores one Laurent-coefficient contribution for a matched rule.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleResidue</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">pole_order</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residue</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.Rational</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// KernelPoleRule maps one reduced kernel signature to local pole data.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelPoleRule</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.KernelSignature</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">locality</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LocalityClass</span> = .local,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">residues</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PoleResidue</span> = &amp;.{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PoleExtractionSummary reports how the kernel rows were classified.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PoleExtractionSummary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">emitted_pole_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">scaleless_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">non_local_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">unmatched_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0,
+};
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sameSignature</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.KernelSignature</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.KernelSignature</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> left.family == right.family <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.loop_order == right.loop_order <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.propagator_len == right.propagator_len <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.numerator_rank == right.numerator_rank <span style="color: #fb4934; font-weight: bold;">and</span>
+        left.external_derivative_order == right.external_derivative_order <span style="color: #fb4934; font-weight: bold;">and</span>
+        std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, left.propagator_powers[0..], right.propagator_powers[0..]);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">findRule</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KernelPoleRule</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">signature</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.KernelSignature</span>) ?KernelPoleRule {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rules) |rule| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (sameSignature(rule.signature, signature)) <span style="color: #fb4934; font-weight: bold;">return</span> rule;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// extractPoleRows matches reduced kernel signatures to explicit local pole rules.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">extractPoleRows</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KernelTermRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">KernelPoleRule</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span>) !PoleExtractionSummary {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = PoleExtractionSummary{};
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (rows) |row| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (row.kernel.isScaleless()) {
+            summary.scaleless_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span> = findRule(rules, row.kernel) <span style="color: #fb4934; font-weight: bold;">orelse</span> {
+            summary.unmatched_count += 1;
+            <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        };
+
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (rule.locality) {
+            .scaleless =&gt; {
+                summary.scaleless_count += 1;
+                <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            },
+            .non_local =&gt; {
+                summary.non_local_count += 1;
+                <span style="color: #fb4934; font-weight: bold;">continue</span>;
+            },
+            .local =&gt; {},
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">for</span> (rule.residues) |residue| {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (summary.emitted_pole_count == output.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+            output[summary.emitted_pole_count] = .{
+                .scheme = row.scheme,
+                .local_operator = row.local_operator,
+                .target_flavor = row.target_flavor,
+                .loop_order = row.kernel.loop_order,
+                .pole_order = residue.pole_order,
+                .alpha_prime_power = row.alpha_prime_power,
+                .residue = <span style="color: #fb4934; font-weight: bold;">try</span> row.combinatorial.mul(residue.residue),
+                .kernel = row.kernel,
+                .term = row.term,
+            };
+            summary.emitted_pole_count += 1;
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bubble_residues</span> = [_]PoleResidue{
+    .{ .pole_order = 1, .residue = .{ .numerator = 1, .denominator = 1 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">nested_bubble_residues</span> = [_]PoleResidue{
+    .{ .pole_order = 2, .residue = .{ .numerator = 1, .denominator = 2 } },
+    .{ .pole_order = 1, .residue = .{ .numerator = 3, .denominator = 2 } },
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bootstrap_rules</span> = [_]KernelPoleRule{
+    .{
+        .signature = .{
+            .family = .scaleless_tadpole,
+            .loop_order = 1,
+        },
+        .locality = .scaleless,
+    },
+    .{
+        .signature = .{
+            .family = .bubble,
+            .loop_order = 1,
+            .propagator_len = 2,
+            .propagator_powers = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{ 1, 1, 0, 0, 0, 0, 0, 0 },
+            .external_derivative_order = 2,
+        },
+        .residues = &amp;bubble_residues,
+    },
+    .{
+        .signature = .{
+            .family = .nested_bubble,
+            .loop_order = 2,
+            .propagator_len = 4,
+            .propagator_powers = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{ 1, 1, 1, 1, 0, 0, 0, 0 },
+            .external_derivative_order = 2,
+        },
+        .residues = &amp;nested_bubble_residues,
+    },
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// stringbookBootstrapRules returns the first explicit rule table used for low-loop checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">stringbookBootstrapRules</span>() []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">KernelPoleRule</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> &amp;bootstrap_rules;
+}
+</pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Pole Extractor</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pole extractor emits local rows from matched signatures"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .real_tangent },
+        .{ .id = 2, .sort = .real_tangent },
+        .{ .id = 3, .sort = .real_tangent },
+        .{ .id = 4, .sort = .real_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]geometry.TensorAtom{.{ .kind = .riemann, .slots = &amp;slots }};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span> = [_]KernelTermRow{.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .metric_beta,
+        .alpha_prime_power = 1,
+        .kernel = .{
+            .family = .bubble,
+            .loop_order = 1,
+            .propagator_len = 2,
+            .propagator_powers = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{ 1, 1, 0, 0, 0, 0, 0, 0 },
+            .external_derivative_order = 2,
+        },
+        .term = .{ .atoms = &amp;atoms },
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [2]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> extractPoleRows(&amp;rows, stringbookBootstrapRules(), &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.emitted_pole_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, 1), output[0].pole_order);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.LocalCountertermKind.metric_beta, output[0].local_operator);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pole extractor preserves calabi-yau target flavor for later quotients"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = [_]geometry.TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .antiholomorphic_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]geometry.TensorAtom{.{ .kind = .ricci, .slots = &amp;slots }};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span> = [_]KernelTermRow{.{
+        .scheme = scheme.stringbookMS(),
+        .local_operator = .kahler_potential_beta,
+        .target_flavor = .calabi_yau,
+        .alpha_prime_power = 3,
+        .kernel = .{
+            .family = .nested_bubble,
+            .loop_order = 2,
+            .propagator_len = 4,
+            .propagator_powers = [_]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{ 1, 1, 1, 1, 0, 0, 0, 0 },
+            .external_derivative_order = 2,
+        },
+        .term = .{ .atoms = &amp;atoms },
+    }};
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [4]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> extractPoleRows(&amp;rows, stringbookBootstrapRules(), &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 2), summary.emitted_pole_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(geometry.GeometryFlavor.calabi_yau, output[0].target_flavor);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(counterterms.LocalCountertermKind.kahler_potential_beta, output[0].local_operator);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pole extractor drops scaleless signatures and reports unmatched rows"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rows</span> = [_]KernelTermRow{
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .kernel = .{ .family = .scaleless_tadpole, .loop_order = 1 },
+            .term = .{},
+        },
+        .{
+            .scheme = scheme.stringbookMS(),
+            .local_operator = .metric_beta,
+            .kernel = .{ .family = .ladder, .loop_order = 4 },
+            .term = .{},
+        },
+    };
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">counterterms.PoleRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> extractPoleRows(&amp;rows, stringbookBootstrapRules(), &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 1), summary.scaleless_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, 1), summary.unmatched_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), summary.emitted_pole_count);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
