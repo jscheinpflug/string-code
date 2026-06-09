@@ -50,7 +50,8 @@ pub fn freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type {
 fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
     const Holomorphic = struct {
         /// psi builds a holomorphic NS free-fermion insertion.
-        pub fn psi(local: anytype, mu: Handle.Index, n: u8, z: Handle.Coord) !Operator {
+        pub fn psi(local: anytype, mu: anytype, n: u8, z: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(mu));
             return declare.operatorBuilder(fermionOperator(.psi)).single(local, z, n, .{mu});
         }
     };
@@ -62,7 +63,8 @@ fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
         pub const psi = Holomorphic.psi;
 
         /// psit builds an antiholomorphic NS free-fermion insertion.
-        pub fn psit(local: anytype, mu: Handle.Index, n: u8, zbar: Handle.Coord) !Operator {
+        pub fn psit(local: anytype, mu: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(mu));
             return declare.operatorBuilder(fermionOperator(.psit)).single(local, zbar, n, .{mu});
         }
     };

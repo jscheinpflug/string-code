@@ -719,7 +719,9 @@ classifies the product factors in the expression.
                        (option-value options :index-constraints nil))))
       (destructuring-bind (left-field right-field) left
         (let ((constraints (option-value body :index-constraints nil))
-              (terms (loop for item in body when (consp item) collect item)))
+              (terms (loop for item in body
+                           when (and (consp item) (eq (first item) 'term))
+                           collect item)))
           (add-wick-rule
            theory
            surface

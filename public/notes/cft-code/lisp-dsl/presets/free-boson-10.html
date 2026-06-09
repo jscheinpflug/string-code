@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:51 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lisp Free Boson Preset</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -232,7 +235,11 @@ by name, not by a numeric slot.
   (parameter alpha-prime <span style="color: #b8bb26; font-style: italic;">"alpha-prime"</span> <span style="color: #fe8019; font-weight: bold;">:scalar-parameter</span>)
   (surface sphere <span style="color: #fe8019; font-weight: bold;">:sphere</span> <span style="color: #fe8019; font-weight: bold;">:rational</span>)
   (quantum-number spin10 <span style="color: #fe8019; font-weight: bold;">:ade-irrep</span> <span style="color: #fe8019; font-weight: bold;">:group</span> d5)
+  (bulk-field X <span style="color: #b8bb26; font-style: italic;">"X"</span> ((mu <span style="color: #fe8019; font-weight: bold;">:vector-index</span>)) <span style="color: #fe8019; font-weight: bold;">:bosonic</span>
+         <span style="color: #fe8019; font-weight: bold;">:quantum-numbers</span> ((spin10 vector)))
   (chiral-field dX <span style="color: #b8bb26; font-style: italic;">"dX"</span> ((mu <span style="color: #fe8019; font-weight: bold;">:vector-index</span>)) <span style="color: #fe8019; font-weight: bold;">:bosonic</span>
+         <span style="color: #fe8019; font-weight: bold;">:quantum-numbers</span> ((spin10 vector)))
+  (chiral-field dXt <span style="color: #b8bb26; font-style: italic;">"dXt"</span> ((mu <span style="color: #fe8019; font-weight: bold;">:vector-index</span>)) <span style="color: #fe8019; font-weight: bold;">:bosonic</span>
          <span style="color: #fe8019; font-weight: bold;">:quantum-numbers</span> ((spin10 vector)))
   (bulk-field expX <span style="color: #b8bb26; font-style: italic;">"expX"</span> ((k <span style="color: #fe8019; font-weight: bold;">:momentum</span>)) <span style="color: #fe8019; font-weight: bold;">:bosonic</span>
          <span style="color: #fe8019; font-weight: bold;">:zero-mode</span> t
@@ -250,8 +257,8 @@ by name, not by a numeric slot.
 </div>
 
 <p>
-The \(dX dX\) contraction carries the metric tensor and the second-order
-rational pole.
+The derivative-derivative contractions carry the metric tensor and the
+second-order rational pole in the matching chiral coordinate.
 </p>
 
 <div class="org-src-container">
@@ -259,12 +266,40 @@ rational pole.
   (* -1/2 alpha-prime
      (metric mu nu)
      (pow (- z w) -2)))
+(wick (dXt mu zbar) (dXt nu wbar)
+  (* -1/2 alpha-prime
+     (metric mu nu)
+     (pow (- zbar wbar) -2)))
 </pre>
 </div>
 
 <p>
-The \(dX\,e^{ikX}\) contraction leaves the plane wave as a residual operator,
-which keeps the expansion tree fixed for the streaming kernel.
+The coordinate boson has explicit logarithmic contractions.  No other \(X\)
+pair is inferred by the compiler.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-lisp">(wick (X X)
+  (term <span style="color: #fe8019; font-weight: bold;">:scalars</span> ((* -1/2 alpha-prime))
+        <span style="color: #fe8019; font-weight: bold;">:coordinates</span> ((<span style="color: #fe8019; font-weight: bold;">:logarithm</span> (<span style="color: #fe8019; font-weight: bold;">:left</span> <span style="color: #fe8019; font-weight: bold;">:holomorphic</span>) (<span style="color: #fe8019; font-weight: bold;">:right</span> <span style="color: #fe8019; font-weight: bold;">:holomorphic</span>)))
+        <span style="color: #fe8019; font-weight: bold;">:tensors</span> ((<span style="color: #fe8019; font-weight: bold;">:metric</span> (<span style="color: #fe8019; font-weight: bold;">:left</span> mu) (<span style="color: #fe8019; font-weight: bold;">:right</span> mu))))
+  (term <span style="color: #fe8019; font-weight: bold;">:scalars</span> ((* -1/2 alpha-prime))
+        <span style="color: #fe8019; font-weight: bold;">:coordinates</span> ((<span style="color: #fe8019; font-weight: bold;">:logarithm</span> (<span style="color: #fe8019; font-weight: bold;">:left</span> <span style="color: #fe8019; font-weight: bold;">:antiholomorphic</span>) (<span style="color: #fe8019; font-weight: bold;">:right</span> <span style="color: #fe8019; font-weight: bold;">:antiholomorphic</span>)))
+        <span style="color: #fe8019; font-weight: bold;">:tensors</span> ((<span style="color: #fe8019; font-weight: bold;">:metric</span> (<span style="color: #fe8019; font-weight: bold;">:left</span> mu) (<span style="color: #fe8019; font-weight: bold;">:right</span> mu)))))
+(wick (dX mu z) (X nu w wb)
+  (* -1/2 alpha-prime
+     (metric mu nu)
+     (log (- z w))))
+(wick (dXt mu zbar) (X nu w wb)
+  (* -1/2 alpha-prime
+     (metric mu nu)
+     (log (- zbar wb))))
+</pre>
+</div>
+
+<p>
+The derivative-plane-wave contractions leave the plane wave as a residual
+operator, which keeps the expansion tree fixed for the streaming kernel.
 </p>
 
 <div class="org-src-container">
@@ -272,6 +307,11 @@ which keeps the expansion tree fixed for the streaming kernel.
   (* -1/2 i alpha-prime
      (momentum-index k mu)
      (/ 1 (- z w)))
+  <span style="color: #fe8019; font-weight: bold;">:residuals</span> (<span style="color: #fe8019; font-weight: bold;">:right</span>))
+(wick (dXt mu zbar) (expX k w wb)
+  (* -1/2 i alpha-prime
+     (momentum-index k mu)
+     (/ 1 (- zbar wb)))
   <span style="color: #fe8019; font-weight: bold;">:residuals</span> (<span style="color: #fe8019; font-weight: bold;">:right</span>))
 </pre>
 </div>

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Free Fermion Preset</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -190,12 +193,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -315,7 +325,8 @@ streaming correlator entry point.
 </div>
 
 <p>
-The builders pack one target-space vector index and one coordinate.  They do
+The builders pack one target-space vector index and one coordinate.  They
+accept either a plain <code>Handle.Index</code> or a sorted <code>Handle.TypedIndex</code>, but do
 not expose the compact operator kind ids used by the engine.
 </p>
 
@@ -323,7 +334,8 @@ not expose the compact operator kind ids used by the engine.
 <pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">FreeFermionSphereOp</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">include_antiholomorphic_copy</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Holomorphic</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
         <span style="color: #e0d3b9; font-style: italic;">/// psi builds a holomorphic NS free-fermion insertion.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psi</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psi</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
             <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(fermionOperator(.psi)).single(local, z, n, .{mu});
         }
     };
@@ -335,7 +347,8 @@ not expose the compact operator kind ids used by the engine.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">psi</span> = Holomorphic.psi;
 
         <span style="color: #e0d3b9; font-style: italic;">/// psit builds an antiholomorphic NS free-fermion insertion.
-</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">psit</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+            <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
             <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(fermionOperator(.psit)).single(local, zbar, n, .{mu});
         }
     };

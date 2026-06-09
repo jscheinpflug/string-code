@@ -72,6 +72,13 @@ fn typedIndexSort(raw: u32) IndexSort {
     return @enumFromInt(@as(u8, @intCast(tag - 1)));
 }
 
+/// assertTargetIndexHandle restricts public preset index arguments to index handles.
+pub fn assertTargetIndexHandle(comptime T: type) void {
+    if (T != Handle.Index and T != Handle.TypedIndex) {
+        @compileError("target-space index arguments must use Handle.Index or Handle.TypedIndex");
+    }
+}
+
 /// targetU1Charge returns the target holomorphic-degree charge of one sort.
 pub fn targetU1Charge(sort: IndexSort) i8 {
     return switch (sort) {
@@ -380,9 +387,9 @@ pub const Local = opaque {
         pending.* = .{
             .owner = state,
             .item = .{
-                .insertion = insertion,
-                .kind = kind,
-                .labels = try self.labelSpan(values),
+            .insertion = insertion,
+            .kind = kind,
+            .labels = try self.labelSpan(values),
             },
         };
         try state.pending_operators.append(state.allocator, pending);

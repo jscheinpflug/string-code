@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Generated Descriptor Boundary</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -190,12 +193,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -229,7 +239,7 @@ comptime, and streams small events back out without building a symbolic tree.
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scalars</span> = declare.scalars;
 
 <span style="color: #e0d3b9; font-style: italic;">/// descriptor_abi_version is the generated descriptor table ABI understood here.
-</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor_abi_version</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 1;
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor_abi_version</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 2;
 
 <span style="color: #e0d3b9; font-style: italic;">/// Id is one dense descriptor table index.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Id</span> = <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>;
@@ -382,6 +392,8 @@ private runtime tables without making runtime table types public.
 <a id="CoordinateSlot"></a>
 <a id="CoordinateRef"></a>
 <a id="LabelRef"></a>
+<a id="PairIndexConstraint"></a>
+<a id="PairIndexConstraintRow"></a>
 <a id="ScalarFactor"></a>
 <a id="CoordinateFactor"></a>
 <a id="TensorFactor"></a>
@@ -414,6 +426,20 @@ private runtime tables without making runtime table types public.
     <span style="color: #83a598; font-weight: bold; font-style: italic;">slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
 };
 
+<span style="color: #e0d3b9; font-style: italic;">/// PairIndexConstraint selects one local index-sort compatibility check.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraint</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    none,
+    same_sort,
+    conjugate_complex_sort,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// PairIndexConstraintRow checks one label slot on each Wick endpoint.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraintRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">constraint</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraint</span>,
+};
+
 <span style="color: #e0d3b9; font-style: italic;">/// ScalarFactor describes one scalar multiplier in a Wick term.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ScalarFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
     one,
@@ -427,6 +453,7 @@ private runtime tables without making runtime table types public.
 <span style="color: #e0d3b9; font-style: italic;">/// CoordinateFactor describes one coordinate multiplier in a Wick term.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">CoordinateFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
     <span style="color: #83a598; font-weight: bold; font-style: italic;">difference_power</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">exponent</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">logarithm</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> },
     <span style="color: #83a598; font-weight: bold; font-style: italic;">named_kernel</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derive_right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span> },
     <span style="color: #83a598; font-weight: bold; font-style: italic;">green_exponential</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CoordinateRef</span> },
 };
@@ -459,6 +486,7 @@ private runtime tables without making runtime table types public.
     <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>,
     <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">WickTerm</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">index_constraints</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraintRow</span> = &amp;.{},
 };
 </pre>
 </div>
@@ -618,6 +646,11 @@ the same predicates that the comptime lowerer uses.
         },
     }
 }
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateIndexConstraint</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraintRow</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_field</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, .{ .side = .left, .slot = row.left_slot }, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (<span style="color: #fb4934; font-weight: bold;">try</span> labelRole(d, .{ .side = .right, .slot = row.right_slot }, left_field, right_field) != .vector_index) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.IncompatibleLabelRole;
+}
 </pre>
 </div>
 
@@ -675,6 +708,7 @@ the same predicates that the comptime lowerer uses.
         <span style="color: #fb4934; font-weight: bold;">if</span> (!hasSurface(d, rule.surface)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingSurface;
         <span style="color: #fb4934; font-weight: bold;">if</span> (!hasField(d, rule.left) <span style="color: #fb4934; font-weight: bold;">or</span> !hasField(d, rule.right)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
         <span style="color: #fb4934; font-weight: bold;">if</span> (rule.terms.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.EmptyWickRule;
+        <span style="color: #fb4934; font-weight: bold;">for</span> (rule.index_constraints) |row| <span style="color: #fb4934; font-weight: bold;">try</span> validateIndexConstraint(d, row, rule.left, rule.right);
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_arity</span> = d.fields[rule.left].labels.len;
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_arity</span> = d.fields[rule.right].labels.len;
         <span style="color: #fb4934; font-weight: bold;">for</span> (rule.terms) |term| {
@@ -781,6 +815,18 @@ field or theory names affect generic control flow.
     <span style="color: #fb4934; font-weight: bold;">return</span> wick.label(lowerSide(ref.side), <span style="color: #fe8019; font-weight: bold;">@intCast</span>(ref.slot));
 }
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerIndexConstraint</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">row</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraintRow</span>) wick.PairIndexConstraintRow {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+        .left_slot = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(row.left_slot),
+        .right_slot = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(row.right_slot),
+        .constraint = <span style="color: #fb4934; font-weight: bold;">switch</span> (row.constraint) {
+            .none =&gt; .none,
+            .same_sort =&gt; .same_sort,
+            .conjugate_complex_sort =&gt; .conjugate_complex_sort,
+        },
+    };
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerDerivative</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span>) wick.DerivativeAction {
     <span style="color: #fb4934; font-weight: bold;">return</span> .{ .include_left = left, .include_right = right };
 }
@@ -816,6 +862,10 @@ field or theory names affect generic control flow.
         .difference_power =&gt; |item| wick.differentiatedPower(
             wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
             item.exponent,
+            lowerDerivative(item.derive_left, item.derive_right),
+        ),
+        .logarithm =&gt; |item| wick.differentiatedLogarithm(
+            wick.difference(lowerCoordRef(item.left), lowerCoordRef(item.right)),
             lowerDerivative(item.derive_left, item.derive_right),
         ),
         .named_kernel =&gt; |item| wick.differentiatedGreenKernel(
@@ -883,10 +933,16 @@ field or theory names affect generic control flow.
             <span style="color: #fb4934; font-weight: bold;">for</span> (rule.terms, 0..) |term, index| storage[index] = LoweredTerm(d, term).value;
             <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
         };
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span> = wick.rule(
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">constraint_storage</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">blk:</span> {
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">storage</span>: [rule.index_constraints.len]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.PairIndexConstraintRow</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            <span style="color: #fb4934; font-weight: bold;">for</span> (rule.index_constraints, 0..) |row, index| storage[index] = lowerIndexConstraint(row);
+            <span style="color: #fb4934; font-weight: bold;">break</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">:blk</span> storage;
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">value</span> = wick.constrainedRule(
             wick.pattern(kindId(d, rule.left), lowerSupport(d.fields[rule.left].insertion)),
             wick.pattern(kindId(d, rule.right), lowerSupport(d.fields[rule.right].insertion)),
             wick.expr(&amp;terms),
+            &amp;constraint_storage,
         );
     };
 }
@@ -1161,6 +1217,102 @@ operators.  Count mode uses a sink that never constructs expression objects.
     };
 }
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">singleInsertion</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) operators.OperatorInsertion {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .single = .{ .position = z, .derivatives = derivatives } };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairInsertion</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) operators.OperatorInsertion {
+    <span style="color: #fb4934; font-weight: bold;">return</span> .{ .pair = .{
+        .holomorphic_position = z,
+        .antiholomorphic_position = zbar,
+        .holomorphic_derivatives = 0,
+        .antiholomorphic_derivatives = 0,
+    } };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">tokenId</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">T</span> = <span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(value);
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (<span style="color: #fe8019; font-weight: bold;">@typeInfo</span>(T)) {
+        .int, .<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">comptime_int</span> =&gt; <span style="color: #fe8019; font-weight: bold;">@intCast</span>(value),
+        .@<span style="color: #b8bb26; font-style: italic;">"enum"</span> =&gt; <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(value),
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"generated field labels and coordinates must be integer-like tokens"</span>),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">labelTupleCount</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">comptime_int</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">info</span> = <span style="color: #fe8019; font-weight: bold;">@typeInfo</span>(Labels);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (info != .@<span style="color: #b8bb26; font-style: italic;">"struct"</span> <span style="color: #fb4934; font-weight: bold;">or</span> !info.@<span style="color: #b8bb26; font-style: italic;">"struct"</span>.is_tuple) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"generated field labels must be passed as a tuple"</span>);
+    <span style="color: #fb4934; font-weight: bold;">return</span> info.@<span style="color: #b8bb26; font-style: italic;">"struct"</span>.fields.len;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fillLabelSymbols</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">out</span>: *[count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (0..count) |index| out[index] = tokenId(labels[index]);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">fieldIdByName</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) Id {
+    <span style="color: #fb4934; font-weight: bold;">inline</span> <span style="color: #fb4934; font-weight: bold;">for</span> (d.fields) |field| {
+        <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, d.symbols[field.symbol], name)) <span style="color: #fb4934; font-weight: bold;">return</span> field.id;
+    }
+    <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"unknown generated field name"</span>);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">GeneratedField</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span> = d.fields[field_id];
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// id is the descriptor field id for this generated field builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span> = field_id;
+        <span style="color: #e0d3b9; font-style: italic;">/// name is the descriptor symbol for this generated field builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span> = d.symbols[field.symbol];
+
+        <span style="color: #e0d3b9; font-style: italic;">/// single appends a single-coordinate generated field insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">single</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">derivatives</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (field.insertion != .single) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidInsertionShape;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span> = <span style="color: #fb4934; font-weight: bold;">comptime</span> labelTupleCount(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(labels));
+            <span style="color: #fb4934; font-weight: bold;">if</span> (count != field.labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: [count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            fillLabelSymbols(count, &amp;label_symbols, labels);
+            <span style="color: #fb4934; font-weight: bold;">try</span> local.insertFieldRaw(field_id, singleInsertion(tokenId(z), derivatives), &amp;label_symbols);
+        }
+
+        <span style="color: #e0d3b9; font-style: italic;">/// pair appends a bulk-pair generated field insertion.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pair</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">if</span> (field.insertion != .pair) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidInsertionShape;
+            <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span> = <span style="color: #fb4934; font-weight: bold;">comptime</span> labelTupleCount(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(labels));
+            <span style="color: #fb4934; font-weight: bold;">if</span> (count != field.labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
+            <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: [count]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+            fillLabelSymbols(count, &amp;label_symbols, labels);
+            <span style="color: #fb4934; font-weight: bold;">try</span> local.insertFieldRaw(field_id, pairInsertion(tokenId(z), tokenId(zbar)), &amp;label_symbols);
+        }
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">hasSingleSurfaceKind</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SurfaceKind</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> d.surfaces.len == 1 <span style="color: #fb4934; font-weight: bold;">and</span> d.surfaces[0].kind == kind;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">GeneratedConfig</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>, <span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Config</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (hasSingleSurfaceKind(d, .sphere)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #e0d3b9; font-style: italic;">/// default selects all lowered descriptor rules.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">default</span> = Config{};
+            <span style="color: #e0d3b9; font-style: italic;">/// sphere selects the generated sphere rule set.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere</span> = default;
+        };
+    }
+    <span style="color: #fb4934; font-weight: bold;">if</span> (hasSingleSurfaceKind(d, .torus)) {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #e0d3b9; font-style: italic;">/// default selects all lowered descriptor rules.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">default</span> = Config{};
+            <span style="color: #e0d3b9; font-style: italic;">/// torus selects the generated torus rule set.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus</span> = default;
+        };
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #e0d3b9; font-style: italic;">/// default selects all lowered descriptor rules.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">default</span> = Config{};
+    };
+}
+
 <span style="color: #e0d3b9; font-style: italic;">/// GeneratedTheory lowers one descriptor to an executable theory boundary.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">GeneratedTheory</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">d</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Descriptor</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
     <span style="color: #fb4934; font-weight: bold;">comptime</span> {
@@ -1182,7 +1334,21 @@ operators.  Count mode uses a sink that never constructs expression objects.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">theory_hash</span> = d.theory_hash;
         <span style="color: #e0d3b9; font-style: italic;">/// descriptor exposes the compact source descriptor for audits.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">descriptor</span> = d;
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = Config{};
+        <span style="color: #e0d3b9; font-style: italic;">/// config exposes generated correlator configs through the theory API.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = GeneratedConfig(d, Config);
+
+        <span style="color: #e0d3b9; font-style: italic;">/// op groups compile-time generated field builders.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+            <span style="color: #e0d3b9; font-style: italic;">/// field returns a builder for a descriptor field name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">field</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> GeneratedField(d, fieldIdByName(d, name));
+            }
+        };
+
+        <span style="color: #e0d3b9; font-style: italic;">/// field returns a builder for a descriptor field name.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">field</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> GeneratedField(d, fieldIdByName(d, name));
+        }
 
         <span style="color: #e0d3b9; font-style: italic;">/// Context owns symbols and a single mutable operator list.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Context</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
@@ -1212,8 +1378,8 @@ operators.  Count mode uses a sink that never constructs expression objects.
 
             <span style="color: #e0d3b9; font-style: italic;">/// intern returns a stable context-local symbol id for a name.
 </span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">intern</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
-                <span style="color: #fb4934; font-weight: bold;">for</span> (self.symbols.items, 1..) |stored, index| {
-                    <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, stored, name)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(index);
+                <span style="color: #fb4934; font-weight: bold;">for</span> (self.symbols.items, 1..) |stored, symbol_index| {
+                    <span style="color: #fb4934; font-weight: bold;">if</span> (std.mem.eql(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, stored, name)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intCast</span>(symbol_index);
                 }
                 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">copy</span> = <span style="color: #fb4934; font-weight: bold;">try</span> self.allocator.dupe(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, name);
                 <span style="color: #fb4934; font-weight: bold;">try</span> self.symbols.append(self.allocator, copy);
@@ -1221,25 +1387,57 @@ operators.  Count mode uses a sink that never constructs expression objects.
             }
 
             <span style="color: #e0d3b9; font-style: italic;">/// symbolName resolves a context-local symbol id.
-</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">symbolName</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">symbol</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
-                <span style="color: #fb4934; font-weight: bold;">if</span> (symbol == 0 <span style="color: #fb4934; font-weight: bold;">or</span> symbol &gt; self.symbols.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
-                <span style="color: #fb4934; font-weight: bold;">return</span> self.symbols.items[symbol - 1];
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">symbolName</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">token</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) ?[]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (token == 0 <span style="color: #fb4934; font-weight: bold;">or</span> token &gt; self.symbols.items.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.symbols.items[token - 1];
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// symbol interns a generic runtime token name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">symbol</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.intern(name);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// coord interns a coordinate token name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">coord</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.intern(name);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// index interns an index token name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">index</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.intern(name);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// momentum interns a momentum token name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">momentum</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.intern(name);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// profile interns a profile token name.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">profile</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.intern(name);
+            }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// insertFieldRaw appends one already-shaped generated field occurrence.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">insertFieldRaw</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">insertion</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorInsertion</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+                <span style="color: #fb4934; font-weight: bold;">if</span> (field_id &gt;= d.fields.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field_info</span> = d.fields[field_id];
+                <span style="color: #fb4934; font-weight: bold;">if</span> (label_symbols.len != field_info.labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label_start</span> = self.labels.items.len;
+                <span style="color: #fb4934; font-weight: bold;">for</span> (label_symbols) |label_symbol| {
+                    <span style="color: #fb4934; font-weight: bold;">try</span> self.labels.append(self.allocator, .{ .symbol = label_symbol });
+                }
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.operators_list.append(self.allocator, .{
+                    .insertion = insertion,
+                    .kind = kindId(d, field_id),
+                    .labels = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(label_start),
+                });
             }
 
             <span style="color: #e0d3b9; font-style: italic;">/// insertField appends one generated field occurrence.
 </span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">insertField</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">field_id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Id</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">coords</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">label_symbols</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
                 <span style="color: #fb4934; font-weight: bold;">if</span> (field_id &gt;= d.fields.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.DanglingField;
-                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field</span> = d.fields[field_id];
-                <span style="color: #fb4934; font-weight: bold;">if</span> (label_symbols.len != field.labels.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidFieldArity;
-                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">label_start</span> = self.labels.items.len;
-                <span style="color: #fb4934; font-weight: bold;">for</span> (label_symbols) |symbol| {
-                    <span style="color: #fb4934; font-weight: bold;">try</span> self.labels.append(self.allocator, .{ .symbol = symbol });
-                }
-                <span style="color: #fb4934; font-weight: bold;">try</span> self.operators_list.append(self.allocator, .{
-                    .insertion = <span style="color: #fb4934; font-weight: bold;">try</span> insertionFrom(field.insertion, coords),
-                    .kind = kindId(d, field_id),
-                    .labels = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(label_start),
-                });
+                <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field_info</span> = d.fields[field_id];
+                <span style="color: #fb4934; font-weight: bold;">try</span> self.insertFieldRaw(field_id, <span style="color: #fb4934; font-weight: bold;">try</span> insertionFrom(field_info.insertion, coords), label_symbols);
             }
 
             <span style="color: #e0d3b9; font-style: italic;">/// normalOrderLast tags the last count insertions as one normal product.
@@ -1256,7 +1454,17 @@ operators.  Count mode uses a sink that never constructs expression objects.
                 self.label_store = .{ .values = self.frozen_labels };
                 <span style="color: #fb4934; font-weight: bold;">return</span> .{ .operators = self.frozen_ops, .labels = &amp;self.label_store };
             }
+
+            <span style="color: #e0d3b9; font-style: italic;">/// ops freezes the current generated operator list.
+</span>            <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">ops</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Context</span>) !kernel.Call.MultiOp {
+                <span style="color: #fb4934; font-weight: bold;">return</span> self.freeze();
+            }
         };
+
+        <span style="color: #e0d3b9; font-style: italic;">/// local constructs a value-style generated-theory operator builder.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">local</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">allocator</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">std.mem.Allocator</span>) Context {
+            <span style="color: #fb4934; font-weight: bold;">return</span> Context.init(allocator);
+        }
 
         <span style="color: #e0d3b9; font-style: italic;">/// descriptorAbiVersion returns the generated descriptor ABI version.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">descriptorAbiVersion</span>() <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
@@ -1310,10 +1518,15 @@ operators.  Count mode uses a sink that never constructs expression objects.
             <span style="color: #fb4934; font-weight: bold;">return</span> ctx.freeze();
         }
 
+        <span style="color: #e0d3b9; font-style: italic;">/// correlator streams generated-theory correlator output to a Zig sink.
+</span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlator</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            <span style="color: #fb4934; font-weight: bold;">return</span> shared.streamCorrelator(config_ptr, ops, sink);
+        }
+
         <span style="color: #e0d3b9; font-style: italic;">/// correlatorCount returns the number of accepted streamed branches.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlatorCount</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
             <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = CountSink{};
-            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config, ops, &amp;sink);
+            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config.default, ops, &amp;sink);
             <span style="color: #fb4934; font-weight: bold;">return</span> sink.count;
         }
 
@@ -1321,11 +1534,125 @@ operators.  Count mode uses a sink that never constructs expression objects.
 </span>        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">correlatorRun</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">payload</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anyopaque</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">stream</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">StreamFn</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
             <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = EventSink{ .payload = payload, .stream = stream };
             <span style="color: #fb4934; font-weight: bold;">try</span> sink.emit(.{ .kind = .sum_term_begin });
-            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config, ops, &amp;sink);
+            <span style="color: #fb4934; font-weight: bold;">try</span> shared.streamCorrelator(&amp;config.default, ops, &amp;sink);
         }
     };
 }
 </pre>
+</div>
+
+<p>
+The bridge test uses one small descriptor rather than the generated fixture
+module.  That keeps the boundary self-contained: descriptor data lowers to a
+theory, named field builders fill a local context, and the correlator streams
+to a caller-owned sink.
+</p>
+
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Generated Descriptor Boundary</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"generated theory exposes field builders and direct correlator sink"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">symbols</span> = [_][]<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>{ <span style="color: #b8bb26; font-style: italic;">"free-fermion-10"</span>, <span style="color: #b8bb26; font-style: italic;">"spin10"</span>, <span style="color: #b8bb26; font-style: italic;">"d5"</span>, <span style="color: #b8bb26; font-style: italic;">"psi"</span>, <span style="color: #b8bb26; font-style: italic;">"mu"</span>, <span style="color: #b8bb26; font-style: italic;">"vector"</span> };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">quantum_numbers</span> = [_]QuantumNumber{
+        .{ .id = 0, .symbol = 1, .kind = .ade_irrep, .group_symbol = 2 },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">field_quantum_numbers</span> = [_]FieldQuantumNumber{
+        .{ .field = 0, .quantum_number = 0, .value = .{ .symbol = 5 } },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">surfaces</span> = [_]Surface{
+        .{ .id = 0, .kind = .sphere, .coordinate_model = .rational },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">fields</span> = [_]Field{
+        .{ .id = 0, .symbol = 3, .insertion = .single, .labels = &amp;.{.{ .id = 0, .role = .vector_index, .symbol = 4 }}, .statistics = .fermionic },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span> = [_]WickTerm{
+        .{
+            .scalars = &amp;.{.one},
+            .coordinates = &amp;.{.{ .difference_power = .{
+                .left = .{ .side = .left, .slot = .position },
+                .right = .{ .side = .right, .slot = .position },
+                .exponent = -1,
+                .derive_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+                .derive_right = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+            } }},
+            .tensors = &amp;.{.{ .metric = .{
+                .left = .{ .side = .left, .slot = 0 },
+                .right = .{ .side = .right, .slot = 0 },
+            } }},
+        },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_rules</span> = [_]WickRule{
+        .{ .surface = 0, .left = 0, .right = 0, .terms = &amp;terms },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">theory</span> = GeneratedTheory(.{
+        .theory_symbol = 0,
+        .theory_hash = 0x1933f00d,
+        .symbols = &amp;symbols,
+        .quantum_numbers = &amp;quantum_numbers,
+        .field_quantum_numbers = &amp;field_quantum_numbers,
+        .surfaces = &amp;surfaces,
+        .fields = &amp;fields,
+        .wick_rules = &amp;wick_rules,
+    });
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expect(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(theory.config, <span style="color: #b8bb26; font-style: italic;">"default"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expect(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(theory.config, <span style="color: #b8bb26; font-style: italic;">"sphere"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqualStrings(<span style="color: #b8bb26; font-style: italic;">"psi"</span>, theory.field(<span style="color: #b8bb26; font-style: italic;">"psi"</span>).name);
+
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local_ctx</span> = theory.local(std.testing.allocator);
+    <span style="color: #fb4934; font-weight: bold;">defer</span> local_ctx.deinit();
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z0</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local_ctx.coord(<span style="color: #b8bb26; font-style: italic;">"z0"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z1</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local_ctx.coord(<span style="color: #b8bb26; font-style: italic;">"z1"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local_ctx.index(<span style="color: #b8bb26; font-style: italic;">"mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local_ctx.index(<span style="color: #b8bb26; font-style: italic;">"nu"</span>);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Psi</span> = theory.field(<span style="color: #b8bb26; font-style: italic;">"psi"</span>);
+    <span style="color: #fb4934; font-weight: bold;">try</span> Psi.single(&amp;local_ctx, z0, 0, .{mu});
+    <span style="color: #fb4934; font-weight: bold;">try</span> theory.op.field(<span style="color: #b8bb26; font-style: italic;">"psi"</span>).single(&amp;local_ctx, z1, 0, .{nu});
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local_ctx.ops();
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">wick_terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">coordinates</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">tensors</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">base_cases</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickBranchSign</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.wick_terms += 1;
+        }
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.coordinates += 1;
+        }
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.tensors += 1;
+        }
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickResidualOperator</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.base_cases += 1;
+        }
+    };
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+    <span style="color: #fb4934; font-weight: bold;">try</span> theory.correlator(&amp;theory.config.sphere, ops, &amp;sink);
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), sink.wick_terms);
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), sink.coordinates);
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), sink.tensors);
+    <span style="color: #fb4934; font-weight: bold;">try</span> std.testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), sink.base_cases);
+}
+</pre>
+</div>
+
+</div>
+</div>
 </div>
 </div>
 <div id="postamble" class="status">

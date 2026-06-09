@@ -1,0 +1,616 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:03 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CFT Tensor Implementation Plan For NLSM</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">CFT Tensor Implementation Plan For NLSM</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org2857f83">Coherence Review</a></li>
+<li><a href="#org5b0a501">CFT Descriptor And Runtime Changes</a></li>
+<li><a href="#org46cf7f4">U(1) Charge Metadata</a></li>
+<li><a href="#org88a4e20">Free-Boson Rules</a></li>
+<li><a href="#orgd45ab74">NLSM Geometry Reducer</a></li>
+<li><a href="#org4517b7d">Public API Shape</a></li>
+<li><a href="#orgaa0a846">Implementation Order</a></li>
+<li><a href="#orgca6f34e">Tests</a></li>
+<li><a href="#org6c434cd">Assumptions</a></li>
+</ul>
+</div>
+</div>
+<p>
+This plan implements the requests from <a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And
+Tensor-Code</a> while preserving the module split described in
+<a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a>.  The implementation keeps
+<a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a> responsible for typed free-field contraction data and makes
+<a href="/notes/nlsm-code/nlsm-code.html">NLSM-Code</a> own local geometry tensor canonicalization.  <a href="/notes/tensor-code/tensor-code.html">Tensor-Code</a>
+is not extended until the geometry reducer has a second client.
+</p>
+<div id="outline-container-org2857f83" class="outline-2">
+<h2 id="org2857f83">Coherence Review</h2>
+<div class="outline-text-2" id="text-org2857f83">
+<p>
+The feature request is coherent with the current DSL if it is treated as a
+streaming descriptor extension, not as a new symbolic geometry layer inside
+<code>cft-code</code>.  The current code has two authoring paths that must be kept in
+sync:
+</p>
+
+<ul class="org-ul">
+<li>the handwritten Zig preset path in <a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a> and
+<a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a>;</li>
+<li>the Lisp descriptor path in <a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a> and
+<a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a>.</li>
+</ul>
+
+<p>
+The public CFT root currently hides shared-runtime internals.  Keep that shape:
+typed index machinery can be internal to CFT presets, while NLSM-facing public
+data belongs under an <code>NLSM</code> namespace.
+</p>
+</div>
+</div>
+<div id="outline-container-org5b0a501" class="outline-2">
+<h2 id="org5b0a501">CFT Descriptor And Runtime Changes</h2>
+<div class="outline-text-2" id="text-org5b0a501">
+<p>
+Add compact typed index handles to the shared preset runtime.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexSort</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TargetIndex</span> = <span style="color: #fb4934; font-weight: bold;">packed</span> <span style="color: #fb4934; font-weight: bold;">struct</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">raw</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u24</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>,
+};
+</pre>
+</div>
+
+<p>
+Implementation details:
+</p>
+
+<ul class="org-ul">
+<li>keep <code>Handle.Index</code> and <code>Local.index()</code> as real-tangent defaults;</li>
+<li>add <code>Handle.TypedIndex</code> and <code>Local.typedIndex(name, sort)</code>;</li>
+<li>encode typed target indices as compact <code>u32</code> label values so <code>kernel.Call.LabelValue</code>
+stays unchanged;</li>
+<li>add internal helpers to decode sort and raw id from label values;</li>
+<li>never infer a sort from a printed symbol name.</li>
+</ul>
+
+<p>
+Extend Wick rules with slot-local pair constraints.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraint</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    none,
+    same_sort,
+    conjugate_complex_sort,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraintRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">left_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">right_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">constraint</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraint</span>,
+};
+</pre>
+</div>
+
+<p>
+The matcher applies these rows after operator-kind matching and before
+counting or emitting primitive terms.  This must be shared by the direct
+pair-lookup path and the scanned fallback path so <code>count</code> and <code>run</code> agree.
+Rules with no rows behave exactly as current rules.
+</p>
+
+<p>
+Extend primitive tensor factors only as compact coefficient atoms:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorFactor</span> = <span style="color: #fb4934; font-weight: bold;">union</span>(<span style="color: #fb4934; font-weight: bold;">enum</span>) {
+    none,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">metric</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">hermitian_metric</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">holo</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholo</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">inverse_metric</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kahler_form</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">holo</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholo</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">complex_structure</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor_atom_slot</span>: <span style="color: #fb4934; font-weight: bold;">struct</span> { <span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">LabelRef</span> },
+};
+</pre>
+</div>
+
+<p>
+Validation stays local: label arity, label role, and index-sort compatibility.
+CFT must not know Riemann identities, Kahler identities, Hodge data, or
+counterterm quotients.
+</p>
+</div>
+</div>
+<div id="outline-container-org46cf7f4" class="outline-2">
+<h2 id="org46cf7f4">U(1) Charge Metadata</h2>
+<div class="outline-text-2" id="text-org46cf7f4">
+<p>
+Basis generation should receive integer charge rows, not naming conventions.
+Add two charge layers.
+</p>
+
+<p>
+First, add target holomorphic-degree charge metadata to typed target indices
+and tensor slots:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">targetU1Charge</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (sort) {
+        .real_tangent, .real_cotangent =&gt; 0,
+        .holomorphic_tangent, .holomorphic_cotangent =&gt; 1,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent =&gt; -1,
+    };
+}
+</pre>
+</div>
+
+<p>
+This convention makes <code>g_{i \bar j}</code>, <code>g^{i \bar j}</code>, <code>J_{i \bar j}</code>, and
+<code>R_{i \bar j k \bar l}</code> neutral.  A CY holomorphic volume form in complex
+dimension <code>d</code> has charge <code>+d</code>, its conjugate has charge <code>-d</code>, and a harmonic
+<code>(p,q)</code> form has charge <code>p-q</code>.  For K3, the holomorphic two-form has charge
+<code>+2</code>, its conjugate has <code>-2</code>, and the Kahler form is neutral.
+</p>
+
+<p>
+Second, add worldsheet <code>U(1)_R</code> quantum numbers for NLSM field families using
+the existing <code>u1_charge</code> quantum-number machinery:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-text">field family          q_L    q_R
+xi^i, xi^bar          0      0
+dX^i, dX^bar          0      0
+psi_+^i              +1      0
+psi_+^bar            -1      0
+psi_-^i               0     +1
+psi_-^bar             0     -1
+</pre>
+</div>
+
+<p>
+Store <code>q_L</code> and <code>q_R</code> as primitive integer quantum numbers.  Basis-generation
+helpers may derive vector and axial charges by <code>q_V = q_L + q_R</code> and
+<code>q_A = q_L - q_R</code>.  Do not assign worldsheet R charge to bosonic target
+indices themselves; their target holomorphic-degree charge is separate and is
+used by the geometry/tensor basis filters.
+</p>
+
+<p>
+Tensor atoms declare both slot sorts and total target charge:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtomDecl</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slot_sorts</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_u1_charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">symmetry</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">SlotSymmetryId</span>,
+};
+</pre>
+</div>
+
+<p>
+The reducer verifies <code>target_u1_charge</code> equals the sum of slot charges unless a
+special atom declaration, such as a density or volume form, explicitly fixes a
+different charge.  This gives the basis-generation plan a stable way to filter
+Kahler, CY3, and K3 tensor structures.
+</p>
+</div>
+</div>
+<div id="outline-container-org88a4e20" class="outline-2">
+<h2 id="org88a4e20">Free-Boson Rules</h2>
+<div class="outline-text-2" id="text-org88a4e20">
+<p>
+The handwritten free-boson preset already has an explicit bulk <code>X</code> operator.
+Complete the missing sphere contractions:
+</p>
+
+<ul class="org-ul">
+<li><code>X X</code>: logarithmic Green kernel times the metric;</li>
+<li><code>dX X</code>: differentiated logarithm times the metric;</li>
+<li><code>dXt X</code>: antiholomorphic differentiated logarithm times the metric.</li>
+</ul>
+
+<p>
+Use the existing runtime logarithm coordinate factor in the handwritten preset.
+Extend the generated descriptor path with a <code>logarithm</code> coordinate factor so
+the Lisp preset can express the same rules.
+</p>
+
+<p>
+Required Lisp descriptor changes:
+</p>
+
+<ul class="org-ul">
+<li>add <code>:logarithm</code> parsing and emission beside <code>:difference-power</code>,
+<code>:named-kernel</code>, and <code>:green-exponential</code>;</li>
+<li>add tensor-factor forms for <code>hermitian-metric</code>, <code>inverse-metric</code>,
+<code>kahler-form</code>, <code>complex-structure</code>, and <code>tensor-atom-slot</code>;</li>
+<li>add rule-level index-constraint syntax;</li>
+<li>add <code>X</code> and <code>dXt</code> to the generated free-boson preset and regenerate fixtures.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgd45ab74" class="outline-2">
+<h2 id="orgd45ab74">NLSM Geometry Reducer</h2>
+<div class="outline-text-2" id="text-orgd45ab74">
+<p>
+Add a first NLSM geometry reducer as local tensor-term infrastructure, not as a
+tensor-code extension.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryFlavor</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    generic_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+};
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlotSort</span> = IndexSort;
+</pre>
+</div>
+
+<p>
+The first reducer consumes streamed CFT branch data:
+</p>
+
+<pre class="example" id="org50eeb85">
+cft-code Wick stream
+  -&gt; nlsm-code tensor-term sink
+  -&gt; local canonicalizer / hash-cons table
+  -&gt; coefficient accumulation
+</pre>
+
+<p>
+Implement only:
+</p>
+
+<ul class="org-ul">
+<li>slot-sort checking;</li>
+<li>target charge accumulation and neutrality checks requested by the job;</li>
+<li>dummy-index renaming within fixed sorts;</li>
+<li>metric and Hermitian-metric contraction;</li>
+<li>Kahler same-type vanishing;</li>
+<li>Riemann and covariant-derivative symmetry canonicalization;</li>
+<li>Ricci and scalar-curvature detection.</li>
+</ul>
+
+<p>
+Do not implement topology, Hodge decomposition, large-volume fitting, pole
+extraction, beta assembly, or field-redefinition quotients in this step.
+</p>
+</div>
+</div>
+<div id="outline-container-org4517b7d" class="outline-2">
+<h2 id="org4517b7d">Public API Shape</h2>
+<div class="outline-text-2" id="text-org4517b7d">
+<p>
+Keep public exports small.
+</p>
+
+<p>
+For <code>cft-code</code>, expose no raw shared-runtime internals at the root.  Existing
+presets keep their current public constructor shape.
+</p>
+
+<p>
+For <code>nlsm-code</code>, expose only compact declarations and job-facing entrypoints:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryFlavor</span> = geometry.GeometryFlavor;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtomDecl</span> = geometry.TensorAtomDecl;
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlotSort</span> = geometry.TensorSlotSort;
+
+<span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">NLSM</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">run</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">job</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">JobId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">stage</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Stage</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">inspect</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">job</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">JobId</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">request</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">InspectRequest</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span>;
+};
+</pre>
+</div>
+
+<p>
+Private implementation details include rewrite tables, hash-cons arenas,
+canonicalization caches, and CFT pair-rule internals.
+</p>
+</div>
+</div>
+<div id="outline-container-orgaa0a846" class="outline-2">
+<h2 id="orgaa0a846">Implementation Order</h2>
+<div class="outline-text-2" id="text-orgaa0a846">
+<ol class="org-ol">
+<li>Extend the shared runtime typed-index encoding and add decode helpers.</li>
+<li>Add pair-rule index constraints and apply them in both count and emit paths.</li>
+<li>Add the new tensor-factor variants to handwritten runtime, descriptor rows,
+validation, result events, and Lisp expression reconstruction.</li>
+<li>Add logarithm support to the generated descriptor path.</li>
+<li>Add <code>X X</code>, <code>dX X</code>, and <code>dXt X</code> to handwritten and Lisp free-boson presets.</li>
+<li>Add NLSM geometry declarations, tensor atom declarations, and charge rows.</li>
+<li>Add the local NLSM tensor-term sink and minimal canonicalizer.</li>
+<li>Add the compact <code>NLSM</code> root namespace and build wiring.</li>
+<li>Revisit tensor-code extraction only after the reducer is exercised by a
+second non-NLSM client.</li>
+</ol>
+</div>
+</div>
+<div id="outline-container-orgca6f34e" class="outline-2">
+<h2 id="orgca6f34e">Tests</h2>
+<div class="outline-text-2" id="text-orgca6f34e">
+<p>
+Run the existing baseline:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">zig build test
+</pre>
+</div>
+
+<p>
+Add focused tests only where they protect concrete invariants:
+</p>
+
+<ul class="org-ul">
+<li>typed-index encoding preserves raw id and sort;</li>
+<li>conjugate-sort pair constraints reject \(i i\) and \(\bar i \bar i\) while
+accepting \(i \bar j\);</li>
+<li>constrained pair counts and streamed terms agree;</li>
+<li>generated descriptors validate new tensor factors, logarithms, and
+constraints;</li>
+<li>free-boson <code>X X</code>, <code>dX X</code>, and <code>dXt X</code> emit the expected metric and
+logarithmic coordinate kernels;</li>
+<li>NLSM reducer rejects bad slot sorts, applies Kahler same-type vanishing,
+contracts Hermitian metrics, and detects Ricci contractions;</li>
+<li>NLSM basis metadata exposes <code>q_L</code>, <code>q_R</code>, vector/axial derived charges, and
+target holomorphic-degree charges for CY3 and K3 forms.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-org6c434cd" class="outline-2">
+<h2 id="org6c434cd">Assumptions</h2>
+<div class="outline-text-2" id="text-org6c434cd">
+<ul class="org-ul">
+<li>Tangent sorts are sufficient for the first CFT-facing implementation; explicit
+cotangent sorts are used when NLSM tensor declarations need variance.</li>
+<li>Worldsheet <code>U(1)_R</code> and target holomorphic-degree charge are separate rows.</li>
+<li>CY3/K3 topology and volume data remain downstream NLSM descriptors.</li>
+<li><code>tensor_atom_slot</code> is a compact bridge to NLSM sinks, not a general symbolic
+expression layer in CFT.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

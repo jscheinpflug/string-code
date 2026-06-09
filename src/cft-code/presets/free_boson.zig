@@ -149,17 +149,20 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
 
 const FreeBosonOp = struct {
     /// X builds an explicit bulk free-boson field insertion.
-    pub fn X(local: anytype, mu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+    pub fn X(local: anytype, mu: anytype, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(mu));
         return declare.operatorBuilder(sphereOperator(.x)).pair(local, z, zbar, .{mu});
     }
 
     /// dX builds a holomorphic derivative field insertion.
-    pub fn dX(local: anytype, mu: Handle.Index, n: u8, z: Handle.Coord) !Operator {
+    pub fn dX(local: anytype, mu: anytype, n: u8, z: Handle.Coord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(mu));
         return declare.operatorBuilder(sphereOperator(.d_x)).single(local, z, n, .{mu});
     }
 
     /// dXt builds an antiholomorphic derivative field insertion.
-    pub fn dXt(local: anytype, mu: Handle.Index, n: u8, zbar: Handle.Coord) !Operator {
+    pub fn dXt(local: anytype, mu: anytype, n: u8, zbar: Handle.Coord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(mu));
         return declare.operatorBuilder(sphereOperator(.d_xt)).single(local, zbar, n, .{mu});
     }
 
@@ -174,7 +177,8 @@ const FreeBosonOp = struct {
     }
 
     /// profileVector builds a vector-valued target-space profile insertion.
-    pub fn profileVector(local: anytype, f: Handle.Profile, nu: Handle.Index, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+    pub fn profileVector(local: anytype, f: Handle.Profile, nu: anytype, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(nu));
         return declare.operatorBuilder(profile_vector_operator).pair(local, z, zbar, .{ f, nu });
     }
 };
@@ -481,7 +485,8 @@ const FreeBosonBoundaryConfig = struct {
 
 const FreeBosonBoundaryOp = struct {
     /// dXBoundary builds stringbook's holomorphic boundary limit of dX.
-    pub fn dXBoundary(local: anytype, mu: Handle.Index, n: u8, y: Handle.BoundaryCoord) !Operator {
+    pub fn dXBoundary(local: anytype, mu: anytype, n: u8, y: Handle.BoundaryCoord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(mu));
         return declare.operatorBuilder(boundaryOperator(.d_x_boundary)).boundarySingle(local, y, n, .{mu});
     }
 
@@ -496,7 +501,8 @@ const FreeBosonBoundaryOp = struct {
     }
 
     /// profileBoundaryVector builds a vector-valued boundary profile insertion.
-    pub fn profileBoundaryVector(local: anytype, f: Handle.Profile, nu: Handle.Index, y: Handle.BoundaryCoord) !Operator {
+    pub fn profileBoundaryVector(local: anytype, f: Handle.Profile, nu: anytype, y: Handle.BoundaryCoord) !Operator {
+        comptime shared.assertTargetIndexHandle(@TypeOf(nu));
         return declare.operatorBuilder(boundary_profile_vector_operator).boundarySingle(local, y, 0, .{ f, nu });
     }
 };
@@ -667,7 +673,7 @@ test "free-boson schema builders return opaque local tokens" {
     var local = try X.local(testing.allocator);
     defer local.deinit();
 
-    const mu = try local.index("mu");
+    const mu = try local.typedIndex("mu", .holomorphic_tangent);
     const k = try local.momentum("k");
     const z = try local.coord("z");
     const zbar = try local.coord("zbar");
@@ -686,7 +692,7 @@ test "free-boson boundary schema builders return opaque local tokens" {
     var local = try Local.init(testing.allocator);
     defer local.deinit();
 
-    const mu = try local.index("mu");
+    const mu = try local.typedIndex("mu", .holomorphic_tangent);
     const k = try local.momentum("k");
     const y = try local.boundaryCoord("y");
     const dx = try FreeBosonBoundaryOp.dXBoundary(&local, mu, 3, y);

@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>String-Code</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -190,12 +193,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -204,7 +214,7 @@
 <div id="content" class="content">
 <h1 class="title">String-Code</h1>
 <p>
-The root module exposes the two build-checked kernels.  Higher string modules
+The root module exposes the build-checked kernels.  Higher string modules
 depend on these through their public APIs.
 </p>
 
@@ -218,17 +228,22 @@ depend on these through their public APIs.
 <dd>tensor exposes tensor-code data structures and tensor handles.</dd>
 <dt><a href="#cft"><code>cft = @import(&quot;cft-code&quot;)</code></a></dt>
 <dd>cft exposes the selected worldsheet CFT public API.</dd>
+<dt><a href="#nlsm"><code>nlsm = @import(&quot;nlsm-code&quot;)</code></a></dt>
+<dd>nlsm exposes the compact nonlinear-sigma-model local reducer API.</dd>
 </dl>
 </div>
 </div>
 </div>
 <a id="tensor"></a>
 <a id="cft"></a>
+<a id="nlsm"></a>
 <div class="org-src-container">
 <pre class="src src-zig" id="org1374a22"><span style="color: #e0d3b9; font-style: italic;">/// tensor exposes tensor-code data structures and tensor handles.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tensor</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"tensor-code"</span>);
 <span style="color: #e0d3b9; font-style: italic;">/// cft exposes the selected worldsheet CFT public API.
 </span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">cft</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"cft-code"</span>);
+<span style="color: #e0d3b9; font-style: italic;">/// nlsm exposes the compact nonlinear-sigma-model local reducer API.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">nlsm</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"nlsm-code"</span>);
 </pre>
 </div>
 
@@ -238,10 +253,11 @@ depend on these through their public APIs.
 <div class="toc-entries" hidden>
 <p class="api-kind"><b>String-Code / API</b></p>
 <div class="org-src-container">
-<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"top-level API exposes tensor and cft boundaries"</span> {
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"top-level API exposes tensor, cft, and nlsm boundaries"</span> {
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>).testing;
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"tensor"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"cft"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #b8bb26; font-style: italic;">"nlsm"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"FreeBoson"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"Bc"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"FreeFermion"</span>));
@@ -272,6 +288,8 @@ depend on these through their public APIs.
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"kernel"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"theory"</span>));
     <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(cft, <span style="color: #b8bb26; font-style: italic;">"expressions"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(nlsm, <span style="color: #b8bb26; font-style: italic;">"GeometryFlavor"</span>));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(<span style="color: #fe8019; font-weight: bold;">@hasDecl</span>(nlsm, <span style="color: #b8bb26; font-style: italic;">"reduceLocalTerm"</span>));
 }
 
 <span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"tensor context interns projected realization requests without expansion"</span> {
@@ -360,7 +378,7 @@ depend on these through their public APIs.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-08</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>

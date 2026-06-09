@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Preset Shared Runtime</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -190,12 +193,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -209,6 +219,10 @@
 <div class="toc-entries" hidden>
 <p class="api-kind"><b>Functions</b></p>
 <dl>
+<dt><a href="#assertTargetIndexHandle"><code>assertTargetIndexHandle(comptime T: type) void</code></a></dt>
+<dd>assertTargetIndexHandle restricts public preset index arguments to index handles.</dd>
+<dt><a href="#targetU1Charge"><code>targetU1Charge(sort: IndexSort) i8</code></a></dt>
+<dd>targetU1Charge returns the target holomorphic-degree charge of one sort.</dd>
 <dt><a href="#profileHandle"><code>profileHandle(comptime presentation: Handle.ProfilePresentation, payload: u32) Handle.Profile</code></a></dt>
 <dd>profileHandle packs a profile presentation tag with a compact payload id.</dd>
 <dt><a href="#streamCorrelator"><code>streamCorrelator(config_ptr: anytype, ops: anytype, sink: anytype) !void</code></a></dt>
@@ -222,6 +236,8 @@
 <dd>OperatorList is an opaque frozen operator sequence for correlator calls.</dd>
 <dt><a href="#Handle"><code>Handle (struct)</code></a></dt>
 <dd>Handle groups compact ids used by preset operator builders.</dd>
+<dt><a href="#IndexSort"><code>IndexSort (enum)</code></a></dt>
+<dd>IndexSort classifies target-space index handles for local Wick checks.</dd>
 <dt><a href="#Local"><code>Local (opaque)</code></a></dt>
 <dd>Local builds typed handles and freezes operator lists for correlator calls.</dd>
 </dl>
@@ -260,6 +276,9 @@ materializing a symbolic expression tree.
 <a id="LocalOperator"></a>
 <a id="OperatorList"></a>
 <a id="Handle"></a>
+<a id="IndexSort"></a>
+<a id="assertTargetIndexHandle"></a>
+<a id="targetU1Charge"></a>
 <a id="profileHandle"></a>
 <a id="Local"></a>
 <a id="declare"></a>
@@ -289,6 +308,8 @@ materializing a symbolic expression tree.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">BoundaryCoord</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
     <span style="color: #e0d3b9; font-style: italic;">/// Index names a target-space vector index.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Index</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
+    <span style="color: #e0d3b9; font-style: italic;">/// TypedIndex names a target-space index with a compact sort tag.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TypedIndex</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
     <span style="color: #e0d3b9; font-style: italic;">/// Momentum names a target-space momentum expression.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Momentum</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) { _ };
     <span style="color: #e0d3b9; font-style: italic;">/// Profile names a selected presentation of a target-space profile.
@@ -312,6 +333,47 @@ materializing a symbolic expression tree.
         polynomial_rnc,
     };
 };
+
+<span style="color: #e0d3b9; font-style: italic;">/// IndexSort classifies target-space index handles for local Wick checks.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">IndexSort</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">typed_index_sort_shift</span> = 24;
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">typed_index_raw_mask</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> = 0x00ff_ffff;
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">typedIndexToken</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">raw</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tag</span> = <span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>, <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(sort) + 1) &lt;&lt; typed_index_sort_shift;
+    <span style="color: #fb4934; font-weight: bold;">return</span> tag | (raw &amp; typed_index_raw_mask);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">typedIndexSort</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">raw</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>) IndexSort {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">tag</span> = raw &gt;&gt; typed_index_sort_shift;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (tag == 0) <span style="color: #fb4934; font-weight: bold;">return</span> .real_tangent;
+    <span style="color: #fb4934; font-weight: bold;">if</span> (tag &gt; 6) <span style="color: #fb4934; font-weight: bold;">return</span> .real_tangent;
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@enumFromInt</span>(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #fe8019; font-weight: bold;">@intCast</span>(tag - 1)));
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// assertTargetIndexHandle restricts public preset index arguments to index handles.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">assertTargetIndexHandle</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">T</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">type</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (T != Handle.Index <span style="color: #fb4934; font-weight: bold;">and</span> T != Handle.TypedIndex) {
+        <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"target-space index arguments must use Handle.Index or Handle.TypedIndex"</span>);
+    }
+}
+
+<span style="color: #e0d3b9; font-style: italic;">/// targetU1Charge returns the target holomorphic-degree charge of one sort.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">targetU1Charge</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (sort) {
+        .real_tangent, .real_cotangent =&gt; 0,
+        .holomorphic_tangent, .holomorphic_cotangent =&gt; 1,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent =&gt; -1,
+    };
+}
 
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rawToken</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span> {
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fe8019; font-weight: bold;">@intFromEnum</span>(value);
@@ -559,6 +621,12 @@ materializing a symbolic expression tree.
         <span style="color: #fb4934; font-weight: bold;">return</span> token(Handle.Index, self.next());
     }
 
+    <span style="color: #e0d3b9; font-style: italic;">/// typedIndex creates a sorted target-space index token.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">typedIndex</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) !Handle.TypedIndex {
+        _ = name;
+        <span style="color: #fb4934; font-weight: bold;">return</span> token(Handle.TypedIndex, typedIndexToken(self.next(), sort));
+    }
+
     <span style="color: #e0d3b9; font-style: italic;">/// momentum creates a target-space momentum token.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">momentum</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Local</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">name</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) !Handle.Momentum {
         _ = name;
@@ -793,11 +861,31 @@ materializing a symbolic expression tree.
         <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>,
         <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>,
         <span style="color: #83a598; font-weight: bold; font-style: italic;">expr</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Expr</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">index_constraints</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraintRow</span> = &amp;.{},
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// PairIndexConstraint selects a local index-sort check for a pair rule.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraint</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+        none,
+        same_sort,
+        conjugate_complex_sort,
+    };
+
+    <span style="color: #e0d3b9; font-style: italic;">/// PairIndexConstraintRow checks one label slot on each pair endpoint.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">PairIndexConstraintRow</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">left_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">right_slot</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>,
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">constraint</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraint</span>,
     };
 
     <span style="color: #e0d3b9; font-style: italic;">/// rule constructs one primitive Wick rule template.
 </span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">rule</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expression</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Expr</span>) Rule {
         <span style="color: #fb4934; font-weight: bold;">return</span> .{ .left = left, .right = right, .expr = expression };
+    }
+
+    <span style="color: #e0d3b9; font-style: italic;">/// constrainedRule constructs one Wick rule with index-sort checks.
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">constrainedRule</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Pattern</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">expression</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Expr</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">constraints</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairIndexConstraintRow</span>) Rule {
+        <span style="color: #fb4934; font-weight: bold;">return</span> .{ .left = left, .right = right, .expr = expression, .index_constraints = constraints };
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// pattern constructs one Wick-rule side from a preset-owned kind id.
@@ -3146,9 +3234,46 @@ materializing a symbolic expression tree.
     <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
 }
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">labelIndexSort</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">value</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LabelValue</span>) ?IndexSort {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (value) {
+        .symbol =&gt; |symbol| typedIndexSort(symbol),
+        .integer =&gt; |integer| <span style="color: #fb4934; font-weight: bold;">if</span> (integer &gt;= 0 <span style="color: #fb4934; font-weight: bold;">and</span> integer &lt;= std.math.maxInt(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>)) typedIndexSort(<span style="color: #fe8019; font-weight: bold;">@intCast</span>(integer)) <span style="color: #fb4934; font-weight: bold;">else</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+        <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">conjugateIndexSort</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (left) {
+        .holomorphic_tangent =&gt; right == .antiholomorphic_tangent,
+        .antiholomorphic_tangent =&gt; right == .holomorphic_tangent,
+        .holomorphic_cotangent =&gt; right == .antiholomorphic_cotangent,
+        .antiholomorphic_cotangent =&gt; right == .holomorphic_cotangent,
+        .real_tangent, .real_cotangent =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">indexConstraintMatches</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">constraint</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.PairIndexConstraint</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">IndexSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (constraint) {
+        .none =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        .same_sort =&gt; left == right,
+        .conjugate_complex_sort =&gt; conjugateIndexSort(left, right),
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">pairSatisfiesIndexConstraints</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Correlator.WickPair</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (pair.rule.index_constraints) |row| {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span> = pair.label(wick.label(.left, row.left_slot)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = pair.label(wick.label(.right, row.right_slot)) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left_sort</span> = labelIndexSort(left) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right_sort</span> = labelIndexSort(right) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!indexConstraintMatches(row.constraint, left_sort, right_sort)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+    }
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">matchRule</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">wick.Rule</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">labels</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LabelStore</span>) ?Correlator.WickPair {
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">reversed</span> = ruleMatches(rule.*, left, right) <span style="color: #fb4934; font-weight: bold;">orelse</span> <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
-    <span style="color: #fb4934; font-weight: bold;">return</span> .{
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span> = Correlator.WickPair{
         .rule = rule,
         .config = config_ptr,
         .left = left,
@@ -3156,6 +3281,8 @@ materializing a symbolic expression tree.
         .labels = labels,
         .reversed = reversed,
     };
+    <span style="color: #fb4934; font-weight: bold;">if</span> (!pairSatisfiesIndexConstraints(pair)) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>;
+    <span style="color: #fb4934; font-weight: bold;">return</span> pair;
 }
 
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">lowerBoundPairLookup</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">entries</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">PairLookupEntry</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u64</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
@@ -3724,15 +3851,17 @@ materializing a symbolic expression tree.
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(entry.rule_index);
         <span style="color: #fb4934; font-weight: bold;">if</span> (rule_index &gt;= config_ptr.wick_rules.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidPairLookup;
         <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span> = &amp;config_ptr.wick_rules[rule_index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span> = Correlator.WickPair{
+            .rule = rule,
+            .config = config_ptr,
+            .left = left,
+            .right = right,
+            .labels = ops.labels,
+            .reversed = entry.reversed,
+        };
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!pairSatisfiesIndexConstraints(pair)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
         <span style="color: #fb4934; font-weight: bold;">if</span> (remaining &lt; rule.expr.terms.len) {
-            <span style="color: #fb4934; font-weight: bold;">return</span> .{ .pair = .{
-                .rule = rule,
-                .config = config_ptr,
-                .left = left,
-                .right = right,
-                .labels = ops.labels,
-                .reversed = entry.reversed,
-            }, .rule_index = rule_index, .term_index = remaining };
+            <span style="color: #fb4934; font-weight: bold;">return</span> .{ .pair = pair, .rule_index = rule_index, .term_index = remaining };
         }
         remaining -= rule.expr.terms.len;
     }
@@ -3789,6 +3918,7 @@ materializing a symbolic expression tree.
             .labels = ops.labels,
             .reversed = entry.reversed,
         };
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!pairSatisfiesIndexConstraints(pair)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
 
         <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">term_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
         <span style="color: #fb4934; font-weight: bold;">while</span> (term_index &lt; pair.rule.expr.terms.len) : (term_index += 1) {
@@ -3816,24 +3946,35 @@ materializing a symbolic expression tree.
     <span style="color: #fb4934; font-weight: bold;">return</span> emitted;
 }
 
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">countIndexedWickPairTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">countIndexedWickPairTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">key</span> = wickRuleKey(left.kind, right.kind);
     <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">entry_index</span> = lowerBoundPairLookup(config_ptr.pair_lookup, key);
     <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
 
     <span style="color: #fb4934; font-weight: bold;">while</span> (entry_index &lt; config_ptr.pair_lookup.len <span style="color: #fb4934; font-weight: bold;">and</span> config_ptr.pair_lookup[entry_index].key == key) : (entry_index += 1) {
-        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(config_ptr.pair_lookup[entry_index].rule_index);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">entry</span> = config_ptr.pair_lookup[entry_index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = <span style="color: #fe8019; font-weight: bold;">@intCast</span>(entry.rule_index);
         <span style="color: #fb4934; font-weight: bold;">if</span> (rule_index &gt;= config_ptr.wick_rules.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidPairLookup;
-        count += config_ptr.wick_rules[rule_index].expr.terms.len;
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule</span> = &amp;config_ptr.wick_rules[rule_index];
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">pair</span> = Correlator.WickPair{
+            .rule = rule,
+            .config = config_ptr,
+            .left = left,
+            .right = right,
+            .labels = ops.labels,
+            .reversed = entry.reversed,
+        };
+        <span style="color: #fb4934; font-weight: bold;">if</span> (!pairSatisfiesIndexConstraints(pair)) <span style="color: #fb4934; font-weight: bold;">continue</span>;
+        count += rule.expr.terms.len;
     }
 
     <span style="color: #fb4934; font-weight: bold;">return</span> count;
 }
 
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">countScannedWickPairTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">countScannedWickPairTerms</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.LocalOp</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
     <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0;
     <span style="color: #fb4934; font-weight: bold;">for</span> (config_ptr.wick_rules) |rule| {
-        <span style="color: #fb4934; font-weight: bold;">if</span> (ruleMatches(rule, left, right) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) count += rule.expr.terms.len;
+        <span style="color: #fb4934; font-weight: bold;">if</span> (matchRule(config_ptr, &amp;rule, left, right, ops.labels) != <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">null</span>) count += rule.expr.terms.len;
     }
     <span style="color: #fb4934; font-weight: bold;">return</span> count;
 }
@@ -3845,10 +3986,10 @@ materializing a symbolic expression tree.
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span> = ops.operators[left_index];
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = ops.operators[right_index];
     <span style="color: #fb4934; font-weight: bold;">if</span> (config_ptr.pair_lookup.len != 0) {
-        <span style="color: #fb4934; font-weight: bold;">return</span> countIndexedWickPairTerms(config_ptr, left, right);
+        <span style="color: #fb4934; font-weight: bold;">return</span> countIndexedWickPairTerms(config_ptr, ops, left, right);
     }
 
-    <span style="color: #fb4934; font-weight: bold;">return</span> countScannedWickPairTerms(config_ptr, left, right);
+    <span style="color: #fb4934; font-weight: bold;">return</span> countScannedWickPairTerms(config_ptr, ops, left, right);
 }
 
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickPairTermsData</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">config_ptr</span>: *<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">CorrelatorConfigData</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">kernel.Call.MultiOp</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">left_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right_index</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> {
@@ -4034,6 +4175,101 @@ materializing a symbolic expression tree.
     <span style="color: #fb4934; font-weight: bold;">return</span> wick_correlator.wickCorrelator(RuntimeWickTactic(ConfigHandle), data, operatorListData(ops), sink);
 }
 </pre>
+</div>
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>Preset Shared Runtime / Interface</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"target index sorts carry holomorphic degree charges"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, 0), targetU1Charge(.real_tangent));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, 1), targetU1Charge(.holomorphic_tangent));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, -1), targetU1Charge(.antiholomorphic_tangent));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, 1), targetU1Charge(.holomorphic_cotangent));
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span>, -1), targetU1Charge(.antiholomorphic_cotangent));
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"pair index constraints filter declared contractions"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op_kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">operators.OperatorKindId</span> = 0x2345;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">op_spec</span> = Spec.Operator{
+        .name = <span style="color: #b8bb26; font-style: italic;">"xi"</span>,
+        .kind = op_kind,
+        .support = .holomorphic,
+        .insertion = .single,
+        .labels = &amp;.{.index},
+        .statistics = .bosonic,
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Data</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rule_expr</span> = wick.expr(&amp;.{wick.term(&amp;.{wick.scalar(scalars.one())}, &amp;.{}, &amp;.{.none})});
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">rules</span> = [_]wick.Rule{
+            wick.constrainedRule(
+                wick.pattern(op_kind, .holomorphic),
+                wick.pattern(op_kind, .holomorphic),
+                rule_expr,
+                &amp;.{.{ .left_slot = 0, .right_slot = 0, .constraint = .conjugate_complex_sort }},
+            ),
+        };
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Config</span> = correlatorConfig(.{ .wick_rules = &amp;rules, .zero_modes = &amp;.{} });
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Config</span> = Data.Config;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Sink</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+        <span style="color: #83a598; font-weight: bold; font-style: italic;">terms</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermStart</span>(self: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+            self.terms += 1;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickScalar</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickCoordinate</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTensor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickAction</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitWickTermEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeFactor</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>(), <span style="color: #83a598; font-weight: bold; font-style: italic;">_</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+        <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">emitZeroModeBaseEnd</span>(_: *<span style="color: #fe8019; font-weight: bold;">@This</span>()) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {}
+    };
+
+    {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Local.init(testing.allocator);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">i</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"i"</span>, .holomorphic_tangent);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">jbar</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"jbar"</span>, .antiholomorphic_tangent);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"z"</span>);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">w</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"w"</span>);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span> = <span style="color: #fb4934; font-weight: bold;">try</span> operatorBuilder(op_spec).single(&amp;local, z, 0, .{i});
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = <span style="color: #fb4934; font-weight: bold;">try</span> operatorBuilder(op_spec).single(&amp;local, w, 0, .{jbar});
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(.{ left, right });
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = Config{};
+        <span style="color: #fb4934; font-weight: bold;">try</span> streamCorrelator(&amp;config, ops, &amp;sink);
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), sink.terms);
+    }
+
+    {
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Local.init(testing.allocator);
+        <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">i</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"i"</span>, .holomorphic_tangent);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">j</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"j"</span>, .holomorphic_tangent);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"z"</span>);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">w</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"w"</span>);
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">left</span> = <span style="color: #fb4934; font-weight: bold;">try</span> operatorBuilder(op_spec).single(&amp;local, z, 0, .{i});
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span> = <span style="color: #fb4934; font-weight: bold;">try</span> operatorBuilder(op_spec).single(&amp;local, w, 0, .{j});
+        <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ops</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.ops(.{ left, right });
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sink</span> = Sink{};
+        <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">config</span> = Config{};
+        <span style="color: #fb4934; font-weight: bold;">try</span> streamCorrelator(&amp;config, ops, &amp;sink);
+        <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), sink.terms);
+    }
+}
+</pre>
+</div>
+
+</div>
+</div>
 </div>
 </div>
 <div id="postamble" class="status">

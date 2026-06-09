@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2026-06-09 Tue 13:03 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NLSM Local Geometry Reducer</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/style.css">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\begin{equation}',right:'\\end{equation}',display:true},{left:'\\begin{align}',right:'\\end{align}',display:true},{left:'\\begin{align*}',right:'\\end{align*}',display:true}]})"></script>
+<script src="/theme.js"></script><script defer src="/sidebar.js"></script>
+</head>
+<body>
+<div id="preamble" class="status">
+<nav id="site-nav">
+  <span class="site-title"></span>
+  <a href="/">Home</a>
+  <a href="/api/">API</a>
+  <a href="/all-notes.pdf">PDF</a>
+  <a href="/graph/">Graph</a>
+  <button class="theme-toggle" onclick="toggleTheme()">☀</button>
+</nav>
+<aside id="site-sidebar" class="toc-nav">
+<p class="toc-nav-label">Table of Contents</p>
+<div class="toc-section"><div class="toc-row"><a href="/notes/overview.html" class="toc-folder">Overview</a></div></div>
+<div class="toc-section"><div class="toc-row"><a href="/notes/string-code.html" class="toc-folder">String-Code</a></div></div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/cft-code.html" class="toc-folder">CFT-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/basis-generation/basis-generation.html" class="toc-folder">Basis-Generation</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/benchmarks/correlator-performance.html">Correlator Performance Benchmarks</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/correlators/correlators.html" class="toc-folder">Correlators</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/correlators/abstract.html">Abstract</a></li>
+    <li><a href="/notes/cft-code/correlators/bosonization.html">Bosonization</a></li>
+    <li><a href="/notes/cft-code/correlators/descriptor.html">Generated Descriptor Boundary</a></li>
+    <li><a href="/notes/cft-code/correlators/wick.html">Wick</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/expressions/expressions.html" class="toc-folder">Expressions</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/expressions/coefficient.html">Coefficient</a></li>
+    <li><a href="/notes/cft-code/expressions/operators.html">Operators</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/kernel/" class="toc-folder">Kernel</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/kernel/cft-kernel.html">CFT Kernel</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/" class="toc-folder">Lisp Dsl</a>
+  </div>
+  <ul class="toc-entries" hidden>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/benchmarks/" class="toc-folder">Benchmarks</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/benchmarks/expression-performance.html">Lisp Generated Expression Benchmark</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/lisp-dsl/presets/" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/bc-sphere.html">Lisp bc Sphere Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/eta-xi.html">Lisp Eta-Xi Presets</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-boson-10.html">Lisp Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/presets/free-fermion-10.html">Lisp Free Fermion Preset</a></li>
+  </ul>
+</div>
+    <li><a href="/notes/cft-code/lisp-dsl/descriptor-emitter.html">Lisp Descriptor Emitter</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/generated-abi.html">Generated Fixture ABI</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/preset-compiler.html">Lisp Preset Compiler</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/repl-fixtures.html">Lisp Generated Fixture Declarations</a></li>
+    <li><a href="/notes/cft-code/lisp-dsl/system.html">Lisp CFT System</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/normal-ordering/normal-ordering.html" class="toc-folder">Normal-Ordering</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/ope/ope.html" class="toc-folder">OPE</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/presets/presets.html" class="toc-folder">Presets</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/cft-code/presets/bc.html">bc Preset</a></li>
+    <li><a href="/notes/cft-code/presets/composition.html">Preset Composition</a></li>
+    <li><a href="/notes/cft-code/presets/eta-xi.html">eta-xi Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-boson.html">Free Boson Preset</a></li>
+    <li><a href="/notes/cft-code/presets/free-fermion.html">Free Fermion Preset</a></li>
+    <li><a href="/notes/cft-code/presets/shared.html">Preset Shared Runtime</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/cft-code/theory/theory.html" class="toc-folder">Theory</a>
+  </div>
+</div>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/nlsm-code/nlsm-code.html" class="toc-folder">NLSM-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
+    <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
+    <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
+  </ul>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/on-shell-code/on-shell-code.html" class="toc-folder">On-Shell-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/pure-spinor-code/pure-spinor-code.html" class="toc-folder">Pure-Spinor-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/sft-code/sft-code.html" class="toc-folder">SFT-Code</a>
+  </div>
+</div>
+<div class="toc-section">
+  <div class="toc-row">
+    <span class="toc-toggle"></span>
+    <a href="/notes/tensor-code/tensor-code.html" class="toc-folder">Tensor-Code</a>
+  </div>
+  <ul class="toc-entries" hidden>
+    <li><a href="/notes/tensor-code/backend.html">Tensor Backend</a></li>
+    <li><a href="/notes/tensor-code/clebsch-gordan.html">Clebsch-Gordan</a></li>
+    <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
+    <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
+    <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
+    <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
+    <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
+    <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
+    <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
+    <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
+    <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
+    <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
+  </ul>
+</div>
+</aside>
+</div>
+<div id="content" class="content">
+<h1 class="title">NLSM Local Geometry Reducer</h1>
+<p>
+The first reducer consumes one already-streamed local tensor term.  It does not
+own diagram enumeration, pole extraction, topology data, or a tensor-code
+canonical basis.  Its job is to apply cheap local target-geometry filters before
+larger basis generation sees the row.
+</p>
+
+<a id="GeometryFlavor"></a>
+<a id="TensorSlotSort"></a>
+<a id="targetU1Charge"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="org875eba5"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">std</span> = <span style="color: #fe8019; font-weight: bold;">@import</span>(<span style="color: #b8bb26; font-style: italic;">"std"</span>);
+
+<span style="color: #e0d3b9; font-style: italic;">/// GeometryFlavor selects the target-geometry quotient used by local reducers.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">GeometryFlavor</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    generic_riemannian,
+    kahler,
+    calabi_yau,
+    hyperkahler,
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isKahler</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryFlavor</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (self) {
+            .generic_riemannian =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+            .kahler, .calabi_yau, .hyperkahler =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+        };
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">isRicciFlat</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">self</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryFlavor</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+        <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (self) {
+            .calabi_yau, .hyperkahler =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>,
+            .generic_riemannian, .kahler =&gt; <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        };
+    }
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorSlotSort classifies a target tensor slot by complex type and variance.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlotSort</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    real_tangent,
+    holomorphic_tangent,
+    antiholomorphic_tangent,
+    real_cotangent,
+    holomorphic_cotangent,
+    antiholomorphic_cotangent,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// targetU1Charge returns the target holomorphic-degree charge of one slot.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">targetU1Charge</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i8</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (sort) {
+        .real_tangent, .real_cotangent =&gt; 0,
+        .holomorphic_tangent, .holomorphic_cotangent =&gt; 1,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent =&gt; -1,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ComplexSort</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u2</span>) { real, holomorphic, antiholomorphic };
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">complexSort</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>) ComplexSort {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (sort) {
+        .real_tangent, .real_cotangent =&gt; .real,
+        .holomorphic_tangent, .holomorphic_cotangent =&gt; .holomorphic,
+        .antiholomorphic_tangent, .antiholomorphic_cotangent =&gt; .antiholomorphic,
+    };
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">conjugateComplexSort</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">left</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">right</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">switch</span> (complexSort(left)) {
+        .real =&gt; complexSort(right) == .real,
+        .holomorphic =&gt; complexSort(right) == .antiholomorphic,
+        .antiholomorphic =&gt; complexSort(right) == .holomorphic,
+    };
+}
+</pre>
+</div>
+
+<p>
+Tensor rows use caller-owned slices.  The reducer can therefore run inside a
+streaming branch frame and write survivors into caller storage.
+</p>
+
+<a id="Variance"></a>
+<a id="TensorSlot"></a>
+<a id="TensorAtomKind"></a>
+<a id="TensorAtom"></a>
+<a id="TensorTerm"></a>
+<a id="ReductionOptions"></a>
+<a id="ReductionSummary"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgf3a470c"><span style="color: #e0d3b9; font-style: italic;">/// Variance records whether a tensor slot is upper or lower.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">Variance</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) { lower, upper };
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorSlot is one compact target-index occurrence in a local tensor atom.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorSlot</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">id</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u32</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">sort</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlotSort</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">variance</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Variance</span> = .lower,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorAtomKind identifies one local geometry tensor atom.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtomKind</span> = <span style="color: #fb4934; font-weight: bold;">enum</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>) {
+    metric,
+    hermitian_metric,
+    riemann,
+    ricci,
+    scalar_curvature,
+    covariant_derivative,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorAtom is one local geometry tensor row.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorAtom</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">kind</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtomKind</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlot</span> = &amp;.{},
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_slots</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlot</span> = &amp;.{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// TensorTerm is a streamed product of local geometry atoms.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">TensorTerm</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span> = &amp;.{},
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionOptions selects the local quotient checks applied to one term.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionOptions</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">flavor</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">GeometryFlavor</span> = .generic_riemannian,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">require_neutral_target_charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+};
+
+<span style="color: #e0d3b9; font-style: italic;">/// ReductionSummary reports the reducer decision without materializing a sum.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">ReductionSummary</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">coefficient</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i64</span> = 1,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">atom_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">target_charge</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">zero</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">dropped_ricci_flat_atom_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span> = 0,
+    <span style="color: #83a598; font-weight: bold; font-style: italic;">non_neutral</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+};
+</pre>
+</div>
+
+<p>
+Validation is deliberately structural: wrong arity is an invalid row, while
+geometrically forbidden Kahler type is a zero local term.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">validateAtom</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>) !<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">switch</span> (atom.kind) {
+        .metric, .hermitian_metric, .ricci =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (atom.slots.len != 2 <span style="color: #fb4934; font-weight: bold;">or</span> atom.derivative_slots.len != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidTensorAtom,
+        .riemann =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (atom.slots.len != 4 <span style="color: #fb4934; font-weight: bold;">or</span> atom.derivative_slots.len != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidTensorAtom,
+        .scalar_curvature =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (atom.slots.len != 0 <span style="color: #fb4934; font-weight: bold;">or</span> atom.derivative_slots.len != 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidTensorAtom,
+        .covariant_derivative =&gt; <span style="color: #fb4934; font-weight: bold;">if</span> (atom.derivative_slots.len == 0) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.InvalidTensorAtom,
+    }
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">addCharge</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">charge</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlot</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">void</span> {
+    <span style="color: #fb4934; font-weight: bold;">for</span> (slots) |slot| charge.* += targetU1Charge(slot.sort);
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">kahlerRiemannTypeAllowed</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span>: []<span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorSlot</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">holomorphic_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">antiholomorphic_count</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span> = 0;
+    <span style="color: #fb4934; font-weight: bold;">for</span> (slots) |slot| <span style="color: #fb4934; font-weight: bold;">switch</span> (complexSort(slot.sort)) {
+        .real =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>,
+        .holomorphic =&gt; holomorphic_count += 1,
+        .antiholomorphic =&gt; antiholomorphic_count += 1,
+    };
+    <span style="color: #fb4934; font-weight: bold;">return</span> holomorphic_count == 2 <span style="color: #fb4934; font-weight: bold;">and</span> antiholomorphic_count == 2;
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">atomVanishes</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ReductionOptions</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">atom</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span>: *<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ReductionSummary</span>) <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">bool</span> {
+    <span style="color: #fb4934; font-weight: bold;">if</span> (options.flavor.isRicciFlat()) {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (atom.kind) {
+            .ricci, .scalar_curvature =&gt; {
+                summary.dropped_ricci_flat_atom_count += 1;
+                <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+            },
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; {},
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (options.flavor.isKahler()) {
+        <span style="color: #fb4934; font-weight: bold;">switch</span> (atom.kind) {
+            .hermitian_metric =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> !conjugateComplexSort(atom.slots[0].sort, atom.slots[1].sort),
+            .riemann =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> !kahlerRiemannTypeAllowed(atom.slots),
+            .ricci =&gt; <span style="color: #fb4934; font-weight: bold;">return</span> !conjugateComplexSort(atom.slots[0].sort, atom.slots[1].sort),
+            <span style="color: #fb4934; font-weight: bold;">else</span> =&gt; {},
+        }
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">false</span>;
+}
+</pre>
+</div>
+
+<p>
+The reducer appends surviving atoms to caller storage.  A vanishing atom makes
+the whole monomial zero; there is no hidden expansion or intermediate symbolic
+sum.
+</p>
+
+<a id="reduceLocalTerm"></a>
+<div class="org-src-container">
+<pre class="src src-zig" id="orgf335854"><span style="color: #e0d3b9; font-style: italic;">/// reduceLocalTerm filters one streamed local geometry term into caller storage.
+</span><span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">reduceLocalTerm</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">term</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorTerm</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">options</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">ReductionOptions</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: []<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span>) !ReductionSummary {
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = ReductionSummary{ .coefficient = term.coefficient };
+
+    <span style="color: #fb4934; font-weight: bold;">for</span> (term.atoms) |atom| {
+        <span style="color: #fb4934; font-weight: bold;">try</span> validateAtom(atom);
+        addCharge(&amp;summary.target_charge, atom.slots);
+        addCharge(&amp;summary.target_charge, atom.derivative_slots);
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (atomVanishes(options, atom, &amp;summary)) {
+            summary.zero = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+            summary.atom_count = 0;
+            <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+        }
+
+        <span style="color: #fb4934; font-weight: bold;">if</span> (summary.atom_count == output.len) <span style="color: #fb4934; font-weight: bold;">return</span> <span style="color: #fb4934; font-weight: bold;">error</span>.OutputTooSmall;
+        output[summary.atom_count] = atom;
+        summary.atom_count += 1;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">if</span> (options.require_neutral_target_charge <span style="color: #fb4934; font-weight: bold;">and</span> summary.target_charge != 0) {
+        summary.zero = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        summary.non_neutral = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span>;
+        summary.atom_count = 0;
+    }
+
+    <span style="color: #fb4934; font-weight: bold;">return</span> summary;
+}
+</pre>
+</div>
+
+<p>
+The tests protect reducer invariants rather than syntax: Ricci-flat targets
+kill Ricci atoms, Kahler type filters same-type curvature, and requested target
+charge neutrality removes charged rows.
+</p>
+
+
+<div class="toc-nav api-section tests-section">
+<div class="toc-section">
+<div class="toc-row"><span class="toc-toggle"></span><span class="toc-folder">Tests</span></div>
+<div class="toc-entries" hidden>
+<p class="api-kind"><b>NLSM Local Geometry Reducer</b></p>
+<div class="org-src-container">
+<pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"calabi-yau reducer drops ricci-flat local terms"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">slots</span> = [_]TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .antiholomorphic_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]TensorAtom{.{ .kind = .ricci, .slots = &amp;slots }};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> reduceLocalTerm(.{ .atoms = &amp;atoms }, .{ .flavor = .calabi_yau }, &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(summary.zero);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u16</span>, 1), summary.dropped_ricci_flat_atom_count);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 0), summary.atom_count);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"kahler reducer filters same-type curvature but keeps mixed type"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bad_slots</span> = [_]TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .holomorphic_tangent },
+        .{ .id = 3, .sort = .holomorphic_tangent },
+        .{ .id = 4, .sort = .holomorphic_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bad_atoms</span> = [_]TensorAtom{.{ .kind = .riemann, .slots = &amp;bad_slots }};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">bad_output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect((<span style="color: #fb4934; font-weight: bold;">try</span> reduceLocalTerm(.{ .atoms = &amp;bad_atoms }, .{ .flavor = .kahler }, &amp;bad_output)).zero);
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">good_slots</span> = [_]TensorSlot{
+        .{ .id = 1, .sort = .holomorphic_tangent },
+        .{ .id = 2, .sort = .antiholomorphic_tangent },
+        .{ .id = 3, .sort = .holomorphic_tangent },
+        .{ .id = 4, .sort = .antiholomorphic_tangent },
+    };
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">good_atoms</span> = [_]TensorAtom{.{ .kind = .riemann, .slots = &amp;good_slots }};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">good_output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> reduceLocalTerm(.{ .atoms = &amp;good_atoms }, .{ .flavor = .kahler, .require_neutral_target_charge = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }, &amp;good_output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(!summary.zero);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, 0), summary.target_charge);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">usize</span>, 1), summary.atom_count);
+}
+
+<span style="color: #fb4934; font-weight: bold;">test</span> <span style="color: #b8bb26; font-style: italic;">"target charge neutrality filters charged local terms"</span> {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">testing</span> = std.testing;
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">derivative_slots</span> = [_]TensorSlot{.{ .id = 1, .sort = .holomorphic_tangent }};
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">atoms</span> = [_]TensorAtom{.{ .kind = .covariant_derivative, .derivative_slots = &amp;derivative_slots }};
+    <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">output</span>: [1]<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">TensorAtom</span> = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">undefined</span>;
+
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">summary</span> = <span style="color: #fb4934; font-weight: bold;">try</span> reduceLocalTerm(.{ .atoms = &amp;atoms }, .{ .require_neutral_target_charge = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }, &amp;output);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(summary.zero);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expect(summary.non_neutral);
+    <span style="color: #fb4934; font-weight: bold;">try</span> testing.expectEqual(<span style="color: #fe8019; font-weight: bold;">@as</span>(<span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">i16</span>, 1), summary.target_charge);
+}
+</pre>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="postamble-date">Last updated: 2026-06-09</p>
+</div>
+</body>
+</html>

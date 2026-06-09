@@ -539,7 +539,9 @@
                        (option-value options :index-constraints nil))))
       (destructuring-bind (left-field right-field) left
         (let ((constraints (option-value body :index-constraints nil))
-              (terms (loop for item in body when (consp item) collect item)))
+              (terms (loop for item in body
+                           when (and (consp item) (eq (first item) 'term))
+                           collect item)))
           (add-wick-rule
            theory
            surface
@@ -589,25 +591,26 @@
          (field-declaration-parts form :pair)
        (declare-field theory parameters quantum-numbers fields labels
                       id symbol insertion label-spec statistics options)))
-    (wick
-     (let* ((items (rest form))
-            (has-surface (starts-with-surface-p surfaces items))
-            (surface (surface-form-id surfaces (first items)))
-            (left (if has-surface (second items) (first items)))
-            (body (if has-surface (cddr items) (rest items))))
-       (add-wick-form theory parameters fields labels surface left body)))
-    (zero-mode
-     (let* ((items (rest form))
-            (has-surface (starts-with-surface-p surfaces items))
-            (surface (surface-form-id surfaces (first items)))
-            (body (if has-surface (rest items) items)))
-       (destructuring-bind (kind consumes &rest options) body
-         (add-zero-mode theory
-                        surface
-                        kind
-                        (mapcar (lambda (field) (parse-field-ref fields field)) consumes)
-                        :normalization (option-value options :normalization :one)
-                        :two-pi-power (option-value options :two-pi-power 0)))))))
+
+(wick
+ (let* ((items (rest form))
+        (has-surface (starts-with-surface-p surfaces items))
+        (surface (surface-form-id surfaces (first items)))
+        (left (if has-surface (second items) (first items)))
+        (body (if has-surface (cddr items) (rest items))))
+   (add-wick-form theory parameters fields labels surface left body)))
+(zero-mode
+ (let* ((items (rest form))
+        (has-surface (starts-with-surface-p surfaces items))
+        (surface (surface-form-id surfaces (first items)))
+        (body (if has-surface (rest items) items)))
+   (destructuring-bind (kind consumes &rest options) body
+     (add-zero-mode theory
+                    surface
+                    kind
+                    (mapcar (lambda (field) (parse-field-ref fields field)) consumes)
+                    :normalization (option-value options :normalization :one)
+                    :two-pi-power (option-value options :two-pi-power 0)))))))
 
 (defun build-cft-preset (name hash forms)
   (let ((theory (make-theory name hash))
@@ -705,6 +708,18 @@
     (format stream "    try d.validateDescriptor(~A);~%"
             (generated-descriptor-name preset presets)))
   (format stream "}~%"))
+
+(defun write-generated-fixtures
+    (&key (path "src/cft-code/correlators/generated_fixtures.zig"))
+  "Write the Zig fixture module from registered Lisp presets."
+  (with-open-file (stream path :direction :output :if-exists :supersede
+                               :if-does-not-exist :create)
+    (let ((presets (sorted-presets)))
+      (emit-fixture-prologue stream)
+      (dolist (preset presets)
+        (emit-fixture-type stream preset presets))
+      (emit-fixture-self-test stream presets)))
+  path)
 
 (defun emit-dispatch-prologue (stream)
   (format stream "const std = @import(\"std\");~%")
@@ -867,18 +882,6 @@
       (emit-scalar-atom-name-function stream presets)
       (emit-theory-id-function stream presets)
       (emit-theory-hash-function stream presets)))
-  path)
-
-(defun write-generated-fixtures
-    (&key (path "src/cft-code/correlators/generated_fixtures.zig"))
-  "Write the Zig fixture module from registered Lisp presets."
-  (with-open-file (stream path :direction :output :if-exists :supersede
-                               :if-does-not-exist :create)
-    (let ((presets (sorted-presets)))
-      (emit-fixture-prologue stream)
-      (dolist (preset presets)
-        (emit-fixture-type stream preset presets))
-      (emit-fixture-self-test stream presets)))
   path)
 
 (defun write-generated-sources ()

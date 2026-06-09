@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2026-06-09 Tue 09:37 -->
+<!-- 2026-06-09 Tue 13:03 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Free Boson Preset</title>
@@ -158,7 +158,10 @@
     <li><a href="/notes/nlsm-code/api-requirements.html">NLSM API Requirements</a></li>
     <li><a href="/notes/nlsm-code/backend-and-dsl.html">NLSM Backend And Lisp DSL</a></li>
     <li><a href="/notes/nlsm-code/cft-tensor-feature-request.html">NLSM Feature Request For CFT-Code And Tensor-Code</a></li>
+    <li><a href="/notes/nlsm-code/cft-tensor-implementation-plan.html">CFT Tensor Implementation Plan For NLSM</a></li>
+    <li><a href="/notes/nlsm-code/local-geometry-reducer.html">NLSM Local Geometry Reducer</a></li>
     <li><a href="/notes/nlsm-code/r4-coefficients-technology.html">R4 Coefficient Technology</a></li>
+    <li><a href="/notes/nlsm-code/root.html">NLSM Root</a></li>
   </ul>
 </div>
 <div class="toc-section">
@@ -190,12 +193,19 @@
     <li><a href="/notes/tensor-code/context.html">Tensor Context</a></li>
     <li><a href="/notes/tensor-code/coupling.html">Tensor Coupling</a></li>
     <li><a href="/notes/tensor-code/decomposition.html">Tensor Decomposition</a></li>
+    <li><a href="/notes/tensor-code/gamma-only-rendering-plan.html">Gamma-Only Rendering Plan</a></li>
+    <li><a href="/notes/tensor-code/generic-highest-weight-backend.html">Generic Highest-Weight Backend</a></li>
     <li><a href="/notes/tensor-code/kernel.html">Tensor Kernel</a></li>
+    <li><a href="/notes/tensor-code/projector-constructor.html">Projector Constructor</a></li>
+    <li><a href="/notes/tensor-code/projector-formula-status.html">Projector Formula Status</a></li>
+    <li><a href="/notes/tensor-code/projector-gram-solver-plan.html">Finite Projector Gram Solver Plan</a></li>
+    <li><a href="/notes/tensor-code/projector-solver-handoff.html">Projector Solver Handoff</a></li>
     <li><a href="/notes/tensor-code/projector.html">Tensor Projector</a></li>
     <li><a href="/notes/tensor-code/realization.html">Tensor Realization</a></li>
     <li><a href="/notes/tensor-code/rendering.html">Tensor Rendering</a></li>
     <li><a href="/notes/tensor-code/representation-store.html">Tensor Representation Store</a></li>
     <li><a href="/notes/tensor-code/root-data.html">Tensor Root Data</a></li>
+    <li><a href="/notes/tensor-code/so-structural-generalization-plan.html">SO Structural Generalization Plan</a></li>
     <li><a href="/notes/tensor-code/symmetry.html">Symmetry</a></li>
   </ul>
 </div>
@@ -422,24 +432,30 @@ differently.
 
 <p>
 The derivative meaning is \(dX(\mu,n,z)=\partial^{n+1}X^\mu(z)\).  The
-explicit \(X\) body is kept because NLSM expansions and position-space profiles
-produce logarithmic Green kernels rather than only plane-wave contractions.
+builders accept either an ordinary <code>Handle.Index</code> or a sorted
+<code>Handle.TypedIndex</code>, so the same preset surface can be used for flat targets
+and for Kahler or Calabi-Yau local computations.  The explicit \(X\) body is
+kept because NLSM expansions and position-space profiles produce logarithmic
+Green kernels rather than only plane-wave contractions.
 </p>
 
 <div class="org-src-container">
 <pre class="src src-zig"><span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FreeBosonOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #e0d3b9; font-style: italic;">/// X builds an explicit bulk free-boson field insertion.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">X</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">X</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(sphereOperator(.x)).pair(local, z, zbar, .{mu});
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// dX builds a holomorphic derivative field insertion.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dX</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dX</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(sphereOperator(.d_x)).single(local, z, n, .{mu});
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// dXt builds an antiholomorphic derivative field insertion.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dXt</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dXt</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(sphereOperator(.d_xt)).single(local, zbar, n, .{mu});
     }
 
@@ -454,7 +470,8 @@ produce logarithmic Green kernels rather than only plane-wave contractions.
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// profileVector builds a vector-valued target-space profile insertion.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">profileVector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">f</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Profile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">profileVector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">f</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Profile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Coord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(nu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(profile_vector_operator).pair(local, z, zbar, .{ f, nu });
     }
 };
@@ -524,6 +541,14 @@ Labels supply indices, momenta, and profile handles at runtime.
     <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .antiholomorphic), wick.coord(.right, .position));
 }
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">singleToBulkHolomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .holomorphic));
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">singleToBulkAntiholomorphicDifference</span>() wick.CoordinateDifference {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.difference(wick.coord(.left, .position), wick.coord(.right, .antiholomorphic));
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeBosonDxDx</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) wick.Expr {
     <span style="color: #fb4934; font-weight: bold;">return</span> wick.differentiatedPole(scalars.div(scalars.neg(alpha), 2), .{ .metric = .{
         .left = wick.label(.left, 0),
@@ -564,6 +589,38 @@ Labels supply indices, momenta, and profile handles at runtime.
     }, &amp;.{.right});
 }
 
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeBosonXX</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">scalar</span> = scalars.div(scalars.neg(alpha), 2);
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{
+        wick.term(&amp;.{wick.scalar(scalar)}, &amp;.{wick.logarithm(bulkHolomorphicDifference())}, &amp;.{.{ .metric = .{
+            .left = wick.label(.left, 0),
+            .right = wick.label(.right, 0),
+        } }}),
+        wick.term(&amp;.{wick.scalar(scalar)}, &amp;.{wick.logarithm(bulkAntiholomorphicDifference())}, &amp;.{.{ .metric = .{
+            .left = wick.label(.left, 0),
+            .right = wick.label(.right, 0),
+        } }}),
+    });
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeBosonDxX</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{wick.term(&amp;.{wick.scalar(scalars.div(scalars.neg(alpha), 2))}, &amp;.{
+        wick.differentiatedLogarithm(singleToBulkHolomorphicDifference(), .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }),
+    }, &amp;.{.{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }})});
+}
+
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeBosonDxtX</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) wick.Expr {
+    <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{wick.term(&amp;.{wick.scalar(scalars.div(scalars.neg(alpha), 2))}, &amp;.{
+        wick.differentiatedLogarithm(singleToBulkAntiholomorphicDifference(), .{ .include_left = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> }),
+    }, &amp;.{.{ .metric = .{
+        .left = wick.label(.left, 0),
+        .right = wick.label(.right, 0),
+    } }})});
+}
+
 <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">freeBosonExpXExpX</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) wick.Expr {
     <span style="color: #fb4934; font-weight: bold;">return</span> wick.expr(&amp;.{wick.termWithResiduals(&amp;.{wick.scalar(scalars.div(alpha, 2))}, &amp;.{
         .{ .green_exponential = bulkHolomorphicDifference() },
@@ -600,10 +657,13 @@ Labels supply indices, momenta, and profile handles at runtime.
     .{ .name = <span style="color: #b8bb26; font-style: italic;">"profile"</span>, .kind = kind(.profile_x), .support = .bulk_pair, .insertion = .pair, .labels = &amp;.{.profile}, .statistics = .bosonic, .zero_mode_consumable = <span style="color: #d3869b; font-weight: bold; text-decoration: underline;">true</span> },
 };
 
-<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereWickSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) [7]Spec.WickRule {
+<span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">sphereWickSpec</span>(<span style="color: #fb4934; font-weight: bold;">comptime</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">alpha</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">RuleScalar</span>) [10]Spec.WickRule {
     <span style="color: #fb4934; font-weight: bold;">return</span> [_]Spec.WickRule{
+        .{ .left = kind(.x), .right = kind(.x), .expr = freeBosonXX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.d_x), .expr = freeBosonDxDx(alpha) },
         .{ .left = kind(.d_xt), .right = kind(.d_xt), .expr = freeBosonDxtDxt(alpha) },
+        .{ .left = kind(.d_x), .right = kind(.x), .expr = freeBosonDxX(alpha) },
+        .{ .left = kind(.d_xt), .right = kind(.x), .expr = freeBosonDxtX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.exp_x), .expr = freeBosonDxExpX(alpha) },
         .{ .left = kind(.d_xt), .right = kind(.exp_x), .expr = freeBosonDxtExpX(alpha) },
         .{ .left = kind(.d_x), .right = kind(.profile_x), .expr = freeBosonDxProfile(alpha) },
@@ -615,8 +675,11 @@ Labels supply indices, momenta, and profile handles at runtime.
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">sphere_wick_spec</span> = sphereWickSpec(.one);
 
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">torus_wick_spec</span> = [_]Spec.WickRule{
+    .{ .left = kind(.x), .right = kind(.x), .coordinate_kernels = &amp;.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.d_x), .coordinate_kernels = &amp;.{.elliptic_green} },
     .{ .left = kind(.d_xt), .right = kind(.d_xt), .coordinate_kernels = &amp;.{.elliptic_green} },
+    .{ .left = kind(.d_x), .right = kind(.x), .coordinate_kernels = &amp;.{.elliptic_green} },
+    .{ .left = kind(.d_xt), .right = kind(.x), .coordinate_kernels = &amp;.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.exp_x), .coordinate_kernels = &amp;.{.elliptic_green} },
     .{ .left = kind(.d_xt), .right = kind(.exp_x), .coordinate_kernels = &amp;.{.elliptic_green} },
     .{ .left = kind(.d_x), .right = kind(.profile_x), .coordinate_kernels = &amp;.{.elliptic_green} },
@@ -705,7 +768,7 @@ runtime config until the torus evaluator is implemented.
     <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.surface.source != .stringbook) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec source convention is incomplete"</span>);
     <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.operators.len != sphere_spec.operators.len) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec operator metadata is incomplete"</span>);
     <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.wick_rules.len != sphere_spec.wick_rules.len) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec Wick metadata is incomplete"</span>);
-    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green) != 6) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec Green-kernel metadata is incomplete"</span>);
+    <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green) != 9) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec Green-kernel metadata is incomplete"</span>);
     <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .elliptic_green_exponential) != 1) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec exponential Green-kernel metadata is incomplete"</span>);
     <span style="color: #fb4934; font-weight: bold;">if</span> (Spec.wickCoordinateKernelCount(torus_draft_spec.wick_rules, .rational_pole) != 0) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec still uses rational pole metadata"</span>);
     <span style="color: #fb4934; font-weight: bold;">if</span> (torus_draft_spec.zero_modes.len != 1) <span style="color: #fe8019; font-weight: bold;">@compileError</span>(<span style="color: #b8bb26; font-style: italic;">"free-boson torus draft spec zero-mode metadata is incomplete"</span>);
@@ -767,7 +830,8 @@ choice is already reflected in these rule templates before runtime.
 
 <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">FreeBosonBoundaryOp</span> = <span style="color: #fb4934; font-weight: bold;">struct</span> {
     <span style="color: #e0d3b9; font-style: italic;">/// dXBoundary builds stringbook's holomorphic boundary limit of dX.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dXBoundary</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">dXBoundary</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">n</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">u8</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(mu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(boundaryOperator(.d_x_boundary)).boundarySingle(local, y, n, .{mu});
     }
 
@@ -782,7 +846,8 @@ choice is already reflected in these rule templates before runtime.
     }
 
     <span style="color: #e0d3b9; font-style: italic;">/// profileBoundaryVector builds a vector-valued boundary profile insertion.
-</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">profileBoundaryVector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">f</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Profile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Index</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !Operator {
+</span>    <span style="color: #fb4934; font-weight: bold;">pub</span> <span style="color: #fb4934; font-weight: bold;">fn</span> <span style="color: #b8bb26; font-weight: bold;">profileBoundaryVector</span>(<span style="color: #83a598; font-weight: bold; font-style: italic;">local</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">f</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.Profile</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">nu</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">anytype</span>, <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span>: <span style="color: #fabd2f; font-weight: bold; text-decoration: underline;">Handle.BoundaryCoord</span>) !Operator {
+        <span style="color: #fb4934; font-weight: bold;">comptime</span> shared.assertTargetIndexHandle(<span style="color: #fe8019; font-weight: bold;">@TypeOf</span>(nu));
         <span style="color: #fb4934; font-weight: bold;">return</span> declare.operatorBuilder(boundary_profile_vector_operator).boundarySingle(local, y, 0, .{ f, nu });
     }
 };
@@ -970,7 +1035,7 @@ projector and the bulk-boundary doubling projector.
     <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> X.local(testing.allocator);
     <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
 
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.index(<span style="color: #b8bb26; font-style: italic;">"mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"mu"</span>, .holomorphic_tangent);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">k</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.momentum(<span style="color: #b8bb26; font-style: italic;">"k"</span>);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">z</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"z"</span>);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">zbar</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.coord(<span style="color: #b8bb26; font-style: italic;">"zbar"</span>);
@@ -989,7 +1054,7 @@ projector and the bulk-boundary doubling projector.
     <span style="color: #fb4934; font-weight: bold;">var</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">local</span> = <span style="color: #fb4934; font-weight: bold;">try</span> Local.init(testing.allocator);
     <span style="color: #fb4934; font-weight: bold;">defer</span> local.deinit();
 
-    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.index(<span style="color: #b8bb26; font-style: italic;">"mu"</span>);
+    <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">mu</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.typedIndex(<span style="color: #b8bb26; font-style: italic;">"mu"</span>, .holomorphic_tangent);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">k</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.momentum(<span style="color: #b8bb26; font-style: italic;">"k"</span>);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">y</span> = <span style="color: #fb4934; font-weight: bold;">try</span> local.boundaryCoord(<span style="color: #b8bb26; font-style: italic;">"y"</span>);
     <span style="color: #fb4934; font-weight: bold;">const</span> <span style="color: #83a598; font-weight: bold; font-style: italic;">dx</span> = <span style="color: #fb4934; font-weight: bold;">try</span> FreeBosonBoundaryOp.dXBoundary(&amp;local, mu, 3, y);
@@ -1010,7 +1075,7 @@ projector and the bulk-boundary doubling projector.
 </div>
 </div>
 <div id="postamble" class="status">
-<p class="postamble-date">Last updated: 2026-06-08</p>
+<p class="postamble-date">Last updated: 2026-06-09</p>
 </div>
 </body>
 </html>
