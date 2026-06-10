@@ -917,6 +917,7 @@ const EventSink = struct {
     pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
         switch (factor.kernel) {
             .difference_power => |item| try self.emit(.{ .kind = .coordinate, .a = item.coordinate.left, .b = item.coordinate.right, .d = item.exponent }),
+            .point_power => |item| try self.emit(.{ .kind = .coordinate, .a = item.point, .d = item.exponent, .name = "point-power" }),
             .logarithm => |item| try self.emit(.{ .kind = .coordinate, .a = item.left, .b = item.right, .name = "log" }),
             .green_kernel => |item| try self.emit(.{ .kind = .coordinate, .a = item.coordinate.left, .b = item.coordinate.right, .name = item.name }),
             .green_exponential => |item| try self.emit(.{ .kind = .coordinate, .a = item.left, .b = item.right, .name = "exp-green" }),

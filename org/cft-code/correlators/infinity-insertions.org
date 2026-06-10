@@ -5,26 +5,29 @@
 #+auto_tangle: nil
 
 This note specifies literal insertion at infinity for
-[[id:20260603T094138.285453][Correlators]] and OPE pairings built from
-[[id:20260606T063253.759714][Basis-Generation]].  The implementation must make
+[[id:20260603T094138.285453][Correlators]].  The implementation must make
 infinity ergonomic for correlator users, invisible to theory authors, and
-zero-cost for ordinary finite correlators.  The generated Wick rules in
+zero-cost for ordinary finite correlators.  Future OPE or BPZ pairings can use
+the same correlator feature, but they are not part of this pass.  The generated
+Wick rules in
 [[id:20260608T231500.000000][Generated Descriptor Boundary]] and the traversal in
 [[id:20260606T064107.303587][Wick]] should keep their current finite-coordinate
 shape.
 
+Descendant insertions at infinity are specified in
+[[id:20260610T193000.000000][Infinity Descendants Implementation Plan]].
+
 * Goal
 
-String amplitudes and BPZ pairings need operators literally inserted at
+String amplitudes and future BPZ pairings need operators literally inserted at
 infinity.  For a primary field with weights \((h,\bar h)\),
 
 #+begin_example
 O(infinity) = lim_{z->infinity} z^(2h) zbar^(2 hbar) O(z,zbar).
 #+end_example
 
-This is not only a pairing convenience.  It is part of fixing \(SL(2,C)\) in
-worldsheet amplitudes, so the public correlator API must let callers write an
-operator at infinity directly.
+This is part of fixing \(SL(2,C)\) in worldsheet amplitudes, so the public
+correlator API must let callers write an operator at infinity directly.
 
 The theory-definition DSL should not change.  Theory authors still define
 finite Wick contractions and zero-mode rules.  The infinity behavior is a
@@ -136,7 +139,7 @@ weights are label-dependent and are computed by a small free-boson hook.
 An infinity insertion is an insertion in the local chart
 
 #+begin_example
-u = 1 / z.
+z = -1 / u.
 #+end_example
 
 A derivative label at infinity means derivative with respect to \(u\), not a
@@ -149,9 +152,9 @@ For primary fields:
 O_infty(u) = (dz/du)^h (d zbar/d ubar)^hbar O(z(u), zbar(ubar))
 #+end_example
 
-The phase from \(dz/du=-u^{-2}\) is part of the sector convention.  The first
-implementation should store it as a scalar sign/phase in the conformal data
-for fermionic or ghost systems where it matters.
+For the BPZ inversion \(dz/du=u^{-2}\).  Orientation signs come from the
+transformed coordinate differences, not from an extra minus sign in the
+Jacobian.
 
 * Branch Limit State
 
@@ -177,7 +180,7 @@ emit_wick_coordinate(factor):
     forward factor
     return
 
-  rewrite factor in local chart u=1/z
+  rewrite factor in local chart z=-1/u
   add powers of u or ubar to endpoint_power
   forward finite remainder if one remains
 #+end_src
@@ -193,13 +196,13 @@ regularization layer is explicitly requested.
 For one infinity endpoint and one finite endpoint \(w\):
 
 #+begin_example
-z - w = u^-1 (1 - w u).
+z - w = -u^-1 (1 + w u).
 #+end_example
 
 Therefore
 
 #+begin_example
-(z - w)^p -> u^-p * (1 - w u)^p.
+(z - w)^p -> (-1)^p u^-p * (1 + w u)^p.
 #+end_example
 
 The finite limit contributes only the endpoint power \(-p\).  The regular
@@ -208,11 +211,11 @@ factor tends to one and is not emitted.
 For the opposite orientation:
 
 #+begin_example
-w - z = -u^-1 (1 - w u)
+w - z = u^-1 (1 + w u)
 #+end_example
 
-so the endpoint power is still \(-p\), with scalar factor \((-1)^p\) for
-integer \(p\).
+so the endpoint power is still \(-p\), without the additional BPZ orientation
+factor.
 
 For two infinity endpoints in the same chart, the finite part is not
 well-defined unless the user supplies a relative local-coordinate prescription.
@@ -231,7 +234,7 @@ rewrite_difference_power(left, right, exponent):
   if exactly_one_endpoint_is_infinity(left, right):
     endpoint = infinity_endpoint(left, right)
     add_endpoint_power(endpoint, -exponent)
-    if finite_minus_infinity_orientation(left, right):
+    if infinity_minus_finite_orientation(left, right):
       multiply_scalar((-1)^exponent)
     return finite
 
@@ -240,17 +243,18 @@ rewrite_difference_power(left, right, exponent):
 
 * Logarithms
 
-Free \(X\)-field logarithms are allowed in ordinary correlators, but amplitudes
-and OPE projections should usually contract derivative fields or
-exponentials.  For a logarithm with one infinity endpoint:
+Free \(X\)-field logarithms are allowed in ordinary correlators, but fixed
+correlator calls should usually contract derivative fields or exponentials.
+For a logarithm with one infinity endpoint:
 
 #+begin_example
-log(z - w) = -log(u) + log(1 - w u).
+log(z - w) = log(-1) - log(u) + log(1 + w u).
 #+end_example
 
-The second term vanishes in the limit.  The \(-log(u)\) term must cancel only
-inside well-defined normal-ordered exponentials or by derivative action.  A
-bare \(X(infinity)\) correlator is not a primary fixed insertion.
+The last term vanishes in the limit.  The constant phase depends on the branch
+convention.  The \(-log(u)\) term must cancel only inside well-defined
+normal-ordered exponentials or by derivative action.  A bare \(X(infinity)\)
+correlator is not a primary fixed insertion.
 
 First implementation rule:
 
@@ -400,7 +404,7 @@ delta have been accounted for.
 
 ** Two-Point Pairing
 
-The same mechanism gives the BPZ-like two-point pairing:
+The same mechanism gives the BPZ-like two-point correlator:
 
 #+begin_example
 < e^{ikX}(infinity) e^{ipX}(0) >
@@ -508,8 +512,9 @@ This lets ordinary fully contracted primary insertions such as =psi= and =dX=
 avoid the general sink adapter.  A zero-mode-consumable infinity field, such as
 the =c= ghost in a sphere top form, still goes through the limit sink because
 the zero-mode base case may contain the infinity point.  Descendant insertions
-at infinity are rejected for now; they need their own BPZ descendant rule rather
-than primary scaling.
+at infinity are handled by the local-coordinate BPZ rules in
+[[id:20260610T193000.000000][Infinity Descendants Implementation Plan]], not by
+primary scaling.
 
 Full correlator benchmark pass after this audit:
 

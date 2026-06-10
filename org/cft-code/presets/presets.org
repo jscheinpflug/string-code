@@ -1558,6 +1558,187 @@ test "bc top form limits one c insertion at infinity" {
     try testing.expectEqual(@as(usize, 1), sink.base_cases);
 }
 
+test "bc top form first descendant at infinity streams two polynomial terms" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 0, z2),
+        try Ghost.op.c(&local, 1, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        z1: u32,
+        z2: u32,
+        differences: usize = 0,
+        z1_points: usize = 0,
+        z2_points: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickCoordinate checks (z1-z2)z1 + (z1-z2)z2.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    try testing.expectEqual(self.z1, power.coordinate.left);
+                    try testing.expectEqual(self.z2, power.coordinate.right);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    self.differences += 1;
+                },
+                .point_power => |power| {
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    if (power.point == self.z1) self.z1_points += 1 else if (power.point == self.z2) self.z2_points += 1 else return error.UnexpectedCoordinateFactor;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitZeroModeFactor rejects an un-limited top form.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {
+            return error.UnexpectedZeroModeFactor;
+        }
+
+        /// emitZeroModeBaseEnd records one streamed polynomial term.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z1 = @intFromEnum(z1), .z2 = @intFromEnum(z2) };
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 2), sink.differences);
+    try testing.expectEqual(@as(usize, 1), sink.z1_points);
+    try testing.expectEqual(@as(usize, 1), sink.z2_points);
+    try testing.expectEqual(@as(usize, 2), sink.base_cases);
+}
+
+test "bc top form second descendant at infinity streams quadratic term" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 0, z2),
+        try Ghost.op.c(&local, 2, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        z1: u32,
+        z2: u32,
+        differences: usize = 0,
+        z1_points: usize = 0,
+        z2_points: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickCoordinate checks 2(z1-z2)z1 z2.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    try testing.expectEqual(self.z1, power.coordinate.left);
+                    try testing.expectEqual(self.z2, power.coordinate.right);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    try testing.expectEqual(@as(i64, 2), factor.scalar.numerator);
+                    self.differences += 1;
+                },
+                .point_power => |power| {
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    if (power.point == self.z1) self.z1_points += 1 else if (power.point == self.z2) self.z2_points += 1 else return error.UnexpectedCoordinateFactor;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitZeroModeFactor rejects an un-limited top form.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {
+            return error.UnexpectedZeroModeFactor;
+        }
+
+        /// emitZeroModeBaseEnd records one streamed polynomial term.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z1 = @intFromEnum(z1), .z2 = @intFromEnum(z2) };
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.differences);
+    try testing.expectEqual(@as(usize, 1), sink.z1_points);
+    try testing.expectEqual(@as(usize, 1), sink.z2_points);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "bc top form higher descendant at infinity vanishes" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 0, z2),
+        try Ghost.op.c(&local, 3, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickTermEnd = noopWickTermEnd;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        coordinates: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickCoordinate rejects leaked vanishing top-form output.
+        pub fn emitWickCoordinate(self: *@This(), _: anytype) !void {
+            self.coordinates += 1;
+            return error.UnexpectedCoordinateFactor;
+        }
+
+        /// emitZeroModeBaseEnd records an accepted term, which should not occur.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 0), sink.coordinates);
+    try testing.expectEqual(@as(usize, 0), sink.base_cases);
+}
+
 test "vanishing primary infinity branch is dropped before sink output" {
     const testing = @import("std").testing;
 
@@ -1678,6 +1859,324 @@ test "free fermion two point at infinity emits metric without coordinate factor"
     try Psi.correlator(&Psi.config.sphere, ops, &sink);
     try testing.expectEqual(@as(usize, 0), sink.coordinates);
     try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "free fermion descendant at infinity emits point power" {
+    const testing = @import("std").testing;
+
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+
+    var local = try Psi.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const ops = try local.ops(.{
+        try Psi.op.psi(&local, mu, 0, z),
+        try Psi.op.psi(&local, nu, 1, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        z: u32,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickTermStart accepts the descendant contraction.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickCoordinate checks the BPZ-descendant point monomial.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .point_power => |power| {
+                    try testing.expectEqual(self.z, power.point);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    try testing.expectEqual(@as(i64, -1), factor.scalar.numerator);
+                    try testing.expectEqual(@as(i64, 1), factor.scalar.denominator);
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor records the metric tensor.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickTermEnd accepts the contraction boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeBaseEnd records the full contraction base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z = @intFromEnum(z) };
+    try Psi.correlator(&Psi.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "free boson dX descendant at infinity emits BPZ point power" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const preset_alpha = scalars.atom("free_boson", "alpha_prime");
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z),
+        try X.op.dX(&local, nu, 1, inf),
+    });
+
+    const Sink = struct {
+        expected_alpha: @TypeOf(preset_alpha),
+        z: u32,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        base_cases: usize = 0,
+
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        /// emitWickTermStart accepts the descendant contraction.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickScalar checks the free-boson contraction scalar.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .monomial => |monomial| {
+                        if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2) return error.UnexpectedScalarFactor;
+                        if (monomial.imaginary_power != 0 or monomial.atom_power != 1) return error.UnexpectedScalarFactor;
+                        try testing.expectEqual(self.expected_alpha, monomial.atom.?);
+                        self.scalars += 1;
+                    },
+                    else => return error.UnexpectedScalarShape,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate checks the BPZ derivative coefficient.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .point_power => |power| {
+                    try testing.expectEqual(self.z, power.point);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    try testing.expectEqual(@as(i64, -2), factor.scalar.numerator);
+                    try testing.expectEqual(@as(i64, 1), factor.scalar.denominator);
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor records the metric tensor.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickTermEnd accepts the contraction boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeBaseEnd records the full contraction base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .expected_alpha = preset_alpha, .z = @intFromEnum(z) };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.scalars);
+    try testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "normal ordered dX descendants at infinity contract as separate primitives" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const rho = try local.index("rho");
+    const sigma = try local.index("sigma");
+    const inf_mu = try X.op.dX(&local, mu, 1, inf);
+    const inf_nu = try X.op.dX(&local, nu, 1, inf);
+    const ops = try local.ops(.{
+        .{ inf_mu, inf_nu },
+        try X.op.dX(&local, rho, 0, z1),
+        try X.op.dX(&local, sigma, 0, z2),
+    });
+
+    const Sink = struct {
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        z1: u32,
+        z2: u32,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        z1_points: usize = 0,
+        z2_points: usize = 0,
+        tensors: usize = 0,
+        base_cases: usize = 0,
+
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        pub fn emitWickScalar(self: *@This(), _: anytype) !void {
+            self.scalars += 1;
+        }
+
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .point_power => |power| {
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    try testing.expectEqual(@as(i64, -2), factor.scalar.numerator);
+                    if (power.point == self.z1) {
+                        self.z1_points += 1;
+                    } else if (power.point == self.z2) {
+                        self.z2_points += 1;
+                    } else {
+                        return error.UnexpectedCoordinateFactor;
+                    }
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z1 = @intFromEnum(z1), .z2 = @intFromEnum(z2) };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 4), sink.scalars);
+    try testing.expectEqual(@as(usize, 4), sink.coordinates);
+    try testing.expectEqual(@as(usize, 2), sink.z1_points);
+    try testing.expectEqual(@as(usize, 2), sink.z2_points);
+    try testing.expectEqual(@as(usize, 4), sink.tensors);
+    try testing.expectEqual(@as(usize, 2), sink.base_cases);
+}
+
+test "dX descendant beside exponential at infinity keeps exponential branch global" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const k = try local.momentum("k");
+    const dx_inf = try X.op.dX(&local, mu, 1, inf);
+    const exp_inf = try X.op.expX(&local, k, inf, inf);
+    const ops = try local.ops(.{
+        .{ dx_inf, exp_inf },
+        try X.op.dX(&local, nu, 0, z),
+    });
+
+    const Sink = struct {
+        pub const emitWickAction = noopWickAction;
+
+        z: u32,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        zero_modes: usize = 0,
+        base_cases: usize = 0,
+
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        pub fn emitWickScalar(self: *@This(), _: anytype) !void {
+            self.scalars += 1;
+        }
+
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .point_power => |power| {
+                    try testing.expectEqual(self.z, power.point);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    try testing.expectEqual(@as(i64, -2), factor.scalar.numerator);
+                    try testing.expectEqual(@as(i64, 1), factor.scalar.denominator);
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_delta => self.zero_modes += 1,
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z = @intFromEnum(z) };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.scalars);
+    try testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.zero_modes);
     try testing.expectEqual(@as(usize, 1), sink.base_cases);
 }
 

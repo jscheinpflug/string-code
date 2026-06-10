@@ -1,0 +1,603 @@
+:PROPERTIES:
+:ID:       20260610T193000.000000
+:END:
+#+title: Infinity Descendants Implementation Plan
+#+auto_tangle: nil
+
+This note extends [[id:20260610T161500.000000][Infinity Insertions In
+Correlators]] to descendant insertions at infinity.  The scope is the
+correlator itself: callers should be able to insert primitive descendant fields
+at infinity and stream the resulting Wick/zero-mode events.  OPE pairings are a
+future consumer, not part of this pass.
+
+* Physics Target
+
+An operator at infinity is not a finite-coordinate derivative followed by a
+limit.  It is the operator transformed by the BPZ inversion
+
+#+begin_example
+I(u) = -1 / u.
+#+end_example
+
+Here \(u\) is the local coordinate around the infinity insertion and the global
+sphere coordinate is \(z=I(u)\).  Thus
+
+For a holomorphic primary \(\phi\) of weight \(h\),
+
+#+begin_example
+phi_infty(u) = (dz/du)^h phi(z(u))
+             = u^(-2h) phi(-1/u).
+#+end_example
+
+A descendant in the current local-operator language is a local-coordinate
+derivative:
+
+#+begin_example
+partial_u^n phi_infty(u)
+  = partial_u^n [ (dz/du)^h phi(z(u)) ].
+#+end_example
+
+The derivative acts on both the finite-coordinate field and the Jacobian.
+This is the usual BPZ/local-coordinate rule.  The implementation must therefore
+differentiate the transformed expression, not only the old finite Wick kernel.
+Equivalently, first apply the conformal transform \(z \mapsto -1/z\) to the
+whole primary insertion and only then expand in the local coordinate \(u\).
+
+For antiholomorphic fields use \(\bar z=-1/\bar u\).  Bulk fields are the
+product of independent holomorphic and antiholomorphic BPZ transforms.
+
+* User-Facing Meaning
+
+The existing API remains the right one:
+
+#+begin_src text :tangle no
+const inf = local.infinity();
+try Psi.op.psi(&local, mu, n, inf);
+try X.op.dX(&local, mu, n, inf);
+try Ghost.op.c(&local, n, inf);
+#+end_src
+
+At a finite point, =n= means the existing finite-coordinate derivative.  At
+infinity, =n= means the \(u\)-derivative of the transformed local field.
+Theory definitions still provide only finite Wick rules and conformal
+metadata.
+
+* Core Rule
+
+For a Wick coordinate factor involving one infinity endpoint, do this:
+
+#+begin_example
+1. substitute z = -1/u for the infinity endpoint;
+2. multiply by the primary Jacobian of that endpoint;
+3. apply the requested u-derivative;
+4. take the u -> 0 finite coefficient;
+5. emit only the finite remainder.
+#+end_example
+
+Do not implement this as "differentiate the finite Wick factor and multiply by
+the Jacobian afterward".  That misses the Leibniz terms where derivatives hit
+the Jacobian itself.  The bounded implementation should compute the needed
+coefficient of the transformed local series directly.
+
+For a branch-local primitive field that contracts away, this is pair-local.
+For zero-mode expressions such as the \(bc\) top form, it is zero-mode-local.
+For free-boson exponentials, it remains branch-local because cancellation of
+Green powers is conditional on the emitted momentum delta.
+
+* Rational Kernel Formula
+
+Consider a chiral factor
+
+#+begin_example
+(z - w)^p
+#+end_example
+
+with \(z = -1/u\) at infinity and finite \(w\).  After the primary Jacobian,
+the transformed factor has the form
+
+#+begin_example
+S * u^A * (1 + w u)^q
+#+end_example
+
+where:
+
+- =S= is the orientation sign and finite scalar from ordinary derivatives;
+- =A= is the chart power after adding the primary Jacobian power;
+- =q= is the coordinate-difference exponent after finite-side derivatives.
+
+The \(n\)-th infinity descendant is finite iff the coefficient of \(u^n\) in
+that series exists without negative leftover powers:
+
+#+begin_example
+partial_u^n [ S * u^A * (1 + w u)^q ] at u=0
+  = S * n! * binomial(q, n - A) * w^(n - A)
+#+end_example
+
+with the conventions:
+
+#+begin_example
+if A < 0:       divergent
+if n - A < 0:   result is zero
+otherwise:      emit the coefficient above
+#+end_example
+
+For \(z-w\), the orientation scalar includes \((-1)^q\) because
+\(z-w=-u^{-1}(1+w u)\).  For \(w-z\), no additional BPZ orientation sign is
+needed because \(w-z=u^{-1}(1+w u)\).  If the finite side also has derivative
+labels, first apply the existing finite derivative rule to change \(p\),
+scalar, and sign, then apply the infinity chart formula.
+
+* New Coefficient Atom
+
+Descendant limits can produce finite coordinate monomials such as \(w^r\).
+The current rational coordinate vocabulary is centered on differences.  Do not
+force this through fake differences to an artificial origin.  Add one compact
+coordinate factor:
+
+#+begin_src text :tangle no
+CoordinateKernel:
+  point_power:
+    point: Variable
+    exponent: i16
+#+end_src
+
+This is not a new symbolic-expression tree.  It is a single factor atom used
+only when the local-coordinate expansion produces a power of the finite point.
+The compact text sink may render it as =zN^r=.
+
+* Compile-Time Plan Data
+
+The rule data known at compile time should say whether a coordinate factor is
+eligible for direct infinity-descendant lowering.
+
+#+begin_src text :tangle no
+InfinityDerivativeProfile:
+  coordinate_kind:
+    difference_power | logarithm | green_kernel | green_exponential
+  primary_power:
+    holomorphic: i16
+    antiholomorphic: i16
+  support:
+    holomorphic | antiholomorphic | bulk_pair
+  side:
+    left | right
+  orientation:
+    infinity_minus_finite | finite_minus_infinity
+#+end_src
+
+The runtime supplies only:
+
+- which endpoint is infinity;
+- derivative order at that endpoint;
+- derivative order at the finite endpoint;
+- concrete finite coordinate variable;
+- concrete tensor/scalar labels.
+
+This keeps the branch walker data-oriented: no retained cache of expanded
+descendant expressions, and no theory-specific mode names in the correlator.
+
+* Compile-Time Limit Programs
+
+Most of the nontrivial logic should be generated at compile time from the Wick
+rules, operator specs, and infinity metadata.  Runtime should not inspect the
+abstract theory or branch through general symbolic cases.
+
+For every Wick rule term, build a compact program for each endpoint orientation
+that can touch infinity:
+
+#+begin_src text :tangle no
+InfinityTermProgram:
+  scalar_ops: static scalar factors to replay
+  coordinate_ops: []InfinityCoordinateOp
+  tensor_ops: static tensor replay descriptors
+  action_ops: static action replay descriptors
+  residual_ops: static residual replay descriptors
+
+InfinityCoordinateOp:
+  kind:
+    finite_passthrough
+    descendant_difference_limit
+    reject_logarithm
+    reject_green_kernel
+    branch_green_exponential
+  infinity_side:
+    left | right | none
+  finite_side:
+    left | right | none
+  base_exponent: i16
+  derivative_action:
+    include_left: bool
+    include_right: bool
+  orientation_sign_kind:
+    none | infinity_minus_finite_power
+  primary_power_source:
+    holomorphic | antiholomorphic
+  output_shape:
+    scalar_only | scalar_and_point_power | passthrough_coordinate
+#+end_src
+
+This program is not an expression cache.  It stores only static control data:
+which closed-form formula to use, where to read runtime coordinates and
+derivative counts, and which factors can be replayed without inspection.  The
+program size is proportional to the Wick rule text, not to the number of
+operators or Wick branches.
+
+The compile-time builder should reject impossible static cases early:
+
+- coordinate kernels that cannot have an infinity limit;
+- two endpoints that would both be infinity inside one factor;
+- unsupported output atoms;
+- missing infinity metadata for a primary family;
+- derivative-of-exponential-primary cases that must be lowered before Wick
+  traversal.
+
+The runtime evaluator then has a narrow job:
+
+#+begin_src text :tangle no
+run_infinity_term_program(program, pair, sink):
+  for op in program.coordinate_ops:
+    switch op.kind:
+      finite_passthrough:
+        emit finite coordinate factor
+
+      descendant_difference_limit:
+        n_inf = derivative_count(pair, op.infinity_side)
+        n_fin = derivative_count(pair, op.finite_side)
+        finite = apply_static_finite_derivative(op, n_fin)
+        limited = closed_form_limit(op, finite, n_inf)
+        emit limited scalar and optional point_power
+
+      reject_*:
+        return unsupported
+
+      branch_green_exponential:
+        record branch-local green cancellation data
+
+  replay static tensors/actions/residuals
+#+end_src
+
+The only arithmetic left at runtime is the small closed-form coefficient:
+falling powers, factorial, generalized binomial, and a few scalar
+multiplications.  These loops are bounded by the derivative labels on the two
+contracted fields.  If a benchmark shows these loops matter, add a tiny
+comptime table for factorials and binomials up to the branch budget's maximum
+derivative order.  Do not add a branch-result cache.
+
+The existing =RuntimeWickTactic(ConfigHandle, mode)= type is the natural place
+for this.  =ConfigHandle= already carries lowered Wick rules and branch
+limits.  Add the limit-program storage beside the pair lookup:
+
+#+begin_src text :tangle no
+CorrelatorConfigData:
+  wick_rules
+  pair_lookup
+  infinity_data
+  infinity_term_programs
+#+end_src
+
+At compile time:
+
+#+begin_src text :tangle no
+correlatorConfig(input):
+  pair_lookup = pairLookupStorage(input.wick_rules)
+  infinity_programs = infinityProgramStorage(input.wick_rules,
+                                             input.operator_specs,
+                                             input.infinity_data)
+#+end_src
+
+If the current config input no longer has the original operator specs at this
+point, add only the minimal lowered conformal/operator table needed by
+=infinityProgramStorage=.  Do not pass full theory descriptors into the runtime
+config.
+
+At runtime the pair payload should continue to be a compact integer.  The high
+bit can mark "uses infinity program" as it does now; the remaining payload
+selects rule and term.  The emitter maps that payload to the precomputed
+=InfinityTermProgram= and executes it without rematching Wick rules.
+
+* Runtime Data Flow
+
+The hot runtime path for a descendant at infinity should be:
+
+#+begin_example
+pair candidate payload
+  -> precomputed term program
+  -> read two derivative counts and finite coordinate token
+  -> evaluate closed-form scalar
+  -> emit scalar / point_power / tensor atoms
+#+end_example
+
+It should not:
+
+- allocate temporary expressions;
+- build a polynomial or series object;
+- scan all Wick rules after the candidate payload is known;
+- consult theory-specific mode names;
+- keep a cache of evaluated descendant branches.
+
+This keeps the finite path unchanged and makes the infinity path a small
+specialized replay path, similar to the current accumulated branch cache.
+
+* Performance Value
+
+The compile-time program pass is meaningful, but its value depends on the
+baseline.
+
+If the alternative is runtime symbolic work, such as constructing
+
+#+begin_example
+partial_u^n [ (dz/du)^h K(-1/u,w) ]
+#+end_example
+
+and then differentiating or simplifying it as an expression, the compile-time
+program is a decisive algorithmic improvement.  It avoids expression growth
+entirely and should be treated as mandatory for descendant-at-infinity
+correlators.
+
+If the alternative is already a hand-written closed-form runtime formula, the
+speedup is more modest.  The compile-time program removes repeated work:
+
+- classifying the coordinate kernel;
+- deciding BPZ orientation signs;
+- locating the primary Jacobian power;
+- checking whether logs, Green kernels, or exponentials need special handling;
+- replaying static scalars, tensors, actions, and residual refs;
+- walking generic Wick term data after the pair payload is already known.
+
+In that regime the expected improvement is probably a factor of \(1.2\) to
+\(2\) on descendant-heavy rows, not \(10\).  The reason to still do it is that
+the code becomes a small validated replay path instead of a runtime symbolic
+transformer.
+
+If a caller or benchmark gives a maximum descendant order, the program builder
+may also precompute coefficient tables:
+
+#+begin_example
+for n in 0..max_derivative:
+  status[n]
+  scalar[n]
+  point_power[n]
+#+end_example
+
+Runtime then only indexes the table and emits atoms.  Add this only if
+benchmarks show that factorial/binomial loops matter; the first implementation
+should keep the program compact and compute the small integer coefficient at
+runtime.
+
+The target is therefore not an abstract 10x speedup over the current primary
+path.  The target is that descendant infinity contractions stay in the same
+performance class as finite descendant contractions while avoiding all runtime
+expression construction.
+
+* Pair-Level Algorithm
+
+The primary-infinity pair emitter should become a descendant-infinity pair
+emitter.  It must lower one primitive Wick term directly into finite factors.
+
+#+begin_src text :tangle no
+emit_infinity_pair_term(pair, left_index, right_index, term):
+  start term
+
+  for scalar in term.scalars:
+    emit scalar
+
+  for coordinate in term.coordinates:
+    if coordinate has no infinity endpoint:
+      emit existing finite coordinate evaluation
+      continue
+
+    if coordinate has two infinity endpoints:
+      reject unsupported
+
+    info = endpoint_infinity_info(coordinate)
+    finite = apply_finite_side_derivatives(coordinate, info)
+    limited = limit_descendant_coordinate(finite, info)
+
+    if limited.status == zero:
+      mark term zero and stop
+    if limited.status == divergent:
+      reject divergent infinity limit
+
+    emit limited.scalar
+    if limited.point_power != 0:
+      emit point_power(finite.coordinate, limited.point_power)
+
+  emit tensors/actions/residuals
+  end term
+#+end_src
+
+The branch accumulator already has the right backtracking shape.  It only needs
+to know whether a pushed primitive term vanished.  A zero primitive term should
+make the current branch path return without emitting the branch.
+
+* Closed-Form Helper
+
+The helper should be scalar and bounded.
+
+#+begin_src text :tangle no
+limit_descendant_difference(input):
+  # input contains exponent q, scalar S, finite variable w,
+  # primary chart power J, infinity derivative order n.
+
+  A = J - q
+  if A < 0:
+    return divergent
+
+  r = n - A
+
+  if r < 0:
+    return zero
+
+  coeff = S
+  coeff *= factorial(n)
+  coeff *= generalized_binomial(q, r)
+
+  return finite {
+    scalar = coeff,
+    point_power = r,
+  }
+#+end_src
+
+Use exact integer/rational arithmetic with overflow checks.  The helper must
+not allocate.  It returns at most one scalar factor and one =point_power=
+factor.
+
+* Multiple Primitive Insertions
+
+Correlator users may pass several primitive fields at the same infinity point,
+for example
+
+#+begin_example
+:partial X partial X e^{ikX}:(infinity).
+#+end_example
+
+The correlator should still see this as several local operator insertions at
+the same =Point.infinity()=.  Each primitive insertion carries its own
+derivative order and conformal metadata.  The branch walker then contracts
+primitive factors as usual.  This avoids a new composite-operator evaluator.
+
+Normal ordering remains a caller responsibility.  This pass does not introduce
+OPE-state reconstruction or a composite-operator pairing engine.
+
+* Zero Modes
+
+The \(bc\) top form needs the same local-coordinate rule.  With one
+\(c\)-ghost jet at infinity:
+
+#+begin_example
+partial_u^n [ (dz/du)^(-1)
+              (z1 - z2)(z1 - z(u))(z2 - z(u)) ] at u=0
+#+end_example
+
+The current implementation handles only =n=0.  Generalize it by evaluating the
+small polynomial series through order =n=.  This is bounded because the top
+form has exactly three jets.
+
+#+begin_src text :tangle no
+emit_limited_bc_top_form(jets):
+  if no infinity jet:
+    emit existing top form
+    return
+
+  if more than one infinity jet:
+    reject unsupported
+
+  n = infinity_jet.derivative_order
+  series = top_form_series_in_u_through_order(n)
+  coeff = n! * series.coefficient(n)
+
+  if coeff is zero:
+    drop base case
+  else:
+    emit coeff as scalar/coordinate factors
+#+end_src
+
+This keeps determinant expansion out of the generic zero-mode code.  The
+specialized top-form procedure emits at most a small fixed number of coordinate
+atoms.
+
+* Free-Boson Exponentials
+
+Exponentials are not pair-local.  The descendant plan for exponentials has two
+stages.
+
+Stage one supports oscillator descendants next to an exponential by treating
+the oscillator fields as separate primitive insertions at infinity:
+
+#+begin_example
+partial X(infinity) * exp(ikX)(infinity)
+#+end_example
+
+The =partial X= factors use the rational descendant lowering above.  The
+exponential itself uses the existing branch-global Green-exponential
+cancellation with the momentum delta.
+
+Stage two supports derivatives of the exponential primary itself:
+
+#+begin_example
+partial_u^n [ J(u)^h :exp(ikX(-1/u)): ]
+#+end_example
+
+This creates descendants proportional to \(\partial X exp(ikX)\) and higher
+normal-ordered polynomials.  Do not hide this in the infinity sink.  It should
+be lowered before Wick traversal into explicit primitive oscillator factors
+plus the exponential primary.  That lowering belongs to a later operator
+lowering layer, not to this correlator pass.
+
+* Error Policy
+
+Reject rather than approximate:
+
+- two infinity endpoints in one coordinate factor;
+- descendant logarithms that cannot first be converted into rational powers;
+- derivative of a free-boson exponential primary until stage two lowering
+  exists;
+- infinity descendants whose finite result requires unsupported coordinate
+  atoms;
+- divergent limits.
+
+Vanishing branches are not errors.  They are dropped before reaching the final
+sink.
+
+* Benchmarks
+
+Add rows next to the current finite/infinity cases:
+
+#+begin_example
+psi8_d1_infinity
+psi10_d1_infinity
+dx8_d1_infinity
+dx10_d1_infinity
+bc_ccc_c_d1_infinity
+#+end_example
+
+The useful comparison is not term count alone.  Check:
+
+- finite rows keep their current gates;
+- infinity descendant rows are within the same order as finite descendant rows;
+- no branch allocates expression trees;
+- accepted branch counts match the same finite/local-coordinate calculation at
+  a large finite symbolic point when the latter is manually simplified.
+
+* Tests
+
+Use small mathematical identities.
+
+#+begin_example
+psi:
+  partial_u [u^-1 psi(-1/u)] paired with psi(w)
+  gives the derivative of u^-1 (-1/u - w)^-1 at u=0.
+
+dX:
+  partial_u^n [u^-2 dX(-1/u)] paired with dX(w)
+  agrees with the closed-form coefficient formula.
+
+bc:
+  c descendant in the top form agrees with differentiating
+  u^2 (z1-z2)(z1+u^-1)(z2+u^-1).
+
+negative:
+  two infinity endpoints in one rational factor are rejected.
+
+negative:
+  derivative of expX itself is rejected until explicit oscillator lowering
+  exists.
+#+end_example
+
+* Implementation Order
+
+1. Add =point_power= to coordinate factors and the compact text sink.
+2. Add the closed-form =limit_descendant_difference= helper.
+3. Add compile-time =InfinityTermProgram= storage beside the pair lookup.
+4. Replace the primary-only infinity guard with a descendant-capable guard for
+   non-zero-mode-consumable primary families.
+5. Teach the primary-infinity pair emitter to execute the precomputed term
+   program instead of rejecting derivative orders.
+6. Extend the general limit sink only for the cases that can reach zero modes,
+   starting with the \(bc\) top form.
+7. Add tests for =psi=, =dX=, and \(bc\) top form descendants.
+8. Add descendant infinity benchmark rows and rerun the full finite benchmark
+   suite.
+
+This order keeps finite correlators untouched and gets descendant insertions at
+infinity working before the more difficult exponential descendant lowering.

@@ -52,6 +52,7 @@ pub const CoordinateDifference = struct {
 /// CoordinateKernel stores one coordinate-dependent kernel factor.
 pub const CoordinateKernel = union(enum) {
     difference_power: struct { coordinate: CoordinateDifference, exponent: i16 },
+    point_power: struct { point: Variable, exponent: i16 },
     logarithm: CoordinateDifference,
     green_kernel: struct { name: []const u8, coordinate: CoordinateDifference, left_derivatives: u8 = 0, right_derivatives: u8 = 0 },
     green_exponential: CoordinateDifference,
@@ -98,8 +99,8 @@ const Monomial = struct {
 };
 
 const MonomialTerm = struct {
-   variable: Variable,
-   power: u16,
+    variable: Variable,
+    power: u16,
 };
 
 /// Variables are internally assigned numeric identifiers

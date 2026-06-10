@@ -425,9 +425,9 @@ pub const Local = opaque {
         pending.* = .{
             .owner = state,
             .item = .{
-            .insertion = insertion,
-            .kind = kind,
-            .labels = try self.labelSpan(values),
+                .insertion = insertion,
+                .kind = kind,
+                .labels = try self.labelSpan(values),
             },
         };
         try state.pending_operators.append(state.allocator, pending);
@@ -1209,6 +1209,50 @@ const PairLookupEntry = struct {
     reversed: bool,
 };
 
+const InfinityProgramOrientation = enum(u1) {
+    left,
+    right,
+};
+
+const InfinityCoordinateKernel = enum {
+    difference_power,
+    logarithm,
+    green_kernel,
+    green_exponential,
+};
+
+const InfinityCoordinateOpKind = enum {
+    finite_passthrough,
+    descendant_difference_limit,
+    reject_logarithm,
+    reject_green_kernel,
+    branch_green_exponential,
+};
+
+const InfinityCoordinateOp = struct {
+    kind: InfinityCoordinateOpKind,
+    kernel: InfinityCoordinateKernel,
+    left: wick.CoordinateRef,
+    right: wick.CoordinateRef,
+    exponent: i16 = 0,
+    derive_left: bool = false,
+    derive_right: bool = false,
+    name: []const u8 = "",
+};
+
+const InfinityTermProgram = struct {
+    scalar_start: u32,
+    scalar_count: u16,
+    coordinate_start: u32,
+    coordinate_count: u16,
+    tensor_start: u32,
+    tensor_count: u16,
+    action_start: u32,
+    action_count: u16,
+    residual_start: u32,
+    residual_count: u16,
+};
+
 const BranchBudget = enum {
     standard,
 };
@@ -1251,6 +1295,13 @@ const InfinityOperatorData = struct {
 const CorrelatorConfigData = struct {
     wick_rules: []const wick.Rule,
     pair_lookup: []const PairLookupEntry,
+    infinity_program_offsets: []const u32,
+    infinity_programs: []const InfinityTermProgram,
+    infinity_scalar_ops: []const wick.ScalarFactor,
+    infinity_coordinate_ops: []const InfinityCoordinateOp,
+    infinity_tensor_ops: []const wick.TensorFactor,
+    infinity_action_ops: []const wick.ActionFactor,
+    infinity_residual_ops: []const wick.Side,
     zero_modes: []const zero_mode.Rule,
     config_entries: []const ConfigEntry,
     fermion_kinds: []const operators.OperatorKindId,
@@ -1262,9 +1313,23 @@ fn correlatorConfig(comptime input: CorrelatorConfigInput) type {
     return struct {
         const branch_limits = branchLimits(input);
         const pair_lookup_storage = pairLookupStorage(input.wick_rules);
+        const infinity_program_offset_storage = infinityProgramOffsetStorage(input.wick_rules);
+        const infinity_scalar_op_storage = infinityScalarOpStorage(input.wick_rules);
+        const infinity_coordinate_op_storage = infinityCoordinateOpStorage(input.wick_rules);
+        const infinity_tensor_op_storage = infinityTensorOpStorage(input.wick_rules);
+        const infinity_action_op_storage = infinityActionOpStorage(input.wick_rules);
+        const infinity_residual_op_storage = infinityResidualOpStorage(input.wick_rules);
+        const infinity_program_storage = infinityProgramStorage(input.wick_rules);
         const impl = CorrelatorConfigData{
             .wick_rules = input.wick_rules,
             .pair_lookup = &pair_lookup_storage,
+            .infinity_program_offsets = &infinity_program_offset_storage,
+            .infinity_programs = &infinity_program_storage,
+            .infinity_scalar_ops = &infinity_scalar_op_storage,
+            .infinity_coordinate_ops = &infinity_coordinate_op_storage,
+            .infinity_tensor_ops = &infinity_tensor_op_storage,
+            .infinity_action_ops = &infinity_action_op_storage,
+            .infinity_residual_ops = &infinity_residual_op_storage,
             .zero_modes = input.zero_modes,
             .config_entries = input.config_entries,
             .fermion_kinds = input.fermion_kinds,
@@ -1699,6 +1764,263 @@ fn pairLookupStorage(comptime rules: []const wick.Rule) [pairLookupEntryCount(ru
 
     sortPairLookup(entries[0..]);
     return entries;
+}
+
+fn infinityProgramCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| count += rule.expr.terms.len * 2;
+    return count;
+}
+
+fn infinityScalarOpCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            count += term.scalars.len * 2;
+        }
+    }
+    return count;
+}
+
+fn infinityCoordinateOpCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            count += term.coordinates.len * 2;
+        }
+    }
+    return count;
+}
+
+fn infinityTensorOpCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            count += term.tensors.len * 2;
+        }
+    }
+    return count;
+}
+
+fn infinityActionOpCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            count += term.actions.len * 2;
+        }
+    }
+    return count;
+}
+
+fn infinityResidualOpCount(comptime rules: []const wick.Rule) usize {
+    var count: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            count += term.residuals.len * 2;
+        }
+    }
+    return count;
+}
+
+fn infinityProgramOffsetStorage(comptime rules: []const wick.Rule) [rules.len]u32 {
+    var offsets: [rules.len]u32 = undefined;
+    var program_index: usize = 0;
+    for (rules, 0..) |rule, index| {
+        if (program_index > std.math.maxInt(u32)) @compileError("too many infinity term programs");
+        offsets[index] = @intCast(program_index);
+        program_index += rule.expr.terms.len * 2;
+    }
+    return offsets;
+}
+
+fn orientationSide(comptime orientation: InfinityProgramOrientation) wick.Side {
+    return switch (orientation) {
+        .left => .left,
+        .right => .right,
+    };
+}
+
+fn coordinateRefTouchesOrientation(comptime ref: wick.CoordinateRef, comptime orientation: InfinityProgramOrientation) bool {
+    return ref.side == orientationSide(orientation);
+}
+
+fn lowerInfinityCoordinateOp(comptime factor: wick.CoordinateFactor, comptime orientation: InfinityProgramOrientation) InfinityCoordinateOp {
+    return switch (factor) {
+        .difference_power => |item| blk: {
+            const left_inf = coordinateRefTouchesOrientation(item.coordinate.left, orientation);
+            const right_inf = coordinateRefTouchesOrientation(item.coordinate.right, orientation);
+            const kind: InfinityCoordinateOpKind = if (left_inf or right_inf) .descendant_difference_limit else .finite_passthrough;
+            break :blk .{
+                .kind = kind,
+                .kernel = .difference_power,
+                .left = item.coordinate.left,
+                .right = item.coordinate.right,
+                .exponent = item.exponent,
+                .derive_left = item.derivatives.include_left,
+                .derive_right = item.derivatives.include_right,
+            };
+        },
+        .logarithm => |item| blk: {
+            const left_inf = coordinateRefTouchesOrientation(item.coordinate.left, orientation);
+            const right_inf = coordinateRefTouchesOrientation(item.coordinate.right, orientation);
+            break :blk .{
+                .kind = if (left_inf or right_inf) .reject_logarithm else .finite_passthrough,
+                .kernel = .logarithm,
+                .left = item.coordinate.left,
+                .right = item.coordinate.right,
+                .derive_left = item.derivatives.include_left,
+                .derive_right = item.derivatives.include_right,
+            };
+        },
+        .green_kernel => |item| blk: {
+            const left_inf = coordinateRefTouchesOrientation(item.coordinate.left, orientation);
+            const right_inf = coordinateRefTouchesOrientation(item.coordinate.right, orientation);
+            break :blk .{
+                .kind = if (left_inf or right_inf) .reject_green_kernel else .finite_passthrough,
+                .kernel = .green_kernel,
+                .left = item.coordinate.left,
+                .right = item.coordinate.right,
+                .derive_left = item.derivatives.include_left,
+                .derive_right = item.derivatives.include_right,
+                .name = item.name,
+            };
+        },
+        .green_exponential => |coordinate| blk: {
+            const left_inf = coordinateRefTouchesOrientation(coordinate.left, orientation);
+            const right_inf = coordinateRefTouchesOrientation(coordinate.right, orientation);
+            break :blk .{
+                .kind = if (left_inf or right_inf) .branch_green_exponential else .finite_passthrough,
+                .kernel = .green_exponential,
+                .left = coordinate.left,
+                .right = coordinate.right,
+            };
+        },
+    };
+}
+
+fn infinityScalarOpStorage(comptime rules: []const wick.Rule) [infinityScalarOpCount(rules)]wick.ScalarFactor {
+    var storage: [infinityScalarOpCount(rules)]wick.ScalarFactor = undefined;
+    var index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |_| {
+                for (term.scalars) |scalar| {
+                    storage[index] = scalar;
+                    index += 1;
+                }
+            }
+        }
+    }
+    return storage;
+}
+
+fn infinityCoordinateOpStorage(comptime rules: []const wick.Rule) [infinityCoordinateOpCount(rules)]InfinityCoordinateOp {
+    var storage: [infinityCoordinateOpCount(rules)]InfinityCoordinateOp = undefined;
+    var index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |orientation| {
+                for (term.coordinates) |coordinate| {
+                    storage[index] = lowerInfinityCoordinateOp(coordinate, orientation);
+                    index += 1;
+                }
+            }
+        }
+    }
+    return storage;
+}
+
+fn infinityTensorOpStorage(comptime rules: []const wick.Rule) [infinityTensorOpCount(rules)]wick.TensorFactor {
+    var storage: [infinityTensorOpCount(rules)]wick.TensorFactor = undefined;
+    var index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |_| {
+                for (term.tensors) |tensor| {
+                    storage[index] = tensor;
+                    index += 1;
+                }
+            }
+        }
+    }
+    return storage;
+}
+
+fn infinityActionOpStorage(comptime rules: []const wick.Rule) [infinityActionOpCount(rules)]wick.ActionFactor {
+    var storage: [infinityActionOpCount(rules)]wick.ActionFactor = undefined;
+    var index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |_| {
+                for (term.actions) |action| {
+                    storage[index] = action;
+                    index += 1;
+                }
+            }
+        }
+    }
+    return storage;
+}
+
+fn infinityResidualOpStorage(comptime rules: []const wick.Rule) [infinityResidualOpCount(rules)]wick.Side {
+    var storage: [infinityResidualOpCount(rules)]wick.Side = undefined;
+    var index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |_| {
+                for (term.residuals) |residual| {
+                    storage[index] = residual;
+                    index += 1;
+                }
+            }
+        }
+    }
+    return storage;
+}
+
+fn infinityProgramStorage(comptime rules: []const wick.Rule) [infinityProgramCount(rules)]InfinityTermProgram {
+    var storage: [infinityProgramCount(rules)]InfinityTermProgram = undefined;
+    var program_index: usize = 0;
+    var scalar_index: usize = 0;
+    var coordinate_index: usize = 0;
+    var tensor_index: usize = 0;
+    var action_index: usize = 0;
+    var residual_index: usize = 0;
+    for (rules) |rule| {
+        for (rule.expr.terms) |term| {
+            inline for (.{ InfinityProgramOrientation.left, InfinityProgramOrientation.right }) |_| {
+                if (scalar_index > std.math.maxInt(u32)) @compileError("too many infinity scalar ops");
+                if (coordinate_index > std.math.maxInt(u32)) @compileError("too many infinity coordinate ops");
+                if (tensor_index > std.math.maxInt(u32)) @compileError("too many infinity tensor ops");
+                if (action_index > std.math.maxInt(u32)) @compileError("too many infinity action ops");
+                if (residual_index > std.math.maxInt(u32)) @compileError("too many infinity residual ops");
+                if (term.scalars.len > std.math.maxInt(u16)) @compileError("too many scalars in one infinity program");
+                if (term.coordinates.len > std.math.maxInt(u16)) @compileError("too many coordinates in one infinity program");
+                if (term.tensors.len > std.math.maxInt(u16)) @compileError("too many tensors in one infinity program");
+                if (term.actions.len > std.math.maxInt(u16)) @compileError("too many actions in one infinity program");
+                if (term.residuals.len > std.math.maxInt(u16)) @compileError("too many residuals in one infinity program");
+                storage[program_index] = .{
+                    .scalar_start = @intCast(scalar_index),
+                    .scalar_count = @intCast(term.scalars.len),
+                    .coordinate_start = @intCast(coordinate_index),
+                    .coordinate_count = @intCast(term.coordinates.len),
+                    .tensor_start = @intCast(tensor_index),
+                    .tensor_count = @intCast(term.tensors.len),
+                    .action_start = @intCast(action_index),
+                    .action_count = @intCast(term.actions.len),
+                    .residual_start = @intCast(residual_index),
+                    .residual_count = @intCast(term.residuals.len),
+                };
+                program_index += 1;
+                scalar_index += term.scalars.len;
+                coordinate_index += term.coordinates.len;
+                tensor_index += term.tensors.len;
+                action_index += term.actions.len;
+                residual_index += term.residuals.len;
+            }
+        }
+    }
+    return storage;
 }
 
 const Correlator = struct {
@@ -2456,6 +2778,9 @@ fn CompactTextSink(comptime Writer: type, comptime budget: TextBudget) type {
                     try self.writeCoordinateDifference(item.coordinate);
                     try self.writeFmt("^{}", .{item.exponent});
                 },
+                .point_power => |item| {
+                    try self.writeFmt("z{}^{}", .{ item.point, item.exponent });
+                },
                 .logarithm => |coordinate| {
                     try self.writeAll("log");
                     try self.writeCoordinateDifference(coordinate);
@@ -3193,20 +3518,118 @@ fn emitPrimitiveWickTerm(pair: Correlator.WickPair, left_index: usize, right_ind
     try sink.emitWickTermEnd();
 }
 
+fn runtimeRuleRational(numerator: i64, denominator: i64) !RuleScalar {
+    const value = coefficient.rational(numerator, denominator) orelse return error.InvalidInfinityCoefficient;
+    return .{ .rational = .{ .numerator = value.numerator, .denominator = value.denominator } };
+}
+
+fn checkedSubI16(value: i16, delta: u16) ?i16 {
+    const next = @as(i32, value) - @as(i32, delta);
+    if (next < std.math.minInt(i16) or next > std.math.maxInt(i16)) return null;
+    return @intCast(next);
+}
+
+fn checkedAddI32(left: i32, right: i32) ?i32 {
+    const result = @addWithOverflow(left, right);
+    if (result[1] != 0) return null;
+    return result[0];
+}
+
+fn runtimeBinomialInteger(exponent: i16, count: u16) ?i64 {
+    const numerator = Correlator.fallingPower(exponent, count) orelse return null;
+    const denominator = Correlator.factorial(count) orelse return null;
+    return @divExact(numerator, denominator);
+}
+
+fn primaryPowerForSide(branch: anytype, primary_power: ?i32) i32 {
+    if (primary_power) |value| return value;
+    const Branch = @TypeOf(branch);
+    const info = @typeInfo(Branch);
+    const Target = if (info == .pointer) info.pointer.child else Branch;
+    if (@hasField(Target, "infinity_primary_power")) return branch.infinity_primary_power;
+    return branch.branch.infinity_primary_power;
+}
+
+fn setInfinityLimitState(branch: anytype, absolute_power: i32) void {
+    const Branch = @TypeOf(branch);
+    const info = @typeInfo(Branch);
+    const Target = if (info == .pointer) info.pointer.child else Branch;
+    const next_power: i32 = if (absolute_power > 0) 1 else 0;
+    if (@hasField(Target, "infinity_primary_power")) {
+        if (branch.infinity_branch_power <= 0 or next_power > 0) branch.infinity_branch_power = next_power;
+    } else {
+        if (branch.infinity_branch_power <= 0 or next_power > 0) branch.infinity_branch_power = next_power;
+    }
+}
+
+fn emitInfinityPointPower(point: operators.Point, scalar: coefficient.Rational, exponent: i16, branch: anytype) !void {
+    if (exponent == 0) {
+        try branch.emitWickScalar(Correlator.ResolvedScalarFactor{ .value = try runtimeRuleRational(scalar.numerator, scalar.denominator) });
+        return;
+    }
+    try branch.emitWickCoordinate(coefficient.CoordinateFactor{
+        .scalar = scalar,
+        .kernel = .{ .point_power = .{ .point = point.raw, .exponent = exponent } },
+    });
+}
+
+fn emitPrimaryInfinityDifference(item: anytype, primary_power_override: ?i32, branch: anytype) !void {
+    const left_inf = item.coordinate.left.point.isInfinity();
+    const right_inf = item.coordinate.right.point.isInfinity();
+    if (!left_inf and !right_inf) {
+        try branch.emitWickCoordinate(Correlator.evaluateCoordinateFactor(.{ .difference_power = item }) orelse return error.InvalidWickFactor);
+        return;
+    }
+    if (left_inf and right_inf) return error.UnsupportedTwoInfinityEndpoints;
+
+    const inf_derivatives: u16 = if (left_inf)
+        if (item.derivatives.left) |count| count else 0
+    else if (item.derivatives.right) |count| count else 0;
+    const finite_derivatives: u16 = if (left_inf)
+        if (item.derivatives.right) |count| count else 0
+    else if (item.derivatives.left) |count| count else 0;
+    const finite_point = if (left_inf) item.coordinate.right.point else item.coordinate.left.point;
+
+    const finite_exponent = checkedSubI16(item.exponent, finite_derivatives) orelse return error.InvalidInfinityCoefficient;
+    const finite_falling = Correlator.fallingPower(item.exponent, finite_derivatives) orelse return error.InvalidInfinityCoefficient;
+    const finite_sign = if (!left_inf) @as(i64, 1) else Correlator.signFromParity(finite_derivatives);
+    var numerator = Correlator.checkedMulInt(finite_falling, finite_sign) orelse return error.InvalidInfinityCoefficient;
+
+    if (left_inf and oddIntegerPower(finite_exponent)) {
+        numerator = Correlator.checkedMulInt(numerator, -1) orelse return error.InvalidInfinityCoefficient;
+    }
+
+    const primary_power = primaryPowerForSide(branch, primary_power_override);
+    const chart_power = checkedAddI32(primary_power, -@as(i32, finite_exponent)) orelse return error.InvalidInfinityCoefficient;
+    if (chart_power < 0) return error.DivergentInfinityLimit;
+    const remainder = @as(i32, inf_derivatives) - chart_power;
+    if (remainder < 0) {
+        setInfinityLimitState(branch, 1);
+        return;
+    }
+    if (remainder > std.math.maxInt(u16)) return error.InvalidInfinityCoefficient;
+    const point_power: u16 = @intCast(remainder);
+    const derivative_factor = Correlator.factorial(inf_derivatives) orelse return error.InvalidInfinityCoefficient;
+    const binomial = runtimeBinomialInteger(finite_exponent, point_power) orelse return error.InvalidInfinityCoefficient;
+    numerator = Correlator.checkedMulInt(numerator, derivative_factor) orelse return error.InvalidInfinityCoefficient;
+    numerator = Correlator.checkedMulInt(numerator, binomial) orelse return error.InvalidInfinityCoefficient;
+    if (numerator == 0) {
+        setInfinityLimitState(branch, 1);
+        return;
+    }
+
+    setInfinityLimitState(branch, 0);
+    try emitInfinityPointPower(finite_point, coefficient.integer(numerator), @intCast(point_power), branch);
+}
+
 fn emitPrimaryInfinityCoordinate(factor: Correlator.ResolvedCoordinateFactor, branch: anytype) !void {
+    return emitPrimaryInfinityCoordinateWithPower(factor, null, branch);
+}
+
+fn emitPrimaryInfinityCoordinateWithPower(factor: Correlator.ResolvedCoordinateFactor, primary_power_override: ?i32, branch: anytype) !void {
     switch (factor) {
         .difference_power => |item| {
-            const left_inf = item.coordinate.left.point.isInfinity();
-            const right_inf = item.coordinate.right.point.isInfinity();
-            if (!left_inf and !right_inf) {
-                try branch.emitWickCoordinate(Correlator.evaluateCoordinateFactor(factor) orelse return error.InvalidWickFactor);
-                return;
-            }
-            if (left_inf and right_inf) return error.UnsupportedTwoInfinityEndpoints;
-            branch.infinity_branch_power += -@as(i32, item.exponent);
-            if (left_inf and !right_inf and oddIntegerPower(item.exponent)) {
-                try branch.emitWickScalar(Correlator.ResolvedScalarFactor{ .value = scalars.rational(-1, 1) });
-            }
+            try emitPrimaryInfinityDifference(item, primary_power_override, branch);
         },
         .logarithm => |item| {
             if (item.coordinate.left.point.isInfinity() or item.coordinate.right.point.isInfinity()) return error.UnsupportedInfinityLogarithm;
@@ -3223,9 +3646,125 @@ fn emitPrimaryInfinityCoordinate(factor: Correlator.ResolvedCoordinateFactor, br
     }
 }
 
-fn emitPrimaryInfinityWickTerm(pair: Correlator.WickPair, left_index: usize, right_index: usize, term_index: usize, branch: anytype) !void {
-    const resolved = (Correlator.ResolvedWickPair{ .pair = pair }).term(term_index) orelse return error.InvalidWickTerm;
+fn programCoordinateDifference(pair: Correlator.WickPair, op: InfinityCoordinateOp) ?Correlator.ResolvedCoordinateDifference {
+    return .{
+        .left = Correlator.resolveCoordinateRef(pair, op.left) orelse return null,
+        .right = Correlator.resolveCoordinateRef(pair, op.right) orelse return null,
+    };
+}
 
+fn programDerivativeAction(pair: Correlator.WickPair, op: InfinityCoordinateOp) ?Correlator.ResolvedDerivativeAction {
+    return .{
+        .left = if (op.derive_left) pair.derivativeCount(op.left) orelse return null else null,
+        .right = if (op.derive_right) pair.derivativeCount(op.right) orelse return null else null,
+    };
+}
+
+fn programCoordinateFactor(op: InfinityCoordinateOp) wick.CoordinateFactor {
+    const coordinate = wick.difference(op.left, op.right);
+    const derivatives = wick.DerivativeAction{
+        .include_left = op.derive_left,
+        .include_right = op.derive_right,
+    };
+    return switch (op.kernel) {
+        .difference_power => .{ .difference_power = .{ .coordinate = coordinate, .exponent = op.exponent, .derivatives = derivatives } },
+        .logarithm => .{ .logarithm = .{ .coordinate = coordinate, .derivatives = derivatives } },
+        .green_kernel => .{ .green_kernel = .{ .name = op.name, .coordinate = coordinate, .derivatives = derivatives } },
+        .green_exponential => .{ .green_exponential = coordinate },
+    };
+}
+
+fn primaryBehaviorForKind(config_ptr: *const CorrelatorConfigData, kind: operators.OperatorKindId) ?Spec.InfinityPrimary {
+    for (config_ptr.infinity_data) |item| {
+        if (item.kind != kind) continue;
+        return switch (item.behavior) {
+            .primary => |primary| primary,
+            .free_boson_exponential => null,
+        };
+    }
+    return null;
+}
+
+fn primaryPowerForCoordinateRef(pair: Correlator.WickPair, coordinate_ref: wick.CoordinateRef) !i32 {
+    const op = pair.sideOp(coordinate_ref.side);
+    const primary = primaryBehaviorForKind(pair.config, op.kind) orelse return error.UnsupportedInfinityOperator;
+    return switch (op.insertion) {
+        .single => switch (coordinate_ref.slot) {
+            .position, .holomorphic => if (primary.holomorphic_power != 0) primary.holomorphic_power else primary.antiholomorphic_power,
+            .antiholomorphic => error.InvalidWickFactor,
+        },
+        .pair => switch (coordinate_ref.slot) {
+            .position, .holomorphic => primary.holomorphic_power,
+            .antiholomorphic => primary.antiholomorphic_power,
+        },
+    };
+}
+
+fn programInfinityPrimaryPower(pair: Correlator.WickPair, op: InfinityCoordinateOp) !i32 {
+    const left = Correlator.resolveCoordinateRef(pair, op.left) orelse return error.InvalidWickFactor;
+    const right = Correlator.resolveCoordinateRef(pair, op.right) orelse return error.InvalidWickFactor;
+    const left_inf = left.point.isInfinity();
+    const right_inf = right.point.isInfinity();
+    if (left_inf and right_inf) return error.UnsupportedTwoInfinityEndpoints;
+    if (left_inf) return primaryPowerForCoordinateRef(pair, op.left);
+    if (right_inf) return primaryPowerForCoordinateRef(pair, op.right);
+    return error.InvalidWickFactor;
+}
+
+fn emitInfinityProgramCoordinateOp(pair: Correlator.WickPair, op: InfinityCoordinateOp, branch: anytype) !void {
+    switch (op.kind) {
+        .finite_passthrough => {
+            const factor = Correlator.resolveCoordinateFactor(pair, programCoordinateFactor(op)) orelse return error.InvalidWickFactor;
+            try branch.emitWickCoordinate(Correlator.evaluateCoordinateFactor(factor) orelse return error.InvalidWickFactor);
+        },
+        .descendant_difference_limit => {
+            try emitPrimaryInfinityCoordinateWithPower(.{ .difference_power = .{
+                .coordinate = programCoordinateDifference(pair, op) orelse return error.InvalidWickFactor,
+                .exponent = op.exponent,
+                .derivatives = programDerivativeAction(pair, op) orelse return error.InvalidWickFactor,
+            } }, try programInfinityPrimaryPower(pair, op), branch);
+        },
+        .reject_logarithm => return error.UnsupportedInfinityLogarithm,
+        .reject_green_kernel => return error.UnsupportedInfinityKernel,
+        .branch_green_exponential => return error.UnsupportedInfinityGreenExponential,
+    }
+}
+
+fn emitInfinityProgramScalarOp(pair: Correlator.WickPair, op: wick.ScalarFactor, branch: anytype) !void {
+    try branch.emitWickScalar(Correlator.resolveScalarFactor(pair, op) orelse return error.InvalidWickFactor);
+}
+
+fn emitInfinityProgramTensorOp(pair: Correlator.WickPair, op: wick.TensorFactor, branch: anytype) !void {
+    try branch.emitWickTensor(Correlator.resolveTensorFactor(pair, op) orelse return error.InvalidWickFactor);
+}
+
+fn emitInfinityProgramActionOp(pair: Correlator.WickPair, op: wick.ActionFactor, branch: anytype) !void {
+    try branch.emitWickAction(Correlator.resolveActionFactor(pair, op) orelse return error.InvalidWickFactor);
+}
+
+fn emitInfinityProgramResidualOp(pair: Correlator.WickPair, left_index: usize, right_index: usize, op: wick.Side, branch: anytype) !void {
+    try emitWickResidualOperator(pair, left_index, right_index, op, branch);
+}
+
+fn pairInfinityOrientation(pair: Correlator.WickPair) !InfinityProgramOrientation {
+    const left_inf = opHasInfinity(pair.sideOp(.left));
+    const right_inf = opHasInfinity(pair.sideOp(.right));
+    if (left_inf and right_inf) return error.UnsupportedMultipleInfinityInsertions;
+    if (left_inf) return .left;
+    if (right_inf) return .right;
+    return error.UnsupportedInfinityOperator;
+}
+
+fn infinityTermProgramFor(config_ptr: *const CorrelatorConfigData, rule_index: usize, term_index: usize, orientation: InfinityProgramOrientation) !InfinityTermProgram {
+    if (rule_index >= config_ptr.infinity_program_offsets.len) return error.InvalidWickTerm;
+    const rule = config_ptr.wick_rules[rule_index];
+    if (term_index >= rule.expr.terms.len) return error.InvalidWickTerm;
+    const program_index = @as(usize, config_ptr.infinity_program_offsets[rule_index]) + term_index * 2 + @as(usize, @intFromEnum(orientation));
+    if (program_index >= config_ptr.infinity_programs.len) return error.InvalidWickTerm;
+    return config_ptr.infinity_programs[program_index];
+}
+
+fn emitPrimaryInfinityProgramWickTerm(pair: Correlator.WickPair, left_index: usize, right_index: usize, term_index: usize, program: InfinityTermProgram, branch: anytype) !void {
     try branch.emitWickTermStart(.{
         .left_index = left_index,
         .right_index = right_index,
@@ -3233,31 +3772,47 @@ fn emitPrimaryInfinityWickTerm(pair: Correlator.WickPair, left_index: usize, rig
     });
 
     var scalar_index: usize = 0;
-    while (scalar_index < resolved.scalarCount()) : (scalar_index += 1) {
-        try branch.emitWickScalar(resolved.scalar(scalar_index) orelse return error.InvalidWickFactor);
+    while (scalar_index < program.scalar_count) : (scalar_index += 1) {
+        const op_index = @as(usize, program.scalar_start) + scalar_index;
+        if (op_index >= pair.config.infinity_scalar_ops.len) return error.InvalidWickTerm;
+        try emitInfinityProgramScalarOp(pair, pair.config.infinity_scalar_ops[op_index], branch);
     }
 
     var coordinate_index: usize = 0;
-    while (coordinate_index < resolved.coordinateCount()) : (coordinate_index += 1) {
-        try emitPrimaryInfinityCoordinate(resolved.coordinate(coordinate_index) orelse return error.InvalidWickFactor, branch);
+    while (coordinate_index < program.coordinate_count) : (coordinate_index += 1) {
+        const op_index = @as(usize, program.coordinate_start) + coordinate_index;
+        if (op_index >= pair.config.infinity_coordinate_ops.len) return error.InvalidWickTerm;
+        try emitInfinityProgramCoordinateOp(pair, pair.config.infinity_coordinate_ops[op_index], branch);
     }
 
     var tensor_index: usize = 0;
-    while (tensor_index < resolved.tensorCount()) : (tensor_index += 1) {
-        try branch.emitWickTensor(resolved.tensor(tensor_index) orelse return error.InvalidWickFactor);
+    while (tensor_index < program.tensor_count) : (tensor_index += 1) {
+        const op_index = @as(usize, program.tensor_start) + tensor_index;
+        if (op_index >= pair.config.infinity_tensor_ops.len) return error.InvalidWickTerm;
+        try emitInfinityProgramTensorOp(pair, pair.config.infinity_tensor_ops[op_index], branch);
     }
 
     var action_index: usize = 0;
-    while (action_index < resolved.actionCount()) : (action_index += 1) {
-        try branch.emitWickAction(resolved.action(action_index) orelse return error.InvalidWickFactor);
+    while (action_index < program.action_count) : (action_index += 1) {
+        const op_index = @as(usize, program.action_start) + action_index;
+        if (op_index >= pair.config.infinity_action_ops.len) return error.InvalidWickTerm;
+        try emitInfinityProgramActionOp(pair, pair.config.infinity_action_ops[op_index], branch);
     }
 
     var residual_index: usize = 0;
-    while (residual_index < resolved.residualCount()) : (residual_index += 1) {
-        try emitWickResidualOperator(pair, left_index, right_index, resolved.residual(residual_index) orelse return error.InvalidWickFactor, branch);
+    while (residual_index < program.residual_count) : (residual_index += 1) {
+        const op_index = @as(usize, program.residual_start) + residual_index;
+        if (op_index >= pair.config.infinity_residual_ops.len) return error.InvalidWickTerm;
+        try emitInfinityProgramResidualOp(pair, left_index, right_index, pair.config.infinity_residual_ops[op_index], branch);
     }
 
     try branch.emitWickTermEnd();
+}
+
+fn emitPrimaryInfinityWickTerm(pair: Correlator.WickPair, rule_index: usize, left_index: usize, right_index: usize, term_index: usize, branch: anytype) !void {
+    const orientation = try pairInfinityOrientation(pair);
+    const program = try infinityTermProgramFor(pair.config, rule_index, term_index, orientation);
+    return emitPrimaryInfinityProgramWickTerm(pair, left_index, right_index, term_index, program, branch);
 }
 
 fn wickPairTermPayloadFrom(rule_index: usize, term_index: usize, reversed: bool) !u64 {
@@ -3398,6 +3953,7 @@ const CachedPairKey = struct {
 const WickMode = enum {
     finite,
     primary_infinity,
+    mixed_infinity,
 };
 
 fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type {
@@ -3453,7 +4009,6 @@ fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type 
         logical_residual_count: u16 = 0,
         infinity_initialized: bool = false,
         infinity_active: bool = false,
-        infinity_operator_index: u8 = 0,
         infinity_primary_power: i32 = 0,
         infinity_branch_power: i32 = 0,
 
@@ -3537,10 +4092,13 @@ fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type 
 
         fn ensurePrimaryInfinity(self: *Self, ops: kernel.Call.MultiOp) !void {
             if (self.infinity_initialized) return;
-            const info = try primaryInfinityInfoFor(ConfigHandle, ops);
-            self.infinity_operator_index = @intCast(info.index);
-            self.infinity_primary_power = primaryInsertionPower(ops.operators[info.index], info.primary);
-            self.infinity_branch_power = self.infinity_primary_power;
+            if (comptime mode == .mixed_infinity) {
+                try validateMixedInfinityInsertions(ConfigHandle, ops);
+            } else {
+                try validatePrimaryInfinityInsertions(ConfigHandle, ops);
+            }
+            self.infinity_primary_power = 0;
+            self.infinity_branch_power = 0;
             self.infinity_initialized = true;
             self.infinity_active = true;
         }
@@ -3557,7 +4115,7 @@ fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type 
                 .labels = ops.labels,
                 .reversed = wickPayloadReversed(payload),
             };
-            try emitPrimaryInfinityWickTerm(pair, left_index, right_index, wickPayloadTermIndex(payload), self);
+            try emitPrimaryInfinityWickTerm(pair, rule_index, left_index, right_index, wickPayloadTermIndex(payload), self);
         }
 
         fn pushCachedPrimaryInfinityPairTerm(branch: *Self, config_ptr: *const CorrelatorConfigData, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, payload: u64) !void {
@@ -3645,7 +4203,7 @@ fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type 
             };
 
             var cache_sink = CacheSink{ .branch = branch, .cache_index = cache_index };
-            try emitPrimaryInfinityWickTerm(pair, left_index, right_index, wickPayloadTermIndex(payload), &cache_sink);
+            try emitPrimaryInfinityWickTerm(pair, rule_index, left_index, right_index, wickPayloadTermIndex(payload), &cache_sink);
             branch.cache_terms[cache_index].infinity_power_delta = cache_sink.infinity_branch_power;
             branch.cache_keys[cache_index] = .{ .left = @intCast(left_index), .right = @intCast(right_index), .payload = payload };
             const direct_slot = cachePairSlot(left_index, right_index);
@@ -3694,7 +4252,7 @@ fn AccumulatedBranch(comptime ConfigHandle: type, comptime mode: WickMode) type 
 
         /// pushPairTerm appends one cached or freshly resolved primitive pair term.
         pub fn pushPairTerm(branch: *Self, config_ptr: *const CorrelatorConfigData, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize, payload: u64) !void {
-            if (comptime mode == .primary_infinity) {
+            if (comptime mode == .primary_infinity or mode == .mixed_infinity) {
                 if ((payload & primary_infinity_payload_bit) != 0) {
                     try branch.pushCachedPrimaryInfinityPairTerm(config_ptr, ops, left_index, right_index, payload);
                     return;
@@ -4133,7 +4691,7 @@ fn RuntimeWickTactic(comptime ConfigHandle: type, comptime mode: WickMode) type 
         /// initBranchState prepares branch-local state before the Wick walk.
         pub fn initBranchState(_: *const Config, ops: kernel.Call.MultiOp) !BranchState {
             var branch = BranchState.init();
-            if (comptime mode == .primary_infinity) {
+            if (comptime mode == .primary_infinity or mode == .mixed_infinity) {
                 try branch.ensurePrimaryInfinity(ops);
             }
             return branch;
@@ -4172,8 +4730,8 @@ fn RuntimeWickTactic(comptime ConfigHandle: type, comptime mode: WickMode) type 
         }
 
         fn primaryInfinityPayload(payload: u64, ops: kernel.Call.MultiOp, left_index: usize, right_index: usize) u64 {
-            if (comptime mode == .primary_infinity) {
-                if (opHasInfinity(ops.operators[left_index]) or opHasInfinity(ops.operators[right_index])) {
+            if (comptime mode == .primary_infinity or mode == .mixed_infinity) {
+                if (opHasPrimaryInfinity(ConfigHandle, ops.operators[left_index]) or opHasPrimaryInfinity(ConfigHandle, ops.operators[right_index])) {
                     return payload | primary_infinity_payload_bit;
                 }
             }
@@ -4246,11 +4804,6 @@ fn RuntimeWickTactic(comptime ConfigHandle: type, comptime mode: WickMode) type 
     };
 }
 
-const PrimaryInfinityInfo = struct {
-    index: usize,
-    primary: Spec.InfinityPrimary,
-};
-
 fn configHasPrimaryInfinityData(comptime ConfigHandle: type) bool {
     inline for (ConfigHandle.impl.infinity_data) |item| {
         switch (item.behavior) {
@@ -4261,50 +4814,65 @@ fn configHasPrimaryInfinityData(comptime ConfigHandle: type) bool {
     return false;
 }
 
-fn primaryInfinityInfoFor(comptime ConfigHandle: type, ops: kernel.Call.MultiOp) !PrimaryInfinityInfo {
-    var infinity_index: usize = 0;
-    var count: usize = 0;
-    for (ops.operators, 0..) |op, index| {
-        if (!opHasInfinity(op)) continue;
-        infinity_index = index;
-        count += 1;
+fn primaryInfinityBehaviorFor(comptime ConfigHandle: type, kind: operators.OperatorKindId) ?InfinityOperatorData {
+    inline for (ConfigHandle.impl.infinity_data) |item| {
+        if (item.kind == kind) return item;
     }
-    if (count != 1) return error.UnsupportedMultipleInfinityInsertions;
+    return null;
+}
 
-    const infinity_kind = ops.operators[infinity_index].kind;
-    for (ConfigHandle.impl.infinity_data) |item| {
-        if (item.kind != infinity_kind) continue;
-        return switch (item.behavior) {
-            .primary => |primary| if (infinityInsertionHasDerivatives(ops.operators[infinity_index]))
-                error.UnsupportedInfinityOperator
-            else
-                .{ .index = infinity_index, .primary = primary },
-            .free_boson_exponential => error.UnsupportedInfinityOperator,
-        };
+fn opHasPrimaryInfinity(comptime ConfigHandle: type, op: kernel.Call.LocalOp) bool {
+    if (!opHasInfinity(op)) return false;
+    const data = primaryInfinityBehaviorFor(ConfigHandle, op.kind) orelse return false;
+    return switch (data.behavior) {
+        .primary => true,
+        .free_boson_exponential => false,
+    };
+}
+
+fn validatePrimaryInfinityInsertions(comptime ConfigHandle: type, ops: kernel.Call.MultiOp) !void {
+    var count: usize = 0;
+    for (ops.operators) |op| {
+        if (!opHasInfinity(op)) continue;
+        count += 1;
+        const data = primaryInfinityBehaviorFor(ConfigHandle, op.kind) orelse return error.UnsupportedInfinityOperator;
+        switch (data.behavior) {
+            .primary => {},
+            .free_boson_exponential => return error.UnsupportedInfinityOperator,
+        }
+        if (generatedZeroModeCanConsumeKind(ConfigHandle, op.kind)) return error.UnsupportedInfinityOperator;
     }
-    return error.UnsupportedInfinityOperator;
+    if (count == 0) return error.UnsupportedInfinityOperator;
+}
+
+fn validateMixedInfinityInsertions(comptime ConfigHandle: type, ops: kernel.Call.MultiOp) !void {
+    var primary_count: usize = 0;
+    var exponential_count: usize = 0;
+    for (ops.operators) |op| {
+        if (!opHasInfinity(op)) continue;
+        const data = primaryInfinityBehaviorFor(ConfigHandle, op.kind) orelse return error.UnsupportedInfinityOperator;
+        switch (data.behavior) {
+            .primary => {
+                if (generatedZeroModeCanConsumeKind(ConfigHandle, op.kind)) return error.UnsupportedInfinityOperator;
+                primary_count += 1;
+            },
+            .free_boson_exponential => {
+                exponential_count += 1;
+            },
+        }
+    }
+    if (primary_count == 0 or exponential_count != 1) return error.UnsupportedInfinityOperator;
+}
+
+fn mixedEffectiveWickAvailable(comptime ConfigHandle: type, ops: kernel.Call.MultiOp) bool {
+    validateMixedInfinityInsertions(ConfigHandle, ops) catch return false;
+    return true;
 }
 
 fn primaryEffectiveWickAvailable(comptime ConfigHandle: type, ops: kernel.Call.MultiOp) bool {
     if (!comptime configHasPrimaryInfinityData(ConfigHandle)) return false;
-    const info = primaryInfinityInfoFor(ConfigHandle, ops) catch return false;
-    const infinity_kind = ops.operators[info.index].kind;
-    // If zero modes can consume the infinity field, the limit adapter must see the base case.
-    return !generatedZeroModeCanConsumeKind(ConfigHandle, infinity_kind);
-}
-
-fn primaryPointPower(point: operators.Point, power: i16) i32 {
-    return if (point.isInfinity()) power else 0;
-}
-
-fn primaryInsertionPower(op: kernel.Call.LocalOp, primary: Spec.InfinityPrimary) i32 {
-    return switch (op.insertion) {
-        .single => |single| if (single.position.isInfinity())
-            if (primary.holomorphic_power != 0) primary.holomorphic_power else primary.antiholomorphic_power
-        else
-            0,
-        .pair => |pair| primaryPointPower(pair.holomorphic_position, primary.holomorphic_power) + primaryPointPower(pair.antiholomorphic_position, primary.antiholomorphic_power),
-    };
+    validatePrimaryInfinityInsertions(ConfigHandle, ops) catch return false;
+    return true;
 }
 
 fn operatorListData(ops: anytype) KernelOperatorList {
@@ -4398,6 +4966,13 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
             residual_start: u16,
             residual_count: u16 = 0,
         };
+        const BcTopFormLimit = enum {
+            none,
+            constant,
+            linear_sum,
+            quadratic_product,
+            zero,
+        };
 
         inner: Sink,
         config: *const CorrelatorConfigData,
@@ -4421,6 +4996,8 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
         residual_count: u16 = 0,
         tail_coordinate_count: u16 = 0,
         zero_mode_count: u16 = 0,
+        bc_top_form_limit: BcTopFormLimit = .none,
+        bc_top_form_finite: [2]operators.Point = undefined,
         terms: [limits.max_terms]BufferedTerm = undefined,
         scalars: [limits.max_scalars]Correlator.ResolvedScalarFactor = undefined,
         coordinates: [limits.max_coordinates]coefficient.CoordinateFactor = undefined,
@@ -4454,26 +5031,33 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
         fn ensureInitialized(self: *@This()) !void {
             if (self.initialized) return;
 
-            var count: usize = 0;
+            var primary_count: usize = 0;
+            var exponential_count: usize = 0;
             for (self.ops.operators, 0..) |op, index| {
                 if (!opHasInfinity(op)) continue;
-                self.infinity_index = index;
-                count += 1;
+                const data = self.infinityBehavior(op.kind) orelse return error.UnsupportedInfinityOperator;
+                switch (data.behavior) {
+                    .primary => |primary| {
+                        primary_count += 1;
+                        if (exponential_count == 0) {
+                            self.infinity_index = index;
+                            self.infinity_kind = .primary;
+                            self.primary_power = singlePrimaryPower(op, primary);
+                            self.branch_power = self.primary_power;
+                        }
+                    },
+                    .free_boson_exponential => {
+                        self.infinity_index = index;
+                        self.infinity_kind = .free_boson_exponential;
+                        exponential_count += 1;
+                    },
+                }
             }
-            if (count != 1) return error.UnsupportedMultipleInfinityInsertions;
-
-            const infinity_op = self.ops.operators[self.infinity_index];
-            const data = self.infinityBehavior(infinity_op.kind) orelse return error.UnsupportedInfinityOperator;
-            switch (data.behavior) {
-                .primary => |primary| {
-                    if (infinityInsertionHasDerivatives(infinity_op)) return error.UnsupportedInfinityOperator;
-                    self.infinity_kind = .primary;
-                    self.primary_power = singlePrimaryPower(infinity_op, primary);
-                    self.branch_power = self.primary_power;
-                },
-                .free_boson_exponential => {
-                    self.infinity_kind = .free_boson_exponential;
-                },
+            if (exponential_count > 1) return error.UnsupportedMultipleInfinityInsertions;
+            if (exponential_count == 0 and primary_count != 1) return error.UnsupportedMultipleInfinityInsertions;
+            if (exponential_count == 1) {
+                self.primary_power = 0;
+                self.branch_power = 0;
             }
             self.initialized = true;
         }
@@ -4494,6 +5078,7 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
             self.residual_count = 0;
             self.tail_coordinate_count = 0;
             self.zero_mode_count = 0;
+            self.bc_top_form_limit = .none;
         }
 
         fn momentumDeltaContainsInfinity(self: *@This(), momenta: []const kernel.Call.LabelValue) bool {
@@ -4578,6 +5163,7 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
                     }
                     return true;
                 },
+                .point_power => return false,
                 .logarithm => |item| {
                     if (variableIsInfinity(item.left) or variableIsInfinity(item.right)) return error.UnsupportedInfinityLogarithm;
                     return false;
@@ -4616,12 +5202,14 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
             var finite: [2]operators.Point = undefined;
             var finite_count: usize = 0;
             var infinity_count: usize = 0;
+            var infinity_derivative_order: u8 = 0;
 
             for (item.jets) |jet| {
-                if (jet.derivative_order != 0) return error.UnsupportedInfinityZeroMode;
                 if (jet.coordinate.isInfinity()) {
                     infinity_count += 1;
+                    infinity_derivative_order = jet.derivative_order;
                 } else {
+                    if (jet.derivative_order != 0) return error.UnsupportedInfinityZeroMode;
                     if (finite_count < finite.len) finite[finite_count] = jet.coordinate;
                     finite_count += 1;
                 }
@@ -4633,13 +5221,13 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
             }
             if (infinity_count != 1 or finite_count != 2) return error.UnsupportedInfinityZeroMode;
             self.branch_power = 0;
-            try self.appendTailCoordinate(coefficient.CoordinateFactor{
-                .scalar = coefficient.integer(1),
-                .kernel = .{ .difference_power = .{
-                    .coordinate = .{ .left = finite[0].raw, .right = finite[1].raw },
-                    .exponent = 1,
-                } },
-            });
+            self.bc_top_form_finite = finite;
+            self.bc_top_form_limit = switch (infinity_derivative_order) {
+                0 => .constant,
+                1 => .linear_sum,
+                2 => .quadratic_product,
+                else => .zero,
+            };
         }
 
         pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
@@ -4716,7 +5304,27 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
             }
         }
 
-        fn replayAcceptedBranch(self: *@This()) !void {
+        fn bcTopFormDifference(self: *@This(), scalar: i64) coefficient.CoordinateFactor {
+            return .{
+                .scalar = coefficient.integer(scalar),
+                .kernel = .{ .difference_power = .{
+                    .coordinate = .{ .left = self.bc_top_form_finite[0].raw, .right = self.bc_top_form_finite[1].raw },
+                    .exponent = 1,
+                } },
+            };
+        }
+
+        fn bcTopFormPoint(self: *@This(), index: usize) coefficient.CoordinateFactor {
+            return .{
+                .scalar = coefficient.integer(1),
+                .kernel = .{ .point_power = .{
+                    .point = self.bc_top_form_finite[index].raw,
+                    .exponent = 1,
+                } },
+            };
+        }
+
+        fn replayAcceptedBranchWithTail(self: *@This(), extra_tail: []const coefficient.CoordinateFactor) !void {
             if (self.branch_sign < 0 and @hasDecl(@TypeOf(self.inner.*), "emitWickBranchSign")) {
                 try self.inner.emitWickBranchSign(self.branch_sign);
             }
@@ -4761,12 +5369,47 @@ fn InfinityLimitSink(comptime ConfigHandle: type, comptime Sink: type) type {
                 try self.inner.emitWickCoordinate(self.tail_coordinates[tail_index]);
             }
 
+            for (extra_tail) |factor| {
+                try self.inner.emitWickCoordinate(factor);
+            }
+
             var zero_index: usize = 0;
             while (zero_index < self.zero_mode_count) : (zero_index += 1) {
                 try self.inner.emitZeroModeFactor(self.zero_modes[zero_index]);
             }
 
             try self.inner.emitZeroModeBaseEnd();
+        }
+
+        fn replayAcceptedBranch(self: *@This()) !void {
+            switch (self.bc_top_form_limit) {
+                .none => return self.replayAcceptedBranchWithTail(&.{}),
+                .zero => return,
+                .constant => {
+                    const tail = [_]coefficient.CoordinateFactor{self.bcTopFormDifference(1)};
+                    return self.replayAcceptedBranchWithTail(&tail);
+                },
+                .linear_sum => {
+                    const first = [_]coefficient.CoordinateFactor{
+                        self.bcTopFormDifference(1),
+                        self.bcTopFormPoint(0),
+                    };
+                    try self.replayAcceptedBranchWithTail(&first);
+                    const second = [_]coefficient.CoordinateFactor{
+                        self.bcTopFormDifference(1),
+                        self.bcTopFormPoint(1),
+                    };
+                    return self.replayAcceptedBranchWithTail(&second);
+                },
+                .quadratic_product => {
+                    const tail = [_]coefficient.CoordinateFactor{
+                        self.bcTopFormDifference(2),
+                        self.bcTopFormPoint(0),
+                        self.bcTopFormPoint(1),
+                    };
+                    return self.replayAcceptedBranchWithTail(&tail);
+                },
+            }
         }
 
         pub fn emitZeroModeBaseEnd(self: *@This()) !void {
@@ -4803,6 +5446,10 @@ pub fn streamCorrelator(config_ptr: anytype, ops: anytype, sink: anytype) !void 
     }
     if (primaryEffectiveWickAvailable(ConfigHandle, input)) {
         return wick_correlator.wickCorrelator(RuntimeWickTactic(ConfigHandle, .primary_infinity), data, input, sink);
+    }
+    if (mixedEffectiveWickAvailable(ConfigHandle, input)) {
+        var limit_sink = InfinityLimitSink(ConfigHandle, @TypeOf(sink)){ .inner = sink, .config = data, .ops = input };
+        return wick_correlator.wickCorrelator(RuntimeWickTactic(ConfigHandle, .mixed_infinity), data, input, &limit_sink);
     }
     var limit_sink = InfinityLimitSink(ConfigHandle, @TypeOf(sink)){ .inner = sink, .config = data, .ops = input };
     return wick_correlator.wickCorrelator(RuntimeWickTactic(ConfigHandle, .finite), data, input, &limit_sink);

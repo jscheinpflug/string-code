@@ -9,6 +9,7 @@
 
 #+begin_src zig
 const tensor = @import("tensor-code");
+
 #+end_src
 
 A coefficient is a rational function multiplied by tensor structures from
@@ -60,6 +61,7 @@ pub fn rational(numerator: i64, denominator: i64) ?Rational {
 pub fn integer(value: i64) Rational {
     return .{ .numerator = value, .denominator = 1 };
 }
+
 #+end_src
 
 Coordinate kernels are the coordinate-dependent pieces produced by Wick
@@ -77,6 +79,7 @@ pub const CoordinateDifference = struct {
 /// CoordinateKernel stores one coordinate-dependent kernel factor.
 pub const CoordinateKernel = union(enum) {
     difference_power: struct { coordinate: CoordinateDifference, exponent: i16 },
+    point_power: struct { point: Variable, exponent: i16 },
     logarithm: CoordinateDifference,
     green_kernel: struct { name: []const u8, coordinate: CoordinateDifference, left_derivatives: u8 = 0, right_derivatives: u8 = 0 },
     green_exponential: CoordinateDifference,
@@ -87,6 +90,7 @@ pub const CoordinateFactor = struct {
     scalar: Rational = .{ .numerator = 1, .denominator = 1 },
     kernel: CoordinateKernel,
 };
+
 #+end_src
 
 The older coefficient shell is kept because higher layers already refer to a
@@ -116,6 +120,7 @@ const Factor = struct {
     base: Polynomial,
     exponent: i16,
 };
+
 #+end_src
 
 A polynomial is a sum of monomial terms.
@@ -137,9 +142,10 @@ const Monomial = struct {
 };
 
 const MonomialTerm = struct {
-   variable: Variable,
-   power: u16,
+    variable: Variable,
+    power: u16,
 };
+
 #+end_src
 
 Variables are internally assigned a numeric identifier.

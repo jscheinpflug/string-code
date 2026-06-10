@@ -323,6 +323,57 @@ fn benchFreeBosonDx(comptime n: usize, comptime sample_count: usize, allocator: 
     try benchBranch(name, sample_count, X, &X.config.sphere, ops, branch_gate, expected);
 }
 
+fn benchFreeBosonDxInfinity(comptime n: usize, comptime sample_count: usize, allocator: std.mem.Allocator, filter: ?[]const u8, event_gate: MedianGate, branch_gate: MedianGate, expected: ExpectedCounts) !void {
+    const name = std.fmt.comptimePrint("dx{}_infinity", .{n});
+    if (!caseSelected(filter, name)) return;
+
+    const X = cft.FreeBoson.make(.{ .dimension = 10 });
+
+    var type_local = try X.local(allocator);
+    const probe_mu = try type_local.index("probe_mu");
+    const probe_z = try type_local.coord("probe_z");
+    var ops_buf: [n]@TypeOf(try X.op.dX(&type_local, probe_mu, 0, probe_z)) = undefined;
+    type_local.deinit();
+
+    var local = try X.local(allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    inline for (0..n) |i| {
+        const z = if (i + 1 == n) local.infinity() else try local.coord(std.fmt.comptimePrint("z{}", .{i}));
+        ops_buf[i] = try X.op.dX(&local, mu, 0, z);
+    }
+    const ops = try local.ops(ops_buf);
+    try benchEvent(name, sample_count, X, &X.config.sphere, ops, event_gate, expected);
+    try benchBranch(name, sample_count, X, &X.config.sphere, ops, branch_gate, expected);
+}
+
+fn benchFreeBosonDxInfinityDescendant(comptime n: usize, comptime descendant_order: u8, comptime sample_count: usize, allocator: std.mem.Allocator, filter: ?[]const u8, event_gate: MedianGate, branch_gate: MedianGate, expected: ExpectedCounts) !void {
+    const name = std.fmt.comptimePrint("dx{}_d{}_infinity", .{ n, descendant_order });
+    if (!caseSelected(filter, name)) return;
+
+    const X = cft.FreeBoson.make(.{ .dimension = 10 });
+
+    var type_local = try X.local(allocator);
+    const probe_mu = try type_local.index("probe_mu");
+    const probe_z = try type_local.coord("probe_z");
+    var ops_buf: [n]@TypeOf(try X.op.dX(&type_local, probe_mu, 0, probe_z)) = undefined;
+    type_local.deinit();
+
+    var local = try X.local(allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    inline for (0..n) |i| {
+        const z = if (i + 1 == n) local.infinity() else try local.coord(std.fmt.comptimePrint("z{}", .{i}));
+        const derivatives: u8 = if (i + 1 == n) descendant_order else 0;
+        ops_buf[i] = try X.op.dX(&local, mu, derivatives, z);
+    }
+    const ops = try local.ops(ops_buf);
+    try benchEvent(name, sample_count, X, &X.config.sphere, ops, event_gate, expected);
+    try benchBranch(name, sample_count, X, &X.config.sphere, ops, branch_gate, expected);
+}
+
 fn benchBcSphere(comptime b_count: usize, comptime c_count: usize, comptime sample_count: usize, allocator: std.mem.Allocator, filter: ?[]const u8, event_gate: MedianGate, branch_gate: MedianGate, expected: ExpectedCounts) !void {
     const name = std.fmt.comptimePrint("bc_{}_{}", .{ b_count, c_count });
     if (!caseSelected(filter, name)) return;
@@ -346,6 +397,28 @@ fn benchBcSphere(comptime b_count: usize, comptime c_count: usize, comptime samp
         ops_buf[b_count + i] = try Ghost.op.c(&local, 0, z);
     }
     const ops = try local.ops(ops_buf);
+
+    try benchEvent(name, sample_count, Ghost, &Ghost.config.sphere, ops, event_gate, expected);
+    try benchBranch(name, sample_count, Ghost, &Ghost.config.sphere, ops, branch_gate, expected);
+}
+
+fn benchBcTopFormInfinityDescendant(comptime descendant_order: u8, comptime sample_count: usize, allocator: std.mem.Allocator, filter: ?[]const u8, event_gate: MedianGate, branch_gate: MedianGate, expected: ExpectedCounts) !void {
+    const name = std.fmt.comptimePrint("bc_ccc_c_d{}_infinity", .{descendant_order});
+    if (!caseSelected(filter, name)) return;
+
+    const Ghost = cft.Bc.sphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 0, z2),
+        try Ghost.op.c(&local, descendant_order, inf),
+    });
 
     try benchEvent(name, sample_count, Ghost, &Ghost.config.sphere, ops, event_gate, expected);
     try benchBranch(name, sample_count, Ghost, &Ghost.config.sphere, ops, branch_gate, expected);
@@ -432,6 +505,33 @@ fn benchFreeFermionPsiInfinity(comptime n: usize, comptime sample_count: usize, 
         const mu = try local.index(std.fmt.comptimePrint("mu{}", .{i}));
         const z = if (i + 1 == n) local.infinity() else try local.coord(std.fmt.comptimePrint("psi{}", .{i}));
         ops_buf[i] = try Psi.op.psi(&local, mu, 0, z);
+    }
+    const ops = try local.ops(ops_buf);
+
+    try benchEvent(name, sample_count, Psi, &Psi.config.sphere, ops, event_gate, expected);
+    try benchBranch(name, sample_count, Psi, &Psi.config.sphere, ops, branch_gate, expected);
+}
+
+fn benchFreeFermionPsiInfinityDescendant(comptime n: usize, comptime descendant_order: u8, comptime sample_count: usize, allocator: std.mem.Allocator, filter: ?[]const u8, event_gate: MedianGate, branch_gate: MedianGate, expected: ExpectedCounts) !void {
+    const name = std.fmt.comptimePrint("psi{}_d{}_infinity", .{ n, descendant_order });
+    if (!caseSelected(filter, name)) return;
+
+    const Psi = cft.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+
+    var type_local = try Psi.local(allocator);
+    const probe_mu = try type_local.index("probe_mu");
+    const probe_z = try type_local.coord("probe_z");
+    var ops_buf: [n]@TypeOf(try Psi.op.psi(&type_local, probe_mu, 0, probe_z)) = undefined;
+    type_local.deinit();
+
+    var local = try Psi.local(allocator);
+    defer local.deinit();
+
+    inline for (0..n) |i| {
+        const mu = try local.index(std.fmt.comptimePrint("mu{}", .{i}));
+        const z = if (i + 1 == n) local.infinity() else try local.coord(std.fmt.comptimePrint("psi{}", .{i}));
+        const derivatives: u8 = if (i + 1 == n) descendant_order else 0;
+        ops_buf[i] = try Psi.op.psi(&local, mu, derivatives, z);
     }
     const ops = try local.ops(ops_buf);
 
@@ -558,17 +658,25 @@ pub fn main(init: std.process.Init) !void {
     try benchEtaXiTorus(4, 5, 101, allocator, filter, medianGate(50000), medianGate(50000), .{ .primitive_terms = 480, .tensors = 480, .residuals = 0, .zero_modes = 120, .base_cases = 120 });
 
     try benchFreeBosonDx(8, 101, allocator, filter, medianGate(42779), medianGate(37253), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 105, .base_cases = 105 });
+    try benchFreeBosonDxInfinity(8, 101, allocator, filter, medianGate(42779), medianGate(37253), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 105, .base_cases = 105 });
+    try benchFreeBosonDxInfinityDescendant(8, 1, 101, allocator, filter, medianGate(600000), medianGate(600000), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 105, .base_cases = 105 });
     try benchFreeBosonDx(10, 101, allocator, filter, medianGate(231673), medianGate(185435), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 945, .base_cases = 945 });
+    try benchFreeBosonDxInfinity(10, 101, allocator, filter, medianGate(231673), medianGate(185435), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 945, .base_cases = 945 });
+    try benchFreeBosonDxInfinityDescendant(10, 1, 101, allocator, filter, medianGate(3000000), medianGate(3000000), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 945, .base_cases = 945 });
     try benchFreeBosonDx(12, 31, allocator, filter, medianGate(2271202), medianGate(2131701), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 10395, .base_cases = 10395 });
+    try benchFreeBosonDxInfinity(12, 31, allocator, filter, medianGate(2271202), medianGate(2131701), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 10395, .base_cases = 10395 });
     try benchFreeBosonDx(14, 11, allocator, filter, medianGate(35454428), medianGate(31226026), .{ .primitive_terms = 945945, .tensors = 945945, .residuals = 0, .zero_modes = 135135, .base_cases = 135135 });
+    try benchFreeBosonDxInfinity(14, 11, allocator, filter, medianGate(35454428), medianGate(31226026), .{ .primitive_terms = 945945, .tensors = 945945, .residuals = 0, .zero_modes = 135135, .base_cases = 135135 });
 
     try benchBcSphere(3, 6, 101, allocator, filter, medianGate(39095), medianGate(38634), .{ .primitive_terms = 360, .tensors = 360, .residuals = 0, .zero_modes = 120, .base_cases = 120 });
     try benchBcSphere(4, 7, 101, allocator, filter, medianGate(234677), medianGate(226326), .{ .primitive_terms = 3360, .tensors = 3360, .residuals = 0, .zero_modes = 840, .base_cases = 840 });
     try benchBcSphere(5, 8, 31, allocator, filter, medianGate(2225167), medianGate(2106137), .{ .primitive_terms = 33600, .tensors = 33600, .residuals = 0, .zero_modes = 6720, .base_cases = 6720 });
     try benchBcSphere(6, 9, 11, allocator, filter, medianGate(22262770), medianGate(19629812), .{ .primitive_terms = 362880, .tensors = 362880, .residuals = 0, .zero_modes = 60480, .base_cases = 60480 });
+    try benchBcTopFormInfinityDescendant(1, 101, allocator, filter, medianGate(50000), medianGate(50000), .{ .primitive_terms = 0, .tensors = 0, .residuals = 0, .zero_modes = 0, .base_cases = 2 });
+    try benchBcTopFormInfinityDescendant(2, 101, allocator, filter, medianGate(50000), medianGate(50000), .{ .primitive_terms = 0, .tensors = 0, .residuals = 0, .zero_modes = 0, .base_cases = 1 });
 
     try benchFreeBosonExp(2, 101, allocator, filter, medianGate(9277), medianGate(8626), .{ .primitive_terms = 1, .tensors = 1, .residuals = 2, .zero_modes = 1, .base_cases = 1 });
-    try benchFreeBosonExpInfinity(101, allocator, filter, medianGate(30000), medianGate(30000), .{ .primitive_terms = 1, .tensors = 1, .residuals = 2, .zero_modes = 1, .base_cases = 1 });
+    try benchFreeBosonExpInfinity(101, allocator, filter, medianGate(50000), medianGate(50000), .{ .primitive_terms = 1, .tensors = 1, .residuals = 2, .zero_modes = 1, .base_cases = 1 });
     try benchFreeBosonExp(4, 101, allocator, filter, medianGate(10801), medianGate(10893), .{ .primitive_terms = 6, .tensors = 6, .residuals = 12, .zero_modes = 1, .base_cases = 1 });
     try benchFreeBosonExp(6, 31, allocator, filter, medianGate(17741), medianGate(18497), .{ .primitive_terms = 15, .tensors = 15, .residuals = 30, .zero_modes = 1, .base_cases = 1 });
 
@@ -578,10 +686,13 @@ pub fn main(init: std.process.Init) !void {
 
     try benchFreeFermionPsi(2, 101, allocator, filter, medianGate(10000), medianGate(10000), .{ .primitive_terms = 1, .tensors = 1, .residuals = 0, .zero_modes = 0, .base_cases = 1 });
     try benchFreeFermionPsiInfinity(2, 101, allocator, filter, medianGate(10000), medianGate(10000), .{ .primitive_terms = 1, .tensors = 1, .residuals = 0, .zero_modes = 0, .base_cases = 1 });
+    try benchFreeFermionPsiInfinityDescendant(2, 1, 101, allocator, filter, medianGate(30000), medianGate(30000), .{ .primitive_terms = 1, .tensors = 1, .residuals = 0, .zero_modes = 0, .base_cases = 1 });
     try benchFreeFermionPsi(8, 101, allocator, filter, medianGate(30000), medianGate(30000), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 0, .base_cases = 105 });
     try benchFreeFermionPsiInfinity(8, 101, allocator, filter, medianGate(30000), medianGate(30000), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 0, .base_cases = 105 });
+    try benchFreeFermionPsiInfinityDescendant(8, 1, 101, allocator, filter, medianGate(400000), medianGate(400000), .{ .primitive_terms = 420, .tensors = 420, .residuals = 0, .zero_modes = 0, .base_cases = 105 });
     try benchFreeFermionPsi(10, 101, allocator, filter, medianGate(150000), medianGate(150000), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 0, .base_cases = 945 });
     try benchFreeFermionPsiInfinity(10, 101, allocator, filter, medianGate(150000), medianGate(150000), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 0, .base_cases = 945 });
+    try benchFreeFermionPsiInfinityDescendant(10, 1, 101, allocator, filter, medianGate(3000000), medianGate(3000000), .{ .primitive_terms = 4725, .tensors = 4725, .residuals = 0, .zero_modes = 0, .base_cases = 945 });
     try benchFreeFermionPsi(12, 31, allocator, filter, medianGate(1600000), medianGate(1400000), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 0, .base_cases = 10395 });
     try benchFreeFermionPsiInfinity(12, 31, allocator, filter, medianGate(1600000), medianGate(1400000), .{ .primitive_terms = 62370, .tensors = 62370, .residuals = 0, .zero_modes = 0, .base_cases = 10395 });
     try benchFreeFermionPsi(14, 11, allocator, filter, medianGate(21000000), medianGate(20000000), .{ .primitive_terms = 945945, .tensors = 945945, .residuals = 0, .zero_modes = 0, .base_cases = 135135 });
