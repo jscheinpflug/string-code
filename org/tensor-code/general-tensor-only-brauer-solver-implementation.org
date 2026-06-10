@@ -1,0 +1,118 @@
+:PROPERTIES:
+:ID:       20260610T230000.000000
+:END:
+#+title: General Tensor-Only Brauer Solver Implementation
+#+auto_tangle: nil
+
+This note converts
+[[id:20260610T170000.000000][Tensor-Only Brauer Solver Completion Plan]] and
+[[id:20260610T213000.000000][Tensor-Only Brauer Performance Handoff]] into one
+implementation target for [[id:20260608T001501.000000][Projector Constructor]].
+The target is a completely general non-spinor \(B/D\) tensor solver, not a
+sequence of representation-name cases.
+
+* Pasteable Goal
+
+#+begin_src text :tangle no
+/goal Implement the general non-spinor tensor-only B/D Brauer solver from org/tensor-code/general-tensor-only-brauer-solver-implementation.org. Replace live tensor-only channel-kind routing with one descriptor-driven Brauer morphism compiler: structural endpoints -> compact tensor endpoints -> endpoint slot layouts and endpoint operator factors -> raw Brauer diagrams from slot counts -> factorized endpoint actions -> exact Gram pivots/inverse -> primitive vector/form/Hodge streaming. Do not add representation-name-specific formulas or one-off cases. Preserve the existing fast spinor/Clifford bypass and only touch shared candidate/dispatch/atom code when required. Keep public API minimal, keep spinor join compatibility at the factor/candidate/primitive-stream boundary, add early structural data-size budgets before Gram/merge work, and keep org/tensor-code/projector-constructor.org synchronized with src/tensor-code/projector-constructor.zig. Use focused invariant tests only.
+#+end_src
+
+* Principle
+
+There is one tensor-only object:
+
+#+begin_src text :tangle no
+left descriptor, right descriptor, output descriptor
+  -> tensor endpoints
+  -> endpoint operator factors
+  -> raw Brauer morphism diagrams
+  -> endpoint action buffers
+  -> candidate words
+  -> Gram / pivots / inverse Gram
+  -> primitive stream
+#+end_src
+
+Channel names such as =young_output=, =scalar_pairing=,
+=tensor_contraction=, and =compressed_form_bridge= may remain as fallback or
+diagnostic labels, but they must not decide the live tensor-only mathematics.
+
+* Required Shape
+
+The live tensor-only compile path should become:
+
+#+begin_src text :tangle no
+tensorCompilerChannelFromStructural
+  -> tensorOnlyChannelFromCompilerChannel
+  -> compileGeneralTensorOnlyBrauerProgram
+#+end_src
+
+The compiler must derive all admissible tensor-only data from endpoint
+descriptors:
+
+#+begin_src text :tangle no
+endpoint slot count
+endpoint slot-to-block map
+Young row/column operator factors
+trace-free operator factors
+form/exterior slot exposure
+mixed form slot exposure
+Hodge operator factor, when implemented
+#+end_src
+
+The raw Brauer generator depends only on:
+
+#+begin_src text :tangle no
+input slot count = left slots + right slots
+output slot count
+orthogonal dimension
+#+end_src
+
+It must not branch on representation names.
+
+* Implementation Order
+
+1. Introduce one internal =TensorOnlyEndpointLayout= that maps local slots to
+   renderer blocks and slots.  Use it for vector, exterior, and mixed form
+   endpoints.
+2. Move endpoint projector construction behind endpoint operator factors.
+   Young, trace-free, exterior exposure, mixed form exposure, and Hodge must
+   share the same factor/action interface.
+3. Rename or wrap the current tensor-only compiler as
+   =compileGeneralTensorOnlyBrauerProgram= and make it the first live route for
+   every non-spinor tensor channel.
+4. Generate raw Brauer diagrams solely from slot counts, then prune only by
+   structural endpoint operator properties such as trace-free annihilation.
+5. Keep compact endpoint action buffers keyed by endpoint projector/operator,
+   side, raw diagram, and local boundary signature.  Gram and term streaming
+   must read those buffers.
+6. Add pair-level merged term indexing only after the general compiler owns the
+   live route.  It is a performance index, not a separate mathematical path.
+7. Keep vector-backed channel-kind programs as fallback after
+   =ProjectorProgramTooLarge= or true unsupported endpoint operators.
+
+* Hard Non-Goals
+
+Do not add live formulas keyed by representation names, Dynkin-label patterns,
+Young-shape names, or channel-kind names.
+
+Do not move production spinor channels into the tensor-only compiler.  The
+existing spinor/Clifford bypass remains the route for spinor channels.
+
+Do not broaden tests into repeated full runs.  Add focused invariants for the
+general compiler boundary and run only targeted filters while editing.
+
+* Invariants To Test
+
+Use a small number of precise checks:
+
+#+begin_src text :tangle no
+same compiler route for former young_output and scalar_pairing tensor-only cases
+same compiler route for mixed source/output tensor-only cases when under budget
+raw diagram generation depends only on slot counts
+endpoint action buffers are populated before Gram
+primitive stream contains only vector_slot_delta / vector_slot_metric / allowed form or Hodge primitives
+unsupported Hodge returns typed unsupported until implemented as an endpoint factor
+#+end_src
+
+Spinor checks are only needed if shared dispatch, candidate words, or primitive
+atom emission are changed.

@@ -135,6 +135,22 @@ pub const IndexRef = u32;
 /// IndexBlockId names a compact antisymmetric or ordered index block.
 pub const IndexBlockId = u32;
 
+/// VectorSlotDelta identifies one vector slot delta between ordered tensor blocks.
+pub const VectorSlotDelta = struct {
+    upper: IndexBlockId,
+    upper_slot: u8,
+    lower: IndexBlockId,
+    lower_slot: u8,
+};
+
+/// VectorSlotMetric identifies one metric contraction between vector tensor slots.
+pub const VectorSlotMetric = struct {
+    left: IndexBlockId,
+    left_slot: u8,
+    right: IndexBlockId,
+    right_slot: u8,
+};
+
 /// RationalId stores one exact rational coefficient by value.
 pub const RationalId = struct {
     numerator: i128,
@@ -958,6 +974,8 @@ pub const NamedOperatorKind = enum {
 /// SymbolicAtom stores one symbolic invariant contraction atom.
 pub const SymbolicAtom = union(enum) {
     metric_pair: struct { left: IndexRef, right: IndexRef },
+    vector_slot_delta: VectorSlotDelta,
+    vector_slot_metric: VectorSlotMetric,
     gamma_matrix: GammaMatrix,
     gamma_form: GammaForm,
     gamma_action: GammaAction,
@@ -1037,6 +1055,8 @@ pub const AtomLoweringAudit = struct {
     fn recordAtom(self: *AtomLoweringAudit, atom: SymbolicAtom) !void {
         switch (atom) {
             .metric_pair,
+            .vector_slot_delta,
+            .vector_slot_metric,
             .gamma_matrix,
             .gamma_form,
             .gamma_action,
@@ -1292,7 +1312,7 @@ fn withoutOperatorKindDecision(state: ?*anyopaque, term: SymbolicTerm) anyerror!
     for (term.atoms) |atom| {
         switch (atom) {
             .gamma_matrix, .gamma_form, .gamma_action, .exterior_gamma_action, .clifford_product, .clifford_product_factor, .gamma_trace, .tensor_form_gamma_wedge, .tensor_form_gamma_map, .tensor_form_gamma_map_adjoint => if (rejected_kind == .gamma) return .reject,
-            .metric_pair, .spinor_pair, .tensor_form_spinor_pair => if (rejected_kind == .metric) return .reject,
+            .metric_pair, .vector_slot_metric, .spinor_pair, .tensor_form_spinor_pair => if (rejected_kind == .metric) return .reject,
             .epsilon => if (rejected_kind == .epsilon) return .reject,
             .structure_constant => if (rejected_kind == .structure_constant) return .reject,
             .product_identity, .cartan_product, .tensor_spinor_projection, .tensor_form_projection => if (rejected_kind == .projector) return .reject,

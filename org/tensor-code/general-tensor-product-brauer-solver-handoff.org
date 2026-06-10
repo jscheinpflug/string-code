@@ -1,0 +1,381 @@
+:PROPERTIES:
+:ID:       20260610T235000.000000
+:END:
+#+title: General Tensor Product Brauer Solver Handoff
+#+auto_tangle: nil
+
+This handoff is the concrete path from the current tensor-only compiler in
+[[id:20260608T001501.000000][Projector Constructor]] to a general non-spinor
+\(B/D\) tensor product solver.  It supersedes the tactical notes in
+[[id:20260610T230000.000000][General Tensor-Only Brauer Solver Implementation]]
+when choosing the next implementation pass, and keeps the performance lessons
+from [[id:20260610T213000.000000][Tensor-Only Brauer Performance Handoff]].
+
+* End State
+
+The solver is general when every bounded non-spinor tensor product channel
+
+#+begin_src text :tangle no
+left tensor representation x right tensor representation -> output tensor representation
+#+end_src
+
+is compiled from descriptors alone:
+
+#+begin_src text :tangle no
+structural endpoints
+  -> tensor descriptors
+  -> compact tensor endpoints
+  -> endpoint slot layouts
+  -> endpoint operator factors
+  -> raw Brauer diagrams from slot counts
+  -> factorized endpoint action buffers
+  -> exact Gram pivots and inverse Gram
+  -> streamed explicit tensor atoms
+#+end_src
+
+The emitted result must be explicit tensor algebra: deltas, metrics, form
+slot maps, Hodge stars, epsilon-derived atoms when needed, and rational
+coefficients.  A public result must not contain placeholder projectors, named
+Young operators, deferred trace-free projectors, or representation-name
+formula atoms.
+
+Spinor channels remain on the existing fast spinor/Clifford route.  Tensor
+work must preserve the shared candidate/factor/primitive-stream boundary so a
+future tensor-spinor join can reuse the same machinery, but production spinor
+channels are not moved into this compiler.
+
+* Current State
+
+Useful pieces already exist:
+
+#+begin_src text :tangle no
+TensorOnlyEndpoint and TensorOnlyEndpointLayout
+descriptor-owned non-spinor routing into compileGeneralTensorOnlyBrauerProgram
+raw Brauer diagram enumeration by input/output slot counts
+endpoint projector factor records for Young, trace removal, scalar, and Hodge
+TensorEndpointActionBuffer scaffolding keyed by projector, side, raw diagram, signature
+Gram entries from projected endpoint actions
+independent Gram pivots and inverse Gram
+owned merged primitive term table for tensor-only pivot-pair spans
+appendTerm streams directly from the merged primitive term table
+primitive vector/form/Hodge streaming for small bounded channels
+early raw-diagram and endpoint-projector budgets
+typed fallback for too-large or unsupported tensor-only paths
+#+end_src
+
+The remaining problem is not more representation cases.  The compiler still
+contains transitional endpoint-projector code that can allocate trace-free
+basis words before they are consumed into action buffers.  The next leverage
+point is to eliminate that residual expansion and make endpoint factors act
+directly on raw/action words before reopening all mixed source/output routes.
+
+* Latest Progress
+
+The tensor-only path now has a compile-time merged primitive term table:
+
+#+begin_src text :tangle no
+projected raw action buffers
+  -> pivot-pair action words
+  -> pair-local canonical primitive merge
+  -> TensorOnlyProgram.merged_terms
+  -> appendTerm direct table lookup
+#+end_src
+
+This removes the normal =appendTerm= rescan through action-word pairs.  The
+pair index now names spans inside =merged_terms=, and =term_count= is the
+merged table length.  The old action-pair term materializers are no longer
+part of the live tensor-only route.
+
+* Non-Negotiable Requirements
+
+1. No live formulas keyed by representation names, Dynkin-label patterns,
+   channel-kind names, or special Young-shape names.
+2. Raw Brauer generation depends only on total input slots, output slots, and
+   dimension.
+3. Endpoint mathematics is expressed only as compact operator factors acting
+   on boundary slots.
+4. All output terms are explicit primitive tensor atoms with metrics where
+   contraction is required.
+5. No stage allocates the full endpoint-projector product unless it is a
+   deliberate tiny-channel diagnostic fallback.
+6. Public API stays minimal; new declarations remain private unless another
+   module genuinely needs them.
+7. Org and Zig stay synchronized whenever source is changed.
+8. Verification is by focused invariants, not broad repetitive test runs.
+
+* Performance Target
+
+The reference performance lesson from the spinor \(16^{12}\) work is not a
+specific spinor formula.  The useful lesson is the representation strategy:
+
+#+begin_src text :tangle no
+store compact reducer atoms
+derive factor plans on demand
+stream lowered primitive factors only at the boundary
+scan and count compact terms without expanding them
+merge by canonical factor pattern before materializing output
+keep arrays and bounded buffers small and cache-local
+fail by data-size budget before expensive algebra
+#+end_src
+
+The tensor solver should mirror this shape.  A high-rank tensor product must
+not spend time building expanded Young/trace projector products that later
+collapse.  Its hot loop should be over compact raw diagrams, endpoint action
+rows, and canonical primitive signatures.
+
+The target is spinor-solver-class behavior: predictable bounded memory,
+prompt rejection over cap, and streaming output proportional to the final
+explicit tensor terms rather than to the naive symbolic projector product.
+
+* Required Data Model
+
+** Tensor Endpoint
+
+Keep one compact endpoint descriptor for scalar, vector Young, exterior form,
+mixed tensor-form, and Hodge endpoints:
+
+#+begin_src text :tangle no
+side
+block id
+slot count
+slot layout: local slot -> rendered block/slot
+Young rows and columns
+form profile/mask/rank
+duality
+#+end_src
+
+This layer answers only local questions.  It must not know channel-kind names.
+
+** Endpoint Operator Factor
+
+Every endpoint projector is an operator program:
+
+#+begin_src text :tangle no
+row symmetrizer factors
+column antisymmetrizer factors
+Young normalization scalar
+trace-removal branches
+trace-free residual factor, only while being eliminated
+Hodge factor
+#+end_src
+
+The completion criterion is that =young_trace_free_projector= no longer
+requires storing an expanded basis as the normal live representation.  If a
+trace-free residual factor is still needed internally, it must be consumed
+into compact action buffers before Gram and primitive streaming.
+
+** Endpoint Action Buffer
+
+The central runtime object is:
+
+#+begin_src text :tangle no
+EndpointActionKey
+  endpoint projector index
+  endpoint side
+  raw diagram index
+  local boundary signature
+
+EndpointActionBuffer
+  zero flag or word count
+  compact action words
+  Hodge/epsilon actions
+  canonical primitive signature metadata, when available
+#+end_src
+
+The key must be stable across repeated Gram rows, columns, and term emission.
+The buffer stores the smallest data needed to compose and stream; it does not
+store an unreduced symbolic expression.
+
+** Pair Term Index
+
+After Gram inversion, build a pair-level merged term index:
+
+#+begin_src text :tangle no
+pivot row
+pivot column
+coefficient
+first merged term
+merged term count
+#+end_src
+
+Merged terms are keyed by canonical primitive atom pattern.  =appendTerm(i)=
+must become a lookup plus direct streaming of the indexed primitive term, not
+a rescan through action-word pairs.
+
+* Implementation Passes
+
+** Pass 1: Make Action Buffers Authoritative
+
+Replace every live Gram and streaming use of expanded endpoint-projector
+basis words with =TensorEndpointActionBuffer= reads.  Delete or fence helpers
+that compose endpoint bases directly in the live route.
+
+Acceptance evidence:
+
+#+begin_src text :tangle no
+Gram entries read projected raw action buffers
+term counts read projected raw action buffers
+appendTerm reads projected raw action buffers or merged term index
+expanded endpoint basis use is diagnostic-only or gone from the live route
+#+end_src
+
+Status: substantially done for Gram, term counts, and =appendTerm=.  The
+remaining work is inside endpoint projector construction, where trace-free
+basis data can still be allocated before action-buffer construction.
+
+** Pass 2: Eliminate Trace-Free Residual Expansion
+
+Turn trace-free projection into factorized actions over Brauer boundary slots:
+
+#+begin_src text :tangle no
+enumerate admissible trace generators
+construct trace-removal branches compactly
+apply branches directly to raw/action words
+merge after each endpoint factor
+budget branch count before action construction
+#+end_src
+
+The live path must not allocate a full trace-free basis just to later compose
+it with a raw diagram.
+
+** Pass 3: Canonical Primitive Merge
+
+Introduce a compact canonical primitive signature for vector deltas, metrics,
+form slot maps, Hodge stars, and later epsilon expansions.  Merge terms while
+building the pair index.
+
+Acceptance evidence:
+
+#+begin_src text :tangle no
+term_count counts merged primitive signatures
+appendTerm streams one merged signature
+large cancellations happen before storing final terms
+coefficients are exact rationals
+#+end_src
+
+Status: implemented for current =VectorBrauerTerm= primitive atom patterns.
+Later Hodge-to-epsilon lowering should extend the same merge key instead of
+adding a separate term path.
+
+** Pass 4: Explicit Hodge And Epsilon Output
+
+Hodge must remain an endpoint operator, but final output must be explicit.
+For middle-degree self-dual or anti-self-dual forms, stream the exact
+identity/star projection with rational normalization.  Where a public
+rendering mode requires no Hodge placeholder, lower star actions to explicit
+epsilon/metric atoms through the primitive stream boundary.
+
+Acceptance evidence:
+
+#+begin_src text :tangle no
+Hodge endpoint factors participate in action buffers
+Hodge Gram compatibility is checked before inversion
+explicit output mode contains no placeholder projector atom
+unsupported mixed Hodge combinations return a typed unsupported error
+#+end_src
+
+** Pass 5: Reopen Mixed Source And Output Products
+
+Remove the remaining scalar-output-only mixed gate after action-buffer budgets
+are strong enough.  Mixed form products should use the same endpoint layout,
+raw diagram enumeration, action buffers, Gram solve, and primitive stream as
+ordinary vector Young products.
+
+Acceptance evidence:
+
+#+begin_src text :tangle no
+mixed source -> Young output routes through compileGeneralTensorOnlyBrauerProgram
+Young source -> mixed output routes through compileGeneralTensorOnlyBrauerProgram
+mixed source -> mixed output routes through compileGeneralTensorOnlyBrauerProgram under budget
+over-budget mixed products return ProjectorProgramTooLarge promptly
+#+end_src
+
+** Pass 6: Remove Channel-Kind Mathematics From The Live Path
+
+=young_output=, =scalar_pairing=, =tensor_contraction=, and
+=compressed_form_bridge= may remain as diagnostics or fallback labels, but
+they must not decide production tensor-only mathematics.
+
+Acceptance evidence:
+
+#+begin_src text :tangle no
+tensor-only termCount and appendTerm first ask the descriptor-driven compiler
+old vector-backed programs run only after true unsupported or cap errors
+tests assert former channel kinds share the same compiler route
+#+end_src
+
+** Pass 7: Completion Audit For Arbitrary Tensor Products
+
+Audit the whole non-spinor route against endpoint descriptor kinds:
+
+#+begin_src text :tangle no
+scalar
+vector Young
+exterior form
+mixed tensor form
+Hodge exterior form
+#+end_src
+
+For every bounded product of these endpoint kinds, the solver either emits
+explicit metric tensor terms or returns a typed size/unsupported error before
+expensive work.  There must be no silent fallback to placeholder projectors.
+
+* Budgets
+
+Budget before each expensive stage:
+
+#+begin_src text :tangle no
+descriptor slot count
+raw Brauer diagram count
+endpoint operator factor upper bounds
+endpoint action word count
+Gram width and action-pair work
+merged primitive signature upper bound
+final public term count
+#+end_src
+
+The fallback decision is data-size based.  Do not use representation names as
+budget gates.
+
+* Focused Invariants
+
+Only add tests that prove a real boundary:
+
+#+begin_src text :tangle no
+descriptor extraction covers every non-spinor endpoint kind inside cap
+raw Brauer diagrams depend only on input/output slot counts
+endpoint actions are populated before Gram
+Gram entries use action buffers, not expanded endpoint products
+primitive merge reduces duplicate action-word pairs
+former channel-kind routes share the descriptor compiler
+mixed source/output products reopen under budget
+over-budget products fail before Gram
+explicit output contains no placeholder projector atoms
+spinor bypass is unchanged after shared dispatch/candidate/atom edits
+#+end_src
+
+Run only the smallest filters that cover the edited boundary.  Run spinor
+checks only when shared dispatch, candidate words, or primitive atom emission
+changes.
+
+* Stop Conditions
+
+Do not call the solver general while any of these are true:
+
+#+begin_src text :tangle no
+live tensor-only Gram depends on expanded endpoint basis products
+mixed source/output tensor products are routed away despite being under budget
+Hodge output requires a placeholder projector in explicit mode
+channel-kind names decide mathematical formulas
+over-cap channels can enter expensive Gram or merge work
+#+end_src
+
+The work is not stuck.  The next significant step is to make factorized
+endpoint actions independent of expanded trace-free basis storage, then reopen
+mixed products once the budgets make that route prompt.
+
+* Pasteable Goal
+
+#+begin_src text :tangle no
+/goal Implement the general non-spinor tensor product Brauer solver from org/tensor-code/general-tensor-product-brauer-solver-handoff.org. Eliminate the remaining live trace-free endpoint-projector basis expansion by applying endpoint operator factors directly into action buffers, strengthen data-size budgets before action/Gram/merge work, then reopen all bounded mixed source/output tensor products through the descriptor compiler. Emit only explicit metric/form/Hodge tensor atoms, never placeholder projectors; preserve the fast spinor/Clifford bypass; keep org/source synchronized; use focused invariants only.
+#+end_src

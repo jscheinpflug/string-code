@@ -1,0 +1,372 @@
+:PROPERTIES:
+:ID:       20260609T123000.000000
+:END:
+#+title: Pure Vector Young Stage 3 Plan
+#+auto_tangle: nil
+
+This note is the corrective implementation reference for Stage 3 of
+[[id:20260609T120000.000000][SO Structural Generalization Plan]].  It should be
+fed to the next goal before Stage 4 work starts.
+
+The current tree has useful fixtures: \(10 \otimes 10\) streams the scalar,
+45, and 54 channels, and \(10 \otimes 45\) streams the hook
+\([1,1,0,0,0]\) channel.  That is not Stage 3 proper.  Stage 3 proper is a
+bounded pure vector Young/Brauer backend, so that formulas are derived from
+shape data and exact contractions rather than from one projector case at a
+time.
+
+Follow =AGENTS.md=: fixed-size records, simple procedural Zig, no full symbolic
+expression trees, streamed atoms only, minimal public API, and tests only for
+mathematical invariants.
+
+* Mathematical Target
+
+Work in \(SO(N)\) with vector space \(V\) and metric \(g\).  A pure tensor
+Young channel is a subrepresentation of \(V^{\otimes r}\) cut out by:
+
+#+begin_src text :tangle no
+row symmetrizers
+column antisymmetrizers
+metric traces removed
+#+end_src
+
+The natural algebra is the Brauer algebra \(B_r(N)\).  A diagram maps ordered
+input vector slots to ordered output slots using:
+
+#+begin_src text :tangle no
+delta edge:       input slot -> output slot
+input trace:      metric contraction between two input slots
+output insertion: metric insertion between two output slots
+#+end_src
+
+Composition closes loops.  Each closed metric loop contributes \(N\).  The
+projector is built from a finite candidate set:
+
+#+begin_src text :tangle no
+P = sum_i,j E_i (G^-1)_ij E_j^dagger
+G_ij = <E_i, E_j> = close(E_i^dagger E_j)
+#+end_src
+
+The implementation must compute \(G\) exactly over rationals, select
+independent pivots, invert the pivot Gram matrix, and stream each
+\(E_i (G^-1)_ij E_j^\dagger\) term as primitive vector-slot delta/metric atoms.
+
+* Scope
+
+Stage 3 proper covers bounded pure vector tensor shapes.  Keep the first bound
+small and explicit:
+
+#+begin_src text :tangle no
+max boxes: 4
+max candidates: existing max_program_candidates unless raised deliberately
+families: B_n and D_n
+spinors: none
+forms: only as already-supported exterior endpoints feeding pure vector slots
+#+end_src
+
+The required D5 labels are:
+
+#+begin_src text :tangle no
+[2,0,0,0,0] -> rows [2]     rank 2 symmetric traceless
+[1,1,0,0,0] -> rows [2,1]   rank 3 hook
+[0,2,0,0,0] -> rows [2,2]   rank 4 Weyl/Riemann-type tensor
+#+end_src
+
+The current direct formulas for rank 2 and the hook are fixtures and
+normalization checks.  They should either be produced by the new compiler or
+kept only as test or fast-path checks with identical output.
+
+* Data Model
+
+Add a private vector Young program beside the structural Gram program.  Do not
+make this a public user API.
+
+#+begin_src zig :tangle no
+const max_vector_young_boxes = 4;
+const max_brauer_edges = max_vector_young_boxes;
+const max_brauer_candidates = 16;
+
+const YoungShape = struct {
+    row_count: u8,
+    rows: [max_young_rows]u8,
+    box_count: u8,
+};
+
+const VectorSlotProjectorSpec = struct {
+    operator_id: u32,
+    dimension: u16,
+    input_blocks: [max_vector_young_boxes]rendering.IndexBlockId,
+    input_slots: [max_vector_young_boxes]u8,
+    input_count: u8,
+    output: rendering.IndexBlockId,
+    shape: YoungShape,
+};
+
+const BrauerEdgeKind = enum {
+    delta,
+    input_trace,
+    output_metric,
+};
+
+const BrauerEdge = struct {
+    kind: BrauerEdgeKind,
+    input_a: u8 = 0,
+    input_b: u8 = 0,
+    output_a: u8 = 0,
+    output_b: u8 = 0,
+};
+
+const BrauerWord = struct {
+    coefficient: Rational,
+    edge_count: u8,
+    edges: [max_brauer_edges]BrauerEdge,
+};
+
+const BrauerProgram = struct {
+    candidate_count: u8,
+    pivot_count: u8,
+    candidates: [max_brauer_candidates]BrauerWord,
+    pivots: [max_brauer_candidates]u8,
+    inverse_gram: [max_brauer_candidates * max_brauer_candidates]Rational,
+};
+#+end_src
+
+Keep source endpoint descriptors compact.  Convert descriptor endpoints to
+ordered vector slots only at the constructor boundary.
+
+* Candidate Generation
+
+Use the Young shape to assign output boxes in row-major order.
+
+#+begin_src text :tangle no
+rows [2]   -> boxes 0 1
+rows [2,1] -> boxes 0 1 / 2
+rows [2,2] -> boxes 0 1 / 2 3
+#+end_src
+
+Generation should be mechanical:
+
+#+begin_src zig :tangle no
+fn enumerateVectorYoungCandidates(shape: YoungShape, out: *BrauerCandidateBuffer) !void {
+    var base = identityDeltaWord(shape.box_count);
+
+    var row_sum = signedPermutationSum(.row_symmetrize, shape);
+    var col_alt = signedPermutationSum(.column_antisymmetrize, shape);
+    var young = composeSums(row_sum, col_alt);
+
+    try appendPermutationWords(young, out);
+    try appendTraceRemovalWords(shape, out);
+    try uniqueBrauerWords(out);
+}
+#+end_src
+
+For the first complete version, support trace removal by adding all one-pair
+input traces and matching output metric insertions:
+
+#+begin_src zig :tangle no
+fn appendTraceRemovalWords(shape: YoungShape, out: *BrauerCandidateBuffer) !void {
+    for each unordered output pair (a,b):
+        if pair is allowed by shape trace rules:
+            append word with output_metric(a,b) and input_trace(a,b)
+}
+#+end_src
+
+The exact Gram pivoting will remove dependent trace candidates.  Do not guess
+linear independence from shape rules.
+
+* Brauer Composition
+
+Represent composition as a small union-find over boundary nodes.  There are at
+most \(2r\) external nodes plus internal glued nodes.  No heap allocation is
+needed for \(r \le 4\).
+
+#+begin_src zig :tangle no
+fn brauerInnerProduct(dimension: u16, left: BrauerWord, right: BrauerWord) !Rational {
+    var graph: BrauerContraction = .{};
+    try graph.addAdjoint(left);
+    try graph.addWord(right);
+    const loops = try graph.closeAndCountLoops();
+    const open = graph.openExternalCount();
+    if (open != 0) return Rational.zero();
+    return left.coefficient.mul(right.coefficient).mul(powRational(dimension, loops));
+}
+#+end_src
+
+Composition must distinguish:
+
+#+begin_src text :tangle no
+delta followed by delta      -> delta
+metric followed by trace     -> loop N
+trace followed by metric     -> loop N
+crossed pairings             -> permutation of slots
+incompatible open structure  -> zero
+#+end_src
+
+* Streaming
+
+Do not build a compact Young projector atom.  Term emission lowers one Brauer
+program term directly:
+
+#+begin_src zig :tangle no
+fn appendBrauerProgramTerm(
+    allocator: std.mem.Allocator,
+    atoms: *std.ArrayList(rendering.SymbolicAtom),
+    spec: VectorSlotProjectorSpec,
+    program: BrauerProgram,
+    term_index: u8,
+) !rendering.RationalId {
+    const term = brauerProgramTermAt(program, term_index)
+        orelse return error.ProjectorConstructorTermOutOfBounds;
+    try appendBrauerWordAtoms(allocator, atoms, spec, program.candidates[term.left]);
+    try appendBrauerWordAdjointAtoms(allocator, atoms, spec, program.candidates[term.right]);
+    return rationalToRenderingId(term.coefficient);
+}
+#+end_src
+
+Atom mapping:
+
+#+begin_src text :tangle no
+delta edge       -> .vector_slot_delta
+input trace      -> .vector_slot_metric between input blocks
+output insertion -> .vector_slot_metric between output slots
+#+end_src
+
+The filter behavior added for =vector_slot_metric= must remain: metric-reject
+filters reject these terms.
+
+* Context Routing
+
+Descriptor parsing may keep the current bounded parser, but expansion must not
+be descriptor-only.
+
+#+begin_src zig :tangle no
+fn vectorSlotProjectorSpecFromStructural(spec: StructuralProjectorSpec) ?VectorSlotProjectorSpec {
+    if (!pureVectorYoungEndpoint(spec.output)) return null;
+    if (!allInputsArePureVectorSlots(spec.left, spec.right)) return null;
+    return orderedVectorSlotSpec(spec);
+}
+#+end_src
+
+Required routed products:
+
+#+begin_src text :tangle no
+10 x 10 -> 1, 45, 54
+10 x 45 -> 10, 120, [1,1,0,0,0]
+45 x 45 -> 1, 45, 54, 210, [0,2,0,0,0]
+#+end_src
+
+Only the pure vector Young outputs must use the new Brauer program.  Existing
+scalar/form outputs may continue using primitive metric/exterior routes.
+
+* Tests
+
+Tests must check mathematical invariants, not atom order.
+
+#+begin_src text :tangle no
+1. descriptor parses [2], [2,1], [2,2] with correct row data
+2. 10 x 10 streams 54 from the Brauer program and matches old rank-2 fixture
+3. 10 x 45 streams [1,1,0,0,0] and satisfies hook laws
+4. 45 x 45 streams [0,2,0,0,0] and satisfies:
+   - antisymmetry in each pair
+   - pair exchange symmetry
+   - first Bianchi identity
+   - all metric traces vanish
+   - idempotence by exact contraction
+5. novel Brauer-only cases compile through the generic backend:
+   - D5 [2,2,0,0,0] or the nearest valid bounded four-box label that is not
+     one of the current hand-written fixtures
+   - one non-D5 B/D case, for example B4 [0,2,0,0], to prove the dimension is
+     read from the algebra and not hard-coded to N=10
+   - one dependent-candidate shape where Gram pivoting removes at least one
+     candidate rather than assuming independence
+6. those novel cases must fail if the Brauer Gram path is bypassed:
+   - assert the program has a nontrivial Gram matrix, not a direct formula tag
+   - assert pivot_count < candidate_count for the dependent-candidate fixture
+   - assert at least one streamed term contains metric trace-subtraction atoms
+7. expanded terms for pure vector Young channels contain only vector-slot
+   delta/metric atoms
+8. over-limit shapes return typed unsupported errors in expanded mode
+9. strict Spin(10) 16^12 gate still passes with no compact projector atoms
+#+end_src
+
+The rank-2 and hook direct formulas should become fixture tests:
+
+#+begin_src zig :tangle no
+try expectBrauerProgramEquivalentToRank2Formula(...);
+try expectBrauerProgramEquivalentToHookFormula(...);
+#+end_src
+
+Do not count these fixture-equivalence tests as proof of the backend.  At
+least two tests must use labels or dimensions that have no direct projector
+formula in the current tree.
+
+Suggested test skeleton:
+
+#+begin_src zig :tangle no
+test "Brauer backend removes dependent candidates for four-box Young shape" {
+    const spec = vectorYoungSpec(.d, 5, &.{ 0, 2, 0, 0, 0 });
+    const program = try compileVectorYoungBrauerProgram(spec);
+    try testing.expect(program.candidate_count > program.pivot_count);
+    try expectWeylSymmetriesByExactContraction(program, spec.dimension);
+}
+
+test "Brauer backend is dimension-parametric outside D5" {
+    const spec = vectorYoungSpec(.b, 4, &.{ 0, 2, 0, 0 });
+    const program = try compileVectorYoungBrauerProgram(spec);
+    try expectUsesDimension(program, 9);
+    try expectNoDirectFormulaTag(program);
+}
+#+end_src
+
+* Stage 4 Consequences
+
+Do not implement Stage 4 as another set of direct mixed formulas.  Stage 4
+must reuse the Stage 3 vector-slot Brauer program.
+
+Stage 4 adds only bridge primitives between compressed exterior-form endpoints
+and explicit vector slots:
+
+#+begin_src text :tangle no
+form slot exposed as vector slots when coupled to a non-form Young tensor
+metric contraction between tensor slot and exposed form slot
+metric insertion from tensor slot into exposed form slot
+return to exterior/gamma representation for form-only or spinor paths
+#+end_src
+
+The mixed backend should therefore be:
+
+#+begin_src text :tangle no
+existing descriptor
+  -> vector Young slot spec from Stage 3
+  -> exterior-form bridge effects
+  -> same Brauer Gram/pivot/inverse machinery
+  -> primitive gamma/metric/delta streamed atoms
+#+end_src
+
+Starting Stage 4 before the \([0,2,0,0,0]\) pure vector channel works will hide
+the same failure again: mixed tensor-form projectors would need their own
+ad-hoc trace subtraction.  The Stage 4 gate must require that Stage 3's Brauer
+compiler is the only pure vector Young projector backend.
+
+* Completion Gate
+
+Stage 3 proper is complete only when:
+
+#+begin_src text :tangle no
+[2,0,0,0,0], [1,1,0,0,0], [0,2,0,0,0] parse and expand
+the expansions come from a bounded Brauer Gram program
+direct formulas are fixtures or fast-paths proven equivalent to that program
+expanded mode emits no compact Young/projector placeholders
+over-limit shapes fail with typed unsupported errors
+Spin(10) 16^12 expanded streaming still passes
+#+end_src
+
+Verification commands:
+
+#+begin_src sh :tangle no
+zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/context.zig
+zig test src/tensor-code/rendering.zig
+zig test src/tensor-code/tensor-code.zig
+zig build test
+#+end_src

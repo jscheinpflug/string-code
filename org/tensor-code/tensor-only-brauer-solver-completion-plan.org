@@ -1,0 +1,760 @@
+:PROPERTIES:
+:ID:       20260610T170000.000000
+:END:
+#+title: Tensor-Only Brauer Solver Completion Plan
+#+auto_tangle: nil
+
+This note narrows
+[[id:20260609T143000.000000][Arbitrary Tensor Brauer Compiler Plan]] to the
+non-spinor \(B/D\) tensor solver.  It is a handoff for finishing tensor-only
+local invariant expansion before joining it to the fast spinor solver.
+
+The implementation must follow =AGENTS.md=: write the literate program in
+=org/tensor-code/projector-constructor.org=, keep
+=src/tensor-code/projector-constructor.zig= synchronized, use small fixed-size
+records, stream terms instead of materializing expanded expressions, and add
+tests only for precise mathematical invariants.
+
+* Goal Command
+
+Use this as the continuation goal:
+
+#+begin_src text :tangle no
+/goal Finish the tensor-only B/D Brauer solver from org/tensor-code/tensor-only-brauer-solver-completion-plan.org. Ignore spinor integration except preserving the existing fast spinor/Clifford bypass. Replace the current tensor-only channel-kind adapters with one descriptor-driven Brauer morphism compiler for bounded non-spinor channels L x R -> O: explicit endpoint slots, endpoint Young/trace-free/Hodge projectors, universal Brauer diagram enumeration, exact diagram-composition Gram, independent pivots, inverse Gram, and primitive-only streaming. Keep org/projector-constructor.org and src/projector-constructor.zig synchronized; no live representation-name or shape-specific formulas.
+#+end_src
+
+* Current Tensor-Only Status
+
+The current tree already has a real bounded Brauer core.  It is not only
+plumbing, but it is not yet the full tensor-only solver.
+
+Implemented in =src/tensor-code/projector-constructor.zig= and
+=org/tensor-code/projector-constructor.org=:
+
+#+begin_src text :tangle no
+bounded pure-vector Brauer backend
+  Young row symmetrizer / column antisymmetrizer candidate generation
+  trace-removal closure basis
+  exact Brauer diagram composition and loop counting
+  exact Gram pivot selection and inversion
+  vector-slot delta / metric streaming
+
+descriptor layer
+  B/D Dynkin labels -> Young rows/columns inside cap
+  structural endpoints -> OrthogonalTensorDescriptor
+  exterior-form and mixed-form profiles -> explicit vector-slot shapes
+
+tensor-channel layer
+  TensorCompilerChannel
+  ExplicitEndpoint
+  TensorCandidateWord
+  TensorChannelProgram
+
+covered tensor-only channels
+  L + R explicit vector slots -> output Young projector
+  identical Young/exterior shapes -> scalar pairing
+  some contractions where input slots exceed output slots by metric pairs
+  mixed form/vector endpoints exposed to vector slots
+
+important tests already present
+  [2], [2,1], [2,2] fixture-equivalence / law coverage
+  [3,1] generic Brauer law coverage
+  beyond-four-box exterior projector and scalar pairing
+  D6 nonfixture Young scalar pairing through tensor candidates
+  B4 Weyl scalar pairing through Brauer backend
+  dependent TensorCandidateWord Gram pivot pruning
+  typed over-cap errors
+#+end_src
+
+Important non-goal for this file:
+
+#+begin_src text :tangle no
+Do not move production spinor_clifford_bridge channels into TensorChannelProgram.
+The strict Spin(10) 16^12 path currently depends on the existing fast
+structural Clifford cache.  Tensor-only completion must preserve that bypass.
+#+end_src
+
+* What Is Not Done
+
+Ignoring spinors, the missing piece is still a general local Brauer morphism
+compiler.  The current code reaches the Brauer core through several adapter
+branches:
+
+#+begin_src text :tangle no
+young_output
+scalar_pairing
+tensor_contraction
+compressed_form_bridge
+#+end_src
+
+Those branches are descriptor-based, not closed-form Weyl/hook formulas, but
+they are still narrower than the final tensor-only solver.  The final
+tensor-only solver should compile the same object for every supported
+non-spinor local channel:
+
+#+begin_src text :tangle no
+left tensor descriptor, right tensor descriptor, output tensor descriptor
+  -> explicit endpoint slots
+  -> endpoint projector factors
+  -> raw Brauer morphism diagrams
+  -> factorized candidate words
+  -> exact Gram
+  -> independent pivots
+  -> inverse Gram
+  -> streamed primitive vector/form/Hodge atoms
+#+end_src
+
+The hard part is not the row/column Young algebra anymore.  The hard part is
+the universal candidate generator and its streaming representation.
+
+* Completion Definition
+
+Tensor-only is complete when all non-spinor \(B/D\) local channels inside caps
+do one of these two things:
+
+#+begin_src text :tangle no
+stream primitive atoms through the tensor-only Brauer compiler
+return a typed unsupported error before streaming
+#+end_src
+
+Expanded rendering must not emit compact projector placeholders for supported
+tensor-only channels:
+
+#+begin_src text :tangle no
+no named young projector atom
+no structural projector placeholder
+no tensor_form_projection placeholder
+no representation-name formula branch
+#+end_src
+
+Allowed tensor-only primitive atoms:
+
+#+begin_src text :tangle no
+vector_slot_delta
+vector_slot_metric
+form/exterior bridge atoms only where still needed by renderer ABI
+Hodge/epsilon primitive for D middle-rank dual forms
+#+end_src
+
+Spinor/gamma atoms are outside this tensor-only goal.
+
+* Data-Oriented Target
+
+Keep the data small and factorized.  Do not expand every endpoint projector
+against every raw Brauer diagram into a large expression just to compute a
+Gram entry.
+
+#+begin_src zig :tangle no
+const max_tensor_slots = 8;
+const max_tensor_raw_diagrams = 64;
+const max_tensor_candidates = 64;
+const max_tensor_pivots = 32;
+const max_tensor_word_factors = 8;
+
+const TensorOnlyEndpointKind = enum {
+    scalar,
+    vector_young,
+    exterior_form,
+    mixed_tensor_form,
+    hodge_form,
+};
+
+const TensorOnlyEndpoint = struct {
+    side: TensorEndpointSide,
+    block: rendering.IndexRef,
+    kind: TensorOnlyEndpointKind,
+    slot_count: u8,
+    rows: [max_young_rows]u8,
+    row_count: u8,
+    column_heights: [max_young_rows]u8,
+    column_count: u8,
+    form_profile: u128,
+    form_mask: u64,
+    form_rank: u8,
+    duality: rendering.DualityTag,
+};
+
+const TensorOnlyChannel = struct {
+    operator_id: u32,
+    dimension: u16,
+    left: TensorOnlyEndpoint,
+    right: TensorOnlyEndpoint,
+    output: TensorOnlyEndpoint,
+    input_slot_count: u8,
+    output_slot_count: u8,
+};
+#+end_src
+
+The candidate word should describe a product of small factors.  A factor can
+refer to a cached endpoint projector candidate or to one raw Brauer diagram.
+
+#+begin_src zig :tangle no
+const TensorOnlyFactorKind = enum {
+    left_projector,
+    right_projector,
+    output_projector,
+    raw_brauer_diagram,
+    hodge_projector,
+};
+
+const TensorOnlyFactor = struct {
+    kind: TensorOnlyFactorKind,
+    candidate_index: u8,
+};
+
+const TensorOnlyCandidateWord = struct {
+    coefficient: Rational,
+    factor_count: u8,
+    factors: [max_tensor_word_factors]TensorOnlyFactor,
+};
+#+end_src
+
+The compiled program stores only candidates, pivots, inverse Gram, and compact
+diagram/projector tables.
+
+#+begin_src zig :tangle no
+const TensorOnlyProgram = struct {
+    channel: TensorOnlyChannel,
+    raw_diagram_count: u8,
+    raw_diagrams: [max_tensor_raw_diagrams]TensorBrauerDiagram,
+
+    left_projector: EndpointProjector,
+    right_projector: EndpointProjector,
+    output_projector: EndpointProjector,
+
+    candidate_count: u8,
+    candidates: [max_tensor_candidates]TensorOnlyCandidateWord,
+
+    pivot_count: u8,
+    pivots: [max_tensor_pivots]u8,
+    inverse_gram: [max_tensor_pivots * max_tensor_pivots]Rational,
+    term_count: u16,
+};
+#+end_src
+
+* Universal Brauer Diagram Model
+
+For a tensor-only morphism
+\[
+  E : L \otimes R \to O
+\]
+let
+
+#+begin_src text :tangle no
+input slots  = left slots followed by right slots
+output slots = output slots
+#+end_src
+
+A raw Brauer diagram is a perfect matching of all boundary slots.  Edges have
+three kinds:
+
+#+begin_src text :tangle no
+input-output edge   -> delta
+input-input edge    -> metric contraction on inputs
+output-output edge  -> metric insertion on outputs
+#+end_src
+
+The parity condition is:
+
+#+begin_src text :tangle no
+input_slot_count + output_slot_count must be even
+#+end_src
+
+If parity fails, there is no tensor-only invariant.  The caller should see
+=UnsupportedTensorBridge= unless decomposition says this channel should never
+have been requested.
+
+* Raw Diagram Enumeration
+
+The raw enumerator should be iterative or bounded-recursive over a bitset.  It
+must deduplicate diagrams canonically and stop at the candidate cap.
+
+#+begin_src zig :tangle no
+fn enumerateRawBrauerDiagrams(channel: TensorOnlyChannel, out: *TensorBrauerDiagramBuffer) !void {
+    const total = channel.input_slot_count + channel.output_slot_count;
+    if (total > 2 * max_tensor_slots) return error.UnsupportedTensorShapeOverCap;
+    if ((total & 1) != 0) return error.UnsupportedTensorBridge;
+
+    var used_mask: u32 = 0;
+    var diagram: TensorBrauerDiagram = .{};
+    try enumerateRawBrauerDiagramsRec(channel, total, used_mask, &diagram, out);
+    try uniqueTensorBrauerDiagrams(out);
+}
+
+fn enumerateRawBrauerDiagramsRec(
+    channel: TensorOnlyChannel,
+    total: u8,
+    used_mask: u32,
+    diagram: *TensorBrauerDiagram,
+    out: *TensorBrauerDiagramBuffer,
+) !void {
+    const first = firstUnusedSlot(total, used_mask) orelse {
+        try out.append(try canonicalTensorBrauerDiagram(diagram.*));
+        return;
+    };
+
+    var second = first + 1;
+    while (second < total) : (second += 1) {
+        if (slotUsed(used_mask, second)) continue;
+        const edge = try tensorBrauerEdgeFromBoundarySlots(channel, first, second);
+        diagram.push(edge) catch |err| return err;
+        try enumerateRawBrauerDiagramsRec(
+            channel,
+            total,
+            markUsed(markUsed(used_mask, first), second),
+            diagram,
+            out,
+        );
+        diagram.pop();
+    }
+}
+#+end_src
+
+The edge converter maps the combined boundary index to the existing primitive
+edge vocabulary:
+
+#+begin_src zig :tangle no
+fn tensorBrauerEdgeFromBoundarySlots(channel: TensorOnlyChannel, a: u8, b: u8) !TensorBrauerEdge {
+    const a_is_input = a < channel.input_slot_count;
+    const b_is_input = b < channel.input_slot_count;
+
+    if (a_is_input and b_is_input) {
+        return .{ .input_metric = .{ .left = a, .right = b } };
+    }
+
+    if (!a_is_input and !b_is_input) {
+        return .{ .output_metric = .{
+            .left = a - channel.input_slot_count,
+            .right = b - channel.input_slot_count,
+        } };
+    }
+
+    const input = if (a_is_input) a else b;
+    const output_boundary = if (a_is_input) b else a;
+    return .{ .delta = .{
+        .input = input,
+        .output = output_boundary - channel.input_slot_count,
+    } };
+}
+#+end_src
+
+This single enumerator subsumes the current output-projector, scalar-pairing,
+and contraction branches.
+
+* Endpoint Projectors
+
+Each non-spinor endpoint gets a projector factor.  The projector is itself a
+small Brauer program on that endpoint's slots:
+
+#+begin_src text :tangle no
+scalar endpoint       -> identity projector with zero slots
+vector_young endpoint -> trace-free Young projector for its shape
+exterior_form         -> single-column trace-free Young projector
+mixed_tensor_form     -> Young shape obtained from form profile
+hodge_form            -> form projector plus Hodge/epsilon factor
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn endpointProjector(endpoint: TensorOnlyEndpoint, dimension: u16) !EndpointProjector {
+    if (endpoint.slot_count == 0) return scalarEndpointProjector();
+    if (endpoint.slot_count > max_tensor_slots) return error.UnsupportedTensorShapeOverCap;
+
+    var young_candidates: BrauerCandidateBuffer = .{};
+    try appendVectorYoungPermutationCandidates(endpoint.shape(), endpoint.slot_count, &young_candidates);
+    try uniqueBrauerWords(&young_candidates);
+    if (young_candidates.count != 1) return error.UnsupportedTensorBridge;
+
+    var projector = try traceFreeBrauerProjectorBasisForShape(
+        endpoint.shape(),
+        dimension,
+        young_candidates.candidates[0],
+    );
+
+    if (endpoint.duality != .none) {
+        try attachHodgeProjector(&projector, endpoint);
+    }
+
+    return endpointProjectorFromTraceFreeBasis(projector);
+}
+#+end_src
+
+Do not attach endpoint projectors by expanding them into the global candidate
+list.  Store projector factors and apply them lazily during Gram and
+streaming.
+
+* Candidate Word Construction
+
+For each raw diagram \(D\), the candidate word is the factorized sandwich:
+
+#+begin_src text :tangle no
+P_output * D * (P_left tensor P_right)
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn enumerateTensorOnlyCandidates(program: *TensorOnlyProgram) !void {
+    var raw_index: u8 = 0;
+    while (raw_index < program.raw_diagram_count) : (raw_index += 1) {
+        var word: TensorOnlyCandidateWord = .{ .coefficient = Rational.one() };
+
+        if (!endpointProjectorIsIdentity(program.left_projector))
+            try word.append(.{ .kind = .left_projector, .candidate_index = 0 });
+
+        if (!endpointProjectorIsIdentity(program.right_projector))
+            try word.append(.{ .kind = .right_projector, .candidate_index = 0 });
+
+        try word.append(.{ .kind = .raw_brauer_diagram, .candidate_index = raw_index });
+
+        if (!endpointProjectorIsIdentity(program.output_projector))
+            try word.append(.{ .kind = .output_projector, .candidate_index = 0 });
+
+        if (channelHasHodgeEndpoint(program.channel))
+            try appendHodgeFactors(&word, program.channel);
+
+        try appendUniqueTensorOnlyCandidate(program, word);
+    }
+}
+#+end_src
+
+The order is logical, not necessarily materialized order.  The Gram compiler
+interprets the factors as a morphism composition.
+
+* Exact Gram
+
+The Gram entry is computed by composing diagrams, not by evaluating tensor
+components.
+
+#+begin_src zig :tangle no
+fn tensorOnlyCandidateInnerProduct(program: *const TensorOnlyProgram, a: TensorOnlyCandidateWord, b: TensorOnlyCandidateWord) !Rational {
+    var graph: TensorBrauerComposition = .{};
+    try graph.init(program.channel);
+
+    try applyTensorOnlyWord(&graph, program, a, .forward);
+    try applyTensorOnlyWord(&graph, program, b, .adjoint);
+
+    if (graph.is_zero) return Rational.zero();
+
+    var value = try a.coefficient.mul(b.coefficient);
+    value = try value.mul(try powRational(program.channel.dimension, graph.loop_count));
+    value = try value.mul(graph.hodge_scale);
+    return value;
+}
+#+end_src
+
+The graph state should be arrays, not maps:
+
+#+begin_src zig :tangle no
+const TensorBrauerComposition = struct {
+    parent: [max_tensor_composition_nodes]u8,
+    loop_count: u8,
+    hodge_scale: Rational,
+    is_zero: bool,
+};
+#+end_src
+
+The existing =BrauerContraction= and =tensorContractionWordInnerProduct= are
+the starting point.  Generalize them to arbitrary input/output boundary counts
+instead of keeping separate projector/pairing/contraction entry points.
+
+* Pivot And Inverse Gram
+
+Reuse the exact pivot and inverse routines already present:
+
+#+begin_src zig :tangle no
+fn finishTensorOnlyProgram(program: *TensorOnlyProgram) !void {
+    var gram: [max_tensor_candidates * max_tensor_candidates]Rational = zeroGram();
+
+    var row: u8 = 0;
+    while (row < program.candidate_count) : (row += 1) {
+        var column: u8 = 0;
+        while (column <= row) : (column += 1) {
+            const value = try tensorOnlyCandidateInnerProduct(
+                program,
+                program.candidates[row],
+                program.candidates[column],
+            );
+            gram[row * program.candidate_count + column] = value;
+            gram[column * program.candidate_count + row] = value;
+        }
+    }
+
+    const pivots = try selectIndependentGramPivots(program.candidate_count, gram[0..]);
+    if (pivots.count == 0) return error.UnsupportedTensorBridge;
+    if (pivots.count > max_tensor_pivots) return error.UnsupportedTensorPivotCap;
+
+    program.pivots = copyPivots(pivots);
+    program.pivot_count = pivots.count;
+    program.inverse_gram = try invertPivotSubgram(program.candidate_count, gram[0..], pivots);
+    program.term_count = try countTensorOnlyTerms(program);
+}
+#+end_src
+
+* Streaming
+
+Streaming walks pivot pairs and factorized candidate words.  It must not
+materialize the whole expanded expression.
+
+#+begin_src zig :tangle no
+fn appendTensorOnlyTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    program: *const TensorOnlyProgram,
+    term_index: u16,
+) !RationalId {
+    var seen: u16 = 0;
+    var row: u8 = 0;
+    while (row < program.pivot_count) : (row += 1) {
+        var column: u8 = 0;
+        while (column < program.pivot_count) : (column += 1) {
+            const coefficient = program.inverse_gram[row * program.pivot_count + column];
+            if (coefficient.numerator == 0) continue;
+
+            const left = program.candidates[program.pivots[row]];
+            const right = program.candidates[program.pivots[column]];
+            const pair_count = try countTensorOnlyWordPairTerms(program, left, right, coefficient);
+            if (term_index < seen + pair_count) {
+                return appendTensorOnlyWordPairTerm(
+                    allocator,
+                    atoms,
+                    program,
+                    left,
+                    right,
+                    coefficient,
+                    term_index - seen,
+                );
+            }
+            seen += pair_count;
+        }
+    }
+    return error.ProjectorConstructorTermOutOfBounds;
+}
+#+end_src
+
+The inner streamer expands only the selected factor product:
+
+#+begin_src zig :tangle no
+fn appendTensorOnlyWordPairTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    program: *const TensorOnlyProgram,
+    left: TensorOnlyCandidateWord,
+    right: TensorOnlyCandidateWord,
+    coefficient: Rational,
+    local_index: u16,
+) !RationalId {
+    var iterator = TensorOnlyFactorProductIterator.init(program, left, right, coefficient);
+    while (try iterator.nextSkipping(local_index)) |primitive| {
+        switch (primitive.kind) {
+            .delta => try appendVectorSlotDelta(allocator, atoms, program.channel, primitive),
+            .metric => try appendVectorSlotMetric(allocator, atoms, program.channel, primitive),
+            .hodge => try appendHodgePrimitive(allocator, atoms, program.channel, primitive),
+        }
+    }
+    return rationalToRenderingId(iterator.currentCoefficient());
+}
+#+end_src
+
+* Performance Rules
+
+Do this:
+
+#+begin_src text :tangle no
+cache endpoint projectors by dimension + shape + duality
+cache tensor-only programs by compact channel key
+store candidates as factorized words
+compute Gram entries by diagram composition into fixed arrays
+stream one selected pivot-pair/factor-product term at a time
+deduplicate diagrams and words immediately at each bounded stage
+return typed cap errors before allocating large buffers
+#+end_src
+
+Do not do this:
+
+#+begin_src text :tangle no
+do not expand endpoint projectors into full global expressions up front
+do not build dense symbolic expression trees
+do not branch on representation names such as Weyl, hook, symmetric
+do not route spinor_clifford_bridge through this compiler
+do not use heap hash maps in inner Gram loops
+#+end_src
+
+* Implementation Order
+
+1. Add tensor-only channel extraction.
+
+#+begin_src zig :tangle no
+fn tensorOnlyChannelFromCompilerChannel(channel: TensorCompilerChannel) !TensorOnlyChannel {
+    if (channel.left.has_spinor or channel.right.has_spinor or channel.output.has_spinor)
+        return error.UnsupportedTensorBridge;
+    return .{
+        .operator_id = channel.operator_id,
+        .dimension = channel.dimension,
+        .left = try tensorOnlyEndpointFromExplicit(channel.left),
+        .right = try tensorOnlyEndpointFromExplicit(channel.right),
+        .output = try tensorOnlyEndpointFromExplicit(channel.output),
+        .input_slot_count = channel.left.vector_slot_count + channel.right.vector_slot_count,
+        .output_slot_count = channel.output.vector_slot_count,
+    };
+}
+#+end_src
+
+2. Add raw diagram enumeration and tests independent of Young projectors.
+
+#+begin_src text :tangle no
+vector x vector -> scalar enumerates one metric diagram
+vector x vector -> symmetric output enumerates two delta diagrams
+two-form x two-form -> scalar enumerates all metric pairings before projector pruning
+odd total boundary slots returns UnsupportedTensorBridge
+candidate cap returns UnsupportedTensorBrauerCandidateCap
+#+end_src
+
+3. Add endpoint projector cache.
+
+#+begin_src text :tangle no
+shape [2] endpoint projector matches existing rank-2 law fixture
+shape [2,1] endpoint projector remains trace-free
+shape [3,1] endpoint projector remains idempotent and trace-free
+exterior rank 5 in dimension 9 stays within cap or returns typed cap
+#+end_src
+
+4. Add factorized candidate words and generic Gram.
+
+Start with non-Hodge endpoints:
+
+#+begin_src text :tangle no
+scalar pairing
+Young output with equal input/output slots
+metric-contraction output with fewer slots
+#+end_src
+
+Each old adapter test must pass through the new compiler without a
+representation-name branch.
+
+5. Replace tensor-only branches with the generic compiler.
+
+The final production selector should be structural, not shape-specific:
+
+#+begin_src zig :tangle no
+fn tensorChannelUsesTensorOnlyBrauer(channel: TensorCompilerChannel) bool {
+    if (channel.left.has_spinor or channel.right.has_spinor or channel.output.has_spinor) return false;
+    return tensorOnlyChannelFromCompilerChannel(channel) != error.UnsupportedTensorBridge;
+}
+#+end_src
+
+Then production term count and term streaming become:
+
+#+begin_src zig :tangle no
+if (try tensorOnlyChannelFromCompilerChannel(channel)) |tensor_channel| {
+    return tensorOnlyProgramTermCount(tensor_channel);
+}
+#+end_src
+
+The existing =young_output=, =scalar_pairing=, and =tensor_contraction= code
+may remain temporarily as fixtures or internal compatibility helpers, but not
+as live formula selectors once the generic compiler covers them.
+
+6. Add Hodge/epsilon for tensor-only D middle forms.
+
+Do this after non-Hodge tensor-only channels are unified.  Hodge factors must
+stay factorized:
+
+#+begin_src zig :tangle no
+fn attachHodgeProjector(projector: *EndpointProjector, endpoint: TensorOnlyEndpoint) !void {
+    if (endpoint.duality == .none) return;
+    if (endpoint.form_rank * 2 != endpoint.dimension) return error.UnsupportedTensorBridge;
+    try projector.appendFactor(.{
+        .kind = .hodge_projector,
+        .duality = endpoint.duality,
+        .rank = endpoint.form_rank,
+    });
+}
+#+end_src
+
+7. Add expanded-rendering audit tests.
+
+The audit should inspect atoms, not strings:
+
+#+begin_src text :tangle no
+no compact structural projector atom in expanded tensor-only output
+all emitted atoms are primitive vector_slot_delta/vector_slot_metric/hodge
+typed unsupported errors propagate through context expanded rendering
+Spin(10) 16^12 still passes and still uses structural Clifford cache
+#+end_src
+
+* Acceptance Tests For Tensor-Only Completion
+
+Constructor-level tests:
+
+#+begin_src text :tangle no
+raw Brauer diagram enumeration covers scalar, equal-slot, and contraction cases
+generic tensor-only program matches current young_output term stream
+generic tensor-only program matches current scalar_pairing term stream
+generic tensor-only program matches current tensor_contraction term stream
+[3,1] nonfixture channel routes through generic tensor-only program
+B4 and D6 dimension-parametric scalar pairings route through generic program
+dependent raw diagrams are pruned by exact Gram pivots
+over-cap raw diagram count returns UnsupportedTensorBrauerCandidateCap
+over-cap shape returns UnsupportedTensorShapeOverCap
+Hodge middle-form tensor-only endpoint emits primitive Hodge/epsilon atom
+#+end_src
+
+Context-level tests:
+
+#+begin_src text :tangle no
+Spin10 two-form x two-form -> Weyl expands primitive-only
+Spin10 two-form x symmetric -> [2,1] or [3,1] expands primitive-only
+non-D5 D-family tensor channel expands primitive-only
+B-family tensor channel expands primitive-only
+unsupported over-cap tensor-only expanded channel returns typed unsupported error
+strict Spin10 16^12 expanded streaming still passes
+#+end_src
+
+* How This Later Joins The Spinor Solver
+
+The tensor-only solver should expose one private function shaped like:
+
+#+begin_src zig :tangle no
+fn compileTensorOnlyBrauerProgram(channel: TensorOnlyChannel) !TensorOnlyProgram;
+#+end_src
+
+The spinor solver should later join at the candidate-word/factor level, not by
+calling tensor-only streaming as a black box.  The future mixed solver should
+compose:
+
+#+begin_src text :tangle no
+tensor-only Brauer factors
+Clifford/gamma factors
+spinor pairing factors
+Hodge factors
+#+end_src
+
+This is why tensor-only candidates must remain factorized.  If tensor-only
+terms are eagerly expanded into primitive atom lists, mixed tensor-spinor
+Gram entries will have to re-parse streamed atoms or duplicate the compiler.
+
+The fast spinor path remains authoritative until the mixed solver proves
+performance parity:
+
+#+begin_src text :tangle no
+spinor_clifford_bridge -> existing structural Clifford cache
+tensor_only_channel    -> tensor-only Brauer program
+future mixed channel   -> shared factorized candidate-word solver
+#+end_src
+
+* Completion Checklist
+
+#+begin_src text :tangle no
+[ ] TensorOnlyChannel extracts every non-spinor descriptor endpoint inside cap
+[ ] raw Brauer diagrams enumerate all input/output matchings
+[ ] endpoint projectors are cached and factorized
+[ ] TensorOnlyCandidateWord represents P_out * D * P_in without expansion
+[ ] generic tensor-only Gram uses diagram composition for all tensor-only cases
+[ ] production tensor-only routing no longer depends on young/pairing/contraction branches
+[ ] primitive-only streaming covers scalar, output, contraction, and Hodge cases
+[ ] typed cap errors propagate through structural cache and context expanded rendering
+[ ] current fixture equivalence tests still pass
+[ ] strict Spin(10) 16^12 still bypasses tensor-only compiler and passes
+#+end_src

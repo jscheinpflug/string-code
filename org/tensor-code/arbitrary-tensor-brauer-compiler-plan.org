@@ -1,0 +1,701 @@
+:PROPERTIES:
+:ID:       20260609T143000.000000
+:END:
+#+title: Arbitrary Tensor Brauer Compiler Plan
+#+auto_tangle: nil
+
+This note is the next implementation goal after
+[[id:20260609T123000.000000][Pure Vector Young Stage 3 Plan]].  It corrects the
+remaining scope gap: the backend must support invariant expansion for arbitrary
+supported tensor representations, not only the bounded four-box pure-vector
+slice.
+
+The implementation must follow =AGENTS.md=: write the literate program in
+=org/tensor-code/projector-constructor.org= and keep tangled Zig in
+=src/tensor-code/projector-constructor.zig= synchronized; use lean fixed-size
+records; do not allocate expanded symbolic expression trees; stream primitive
+atoms only; expose the smallest public API; and add tests only for exact
+mathematical invariants.
+
+* Goal Command
+
+Use this as the next goal text:
+
+#+begin_src text :tangle no
+/goal Implement arbitrary supported B/D tensor-representation invariant expansion from org/tensor-code/arbitrary-tensor-brauer-compiler-plan.org. Replace bounded shape-specific tensor handling with one general descriptor-driven Young/Brauer/Clifford compiler: parse B/D tensor Dynkin labels into vector Young columns/rows, exterior-form slots, spinor tower data, and mixed bridges; enumerate row/column Young candidates and all allowed Brauer trace-removal candidates for every bounded local tensor shape; bridge exterior forms and mixed tensor-form endpoints into explicit vector slots; compute exact Brauer/Clifford Gram entries by diagram composition and loop counting; select independent pivots; invert the pivot Gram; and stream each selected term as primitive gamma, Kronecker delta, metric, epsilon/Hodge, and vector-slot delta/metric atoms only. No closed-form projector formulas may remain live except as fixtures. Over-cap cases must return typed unsupported errors. Acceptance: arbitrary products whose local B/D tensor factors fit declared bounds expand without compact projector placeholders; current Spin(10) 16^12 strict expanded streaming still passes; existing [2], [2,1], [2,2] fixture-equivalence tests still pass; new tests cover tensor labels beyond the old four-box fixtures, mixed vector-form tensor products, dimension-parametric B and D cases, dependent candidate pivots, over-cap typed errors, and exact symmetry/trace/idempotence laws.
+#+end_src
+
+* Non-Negotiable Target
+
+The target is not another list of special tensor formulas.  The target is one
+compiler pipeline:
+
+#+begin_src text :tangle no
+B/D highest-weight tensor labels
+  -> compact orthogonal tensor descriptor
+  -> local explicit-slot source/target model
+  -> Young row/column candidate sums
+  -> Brauer trace-removal candidates
+  -> optional Clifford/exterior bridge candidates
+  -> exact Gram matrix
+  -> independent pivots
+  -> inverse pivot Gram
+  -> streamed primitive atoms
+#+end_src
+
+The expanded renderer must not emit:
+
+#+begin_src text :tangle no
+named projector atoms
+young projector placeholders
+tensor_form_projection placeholders
+tensor_spinor_projection placeholders
+cartan_product placeholders
+any formula-kind atom whose semantics still require a later projector expansion
+#+end_src
+
+Allowed expanded atoms are only primitive invariants:
+
+#+begin_src text :tangle no
+vector-slot delta
+vector-slot metric
+form/exterior delta
+metric pair or metric contraction
+spinor pair
+gamma-form / gamma-action / exterior-gamma-action
+Hodge or epsilon primitive
+Clifford-product reducer atoms
+#+end_src
+
+* Scope And Bounds
+
+The compiler targets \(B_n\) and \(D_n\) local channels.  It does not replace
+generic ADE decomposition.  It consumes local B/D product channels already
+selected by the decomposition/context layer and lowers their projectors.
+
+The first complete implementation must support every local tensor channel that
+fits explicit caps:
+
+#+begin_src text :tangle no
+max explicit vector slots per local endpoint: 8
+max Young boxes per local tensor descriptor: 8
+max Brauer candidates per local channel: 64
+max selected pivots per local channel: 32
+max primitive factors per streamed term: 16
+max local product arity handled by one projector compiler: binary
+families: B_n and D_n
+spinors: only through existing spinor/Clifford primitive bridge
+#+end_src
+
+These caps are deliberately larger than Stage 3 but still finite.  If a local
+channel exceeds a cap, expanded rendering must return a typed unsupported error:
+
+#+begin_src zig :tangle no
+error.UnsupportedTensorShapeOverCap
+error.UnsupportedTensorBrauerCandidateCap
+error.UnsupportedTensorPivotCap
+error.UnsupportedTensorPrimitiveTermCap
+error.UnsupportedTensorBridge
+#+end_src
+
+Do not silently fall back to compact projector atoms.  Named rendering may keep
+compact projectors; expanded rendering may not.
+
+* Representation Descriptor
+
+Create one private descriptor for B/D tensor representations.  The descriptor
+is the only object later compiler stages inspect.
+
+#+begin_src zig :tangle no
+const max_tensor_young_boxes = 8;
+const max_tensor_young_rows = 8;
+const max_tensor_columns = 8;
+const max_explicit_vector_slots = 8;
+
+const OrthogonalTensorKind = enum {
+    scalar,
+    vector_young,
+    exterior_form,
+    spinor,
+    tensor_spinor,
+    mixed_tensor_form,
+    unsupported,
+};
+
+const OrthogonalTensorDescriptor = struct {
+    kind: OrthogonalTensorKind,
+    family: representation_store.Family,
+    rank: u8,
+    dimension: u16,
+
+    // Dynkin label copy for audits and exact error messages.
+    label_count: u8,
+    labels: [max_tensor_label_rank]i16,
+
+    // Young data in row-major boxes.  Exterior forms are columns here too.
+    young_row_count: u8,
+    young_rows: [max_tensor_young_rows]u8,
+    young_box_count: u8,
+    column_count: u8,
+    column_heights: [max_tensor_columns]u8,
+
+    // Exterior-form compression when an endpoint may remain compressed.
+    form_rank: u8,
+    form_profile: u128,
+    form_mask: u64,
+    form_duality: rendering.DualityTag,
+
+    // Spin data.  zero chirality means absent or not applicable.
+    has_spinor: bool,
+    chirality: u8,
+    tower_power: u16,
+};
+#+end_src
+
+Keep this private until another module genuinely needs it.  The context layer
+should pass existing endpoint metadata into a constructor function, not mutate
+public representation records.
+
+* Dynkin-To-Young Parsing
+
+Parsing must be deterministic and cheap.  It must not compile projectors.
+
+For \(B_n\) with non-spin tensor labels:
+
+#+begin_src text :tangle no
+lambda = [a1, a2, ..., a(n-1), an]
+tensor-only iff an is even or zero according to current spin-cover convention
+row_i = a_i + a_{i+1} + ... + a_{n-1} + floor(an / 2)
+spinor chirality/tower metadata consumes the residual spin part
+#+end_src
+
+For \(D_n\) with non-spin tensor labels:
+
+#+begin_src text :tangle no
+lambda = [a1, a2, ..., a(n-2), a(n-1), an]
+tensor-only iff a(n-1) and an have same parity under current convention
+row_i = a_i + a_{i+1} + ... + a_{n-2} + (a(n-1) + an) / 2, for i < n-1
+middle duality is attached when a(n-1) != an and the form rank is n
+spinor chirality/tower metadata consumes residual half-spin data
+#+end_src
+
+The implementation must verify these formulas against existing representation
+store conventions before use.  If the store uses a different B/D label
+normalization, write the exact conversion as a small local helper and test it.
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn tensorDescriptorFromEndpoint(endpoint: StructuralEndpoint, family: Family, rank: u8, dimension: u16) !OrthogonalTensorDescriptor {
+    if (endpoint.is_scalar()) return scalarDescriptor(family, rank, dimension);
+    if (endpoint.has_existing_form_profile()) return descriptorFromFormEndpoint(endpoint, family, rank, dimension);
+    if (endpoint.has_existing_young_rows()) return descriptorFromYoungRows(endpoint, family, rank, dimension);
+    if (endpoint.has_spinor or endpoint.tower_power != 0) return descriptorFromSpinEndpoint(endpoint, family, rank, dimension);
+
+    const labels = endpoint.dynkin_labels orelse return error.UnsupportedTensorDescriptor;
+    const rows = switch (family) {
+        .b => try bDynkinTensorRows(labels, rank),
+        .d => try dDynkinTensorRows(labels, rank),
+        else => return error.UnsupportedTensorFamily,
+    };
+    return descriptorFromYoungRows(rows, family, rank, dimension);
+}
+
+fn descriptorFromYoungRows(rows: YoungRows, family: Family, rank: u8, dimension: u16) !OrthogonalTensorDescriptor {
+    if (!rowsArePartition(rows)) return error.InvalidYoungShape;
+    const box_count = sumRows(rows);
+    if (box_count > max_tensor_young_boxes) return error.UnsupportedTensorShapeOverCap;
+    return .{
+        .kind = if (isSingleColumn(rows)) .exterior_form else .vector_young,
+        .family = family,
+        .rank = rank,
+        .dimension = dimension,
+        .young_row_count = rows.count,
+        .young_rows = rows.values,
+        .young_box_count = box_count,
+        .column_count = try transposeYoungRows(rows, &column_heights),
+        .column_heights = column_heights,
+        .form_rank = if (isSingleColumn(rows)) box_count else 0,
+        .form_profile = if (isSingleColumn(rows)) profileForRank(box_count) else 0,
+    };
+}
+#+end_src
+
+Tests:
+
+#+begin_src text :tangle no
+D5 [2,0,0,0,0] -> rows [2]
+D5 [1,1,0,0,0] -> rows [2,1]
+D5 [0,2,0,0,0] -> rows [2,2]
+B4 [0,2,0,0] -> rows [2,2]
+D6 tensor label beyond four boxes -> correct rows or typed over-cap
+spin labels are not misclassified as pure tensors
+#+end_src
+
+* Explicit Slot Model
+
+Every local compiler input becomes explicit slots.  Compressed exterior forms
+may be preserved only when no mixed tensor interaction requires exposing them.
+
+#+begin_src zig :tangle no
+const SlotOriginKind = enum {
+    tensor_box,
+    exterior_form_slot,
+    spinor_slot,
+};
+
+const ExplicitVectorSlot = struct {
+    block: rendering.IndexBlockId,
+    slot: u8,
+    origin: SlotOriginKind,
+    young_box: u8,
+    form_rank: u8,
+    form_slot: u8,
+};
+
+const ExplicitSlotEndpoint = struct {
+    descriptor: OrthogonalTensorDescriptor,
+    index: rendering.IndexRef,
+    slot_count: u8,
+    slots: [max_explicit_vector_slots]ExplicitVectorSlot,
+    remains_compressed_form: bool,
+    has_spinor: bool,
+};
+
+const TensorCompilerChannel = struct {
+    operator_id: u32,
+    dimension: u16,
+    left: ExplicitSlotEndpoint,
+    right: ExplicitSlotEndpoint,
+    output: ExplicitSlotEndpoint,
+};
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn explicitEndpoint(endpoint: StructuralEndpoint, descriptor: OrthogonalTensorDescriptor, exposure: ExposureMode) !ExplicitSlotEndpoint {
+    var out: ExplicitSlotEndpoint = .{ .descriptor = descriptor, .index = endpoint.index };
+    switch (descriptor.kind) {
+        .scalar => return out,
+        .vector_young => return exposeYoungBoxes(endpoint.index, descriptor, &out),
+        .exterior_form => switch (exposure) {
+            .compressed => return keepCompressedForm(endpoint.index, descriptor, &out),
+            .explicit_vector_slots => return exposeExteriorSlots(endpoint.index, descriptor.form_rank, &out),
+        },
+        .mixed_tensor_form => return exposeMixedTensorForm(endpoint.index, descriptor, &out),
+        .spinor, .tensor_spinor => {
+            out.has_spinor = true;
+            if (descriptor.young_box_count != 0) try exposeYoungBoxes(endpoint.index, descriptor, &out);
+            return out;
+        },
+        .unsupported => return error.UnsupportedTensorDescriptor,
+    }
+}
+
+fn chooseExposureMode(left: OrthogonalTensorDescriptor, right: OrthogonalTensorDescriptor, output: OrthogonalTensorDescriptor) ExposureMode {
+    if (anyVectorYoung(left, right, output) and anyExteriorForm(left, right, output)) return .explicit_vector_slots;
+    if (anyMixedTensorForm(left, right, output)) return .explicit_vector_slots;
+    return .compressed;
+}
+#+end_src
+
+The exposure decision is essential.  Stage 3 only handled already-explicit
+pure-vector slots.  Arbitrary tensor products need exterior forms to become
+explicit slots whenever they interact with a non-form Young tensor.
+
+* Young Candidate Generation
+
+Candidate generation must be shape-driven.  No live branch may say “if shape is
+[2,1], emit this formula.”  Branching on generic shape operations is allowed:
+row groups, column groups, box count, trace pairs, and exposure kind.
+
+Box numbering is row-major:
+
+#+begin_src text :tangle no
+rows [4,2,1]:
+  0 1 2 3
+  4 5
+  6
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn enumerateYoungBrauerCandidates(shape: YoungShape, out: *TensorBrauerCandidateBuffer) !void {
+    var row_perms = PermutationSum.identity(shape.box_count);
+    for each row in shape.rows:
+        row_perms = try multiplyPermutationSums(row_perms, symmetrizerForBoxes(row.boxes));
+
+    var col_perms = PermutationSum.identity(shape.box_count);
+    const columns = transposeShape(shape);
+    for each column in columns:
+        col_perms = try multiplyPermutationSums(col_perms, antisymmetrizerForBoxes(column.boxes));
+
+    var young_sum = try multiplyPermutationSums(row_perms, col_perms);
+    try normalizeOrIntegerScaleYoungSum(&young_sum);
+
+    for each term in young_sum:
+        try out.append(permutationBrauerWord(term.sign_or_coeff, term.permutation));
+
+    try appendTraceRemovalCandidates(shape, out);
+    try uniqueTensorBrauerWords(out);
+}
+
+fn symmetrizerForBoxes(boxes: []const u8) PermutationSum {
+    var sum = PermutationSum.empty();
+    for each permutation p of boxes:
+        sum.add(.{ .coefficient = 1, .permutation = extendToAllBoxes(p) });
+    return sum;
+}
+
+fn antisymmetrizerForBoxes(boxes: []const u8) PermutationSum {
+    var sum = PermutationSum.empty();
+    for each permutation p of boxes:
+        sum.add(.{ .coefficient = parity(p), .permutation = extendToAllBoxes(p) });
+    return sum;
+}
+#+end_src
+
+Do not allocate arbitrary permutation lists.  Use fixed buffers and reject on
+cap overflow.
+
+* Brauer Trace Candidates
+
+Trace removal is also shape-driven.  Add all metric trace pairings allowed by
+the explicit slot model, then let Gram pivoting remove dependent candidates.
+
+#+begin_src zig :tangle no
+fn appendTraceRemovalCandidates(shape: YoungShape, out: *TensorBrauerCandidateBuffer) !void {
+    var a: u8 = 0;
+    while (a < shape.box_count) : (a += 1) {
+        var b: u8 = a + 1;
+        while (b < shape.box_count) : (b += 1) {
+            if (!tracePairAdmissible(shape, a, b)) continue;
+            var word = TensorBrauerWord.identityTraceCandidate();
+            try word.append(.{ .kind = .input_trace, .input_a = a, .input_b = b });
+            try word.append(.{ .kind = .output_metric, .output_a = a, .output_b = b });
+            try out.append(word);
+        }
+    }
+}
+
+fn tracePairAdmissible(shape: YoungShape, a: u8, b: u8) bool {
+    // Keep this permissive at first: all unordered pairs are admissible unless
+    // the pair is killed identically by a column antisymmetry in dimension N.
+    // Linear dependence is Gram-pivot work, not shape-guessing work.
+    _ = shape;
+    _ = a;
+    _ = b;
+    return true;
+}
+#+end_src
+
+Acceptance requires at least one test where candidate generation deliberately
+produces dependent trace candidates and pivoting removes them.
+
+* Mixed Tensor-Form Bridge
+
+This is the missing generalization beyond Stage 3.  A compressed exterior form
+must be bridged to explicit vector slots when a product contains a vector Young
+tensor or mixed tensor-form output.
+
+Bridge primitives:
+
+#+begin_src text :tangle no
+form_expose_delta:      exterior form rank r -> r antisymmetric vector slots
+form_collect_delta:     r antisymmetric vector slots -> exterior form rank r
+form_slot_metric:       metric contraction between tensor slot and exposed form slot
+form_slot_insertion:    metric insertion from tensor slot into exposed form slot
+gamma_bridge_action:    spinor/form bridge for tensor-spinor channels
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn enumerateBridgeCandidates(channel: TensorCompilerChannel, out: *TensorBrauerCandidateBuffer) !void {
+    if (!channelHasExposedForms(channel)) return;
+
+    try appendFormExposureWords(channel.left, out);
+    try appendFormExposureWords(channel.right, out);
+    try appendFormCollectionWords(channel.output, out);
+
+    for each exposed source form slot s:
+        for each tensor source/output slot t:
+            if (metricBridgeAdmissible(s, t)) {
+                try appendMixedMetricBridge(s, t, out);
+            }
+
+    if (channelHasSpinor(channel)) {
+        try appendGammaBridgeCandidates(channel, out);
+    }
+}
+
+fn appendFormExposureWords(endpoint: ExplicitSlotEndpoint, out: *TensorBrauerCandidateBuffer) !void {
+    if (endpoint.descriptor.kind != .exterior_form) return;
+    if (endpoint.remains_compressed_form) return;
+    // Antisymmetrize all exposed form slots.  This is a Young column.
+    const column = endpoint.slots[0..endpoint.slot_count];
+    try appendColumnAntisymmetrizer(column, out);
+}
+#+end_src
+
+The bridge must not create a separate mixed-form formula backend.  It appends
+additional primitive candidates into the same Gram compiler used for pure
+Young tensors.
+
+* Brauer Diagram Composition
+
+Use a fixed union-find over boundary nodes.  For rank \(r \le 8\), the diagram
+composition remains small.
+
+Node layout:
+
+#+begin_src text :tangle no
+left external input:      0 .. r-1
+left internal output:     r .. 2r-1
+right internal input:     2r .. 3r-1
+right external output:    3r .. 4r-1
+bridge/compressed nodes:  after 4r, bounded by max_bridge_nodes
+#+end_src
+
+Inner product:
+
+#+begin_src zig :tangle no
+fn tensorBrauerInnerProduct(channel: TensorCompilerChannel, left: TensorBrauerWord, right: TensorBrauerWord) !Rational {
+    var graph = TensorBrauerContraction.init(channel.total_explicit_slots);
+    try graph.addWord(left, .left_adjoint);
+    try graph.addWord(right, .right);
+    try graph.glueInternalBoundaries();
+
+    const closed = try graph.closeExternalBoundaries(channel);
+    if (!closed.valid) return Rational.zero();
+
+    var coefficient = try left.coefficient.mul(right.coefficient);
+    coefficient = try coefficient.mul(try powRational(channel.dimension, closed.metric_loop_count));
+    coefficient = try coefficient.mul(try bridgeLoopCoefficient(channel, closed));
+    coefficient = try coefficient.mul(try cliffordTraceCoefficient(channel, left, right));
+    return coefficient;
+}
+#+end_src
+
+Composition cases:
+
+#+begin_src text :tangle no
+delta after delta             -> delta
+metric after trace            -> loop N
+trace after metric            -> loop N
+form exposure after collect   -> antisymmetric delta normalization
+gamma action after adjoint    -> Clifford trace coefficient
+Hodge after Hodge             -> signed identity
+incompatible open component   -> zero
+cap overflow                  -> typed unsupported error
+#+end_src
+
+Do not infer zero from label names.  Infer zero from graph connectivity,
+chirality parity, form rank mismatch, or exact contraction rules.
+
+* Gram Program Compilation
+
+The program is the same mathematical object for pure tensors, mixed forms, and
+spinor bridges.
+
+#+begin_src zig :tangle no
+fn compileTensorBrauerProgram(channel: TensorCompilerChannel) !TensorBrauerProgram {
+    var candidates: TensorBrauerCandidateBuffer = .{};
+
+    try enumerateYoungBrauerCandidates(channel.output.descriptor.youngShape(), &candidates);
+    try enumerateSourceYoungCandidates(channel.left, channel.right, &candidates);
+    try enumerateBridgeCandidates(channel, &candidates);
+    try uniqueTensorBrauerWords(&candidates);
+
+    if (candidates.count == 0) return error.UnsupportedTensorBridge;
+
+    var gram: TensorGramMatrix = .{};
+    var i: u8 = 0;
+    while (i < candidates.count) : (i += 1) {
+        var j: u8 = 0;
+        while (j <= i) : (j += 1) {
+            const value = try tensorBrauerInnerProduct(channel, candidates.words[i], candidates.words[j]);
+            gram.setSymmetric(i, j, value);
+        }
+    }
+
+    const pivots = try selectIndependentGramPivots(candidates.count, gram.entries());
+    if (pivots.count == 0) return error.SingularGramMatrix;
+    if (pivots.count > max_tensor_pivots) return error.UnsupportedTensorPivotCap;
+
+    const pivot_gram = gram.extract(pivots);
+    const inverse = try invertExactSmallGram(pivots.count, pivot_gram.entries());
+
+    return TensorBrauerProgram{
+        .candidate_count = candidates.count,
+        .pivot_count = pivots.count,
+        .candidates = candidates.words,
+        .pivots = pivots,
+        .inverse_gram = inverse,
+    };
+}
+#+end_src
+
+If exact inversion overflows, do not replace it with a diagonal placeholder.
+Either improve fraction-free inversion or return a typed unsupported error.
+This goal must not accept approximate or incomplete Gram inverses for live
+projectors.
+
+* Streaming Terms
+
+The stream lowering walks selected pivot pairs and emits only primitive atoms.
+
+#+begin_src zig :tangle no
+fn appendTensorBrauerProgramTerm(
+    allocator: std.mem.Allocator,
+    atoms: *std.ArrayList(rendering.SymbolicAtom),
+    channel: TensorCompilerChannel,
+    program: TensorBrauerProgram,
+    term_index: u8,
+) !rendering.RationalId {
+    const term = try tensorBrauerProgramTermAt(program, term_index);
+    const left = program.candidates[program.pivots[term.left_pivot]];
+    const right = program.candidates[program.pivots[term.right_pivot]];
+
+    try appendTensorBrauerWordAtoms(allocator, atoms, channel, left, .forward);
+    try appendTensorBrauerWordAtoms(allocator, atoms, channel, right, .adjoint);
+
+    return rationalToRenderingId(term.coefficient);
+}
+
+fn appendTensorBrauerWordAtoms(
+    allocator: std.mem.Allocator,
+    atoms: *std.ArrayList(rendering.SymbolicAtom),
+    channel: TensorCompilerChannel,
+    word: TensorBrauerWord,
+    direction: WordDirection,
+) !void {
+    var edge_index: u8 = 0;
+    while (edge_index < word.edge_count) : (edge_index += 1) {
+        const edge = orientEdge(word.edges[edge_index], direction);
+        switch (edge.kind) {
+            .delta => try appendVectorSlotDelta(allocator, atoms, channel, edge),
+            .input_trace, .output_metric => try appendVectorSlotMetric(allocator, atoms, channel, edge),
+            .form_expose_delta => try appendFormExposureAtoms(allocator, atoms, channel, edge),
+            .gamma_bridge_action => try appendGammaBridgeAtoms(allocator, atoms, channel, edge),
+            .hodge_bridge => try appendHodgeAtoms(allocator, atoms, channel, edge),
+        }
+    }
+}
+#+end_src
+
+Do not combine terms into a large expression list.  The caller asks for one
+term by index and receives atoms for only that term.
+
+* Context Routing
+
+Replace local projector formula branching with descriptor routing.
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn localProductFormulaKind(context: Context, left: Irrep, right: Irrep, output: Irrep) ProjectorFormulaKind {
+    if (try orthogonalTensorCompilerCanHandle(context, left, right, output)) {
+        return .orthogonal_tensor_brauer_program;
+    }
+    return existingNonOrthogonalOrNamedFallback(...);
+}
+
+fn appendLocalFormulaProjectionStepTerm(...) !rendering.RationalId {
+    switch (formula.kind) {
+        .orthogonal_tensor_brauer_program => {
+            const channel = try tensorCompilerChannelFromLocalStep(...);
+            const program = try cache.programFor(channel);
+            return appendTensorBrauerProgramTerm(allocator, atoms, channel, program, term_index);
+        },
+        else => return existingRoute(...),
+    }
+}
+#+end_src
+
+Expanded rendering must treat unsupported tensor compiler errors as hard
+failures.  Named rendering may still display compact projectors.
+
+* Required Test Matrix
+
+Tests should verify invariants and routing, not atom order.
+
+Descriptor tests:
+
+#+begin_src text :tangle no
+B4 and D5 tensor labels parse to expected Young rows
+D5 [2], [2,1], [2,2] parse through the general descriptor, not a Stage 3-only parser
+spinor labels are not accepted as pure tensors
+over-cap rows return UnsupportedTensorShapeOverCap
+#+end_src
+
+Pure tensor tests:
+
+#+begin_src text :tangle no
+[2] fixture equivalence with old symmetric traceless formula
+[2,1] fixture equivalence with old hook formula
+[2,2] Weyl exact antisymmetry, pair exchange, Bianchi, trace removal, idempotence
+one tensor shape beyond old four-box fixtures, within new cap, routes through compiler
+one dependent-candidate shape has pivot_count < candidate_count
+#+end_src
+
+Mixed bridge tests:
+
+#+begin_src text :tangle no
+vector x two-form -> hook routes through mixed explicit-slot bridge
+two-form x symmetric tensor -> mixed tensor output emits vector-slot metrics and form exposure atoms
+spinor x tensor-form channel still emits primitive gamma atoms, not compact tensor-spinor placeholders
+#+end_src
+
+Dimension-parametric tests:
+
+#+begin_src text :tangle no
+B4 dimension 9 tensor channel differs from D5 dimension 10 only through N-dependent Gram coefficients
+D6 or B5 case with same Young rows compiles without D5 hard-coding
+middle-form D_n duality keeps correct Hodge signs
+#+end_src
+
+Rendering tests:
+
+#+begin_src text :tangle no
+expanded pure tensor terms contain only primitive atom tags
+expanded mixed tensor-form terms contain only primitive atom tags
+metric reject filters reject vector-slot metric and bridge metric atoms
+projector reject filters reject compact projectors before successful expanded rendering
+#+end_src
+
+Full gates:
+
+#+begin_src sh :tangle no
+zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/context.zig
+zig test src/tensor-code/rendering.zig
+zig test src/tensor-code/tensor-code.zig
+zig build test
+#+end_src
+
+The strict Spin(10) \(16^{12}\) expanded streaming gate must remain green.
+
+* Completion Criteria
+
+This goal is complete only when:
+
+#+begin_src text :tangle no
+1. B/D tensor descriptors parse arbitrary supported tensor labels into Young/form/spin data.
+2. Pure tensor Young/Brauer generation is shape-driven up to declared caps.
+3. Mixed tensor-form endpoints use bridge primitives and the same Gram compiler.
+4. Gram entries are exact diagram/Clifford contractions with loop counting.
+5. Independent pivots and exact inverse pivot Gram drive the streamed projector.
+6. Expanded mode emits no compact projector placeholders for supported channels.
+7. Over-cap and unsupported channels raise typed errors.
+8. Old direct formulas are fixture tests only.
+9. New tests cover beyond-four-box, mixed bridge, B/D dimension-parametric, dependent-pivot, and over-cap cases.
+10. The full test gate, including strict Spin(10) \(16^{12}\), passes.
+#+end_src
+
+Partial solutions do not satisfy this note.  In particular, do not complete the
+goal with another bounded list of formula emitters, a diagonal Gram inverse
+fallback, descriptor-only parsing without mixed bridge streaming, or compact
+projector placeholders in expanded mode.

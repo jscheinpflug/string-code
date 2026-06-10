@@ -1,0 +1,231 @@
+:PROPERTIES:
+:ID:       20260610T213000.000000
+:END:
+#+title: Tensor-Only Brauer Performance Handoff
+#+auto_tangle: nil
+
+This handoff narrows the performance path for
+[[id:20260610T170000.000000][Tensor-Only Brauer Solver Completion Plan]].
+The goal is still the descriptor-driven non-spinor \(B/D\) tensor solver in
+[[id:20260609T143000.000000][Arbitrary Tensor Brauer Compiler Plan]], while
+preserving the existing fast spinor/Clifford bypass.
+
+Do not routinely retest the spinor path while doing this work.  The interface
+must remain compatible with joining spinor factors later, but the current
+performance target is the non-spinor tensor-only compiler.
+
+* Current Status
+
+The tensor-only path now has useful pieces:
+
+#+begin_src text :tangle no
+raw Brauer diagram enumeration
+endpoint projector construction for scalar/vector/exterior/mixed endpoints
+trace-free endpoint projector storage as exact-size owned slices
+per-program endpoint projector table sharing repeated endpoints
+direct graph contraction for tensor-only Gram entries
+independent Gram pivots and inverse Gram
+expanded term streaming for small channels
+cached merged primitive terms for mixed scalar pairings
+mixed scalar pairings routed through tensor-only cache
+mixed source/output channels routed back to vector-backed fallback
+hodge endpoints still disabled
+#+end_src
+
+The remaining performance problem is not integer width.  Increasing =u16= to
+=u32= lets larger expansions be named, but it still asks the program to
+enumerate enormous endpoint-projector products.  The central issue is early
+symbolic expansion.
+
+* Immediate Bottleneck
+
+The hot path still does this:
+
+#+begin_src text :tangle no
+endpoint projector basis words
+  x raw Brauer diagrams
+  x endpoint projector basis words again for Gram or streaming
+  -> expanded primitive terms
+  -> merge equivalent primitive terms after the fact
+#+end_src
+
+For mixed source/output channels this can explode before fallback or before
+the useful small merged term set is visible.  The current scalar-output mixed
+gate is a temporary guard, not the desired final shape.
+
+* Highest-Gain Changes
+
+** 1. Factorized Endpoint Projector Actions
+
+Do not materialize endpoint projector words as the main representation for
+tensor-only Gram and streaming.
+
+Represent an endpoint projector as a short operator program:
+
+#+begin_src text :tangle no
+young row symmetrizer factors
+young column antisymmetrizer factors
+trace-removal basis factors
+hodge factor, when implemented
+#+end_src
+
+Then apply those factors directly to the Brauer contraction graph or primitive
+term builder.  This keeps the data flow close to:
+
+#+begin_src text :tangle no
+raw diagram + endpoint operator descriptors -> contraction scalar / emitted primitive term
+#+end_src
+
+Expected gain: largest.  This removes the biggest combinatorial product.
+
+** 2. Compile-Time Projector Action Cache
+
+Cache the action of each endpoint projector on each raw boundary pattern, not
+the full expanded projector.
+
+Suggested data shape:
+
+#+begin_src text :tangle no
+EndpointActionKey
+  endpoint_projector_index
+  endpoint_side
+  raw_diagram_index
+  local boundary signature
+
+EndpointAction
+  compact surviving words or primitive edits
+  term_count
+  zero flag
+#+end_src
+
+This is data-oriented because it stores exactly the repeated work seen by the
+Gram and streaming loops.  It also gives a cheap structural budget before a
+channel enters the expensive solve.
+
+Expected gain: high.  It avoids recomputing identical endpoint applications
+across Gram rows, columns, and term emission.
+
+** 3. Pair-Level Merged Term Index
+
+The current merged mode caches final terms for one compiled program, but it
+still builds them from expanded pairs.  Replace this with a pair-level index:
+
+#+begin_src text :tangle no
+TensorOnlyPairTermIndex
+  pivot_row
+  pivot_column
+  first_term
+  term_count
+
+TensorOnlyMergedTerm
+  coefficient
+  canonical primitive atom pattern
+#+end_src
+
+The term builder should merge by canonical primitive atom pattern while
+streaming, not after storing an expanded array.  Keep the current public
+=u16= term index until there is evidence that final merged primitive term
+counts require a wider API.
+
+Expected gain: high for appendTerm.  It makes =appendTerm(i)= a lookup instead
+of a repeated scan.
+
+** 4. Cheap Budget Before Gram
+
+Before Gram construction, estimate:
+
+#+begin_src text :tangle no
+raw_diagram_count
+candidate_count
+endpoint action counts
+estimated pair action count
+estimated merged term upper bound
+#+end_src
+
+If a channel exceeds the tensor-only budget, return =ProjectorProgramTooLarge=
+early so existing fallback remains prompt.  This guard should be based on data
+sizes, not on representation names.  The current scalar-output mixed rule is
+only a stopgap.
+
+Expected gain: medium.  It prevents accidental long compiles while the
+factorized representation is being built.
+
+** 5. Hodge As An Endpoint Operator
+
+Do not special-case Hodge late in term streaming.  Add it as an endpoint
+operator factor with explicit slot action:
+
+#+begin_src text :tangle no
+input/output slot count
+duality tag
+epsilon complement map
+metric normalization scalar
+#+end_src
+
+The Gram contraction table must be able to contract this factor with raw
+Brauer diagrams and trace-free endpoint actions.  This should share the same
+factorized endpoint action API used by Young and trace-free projectors.
+
+Expected gain: correctness and scope, not immediate speed.
+
+* API Shape For Later Spinor Join
+
+Keep the future join point at the factor/candidate level, not at the expanded
+term level.
+
+Recommended internal API:
+
+#+begin_src text :tangle no
+DescriptorEndpoint
+  tensor slots
+  optional endpoint operator factors
+  optional spinor/tower factors later
+
+MorphismCandidate
+  factor_count
+  factors:
+    raw_brauer_diagram
+    endpoint_operator
+    hodge_operator
+    future_clifford_or_gamma_operator
+
+MorphismGramEntry(candidate_a, candidate_b)
+  exact rational scalar
+
+MorphismTermStream(candidate_pair, coefficient)
+  primitive atoms, streamed in canonical order
+#+end_src
+
+The current spinor/Clifford solver should remain the production route for
+spinor channels.  The tensor-only work should only preserve these join points:
+
+#+begin_src text :tangle no
+same candidate-word abstraction
+same exact Gram/inverse/pivot machinery
+same primitive atom emission boundary
+no dependency from tensor-only compile to Clifford internals
+#+end_src
+
+* Recommended Next Session
+
+Do not start with more broad tests.  Start with a data-structure change:
+
+#+begin_src text :tangle no
+1. Add EndpointActionBuffer for one endpoint projector applied to one raw side.
+2. Populate it in compileTensorOnlyBrauerProgram after raw diagram pruning.
+3. Change Gram to read EndpointActionBuffer instead of projector basis words.
+4. Keep old expanded path behind a small-channel fallback until parity tests pass.
+5. Only then reopen mixed source/output tensor-only routing.
+#+end_src
+
+Focused checks after that change:
+
+#+begin_src text :tangle no
+zig test src/tensor-code/projector-constructor.zig --test-filter "direct Gram graph"
+zig test src/tensor-code/projector-constructor.zig --test-filter "mixed form scalar pairing"
+zig test src/tensor-code/projector-constructor.zig --test-filter "compressed form source"
+#+end_src
+
+Avoid routine spinor checks during this work.  Run the spinor/Clifford bypass
+only after changing shared dispatch, shared candidate words, or shared atom
+emission.

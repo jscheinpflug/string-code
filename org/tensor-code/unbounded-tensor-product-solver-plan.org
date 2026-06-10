@@ -1,0 +1,289 @@
+:PROPERTIES:
+:ID:       20260610T171730.755085
+:END:
+#+title: Unbounded Tensor Product Solver Plan
+#+auto_tangle: nil
+
+This note replaces the earlier broad rewrite plan.  The target is not a second
+solver.  The target is the current descriptor-driven tensor Brauer solver from
+[[id:20260610T235000.000000][General Tensor Product Brauer Solver Handoff]], with the
+fixed-size storage and dense small-case execution points replaced by data
+structures that scale.
+
+The spinor \(16^{12}\) calculation is not a target to redo.  It is the
+performance reference: compact words, reducers, canonical merge, and streamed
+output.  The tensor-only solver should handle tensor invariant problems of
+similar basis and expression size without becoming several times larger than
+the current code.
+
+* Goal Command
+
+Use this as the implementation goal:
+
+#+begin_src text :tangle no
+/goal Scale the existing tensor-only Brauer solver from org/tensor-code/unbounded-tensor-product-solver-plan.org. Keep the current descriptor compiler, Brauer semantics, endpoint factor programs, action-buffer idea, exact rational code, and primitive atom renderer. Replace only the fixed-cap live buffers and dense small-case bottlenecks with allocator-backed compact stores, chunked candidate/action streams, sparse exact pivots, and count/page/stream rendering. Acceptance: existing bounded tensor-only invariants still pass, over-cap failures become explicit resource-budget failures where mathematically supported, large tensor-only benchmarks with spinor-16^12-class invariant counts can be counted and selected invariants can be streamed under bounded memory, and no parallel duplicate solver or broad public API is introduced.
+#+end_src
+
+* Scope
+
+Unlimited means there is no hard-coded mathematical cap on product arity,
+Young boxes, raw Brauer diagrams, pivots, basis count, or emitted terms in the
+live path.  A run may still stop by explicit memory, time, or output policy.
+
+This plan is tensor-only first.  The current spinor and Clifford routes stay
+intact.  The only spinor-facing requirement is that new storage and streaming
+records do not prevent a future joined spinor-tensor solver.
+
+* Non-Negotiable Constraints
+
+1. Do not duplicate the tensor solver.
+2. Do not add a large new abstraction layer before replacing a measured
+   bottleneck.
+3. Keep local tensor algebra exactly where it is unless a data layout change
+   forces a move.
+4. Use compact records and append-only stores; do not allocate expanded
+   projector products or full rendered expressions.
+5. Keep public API changes limited to resource policy and streaming/count
+   options if those are required.
+6. Tests must protect mathematical invariants or scale contracts, not new
+   scaffolding.
+
+* What We Already Have
+
+Keep these pieces:
+
+#+begin_src text :tangle no
+descriptor-owned tensor channel routing
+B/D tensor endpoint interpretation
+raw Brauer diagram semantics
+endpoint operator factors for Young, trace removal, Hodge
+TensorEndpointActionBuffer concept
+projected endpoint actions before Gram and term emission
+exact rational arithmetic
+small dense Gram path for diagnostics and tiny channels
+merged primitive term table for current bounded programs
+primitive SymbolicAtom rendering boundary
+Context, BasisHandle, and render sink shape
+current gamma/Clifford reducers
+#+end_src
+
+These are the solver.  The scale work changes how much data they can process,
+not the mathematics they implement.
+
+* What Must Change
+
+The live tensor path still contains fixed buffers:
+
+#+begin_src text :tangle no
+max_tensor_young_boxes
+max_tensor_raw_diagrams
+max_tensor_candidates
+max_tensor_pivots
+max_tensor_endpoint_actions
+max_tensor_endpoint_action_words
+max_tensor_merged_terms
+u16 term indices
+#+end_src
+
+Those caps should remain only in tiny diagnostic fixtures or stack scratch
+whose size is derived from the current chunk.  They must not define the
+mathematical reach of the production tensor solver.
+
+* Minimal Data Model
+
+Do not introduce a separate candidate algebra.  Generalize the current records
+in place.
+
+** Program Store
+
+Replace fixed arrays inside =TensorOnlyProgram= with spans into one owned store:
+
+#+begin_src text :tangle no
+TensorOnlyStore
+  raw_diagrams
+  endpoint_projectors
+  endpoint_actions
+  candidate_words
+  pivot_rows
+  pair_term_index
+  merged_terms
+  primitive_factors
+#+end_src
+
+Each list is append-only.  A program stores spans, not arrays.  Small programs
+can still use stack scratch before committing to the store.
+
+** Chunk Cursor
+
+Every large loop gets a cursor:
+
+#+begin_src text :tangle no
+RawDiagramCursor
+EndpointActionCursor
+CandidateCursor
+PivotCursor
+MergedTermCursor
+RenderCursor
+#+end_src
+
+The cursor records enough state to resume, split work, or count without
+materializing the whole stage.
+
+** Sparse Pivot Row
+
+Keep dense Gram for tiny channels.  Add a sparse path for large channels:
+
+#+begin_src text :tangle no
+SparsePivotRow
+  leading_candidate
+  term span: candidate id + rational coefficient
+  inverse leading coefficient
+#+end_src
+
+Rows are canonicalized by sorted candidate id, merged coefficients, and exact
+rational normalization.  This is the largest algorithmic change, but it should
+reuse the existing rational operations and candidate inner-product semantics.
+
+** Resource Policy
+
+Resource policy is a small struct threaded through compile/render:
+
+#+begin_src text :tangle no
+memory budget
+candidate chunk size
+action chunk size
+pivot row budget
+output term budget
+optional time budget
+#+end_src
+
+Budget errors are not unsupported-shape errors.  They mean the problem is
+mathematically supported but the caller's resource policy stopped the run.
+
+* Implementation Passes
+
+The work should fit into four passes, not a 4-5x expansion.
+
+** Pass 1: Store Spans, Not Fixed Arrays
+
+Move =TensorOnlyProgram= storage to append-only spans while keeping the current
+compile order and dense Gram path.  This removes most artificial caps without
+changing the solver's math.
+
+Acceptance:
+
+#+begin_src text :tangle no
+existing tensor-only tests pass
+old fixed-cap errors are gone where only storage caused them
+small programs produce byte-for-byte equivalent primitive atom streams
+no public API change
+#+end_src
+
+** Pass 2: Chunk Endpoint Actions And Candidate Words
+
+Make raw diagram enumeration, endpoint action construction, and candidate word
+construction chunked.  The current =TensorEndpointActionBuffer= remains the
+unit of work; it is stored by span and regenerated by cursor when cheaper than
+keeping it.
+
+Acceptance:
+
+#+begin_src text :tangle no
+large raw diagram sets can be counted before allocation
+compile can stop by resource policy before term construction
+action buffers are reusable across Gram and rendering
+no expanded endpoint projector basis enters the live path
+#+end_src
+
+** Pass 3: Add Sparse Exact Pivots For Large Channels
+
+Keep the dense Gram code as the tiny-channel fast path.  Add sparse exact
+elimination for channels whose candidate or pivot count exceeds the dense
+threshold.
+
+Acceptance:
+
+#+begin_src text :tangle no
+small dense and sparse results agree on selected fixtures
+dependent candidates are removed by exact pivots
+pivot audit reports candidates, rows, rank, and basis count
+large tensor-only basis counts do not allocate a dense Gram matrix
+#+end_src
+
+** Pass 4: Count/Page/Stream Rendering
+
+Render from candidate/action/pivot spans through a canonical primitive-term
+merge.  Add count-only and paged rendering modes to avoid materializing long
+invariants.
+
+Acceptance:
+
+#+begin_src text :tangle no
+selected large invariants can be counted without storing terms
+paged rendering is deterministic
+streamed output contains only primitive metric/delta/Hodge/epsilon atoms
+current render sinks keep working
+#+end_src
+
+* Scale Benchmarks
+
+Do not benchmark by redoing the spinor \(16^{12}\) computation.  Use tensor-only
+families that reach the same scale class:
+
+#+begin_src text :tangle no
+10^4-10^5 independent tensor invariants
+long metric-contraction renderings
+repeated tensor powers with many equivalent local factors
+channels where dense Gram would be impossible
+channels where count-only rendering is useful
+#+end_src
+
+The benchmark contract is:
+
+#+begin_src text :tangle no
+count the invariant basis under bounded memory
+stream selected low, middle, and high basis elements
+report peak store sizes and pivot statistics
+verify selected traces/symmetries exactly
+#+end_src
+
+* Future Spinor-Tensor Join
+
+Do not refactor the spinor solver during the tensor scale work.  Preserve a
+common boundary only:
+
+#+begin_src text :tangle no
+compact candidate word
+exact rational coefficient
+sparse pivot row
+primitive factor stream
+render sink
+#+end_src
+
+The current gamma/Clifford reducers can later emit through the same primitive
+factor stream.  No tensor-only pass should depend on Clifford internals.
+
+* Test Strategy
+
+Add only focused tests:
+
+#+begin_src text :tangle no
+span-backed program matches old bounded output
+chunked action construction matches unchunked small fixtures
+sparse pivots match dense Gram on small fixtures
+resource policy returns typed budget errors
+count-only and streamed rendering agree on selected invariants
+large tensor-only benchmark reports basis count and selected exact laws
+#+end_src
+
+Avoid broad snapshot tests of long formulas.  Long formulas should be tested
+by exact contractions, traces, symmetries, and deterministic counts.
+
+* Completion Criteria
+
+The work is complete when the tensor-only solver is still recognizably the
+current solver, but its live data path no longer depends on fixed constants.
+The code size should grow by replacing storage and dense routines, not by
+adding a parallel engine.  A reasonable target is a modest increase in
+=projector-constructor= internals, offset by deleting old cap-specific
+fallbacks once the span-backed path is authoritative.

@@ -1,0 +1,1342 @@
+:PROPERTIES:
+:ID:       20260609T173000.000000
+:END:
+#+title: General Tensor Pairing Compiler Design
+#+auto_tangle: nil
+
+This note refines
+[[id:20260609T143000.000000][Arbitrary Tensor Brauer Compiler Plan]] at the
+point where the current implementation still falls back to compact projector
+metadata: scalar pairings of nontrivial \(B/D\) tensor representations, such as
+Weyl \(\otimes\) Weyl \(\to \mathbf 1\).  The same compiler shape must then
+extend to tensor-form and tensor-spinor channels.
+
+The design follows =AGENTS.md=: keep data records small, write explicit
+procedural code, stream terms instead of building expression trees, and make
+the implementation a literate program in =org/tensor-code/projector-constructor.org=
+with tangled Zig in =src/tensor-code/projector-constructor.zig=.
+
+* Handoff: Current State On 2026-06-09
+
+This file is the continuation handoff for the active goal in
+[[id:20260609T143000.000000][Arbitrary Tensor Brauer Compiler Plan]].  The goal is a
+general bounded \(B/D\) tensor solver.  Do not stop at another special tensor
+case.  The accepted direction is the same lesson that made the strict
+Spin(10) \(16^{12}\) expansion tractable: write one small general compiler
+with exact candidate enumeration and streaming, then let hard examples be
+tests of the compiler.  A growing stack of Weyl, hook, symmetric, or
+four-box-specific production branches is the wrong endpoint.
+
+The current implementation has made real progress but is not the final
+general solver.
+
+Current implemented facts:
+
+#+begin_src text :tangle no
+src/tensor-code/projector-constructor.zig
+org/tensor-code/projector-constructor.org
+  contain a pure-vector Young/Brauer backend:
+    Young row/column permutation candidates
+    Brauer trace-removal candidates
+    exact Brauer diagram composition and loop counting
+    independent Gram pivot selection
+    inverse pivot Gram
+    streamed vector-slot delta/metric atoms
+
+  contain descriptor parsing for bounded B/D tensor labels into:
+    scalar
+    vector_young
+    exterior_form
+    spinor / tensor_spinor metadata
+    mixed_tensor_form metadata
+
+  contain structural adapters for:
+    L explicit-vector slots + R explicit-vector slots -> output Young shape
+    identical pure Young/exterior shape pairings -> scalar
+
+  contain a first private TensorCompilerChannel / ExplicitEndpoint adapter:
+    tensorCompilerChannelFromStructural builds one local descriptor channel
+    structuralProjectorTermCount routes through the channel
+    appendStructuralProjectorTerm routes through the channel
+    StructuralProjectorProgramCache routes through the channel
+    existing vector-output and scalar-pairing specs are derived from it
+
+  contain a TensorCandidateWord / TensorChannelProgram layer for:
+    vector-backed Young output
+    vector-backed scalar pairing
+    vector-backed tensor contraction
+    direct tests of structural Clifford wrapping
+
+  production spinor/Clifford structural channels deliberately bypass the new
+  TensorChannelProgram wrapper and use the existing compact structural Gram
+  cache.  This is required for the Spin(10) 16^12 gate until the tensor
+  candidate-word backend is performance-equivalent.
+
+  no longer need live closed-form projector formulas for the Stage 3
+  pure-vector [2], [2,1], [2,2] path.
+
+src/tensor-code/context.zig
+org/tensor-code/context.org
+  contain an end-to-end Spin(10) test whose external legs are:
+    two_form, two_form, Weyl
+  and whose expanded rendering verifies primitive-only output for:
+    two_form x two_form -> Weyl
+    Weyl x Weyl -> scalar
+#+end_src
+
+Recently added scalar-pairing evidence:
+
+#+begin_src text :tangle no
+zig test src/tensor-code/projector-constructor.zig --test-filter "scalar pair"
+
+passed tests:
+  projector constructor streams B4 Weyl scalar pairings through Brauer backend
+  projector constructor streams beyond-four-box exterior scalar pairings
+  projector constructor rejects mismatched Young scalar pairings
+#+end_src
+
+After the =TensorCompilerChannel= and =TensorCandidateWord= slices, these
+checks passed:
+
+#+begin_src text :tangle no
+zig test src/tensor-code/projector-constructor.zig --test-filter "scalar pair"
+zig test src/tensor-code/projector-constructor.zig
+zig test src/tensor-code/tensor-code.zig
+
+focused end-to-end check:
+zig test src/tensor-code/context.zig --test-filter "two-form square Weyl"
+zig test src/tensor-code/context.zig --test-filter "twelfth"
+
+observed aggregate result:
+All 108 tensor-code tests passed, including the Spin(10) 16^12 benchmark gate.
+#+end_src
+
+Performance regression fixed on 2026-06-10:
+
+#+begin_src text :tangle no
+bad change:
+  production spinor_clifford_bridge channels speculatively entered
+  compileTensorChannelProgram before falling back to the old structural cache
+
+observed effect:
+  Spin(10) 16^12 benchmark stalled for many minutes
+
+fix:
+  tensorChannelUsesDirectStructuralProgram(channel) is true for
+  spinor_clifford_bridge in production termCount/appendTerm paths
+
+rule:
+  do not route the 16^12 spinor/Clifford hot path through TensorChannelProgram
+  until it has an equivalent compact cache key and no extra word-pair counting
+#+end_src
+
+Additional generic Brauer-law coverage added on 2026-06-10:
+
+#+begin_src text :tangle no
+src/tensor-code/projector-constructor.zig
+org/tensor-code/projector-constructor.org
+  now check the non-fixture four-box shape [3,1] in the generic Brauer tests:
+    Young row/column candidate quasi-idempotence by diagram composition
+    trace-free Brauer projector idempotence
+    trace annihilation by all generated trace contractions
+
+This is evidence for the general backend, not a production formula.  There is
+still no shape-specific [3,1] emitter.
+#+end_src
+
+Dependent tensor-word pivot coverage added on 2026-06-10:
+
+#+begin_src text :tangle no
+src/tensor-code/projector-constructor.zig
+org/tensor-code/projector-constructor.org
+  include a tensor-channel Gram test where two TensorCandidateWord entries
+  point at the same generated Brauer candidate.
+
+The test verifies:
+  candidate_count > pivot_count
+  exact Gram pivoting selects one independent pivot
+  streamed term counting still succeeds from the pruned pivot set
+
+This covers the TensorCandidateWord layer directly.  It is not a production
+formula and it does not add representation-name routing.
+#+end_src
+
+Org/Zig synchronization status: Emacs tangling of
+=projector-constructor.org= currently fails with an Emacs regexp stack
+overflow.  Until that is fixed, sync has been checked by extracting tangled
+Zig blocks with =awk= and diffing them against the files in =src=.  After the
+=TensorCompilerChannel= adapter slice, this extraction diff was empty.
+Continue to keep both files synchronized.
+
+#+begin_src sh :tangle no
+awk 'BEGIN{inblock=0} /^#\+begin_src zig/ {if ($0 !~ /:tangle no/) inblock=1; next} /^#\+end_src/ {if (inblock) inblock=0; next} {if (inblock) print}' \
+  org/tensor-code/projector-constructor.org > /tmp/projector-constructor.from-org.zig
+
+diff -u /tmp/projector-constructor.from-org.zig \
+  src/tensor-code/projector-constructor.zig
+#+end_src
+
+* What Is Still Missing
+
+The current scalar pairing adapter proves that one more channel can be routed
+through the Brauer backend.  It is not a complete arbitrary tensor-product
+solver.
+
+The first channel object now exists, but the missing production object is the
+general candidate-word program behind it:
+
+#+begin_src text :tangle no
+TensorCompilerChannel(left descriptor, right descriptor, output descriptor)
+  -> explicit endpoint slot views
+  -> candidate words for the whole local channel
+  -> exact Tensor/Brauer/Clifford Gram entries
+  -> independent pivots
+  -> inverse pivot Gram
+  -> streamed primitive atoms only
+#+end_src
+
+The current code still has multiple parallel mechanisms:
+
+#+begin_src text :tangle no
+VectorSlotProjectorSpec
+TensorPairingSpec
+StructuralProjectorProgram
+TensorFormProjectionProgram
+TensorSpinorProjectionProgram
+VectorSpinorTracelessSpec
+#+end_src
+
+The next architectural step is not another shape-specific branch.  It is to
+make these mechanisms emit =TensorCandidateWord= records and share one exact
+Gram compiler.
+
+The final solver must be able to handle any local product channel inside the
+declared caps:
+
+#+begin_src text :tangle no
+pure Young tensor x pure Young tensor -> pure Young tensor
+pure Young tensor x pure Young tensor -> scalar
+exterior/form endpoints exposed as vector slots when the channel is tensorial
+mixed tensor-form endpoints bridged into the same slot model
+spinor/tensor-spinor endpoints by adding Clifford primitive words
+#+end_src
+
+For every supported channel, expanded rendering must either stream primitive
+atoms or return a typed unsupported error.  It must not silently emit compact
+projector placeholders.
+
+* Non-Hardcoding Rule
+
+The solver must never grow a production decision tree over representation
+names or famous shapes.  The following are allowed only in tests and fixtures:
+
+#+begin_src text :tangle no
+[2] symmetric traceless formula
+[2,1] hook formula
+[2,2] Weyl formula
+two_form x two_form -> Weyl special case
+Weyl x Weyl -> scalar special case
+Spin(10) hardcoded 16^12 path
+#+end_src
+
+The production compiler may branch on structural facts only:
+
+#+begin_src text :tangle no
+descriptor kind
+Young rows / columns
+box count within cap
+duality metadata
+spinor presence and chirality
+whether endpoint slots can be exposed
+whether a primitive candidate family applies
+#+end_src
+
+The \(16^{12}\) example matters because the successful approach was not to
+hand-script that invariant.  The useful result came from a general Clifford
+streaming path that survived an extreme product.  Use the same standard here:
+rank 3, rank 4, Weyl, and beyond-four-box examples are regression tests for
+the general solver, not implementation layers.
+
+* Immediate Continuation Plan
+
+Continue in these concrete steps.
+
+1. Preserve the private =TensorCompilerChannel= / =ExplicitEndpoint= adapter
+   that now exists.  It is the entry point for the general compiler.  Do not
+   add more direct shape-specific routing in =structuralProjectorTermCount=,
+   =appendStructuralProjectorTerm=, or =StructuralProjectorProgramCache=.
+
+   Current adapter shape:
+
+#+begin_src zig :tangle no
+fn tensorCompilerChannelFromStructural(spec: StructuralProjectorSpec) !TensorCompilerChannel {
+    const left = try tensorDescriptorFromStructuralEndpoint(spec.left, spec.orthogonal_dimension);
+    const right = try tensorDescriptorFromStructuralEndpoint(spec.right, spec.orthogonal_dimension);
+    const output = try tensorDescriptorFromStructuralEndpoint(spec.output, spec.orthogonal_dimension);
+    return .{
+        .operator_id = spec.operator_id,
+        .dimension = spec.orthogonal_dimension,
+        .left = try explicitEndpoint(.left, spec.left.index, left),
+        .right = try explicitEndpoint(.right, spec.right.index, right),
+        .output = try explicitEndpoint(.output, spec.output.index, output),
+    };
+}
+
+fn structuralProjectorTermCount(spec: StructuralProjectorSpec) u16 {
+    const channel = tensorCompilerChannelFromStructural(spec) catch return 0;
+    if (vectorSlotProjectorSpecFromChannel(channel)) |vector_spec|
+        return vectorSlotProjectorTermCount(vector_spec);
+    if (tensorPairingSpecFromChannel(channel)) |pairing_spec|
+        return tensorPairingTermCount(pairing_spec);
+    return fallbackStructuralProgramTermCount(spec);
+}
+
+fn appendStructuralProjectorTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    spec: StructuralProjectorSpec,
+    term_index: u16,
+) !RationalId {
+    const channel = try tensorCompilerChannelFromStructural(spec);
+    if (vectorSlotProjectorSpecFromChannel(channel)) |vector_spec|
+        return appendVectorSlotProjectorTerm(allocator, atoms, vector_spec, term_index);
+    if (tensorPairingSpecFromChannel(channel)) |pairing_spec|
+        return appendTensorPairingTerm(allocator, atoms, pairing_spec, term_index);
+    return appendFallbackStructuralProgramTerm(allocator, atoms, spec, term_index);
+}
+#+end_src
+
+2. Implement =tensorChannelKind= as an adapter selector over descriptors, not
+   over named representations:
+
+#+begin_src zig :tangle no
+const TensorChannelKind = enum {
+    young_output,
+    scalar_pairing,
+    compressed_form_bridge,
+    spinor_clifford_bridge,
+};
+
+fn tensorChannelKind(channel: TensorCompilerChannel) !TensorChannelKind {
+    if (youngOutputApplies(channel)) return .young_output;
+    if (scalarPairingApplies(channel)) return .scalar_pairing;
+    if (compressedFormBridgeApplies(channel)) return .compressed_form_bridge;
+    if (spinorCliffordBridgeApplies(channel)) return .spinor_clifford_bridge;
+    return error.UnsupportedTensorBridge;
+}
+#+end_src
+
+This is a temporary adapter layer.  The end state should route all four kinds
+through =TensorCandidateWord= and one Gram program.
+
+3. Generalize candidate words before adding more examples:
+
+#+begin_src zig :tangle no
+const TensorPrimitiveKind = enum {
+    brauer_word,
+    pairing_metric_remap,
+    form_delta,
+    hodge,
+    gamma_insert,
+    gamma_action,
+    exterior_gamma_action,
+    spinor_pair,
+    spinor_tower_contract,
+};
+
+const TensorCandidateWord = struct {
+    coefficient: Rational,
+    primitive_count: u8,
+    primitives: [max_tensor_candidate_primitives]TensorPrimitive,
+};
+#+end_src
+
+4. Move the existing pure-vector projector and scalar-pairing paths behind
+   =enumerateTensorCandidates=:
+
+#+begin_src zig :tangle no
+fn enumerateTensorCandidates(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !void {
+    switch (try tensorChannelKind(channel)) {
+        .young_output => try enumerateTraceFreeYoungOutput(channel, out),
+        .scalar_pairing => try enumerateTraceFreeYoungPairing(channel, out),
+        .compressed_form_bridge => try enumerateCompressedFormBridge(channel, out),
+        .spinor_clifford_bridge => try enumerateSpinorCliffordBridge(channel, out),
+    }
+}
+#+end_src
+
+5. Only after that, add new coverage.  The next tests should prove generality,
+   not another named formula:
+
+#+begin_src text :tangle no
+non-D5 D-family tensor pairing, not only B4
+pure Young output whose shape is not [2], [2,1], or [2,2]
+mixed vector-form endpoint exposed to slots and projected to a Young output
+dependent pivot case where candidate_count > pivot_count
+over-cap shape/candidate/primitive errors at the structural API
+strict Spin(10) 16^12 expanded streaming still primitive-only
+#+end_src
+
+* General Candidate Solver Pseudocode
+
+The general solver must have one control flow:
+
+#+begin_src zig :tangle no
+fn compileTensorChannelProgram(channel: TensorCompilerChannel) !TensorProgram {
+    var candidates: TensorCandidateBuffer = .{};
+    try enumerateTensorCandidates(channel, &candidates);
+    try deduplicateTensorCandidates(&candidates);
+    if (candidates.count == 0) return error.UnsupportedTensorBridge;
+
+    var gram: TensorGram = .{};
+    var row: u8 = 0;
+    while (row < candidates.count) : (row += 1) {
+        var column: u8 = 0;
+        while (column < candidates.count) : (column += 1) {
+            const value = try tensorCandidateInnerProduct(
+                channel,
+                candidates.words[row],
+                candidates.words[column],
+            );
+            try gram.set(row, column, value);
+        }
+    }
+
+    var pivots: PivotBuffer = .{};
+    try selectIndependentGramPivots(gram, &pivots);
+    if (pivots.count == 0) return error.UnsupportedTensorBridge;
+
+    var inverse: TensorGramInverse = .{};
+    try invertPivotGram(gram, pivots, &inverse);
+
+    return .{
+        .channel = channel.auditKey(),
+        .candidate_count = candidates.count,
+        .pivot_count = pivots.count,
+        .candidates = candidates,
+        .pivots = pivots,
+        .inverse_gram = inverse,
+    };
+}
+#+end_src
+
+The inner product is exact and local.  It must not evaluate components or
+build gamma matrices:
+
+#+begin_src zig :tangle no
+fn tensorCandidateInnerProduct(
+    channel: TensorCompilerChannel,
+    left: TensorCandidateWord,
+    right: TensorCandidateWord,
+) !Rational {
+    var state = ContractionState.init(channel);
+    try applyTensorCandidateWord(&state, left, .forward);
+    try applyTensorCandidateWord(&state, right, .adjoint);
+
+    if (state.is_zero) return Rational.zero();
+
+    var value = try left.coefficient.mul(right.coefficient);
+    value = try value.mul(try brauerLoopFactor(state, channel.dimension));
+    value = try value.mul(try exteriorFormFactor(state, channel.dimension));
+    value = try value.mul(try hodgeFactor(state, channel.dimension));
+    value = try value.mul(try cliffordTraceFactor(state, channel.dimension));
+    value = try value.mul(try spinorPairingFactor(state, channel.dimension));
+    return value;
+}
+#+end_src
+
+Streaming must walk the program.  It must not allocate the expanded expression:
+
+#+begin_src zig :tangle no
+fn appendTensorChannelTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    channel: TensorCompilerChannel,
+    term_index: u16,
+) !RationalId {
+    const program = try tensorProgramCache.programFor(channel);
+    const expanded = try tensorProgramTermAt(program, term_index);
+
+    const left_word = program.candidates.words[program.pivots.indices[expanded.left_pivot]];
+    const right_word = program.candidates.words[program.pivots.indices[expanded.right_pivot]];
+
+    try appendTensorWordAtoms(allocator, atoms, channel, left_word, .forward);
+    try appendTensorWordAtoms(allocator, atoms, channel, right_word, .adjoint);
+    return rationalToRenderingId(expanded.coefficient);
+}
+#+end_src
+
+For scalar pairings, the current one-sided projector remap may remain as an
+optimization only if it is implemented as a candidate-word orientation of the
+same channel compiler.  It must not become a permanent separate formula path.
+
+* Non-Goal
+
+Do not add a new production formula for Weyl pairings, hook pairings, or any
+other named tensor.  A test may mention Weyl because it is the first failing
+end-to-end case, but production code must speak in descriptors, slots, Brauer
+words, primitive words, and exact Gram programs.
+
+The implementation must not grow as:
+
+#+begin_src text :tangle no
+if output == scalar and left == Weyl and right == Weyl
+if output == scalar and left == hook and right == hook
+if output == scalar and left == symmetric_traceless and right == symmetric_traceless
+#+end_src
+
+The implementation must grow as:
+
+#+begin_src text :tangle no
+descriptor pair is admissible
+  -> enumerate pairing candidates
+  -> compute exact contraction Gram
+  -> select pivots
+  -> stream primitive metric/delta atoms
+#+end_src
+
+* Required Object
+
+The missing object is a general local compiler for one binary \(B/D\) channel:
+
+#+begin_src text :tangle no
+left irrep descriptor, right irrep descriptor, output irrep descriptor
+  -> explicit slot model
+  -> candidate invariant/intertwiner words
+  -> exact word-pair Gram
+  -> independent pivots
+  -> inverse pivot Gram
+  -> streamed primitive atoms
+#+end_src
+
+For non-scalar output, the streamed term is an intertwiner
+\[
+  E: L \otimes R \to O.
+\]
+
+For scalar output, the streamed term is an invariant pairing
+\[
+  B: L \otimes R \to \mathbf 1.
+\]
+
+Both are the same compiler problem.  The only difference is whether the target
+endpoint has explicit slots.  A scalar target has no output slots, so all free
+slots from the left and right endpoints must be closed by primitive contractions.
+
+* Descriptor And Channel Data
+
+The context layer should create descriptors cheaply and pass them to the
+constructor.  The constructor should not inspect Dynkin labels directly once a
+channel has been built.
+
+#+begin_src zig :tangle no
+const TensorEndpointKind = enum {
+    scalar,
+    vector_young,
+    exterior_form,
+    mixed_tensor_form,
+    spinor,
+    tensor_spinor,
+    unsupported,
+};
+
+const TensorEndpointDescriptor = struct {
+    kind: TensorEndpointKind,
+    family: LieFamily,
+    rank: u8,
+    dimension: u16,
+
+    young_row_count: u8,
+    young_rows: [max_tensor_young_rows]u8,
+    young_box_count: u8,
+    column_count: u8,
+    column_heights: [max_tensor_columns]u8,
+
+    form_profile: u128,
+    form_mask: u64,
+    form_rank: u8,
+    form_duality: DualityTag,
+
+    has_spinor: bool,
+    chirality: u8,
+    tower_power: u16,
+};
+
+const TensorCompilerEndpoint = struct {
+    descriptor: TensorEndpointDescriptor,
+    block: IndexBlockId,
+};
+
+const TensorCompilerChannelKind = enum {
+    young_intertwiner,
+    tensor_pairing,
+    form_bridge,
+    spinor_bridge,
+    mixed_structural,
+};
+
+const TensorCompilerChannel = struct {
+    kind: TensorCompilerChannelKind,
+    operator_id: u32,
+    dimension: u16,
+    left: TensorCompilerEndpoint,
+    right: TensorCompilerEndpoint,
+    output: TensorCompilerEndpoint,
+};
+#+end_src
+
+The channel kind is an optimization and audit tag, not a formula selector.  The
+compiler must still call candidate-generation and Gram-contraction callbacks.
+Adding a new sector should mean adding candidate primitives and contraction
+rules, not adding renderer-visible formula branches.
+
+* Explicit Slot Model
+
+Every endpoint is lowered into a bounded explicit slot view.  Compressed forms
+and spinors may keep auxiliary metadata, but tensor pairings need a uniform way
+to name vector slots.
+
+#+begin_src zig :tangle no
+const ExplicitSlotKind = enum {
+    vector_slot,
+    form_block,
+    spinor_index,
+};
+
+const ExplicitSlot = struct {
+    kind: ExplicitSlotKind,
+    owner: EndpointSide,
+    block: IndexBlockId,
+    slot: u8,
+    rank: u8,
+    chirality: u8,
+    duality: DualityTag,
+};
+
+const ExplicitEndpoint = struct {
+    descriptor: TensorEndpointDescriptor,
+    vector_slot_count: u8,
+    vector_slots: [max_explicit_vector_slots]ExplicitSlot,
+    has_spinor: bool,
+    spinor_slot: ExplicitSlot,
+};
+#+end_src
+
+Pure Young tensors and exterior forms expose one vector slot per Young box.
+For a one-column exterior form of rank \(r\), the shape is \(1^r\).  For a
+general Young tensor, the slot order is row-major:
+
+#+begin_src text :tangle no
+row 0: boxes 0 .. lambda_0 - 1
+row 1: next lambda_1 boxes
+...
+#+end_src
+
+The slot model must reject over-cap endpoints before candidate enumeration:
+
+#+begin_src zig :tangle no
+fn explicitEndpoint(desc: TensorEndpointDescriptor, block: IndexBlockId) !ExplicitEndpoint {
+    var endpoint: ExplicitEndpoint = .{ .descriptor = desc };
+
+    switch (desc.kind) {
+        .scalar => return endpoint,
+        .vector_young, .exterior_form => {
+            if (desc.young_box_count > max_explicit_vector_slots)
+                return error.UnsupportedTensorShapeOverCap;
+            endpoint.vector_slot_count = desc.young_box_count;
+            var slot: u8 = 0;
+            while (slot < desc.young_box_count) : (slot += 1) {
+                endpoint.vector_slots[slot] = .{
+                    .kind = .vector_slot,
+                    .owner = ownerFromBlock(block),
+                    .block = block,
+                    .slot = slot,
+                };
+            }
+            return endpoint;
+        },
+        .mixed_tensor_form => return exposeMixedTensorForm(desc, block),
+        .spinor, .tensor_spinor => return exposeSpinorEndpoint(desc, block),
+        .unsupported => return error.UnsupportedTensorDescriptor,
+    }
+}
+#+end_src
+
+* Young Shape Compatibility
+
+Scalar pairings between pure tensor endpoints are admissible when both endpoints
+describe the same irreducible \(SO(N)\) tensor module, up to explicit duality
+rules.
+
+The first implementation should support:
+
+#+begin_src text :tangle no
+left.kind in {vector_young, exterior_form}
+right.kind in {vector_young, exterior_form}
+output.kind == scalar
+left.young_rows == right.young_rows
+left.form_duality == right.form_duality == none
+left.young_box_count <= max_explicit_vector_slots
+#+end_src
+
+Later extensions add:
+
+#+begin_src text :tangle no
+middle-form self/anti-self dual pairings in D_n
+Hodge-dual exterior pairings when ranks sum to N
+mixed tensor-form pairings after mixed endpoints expose vector slots
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn tensorPairingShape(channel: TensorCompilerChannel) !YoungShape {
+    if (channel.output.descriptor.kind != .scalar)
+        return error.UnsupportedTensorBridge;
+    const left = channel.left.descriptor;
+    const right = channel.right.descriptor;
+    if (!descriptorIsPureVectorTensor(left) or !descriptorIsPureVectorTensor(right))
+        return error.UnsupportedTensorBridge;
+    if (!youngRowsEqual(left, right))
+        return error.UnsupportedTensorBridge;
+    if (left.form_duality != .none or right.form_duality != .none)
+        return error.UnsupportedTensorBridge;
+    if (left.young_box_count > max_explicit_vector_slots)
+        return error.UnsupportedTensorShapeOverCap;
+    return .{
+        .row_count = left.young_row_count,
+        .rows = left.young_rows,
+        .box_count = left.young_box_count,
+    };
+}
+#+end_src
+
+This is not a Weyl test.  It is a descriptor equality test over bounded Young
+shapes.
+
+* Brauer Interpretation Of Tensor Pairing
+
+Let \(V\) be the vector representation and let \(P_\lambda\) be the trace-free
+orthogonal Young projector for shape \(\lambda\) on \(V^{\otimes r}\).  The
+canonical pairing on the irreducible tensor module is:
+
+\[
+  B_\lambda(x,y)
+    = C\left(P_\lambda x, y\right),
+\]
+
+where \(C\) contracts the \(r\) vector slots by the metric:
+
+\[
+  C(z,y)
+    = g_{a_1 b_1} \cdots g_{a_r b_r}
+      z^{a_1\ldots a_r} y^{b_1\ldots b_r}.
+\]
+
+Because \(P_\lambda\) is self-adjoint for the Brauer trace form after Gram
+normalization, this is also equal to \(C(x, P_\lambda y)\) on valid tensor
+representations.  The compiler only needs one side.  Project the left endpoint
+and close the projector output slots against the right endpoint.
+
+A Brauer word has three edge types:
+
+#+begin_src text :tangle no
+delta        input_i -> output_j
+input_trace  input_i -- input_j
+output_metric output_i -- output_j
+#+end_src
+
+After composing with the scalar contraction \(C\), these become primitive
+metric atoms only:
+
+#+begin_src text :tangle no
+delta input_i -> output_j       => metric(left_i, right_j)
+input_trace input_i -- input_j  => metric(left_i, left_j)
+output_metric output_i--output_j=> metric(right_i, right_j)
+#+end_src
+
+This rule is the key bridge.  It turns every trace-free Brauer projector term
+for shape \(\lambda\) into one scalar-pairing term without knowing the name of
+\(\lambda\).
+
+* Pairing Candidate Algorithm
+
+The generator must reuse the same Young/Brauer machinery that already builds
+trace-free projectors.  It should not enumerate all Brauer perfect matchings
+from scratch for every pairing.  The trace-free Young projector is the finite
+object that already contains the row/column symmetrizer and trace removal.
+
+The implementation should expose a small internal iterator:
+
+#+begin_src zig :tangle no
+const TensorPairingSpec = struct {
+    operator_id: u32,
+    dimension: u16,
+    left: IndexBlockId,
+    right: IndexBlockId,
+    shape: YoungShape,
+};
+
+fn tensorPairingTermCount(spec: TensorPairingSpec) !u16 {
+    const projector_spec = vectorProjectorSpecForPairing(spec);
+    return countVectorYoungProjectionTerms(projector_spec);
+}
+
+fn tensorPairingTermAt(spec: TensorPairingSpec, term_index: u16) !VectorBrauerTerm {
+    const projector_spec = vectorProjectorSpecForPairing(spec);
+    return vectorYoungProjectionTermAt(projector_spec, term_index);
+}
+#+end_src
+
+The helper =vectorProjectorSpecForPairing= is an internal adapter.  It creates
+a virtual projector from the left tensor slots to a temporary output block with
+the same shape.  That temporary output block is never rendered.  During
+rendering, the temporary output slots are replaced by the right tensor slots.
+
+#+begin_src zig :tangle no
+fn vectorProjectorSpecForPairing(spec: TensorPairingSpec) VectorSlotProjectorSpec {
+    return .{
+        .operator_id = spec.operator_id,
+        .dimension = spec.dimension,
+        .left = spec.left,
+        .left_slot_count = spec.shape.box_count,
+        .right = 0,
+        .right_slot_count = 0,
+        .output = virtual_pairing_output_block,
+        .shape = spec.shape,
+    };
+}
+#+end_src
+
+The virtual output id must not escape into rendered atoms.  If a rendered term
+contains it, that is a compiler bug.
+
+* Pairing Term Emission
+
+Emission is a structural remap of one Brauer projector term:
+
+#+begin_src zig :tangle no
+fn appendTensorPairingTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    spec: TensorPairingSpec,
+    term_index: u16,
+) !RationalId {
+    const projector_term = try tensorPairingTermAt(spec, term_index);
+    var atom_index: u8 = 0;
+    while (atom_index < projector_term.atom_count) : (atom_index += 1) {
+        const atom = projector_term.atoms[atom_index];
+        switch (atom.kind) {
+            .delta => try appendPairingMetricFromDelta(allocator, atoms, spec, atom),
+            .metric => try appendPairingMetricFromMetric(allocator, atoms, spec, atom),
+        }
+    }
+    return rationalToRenderingId(projector_term.coefficient);
+}
+#+end_src
+
+That version assumes =VectorBrauerTerm= has already materialized atoms.  A more
+direct implementation avoids the temporary term materialization and remaps the
+Brauer word edges:
+
+#+begin_src zig :tangle no
+fn appendPairingBrauerWordAtoms(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    spec: TensorPairingSpec,
+    word: BrauerWord,
+) !void {
+    var edge_index: u8 = 0;
+    while (edge_index < word.edge_count) : (edge_index += 1) {
+        const edge = word.edges[edge_index];
+        switch (edge.kind) {
+            .delta => try appendVectorSlotMetric(allocator, atoms,
+                spec.left, edge.input_a,
+                spec.right, edge.output_a),
+            .input_trace => try appendVectorSlotMetric(allocator, atoms,
+                spec.left, edge.input_a,
+                spec.left, edge.input_b),
+            .output_metric => try appendVectorSlotMetric(allocator, atoms,
+                spec.right, edge.output_a,
+                spec.right, edge.output_b),
+        }
+    }
+}
+#+end_src
+
+The direct version is preferable because it streams from the Brauer word and
+does not allocate a large intermediate expression.
+
+* Exact Normalization
+
+The scalar pairing is not just a syntactic contraction.  Its coefficient must
+come from the same trace-free Brauer projector coefficients as the Young
+intertwiner.  Therefore the pairing term iterator must use:
+
+#+begin_src text :tangle no
+row/column Young candidate
+trace-removal candidate closure
+exact Brauer composition equations
+normalized trace-free projector coefficients
+#+end_src
+
+The normalization algorithm is:
+
+#+begin_src zig :tangle no
+fn compileTraceFreeYoungProjector(shape: YoungShape, dimension: u16) !TraceFreeBrauerProjector {
+    var young_candidates: BrauerCandidateBuffer = .{};
+    try appendVectorYoungPermutationCandidates(shape, shape.box_count, &young_candidates);
+    try uniqueBrauerCandidates(&young_candidates);
+
+    if (young_candidates.count == 0)
+        return error.UnsupportedTensorBridge;
+
+    const seed = young_candidates.candidates[0];
+    return traceFreeBrauerProjectorCandidateForShape(shape, dimension, seed);
+}
+
+fn streamPairingProjectorTerms(spec: TensorPairingSpec, term_index: u16) !PairingTerm {
+    const projector = try compileTraceFreeYoungProjector(spec.shape, spec.dimension);
+    var seen: u16 = 0;
+    for (projector.basis[0..projector.basis_count]) |candidate, basis_index| {
+        const scale = projector.coefficients[basis_index];
+        if (scale.numerator == 0) continue;
+        for (candidate.words[0..candidate.word_count]) |word| {
+            const coefficient = try scale.mul(word.coefficient);
+            if (coefficient.numerator == 0) continue;
+            if (seen == term_index)
+                return .{ .coefficient = coefficient, .word = word };
+            seen += 1;
+        }
+    }
+    return error.ProjectorConstructorTermOutOfBounds;
+}
+#+end_src
+
+This is shape-driven.  A four-box Weyl pairing and a seven-box allowed Young
+pairing differ only in =shape= and =dimension=.
+
+* General Gram Program Unification
+
+The previous section reuses the pure-vector trace-free Young projector.  The
+full target is one generic Gram compiler.  The code should converge to this
+interface:
+
+#+begin_src zig :tangle no
+const TensorPrimitiveKind = enum {
+    brauer_word,
+    form_delta,
+    hodge,
+    gamma_insert,
+    gamma_action,
+    exterior_gamma_action,
+    spinor_pair,
+    spinor_tower_contract,
+};
+
+const TensorCandidateWord = struct {
+    primitive_count: u8,
+    primitives: [max_tensor_candidate_primitives]TensorPrimitive,
+};
+
+const TensorCompilerBackend = struct {
+    enumerate_candidates: *const fn (TensorCompilerChannel, *TensorCandidateBuffer) anyerror!void,
+    inner_product: *const fn (TensorCompilerChannel, TensorCandidateWord, TensorCandidateWord) anyerror!Rational,
+    append_word_atoms: *const fn (Allocator, *ArrayList(SymbolicAtom), TensorCompilerChannel, TensorCandidateWord, WordOrientation) anyerror!void,
+};
+
+fn compileTensorProgram(channel: TensorCompilerChannel, backend: TensorCompilerBackend) !TensorProgram {
+    var candidates: TensorCandidateBuffer = .{};
+    try backend.enumerate_candidates(channel, &candidates);
+    try uniqueTensorCandidateWords(&candidates);
+    if (candidates.count == 0) return error.UnsupportedTensorBridge;
+
+    var gram: TensorGram = .{};
+    var i: u8 = 0;
+    while (i < candidates.count) : (i += 1) {
+        var j: u8 = 0;
+        while (j < candidates.count) : (j += 1) {
+            gram.set(i, j, try backend.inner_product(channel, candidates.words[i], candidates.words[j]));
+        }
+    }
+
+    const pivots = try selectIndependentGramPivots(candidates.count, gram.entries());
+    if (pivots.count == 0) return error.SingularGramMatrix;
+
+    const inverse = try invertPivotGram(gram, pivots);
+    return .{
+        .candidate_count = candidates.count,
+        .pivot_count = pivots.count,
+        .candidates = candidates.words,
+        .pivots = pivots.indices,
+        .inverse_gram = inverse,
+    };
+}
+#+end_src
+
+Pure tensor pairings can initially use the trace-free Brauer projector iterator
+because it is already the same math.  The end state should express that
+iterator as a backend candidate generator so tensor, form, and spinor sectors
+share one program type.
+
+* Candidate Generation By Channel
+
+Candidate generation should dispatch on descriptor shape classes, not named
+representations.
+
+#+begin_src zig :tangle no
+fn enumerateTensorCandidates(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !void {
+    if (try maybeEnumerateYoungOutput(channel, out)) return;
+    if (try maybeEnumerateTensorPairing(channel, out)) return;
+    if (try maybeEnumerateExteriorBridge(channel, out)) return;
+    if (try maybeEnumerateTensorSpinorBridge(channel, out)) return;
+    return error.UnsupportedTensorBridge;
+}
+#+end_src
+
+The individual =maybe= functions should return true only when they recognized
+and emitted at least one candidate class.
+
+** Young Output
+
+For \(L \otimes R \to O_\lambda\), expose all vector slots of \(L\) and \(R\)
+in source order, then apply the trace-free Young projector for \(\lambda\):
+
+#+begin_src zig :tangle no
+fn maybeEnumerateYoungOutput(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !bool {
+    const output_shape = descriptorYoungShape(channel.output.descriptor) orelse return false;
+    const left_slots = explicitVectorSlotCount(channel.left.descriptor) orelse return false;
+    const right_slots = explicitVectorSlotCount(channel.right.descriptor) orelse return false;
+    if (left_slots + right_slots != output_shape.box_count) return false;
+
+    var projector_candidates: BrauerCandidateBuffer = .{};
+    try appendTraceFreeYoungBrauerCandidates(output_shape, channel.dimension, &projector_candidates);
+    try appendBrauerCandidatesAsTensorWords(channel, projector_candidates, .source_to_output, out);
+    return true;
+}
+#+end_src
+
+** Tensor Pairing
+
+For \(T_\lambda \otimes T_\lambda \to \mathbf 1\), expose both endpoints as
+the same Young shape and append the pairing remap of every trace-free Brauer
+word:
+
+#+begin_src zig :tangle no
+fn maybeEnumerateTensorPairing(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !bool {
+    const shape = tensorPairingShape(channel) catch |err| switch (err) {
+        error.UnsupportedTensorBridge => return false,
+        else => return err,
+    };
+    var projector_candidates: BrauerCandidateBuffer = .{};
+    try appendTraceFreeYoungBrauerCandidates(shape, channel.dimension, &projector_candidates);
+    try appendBrauerCandidatesAsTensorWords(channel, projector_candidates, .pairing, out);
+    return true;
+}
+#+end_src
+
+The =.pairing= orientation applies the edge remap:
+
+#+begin_src text :tangle no
+delta        -> left-right metric
+input_trace  -> left-left metric
+output_metric -> right-right metric
+#+end_src
+
+** Exterior Bridge
+
+Exterior forms are not a separate formula family.  They are one-column Young
+shapes when paired or projected into pure tensors.  They need bridge primitives
+only when a form remains compressed or when Hodge duality is part of the
+channel.
+
+#+begin_src zig :tangle no
+fn maybeEnumerateExteriorBridge(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !bool {
+    if (!channelUsesCompressedForm(channel)) return false;
+
+    if (isSameRankFormPair(channel)) {
+        try appendFormDeltaCandidate(channel, out);
+        return true;
+    }
+    if (isHodgeDualFormPair(channel)) {
+        try appendHodgeCandidate(channel, out);
+        return true;
+    }
+    if (canExposeFormAsVectorSlots(channel)) {
+        try appendFormExposureCandidates(channel, out);
+        return true;
+    }
+    return false;
+}
+#+end_src
+
+The future direction is to expose forms as vector slots whenever the target
+channel is pure tensor, and reserve form primitives for cases where compressed
+form notation is genuinely cheaper or required by duality.
+
+** Tensor-Spinor Bridge
+
+Tensor-spinor support should extend the same channel compiler by adding
+primitive word kinds.  It should not remain a separate formula taxonomy.
+
+The descriptor view is:
+
+#+begin_src text :tangle no
+tensor-spinor endpoint =
+  Young/form vector-slot content
+  plus spinor chirality
+  plus optional spinor tower power
+#+end_src
+
+Candidate primitives include:
+
+#+begin_src text :tangle no
+gamma_insert:        spinor x spinor -> form/vector slots
+gamma_action:        form/vector slots x spinor -> spinor
+exterior_gamma_action: compressed form action with rank metadata
+spinor_pair:         spinor x conjugate spinor -> scalar
+spinor_tower_delta:  tower slot identity
+spinor_tower_contract: tower lowering with gamma form
+#+end_src
+
+Pseudocode:
+
+#+begin_src zig :tangle no
+fn maybeEnumerateTensorSpinorBridge(channel: TensorCompilerChannel, out: *TensorCandidateBuffer) !bool {
+    if (!channelHasSpinorEndpoint(channel)) return false;
+
+    const start = structuralStateFromEndpoint(channel.left);
+    const right = structuralStateFromEndpoint(channel.right);
+    const target = structuralStateFromEndpoint(channel.output);
+
+    var effects: PrimitiveEffectBuffer = .{};
+    try enumerateGammaEffects(channel, start, right, target, &effects);
+    try enumerateSpinorPairEffects(channel, start, right, target, &effects);
+    try enumerateTowerEffects(channel, start, right, target, &effects);
+    try searchPrimitiveEffectWords(channel, start, target, effects, out);
+    return out.count != 0;
+}
+#+end_src
+
+The important point is the contract: this bridge emits candidate words and
+exact contraction rules.  It does not emit final formulas directly.
+
+* Exact Inner Products
+
+Every candidate word needs an exact inner product.  The tensor-only Brauer part
+is diagram composition plus loop counting:
+
+#+begin_src zig :tangle no
+fn tensorBrauerInnerProduct(channel: TensorCompilerChannel, left: BrauerWord, right: BrauerWord) !Rational {
+    var graph = BrauerContraction.init(channel.total_vector_slots);
+    try graph.addWord(left, .left);
+    try graph.addWord(right, .right_adjoint);
+    try graph.closeSourceSlots();
+    try graph.closeTargetSlots();
+    const loops = graph.countClosedLoops();
+    return left.coefficient.mul(right.coefficient).mul(pow(channel.dimension, loops));
+}
+#+end_src
+
+For pairing words, closing target slots means closing left/right endpoints
+against each other according to the pairing orientation.  The same union-find
+graph works; only the node labels differ.
+
+For mixed Clifford words, the inner product is the product of:
+
+#+begin_src text :tangle no
+Brauer loop factor N^loops
+form delta binomial factors
+Hodge sign/projector factor
+gamma trace/Clifford grade factor
+spinor pairing normalization
+tower slot combinatorics
+#+end_src
+
+Each factor must be computed by a small exact procedural routine.  Do not
+materialize gamma matrices or component tensors.
+
+#+begin_src zig :tangle no
+fn tensorCandidateInnerProduct(channel: TensorCompilerChannel, left: TensorCandidateWord, right: TensorCandidateWord) !Rational {
+    var acc = Rational.one();
+    var state = ContractionState.init(channel);
+
+    try applyWordToContraction(&state, left, .forward);
+    try applyWordToContraction(&state, right, .adjoint);
+
+    acc = try acc.mul(try brauerLoopFactor(state));
+    acc = try acc.mul(try formDeltaFactor(state));
+    acc = try acc.mul(try hodgeFactor(state));
+    acc = try acc.mul(try cliffordTraceFactor(state));
+    acc = try acc.mul(try spinorTowerFactor(state));
+
+    if (state.is_zero) return Rational.zero();
+    return acc;
+}
+#+end_src
+
+* Streaming Program Terms
+
+The program stream is always:
+
+#+begin_src text :tangle no
+term index -> pivot row/column -> coefficient -> left word atoms + right adjoint atoms
+#+end_src
+
+For scalar pairings used as a local invariant map, the compiler may expose a
+map-term iterator.  For projector emission, it exposes the full inverse-Gram
+pair iterator.
+
+#+begin_src zig :tangle no
+fn appendTensorProgramTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    channel: TensorCompilerChannel,
+    program: TensorProgram,
+    term_index: u16,
+) !RationalId {
+    const term = try tensorProgramTermAt(program, term_index);
+    const left = program.candidates[program.pivots[term.left_pivot]];
+    const right = program.candidates[program.pivots[term.right_pivot]];
+    try appendTensorWordAtoms(allocator, atoms, channel, left, .forward);
+    try appendTensorWordAtoms(allocator, atoms, channel, right, .adjoint);
+    return rationalToRenderingId(term.coefficient);
+}
+
+fn appendTensorMapTerm(
+    allocator: Allocator,
+    atoms: *ArrayList(SymbolicAtom),
+    channel: TensorCompilerChannel,
+    program: TensorMapProgram,
+    term_index: u16,
+) !RationalId {
+    const term = try tensorMapTermAt(program, term_index);
+    try appendTensorWordAtoms(allocator, atoms, channel, term.word, .forward);
+    return rationalToRenderingId(term.coefficient);
+}
+#+end_src
+
+The context local product formula path should use =appendTensorMapTerm=.  Any
+future boundary-realization projector should use =appendTensorProgramTerm=.
+
+* Renderer Contract
+
+Expanded rendering may emit only primitive atoms after this compiler claims a
+channel.  For tensor-only pairings that means:
+
+#+begin_src text :tangle no
+vector_slot_metric
+vector_slot_delta only if orientation requires source-target identity
+metric_pair only for rank-one vector shorthand if already used elsewhere
+#+end_src
+
+It must not emit:
+
+#+begin_src text :tangle no
+named_operator(projector)
+tensor_form_projection
+tensor_spinor_projection
+cartan_product
+clifford_product unless lower_clifford_product_atoms is false by option
+#+end_src
+
+The lowering audit must pass for the failing representative:
+
+#+begin_src text :tangle no
+two_form x two_form -> Weyl
+Weyl x Weyl -> scalar
+full invariant two_form x two_form x Weyl streams primitive atoms only
+#+end_src
+
+* Implementation Order
+
+Do the work in this order.
+
+1. Introduce private =TensorPairingSpec= and descriptor-to-pairing detection in
+   =projector-constructor.org= / =projector-constructor.zig=.
+
+2. Add pairing term count and pairing term appenders that reuse the existing
+   trace-free Young/Brauer projector iterator.
+
+3. Extend =StructuralProjectorProgramCache.termCount= and =appendTerm=:
+
+#+begin_src zig :tangle no
+pub fn termCount(self: *StructuralProjectorProgramCache, spec: StructuralProjectorSpec) !u16 {
+    if (vectorSlotProjectorSpecFromStructural(spec)) |vector_spec|
+        return vectorSlotProjectorTermCount(vector_spec);
+    if (tensorPairingSpecFromStructural(spec)) |pairing_spec|
+        return tensorPairingTermCount(pairing_spec);
+    return projectorProgramTermCount(try self.programFor(spec));
+}
+#+end_src
+
+4. Keep the old structural Gram program path for tensor-spinor/form primitives,
+   but make the direction explicit: it is a backend of the same
+   =TensorCompilerChannel= model.
+
+5. Add the end-to-end context test:
+
+#+begin_src text :tangle no
+Spin(10)
+external legs: two_form, two_form, Weyl
+expanded render
+assert primitive atom stream
+assert no compact projector/tensor_form/tensor_spinor placeholders
+assert local Weyl pairing step has orthogonal_structural_projection kind
+#+end_src
+
+6. Add a non-D5 pairing test:
+
+#+begin_src text :tangle no
+B4 dimension 9
+two_form x two_form x Weyl_B4
+expanded render primitive-only
+coefficient differs through dimension-dependent Brauer normalization
+#+end_src
+
+7. Add a beyond-four-box pairing constructor test when caps allow:
+
+#+begin_src text :tangle no
+shape [1,1,1,1,1] or another <= 8 box shape
+pairing term stream contains only metrics
+typed over-cap errors remain typed
+#+end_src
+
+8. Only after tensor pairings are descriptor-driven, fold tensor-spinor
+   primitives into the same =TensorCompilerChannel= backend contract.
+
+* Tests That Prove Generality
+
+One passing Weyl test is not proof.  The minimum proof set is:
+
+#+begin_src text :tangle no
+rank 2 fixture equivalence: [2] pairing and projector agree with old formula
+rank 3 hook pairing: [2,1] pairing has antisymmetry, cyclic identity, trace removal
+rank 4 Weyl pairing: [2,2] end-to-end context render has no compact placeholders
+beyond-four-box pairing: one shape over rank 4 streams from same backend
+dimension-parametric: same shape in B4 and D5 changes only through N
+dependent candidates: pivot_count < candidate_count for a trace-removal closure
+typed caps: shape/candidate/pivot/primitive caps return typed unsupported errors
+Spin(10) 16^12: strict expanded streaming still passes
+#+end_src
+
+The fixture-equivalence tests may use old formulas.  Production code may not.
+
+* Completion Criteria
+
+The design is implemented only when expanded rendering can take any local B/D
+tensor channel inside the declared caps and either:
+
+#+begin_src text :tangle no
+stream primitive atoms from the tensor compiler
+#+end_src
+
+or:
+
+#+begin_src text :tangle no
+return a typed unsupported tensor compiler error
+#+end_src
+
+It is not complete if expanded rendering silently falls back to a compact
+projector atom or if a new production branch is named after a specific tensor
+shape.
