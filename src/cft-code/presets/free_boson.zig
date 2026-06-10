@@ -385,9 +385,9 @@ fn sphereZeroStorage() [1]zero_mode.Rule {
 
 const sphere_operator_spec = [_]Spec.Operator{
     .{ .name = "X", .kind = kind(.x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.index}, .statistics = .bosonic },
-    .{ .name = "dX", .kind = kind(.d_x), .support = .holomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic },
-    .{ .name = "dXt", .kind = kind(.d_xt), .support = .antiholomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic },
-    .{ .name = "expX", .kind = kind(.exp_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.momentum}, .statistics = .bosonic, .zero_mode_consumable = true },
+    .{ .name = "dX", .kind = kind(.d_x), .support = .holomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic, .infinity = .{ .primary = .{ .holomorphic_power = -2 } } },
+    .{ .name = "dXt", .kind = kind(.d_xt), .support = .antiholomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .bosonic, .infinity = .{ .primary = .{ .antiholomorphic_power = -2 } } },
+    .{ .name = "expX", .kind = kind(.exp_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.momentum}, .statistics = .bosonic, .zero_mode_consumable = true, .infinity = .free_boson_exponential },
     .{ .name = "profile", .kind = kind(.profile_x), .support = .bulk_pair, .insertion = .pair, .labels = &.{.profile}, .statistics = .bosonic, .zero_mode_consumable = true },
 };
 
@@ -407,6 +407,7 @@ fn sphereWickSpec(comptime alpha: RuleScalar) [10]Spec.WickRule {
 }
 
 const sphere_wick_spec = sphereWickSpec(.one);
+const sphere_infinity_storage = Spec.infinityData(&sphere_operator_spec);
 
 const torus_wick_spec = [_]Spec.WickRule{
     .{ .left = kind(.x), .right = kind(.x), .coordinate_kernels = &.{.elliptic_green} },
@@ -522,6 +523,7 @@ fn FreeBosonCorrelatorConfig(comptime cfg: FreeBosonConfig) type {
             .config_entries = &declare.configEntries(.{
                 declare.config.targetDimension(target_dimension_ref, cfg.dimension),
             }),
+            .infinity_data = &sphere_infinity_storage,
         }){};
     };
 }

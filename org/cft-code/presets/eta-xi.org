@@ -286,13 +286,13 @@ insertion required by stringbook.
 
 #+begin_src zig
 const sphere_holomorphic_operator_spec = [_]Spec.Operator{
-    .{ .name = "eta", .kind = kind(.eta), .support = .holomorphic, .insertion = .single, .statistics = .fermionic },
-    .{ .name = "xi", .kind = kind(.xi), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+    .{ .name = "eta", .kind = kind(.eta), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .infinity = .{ .primary = .{ .holomorphic_power = -2 } } },
+    .{ .name = "xi", .kind = kind(.xi), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true, .infinity = .{ .primary = .{} } },
 };
 
 const sphere_full_operator_spec = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
-    .{ .name = "etat", .kind = kind(.etat), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic },
-    .{ .name = "xit", .kind = kind(.xit), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+    .{ .name = "etat", .kind = kind(.etat), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .infinity = .{ .primary = .{ .antiholomorphic_power = -2 } } },
+    .{ .name = "xit", .kind = kind(.xit), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true, .infinity = .{ .primary = .{} } },
 };
 
 const sphere_holomorphic_wick_spec = [_]Spec.WickRule{
@@ -308,6 +308,8 @@ const sphere_full_wick_storage = Spec.wickRules(&sphere_full_wick_spec, &sphere_
 
 const sphere_holomorphic_fermion_storage = Spec.fermionKinds(&sphere_holomorphic_operator_spec);
 const sphere_full_fermion_storage = Spec.fermionKinds(&sphere_full_operator_spec);
+const sphere_holomorphic_infinity_storage = Spec.infinityData(&sphere_holomorphic_operator_spec);
+const sphere_full_infinity_storage = Spec.infinityData(&sphere_full_operator_spec);
 
 const sphere_holomorphic_zero_spec = sphereZeroSpec(.{ .include_antiholomorphic_copy = false });
 const sphere_full_zero_spec = sphereZeroSpec(.{});
@@ -385,10 +387,12 @@ fn EtaXiSphereRules(comptime include_antiholomorphic_copy: bool) type {
     const selected_wick = if (include_antiholomorphic_copy) sphere_full_wick_storage else sphere_holomorphic_wick_storage;
     const selected_torus_wick = if (include_antiholomorphic_copy) torus_full_wick_storage else torus_holomorphic_wick_storage;
     const selected_fermions = if (include_antiholomorphic_copy) sphere_full_fermion_storage else sphere_holomorphic_fermion_storage;
+    const selected_infinity = if (include_antiholomorphic_copy) sphere_full_infinity_storage else sphere_holomorphic_infinity_storage;
     return struct {
         const sphere_wick: []const wick.Rule = &selected_wick;
         const torus_wick: []const wick.Rule = &selected_torus_wick;
         const sphere_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
+        const sphere_infinity_data = &selected_infinity;
     };
 }
 
@@ -407,6 +411,7 @@ fn EtaXiSphereCorrelatorConfig(comptime cfg: EtaXiSphereConfig) type {
             .wick_rules = rules.sphere_wick,
             .zero_modes = &sphere_zero_storage,
             .fermion_kinds = rules.sphere_fermion_kinds,
+            .infinity_data = rules.sphere_infinity_data,
         }){};
 
         /// torus selects eta-xi torus prime-form log-derivative Wick and xi zero-mode rules.
@@ -414,6 +419,7 @@ fn EtaXiSphereCorrelatorConfig(comptime cfg: EtaXiSphereConfig) type {
             .wick_rules = rules.torus_wick,
             .zero_modes = &torus_zero_storage,
             .fermion_kinds = rules.sphere_fermion_kinds,
+            .infinity_data = rules.sphere_infinity_data,
         }){};
     };
 }

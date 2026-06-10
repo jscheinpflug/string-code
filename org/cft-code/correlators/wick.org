@@ -591,7 +591,10 @@ pub fn wickCorrelator(
     buildParities(Tactic, config_ptr, ops, scratch);
     buildZeroModeSurvivability(Tactic, config_ptr, ops, scratch);
     if (@hasDecl(Tactic, "BranchState") and @hasDecl(Tactic, "pushBranchPairTerm") and @hasDecl(Tactic, "emitAccumulatedBranch")) {
-        var branch = Tactic.BranchState.init();
+        var branch = if (@hasDecl(Tactic, "initBranchState"))
+            try Tactic.initBranchState(config_ptr, ops)
+        else
+            Tactic.BranchState.init();
         if (pureFullContraction(scratch, ops, candidate_count)) {
             _ = try walkFullAccumulated(Tactic, config_ptr, ops, scratch, &branch, initialLiveMask(max_operator_count, ops.operators.len), 0, 1, sink);
             return;

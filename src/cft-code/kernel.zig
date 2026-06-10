@@ -209,11 +209,11 @@ test "MultiOp carries local operators and labels" {
     const testing = @import("std").testing;
 
     const labels = Call.LabelStore{
-        .values = &.{ .{ .integer = 7 } },
+        .values = &.{.{ .integer = 7 }},
     };
     const ops = [_]Call.LocalOp{
         .{
-            .insertion = .{ .single = .{ .position = 1, .derivatives = 0 } },
+            .insertion = .{ .single = .{ .position = operators.Point.finite(1), .derivatives = 0 } },
             .kind = 2,
             .labels = 0,
         },

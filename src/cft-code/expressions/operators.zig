@@ -65,15 +65,43 @@ pub const CorrelatorTactic = enum {
     bosonize,
 };
 
-/// Operator insertion data are specified by a position and a number of derivatives
+/// Point is either a finite coordinate variable or the local chart at infinity.
+pub const Point = struct {
+    raw: coefficient.Variable,
+
+    /// infinity_variable is the compact sentinel used only after an infinity call is detected.
+    pub const infinity_variable: coefficient.Variable = @import("std").math.maxInt(coefficient.Variable);
+
+    /// finite constructs a finite insertion point from a coordinate variable.
+    pub fn finite(raw_variable: coefficient.Variable) Point {
+        return .{ .raw = raw_variable };
+    }
+
+    /// infinity constructs the insertion point at infinity.
+    pub fn infinity() Point {
+        return .{ .raw = infinity_variable };
+    }
+
+    /// isInfinity reports whether this point is the infinity chart.
+    pub fn isInfinity(self: Point) bool {
+        return self.raw == infinity_variable;
+    }
+
+    /// variable returns the finite variable, or null for infinity.
+    pub fn variable(self: Point) ?coefficient.Variable {
+        return if (self.isInfinity()) null else self.raw;
+    }
+};
+
+/// Operator insertion data are specified by a point and a number of derivatives.
 pub const OperatorInsertion = union(enum) {
     single: struct {
-        position: coefficient.Variable,
+        position: Point,
         derivatives: u8,
-        },
+    },
     pair: struct {
-        holomorphic_position: coefficient.Variable,
-        antiholomorphic_position: coefficient.Variable,
+        holomorphic_position: Point,
+        antiholomorphic_position: Point,
         holomorphic_derivatives: u8,
         antiholomorphic_derivatives: u8,
     },

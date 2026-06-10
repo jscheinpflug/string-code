@@ -1,0 +1,595 @@
+:PROPERTIES:
+:ID:       20260610T161500.000000
+:END:
+#+title: Infinity Insertions In Correlators
+#+auto_tangle: nil
+
+This note specifies literal insertion at infinity for
+[[id:20260603T094138.285453][Correlators]] and OPE pairings built from
+[[id:20260606T063253.759714][Basis-Generation]].  The implementation must make
+infinity ergonomic for correlator users, invisible to theory authors, and
+zero-cost for ordinary finite correlators.  The generated Wick rules in
+[[id:20260608T231500.000000][Generated Descriptor Boundary]] and the traversal in
+[[id:20260606T064107.303587][Wick]] should keep their current finite-coordinate
+shape.
+
+* Goal
+
+String amplitudes and BPZ pairings need operators literally inserted at
+infinity.  For a primary field with weights \((h,\bar h)\),
+
+#+begin_example
+O(infinity) = lim_{z->infinity} z^(2h) zbar^(2 hbar) O(z,zbar).
+#+end_example
+
+This is not only a pairing convenience.  It is part of fixing \(SL(2,C)\) in
+worldsheet amplitudes, so the public correlator API must let callers write an
+operator at infinity directly.
+
+The theory-definition DSL should not change.  Theory authors still define
+finite Wick contractions and zero-mode rules.  The infinity behavior is a
+runtime coordinate-chart feature plus small per-operator conformal metadata.
+
+* User API
+
+The ergonomic surface belongs to the local-operator builder:
+
+#+begin_src text :tangle no
+const z = try local.coord("z");
+const inf = local.infinity();
+
+try CFT.op.c(local, 0, inf);
+try CFT.op.psi(local, mu, 0, inf);
+try CFT.op.expX(local, k, inf, inf);
+#+end_src
+
+For bulk fields the same point token can be used for holomorphic and
+antiholomorphic coordinates.  A finite bulk insertion remains unchanged:
+
+#+begin_src text :tangle no
+try CFT.op.expX(local, k, z, zbar);
+#+end_src
+
+The descriptor author never writes a separate infinity Wick rule.  The same
+finite rule for \(b(z)c(w)\), \(\psi(z)\psi(w)\), or
+\(:e^{ikX(z)}::e^{ipX(w)}:\) is lowered once.  The runtime applies the chart
+limit when one of the resolved endpoints is infinity.
+
+* Coordinate Data
+
+Replace raw coordinate variables in local insertions with a compact point.
+
+#+begin_src text :tangle no
+Point:
+  finite: Variable
+  infinity
+
+OperatorInsertion:
+  single:
+    position: Point
+    derivatives: u8
+  pair:
+    holomorphic_position: Point
+    antiholomorphic_position: Point
+    holomorphic_derivatives: u8
+    antiholomorphic_derivatives: u8
+#+end_src
+
+Keep the existing finite representation on the hot path.  A finite point is
+still just a variable id.  The infinity tag is only tested when a correlator
+call contains at least one infinity insertion.
+
+The local builder stores no theory-specific data in the point.  It only marks
+which insertion coordinate is infinity.  The correlator config supplies
+operator weights and the coordinate model.
+
+* Runtime Split
+
+The current correlator fast path must remain unchanged when all points are
+finite.
+
+#+begin_src text :tangle no
+stream_correlator(config, ops, sink):
+  if ops.has_no_infinity:
+    return wick_correlator(config, ops, sink)
+
+  limit_sink = InfinityLimitSink(config, ops, sink)
+  return wick_correlator(config, ops, &limit_sink)
+#+end_src
+
+The Wick traversal still builds pair candidates, tracks fermion signs, and
+streams branch factors.  The infinity pass is a sink adapter placed after the
+branch has been accumulated and before events reach the final sink.  This
+keeps candidate building and finite correlator performance intact.
+
+* Operator Metadata
+
+The infinity pass needs compact conformal data, not new Wick rules.
+
+#+begin_src text :tangle no
+OperatorConformalData:
+  kind: OperatorKindId
+  h_ticks: i32
+  hbar_ticks: i32
+  primary: bool
+  chiral_support: holomorphic | antiholomorphic | bulk | boundary
+#+end_src
+
+For the implemented presets:
+
+#+begin_example
+c      h=-1
+b      h= 2
+psi    h=1/2
+dX     h= 1
+dXt    hbar=1
+expX   h=hbar=alpha' k^2 / 4, supplied symbolically from momentum labels
+profile treated as residual zero-mode data, not a fixed primary unless the
+profile descriptor says so
+#+end_example
+
+The static entries use integer ticks matching the basis generator.  Exponential
+weights are label-dependent and are computed by a small free-boson hook.
+
+* Local Coordinate Meaning
+
+An infinity insertion is an insertion in the local chart
+
+#+begin_example
+u = 1 / z.
+#+end_example
+
+A derivative label at infinity means derivative with respect to \(u\), not a
+finite \(z\)-derivative followed by a limit.  This is the correct convention
+for BPZ descendants and avoids ad hoc chain-rule code in each Wick rule.
+
+For primary fields:
+
+#+begin_example
+O_infty(u) = (dz/du)^h (d zbar/d ubar)^hbar O(z(u), zbar(ubar))
+#+end_example
+
+The phase from \(dz/du=-u^{-2}\) is part of the sector convention.  The first
+implementation should store it as a scalar sign/phase in the conformal data
+for fermionic or ghost systems where it matters.
+
+* Branch Limit State
+
+The infinity sink accumulates only a small branch-local limit state.  It must
+not allocate symbolic expressions.
+
+#+begin_src text :tangle no
+InfinityLimitState:
+  endpoint_power[operator_index][holomorphic_or_antiholomorphic]: i32
+  endpoint_log_coeff[operator_index][side]: tensor/scalar handle
+  finite_coordinate_factors: bounded slice
+  finite_tensor_factors: forwarded slice
+  finite_scalar_factors: forwarded slice
+  zero_mode_factors: forwarded slice
+  status: finite | zero | divergent
+#+end_src
+
+When the sink receives a branch term, it rewrites each coordinate factor:
+
+#+begin_src text :tangle no
+emit_wick_coordinate(factor):
+  if factor has no infinity endpoint:
+    forward factor
+    return
+
+  rewrite factor in local chart u=1/z
+  add powers of u or ubar to endpoint_power
+  forward finite remainder if one remains
+#+end_src
+
+At the end of the branch, the sink adds primary prefactors from all infinity
+insertions and checks that every endpoint power is zero.  Positive final power
+means the branch vanishes; negative final power means the limit is divergent
+and should be reported as an invalid fixed correlator unless a later
+regularization layer is explicitly requested.
+
+* Rational Coordinate Factors
+
+For one infinity endpoint and one finite endpoint \(w\):
+
+#+begin_example
+z - w = u^-1 (1 - w u).
+#+end_example
+
+Therefore
+
+#+begin_example
+(z - w)^p -> u^-p * (1 - w u)^p.
+#+end_example
+
+The finite limit contributes only the endpoint power \(-p\).  The regular
+factor tends to one and is not emitted.
+
+For the opposite orientation:
+
+#+begin_example
+w - z = -u^-1 (1 - w u)
+#+end_example
+
+so the endpoint power is still \(-p\), with scalar factor \((-1)^p\) for
+integer \(p\).
+
+For two infinity endpoints in the same chart, the finite part is not
+well-defined unless the user supplies a relative local-coordinate prescription.
+Reject this case for the first implementation.  It is not needed for ordinary
+three-point gauge fixing or BPZ pairings, which use at most one infinity
+insertion.
+
+Pseudocode:
+
+#+begin_src text :tangle no
+rewrite_difference_power(left, right, exponent):
+  if finite(left) and finite(right):
+    forward_original
+    return finite
+
+  if exactly_one_endpoint_is_infinity(left, right):
+    endpoint = infinity_endpoint(left, right)
+    add_endpoint_power(endpoint, -exponent)
+    if finite_minus_infinity_orientation(left, right):
+      multiply_scalar((-1)^exponent)
+    return finite
+
+  return unsupported_two_infinity_endpoints
+#+end_src
+
+* Logarithms
+
+Free \(X\)-field logarithms are allowed in ordinary correlators, but amplitudes
+and OPE projections should usually contract derivative fields or
+exponentials.  For a logarithm with one infinity endpoint:
+
+#+begin_example
+log(z - w) = -log(u) + log(1 - w u).
+#+end_example
+
+The second term vanishes in the limit.  The \(-log(u)\) term must cancel only
+inside well-defined normal-ordered exponentials or by derivative action.  A
+bare \(X(infinity)\) correlator is not a primary fixed insertion.
+
+First implementation rule:
+
+- differentiated logarithms have already become difference powers and are
+  handled above;
+- undifferentiated logarithms touching infinity are rejected unless they are
+  inside the free-boson exponential handler described below.
+
+This is intentionally conservative.  It prevents silent nonsense for nonlocal
+\(X\) insertions while leaving amplitude-relevant exponentials supported.
+
+* Ghosts And Fermions
+
+Ghost and fermion contractions need no special Wick rules.
+
+Examples:
+
+#+begin_example
+< b(z) c(infinity) >:
+  finite rule gives (z - Z)^-1
+  c(infinity) contributes Z^-2
+  result scales as Z^-3 -> 0
+
+< c(z) b(infinity) >:
+  finite rule gives (z - Z)^-1
+  b(infinity) contributes Z^4
+  result scales as Z^3, divergent unless it is part of a fixed nonzero
+  correlator with the correct zero-mode structure
+#+end_example
+
+The useful fixed ghost correlators are mostly zero-mode base cases, for
+example \(<c(z_1)c(z_2)c(\infty)>\).  The existing \(bc\) zero-mode rule emits
+the finite top-form determinant from three \(c\)-jets.  The infinity pass must
+therefore also support zero-mode factors that contain infinity coordinates.
+
+For the \(c\)-ghost top form, the finite determinant has the known limit:
+
+#+begin_example
+lim_{z3->infinity} z3^-2 (z1-z2)(z1-z3)(z2-z3) = z1 - z2.
+#+end_example
+
+Do not make the generic zero-mode code expand a determinant symbolically.
+Instead add an infinity-aware emitter for the \(bc\) top form that detects one
+infinity \(c\)-jet and emits the bounded finite result directly.
+
+* Free-Boson Exponentials
+
+This is the critical string-theory case.  The ordinary Wick rule emits
+residual exponentials plus Green-exponential factors:
+
+#+begin_example
+:e^{ik_i X(z_i)}: :e^{ik_j X(z_j)}:
+  -> exp(alpha'/2 * k_i.k_j * G(z_i,z_j))
+     :e^{ik_i X(z_i)} e^{ik_j X(z_j)}:
+#+end_example
+
+On the sphere this becomes products of powers of coordinate differences plus
+the zero-mode momentum delta.  If one exponential is at infinity, the finite
+limit is not a pair-local decision.  All Green-exponential factors touching
+the infinity insertion contribute powers of the infinity chart, and these
+powers cancel against the primary prefactor only after using the exponential
+weight and, in amplitudes, momentum conservation/on-shell relations.
+
+The infinity pass must therefore treat exponential Green factors
+branch-globally.
+
+** Data Needed
+
+For each free-boson exponential insertion:
+
+#+begin_example
+momentum label k_i
+holomorphic point z_i or infinity
+antiholomorphic point zbar_i or infinity
+normalization convention alpha'
+optional projector for boundary or compact directions
+#+end_example
+
+For a bulk closed-string exponential with the current sphere convention:
+
+#+begin_example
+h_i = hbar_i = alpha' k_i^2 / 4.
+#+end_example
+
+The runtime should not evaluate \(k_i^2\) numerically.  It emits or compares
+the same symbolic tensor factor used by the existing momentum-pair machinery.
+For detecting the finite infinity power, the pass can record the formal
+power expression:
+
+#+begin_example
+2 h_i - sum_{j finite} alpha'/2 * k_i.k_j
+#+end_example
+
+Under momentum conservation \(\sum_j k_j = 0\), this equals zero for the
+standard sphere exponential correlator.  The zero-mode factor already emits
+the momentum delta, so the limit pass may mark the cancellation as conditional
+on the emitted momentum-delta zero-mode factor.
+
+** Algorithm
+
+Do not emit Green-exponential coordinate factors involving infinity
+immediately.  Store them in a bounded branch-local list.
+
+#+begin_src text :tangle no
+emit_green_exponential(pair i,j):
+  if neither endpoint is infinity:
+    forward factor
+    return
+
+  if exactly one endpoint is infinity:
+    add infinity_momentum_pair(infinity_index, finite_index, tensor_factor)
+    return
+
+  reject two infinity exponentials
+#+end_src
+
+At the branch base case:
+
+#+begin_src text :tangle no
+finish_free_boson_exponential_limits():
+  for each infinity exponential i:
+    power = primary_prefactor_power(i)
+    for each stored green pair (i,j):
+      power -= green_pair_power(i,j)
+
+    if power cancels by momentum_delta:
+      emit no coordinate factor for infinity
+      continue
+
+    if power is syntactically zero:
+      continue
+
+    if power is positive:
+      branch vanishes
+    else:
+      branch is divergent / invalid fixed amplitude
+#+end_src
+
+The finite coordinate dependence remains the usual product over finite pairs:
+
+#+begin_example
+prod_{i<j finite} |z_i-z_j|^{alpha' k_i.k_j}
+#+end_example
+
+Pairs involving infinity disappear after the primary prefactor and momentum
+delta have been accounted for.
+
+** Two-Point Pairing
+
+The same mechanism gives the BPZ-like two-point pairing:
+
+#+begin_example
+< e^{ikX}(infinity) e^{ipX}(0) >
+  -> delta(k+p)
+#+end_example
+
+No coordinate factor should remain.  The emitted zero-mode factor carries the
+momentum delta.  Any target-space projector or Dirichlet phase already belongs
+to the free-boson zero-mode rule and must pass through unchanged.
+
+** Off-Shell Or Nonconserving Momenta
+
+If the zero-mode branch does not emit a compatible momentum delta, the
+infinity exponential power cannot be canceled globally.  The branch should be
+marked invalid for fixed sphere amplitudes rather than silently returning an
+unreduced infinity power.
+
+This is strict but useful: string amplitude code should not hide an off-shell
+or momentum-nonconserving infinity insertion behind a formal \(infinity^a\)
+factor.
+
+* Zero-Mode Factors
+
+Zero-mode base cases currently emit compact factors after Wick contractions.
+The infinity pass must wrap those events too, because zero-mode factors can
+carry coordinates:
+
+- \(bc\) top forms carry \(c\)-jet coordinates;
+- \(\eta\xi\) zero modes carry an insertion coordinate;
+- free-boson profile residuals carry profile coordinates;
+- momentum deltas and Dirichlet phases carry no coordinate dependence.
+
+Implementation rule:
+
+#+begin_src text :tangle no
+emit_zero_mode_factor(factor):
+  if factor has no infinity coordinate:
+    forward factor
+    return
+
+  if factor has a known finite infinity limit:
+    emit limited factor
+    return
+
+  reject unsupported infinity zero-mode factor
+#+end_src
+
+The first known finite zero-mode limits should be:
+
+- \(bc\) sphere top form with exactly one \(c\) at infinity;
+- free-boson momentum delta, which is coordinate independent;
+- free-boson Dirichlet phase, coordinate independent.
+
+Profiles at infinity should be rejected until their transformation law is
+declared explicitly.
+
+* Performance Requirements
+
+Finite correlators must not regress.  The hot path should make one cheap
+branch at the start:
+
+#+begin_src text :tangle no
+if (!ops.has_infinity) return current_stream_correlator(...)
+#+end_src
+
+The ordinary pair candidate builder, pair lookup, accumulated branch cache,
+and zero-mode base-case procedures remain unchanged for finite calls.
+
+For infinity calls:
+
+- use fixed-size scratch derived from existing branch limits;
+- store only branch-local power counters and a bounded list of infinity Green
+  pairs;
+- do not allocate expression trees;
+- do not simplify arbitrary coordinate algebra;
+- reject unsupported limits instead of retaining formal infinity factors.
+
+Benchmarks to preserve:
+
+#+begin_src sh :tangle no
+zig build -Doptimize=ReleaseFast correlator-kernel-median --summary none
+zig build -Doptimize=ReleaseFast test --summary none
+#+end_src
+
+Add one benchmark row with infinity insertions, but compare finite rows before
+and after to ensure no regression in the existing median cases.
+
+* Implementation Audit 2026-06-10
+
+The implemented fast path is now selected by data, not by a theory name.
+The criterion is:
+
+#+begin_example
+if call has no infinity:
+  use finite correlator
+else if exactly one infinity insertion is a primary
+        and no zero-mode rule can consume that operator kind
+        and the insertion has no coordinate derivatives:
+  use BPZ-limited primary Wick terms in the accumulated branch path
+else:
+  use the bounded infinity limit sink
+#+end_example
+
+This lets ordinary fully contracted primary insertions such as =psi= and =dX=
+avoid the general sink adapter.  A zero-mode-consumable infinity field, such as
+the =c= ghost in a sphere top form, still goes through the limit sink because
+the zero-mode base case may contain the infinity point.  Descendant insertions
+at infinity are rejected for now; they need their own BPZ descendant rule rather
+than primary scaling.
+
+Full correlator benchmark pass after this audit:
+
+| Case | Finite event ns | Infinity event ns | Finite branch ns | Infinity branch ns | Coordinate change |
+|------+-----------------+-------------------+------------------+--------------------+-------------------|
+| dx8  |           19362 |             22897 |            18973 |              22871 | 3360 -> 2520     |
+| dx10 |          111457 |            135925 |           151301 |             118609 | 4725 -> 3780     |
+| dx12 |         1200150 |           1341512 |          1099981 |            1145295 | 62370 -> 51975   |
+| dx14 |        16770068 |          18125413 |         15048375 |           15379942 | 945945 -> 810810 |
+| psi8 |           22143 |             22487 |            20790 |              21901 | 3360 -> 2520     |
+| psi10 |         140192 |            131660 |           124898 |             122987 | 4725 -> 3780     |
+| psi12 |        1455054 |           1534605 |          1330740 |            1311239 | 62370 -> 51975   |
+| psi14 |       20063781 |          18519506 |         16460044 |           17148555 | 945945 -> 810810 |
+| exp4 |            4924 |             10409 |             4999 |              10884 | 384 -> 48        |
+
+The primary rows are in the same speed band as finite points and remain under
+the existing benchmark gates.  The exponential row is intentionally slower:
+it must buffer a branch until the zero-mode momentum delta confirms that the
+infinity Green powers cancel.  It is still bounded and does not allocate a full
+symbolic expression.
+
+The main remaining inefficiency is the primary branch replay path.  It tracks
+one integer infinity power and replays cached pair factors, so the asymptotic
+work is unchanged, but tiny rows can still show a few percent of overhead.  This
+is acceptable for now because larger rows are dominated by Wick enumeration and
+the infinity rows preserve the same primitive/base-case counts.
+
+* Tests
+
+The tests should be small invariants, not broad snapshots.
+
+#+begin_example
+bc:
+  <c(z1)c(z2)c(infinity)> emits one top-form factor equal to z1-z2.
+
+free fermion:
+  <psi_mu(z) psi_nu(infinity)> has the correct metric tensor and no leftover
+  coordinate factor.
+
+bc/fermion product:
+  mixed products preserve the existing global fermion sign while applying the
+  infinity limit.
+
+free boson exponential:
+  <exp(k, infinity) exp(p, 0)> emits only the momentum delta and finite tensor
+  factors; no coordinate factor involving infinity remains.
+
+negative test:
+  bare X(infinity) logarithm is rejected.
+
+negative test:
+  two infinity endpoints in one coordinate difference are rejected.
+#+end_example
+
+* Implementation Order
+
+1. Add =Point= beside coefficient variables and extend =OperatorInsertion=.
+   Keep finite constructors source-compatible through helper overloads.
+2. Add =Local.infinity()= and generated descriptor ABI support for an infinity
+   point token.
+3. Add conformal metadata to preset operator specs and generated descriptors.
+4. Add the finite fast-path guard in =streamCorrelator=.
+5. Add =InfinityLimitSink= that forwards finite factors unchanged and rejects
+   unsupported infinity factors.
+6. Implement rational difference-power limits.
+7. Implement \(bc\) top-form infinity zero-mode limit.
+8. Implement free-fermion and derivative-field infinity tests.
+9. Implement free-boson exponential branch-global limit using momentum-delta
+   cancellation.
+10. Add median correlator benchmarks proving finite rows are unchanged.
+
+This order gets literal infinity into the public correlator API early while
+keeping the difficult exponential case isolated until the branch limit state
+and zero-mode event handling are in place.
+
+* Non-Goals
+
+- Do not add infinity-specific Wick rules to theory definitions.
+- Do not represent infinity as a magic coordinate variable.
+- Do not simplify arbitrary rational functions.
+- Do not support two independent infinity insertions in the same chart in the
+  first implementation.
+- Do not make finite correlator calls pass through the limit sink.

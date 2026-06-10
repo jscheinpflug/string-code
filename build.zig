@@ -87,6 +87,19 @@ pub fn build(b: *std.Build) void {
     const run_basis_generation_compare = addBasisGenerationRun(b, target, optimize, "basis_generation_bc_compare", "benchmarks/basis_generation_bc_compare.zig");
     const run_basis_generation_deep_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_deep_bench", "benchmarks/basis_generation_deep_bench.zig");
     const run_basis_generation_operator_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_operator_bench", "benchmarks/basis_generation_operator_bench.zig");
+    const correlator_kernel_median = b.addExecutable(.{
+        .name = "correlator_kernel_median",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmarks/correlator_kernel_median.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "cft-code", .module = cft_mod },
+            },
+        }),
+    });
+    const run_correlator_kernel_median = b.addRunArtifact(correlator_kernel_median);
+    if (b.args) |args| run_correlator_kernel_median.addArgs(args);
 
     b.default_step.dependOn(&run_cft_kernel_tests.step);
     b.default_step.dependOn(&run_root_tests.step);
@@ -113,6 +126,9 @@ pub fn build(b: *std.Build) void {
 
     const basis_operator_bench_step = b.step("basis-operator-bench", "Run direct operator basis-generation benchmark");
     basis_operator_bench_step.dependOn(&run_basis_generation_operator_bench.step);
+
+    const correlator_kernel_median_step = b.step("correlator-kernel-median", "Run median correlator kernel benchmark");
+    correlator_kernel_median_step.dependOn(&run_correlator_kernel_median.step);
 }
 
 fn addBasisGenerationRun(

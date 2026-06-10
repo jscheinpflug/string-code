@@ -529,6 +529,30 @@ fn lowerLabelKind(role: LabelRole) declare.Spec.LabelKind {
     };
 }
 
+fn lowerWeightPower(comptime d: Descriptor, comptime id: Id) ?i16 {
+    return switch (d.metadata[id]) {
+        .rational => |value| blk: {
+            if (value.denominator == 0) return null;
+            const numerator = -2 * value.numerator;
+            if (@rem(numerator, value.denominator) != 0) return null;
+            const power = @divExact(numerator, value.denominator);
+            if (power < std.math.minInt(i16) or power > std.math.maxInt(i16)) return null;
+            break :blk @intCast(power);
+        },
+        else => null,
+    };
+}
+
+fn lowerInfinity(comptime d: Descriptor, comptime field: Field) ?declare.Spec.InfinityBehavior {
+    if (field.weight == null and field.anti_weight == null) return null;
+    const holomorphic_power = if (field.weight) |id| lowerWeightPower(d, id) orelse return null else 0;
+    const antiholomorphic_power = if (field.anti_weight) |id| lowerWeightPower(d, id) orelse return null else 0;
+    return .{ .primary = .{
+        .holomorphic_power = holomorphic_power,
+        .antiholomorphic_power = antiholomorphic_power,
+    } };
+}
+
 fn lowerField(comptime d: Descriptor, comptime field: Field) declare.Spec.Operator {
     comptime var labels: [field.labels.len]declare.Spec.LabelKind = undefined;
     inline for (field.labels, 0..) |label, index| labels[index] = lowerLabelKind(label.role);
@@ -540,6 +564,7 @@ fn lowerField(comptime d: Descriptor, comptime field: Field) declare.Spec.Operat
         .labels = &labels,
         .statistics = if (field.statistics == .fermionic) .fermionic else .bosonic,
         .zero_mode_consumable = field.zero_mode_consumable,
+        .infinity = lowerInfinity(d, field),
     };
 }
 #+end_src
@@ -923,7 +948,7 @@ const EventSink = struct {
     pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
         switch (factor) {
             .bc_top_form => try self.emit(.{ .kind = .zero_mode, .name = "bc-top-form" }),
-            .eta_xi_zero_mode => |item| try self.emit(.{ .kind = .zero_mode, .a = item.xi.coordinate, .name = "eta-xi-zero-mode" }),
+            .eta_xi_zero_mode => |item| try self.emit(.{ .kind = .zero_mode, .a = item.xi.coordinate.raw, .name = "eta-xi-zero-mode" }),
             .momentum_delta => |item| {
                 try self.emit(try scalarEvent(item.scalar));
                 try self.emit(.{ .kind = .zero_mode, .a = item.two_pi_power, .b = @intCast(item.momenta.len), .name = "momentum-delta" });
@@ -944,24 +969,28 @@ const EventSink = struct {
 #+begin_src zig
 fn insertionFrom(shape: InsertionShape, coords: []const u32) !operators.OperatorInsertion {
     return switch (shape) {
-        .single => if (coords.len == 1) .{ .single = .{ .position = coords[0], .derivatives = 0 } } else error.InvalidCoordinateArity,
+        .single => if (coords.len == 1) .{ .single = .{ .position = pointFromCoord(coords[0]), .derivatives = 0 } } else error.InvalidCoordinateArity,
         .pair => if (coords.len == 2) .{ .pair = .{
-            .holomorphic_position = coords[0],
-            .antiholomorphic_position = coords[1],
+            .holomorphic_position = pointFromCoord(coords[0]),
+            .antiholomorphic_position = pointFromCoord(coords[1]),
             .holomorphic_derivatives = 0,
             .antiholomorphic_derivatives = 0,
         } } else error.InvalidCoordinateArity,
     };
 }
 
+fn pointFromCoord(z: u32) operators.Point {
+    return if (z == operators.Point.infinity_variable) operators.Point.infinity() else operators.Point.finite(z);
+}
+
 fn singleInsertion(z: u32, derivatives: u8) operators.OperatorInsertion {
-    return .{ .single = .{ .position = z, .derivatives = derivatives } };
+    return .{ .single = .{ .position = pointFromCoord(z), .derivatives = derivatives } };
 }
 
 fn pairInsertion(z: u32, zbar: u32) operators.OperatorInsertion {
     return .{ .pair = .{
-        .holomorphic_position = z,
-        .antiholomorphic_position = zbar,
+        .holomorphic_position = pointFromCoord(z),
+        .antiholomorphic_position = pointFromCoord(zbar),
         .holomorphic_derivatives = 0,
         .antiholomorphic_derivatives = 0,
     } };
@@ -1058,10 +1087,13 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
     const rules = wickStorage(d);
     const zeros = zeroStorage(d);
     const fermions = fermionStorage(d.fields, d);
+    const fields = fieldSpecStorage(d);
+    const infinity_data = declare.Spec.infinityData(&fields);
     const Config = declare.correlatorConfig(.{
         .wick_rules = &rules,
         .zero_modes = &zeros,
         .fermion_kinds = &fermions,
+        .infinity_data = &infinity_data,
     });
 
     return struct {
@@ -1137,6 +1169,11 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             /// coord interns a coordinate token name.
             pub fn coord(self: *Context, name: []const u8) !u32 {
                 return self.intern(name);
+            }
+
+            /// infinity returns the raw coordinate token for insertion at infinity.
+            pub fn infinity(_: *Context) u32 {
+                return operators.Point.infinity_variable;
             }
 
             /// index interns an index token name.
@@ -1294,8 +1331,11 @@ test "generated theory exposes field builders and direct correlator sink" {
     const surfaces = [_]Surface{
         .{ .id = 0, .kind = .sphere, .coordinate_model = .rational },
     };
+    const metadata = [_]MetadataExpr{
+        .{ .rational = .{ .numerator = 1, .denominator = 2 } },
+    };
     const fields = [_]Field{
-        .{ .id = 0, .symbol = 3, .insertion = .single, .labels = &.{.{ .id = 0, .role = .vector_index, .symbol = 4 }}, .statistics = .fermionic },
+        .{ .id = 0, .symbol = 3, .insertion = .single, .labels = &.{.{ .id = 0, .role = .vector_index, .symbol = 4 }}, .statistics = .fermionic, .weight = 0 },
     };
     const terms = [_]WickTerm{
         .{
@@ -1324,6 +1364,7 @@ test "generated theory exposes field builders and direct correlator sink" {
         .field_quantum_numbers = &field_quantum_numbers,
         .surfaces = &surfaces,
         .fields = &fields,
+        .metadata = &metadata,
         .wick_rules = &wick_rules,
     });
 
@@ -1375,6 +1416,24 @@ test "generated theory exposes field builders and direct correlator sink" {
     try std.testing.expectEqual(@as(usize, 1), sink.coordinates);
     try std.testing.expectEqual(@as(usize, 1), sink.tensors);
     try std.testing.expectEqual(@as(usize, 1), sink.base_cases);
+
+    var infinity_ctx = theory.local(std.testing.allocator);
+    defer infinity_ctx.deinit();
+    const finite = try infinity_ctx.coord("finite");
+    const infinity = infinity_ctx.infinity();
+    const alpha = try infinity_ctx.index("alpha");
+    const beta = try infinity_ctx.index("beta");
+    try Psi.single(&infinity_ctx, finite, 0, .{alpha});
+    try Psi.single(&infinity_ctx, infinity, 0, .{beta});
+    const infinity_ops = try infinity_ctx.ops();
+
+    var infinity_sink = Sink{};
+    try theory.correlator(&theory.config.sphere, infinity_ops, &infinity_sink);
+
+    try std.testing.expectEqual(@as(usize, 1), infinity_sink.wick_terms);
+    try std.testing.expectEqual(@as(usize, 0), infinity_sink.coordinates);
+    try std.testing.expectEqual(@as(usize, 1), infinity_sink.tensors);
+    try std.testing.expectEqual(@as(usize, 1), infinity_sink.base_cases);
 }
 
 test "descriptor accepts named finite and tensor quantum numbers" {

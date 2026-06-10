@@ -262,18 +262,20 @@ fn sphereZeroStorage(comptime cfg: BcSphereConfig) if (cfg.include_antiholomorph
 }
 
 const sphere_holomorphic_operator_spec = [_]Spec.Operator{
-    .{ .name = "b", .kind = kind(.b), .support = .holomorphic, .insertion = .single, .statistics = .fermionic },
-    .{ .name = "c", .kind = kind(.c), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+    .{ .name = "b", .kind = kind(.b), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .infinity = .{ .primary = .{ .holomorphic_power = -4 } } },
+    .{ .name = "c", .kind = kind(.c), .support = .holomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true, .infinity = .{ .primary = .{ .holomorphic_power = 2 } } },
 };
 
 const sphere_full_operator_spec = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
-    .{ .name = "bt", .kind = kind(.bt), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic },
-    .{ .name = "ct", .kind = kind(.ct), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true },
+    .{ .name = "bt", .kind = kind(.bt), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .infinity = .{ .primary = .{ .antiholomorphic_power = -4 } } },
+    .{ .name = "ct", .kind = kind(.ct), .support = .antiholomorphic, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true, .infinity = .{ .primary = .{ .antiholomorphic_power = 2 } } },
 };
 
 const sphere_holomorphic_fermion_storage = Spec.fermionKinds(&sphere_holomorphic_operator_spec);
 
 const sphere_full_fermion_storage = Spec.fermionKinds(&sphere_full_operator_spec);
+const sphere_holomorphic_infinity_storage = Spec.infinityData(&sphere_holomorphic_operator_spec);
+const sphere_full_infinity_storage = Spec.infinityData(&sphere_full_operator_spec);
 
 const sphere_holomorphic_wick_spec = [_]Spec.WickRule{
     .{ .left = kind(.b), .right = kind(.c), .expr = bcBC() },
@@ -378,9 +380,11 @@ fn assertTorusDraftSpec() void {
 fn BcSphereRules(comptime include_antiholomorphic_copy: bool) type {
     const selected_wick = if (include_antiholomorphic_copy) sphere_full_wick_storage else sphere_holomorphic_wick_storage;
     const selected_fermions = if (include_antiholomorphic_copy) sphere_full_fermion_storage else sphere_holomorphic_fermion_storage;
+    const selected_infinity = if (include_antiholomorphic_copy) sphere_full_infinity_storage else sphere_holomorphic_infinity_storage;
     return struct {
         const sphere_wick: []const wick.Rule = &selected_wick;
         const sphere_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
+        const sphere_infinity_data = &selected_infinity;
     };
 }
 
@@ -398,6 +402,7 @@ fn BcSphereCorrelatorConfig(comptime cfg: BcSphereConfig) type {
             .wick_rules = rules.sphere_wick,
             .zero_modes = &sphere_zero_storage,
             .fermion_kinds = rules.sphere_fermion_kinds,
+            .infinity_data = rules.sphere_infinity_data,
         }){};
     };
 }

@@ -387,7 +387,7 @@ test "eta-xi sphere saturates one xi zero mode" {
                     try testing.expectEqual(.sphere_holomorphic, zero.support);
                     try testing.expectEqual(@as(u8, 0), zero.xi.derivative_order);
                     self.zero_mode_count += 1;
-                    self.coordinate = @as(shared.Handle.Coord, @enumFromInt(zero.xi.coordinate));
+                    self.coordinate = @as(shared.Handle.Coord, @enumFromInt(zero.xi.coordinate.raw));
                 },
                 else => return error.UnexpectedZeroModeFactor,
             }
@@ -1350,4 +1350,392 @@ test "recursive correlator emits fermion signs for bc pair crossings" {
     try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
     try testing.expectEqual(@as(usize, 10), sink.negative_signs);
     try testing.expectEqual(@as(usize, 20), sink.base_cases);
+}
+
+test "bc infinity residual preserves fermion signs after dropped pairings" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const z5 = try local.coord("z5");
+    const z6 = try local.coord("z6");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.b(&local, 0, z1),
+        try Ghost.op.b(&local, 0, z2),
+        try Ghost.op.c(&local, 0, z3),
+        try Ghost.op.c(&local, 0, z4),
+        try Ghost.op.c(&local, 0, z5),
+        try Ghost.op.c(&local, 0, z6),
+        try Ghost.op.c(&local, 0, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        negative_signs: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickBranchSign records negative fermion branch signs on surviving branches.
+        pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
+            if (sign != -1) return error.UnexpectedBranchSign;
+            self.negative_signs += 1;
+        }
+
+        /// emitWickAction rejects unexpected action factors.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedAction;
+        }
+
+        /// emitZeroModeFactor accepts the limited c-zero-mode top form.
+        pub fn emitZeroModeFactor(_: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .bc_top_form => {},
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd counts one accepted nonvanishing branch.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 6), sink.negative_signs);
+    try testing.expectEqual(@as(usize, 12), sink.base_cases);
+}
+
+test "bc top form limits one c insertion at infinity" {
+    const testing = @import("std").testing;
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.c(&local, 0, z1),
+        try Ghost.op.c(&local, 0, z2),
+        try Ghost.op.c(&local, 0, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickTermEnd = noopWickTermEnd;
+
+        z1: u32,
+        z2: u32,
+        coordinates: usize = 0,
+        zero_modes: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickCoordinate checks the finite top-form limit z1-z2.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    try testing.expectEqual(self.z1, power.coordinate.left);
+                    try testing.expectEqual(self.z2, power.coordinate.right);
+                    try testing.expectEqual(@as(i16, 1), power.exponent);
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitZeroModeFactor rejects an un-limited top form.
+        pub fn emitZeroModeFactor(self: *@This(), _: anytype) !void {
+            self.zero_modes += 1;
+            return error.UnexpectedZeroModeFactor;
+        }
+
+        /// emitZeroModeBaseEnd records one accepted zero-mode base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{ .z1 = @intFromEnum(z1), .z2 = @intFromEnum(z2) };
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try testing.expectEqual(@as(usize, 0), sink.zero_modes);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "vanishing primary infinity branch is dropped before sink output" {
+    const testing = @import("std").testing;
+
+    const Ghost = Bc.sphere(.{ .include_antiholomorphic_copy = false });
+
+    var local = try Ghost.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const inf = local.infinity();
+    const ops = try local.ops(.{
+        try Ghost.op.b(&local, 0, z),
+        try Ghost.op.c(&local, 0, inf),
+    });
+
+    const Sink = struct {
+        base_cases: usize = 0,
+
+        /// emitWickTermStart rejects leaked vanishing branch output.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {
+            return error.UnexpectedWickTerm;
+        }
+
+        /// emitWickScalar rejects leaked vanishing branch output.
+        pub fn emitWickScalar(_: *@This(), _: anytype) !void {
+            return error.UnexpectedWickScalar;
+        }
+
+        /// emitWickCoordinate rejects leaked vanishing branch output.
+        pub fn emitWickCoordinate(_: *@This(), _: anytype) !void {
+            return error.UnexpectedWickCoordinate;
+        }
+
+        /// emitWickTensor rejects leaked vanishing branch output.
+        pub fn emitWickTensor(_: *@This(), _: anytype) !void {
+            return error.UnexpectedWickTensor;
+        }
+
+        /// emitWickAction rejects leaked vanishing branch output.
+        pub fn emitWickAction(_: *@This(), _: anytype) !void {
+            return error.UnexpectedWickAction;
+        }
+
+        /// emitWickTermEnd rejects leaked vanishing branch output.
+        pub fn emitWickTermEnd(_: *@This()) !void {
+            return error.UnexpectedWickTermEnd;
+        }
+
+        /// emitZeroModeFactor rejects leaked vanishing branch output.
+        pub fn emitZeroModeFactor(_: *@This(), _: anytype) !void {
+            return error.UnexpectedZeroModeFactor;
+        }
+
+        /// emitZeroModeBaseEnd would record an accepted nonvanishing branch.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 0), sink.base_cases);
+}
+
+test "free fermion two point at infinity emits metric without coordinate factor" {
+    const testing = @import("std").testing;
+
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+
+    var local = try Psi.local(testing.allocator);
+    defer local.deinit();
+
+    const z = try local.coord("z");
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const ops = try local.ops(.{
+        try Psi.op.psi(&local, mu, 0, z),
+        try Psi.op.psi(&local, nu, 0, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickTermStart accepts the single contraction.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickCoordinate rejects leftover infinity coordinate factors.
+        pub fn emitWickCoordinate(self: *@This(), _: anytype) !void {
+            self.coordinates += 1;
+            return error.UnexpectedCoordinateFactor;
+        }
+
+        /// emitWickTensor records the metric tensor.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickTermEnd accepts the contraction boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeBaseEnd records the full contraction base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try Psi.correlator(&Psi.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 0), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "free boson exponential pairing at infinity leaves momentum delta only" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const zero = try local.coord("zero");
+    const inf = local.infinity();
+    const k = try local.momentum("k");
+    const p = try local.momentum("p");
+    const ops = try local.ops(.{
+        try X.op.expX(&local, k, inf, inf),
+        try X.op.expX(&local, p, zero, zero),
+    });
+
+    const Sink = struct {
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickAction = noopWickAction;
+
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        deltas: usize = 0,
+        base_cases: usize = 0,
+
+        /// emitWickTermStart accepts the Green-exponential primitive term.
+        pub fn emitWickTermStart(_: *@This(), _: anytype) !void {}
+
+        /// emitWickCoordinate rejects leftover Green-exponential coordinate factors.
+        pub fn emitWickCoordinate(self: *@This(), _: anytype) !void {
+            self.coordinates += 1;
+            return error.UnexpectedCoordinateFactor;
+        }
+
+        /// emitWickTensor records the finite momentum-pair tensor.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_pair => self.tensors += 1,
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickResidualOperator accepts the residual exponentials.
+        pub fn emitWickResidualOperator(_: *@This(), _: anytype) !void {}
+
+        /// emitWickTermEnd accepts the primitive boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeFactor records the momentum-conservation delta.
+        pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .momentum_delta => |delta| {
+                    try testing.expectEqual(@as(usize, 2), delta.momenta.len);
+                    self.deltas += 1;
+                },
+                else => return error.UnexpectedZeroModeFactor,
+            }
+        }
+
+        /// emitZeroModeBaseEnd records one accepted base case.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.base_cases += 1;
+        }
+    };
+
+    var sink = Sink{};
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 0), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.deltas);
+    try testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "bare free boson logarithm at infinity is rejected" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const inf = local.infinity();
+    const z = try local.coord("z");
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const ops = try local.ops(.{
+        try X.op.X(&local, mu, inf, inf),
+        try X.op.X(&local, nu, z, z),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+        pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
+    };
+
+    var sink = Sink{};
+    try testing.expectError(error.UnsupportedInfinityOperator, X.correlator(&X.config.sphere, ops, &sink));
+}
+
+test "two infinity endpoints in one coordinate difference are rejected" {
+    const testing = @import("std").testing;
+
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+
+    var local = try Psi.local(testing.allocator);
+    defer local.deinit();
+
+    const inf = local.infinity();
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const ops = try local.ops(.{
+        try Psi.op.psi(&local, mu, 0, inf),
+        try Psi.op.psi(&local, nu, 0, inf),
+    });
+
+    const Sink = struct {
+        pub const emitWickTermStart = noopWickTermStart;
+        pub const emitWickScalar = noopWickScalar;
+        pub const emitWickCoordinate = noopWickCoordinate;
+        pub const emitWickTensor = noopWickTensor;
+        pub const emitWickAction = noopWickAction;
+        pub const emitWickTermEnd = noopWickTermEnd;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+        pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
+    };
+
+    var sink = Sink{};
+    try testing.expectError(error.UnsupportedMultipleInfinityInsertions, Psi.correlator(&Psi.config.sphere, ops, &sink));
 }
