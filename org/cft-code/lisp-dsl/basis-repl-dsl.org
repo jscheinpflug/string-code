@@ -1,0 +1,268 @@
+:PROPERTIES:
+:ID:       20260609T155500.000000
+:END:
+#+title: Basis REPL DSL Draft
+
+This node drafts the REPL surface for [[id:20260606T063253.759714][Basis-Generation]]
+inspection.  The backend streams compact candidates; the REPL chooses whether
+to view those candidates as compact records, state words, or local operators
+inserted at zero.
+
+* User Surface
+
+The primary form is =basis=.  It takes a runtime constructor, a query plist,
+and an output format.  The default format is compact so large basis calls stay
+machine-readable and cheap.
+
+#+begin_src lisp :tangle no
+(basis (make-free-boson-runtime :library lib)
+  (:weight 4 :max-depth 4)
+  :as :compact)
+
+(basis (make-free-boson-runtime :library lib)
+  (:weight 4 :max-depth 4)
+  :as :state)
+
+(basis (make-bc-runtime :library lib)
+  (:weight 0
+   :quantum-number ((u1 ghost-number 0))
+   :max-depth 2)
+  :as :operator)
+#+end_src
+
+Compact output is a structured record, not display text:
+
+#+begin_src lisp :tangle no
+(:basis-state
+ :presentation 0
+ :base (:vacuum
+        :weight 0
+        :quantum-number #())
+ :weight 4
+ :level 4
+ :quantum-number #()
+ :components #()
+ :modes #((:id dX :component 0 :label mu :weight 1)
+          (:id dX :component 0 :label nu :weight 3)))
+#+end_src
+
+State output is for reading:
+
+#+begin_example
+|dX[mu]_-1; d^3X[nu]_-3>
+#+end_example
+
+Operator output is the same candidate lowered at insertion zero:
+
+#+begin_example
+:dX[mu](0) d^3X[nu](0):
+#+end_example
+
+The lowering is intentionally a renderer.  It does not allocate local operator
+bodies during enumeration.  The render table maps compact ids to field names
+and derivative conventions; unknown atoms print as compact ids.
+
+* Closed Strings
+
+Closed-string and product bases use the same form with a product runtime.
+Level matching is a query filter, not a post-processing operation.
+
+#+begin_src lisp :tangle no
+(basis (make-product-runtime
+        (make-free-boson-runtime :library lib)
+        (make-free-boson-runtime :library lib))
+  (:weight 6
+   :level-match t
+   :quantum-number ((u1 ghost-number 0)
+                    (zn fermion-number 2 0)))
+  :as :state)
+#+end_src
+
+Render tables may specialize atoms by component.  A component-specific table
+can print right-moving fields with bars:
+
+#+begin_example
+|dX[mu]_-1@0; dXbar[nu]_-1@1>
+#+end_example
+
+The compact record always carries the component id even when the text renderer
+chooses a shorter notation.
+
+The backend may keep a dense base id for cache keys and partitioning, but the
+REPL compact record resolves it through the runtime's base table.  A vacuum base
+prints as a base record with zero weight and zero quantum numbers.  Nontrivial
+base sectors print the state/operator data they actually represent.
+
+The query normally does not specify a base.  The runtime owns the finite base
+table for the selected presentation, for example the vacuum, zero-mode sectors,
+ghost base words, or momentum primaries.  Weight and quantum-number filters
+select among those bases together with the descendant modes.  A later
+=:base= query key can restrict this enumeration by name, but the default is to
+stream every allowed base compatible with the query.
+
+Base weights and charges are part of the candidate, not annotations.  The
+enumerator checks
+
+#+begin_example
+base weight + descendant level = requested weight
+base quantum-number + descendant deltas = requested quantum-number
+#+end_example
+
+For example, a Ramond free-fermion presentation may emit a weighted ground
+state before any descendant modes:
+
+#+begin_src lisp :tangle no
+(:basis-state
+ :presentation ramond-free-fermion
+ :base (:ramond-ground
+        :weight 5/8
+        :quantum-number ((zn fermion-number 2 1))
+        :operator spin-field)
+ :weight 13/8
+ :level 1
+ :quantum-number ((zn fermion-number 2 1))
+ :components #()
+ :modes #((:id psi :component 0 :label mu :weight 1)))
+#+end_src
+
+* API Sketch
+
+The Lisp layer should eventually call three C ABI functions:
+
+#+begin_src lisp :tangle no
+(basis-count context query)        ; exact count, no text
+(basis-records context query sink) ; compact records
+(basis-text context query format sink)
+#+end_src
+
+=basis-records= is the OPE path.  It should stream records directly into the
+pairing/correlator worker, not through printed text.
+
+=basis-text= is the REPL path.  It uses the same Zig render table as direct
+Zig users:
+
+#+begin_src zig :tangle no
+var sink = basis_generation.textSink(writer, .{
+    .format = .operator_at_zero,
+    .insertion = "0",
+}, Preset.basis.render_table);
+try Preset.basis.stream(max_level, max_depth, query, &sink);
+#+end_src
+
+* Query Plist
+
+The first REPL query keys should stay small:
+
+- =:weight= exact total weight;
+- =:max-weight= bounded total weight;
+- =:quantum-number= named quantum-number filters;
+- =:max-depth= word-length cap;
+- =:level-match= closed/product level matching;
+- =:limit= maximum number of printed rows.
+
+Quantum filters are expressed by name and kind:
+
+#+begin_src lisp :tangle no
+(:quantum-number ((u1 ghost-number 0)
+                  (u1 eta-xi-number -1)
+                  (zn spin-structure 4 3)
+                  (zn fermion-number 2 1)
+                  (rep so10 spinor)))
+#+end_src
+
+=u1= is an integer additive filter.  =zn= is a residue filter and includes the
+modulus in the surface syntax so descriptor mistakes are visible at the REPL
+boundary.  \(Z_2\) signs are not a separate kind; they are written as =zn=
+filters with modulus =2=.  For example, even fermion number is
+=(zn fermion-number 2 0)= and odd fermion number is
+=(zn fermion-number 2 1)=.
+=rep= is a tensor-code representation placeholder.  It lowers to a named
+quantum slot now, but the basis backend rejects active representation filters
+until tensor-code exposes the needed product and projection operations.
+
+Preset conveniences may exist, but they are not the core DSL.  For example,
+=:ghost 0= may be accepted by the \(bc\) preset parser as shorthand for
+=(u1 ghost-number 0)=.  The compiled query always contains dense named
+quantum filters.
+
+The compact API should accept richer query records later, but the REPL should
+not expose every descriptor field before the generated ABI needs it.
+
+* Examples
+
+These examples show the intended REPL surface.  The current Zig backend already
+emits these compact, state, and operator forms internally; the Lisp ABI wrapper
+is still the next layer.
+
+#+begin_src lisp :tangle no
+(basis (make-bc-runtime :library lib)
+  (:weight 0
+   :quantum-number ((u1 ghost-number 0))
+   :max-depth 1)
+  :as :operator)
+#+end_src
+
+#+begin_example
+:c(0) d^2c(0):
+#+end_example
+
+#+begin_src lisp :tangle no
+(basis (make-free-fermion-runtime :library lib :dimension 1)
+  (:weight 2
+   :quantum-number ((zn fermion-number 2 0))
+   :max-depth 2)
+  :as :state)
+#+end_src
+
+#+begin_example
+|psi[0]_-1/2; dpsi[0]_-3/2>
+#+end_example
+
+#+begin_src lisp :tangle no
+(basis (make-product-runtime
+        (make-free-boson-runtime :library lib)
+        (make-free-boson-runtime :library lib))
+  (:weight 2 :level-match t)
+  :as :compact)
+#+end_src
+
+#+begin_src lisp :tangle no
+(:basis-state
+ :presentation 0
+ :base (:vacuum
+        :weight 0
+        :quantum-number #())
+ :weight 2
+ :level 2
+ :quantum-number #()
+ :components #(1 1)
+ :modes #((:id dX :component 0 :label 0 :weight 1)
+          (:id dX :component 1 :label 0 :weight 1)))
+#+end_src
+
+* Speed
+
+The Lisp DSL should not enumerate states.  It should parse the query once,
+resolve quantum-number names to dense slots, and call the same Zig streaming
+backend used by OPE code.  Therefore count/record streaming should be within
+the FFI callback overhead of pure Zig.  For large basis calls this overhead is
+negligible compared with enumeration or text output.
+
+Text output is different: REPL printing is intentionally slower because it
+formats compact ids into readable state or operator strings.  The OPE path
+must use compact records rather than printed text.
+
+* Implementation Order
+
+1. Add Zig text sinks for compact, state, and operator-at-zero output.
+2. Add preset render tables for implemented free-field bases.
+3. Lower REPL =:quantum-number= forms to named dense filters for U(1),
+   \(Z_N\), and representation placeholders.
+4. Add generated ABI basis query records and callbacks.
+5. Add Lisp =basis= and =basis->list= wrappers.
+6. Add product/closed render-table composition once product basis records are
+   exposed through the ABI.
+
+The current Zig backend has completed the first three backend-side pieces for
+the internal basis generator: text rendering, preset render tables, and named
+fast quantum filters.  The ABI and Lisp wrappers remain the next layer.

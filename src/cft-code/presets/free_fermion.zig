@@ -1,4 +1,5 @@
 const std = @import("std");
+const basis_generation = @import("../basis-generation/basis-generation.zig");
 const shared = @import("shared.zig");
 const declare = shared.declare;
 
@@ -8,7 +9,6 @@ const Builder = *shared.Local;
 const Operator = *shared.LocalOperator;
 const Spec = declare.Spec;
 const wick = declare.wick;
-
 const namespace = "free_fermion";
 
 const Family = enum {
@@ -19,7 +19,6 @@ const Family = enum {
 fn kind(comptime family: Family) operators.OperatorKindId {
     return declare.familyKind(namespace, family);
 }
-
 const FreeFermionSphereConfig = struct {
     dimension: u16,
     include_antiholomorphic_copy: bool = true,
@@ -33,6 +32,8 @@ pub fn freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type {
         pub const op = FreeFermionSphereOp(cfg.include_antiholomorphic_copy);
         /// config exposes named correlator configs for this preset.
         pub const config = FreeFermionCorrelatorConfig(cfg);
+        /// basis streams compact NS free-fermion mode words.
+        pub const basis = FreeFermionBasis(cfg);
         /// text exposes bounded result-inspection sinks.
         pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
@@ -47,6 +48,60 @@ pub fn freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type {
     };
 }
 
+fn freeFermionModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32) usize {
+    return @as(usize, dimension) * ((max_level_ticks + 1) / 2);
+}
+
+fn FreeFermionBasis(comptime cfg: FreeFermionSphereConfig) type {
+    return struct {
+        /// quantum_schema carries the one-slot fermion-number Z2 filter.
+        pub const quantum_schema = basis_generation.Preset.fermion_number_schema;
+        /// render_modes names compact NS modes for state/operator text output.
+        pub const render_modes = [_]basis_generation.RenderAtom{.{ .id = kind(.psi), .name = "psi", .base_weight_ticks = 1, .derivative_step_ticks = 2 }};
+        /// render_table maps compact free-fermion ids to local fields.
+        pub const render_table = basis_generation.RenderTable{ .modes = &render_modes };
+
+        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
+        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
+            return freeFermionModeCapacity(cfg.dimension, max_level_ticks);
+        }
+
+        /// seedCapacity returns the number of finite primary seeds.
+        pub fn seedCapacity() usize {
+            return 1;
+        }
+
+        /// writeSeeds writes the neutral NS vacuum seed.
+        pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
+            _ = quantum_offset;
+            return basis_generation.zeroSeed(total_quantum_count, seeds, quantum_storage);
+        }
+
+        /// writeModes writes component-tagged NS free-fermion bands.
+        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
+            const families = [_]basis_generation.OscillatorFamily{basis_generation.Preset.nsFreeFermionFamily(kind(.psi), component, cfg.dimension)};
+            const written = try basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
+            if (quantum_storage.len < written.len * total_quantum_count) return error.ContextTooSmall;
+            for (written, 0..) |*mode, index| {
+                mode.quantum_delta = try basis_generation.copyQuantumDelta(mode.quantum_delta, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+            }
+            return written;
+        }
+
+        /// stream enumerates compact NS free-fermion mode words in half-ticks.
+        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var modes_storage: [freeFermionModeCapacity(cfg.dimension, max_level_ticks)]basis_generation.Mode = undefined;
+            var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
+            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
+            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
+            var context = storage.context();
+            return basis_generation.stream(.{
+                .quantum_schema = &quantum_schema,
+                .modes = modes,
+            }, query, &context, sink);
+        }
+    };
+}
 fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
     const Holomorphic = struct {
         /// psi builds a holomorphic NS free-fermion insertion.
@@ -69,7 +124,6 @@ fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
         }
     };
 }
-
 fn holomorphicDifference() wick.CoordinateDifference {
     return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
 }

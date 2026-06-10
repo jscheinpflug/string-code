@@ -25,7 +25,11 @@
    #:run-correlator
    #:count-correlator
    #:correlator-expression
-   #:collect-correlator))
+   #:collect-correlator
+   #:unsupported-basis-filter
+   #:make-product-runtime
+   #:basis-count
+   #:basis))
 
 (in-package #:string-code.cft.descriptor)
 
@@ -44,7 +48,7 @@
   (result-symbols nil))
 
 (defstruct parameter id symbol role)
-(defstruct quantum-number id symbol kind group-symbol)
+(defstruct quantum-number id symbol kind group-symbol modulus representation-space)
 (defstruct field-quantum-number field quantum-number value)
 (defstruct surface id kind coordinate-model modular-parameter)
 (defstruct label-schema id role symbol)
@@ -55,10 +59,17 @@
 (defstruct (runtime-context (:constructor %make-runtime-context))
   handle
   theory-id
+  basis-metadata
   constants
   (scalar-atom-names (make-hash-table))
   scalar-monomials
   (symbols (make-array 0 :adjustable t :fill-pointer 0)))
+
+(define-condition unsupported-basis-filter (error)
+  ((filter :initarg :filter :reader unsupported-basis-filter-filter))
+  (:report (lambda (condition stream)
+             (format stream "Unsupported basis filter: ~S."
+                     (unsupported-basis-filter-filter condition)))))
 
 (defun descriptor-symbol-name (value)
   (etypecase value
@@ -84,13 +95,15 @@
           (theory-parameters theory))
     id))
 
-(defun add-quantum-number (theory symbol kind &key group)
+(defun add-quantum-number (theory symbol kind &key group modulus representation-space)
   (let ((id (length (theory-quantum-numbers theory))))
     (push (make-quantum-number
            :id id
            :symbol (add-symbol theory (descriptor-symbol-name symbol))
            :kind kind
-           :group-symbol (when group (add-symbol theory (descriptor-symbol-name group))))
+           :group-symbol (when group (add-symbol theory (descriptor-symbol-name group)))
+           :modulus (or modulus 0)
+           :representation-space (or representation-space 0))
           (theory-quantum-numbers theory))
     id))
 
@@ -259,6 +272,10 @@
           (zig-keyword (quantum-number-kind number)))
   (when (quantum-number-group-symbol number)
     (format stream ", .group_symbol = ~D" (quantum-number-group-symbol number)))
+  (unless (zerop (quantum-number-modulus number))
+    (format stream ", .modulus = ~D" (quantum-number-modulus number)))
+  (unless (zerop (quantum-number-representation-space number))
+    (format stream ", .representation_space = ~D" (quantum-number-representation-space number)))
   (format stream " }"))
 
 (defun emit-rational-row (stream numerator denominator)
@@ -564,6 +581,7 @@
 (defvar *abi-bound* nil)
 (defvar *abi-callback-pointer* nil)
 (defvar *abi-chunk-callback-pointer* nil)
+(defvar *abi-basis-callback-pointer* nil)
 (defvar *abi-sinks* (make-hash-table))
 (defvar *next-abi-sink-id* 0)
 (defvar *event-size* 0)
@@ -572,6 +590,7 @@
 (defvar *name-ptr-offset* 0)
 (defvar *name-len-offset* 0)
 (defvar *term-size* 0)
+(defvar *basis-mode-size* 0)
 (defparameter *event-kinds*
   #(:sum-term-begin :sum-term-end :wick-term-begin :wick-term-end
     :scalar :coordinate :tensor :zero-mode :residual-operator))
@@ -579,15 +598,17 @@
 (declaim
  (ftype function
         set-mem-aref* mem-ref* foreign-slot-value* null-pointer-p*
-        pointer-address* inc-pointer* foreign-type-size* event-pointer-at
-        name-pointer-at term-pointer-at term-expression
+        set-foreign-slot-value* pointer-address* inc-pointer* foreign-type-size* event-pointer-at
+        name-pointer-at term-pointer-at basis-mode-pointer-at term-expression
         %abi-last-error %abi-context-create
         %abi-context-destroy %abi-scalar-atom-name
         %abi-symbol-intern %abi-field-insert
         %abi-normal-ordering %abi-operator-list-freeze
         %abi-correlator-count %abi-correlator-run
         %abi-correlator-run-buffered %abi-correlator-expression-records
-        %abi-expression-buffer-free))
+        %abi-expression-buffer-free %abi-basis-count
+        %abi-basis-run-compact %abi-basis-text
+        %abi-basis-text-free))
 
 (declaim
  (ftype function
@@ -663,12 +684,39 @@
       (eval `(,defcstruct generated-term
                (first-factor :size)
                (factor-count :size)))
+      (eval `(,defcstruct generated-basis-filter
+               (slot :uint8)
+               (value :int32)))
+      (eval `(,defcstruct generated-basis-mode
+               (mode-index :uint32)
+               (id :uint32)
+               (component :uint16)
+               (label :uint16)
+               (weight-ticks :uint32)
+               (body :uint32)
+               (name-ptr :pointer)
+               (name-len :size)))
+      (eval `(,defcstruct generated-basis-record
+               (presentation :uint16)
+               (seed :uint16)
+               (seed-body :uint32)
+               (base-weight-ticks :int32)
+               (weight-ticks :int32)
+               (level-ticks :uint32)
+               (base-quantum-ptr :pointer)
+               (base-quantum-len :size)
+               (quantum-ptr :pointer)
+               (quantum-len :size)
+               (mode-ptr :pointer)
+               (mode-len :size)))
       (eval `(defun set-mem-aref* (pointer type index value)
                (setf (,mem-aref pointer type index) value)))
       (eval `(defun mem-ref* (pointer type)
                (,mem-ref pointer type)))
       (eval `(defun foreign-slot-value* (pointer type slot)
                (,foreign-slot-value pointer type slot)))
+      (eval `(defun set-foreign-slot-value* (pointer type slot value)
+               (setf (,foreign-slot-value pointer type slot) value)))
       (eval `(defun null-pointer-p* (pointer)
                (,null-pointer-p pointer)))
       (eval `(defun pointer-address* (pointer)
@@ -683,12 +731,15 @@
                (,inc-pointer names (* index *name-size*))))
       (eval `(defun term-pointer-at (terms index)
                (,inc-pointer terms (* index *term-size*))))
+      (eval `(defun basis-mode-pointer-at (modes index)
+               (,inc-pointer modes (* index *basis-mode-size*))))
       (setf *event-size* (eval `(,foreign-type-size '(:struct generated-event)))
             *factor-size* (eval `(,foreign-type-size '(:struct generated-factor)))
             *name-size* (eval `(,foreign-type-size '(:struct generated-name)))
             *name-ptr-offset* (eval `(,foreign-slot-offset '(:struct generated-name) 'ptr))
             *name-len-offset* (eval `(,foreign-slot-offset '(:struct generated-name) 'len))
-            *term-size* (eval `(,foreign-type-size '(:struct generated-term))))
+            *term-size* (eval `(,foreign-type-size '(:struct generated-term)))
+            *basis-mode-size* (eval `(,foreign-type-size '(:struct generated-basis-mode))))
       (eval `(defun term-expression (builder factors names term)
                (declare (optimize (speed 3) (safety 1) (debug 0)))
                (,with-foreign-slots ((first-factor factor-count) term (:struct generated-term))
@@ -764,6 +815,40 @@
                (factor-count :size)
                (names :pointer)
                (name-count :size)))
+      (eval `(,defcfun ("sc_generated_basis_count" %abi-basis-count) :int
+               (theory-id :uint32)
+               (weight-kind :uint8)
+               (weight-ticks :int32)
+               (max-word-length :uint16)
+               (level-match :uint8)
+               (filters :pointer)
+               (filter-count :size)
+               (out-count :pointer)))
+      (eval `(,defcfun ("sc_generated_basis_run_compact" %abi-basis-run-compact) :int
+               (theory-id :uint32)
+               (weight-kind :uint8)
+               (weight-ticks :int32)
+               (max-word-length :uint16)
+               (level-match :uint8)
+               (filters :pointer)
+               (filter-count :size)
+               (payload :pointer)
+               (callback :pointer)))
+      (eval `(,defcfun ("sc_generated_basis_text" %abi-basis-text) :int
+               (theory-id :uint32)
+               (weight-kind :uint8)
+               (weight-ticks :int32)
+               (max-word-length :uint16)
+               (level-match :uint8)
+               (filters :pointer)
+               (filter-count :size)
+               (format :uint8)
+               (max-states :size)
+               (out-text :pointer)
+               (out-len :pointer)))
+      (eval `(,defcfun ("sc_generated_basis_text_free" %abi-basis-text-free) :void
+               (text :pointer)
+               (text-len :size)))
       (eval `(,defcallback %abi-event-callback :int
                ((payload :pointer) (event :pointer))
                (let ((sink (gethash (mem-ref* payload :uint64) *abi-sinks*)))
@@ -777,8 +862,15 @@
                    (loop for index below event-count
                          do (funcall sink (event-pointer-at events index))))
                  0)))
+      (eval `(,defcallback %abi-basis-callback :int
+               ((payload :pointer) (record :pointer))
+               (let ((sink (gethash (mem-ref* payload :uint64) *abi-sinks*)))
+                 (when sink
+                   (funcall sink record))
+                 0)))
       (setf *abi-callback-pointer* (eval `(,callback %abi-event-callback)))
       (setf *abi-chunk-callback-pointer* (eval `(,callback %abi-event-chunk-callback)))
+      (setf *abi-basis-callback-pointer* (eval `(,callback %abi-basis-callback)))
       (setf *abi-bound* t))))
 
 (defun load-generated-library (path)
@@ -900,6 +992,407 @@
             (%abi-correlator-count (runtime-handle context) out))
            (mem-ref* out :size))
       (foreign-free* out))))
+
+(defparameter *basis-runtime-metadata*
+  '((1 :presentation free-fermion-10
+     :tick-denominator 2
+     :quantum-numbers ((fermion-number :slot 0 :kind :zn :modulus 2)
+                       (spin10 :slot nil :kind :rep))
+     :seed-bits nil)
+    (2 :presentation eta-xi-sphere
+     :tick-denominator 1
+     :quantum-numbers ((eta-xi-number :slot 0 :kind :u1))
+     :seed-bits ((0 :operator xi :weight 0 :quantum-number ((u1 eta-xi-number -1)))))
+    (3 :presentation eta-xi-torus
+     :tick-denominator 1
+     :quantum-numbers ((eta-xi-number :slot 0 :kind :u1))
+     :seed-bits ((0 :operator xi :weight 0 :quantum-number ((u1 eta-xi-number -1)))))
+    (4 :presentation bc
+     :tick-denominator 1
+     :quantum-numbers ((ghost-number :slot 0 :kind :u1))
+     :seed-bits ((0 :operator c :weight -1 :quantum-number ((u1 ghost-number 1)))
+                 (1 :operator c :weight 0 :quantum-number ((u1 ghost-number 1)))))
+    (5 :presentation free-boson-10
+     :tick-denominator 1
+     :quantum-numbers ((spin10 :slot nil :kind :rep))
+     :seed-bits nil)
+    (100 :presentation product-free-boson-10-free-boson-10
+     :tick-denominator 1
+     :quantum-numbers nil
+     :seed-bits nil)))
+
+(defun basis-runtime-metadata (context)
+  (or (runtime-context-basis-metadata context)
+      (cdr (assoc (runtime-context-theory-id context) *basis-runtime-metadata*))
+      (error "No basis runtime metadata for theory id ~D."
+             (runtime-context-theory-id context))))
+
+(defun basis-product-pair-id (left right)
+  (+ 1000 (* left 16) right))
+
+(defun supported-quantum-width (metadata)
+  (loop for item in (getf metadata :quantum-numbers)
+        for slot = (getf (rest item) :slot)
+        when (integerp slot)
+          maximize (1+ slot) into width
+        finally (return (or width 0))))
+
+(defun shifted-quantum-metadata (metadata offset)
+  (loop for item in (getf metadata :quantum-numbers)
+        for properties = (copy-list (rest item))
+        for slot = (getf properties :slot)
+        do (when (integerp slot)
+             (setf (getf properties :slot) (+ offset slot)))
+        collect (cons (first item) properties)))
+
+(defun basis-seed-bit-width (metadata)
+  (loop for item in (getf metadata :seed-bits)
+        maximize (1+ (first item)) into width
+        finally (return (or width 0))))
+
+(defun shifted-seed-bit-metadata (metadata offset component)
+  (loop for item in (getf metadata :seed-bits)
+        for properties = (copy-list (rest item))
+        do (setf (getf properties :component) component)
+        collect (cons (+ offset (first item)) properties)))
+
+(defun product-basis-metadata (left right)
+  (let* ((left-meta (basis-runtime-metadata left))
+         (right-meta (basis-runtime-metadata right))
+         (left-denominator (getf left-meta :tick-denominator))
+         (right-denominator (getf right-meta :tick-denominator)))
+    (unless (= left-denominator right-denominator)
+      (error "Cannot build product basis with incompatible backend ticks 1/~D and 1/~D."
+             left-denominator right-denominator))
+    (let* ((left-width (supported-quantum-width left-meta))
+           (numbers (append (shifted-quantum-metadata left-meta 0)
+                            (shifted-quantum-metadata right-meta left-width)))
+           (left-seed-width (basis-seed-bit-width left-meta))
+           (seed-bits (append (shifted-seed-bit-metadata left-meta 0 0)
+                              (shifted-seed-bit-metadata right-meta
+                                                         left-seed-width
+                                                         1))))
+      (list :presentation (list :product
+                                (getf left-meta :presentation)
+                                (getf right-meta :presentation))
+            :tick-denominator left-denominator
+            :quantum-numbers numbers
+            :seed-bits seed-bits))))
+
+(defun make-product-runtime (&rest runtimes)
+  "Return a basis-only product runtime backed by a generated product presentation."
+  (let ((theory-ids (mapcar #'runtime-context-theory-id runtimes)))
+    (cond
+      ((and (= (length theory-ids) 2)
+            (or (and (= (first theory-ids) 1)
+                     (= (second theory-ids) 1))
+                (and (member (first theory-ids) '(2 3 4 5))
+                     (member (second theory-ids) '(2 3 4 5)))))
+       (%make-runtime-context :handle nil
+                              :theory-id (basis-product-pair-id
+                                          (first theory-ids)
+                                          (second theory-ids))
+                              :basis-metadata (product-basis-metadata
+                                               (first runtimes)
+                                               (second runtimes))
+                              :constants (normalize-runtime-constants nil)))
+      (t
+       (error "No generated product basis runtime for theory ids ~S." theory-ids)))))
+
+(defun basis-query-value (query key)
+  (getf query key))
+
+(defun basis-weight-ticks (metadata value)
+  (let* ((denominator (getf metadata :tick-denominator))
+         (ticks (* value denominator)))
+    (unless (integerp ticks)
+      (error "Basis weight ~S is not representable in backend ticks of 1/~D."
+             value denominator))
+    ticks))
+
+(defun basis-weight-kind-and-ticks (metadata query)
+  (let ((weight (basis-query-value query :weight))
+        (max-weight (basis-query-value query :max-weight)))
+    (cond
+      ((and weight max-weight)
+       (error "Basis query cannot contain both :WEIGHT and :MAX-WEIGHT."))
+      (weight (values 0 (basis-weight-ticks metadata weight)))
+      (max-weight (values 1 (basis-weight-ticks metadata max-weight)))
+      (t (error "Basis query requires :WEIGHT or :MAX-WEIGHT.")))))
+
+(defun basis-max-depth (query)
+  (or (basis-query-value query :max-depth)
+      #xffff))
+
+(defun basis-level-match (query)
+  (if (basis-query-value query :level-match) 1 0))
+
+(defun quantum-metadata (metadata name)
+  (let ((key (if (symbolp name) name (keyword-name name))))
+    (let ((matches (loop for item in (getf metadata :quantum-numbers)
+                         when (string-equal (first item) key)
+                           collect item)))
+      (cond
+        ((null matches)
+         (error "Unknown basis quantum number ~S." name))
+        ((cdr matches)
+         (error "Ambiguous product basis quantum number ~S." name))
+        (t (first matches))))))
+
+(defun lowered-quantum-filter (metadata spec)
+  (unless (consp spec)
+    (error "Basis quantum-number filter must be a list, got ~S." spec))
+  (let ((kind (string-downcase (string (first spec)))))
+    (cond
+      ((string= kind "u1")
+       (destructuring-bind (_ name value) spec
+         (declare (ignore _))
+         (let ((number (quantum-metadata metadata name)))
+           (unless (eq (getf (rest number) :kind) :u1)
+             (error "Quantum number ~S is not U(1)." name))
+           (list (getf (rest number) :slot) value))))
+      ((string= kind "zn")
+       (destructuring-bind (_ name modulus value) spec
+         (declare (ignore _))
+         (let ((number (quantum-metadata metadata name)))
+           (unless (eq (getf (rest number) :kind) :zn)
+             (error "Quantum number ~S is not Z_N." name))
+           (unless (= modulus (getf (rest number) :modulus))
+             (error "Quantum number ~S has modulus ~D, got ~D."
+                    name (getf (rest number) :modulus) modulus))
+           (list (getf (rest number) :slot) value))))
+      ((member kind '("rep" "ade-irrep" "tensor-rep") :test #'string=)
+       (let ((name (second spec)))
+         (when name (quantum-metadata metadata name))
+         (error 'unsupported-basis-filter :filter spec)))
+      (t
+       (error "Unknown basis quantum-number filter kind in ~S." spec)))))
+
+(defun lowered-basis-filters (metadata query)
+  (mapcar (lambda (spec) (lowered-quantum-filter metadata spec))
+          (basis-query-value query :quantum-number)))
+
+(defun call-with-basis-filters (filters function)
+  (let* ((count (length filters))
+         (pointer (foreign-alloc* '(:struct generated-basis-filter)
+                                  :count (max 1 count))))
+    (unwind-protect
+         (progn
+           (loop for filter in filters
+                 for index from 0
+                 for item = (inc-pointer* pointer
+                                          (* index
+                                             (foreign-type-size*
+                                              '(:struct generated-basis-filter))))
+                 do (progn
+                      (set-foreign-slot-value* item '(:struct generated-basis-filter)
+                                               'slot (first filter))
+                      (set-foreign-slot-value* item '(:struct generated-basis-filter)
+                                               'value (second filter))))
+           (funcall function pointer count))
+      (foreign-free* pointer))))
+
+(defun run-basis-with-filters (context query function)
+  (let ((metadata (basis-runtime-metadata context)))
+    (multiple-value-bind (weight-kind weight-ticks)
+        (basis-weight-kind-and-ticks metadata query)
+      (call-with-basis-filters
+       (lowered-basis-filters metadata query)
+       (lambda (filters filter-count)
+         (funcall function metadata weight-kind weight-ticks
+                  (basis-max-depth query) (basis-level-match query)
+                  filters filter-count))))))
+
+(defun basis-count (context query)
+  "Return the compact backend basis count for QUERY without text rendering."
+  (ensure-abi-bindings)
+  (run-basis-with-filters
+   context query
+   (lambda (_ weight-kind weight-ticks max-depth level-match filters filter-count)
+     (declare (ignore _))
+     (let ((out (foreign-alloc* :size)))
+       (unwind-protect
+            (progn
+              (check-abi
+               (%abi-basis-count (runtime-context-theory-id context)
+                                 weight-kind weight-ticks max-depth level-match
+                                 filters filter-count out))
+              (mem-ref* out :size))
+         (foreign-free* out))))))
+
+(defun int32-values (pointer count)
+  (loop for index below count
+        collect (mem-ref* (inc-pointer* pointer (* index 4)) :int32)))
+
+(defun basis-quantum-records (metadata values)
+  (loop for number in (getf metadata :quantum-numbers)
+        for value in values
+        collect (ecase (getf (rest number) :kind)
+                  (:u1 `(u1 ,(first number) ,value))
+                  (:zn `(zn ,(first number)
+                            ,(getf (rest number) :modulus)
+                            ,value)))))
+
+(defun basis-weight-value (metadata ticks)
+  (let ((denominator (getf metadata :tick-denominator)))
+    (if (= denominator 1)
+        ticks
+        (/ ticks denominator))))
+
+(defun basis-mode-record (metadata mode)
+  (let* ((type '(:struct generated-basis-mode))
+         (name-pointer (foreign-slot-value* mode type 'name-ptr))
+         (name-length (foreign-slot-value* mode type 'name-len))
+         (name (and (> name-length 0)
+                    (not (null-pointer-p* name-pointer))
+                    (keyword-name
+                     (foreign-string-to-lisp* name-pointer
+                                              :count name-length)))))
+    (vector :id (or name `(:id ,(foreign-slot-value* mode type 'id)))
+            :component (foreign-slot-value* mode type 'component)
+            :label (foreign-slot-value* mode type 'label)
+            :weight (basis-weight-value
+                     metadata
+                     (foreign-slot-value* mode type 'weight-ticks)))))
+
+(defun basis-mode-records (metadata pointer count)
+  (let ((modes (make-array count)))
+    (loop for index below count
+          do (setf (aref modes index)
+                   (basis-mode-record metadata
+                                      (basis-mode-pointer-at pointer index))))
+    modes))
+
+(defun seed-bit-base (metadata bit)
+  (cdr (assoc bit (getf metadata :seed-bits))))
+
+(defun basis-base-record (metadata seed-body base-weight base-quantum)
+  (let ((quantum (basis-quantum-records metadata base-quantum))
+        (bits nil))
+    (loop for bit from 0 below 32
+          when (not (zerop (logand seed-body (ash 1 bit))))
+            do (push bit bits))
+    (cond
+      ((and (= (length bits) 1) (seed-bit-base metadata (first bits)))
+       (let ((base (copy-list (seed-bit-base metadata (first bits)))))
+         (setf (getf base :weight) base-weight
+               (getf base :quantum-number) quantum)
+         base))
+      ((zerop seed-body)
+       `(:vacuum :weight ,base-weight :quantum-number ,quantum))
+      (t
+       `(:operators ,(mapcar (lambda (bit)
+                               (or (seed-bit-base metadata bit)
+                                   `(:seed-bit ,bit)))
+                             (nreverse bits))
+         :weight ,base-weight
+         :quantum-number ,quantum)))))
+
+(defun basis-record-from-pointer (metadata record)
+  (let* ((type '(:struct generated-basis-record))
+         (base-quantum (int32-values
+                        (foreign-slot-value* record type 'base-quantum-ptr)
+                        (foreign-slot-value* record type 'base-quantum-len)))
+         (quantum (int32-values
+                   (foreign-slot-value* record type 'quantum-ptr)
+                   (foreign-slot-value* record type 'quantum-len))))
+    (list :basis-state
+          :presentation (getf metadata :presentation)
+          :base (basis-base-record
+                 metadata
+                 (foreign-slot-value* record type 'seed-body)
+                 (basis-weight-value
+                  metadata
+                  (foreign-slot-value* record type 'base-weight-ticks))
+                 base-quantum)
+          :weight (basis-weight-value
+                   metadata
+                   (foreign-slot-value* record type 'weight-ticks))
+          :level (basis-weight-value
+                  metadata
+                  (foreign-slot-value* record type 'level-ticks))
+          :quantum-number (basis-quantum-records metadata quantum)
+          :modes (basis-mode-records
+                  metadata
+                  (foreign-slot-value* record type 'mode-ptr)
+                  (foreign-slot-value* record type 'mode-len)))))
+
+(defun run-basis-compact (context query)
+  (ensure-abi-bindings)
+  (let ((records nil))
+    (run-basis-with-filters
+     context query
+     (lambda (metadata weight-kind weight-ticks max-depth level-match filters filter-count)
+       (let* ((sink-id (prog1 *next-abi-sink-id*
+                         (incf *next-abi-sink-id*)))
+              (payload (foreign-alloc* :uint64)))
+         (setf (gethash sink-id *abi-sinks*)
+               (lambda (record)
+                 (push (basis-record-from-pointer metadata record) records)))
+         (set-mem-aref* payload :uint64 0 sink-id)
+         (unwind-protect
+              (check-abi
+               (%abi-basis-run-compact
+                (runtime-context-theory-id context)
+                weight-kind weight-ticks max-depth level-match
+                filters filter-count
+                payload *abi-basis-callback-pointer*))
+           (remhash sink-id *abi-sinks*)
+           (foreign-free* payload)))))
+    (nreverse records)))
+
+(defun strip-basis-text-line (line)
+  (if (and (> (length line) 0) (char= (aref line 0) #\#))
+      (let ((space (position #\Space line)))
+        (if space (subseq line (1+ space)) line))
+      line))
+
+(defun split-basis-lines (text)
+  (loop with start = 0
+        for index from 0 to (length text)
+        when (or (= index (length text)) (char= (aref text index) #\Newline))
+          unless (= start index)
+            collect (strip-basis-text-line (subseq text start index))
+          and do (setf start (1+ index))))
+
+(defun basis-text (context query format)
+  (ensure-abi-bindings)
+  (run-basis-with-filters
+   context query
+   (lambda (_ weight-kind weight-ticks max-depth level-match filters filter-count)
+     (declare (ignore _))
+     (let ((out-text (foreign-alloc* :pointer))
+           (out-len (foreign-alloc* :size)))
+       (unwind-protect
+            (progn
+              (check-abi
+               (%abi-basis-text
+                (runtime-context-theory-id context)
+                weight-kind weight-ticks max-depth level-match
+                filters filter-count
+                (ecase format
+                  (:compact 0)
+                  (:state 1)
+                  (:operator 2))
+                (or (basis-query-value query :limit)
+                    most-positive-fixnum)
+                out-text out-len))
+              (let* ((pointer (mem-ref* out-text :pointer))
+                     (length (mem-ref* out-len :size))
+                     (text (foreign-string-to-lisp* pointer :count length)))
+                (%abi-basis-text-free pointer length)
+                (let ((lines (split-basis-lines text)))
+                  (if (and lines (null (rest lines)))
+                      (first lines)
+                      lines))))
+         (foreign-free* out-len)
+         (foreign-free* out-text))))))
+
+(defun basis (context query &key (as :compact))
+  "Return basis states for QUERY as :COMPACT records, :STATE text, or :OPERATOR text."
+  (ecase as
+    (:compact (run-basis-compact context query))
+    ((:state :operator) (basis-text context query as))))
 
 (defun run-correlator-raw (context sink)
   (let* ((sink-id (prog1 *next-abi-sink-id*

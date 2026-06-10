@@ -1,0 +1,172 @@
+:PROPERTIES:
+:ID:       20260609T140500.000000
+:END:
+#+title: Basis Generation Performance
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../../benchmarks/basis_generation_compact.zig :mkdirp yes
+
+This benchmark exercises compact mode-word enumeration before operator-body
+lowering.  It is intentionally small: the first gate is that current CFT
+families lower to one descriptor path and stream without retaining emitted
+states.  Prototype comparison still needs a Wolfram-side harness for rendered
+operator sets; the low-weight \(bc\) counts here are copied from the existing
+=prototype-string-code= basis tests.
+
+#+begin_src zig
+const std = @import("std");
+const basis = @import("basis-generation");
+
+const Sink = struct {
+    count: usize = 0,
+    max_depth: usize = 0,
+    hash_mix: u64 = 0,
+
+    pub fn emitBasisState(self: *@This(), candidate: basis.Candidate) !void {
+        self.count += 1;
+        self.max_depth = @max(self.max_depth, candidate.modes.len);
+        self.hash_mix ^= candidate.structuralHash();
+    }
+};
+
+fn nowNs() u128 {
+    var ts: std.os.linux.timespec = undefined;
+    _ = std.os.linux.clock_gettime(.MONOTONIC, &ts);
+    return @as(u128, @intCast(ts.sec)) * std.time.ns_per_s + @as(u128, @intCast(ts.nsec));
+}
+
+fn ContextStorage(comptime mode_count: usize, comptime max_ticks: u32, comptime quantum_count: usize, comptime max_depth: usize) type {
+    return struct {
+        word: [max_depth]basis.ModeEntry = undefined,
+        quantum_values: [quantum_count]i32 = undefined,
+        add_min: [basis.Context.reachabilitySlots(mode_count, max_ticks, quantum_count)]i32 = undefined,
+        add_max: [basis.Context.reachabilitySlots(mode_count, max_ticks, quantum_count)]i32 = undefined,
+        finite_bits: [basis.Context.reachabilitySlots(mode_count, max_ticks, quantum_count)]u64 = undefined,
+
+        fn context(self: *@This()) basis.Context {
+            return .{
+                .word = &self.word,
+                .quantum_values = &self.quantum_values,
+                .add_min = &self.add_min,
+                .add_max = &self.add_max,
+                .finite_bits = &self.finite_bits,
+            };
+        }
+    };
+}
+
+fn runCase(
+    comptime name: []const u8,
+    comptime expected_count: ?usize,
+    comptime mode_count: usize,
+    comptime max_ticks: u32,
+    comptime quantum_count: usize,
+    comptime max_depth: usize,
+    presentation: basis.Presentation,
+    query: basis.Query,
+) !void {
+    var storage = ContextStorage(mode_count, max_ticks, quantum_count, max_depth){};
+    var context = storage.context();
+    var sink = Sink{};
+    const start = nowNs();
+    try basis.stream(presentation, query, &context, &sink);
+    const elapsed: u64 = @intCast(nowNs() - start);
+
+    if (expected_count) |expected| {
+        if (sink.count != expected) {
+            std.debug.print("basis count regression case={s} got={} expected={}\n", .{ name, sink.count, expected });
+            return error.BasisCountRegression;
+        }
+    }
+
+    std.debug.print(
+        "basis case={s} count={} max_depth={} hash={} ns={}\n",
+        .{ name, sink.count, sink.max_depth, sink.hash_mix, elapsed },
+    );
+}
+
+const BcData = struct {
+    modes: [5]basis.Mode,
+    mode_len: usize,
+    seeds: [4]basis.Seed,
+    seed_quantum: [4]i32,
+};
+
+fn bcData(comptime max_ticks: u32) !BcData {
+    var result: BcData = undefined;
+    const seed_families = [_]basis.SeedFamily{basis.Preset.bcSeedFamily(1, 1)};
+    var seed_options_storage: [2]basis.SeedOption = undefined;
+    const seed_options = try basis.buildSeedOptions(&seed_families, &seed_options_storage);
+    _ = try basis.buildFermionicSeedSubsets(seed_options, basis.Preset.ghost_schema.len, &result.seeds, &result.seed_quantum);
+    const mode_families = basis.Preset.bcOscillatorFamilies(2, 3, 1);
+    const modes = try basis.buildOscillatorModes(&mode_families, max_ticks, &result.modes);
+    result.mode_len = modes.len;
+    return result;
+}
+
+fn repairBcSeedSlices(data: *BcData) void {
+    for (&data.seeds, 0..) |*seed, index| {
+        seed.quantum_values = data.seed_quantum[index .. index + 1];
+    }
+}
+
+pub fn main() !void {
+    const boson_family = [_]basis.OscillatorFamily{basis.Preset.freeBosonFamily(1, 0, 2)};
+    var boson_modes: [8]basis.Mode = undefined;
+    const boson_mode_slice = try basis.buildOscillatorModes(&boson_family, 4, &boson_modes);
+    try runCase("free-boson-dim2-exact4", null, 8, 4, 0, 4, .{
+        .modes = boson_mode_slice,
+    }, .{
+        .weight = .{ .exact = 4 },
+        .max_word_length = 4,
+    });
+
+    const fermion_family = [_]basis.OscillatorFamily{basis.Preset.nsFreeFermionFamily(1, 0, 2)};
+    var fermion_modes: [4]basis.Mode = undefined;
+    const fermion_mode_slice = try basis.buildOscillatorModes(&fermion_family, 3, &fermion_modes);
+    try runCase("ns-fermion-dim2-half-tick3-odd", null, 4, 3, basis.Preset.fermion_number_schema.len, 3, .{
+        .quantum_schema = &basis.Preset.fermion_number_schema,
+        .modes = fermion_mode_slice,
+    }, .{
+        .weight = .{ .exact = 3 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
+        .max_word_length = 3,
+    });
+
+    var bc = try bcData(3);
+    repairBcSeedSlices(&bc);
+    try runCase("bc-max0-ghost1", 2, 5, 1, basis.Preset.ghost_schema.len, 0, .{
+        .quantum_schema = &basis.Preset.ghost_schema,
+        .modes = bc.modes[0..bc.mode_len],
+        .seeds = &bc.seeds,
+    }, .{
+        .weight = .{ .max = 0 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
+        .max_word_length = 0,
+    });
+    try runCase("bc-exact2-ghost-minus1", 1, 5, 3, basis.Preset.ghost_schema.len, 1, .{
+        .quantum_schema = &basis.Preset.ghost_schema,
+        .modes = bc.modes[0..bc.mode_len],
+        .seeds = &bc.seeds,
+    }, .{
+        .weight = .{ .exact = 2 },
+        .quantum_filters = &.{.{ .slot = 0, .value = -1 }},
+        .max_word_length = 1,
+    });
+
+    const matter_family = [_]basis.OscillatorFamily{basis.Preset.freeBosonFamily(4, 0, 1)};
+    var matter_modes: [3]basis.Mode = undefined;
+    const matter_mode_slice = try basis.buildOscillatorModes(&matter_family, 3, &matter_modes);
+    var product_modes: [8]basis.Mode = undefined;
+    @memcpy(product_modes[0..matter_mode_slice.len], matter_mode_slice);
+    @memcpy(product_modes[matter_mode_slice.len .. matter_mode_slice.len + bc.mode_len], bc.modes[0..bc.mode_len]);
+    try runCase("product-free-boson-bc-exact2-ghost0", null, 8, 3, basis.Preset.ghost_schema.len, 3, .{
+        .quantum_schema = &basis.Preset.ghost_schema,
+        .modes = &product_modes,
+        .seeds = &bc.seeds,
+    }, .{
+        .weight = .{ .exact = 2 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 0 }},
+        .max_word_length = 3,
+    });
+}
+#+end_src

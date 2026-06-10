@@ -1,4 +1,5 @@
 const preset_impl = @import("presets.zig");
+const basis_generation = @import("basis-generation/basis-generation.zig");
 
 /// FreeBoson groups the public free-boson preset constructors.
 pub const FreeBoson = preset_impl.FreeBoson;
@@ -52,4 +53,11 @@ test "root CFT API exposes selected constructors without implementation namespac
     try testing.expect(!@hasDecl(@This(), "theory"));
     try testing.expect(!@hasDecl(@This(), "expressions"));
     try testing.expect(!@hasDecl(@This(), "Generated"));
+}
+
+test "compact basis backend stays internal to CFT root" {
+    const testing = @import("std").testing;
+    try testing.expect(@hasDecl(basis_generation, "Presentation"));
+    try testing.expect(!@hasDecl(@This(), "basis_generation"));
+    try testing.expect(!@hasDecl(@This(), "BasisGeneration"));
 }

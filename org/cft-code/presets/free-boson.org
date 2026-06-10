@@ -19,6 +19,7 @@ projectors.
 
 #+begin_src zig
 const std = @import("std");
+const basis_generation = @import("../basis-generation/basis-generation.zig");
 const shared = @import("shared.zig");
 const declare = shared.declare;
 
@@ -173,6 +174,8 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
         pub const target = TargetSpace;
         /// config exposes named correlator configs for this preset.
         pub const config = FreeBosonCorrelatorConfig(cfg);
+        /// basis streams compact free-boson oscillator words.
+        pub const basis = FreeBosonBasis(cfg);
         /// text exposes bounded result-inspection sinks.
         pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
@@ -183,6 +186,59 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
         /// correlator streams rule matches for free-boson insertions.
         pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
             return shared.streamCorrelator(config_ptr, ops, sink);
+        }
+    };
+}
+
+fn freeBosonModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32) usize {
+    return @as(usize, dimension) * max_level_ticks;
+}
+
+fn FreeBosonBasis(comptime cfg: FreeBosonConfig) type {
+    return struct {
+        /// quantum_schema is empty for the neutral free-boson oscillator backend.
+        pub const quantum_schema = [_]basis_generation.Quantum{};
+        /// render_modes names compact modes for state/operator text output.
+        pub const render_modes = [_]basis_generation.RenderAtom{.{ .id = kind(.d_x), .name = "X" }};
+        /// render_table maps compact free-boson ids to local fields.
+        pub const render_table = basis_generation.RenderTable{ .modes = &render_modes };
+
+        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
+        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
+            return freeBosonModeCapacity(cfg.dimension, max_level_ticks);
+        }
+
+        /// seedCapacity returns the number of finite primary seeds.
+        pub fn seedCapacity() usize {
+            return 1;
+        }
+
+        /// writeSeeds writes the neutral free-boson vacuum seed.
+        pub fn writeSeeds(comptime quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
+            _ = quantum_offset;
+            return basis_generation.zeroSeed(total_quantum_count, seeds, quantum_storage);
+        }
+
+        /// writeModes writes component-tagged free-boson oscillator bands.
+        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, comptime quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
+            _ = quantum_offset;
+            _ = total_quantum_count;
+            _ = quantum_storage;
+            const families = [_]basis_generation.OscillatorFamily{basis_generation.Preset.freeBosonFamily(kind(.d_x), component, cfg.dimension)};
+            return basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
+        }
+
+        /// stream enumerates compact free-boson mode words with stack-bounded scratch.
+        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var modes_storage: [freeBosonModeCapacity(cfg.dimension, max_level_ticks)]basis_generation.Mode = undefined;
+            var mode_quantum_storage: [0]i32 = .{};
+            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
+            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
+            var context = storage.context();
+            return basis_generation.stream(.{
+                .quantum_schema = &quantum_schema,
+                .modes = modes,
+            }, query, &context, sink);
         }
     };
 }

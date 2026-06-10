@@ -1,0 +1,22 @@
+:PROPERTIES:
+:ID:       20260609T131500.000000
+:END:
+#+title: Goal
+
+Current goal: implement the algorithmic operator-form generator described in
+[[file:cft-code/basis-generation/operator-form-generation-plan.org][Operator-Form
+Basis Generation Plan]].
+
+Replace merged compact-mode traversal for OPE and printing with direct,
+bounded =OperatorAtom= / =OperatorRecord= streaming.  Use family fragments,
+weight and quantum bucket joins, and closed-string level joins to construct
+the actual operator/state forms, not just counts.
+
+The target is at least 10x speedup over the current compact Zig benchmark rows
+while preserving enough structural output for OPE and state reconstruction:
+seed id, seed body bitmask, source-tagged atoms, components, labels,
+derivative orders, weights, and quantum values.
+
+Constraint: keep the implementation data-oriented, streaming, memory bounded,
+and minimal.  Do not trade the backend for large retained caches unless a
+benchmark shows the memory cost is justified by a decisive algorithmic win.

@@ -294,9 +294,18 @@ accepted only as an escape hatch for generated code.
     (symbol (table-get quantum-numbers value "quantum number"))))
 
 (defun parse-quantum-number-kind (kind)
-  (ecase kind
-    ((:u1 :u1-charge u1 u1-charge) :u1-charge)
-    ((:ade-irrep ade-irrep) :ade-irrep)))
+  (let ((tag (if (consp kind) (first kind) kind)))
+    (ecase tag
+      ((:u1 :u1-charge u1 u1-charge) :u1-charge)
+      ((:zn :z-n :zn-phase zn z-n zn-phase) :zn-phase)
+      ((:ade-irrep ade-irrep) :ade-irrep)
+      ((:rep :tensor-rep :representation rep tensor-rep representation) :tensor-rep))))
+
+(defun parse-quantum-number-modulus (kind options)
+  (or (option-value options :modulus)
+      (when (and (consp kind)
+                 (member (first kind) '(:zn :z-n :zn-phase zn z-n zn-phase)))
+        (second kind))))
 #+end_src
 
 Quantum-number values are deliberately scalar.  U(1) charges lower to exact
@@ -310,24 +319,50 @@ quantum-number kind.
     (integer value)
     (symbol (field-shape-id (table-get fields (field-key value) "field")))))
 
-(defun parse-quantum-value (theory value)
+(defun quantum-number-record (theory id)
+  (or (find id (string-code.cft.descriptor::theory-quantum-numbers theory)
+            :key #'string-code.cft.descriptor::quantum-number-id)
+      (error "Unknown quantum number id ~D." id)))
+
+(defun parse-symbol-quantum-value (theory value)
   (etypecase value
-    (integer value)
-    (rational value)
     (string `(:symbol ,(add-symbol theory value)))
-    (symbol `(:symbol ,(add-symbol theory (string-downcase (string value)))))
+    (symbol `(:symbol ,(add-symbol theory (string-downcase (string value)))))))
+
+(defun parse-quantum-value (theory kind value)
+  (etypecase value
+    (integer
+     (if (member kind '(:u1-charge :zn-phase))
+         value
+         (error "Integer value ~S is not valid for quantum kind ~S." value kind)))
+    (rational
+     (if (eq kind :u1-charge)
+         value
+         (error "Rational value ~S is only valid for U(1) quantum numbers." value)))
+    (string
+     (if (member kind '(:ade-irrep :tensor-rep))
+         (parse-symbol-quantum-value theory value)
+         (error "Symbolic value ~S is not valid for quantum kind ~S." value kind)))
+    (symbol
+     (case kind
+       ((:ade-irrep :tensor-rep) (parse-symbol-quantum-value theory value))
+       (otherwise (error "Symbolic value ~S is not valid for quantum kind ~S." value kind))))
     (cons
      (ecase (first value)
        ((:rational rational)
-        `(:rational ,(second value) ,(third value)))))))
+        (if (eq kind :u1-charge)
+            `(:rational ,(second value) ,(third value))
+            (error "Rational value ~S is only valid for U(1) quantum numbers." value)))))))
 
 (defun parse-field-quantum-numbers (theory quantum-numbers field-id specs)
   (dolist (spec specs)
     (destructuring-bind (name value) spec
-      (add-field-quantum-number theory
-                                field-id
-                                (parse-quantum-number-ref quantum-numbers name)
-                                (parse-quantum-value theory value)))))
+      (let* ((number-id (parse-quantum-number-ref quantum-numbers name))
+             (number (quantum-number-record theory number-id)))
+        (add-field-quantum-number theory
+                                  field-id
+                                  number-id
+                                  (parse-quantum-value theory (string-code.cft.descriptor::quantum-number-kind number) value))))))
 
 (defun parse-label-ref (labels field value)
   (etypecase value
@@ -754,7 +789,10 @@ basis generator can scan them without touching Wick data.
                                (or (option-value (cdddr form) :symbol)
                                    (string-downcase (string (second form))))
                                (parse-quantum-number-kind (third form))
-                               :group (option-value (cdddr form) :group))))
+                               :group (option-value (cdddr form) :group)
+                               :modulus (parse-quantum-number-modulus (third form) (cdddr form))
+                               :representation-space (or (option-value (cdddr form) :representation-space)
+                                                         (option-value (cdddr form) :space)))))
     (surface
      (let ((surface-id
              (add-surface theory (third form) (fourth form)

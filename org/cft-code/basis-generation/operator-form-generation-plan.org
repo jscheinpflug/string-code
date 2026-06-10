@@ -1,0 +1,389 @@
+:PROPERTIES:
+:ID:       20260609T203000.000000
+:END:
+#+title: Operator-Form Basis Generation Plan
+#+auto_tangle: nil
+
+This note designs an operator-form generator for
+[[id:20260606T063253.759714][Basis-Generation]].  The target is not faster
+counting.  The target is faster construction of the actual basis operator
+forms used by [[id:20260603T094112.928043][OPE]] and REPL inspection.
+
+The current backend streams compact mode words.  That is the correctness
+oracle.  The new path should stream canonical operator records directly and
+must be at least 10x faster than the current compact traversal on the
+high-weight benchmark rows below.
+
+* Output Invariant
+
+The operator form is a list of atoms, not an algebraic scalar expression.
+Indexed factors must remain separate:
+
+#+begin_example
+dX_mu dX_nu
+#+end_example
+
+must not become
+
+#+begin_example
+dX^2
+#+end_example
+
+unless both labels are identical and the downstream tensor representation
+explicitly requests a power notation.  The first implementation should never
+print powers for tensor-carrying fields.
+
+An operator atom stores only data required by OPE and printing:
+
+#+begin_example
+field id
+component id
+derivative order
+label slot or finite label value
+statistics
+source: seed or descendant
+#+end_example
+
+Ordering of the final expression is not semantic.  The equivalence check may
+compare atom multisets, but it must include field id, derivative order,
+component, label, and source.
+
+* Current Baseline
+
+The current implementation was benchmarked with:
+
+#+begin_src sh :tangle no
+zig build -Doptimize=ReleaseFast basis-deep-bench --summary none
+#+end_src
+
+The benchmark sink counts candidates and mixes their compact structural hash.
+It does not render operator text, so these numbers are a lower bound for the
+current operator-output path.
+
+| Case | Current count | Current compact ns | 10x target ns |
+| free-boson exact 28 | 3718 | 1861029 | 186102 |
+| boson+\(bc\) exact 24 ghost 0 | 60967 | 44173595 | 4417359 |
+| boson+\(bc\) exact 28 ghost 0 | 164459 | 128507377 | 12850737 |
+| closed level-matched 12 | 38161 | 38250978 | 3825097 |
+| closed all-splits 8 | 30474 | 9482978 | 948297 |
+
+The target is intentionally strict: the direct operator generator must beat
+even the compact-word traversal by 10x on the high-weight rows.  If it only
+beats printed text, it is not the algorithmic improvement sought here.
+
+* Data Design
+
+The hot output is a caller-owned atom buffer.  It is not a Lisp list, a string,
+or a symbolic expression.
+
+#+begin_example
+OperatorAtom:
+  field: u32
+  component: u16
+  derivative: u16
+  label: u16
+  flags: u16
+
+OperatorRecord:
+  seed id
+  seed body bitmask
+  base_atoms: []OperatorAtom
+  descendant_atoms: []OperatorAtom
+  weight_ticks: i32
+  quantum_values: []i32
+  component_weight_ticks: []i32
+#+end_example
+
+The record borrows slices valid only during the sink callback, just like the
+compact candidate.  A retaining sink copies atoms into its own storage.  The
+seed id, seed body bitmask, source-tagged atoms, atom weights, derivative
+orders, components, and labels are the reconstruction data for OPE operators
+and state display.  Printing may choose notation, but the record must not
+collapse distinct indexed atoms.
+
+* Algorithm 1: Family Fragments
+
+Current traversal walks one merged mode list.  The operator path should first
+generate fragments per generator family.  A fragment is a compact atom vector
+with accumulated weight and quantum data.
+
+For a bosonic family, generate integer occupations by derivative order instead
+of recursively pushing repeated mode entries.
+
+#+begin_src text :tangle no
+emit_boson_family(derivative, remaining, fragment):
+  if derivative > max_derivative:
+    emit fragment
+    return
+
+  step_weight = family_weight(derivative)
+  max_count = remaining / step_weight
+
+  for count in 0..max_count:
+    append count labeled atoms for this derivative
+    emit_boson_family(derivative + 1,
+                      remaining - count * step_weight,
+                      fragment)
+    remove count atoms
+#+end_src
+
+For finite label domains, the count is distributed over labels without
+forgetting the labels:
+
+#+begin_src text :tangle no
+distribute_label_count(label, count, fragment):
+  if label == label_count:
+    if count == 0: emit fragment
+    return
+
+  for take in 0..count:
+    append take atoms with this label
+    distribute_label_count(label + 1, count - take, fragment)
+    remove take atoms
+#+end_src
+
+This is still exact.  It changes the traversal unit from "one mode entry" to
+"one occupation block".
+
+* Algorithm 2: Fermionic Family Subsets
+
+Fermionic families have at most one use of each mode-label choice.  Generate a
+bounded subset per family and emit its atom fragment once.
+
+#+begin_src text :tangle no
+emit_fermion_family(index, remaining, fragment):
+  if index == choices.len:
+    emit fragment
+    return
+
+  emit_fermion_family(index + 1, remaining, fragment)
+
+  choice = choices[index]
+  if choice.weight <= remaining:
+    append atom(choice)
+    emit_fermion_family(index + 1,
+                        remaining - choice.weight,
+                        fragment)
+    remove atom(choice)
+#+end_src
+
+The important difference from the current merged traversal is locality.  The
+ghost family can prune by ghost number and weight before it is combined with
+matter fragments.
+
+* Algorithm 3: Fragment Join
+
+Fragments are joined by weight and quantum buckets.  The join streams records;
+it does not materialize the full basis in Lisp or build symbolic expressions.
+
+#+begin_src text :tangle no
+emit_join(family_index, remaining, quantum, record):
+  if family_index == family_count:
+    if remaining == 0 and quantum_matches(quantum):
+      sink.emit(record)
+    return
+
+  family = families[family_index]
+  for fragment in family.fragments_up_to(remaining):
+    if not suffix_can_match(family_index + 1,
+                            remaining - fragment.weight,
+                            quantum + fragment.quantum):
+      continue
+
+    append fragment atoms to record
+    emit_join(family_index + 1,
+              remaining - fragment.weight,
+              quantum + fragment.quantum,
+              record)
+    remove fragment atoms
+#+end_src
+
+The suffix check uses dense arrays by family index, remaining weight, and
+small quantum state.  This is the same data-oriented idea as the current mode
+suffix table, but at a coarser unit.
+
+* Algorithm 4: Closed-String Join
+
+Closed strings should not use one merged list of left and right modes.  Build
+left and right fragments separately, then join only equal levels.
+
+#+begin_src text :tangle no
+for level in 0..target_level:
+  left_stream = left_fragments[level, quantum_left]
+  right_stream = right_fragments[level, quantum_right]
+
+  for left in left_stream:
+    for right in right_stream:
+      if total_quantum_matches(left, right):
+        record = base + left.atoms + right.atoms
+        sink.emit(record)
+#+end_src
+
+For large buckets, use bounded pages:
+
+#+begin_src text :tangle no
+while left_page.next():
+  right_stream.rewind()
+  while right_page.next():
+    emit_page_product(left_page, right_page)
+#+end_src
+
+This keeps memory bounded and makes parallelization natural: each level bucket
+or page pair is independent.
+
+* Correctness Oracle
+
+The current compact traversal remains the oracle.
+
+#+begin_src text :tangle no
+for query in benchmark_queries:
+  old = collect_old_compact_as_operator_atoms(query)
+  new = collect_new_operator_records(query)
+
+  sort_atoms_inside_each_record(old)
+  sort_atoms_inside_each_record(new)
+  sort_records(old)
+  sort_records(new)
+
+  assert old == new
+#+end_src
+
+The comparison ignores record order only because final ordering is not
+semantic.  It does not ignore labels, derivatives, components, seed atoms, or
+statistics.
+
+* Benchmark Acceptance
+
+The implementation is accepted only if all of these are true:
+
+- oracle equivalence passes for the benchmark queries;
+- no printed text is built in the OPE path;
+- no Lisp enumeration or Cartesian product is introduced;
+- all hot buffers are caller-owned or bounded Zig scratch;
+- the rows in the baseline table are at least 10x faster than the current
+  compact traversal.
+
+The benchmark command should emit both current compact and new operator rows:
+
+#+begin_src sh :tangle no
+zig build -Doptimize=ReleaseFast basis-operator-bench --summary none
+#+end_src
+
+Expected row shape:
+
+#+begin_example
+engine name category weight ghost ns count max_atoms hash scratch_bytes status
+#+end_example
+
+The hash must be over operator atoms, not printed strings.  Printed output can
+be tested separately with small fixture rows.
+
+** Current Implementation Result
+
+The implemented code now adds:
+
+- =OperatorAtom= and =OperatorRecord=;
+- =OperatorContext= with caller-owned atom scratch;
+- compact-candidate lowering to operator records as the oracle path;
+- explicit finite seed bodies and primary seed atoms in =OperatorRecord= for
+  state reconstruction;
+- a direct pure-boson selected-mode operator stream;
+- a direct neutral-plus-charged operator join with charge slot and delta
+  inferred from descriptor data;
+- a direct two-component level-matched join;
+- a direct two-component all-splits join by merged neutral and charged buckets;
+- bounded charged fragments bucketed by remaining level;
+- packed rolling operator-record hashes;
+- precomputed operator atoms and per-mode hash parts;
+- =basis-operator-bench= for compact versus operator rows.
+
+Measured with explicit writable Zig caches:
+
+#+begin_src sh :tangle no
+zig build -Doptimize=ReleaseFast \
+  --cache-dir .zig-cache-codex-operator \
+  --global-cache-dir .zig-global-cache-codex-operator \
+  basis-operator-bench --summary none
+#+end_src
+
+| Case | Compact ns | Operator ns | Count | Result |
+| free-boson exact 24 | 600974 | 296309 | 1575 | 2.03x faster |
+| free-boson exact 28 | 1774238 | 1100146 | 3718 | 1.61x faster |
+| free-boson exact 32 | 4385329 | 2472583 | 8349 | 1.77x faster |
+| boson+\(bc\) exact 24 ghost 0 | 40134934 | 3324207 | 60967 | 12.07x faster |
+| boson+\(bc\) exact 28 ghost 0 | 121861614 | 8309837 | 164459 | 14.66x faster |
+| closed level-matched 12 | 41490735 | 2126558 | 38161 | 19.51x faster |
+| closed all-splits 8 | 9455270 | 1714993 | 30474 | 5.51x faster |
+
+The direct rows are count-equivalent and preserve seed body data, source-tagged
+atoms, derivatives, labels, components, weights, and quantum values.  The
+mixed and level-matched rows clear the 10x target on this run.  The all-splits
+row is substantially faster than before, but remains below 10x and is the main
+open algorithmic case.
+
+A pure-boson occupation-block variant was measured and rejected because it was
+slower than selected-mode streaming on the current rows.  A component-separated
+closed all-splits dispatch was also measured and rejected because it was slower
+than the merged all-splits shortcut.  A bounded neutral-fragment table for
+all-splits preserved counts, but did not justify the extra code and was
+removed.  Avoid adding a large right-side cache merely to win this benchmark;
+the next improvement should keep memory bounded to the current atom stack and
+small per-level fragment tables.
+
+** Maintainability Audit
+
+The current source is intentionally narrower than the original plan.  The
+accepted code keeps only the direct paths that measured well and have a simple
+bounded-memory explanation:
+
+- compact-candidate lowering remains the fallback and oracle;
+- pure bosons stream selected modes directly;
+- the single-charge path scans descriptor modes into neutral bosonic and
+  charged fermionic groups, infers the queried additive slot and common charge
+  delta, then joins bounded charged fragments;
+- two-component level-matched records keep left and right levels explicit;
+- two-component all-splits uses the smaller merged neutral/charged shortcut.
+- the generic operator path mirrors compact traversal directly over operator
+  atoms for arbitrary descriptor-lowered modes and charged primary seeds.
+
+The audit rejected two tempting changes:
+
+- grouping all-splits seeds by charged-fragment key reused fragment buckets but
+  slowed the benchmark and made the output order less local to seeds;
+- forcing inline annotations on tiny hash and append helpers did not improve
+  the measured rows, so the code keeps ordinary helper functions.
+
+The backend does not cache emitted records, compact words, operator records,
+or rendered expressions.  The only retained hot data are caller scratch, mode
+atom/hash arrays bounded by =operator_join_max_modes=, and charged fragment
+tables bounded by =operator_join_max_charged_fragments=.  Further speed work
+should replace one of these bounded procedures with a simpler bounded
+procedure, not add a broad memo table.
+
+For SCA-like theories, the supported boundary is descriptor-lowered free
+canonical words over supplied primary seeds.  The seed carries arbitrary
+weight and quantum data, and the mode table carries arbitrary compact
+weights, statistics, components, and quantum deltas.  The fragment join handles
+the common one-slot charged-family case without CFT names; arbitrary charge
+vectors use the generic direct stream.  Null relations, commutator reductions,
+and quotient construction remain outside the generator until a relation-rule
+descriptor is added.
+
+* Implementation Order
+
+1. DONE Add =OperatorAtom= and =OperatorRecord=.
+2. DONE Add compact-word to operator-atom lowering for the oracle.
+3. DONE Add direct operator sink from the current traversal.
+4. DONE Add fermionic family fragments for charged buckets.
+5. DONE Add fragment join by weight and ghost number.
+6. TODO Replace the pure-boson selected recursion with true occupation
+   fragments only if a new variant beats selected-mode streaming.  The first
+   occupation-block attempt measured slower and was removed.
+7. DONE Add closed-string level-bucket join.
+8. DONE Replace byte-wise operator-record FNV with packed rolling hashes and
+   per-mode hash parts.
+9. NEXT Improve closed all-splits without retaining large side bases.
+
+Each step must keep the compact backend callable.  The compact backend is the
+fallback and the semantic oracle until the operator generator has enough
+coverage to replace it in OPE.

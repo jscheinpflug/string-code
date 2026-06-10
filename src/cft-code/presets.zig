@@ -12,9 +12,7 @@ const freeFermionSphere = free_fermion.freeFermionSphere;
 const etaXiSphere = eta_xi.etaXiSphere;
 const freeBosonBoundary = free_boson.boundaryExtension;
 const bcDiskBoundary = bc.boundaryExtension;
-
 const scalars = declare.scalars;
-
 fn noopWickTermStart(_: anytype, _: anytype) !void {}
 fn noopWickScalar(_: anytype, _: anytype) !void {}
 fn noopWickCoordinate(_: anytype, _: anytype) !void {}
@@ -23,7 +21,6 @@ fn noopWickAction(_: anytype, _: anytype) !void {}
 fn noopWickTermEnd(_: anytype) !void {}
 fn noopZeroModeFactor(_: anytype, _: anytype) !void {}
 fn noopZeroModeBaseEnd(_: anytype) !void {}
-
 /// FreeBoson groups the free-boson preset constructors.
 pub const FreeBoson = struct {
     /// make builds the generated preset type for a noncompact free-boson CFT.
@@ -56,7 +53,6 @@ pub const EtaXi = struct {
 pub const product = composition.product;
 /// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
 pub const boundary = composition.boundary;
-
 test "presets compose operator builders without exposing theory tables" {
     const testing = @import("std").testing;
 
@@ -149,6 +145,81 @@ test "preset rules and namespaces compose from supplied factors" {
     try testing.expect(@hasDecl(DiskMatterGhost.op, "bulk"));
     try testing.expect(!@hasDecl(@TypeOf(DiskMatter.config.disk), "wick_rules"));
     try testing.expect(!@hasDecl(@TypeOf(DiskMatterGhost.config.disk), "wick_rules"));
+}
+
+test "primitive presets expose compact basis streaming" {
+    const testing = @import("std").testing;
+
+    const Sink = struct {
+        count: usize = 0,
+        pub fn emitBasisState(self: *@This(), _: anytype) !void {
+            self.count += 1;
+        }
+    };
+
+    const X = freeBoson(.{ .dimension = 2 });
+    var x_sink = Sink{};
+    try X.basis.stream(2, 2, .{ .weight = .{ .exact = 2 }, .max_word_length = 2 }, &x_sink);
+    try testing.expectEqual(@as(usize, 5), x_sink.count);
+
+    const Psi = freeFermionSphere(.{ .dimension = 2, .include_antiholomorphic_copy = false });
+    var psi_sink = Sink{};
+    try Psi.basis.stream(3, 3, .{
+        .weight = .{ .exact = 3 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
+        .max_word_length = 3,
+    }, &psi_sink);
+    try testing.expectEqual(@as(usize, 2), psi_sink.count);
+
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+    var ghost_sink = Sink{};
+    try Ghost.basis.stream(1, 1, .{
+        .weight = .{ .exact = 0 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 0 }},
+        .max_word_length = 1,
+    }, &ghost_sink);
+    try testing.expectEqual(@as(usize, 1), ghost_sink.count);
+
+    const EtaXiTheory = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+    var eta_xi_sink = Sink{};
+    try EtaXiTheory.basis.stream(1, 0, .{
+        .weight = .{ .exact = 0 },
+        .quantum_filters = &.{.{ .slot = 0, .value = -1 }},
+        .max_word_length = 0,
+    }, &eta_xi_sink);
+    try testing.expectEqual(@as(usize, 1), eta_xi_sink.count);
+}
+
+test "product preset streams merged compact basis without factor basis products" {
+    const testing = @import("std").testing;
+
+    const Sink = struct {
+        count: usize = 0,
+        mixed_count: usize = 0,
+        pub fn emitBasisState(self: *@This(), candidate: anytype) !void {
+            self.count += 1;
+            var saw_matter = false;
+            var saw_ghost = false;
+            for (candidate.modes) |mode| {
+                saw_matter = saw_matter or mode.component == 0;
+                saw_ghost = saw_ghost or mode.component == 1;
+            }
+            if (saw_matter and saw_ghost) self.mixed_count += 1;
+        }
+    };
+
+    const X = freeBoson(.{ .dimension = 1 });
+    const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
+    const MatterGhost = product(.{ X, Ghost });
+    var sink = Sink{};
+    try MatterGhost.basis.stream(3, 3, .{
+        .weight = .{ .exact = 2 },
+        .quantum_filters = &.{.{ .slot = 0, .value = 0 }},
+        .max_word_length = 3,
+    }, &sink);
+
+    try testing.expectEqual(@as(usize, 11), sink.count);
+    try testing.expect(sink.mixed_count > 0);
 }
 
 test "local operator tokens are owned by their builder" {
@@ -1088,7 +1159,6 @@ test "pair Wick resolves config-backed boundary projectors" {
     try testing.expect(sink.saw_coordinate);
     try testing.expect(sink.saw_projector);
 }
-
 test "recursive correlator enumerates free-boson pairings without dangling branches" {
     const testing = @import("std").testing;
 

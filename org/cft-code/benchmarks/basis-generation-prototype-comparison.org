@@ -1,0 +1,234 @@
+:PROPERTIES:
+:ID:       20260609T171000.000000
+:END:
+#+title: Basis Generation Prototype Comparison
+#+auto_tangle: t
+
+This comparison checks the compact \(bc\) ghost enumerator against the
+Mathematica prototype before local-operator lowering.  The common shape is one
+canonical line per cumulative ghost configuration:
+
+- maximum requested weight;
+- ghost number;
+- emitted ghost-sector weight;
+- sorted species/mode-number pairs.
+
+The Zig side prints the compact backend result.  The Wolfram side asks the
+prototype for =generateGhostConfigsHolo= and compares the same canonical
+strings.
+
+#+begin_src zig :tangle ../../../benchmarks/basis_generation_bc_compare.zig :mkdirp yes
+const std = @import("std");
+const basis = @import("basis-generation");
+
+const max_compare_weight = 4;
+const max_ticks = max_compare_weight + 1;
+const max_modes = max_ticks * 2 - 1;
+const max_depth = max_ticks + 2;
+
+const Pair = struct {
+    species: u8,
+    mode_number: i32,
+};
+
+const BcData = struct {
+    modes: [max_modes]basis.Mode,
+    mode_len: usize,
+    seeds: [4]basis.Seed,
+    seed_quantum: [4]i32,
+};
+
+const ContextStorage = struct {
+    word: [max_depth]basis.ModeEntry = undefined,
+    quantum_values: [basis.Preset.ghost_schema.len]i32 = undefined,
+    add_min: [basis.Context.reachabilitySlots(max_modes, max_ticks, basis.Preset.ghost_schema.len)]i32 = undefined,
+    add_max: [basis.Context.reachabilitySlots(max_modes, max_ticks, basis.Preset.ghost_schema.len)]i32 = undefined,
+    finite_bits: [basis.Context.reachabilitySlots(max_modes, max_ticks, basis.Preset.ghost_schema.len)]u64 = undefined,
+
+    fn context(self: *@This()) basis.Context {
+        return .{
+            .word = &self.word,
+            .quantum_values = &self.quantum_values,
+            .add_min = &self.add_min,
+            .add_max = &self.add_max,
+            .finite_bits = &self.finite_bits,
+        };
+    }
+};
+
+fn bcData() !BcData {
+    var result: BcData = undefined;
+    const seed_families = [_]basis.SeedFamily{basis.Preset.bcSeedFamily(1, 0)};
+    var seed_options_storage: [2]basis.SeedOption = undefined;
+    const seed_options = try basis.buildSeedOptions(&seed_families, &seed_options_storage);
+    _ = try basis.buildFermionicSeedSubsets(seed_options, basis.Preset.ghost_schema.len, &result.seeds, &result.seed_quantum);
+    const mode_families = basis.Preset.bcOscillatorFamilies(2, 3, 0);
+    const modes = try basis.buildOscillatorModes(&mode_families, max_ticks, &result.modes);
+    result.mode_len = modes.len;
+    return result;
+}
+
+fn repairBcSeedSlices(data: *BcData) void {
+    for (&data.seeds, 0..) |*seed, index| {
+        seed.quantum_values = data.seed_quantum[index .. index + 1];
+    }
+}
+
+fn lessPair(_: void, left: Pair, right: Pair) bool {
+    if (left.species != right.species) return left.species < right.species;
+    return left.mode_number < right.mode_number;
+}
+
+const Sink = struct {
+    max_weight: i32,
+    ghost: i32,
+
+    pub fn emitBasisState(self: *@This(), candidate: basis.Candidate) !void {
+        var pairs: [max_depth + 2]Pair = undefined;
+        var pair_count: usize = 0;
+
+        if ((candidate.seed & 1) != 0) {
+            pairs[pair_count] = .{ .species = 'c', .mode_number = 1 };
+            pair_count += 1;
+        }
+        if ((candidate.seed & 2) != 0) {
+            pairs[pair_count] = .{ .species = 'c', .mode_number = 0 };
+            pair_count += 1;
+        }
+
+        for (candidate.modes) |mode| {
+            const species: u8 = switch (mode.id) {
+                2 => 'b',
+                3 => 'c',
+                else => return error.UnexpectedBcMode,
+            };
+            pairs[pair_count] = .{
+                .species = species,
+                .mode_number = -@as(i32, @intCast(mode.weight_ticks)),
+            };
+            pair_count += 1;
+        }
+
+        std.mem.sort(Pair, pairs[0..pair_count], {}, lessPair);
+
+        std.debug.print(
+            "max={}|ghost={}|weight={}",
+            .{ self.max_weight, self.ghost, candidate.weight_ticks },
+        );
+        for (pairs[0..pair_count]) |pair| {
+            std.debug.print("|{c}:{}", .{ pair.species, pair.mode_number });
+        }
+        std.debug.print("\n", .{});
+    }
+};
+
+fn runCase(data: BcData, max_weight: i32, ghost: i32) !void {
+    var storage = ContextStorage{};
+    var context = storage.context();
+    var sink = Sink{ .max_weight = max_weight, .ghost = ghost };
+    try basis.stream(.{
+        .quantum_schema = &basis.Preset.ghost_schema,
+        .modes = data.modes[0..data.mode_len],
+        .seeds = &data.seeds,
+    }, .{
+        .weight = .{ .max = max_weight },
+        .quantum_filters = &.{.{ .slot = 0, .value = ghost }},
+        .max_word_length = max_depth,
+    }, &context, &sink);
+}
+
+pub fn main() !void {
+    var data = try bcData();
+    repairBcSeedSlices(&data);
+
+    var max_weight: i32 = 0;
+    while (max_weight <= max_compare_weight) : (max_weight += 1) {
+        var ghost: i32 = -3;
+        while (ghost <= 3) : (ghost += 1) {
+            try runCase(data, max_weight, ghost);
+        }
+    }
+}
+#+end_src
+
+#+begin_src wolfram :tangle ../../../benchmarks/basis_generation_bc_compare.wls :mkdirp yes
+repoRoot = DirectoryName[DirectoryName[$InputFileName]];
+prototypeRoot = FileNameJoin[{repoRoot, "prototype-string-code"}];
+If[!MemberQ[$Path, prototypeRoot], AppendTo[$Path, prototypeRoot]];
+
+Needs["StringCode`"];
+StringCode`InitStringCode[
+  <|
+    "theory" -> "Bosonic",
+    "CFT" -> "FlatSpace",
+    "conventions" -> "Bosonic-Xi",
+    "bracket" -> "Flat"
+  |>
+];
+
+generateGhostConfigs = Symbol["Private`generateGhostConfigsHolo"];
+zigFixturePath = If[
+  Length[$ScriptCommandLine] >= 2,
+  $ScriptCommandLine[[2]],
+  FileNameJoin[{repoRoot, "benchmarks", "basis_generation_bc_compare.fixture"}]
+];
+
+canonicalPrototypeLine[maxWeight_Integer, ghost_Integer, {modes_List, weight_Integer}] :=
+  Module[{pairs},
+    pairs = SortBy[
+      ({SymbolName[#[[1]]], #[[2]]} &) /@ modes,
+      {First, Last}
+    ];
+    StringRiffle[
+      Join[
+        {
+          "max=" <> ToString[maxWeight],
+          "ghost=" <> ToString[ghost],
+          "weight=" <> ToString[weight]
+        },
+        ((#[[1]] <> ":" <> ToString[#[[2]], InputForm]) &) /@ pairs
+      ],
+      "|"
+    ]
+  ];
+
+{prototypeSeconds, prototypeLines} = AbsoluteTiming[
+  Sort @ Flatten @ Table[
+    canonicalPrototypeLine[maxWeight, ghost, #] & /@ generateGhostConfigs[maxWeight, ghost],
+    {maxWeight, 0, 4},
+    {ghost, -3, 3}
+  ]
+];
+
+If[!FileExistsQ[zigFixturePath],
+  Print["Zig fixture file not found: ", zigFixturePath];
+  Print["Generate it with: zig build basis-compare --summary none > ", zigFixturePath, " 2>&1"];
+  Exit[1]
+];
+
+zigLines = Sort @ Select[
+  StringSplit[Import[zigFixturePath, "Text"], "\n"],
+  StringStartsQ[#, "max="] &
+];
+
+missing = Complement[prototypeLines, zigLines];
+extra = Complement[zigLines, prototypeLines];
+ok = missing === {} && extra === {};
+
+Print[
+  "b/c compact prototype comparison: ",
+  If[ok, "PASSED", "FAILED"],
+  " (prototype=", Length[prototypeLines],
+  ", zig=", Length[zigLines],
+  ", prototypeSeconds=", ToString[prototypeSeconds, InputForm],
+  ")"
+];
+
+If[!ok,
+  Print["Missing from Zig: ", Take[missing, UpTo[10]]];
+  Print["Extra in Zig: ", Take[extra, UpTo[10]]];
+  Exit[1]
+];
+
+Exit[0];
+#+end_src

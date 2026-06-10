@@ -2,7 +2,7 @@
 
 (define-cft-preset bc-sphere
   (surface sphere :sphere :rational)
-  (quantum-number ghost-number :u1)
+  (quantum-number ghost-number (:u1))
   (chiral-field b :fermionic
          :quantum-numbers ((ghost-number -1)))
   (chiral-field c :fermionic

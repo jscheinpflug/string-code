@@ -2,6 +2,8 @@ const std = @import("std");
 const descriptor = @import("correlators/descriptor.zig");
 const dispatch = @import("correlators/generated_dispatch.zig");
 const kernel = @import("kernel.zig");
+const presets = @import("presets.zig");
+const basis_generation = @import("basis-generation/basis-generation.zig");
 
 const allocator = std.heap.c_allocator;
 const TheoryId = dispatch.TheoryId;
@@ -51,6 +53,43 @@ pub const EventCallback = *const fn (?*anyopaque, *const Event) callconv(.c) c_i
 
 /// EventChunkCallback receives a bounded chunk of streamed result events.
 pub const EventChunkCallback = *const fn (?*anyopaque, [*]const Event, usize) callconv(.c) c_int;
+
+/// BasisQuantumFilter is one dense slot/value query constraint.
+pub const BasisQuantumFilter = extern struct {
+    slot: u8,
+    value: i32,
+};
+
+/// BasisMode is one borrowed compact mode in a streamed basis candidate.
+pub const BasisMode = extern struct {
+    mode_index: u32,
+    id: u32,
+    component: u16,
+    label: u16,
+    weight_ticks: u32,
+    body: u32,
+    name_ptr: ?[*]const u8,
+    name_len: usize,
+};
+
+/// BasisRecord is valid only for the duration of the compact callback.
+pub const BasisRecord = extern struct {
+    presentation: u16,
+    seed: u16,
+    seed_body: u32,
+    base_weight_ticks: i32,
+    weight_ticks: i32,
+    level_ticks: u32,
+    base_quantum_ptr: ?[*]const i32,
+    base_quantum_len: usize,
+    quantum_ptr: ?[*]const i32,
+    quantum_len: usize,
+    mode_ptr: ?[*]const BasisMode,
+    mode_len: usize,
+};
+
+/// BasisCallback receives one compact streamed basis candidate.
+pub const BasisCallback = *const fn (?*anyopaque, *const BasisRecord) callconv(.c) c_int;
 
 const StreamState = struct {
     payload: ?*anyopaque,
@@ -178,6 +217,309 @@ fn setErrorName(name: []const u8) c_int {
 
 fn setError(err: anyerror) c_int {
     return setErrorName(@errorName(err));
+}
+
+fn basisFilterSlice(ptr: ?[*]const BasisQuantumFilter, len: usize) ![]const BasisQuantumFilter {
+    if (len == 0) return &.{};
+    const data = ptr orelse return error.NullPointer;
+    return data[0..len];
+}
+
+fn basisQuery(
+    weight_kind: u8,
+    weight_ticks: i32,
+    max_word_length: u16,
+    level_match: u8,
+    filters_ptr: ?[*]const BasisQuantumFilter,
+    filter_count: usize,
+    filters_out: []basis_generation.QuantumFilter,
+) !basis_generation.Query {
+    const raw_filters = try basisFilterSlice(filters_ptr, filter_count);
+    if (filters_out.len < raw_filters.len) return error.ContextTooSmall;
+    for (raw_filters, 0..) |filter, index| {
+        filters_out[index] = .{ .slot = filter.slot, .value = filter.value };
+    }
+    return .{
+        .weight = switch (weight_kind) {
+            0 => .{ .exact = weight_ticks },
+            1 => .{ .max = weight_ticks },
+            else => return error.InvalidQuery,
+        },
+        .quantum_filters = filters_out[0..raw_filters.len],
+        .level_match = switch (level_match) {
+            0 => null,
+            1 => .{},
+            else => return error.InvalidQuery,
+        },
+        .max_word_length = max_word_length,
+    };
+}
+
+const abi_basis_max_level_ticks: u32 = 128;
+const abi_basis_max_depth: usize = 64;
+const abi_basis_max_filters: usize = 16;
+const abi_basis_max_modes_per_candidate: usize = 64;
+const abi_basis_product_pair_base: u32 = 1000;
+
+fn basisProductPairId(left: u32, right: u32) u32 {
+    return abi_basis_product_pair_base + left * 16 + right;
+}
+
+fn singleBasis(comptime raw_theory: u32) type {
+    return switch (raw_theory) {
+        1 => presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis,
+        2, 3 => presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis,
+        4 => presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis,
+        5 => presets.FreeBoson.make(.{ .dimension = 10 }).basis,
+        else => @compileError("unknown generated basis runtime"),
+    };
+}
+
+fn productPairRun(comptime left: u32, comptime right: u32, query: basis_generation.Query, sink: anytype) !void {
+    return basisRun(presets.product(.{ struct {
+        pub const basis = singleBasis(left);
+    }, struct {
+        pub const basis = singleBasis(right);
+    } }).basis, query, sink);
+}
+
+fn productPairRenderTable(comptime left: u32, comptime right: u32) basis_generation.RenderTable {
+    return presets.product(.{ struct {
+        pub const basis = singleBasis(left);
+    }, struct {
+        pub const basis = singleBasis(right);
+    } }).basis.render_table;
+}
+
+fn basisWeightLimit(query: basis_generation.Query) i32 {
+    return switch (query.weight) {
+        .exact => |ticks| ticks,
+        .max => |ticks| ticks,
+    };
+}
+
+const BasisCountSink = struct {
+    count: usize = 0,
+
+    pub fn emitBasisState(self: *@This(), _: basis_generation.Candidate) !void {
+        self.count += 1;
+    }
+};
+
+const BasisCompactSink = struct {
+    payload: ?*anyopaque,
+    callback: BasisCallback,
+    table: basis_generation.RenderTable,
+    modes: [abi_basis_max_modes_per_candidate]BasisMode = undefined,
+
+    fn modeName(self: *@This(), id: u32, component: u16) ?[]const u8 {
+        if (self.table.modeAtom(id, component)) |atom| return atom.name;
+        return null;
+    }
+
+    pub fn emitBasisState(self: *@This(), candidate: basis_generation.Candidate) !void {
+        if (candidate.modes.len > self.modes.len) return error.ContextTooSmall;
+        for (candidate.modes, 0..) |mode, index| {
+            const name = self.modeName(mode.id, mode.component);
+            self.modes[index] = .{
+                .mode_index = mode.mode_index,
+                .id = mode.id,
+                .component = mode.component,
+                .label = mode.label,
+                .weight_ticks = mode.weight_ticks,
+                .body = mode.body,
+                .name_ptr = if (name) |value| value.ptr else null,
+                .name_len = if (name) |value| value.len else 0,
+            };
+        }
+        const record = BasisRecord{
+            .presentation = candidate.presentation,
+            .seed = candidate.seed,
+            .seed_body = candidate.seed_body,
+            .base_weight_ticks = candidate.base_weight_ticks,
+            .weight_ticks = candidate.weight_ticks,
+            .level_ticks = candidate.level_ticks,
+            .base_quantum_ptr = if (candidate.base_quantum_values.len == 0) null else candidate.base_quantum_values.ptr,
+            .base_quantum_len = candidate.base_quantum_values.len,
+            .quantum_ptr = if (candidate.quantum_values.len == 0) null else candidate.quantum_values.ptr,
+            .quantum_len = candidate.quantum_values.len,
+            .mode_ptr = if (candidate.modes.len == 0) null else self.modes[0..candidate.modes.len].ptr,
+            .mode_len = candidate.modes.len,
+        };
+        if (self.callback(self.payload, &record) != 0) return error.CallbackFailed;
+    }
+};
+
+const AbiTextWriter = struct {
+    bytes: *std.ArrayList(u8),
+
+    pub fn writeAll(self: *@This(), data: []const u8) !void {
+        try self.bytes.appendSlice(allocator, data);
+    }
+};
+
+fn basisRunWithTicks(comptime Basis: type, comptime max_ticks: u32, query: basis_generation.Query, sink: anytype) !void {
+    if (query.max_word_length > abi_basis_max_depth) return error.WordStackTooSmall;
+    return Basis.stream(max_ticks, abi_basis_max_depth, query, sink);
+}
+
+fn basisRun(comptime Basis: type, query: basis_generation.Query, sink: anytype) !void {
+    const limit = basisWeightLimit(query);
+    if (limit > @as(i32, @intCast(abi_basis_max_level_ticks - 1))) return error.ContextTooSmall;
+    if (limit <= 4) return basisRunWithTicks(Basis, 8, query, sink);
+    if (limit <= 16) return basisRunWithTicks(Basis, 16, query, sink);
+    if (limit <= 32) return basisRunWithTicks(Basis, 32, query, sink);
+    if (limit <= 64) return basisRunWithTicks(Basis, 64, query, sink);
+    return basisRunWithTicks(Basis, abi_basis_max_level_ticks, query, sink);
+}
+
+fn dispatchBasis(raw_theory: u32, query: basis_generation.Query, sink: anytype) !void {
+    switch (raw_theory) {
+        basisProductPairId(1, 1) => return productPairRun(1, 1, query, sink),
+        basisProductPairId(2, 2) => return productPairRun(2, 2, query, sink),
+        basisProductPairId(2, 3) => return productPairRun(2, 3, query, sink),
+        basisProductPairId(2, 4) => return productPairRun(2, 4, query, sink),
+        basisProductPairId(2, 5) => return productPairRun(2, 5, query, sink),
+        basisProductPairId(3, 2) => return productPairRun(3, 2, query, sink),
+        basisProductPairId(3, 3) => return productPairRun(3, 3, query, sink),
+        basisProductPairId(3, 4) => return productPairRun(3, 4, query, sink),
+        basisProductPairId(3, 5) => return productPairRun(3, 5, query, sink),
+        basisProductPairId(4, 2) => return productPairRun(4, 2, query, sink),
+        basisProductPairId(4, 3) => return productPairRun(4, 3, query, sink),
+        basisProductPairId(4, 4) => return productPairRun(4, 4, query, sink),
+        basisProductPairId(4, 5) => return productPairRun(4, 5, query, sink),
+        basisProductPairId(5, 2) => return productPairRun(5, 2, query, sink),
+        basisProductPairId(5, 3) => return productPairRun(5, 3, query, sink),
+        basisProductPairId(5, 4) => return productPairRun(5, 4, query, sink),
+        basisProductPairId(5, 5) => return productPairRun(5, 5, query, sink),
+        else => {},
+    }
+    const id = try dispatch.theoryId(raw_theory);
+    return switch (id) {
+        .free_fermion => basisRun(presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis, query, sink),
+        .eta_xi_sphere, .eta_xi_torus => basisRun(presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis, query, sink),
+        .bc => basisRun(presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis, query, sink),
+        .free_boson => basisRun(presets.FreeBoson.make(.{ .dimension = 10 }).basis, query, sink),
+    };
+}
+
+fn basisRenderTable(raw_theory: u32) !basis_generation.RenderTable {
+    switch (raw_theory) {
+        basisProductPairId(1, 1) => return productPairRenderTable(1, 1),
+        basisProductPairId(2, 2) => return productPairRenderTable(2, 2),
+        basisProductPairId(2, 3) => return productPairRenderTable(2, 3),
+        basisProductPairId(2, 4) => return productPairRenderTable(2, 4),
+        basisProductPairId(2, 5) => return productPairRenderTable(2, 5),
+        basisProductPairId(3, 2) => return productPairRenderTable(3, 2),
+        basisProductPairId(3, 3) => return productPairRenderTable(3, 3),
+        basisProductPairId(3, 4) => return productPairRenderTable(3, 4),
+        basisProductPairId(3, 5) => return productPairRenderTable(3, 5),
+        basisProductPairId(4, 2) => return productPairRenderTable(4, 2),
+        basisProductPairId(4, 3) => return productPairRenderTable(4, 3),
+        basisProductPairId(4, 4) => return productPairRenderTable(4, 4),
+        basisProductPairId(4, 5) => return productPairRenderTable(4, 5),
+        basisProductPairId(5, 2) => return productPairRenderTable(5, 2),
+        basisProductPairId(5, 3) => return productPairRenderTable(5, 3),
+        basisProductPairId(5, 4) => return productPairRenderTable(5, 4),
+        basisProductPairId(5, 5) => return productPairRenderTable(5, 5),
+        else => {},
+    }
+    const id = try dispatch.theoryId(raw_theory);
+    return switch (id) {
+        .free_fermion => presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis.render_table,
+        .eta_xi_sphere, .eta_xi_torus => presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis.render_table,
+        .bc => presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis.render_table,
+        .free_boson => presets.FreeBoson.make(.{ .dimension = 10 }).basis.render_table,
+    };
+}
+
+/// sc_generated_basis_count returns the number of accepted compact basis states.
+export fn sc_generated_basis_count(
+    raw_theory: u32,
+    weight_kind: u8,
+    weight_ticks: i32,
+    max_word_length: u16,
+    level_match: u8,
+    filters_ptr: ?[*]const BasisQuantumFilter,
+    filter_count: usize,
+    out_count: ?*usize,
+) c_int {
+    clearError();
+    const out = out_count orelse return setErrorName("NullOutput");
+    var filters: [abi_basis_max_filters]basis_generation.QuantumFilter = undefined;
+    const query = basisQuery(weight_kind, weight_ticks, max_word_length, level_match, filters_ptr, filter_count, &filters) catch |err| return setError(err);
+    var sink = BasisCountSink{};
+    dispatchBasis(raw_theory, query, &sink) catch |err| return setError(err);
+    out.* = sink.count;
+    return 0;
+}
+
+/// sc_generated_basis_run_compact streams compact records without text rendering.
+export fn sc_generated_basis_run_compact(
+    raw_theory: u32,
+    weight_kind: u8,
+    weight_ticks: i32,
+    max_word_length: u16,
+    level_match: u8,
+    filters_ptr: ?[*]const BasisQuantumFilter,
+    filter_count: usize,
+    payload: ?*anyopaque,
+    callback: ?BasisCallback,
+) c_int {
+    clearError();
+    const cb = callback orelse return setErrorName("NullCallback");
+    var filters: [abi_basis_max_filters]basis_generation.QuantumFilter = undefined;
+    const query = basisQuery(weight_kind, weight_ticks, max_word_length, level_match, filters_ptr, filter_count, &filters) catch |err| return setError(err);
+    var sink = BasisCompactSink{
+        .payload = payload,
+        .callback = cb,
+        .table = basisRenderTable(raw_theory) catch |err| return setError(err),
+    };
+    dispatchBasis(raw_theory, query, &sink) catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_basis_text allocates bounded explicit REPL text output.
+export fn sc_generated_basis_text(
+    raw_theory: u32,
+    weight_kind: u8,
+    weight_ticks: i32,
+    max_word_length: u16,
+    level_match: u8,
+    filters_ptr: ?[*]const BasisQuantumFilter,
+    filter_count: usize,
+    format: u8,
+    max_states: usize,
+    out_ptr: ?*?[*]u8,
+    out_len: ?*usize,
+) c_int {
+    clearError();
+    const ptr_out = out_ptr orelse return setErrorName("NullOutput");
+    const len_out = out_len orelse return setErrorName("NullOutput");
+    var filters: [abi_basis_max_filters]basis_generation.QuantumFilter = undefined;
+    const query = basisQuery(weight_kind, weight_ticks, max_word_length, level_match, filters_ptr, filter_count, &filters) catch |err| return setError(err);
+    var bytes: std.ArrayList(u8) = .empty;
+    errdefer bytes.deinit(allocator);
+    var writer = AbiTextWriter{ .bytes = &bytes };
+    var sink = basis_generation.textSink(&writer, .{
+        .format = switch (format) {
+            0 => .compact,
+            1 => .state,
+            2 => .operator_at_zero,
+            else => return setErrorName("InvalidQuery"),
+        },
+        .max_states = max_states,
+    }, basisRenderTable(raw_theory) catch |err| return setError(err));
+    dispatchBasis(raw_theory, query, &sink) catch |err| return setError(err);
+    const owned = bytes.toOwnedSlice(allocator) catch |err| return setError(err);
+    ptr_out.* = owned.ptr;
+    len_out.* = owned.len;
+    return 0;
+}
+
+/// sc_generated_basis_text_free releases text allocated by sc_generated_basis_text.
+export fn sc_generated_basis_text_free(ptr: ?[*]u8, len: usize) void {
+    if (ptr) |data| allocator.free(data[0..len]);
 }
 
 /// sc_generated_last_error returns the last ABI error string.
@@ -398,6 +740,61 @@ const AbiRecorder = struct {
     }
 };
 
+const BasisAbiRecorder = struct {
+    count: usize = 0,
+    saw_base: bool = false,
+    saw_named_c_mode: bool = false,
+
+    fn push(payload: ?*anyopaque, record_ptr: *const BasisRecord) callconv(.c) c_int {
+        const self: *BasisAbiRecorder = @ptrCast(@alignCast(payload.?));
+        const record = record_ptr.*;
+        self.count += 1;
+        self.saw_base = record.base_weight_ticks == -1 and record.base_quantum_len == 1 and record.base_quantum_ptr.?[0] == 1;
+        if (record.mode_len == 1) {
+            const mode = record.mode_ptr.?[0];
+            self.saw_named_c_mode = mode.name_len == 1 and mode.name_ptr.?[0] == 'c' and mode.weight_ticks == 1;
+        }
+        return 0;
+    }
+};
+
+const NamedBasisModeRecorder = struct {
+    expected_name: []const u8,
+    count: usize = 0,
+    saw_name: bool = false,
+
+    fn push(payload: ?*anyopaque, record_ptr: *const BasisRecord) callconv(.c) c_int {
+        const self: *NamedBasisModeRecorder = @ptrCast(@alignCast(payload.?));
+        const record = record_ptr.*;
+        self.count += 1;
+        if (record.mode_len == 0) return 0;
+        const mode = record.mode_ptr.?[0];
+        if (mode.name_len != self.expected_name.len) return 0;
+        const name = mode.name_ptr.?[0..mode.name_len];
+        self.saw_name = std.mem.eql(u8, name, self.expected_name);
+        return 0;
+    }
+};
+
+fn expectBasisCount(raw_theory: u32, weight_kind: u8, weight_ticks: i32, max_depth: u16, filters: []const BasisQuantumFilter, expected: usize) !void {
+    return expectBasisCountLevel(raw_theory, weight_kind, weight_ticks, max_depth, 0, filters, expected);
+}
+
+fn expectBasisCountLevel(raw_theory: u32, weight_kind: u8, weight_ticks: i32, max_depth: u16, level_match: u8, filters: []const BasisQuantumFilter, expected: usize) !void {
+    var count: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_basis_count(
+        raw_theory,
+        weight_kind,
+        weight_ticks,
+        max_depth,
+        level_match,
+        if (filters.len == 0) null else filters.ptr,
+        filters.len,
+        &count,
+    ));
+    try std.testing.expectEqual(expected, count);
+}
+
 test "generated C ABI counts and streams free-fermion events" {
     try selfTest();
 }
@@ -428,4 +825,78 @@ pub fn selfTest() !void {
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_run(ctx, &recorder, AbiRecorder.push));
     try std.testing.expect(recorder.saw_tensor);
     try std.testing.expect(recorder.saw_coordinate);
+
+    const filters = [_]BasisQuantumFilter{.{ .slot = 0, .value = 0 }};
+    var basis_count: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_basis_count(
+        @intFromEnum(TheoryId.bc),
+        0,
+        0,
+        1,
+        0,
+        &filters,
+        filters.len,
+        &basis_count,
+    ));
+    try std.testing.expectEqual(@as(usize, 1), basis_count);
+
+    var basis_recorder = BasisAbiRecorder{};
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_basis_run_compact(
+        @intFromEnum(TheoryId.bc),
+        0,
+        0,
+        1,
+        0,
+        &filters,
+        filters.len,
+        &basis_recorder,
+        BasisAbiRecorder.push,
+    ));
+    try std.testing.expectEqual(@as(usize, 1), basis_recorder.count);
+    try std.testing.expect(basis_recorder.saw_base);
+    try std.testing.expect(basis_recorder.saw_named_c_mode);
+
+    var text_ptr: ?[*]u8 = null;
+    var text_len: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_basis_text(
+        @intFromEnum(TheoryId.bc),
+        0,
+        0,
+        1,
+        0,
+        &filters,
+        filters.len,
+        2,
+        8,
+        &text_ptr,
+        &text_len,
+    ));
+    defer sc_generated_basis_text_free(text_ptr, text_len);
+    try std.testing.expect(std.mem.indexOf(u8, text_ptr.?[0..text_len], ":c(0) d^2c(0):") != null);
+
+    const eta_xi_filters = [_]BasisQuantumFilter{.{ .slot = 0, .value = -1 }};
+    try expectBasisCount(@intFromEnum(TheoryId.eta_xi_sphere), 0, 0, 0, &eta_xi_filters, 1);
+    try expectBasisCount(@intFromEnum(TheoryId.eta_xi_torus), 0, 0, 0, &eta_xi_filters, 1);
+
+    try expectBasisCount(@intFromEnum(TheoryId.free_boson), 0, 2, 2, &.{}, 65);
+
+    const fermion_filters = [_]BasisQuantumFilter{.{ .slot = 0, .value = 1 }};
+    try expectBasisCount(@intFromEnum(TheoryId.free_fermion), 0, 1, 1, &fermion_filters, 10);
+    var fermion_recorder = NamedBasisModeRecorder{ .expected_name = "psi" };
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_basis_run_compact(
+        @intFromEnum(TheoryId.free_fermion),
+        0,
+        1,
+        1,
+        0,
+        &fermion_filters,
+        fermion_filters.len,
+        &fermion_recorder,
+        NamedBasisModeRecorder.push,
+    ));
+    try std.testing.expectEqual(@as(usize, 10), fermion_recorder.count);
+    try std.testing.expect(fermion_recorder.saw_name);
+
+    try expectBasisCountLevel(basisProductPairId(5, 5), 0, 2, 2, 1, &.{}, 100);
+    try expectBasisCountLevel(basisProductPairId(4, 5), 0, 0, 1, 0, &.{.{ .slot = 0, .value = 0 }}, 1);
 }

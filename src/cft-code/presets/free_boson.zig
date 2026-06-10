@@ -1,4 +1,5 @@
 const std = @import("std");
+const basis_generation = @import("../basis-generation/basis-generation.zig");
 const shared = @import("shared.zig");
 const declare = shared.declare;
 
@@ -10,7 +11,6 @@ const Operator = *shared.LocalOperator;
 const Spec = declare.Spec;
 const wick = declare.wick;
 const zero_mode = declare.zero_mode;
-
 const namespace = "free_boson";
 const scalars = declare.scalars;
 const RuleScalar = @TypeOf(scalars.one());
@@ -117,7 +117,6 @@ const TargetSpace = struct {
         return token(Handle.BoundaryStack, stableNameId(name));
     }
 };
-
 const FreeBosonConfig = struct {
     dimension: u16,
 };
@@ -133,6 +132,8 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
         pub const target = TargetSpace;
         /// config exposes named correlator configs for this preset.
         pub const config = FreeBosonCorrelatorConfig(cfg);
+        /// basis streams compact free-boson oscillator words.
+        pub const basis = FreeBosonBasis(cfg);
         /// text exposes bounded result-inspection sinks.
         pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
@@ -147,6 +148,58 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
     };
 }
 
+fn freeBosonModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32) usize {
+    return @as(usize, dimension) * max_level_ticks;
+}
+
+fn FreeBosonBasis(comptime cfg: FreeBosonConfig) type {
+    return struct {
+        /// quantum_schema is empty for the neutral free-boson oscillator backend.
+        pub const quantum_schema = [_]basis_generation.Quantum{};
+        /// render_modes names compact modes for state/operator text output.
+        pub const render_modes = [_]basis_generation.RenderAtom{.{ .id = kind(.d_x), .name = "X" }};
+        /// render_table maps compact free-boson ids to local fields.
+        pub const render_table = basis_generation.RenderTable{ .modes = &render_modes };
+
+        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
+        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
+            return freeBosonModeCapacity(cfg.dimension, max_level_ticks);
+        }
+
+        /// seedCapacity returns the number of finite primary seeds.
+        pub fn seedCapacity() usize {
+            return 1;
+        }
+
+        /// writeSeeds writes the neutral free-boson vacuum seed.
+        pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
+            _ = quantum_offset;
+            return basis_generation.zeroSeed(total_quantum_count, seeds, quantum_storage);
+        }
+
+        /// writeModes writes component-tagged free-boson oscillator bands.
+        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
+            _ = quantum_offset;
+            _ = total_quantum_count;
+            _ = quantum_storage;
+            const families = [_]basis_generation.OscillatorFamily{basis_generation.Preset.freeBosonFamily(kind(.d_x), component, cfg.dimension)};
+            return basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
+        }
+
+        /// stream enumerates compact free-boson mode words with stack-bounded scratch.
+        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var modes_storage: [freeBosonModeCapacity(cfg.dimension, max_level_ticks)]basis_generation.Mode = undefined;
+            var mode_quantum_storage: [0]i32 = .{};
+            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
+            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
+            var context = storage.context();
+            return basis_generation.stream(.{
+                .quantum_schema = &quantum_schema,
+                .modes = modes,
+            }, query, &context, sink);
+        }
+    };
+}
 const FreeBosonOp = struct {
     /// X builds an explicit bulk free-boson field insertion.
     pub fn X(local: anytype, mu: anytype, z: Handle.Coord, zbar: Handle.Coord) !Operator {
@@ -182,7 +235,6 @@ const FreeBosonOp = struct {
         return declare.operatorBuilder(profile_vector_operator).pair(local, z, zbar, .{ f, nu });
     }
 };
-
 const ProfileOp = struct {
     /// positionSpace selects the exact residual position-space profile presentation.
     pub fn positionSpace(f: Handle.TargetFunction) Handle.Profile {
@@ -199,7 +251,6 @@ const ProfileOp = struct {
         return shared.profileHandle(.polynomial_rnc, polynomialProfileId(point, terms));
     }
 };
-
 fn holomorphicDifference() wick.CoordinateDifference {
     return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
 }
@@ -371,7 +422,6 @@ const torus_wick_spec = [_]Spec.WickRule{
 };
 
 const sphere_zero_spec = sphereZeroSpec(.one);
-
 const torus_zero_spec = [_]Spec.ZeroModeRule{
     .{
         .sector = zeroSector(.torus),
@@ -475,7 +525,6 @@ fn FreeBosonCorrelatorConfig(comptime cfg: FreeBosonConfig) type {
         }){};
     };
 }
-
 const FreeBosonBoundaryConfig = struct {
     neumann: Handle.TensorProjector,
     dirichlet: Handle.TensorProjector,
@@ -521,7 +570,6 @@ fn FreeBosonBoundaryExtension(comptime cfg: FreeBosonBoundaryConfig) type {
 pub fn boundaryExtension(comptime cfg: FreeBosonBoundaryConfig) FreeBosonBoundaryExtension(cfg) {
     return .{};
 }
-
 fn boundaryFreeBosonDxDx(comptime alpha: RuleScalar) wick.Expr {
     return wick.differentiatedPole(scalars.neg(alpha), .{ .projector_metric = .{
         .projector = .{ .config = neumann_projector_ref },

@@ -83,6 +83,11 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(generated_abi_lib);
 
+    const run_basis_generation_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_compact", "benchmarks/basis_generation_compact.zig");
+    const run_basis_generation_compare = addBasisGenerationRun(b, target, optimize, "basis_generation_bc_compare", "benchmarks/basis_generation_bc_compare.zig");
+    const run_basis_generation_deep_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_deep_bench", "benchmarks/basis_generation_deep_bench.zig");
+    const run_basis_generation_operator_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_operator_bench", "benchmarks/basis_generation_operator_bench.zig");
+
     b.default_step.dependOn(&run_cft_kernel_tests.step);
     b.default_step.dependOn(&run_root_tests.step);
     b.default_step.dependOn(&run_nlsm_tests.step);
@@ -96,4 +101,44 @@ pub fn build(b: *std.Build) void {
 
     const test_nlsm_step = b.step("test-nlsm", "Run nlsm-code tests");
     test_nlsm_step.dependOn(&run_nlsm_tests.step);
+
+    const basis_bench_step = b.step("basis-bench", "Run compact basis-generation benchmark");
+    basis_bench_step.dependOn(&run_basis_generation_bench.step);
+
+    const basis_compare_step = b.step("basis-compare", "Print compact b/c basis-generation comparison fixtures");
+    basis_compare_step.dependOn(&run_basis_generation_compare.step);
+
+    const basis_deep_bench_step = b.step("basis-deep-bench", "Run broad compact basis-generation benchmark");
+    basis_deep_bench_step.dependOn(&run_basis_generation_deep_bench.step);
+
+    const basis_operator_bench_step = b.step("basis-operator-bench", "Run direct operator basis-generation benchmark");
+    basis_operator_bench_step.dependOn(&run_basis_generation_operator_bench.step);
+}
+
+fn addBasisGenerationRun(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    name: []const u8,
+    source_path: []const u8,
+) *std.Build.Step.Run {
+    const exe = b.addExecutable(.{
+        .name = name,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path(source_path),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{
+                    .name = "basis-generation",
+                    .module = b.createModule(.{
+                        .root_source_file = b.path("src/cft-code/basis-generation/basis-generation.zig"),
+                        .target = target,
+                        .optimize = optimize,
+                    }),
+                },
+            },
+        }),
+    });
+    return b.addRunArtifact(exe);
 }

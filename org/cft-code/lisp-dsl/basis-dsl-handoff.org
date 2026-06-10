@@ -1,0 +1,227 @@
+:PROPERTIES:
+:ID:       20260609T175622.008620
+:END:
+#+title: Basis DSL Implementation Handoff
+
+This is the continuation handoff for the basis-generation DSL layer.  It
+depends on [[id:20260609T155500.000000][Basis REPL DSL Draft]] and the compact backend in
+[[id:20260606T063253.759714][Basis-Generation]].
+
+The goal is a narrow vertical slice: expose the existing compact basis
+generator through the Lisp REPL without changing the hot enumeration model.
+Performance must remain dominated by the Zig streaming backend, not by Lisp
+allocation, printed text, hash tables, or symbolic operator construction.
+
+* Current State
+
+The Zig backend streams compact candidates.  It already supports:
+
+- exact and bounded weight filters;
+- named dense quantum-number filters for U(1) and \(Z_N\);
+- representation placeholders that fail explicitly while tensor-code product
+  and projection support is not wired;
+- product/component presentations and level matching;
+- compact, state, and operator-at-zero text sinks;
+- base contribution metadata: base weight, base component weights, and base
+  quantum numbers are separate from final candidate totals.
+
+The Lisp preset compiler already accepts explicit quantum-number syntax:
+
+#+begin_src lisp :tangle no
+(quantum-number ghost-number (:u1))
+(quantum-number fermion-number (:zn 2))
+(quantum-number spin10 (:ade-irrep) :group d5)
+(quantum-number rep-slot (:rep) :space 10)
+#+end_src
+
+The REPL query key is =:quantum-number=, not =:quantum=.  There is no special
+Z2 syntax.  A sign or fermion-number projection is written as \(Z_N\) with
+=N= equal to =2=:
+
+#+begin_src lisp :tangle no
+(:quantum-number ((zn fermion-number 2 1)))
+#+end_src
+
+* Performance Contract
+
+The DSL layer must not enumerate states in Lisp.  It must:
+
+- parse the query once;
+- resolve quantum-number names to dense backend slots once;
+- allocate only bounded query/filter/output buffers;
+- call the same Zig streaming functions used by pure Zig code;
+- stream compact records through callbacks or caller-owned buffers;
+- use text rendering only for explicit REPL display requests.
+
+The OPE path must use compact records, never printed state or operator text.
+Text output is allowed to be slower, but count and compact-record paths should
+stay within the fixed FFI/callback overhead of pure Zig for large enumerations.
+
+Do not introduce:
+
+- materialized lists of all basis states before filtering;
+- symbolic local operator expressions in the enumeration loop;
+- hash-table lookup or string comparison per candidate;
+- separate Z2/sign/parity quantum-number branches;
+- tensor representation filtering that silently drops constraints.
+
+* First Vertical Slice
+
+Implement this first:
+
+#+begin_src lisp :tangle no
+(basis (make-bc-runtime)
+  (:weight 0
+   :quantum-number ((u1 ghost-number 0))
+   :max-depth 1)
+  :as :operator)
+#+end_src
+
+Expected user-facing output:
+
+#+begin_example
+:c(0) d^2c(0):
+#+end_example
+
+This slice exercises base contribution, U(1) filtering, bounded depth, compact
+streaming, and operator-at-zero rendering.  It is small enough to keep the ABI
+honest.
+
+* ABI Shape
+
+Start with small explicit ABI records.  The exact names can follow the existing
+generated ABI style, but the data flow should be:
+
+1. Lisp runtime object owns or references a Zig presentation and render table.
+2. Lisp query lowering produces:
+   - weight kind: exact or maximum;
+   - weight ticks;
+   - max word length;
+   - optional level-match filter;
+   - dense quantum filters: slot plus integer target value;
+   - output mode: count, compact, state, operator-at-zero.
+3. Zig streams using caller-owned context scratch.
+4. Result sink emits one of:
+   - count only;
+   - compact records;
+   - text rows.
+
+Compact records must expose resolved base data in the Lisp layer.  The backend
+may keep numeric base ids for cache keys, but the REPL must show what the base
+means:
+
+#+begin_src lisp :tangle no
+(:basis-state
+ :presentation bc
+ :base (:operator c
+        :weight -1
+        :quantum-number ((u1 ghost-number 1)))
+ :weight 0
+ :level 1
+ :quantum-number ((u1 ghost-number 0))
+ :modes #((:id c :weight 1)))
+#+end_src
+
+For a Ramond-sector-style base, the same rule applies:
+
+#+begin_src lisp :tangle no
+(:basis-state
+ :presentation ramond-free-fermion
+ :base (:ramond-ground
+        :weight 5/8
+        :quantum-number ((zn fermion-number 2 1))
+        :operator spin-field)
+ :weight 13/8
+ :level 1
+ :quantum-number ((zn fermion-number 2 1))
+ :modes #((:id psi :label mu :weight 1)))
+#+end_src
+
+The invariant is:
+
+#+begin_example
+base weight + descendant level = requested total weight
+base quantum-number + descendant deltas = requested total quantum-number
+#+end_example
+
+* Runtime Scope
+
+Implement runtimes in this order:
+
+1. =bc= sphere basis.
+2. =eta-xi= basis.
+3. free boson basis.
+4. NS free fermion basis.
+5. product/closed basis with =:level-match= once single-factor ABI is stable.
+
+Closed-string support should reuse product/component presentations.  Do not
+generate component bases and take a Lisp Cartesian product.
+
+Tensor-code representation filters should be parsed and lowered to named slots
+when present in descriptors, but active filters should return a typed
+unsupported-filter error until tensor-code exposes the needed product and
+projection operations.
+
+* Lisp Surface
+
+The first public forms should be:
+
+#+begin_src lisp :tangle no
+(basis-count runtime query)
+(basis runtime query :as :compact)
+(basis runtime query :as :state)
+(basis runtime query :as :operator)
+#+end_src
+
+Supported query keys for the first slice:
+
+- =:weight= exact total weight;
+- =:max-weight= bounded total weight;
+- =:quantum-number= filters;
+- =:max-depth= compact word-length cap;
+- =:level-match= for product runtimes after the first slice;
+- =:limit= for printed REPL output only.
+
+The DSL should not expose backend seed ids.  If a later query needs to restrict
+the base, add a user-facing =:base= key that resolves symbolic base names
+through the runtime base table.
+
+* Acceptance
+
+The handoff is complete when:
+
+1. The =bc= first slice works from Lisp and returns the expected operator text.
+2. =basis-count= and =:as :compact= do not print or allocate operator strings.
+3. Compact Lisp records expose base weight and base quantum-number data.
+4. U(1) and \(Z_N\) filters use the same dense backend filter machinery.
+5. There is no Z2/parity/sign special case in the DSL or backend.
+6. Active representation filters fail explicitly with a typed unsupported
+   error.
+7. Pure Zig basis benchmarks are not regressed by the ABI additions.
+8. A Lisp-vs-Zig benchmark report records count/compact/text overhead.
+
+Minimum verification commands:
+
+#+begin_src sh :tangle no
+zig fmt --check src/cft-code/basis-generation/basis-generation.zig
+zig test src/cft-code/basis-generation/basis-generation.zig \
+  --cache-dir /tmp/string-code-zig-cache-basis-dsl \
+  --global-cache-dir /tmp/string-code-zig-global-cache-basis-dsl
+zig build test --summary none \
+  --cache-dir /tmp/string-code-zig-cache-basis-dsl \
+  --global-cache-dir /tmp/string-code-zig-global-cache-basis-dsl
+zig build -Doptimize=ReleaseFast basis-bench --summary none \
+  --cache-dir /tmp/string-code-zig-cache-basis-dsl \
+  --global-cache-dir /tmp/string-code-zig-global-cache-basis-dsl
+#+end_src
+
+Also run the existing Lisp fixture generation check after changing Lisp
+compiler or descriptor code.
+
+* Goal Text
+
+Use this as the next goal text:
+
+#+begin_example
+/goal Implement the basis-generation Lisp DSL and ABI layer exactly as specified in org/cft-code/lisp-dsl/basis-dsl-handoff.org. Preserve AGENTS.md data-oriented performance constraints: Lisp lowers queries once to dense compact backend records, does not enumerate or symbolize basis states in Lisp, and verifies pure Zig basis benchmarks are not regressed. Start with the bc vertical slice, then extend in the order given by the handoff.
+#+end_example

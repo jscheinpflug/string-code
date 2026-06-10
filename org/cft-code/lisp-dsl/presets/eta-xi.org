@@ -18,12 +18,12 @@ derivative kernel.
 #+begin_src lisp
 (define-cft-preset eta-xi-sphere
   (surface sphere :sphere :rational)
-  (quantum-number ghost-number :u1)
+  (quantum-number eta-xi-number (:u1))
   (chiral-field eta :fermionic
-         :quantum-numbers ((ghost-number 1)))
+         :quantum-numbers ((eta-xi-number 1)))
   (chiral-field xi :fermionic
          :zero-mode t
-         :quantum-numbers ((ghost-number -1)))
+         :quantum-numbers ((eta-xi-number -1)))
   (wick (eta z) (xi w)
     (/ 1 (- z w)))
   (zero-mode :constant-fermion (xi)))
@@ -35,12 +35,12 @@ derivative kernel.
 (define-cft-preset eta-xi-torus
   (parameter tau "tau" :modular-parameter)
   (surface torus :torus :elliptic :modular-parameter tau)
-  (quantum-number ghost-number :u1)
+  (quantum-number eta-xi-number (:u1))
   (chiral-field eta :fermionic
-         :quantum-numbers ((ghost-number 1)))
+         :quantum-numbers ((eta-xi-number 1)))
   (chiral-field xi :fermionic
          :zero-mode t
-         :quantum-numbers ((ghost-number -1)))
+         :quantum-numbers ((eta-xi-number -1)))
   (wick (eta z) (xi w)
     (prime-log-d z w))
   (zero-mode :constant-fermion (xi)))

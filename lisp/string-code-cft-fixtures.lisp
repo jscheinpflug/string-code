@@ -15,6 +15,9 @@
    #:make-bc-runtime
    #:b-field
    #:c-field
+   #:basis-count
+   #:basis
+   #:make-product-runtime
    #:make-free-boson-runtime
    #:dX
    #:expX

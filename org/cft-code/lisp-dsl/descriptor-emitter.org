@@ -68,7 +68,7 @@ descriptor string at this boundary, so generated Zig never sees Lisp packages.
   (result-symbols nil))
 
 (defstruct parameter id symbol role)
-(defstruct quantum-number id symbol kind group-symbol)
+(defstruct quantum-number id symbol kind group-symbol modulus representation-space)
 (defstruct field-quantum-number field quantum-number value)
 (defstruct surface id kind coordinate-model modular-parameter)
 (defstruct label-schema id role symbol)
@@ -110,13 +110,15 @@ descriptor string at this boundary, so generated Zig never sees Lisp packages.
           (theory-parameters theory))
     id))
 
-(defun add-quantum-number (theory symbol kind &key group)
+(defun add-quantum-number (theory symbol kind &key group modulus representation-space)
   (let ((id (length (theory-quantum-numbers theory))))
     (push (make-quantum-number
            :id id
            :symbol (add-symbol theory (descriptor-symbol-name symbol))
            :kind kind
-           :group-symbol (when group (add-symbol theory (descriptor-symbol-name group))))
+           :group-symbol (when group (add-symbol theory (descriptor-symbol-name group)))
+           :modulus (or modulus 0)
+           :representation-space (or representation-space 0))
           (theory-quantum-numbers theory))
     id))
 
@@ -300,6 +302,10 @@ dense ids and compact tagged rows.
           (zig-keyword (quantum-number-kind number)))
   (when (quantum-number-group-symbol number)
     (format stream ", .group_symbol = ~D" (quantum-number-group-symbol number)))
+  (unless (zerop (quantum-number-modulus number))
+    (format stream ", .modulus = ~D" (quantum-number-modulus number)))
+  (unless (zerop (quantum-number-representation-space number))
+    (format stream ", .representation_space = ~D" (quantum-number-representation-space number)))
   (format stream " }"))
 
 (defun emit-rational-row (stream numerator denominator)

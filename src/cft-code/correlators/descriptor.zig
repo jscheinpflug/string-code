@@ -58,7 +58,9 @@ pub const Parameter = struct {
 /// QuantumNumberKind classifies a conserved or representation-valued label.
 pub const QuantumNumberKind = enum {
     u1_charge,
+    zn_phase,
     ade_irrep,
+    tensor_rep,
 };
 
 /// QuantumNumber declares one basis-selection quantum number.
@@ -67,6 +69,8 @@ pub const QuantumNumber = struct {
     symbol: Id,
     kind: QuantumNumberKind,
     group_symbol: ?Id = null,
+    modulus: u16 = 0,
+    representation_space: u32 = 0,
 };
 
 /// QuantumNumberValue stores one compact field quantum-number value.
@@ -373,19 +377,29 @@ pub fn validateDescriptor(d: Descriptor) !void {
     for (d.quantum_numbers) |number| {
         if (!hasSymbol(d, number.symbol)) return error.DanglingSymbol;
         if (number.group_symbol) |symbol| if (!hasSymbol(d, symbol)) return error.DanglingSymbol;
+        switch (number.kind) {
+            .u1_charge, .ade_irrep, .tensor_rep => {},
+            .zn_phase => if (number.modulus < 2) return error.InvalidQuantumModulus,
+        }
     }
     for (d.field_quantum_numbers) |item| {
         if (!hasField(d, item.field)) return error.DanglingField;
         if (!hasQuantumNumber(d, item.quantum_number)) return error.DanglingQuantumNumber;
         const number = d.quantum_numbers[item.quantum_number];
         switch (item.value) {
-            .integer => if (number.kind != .u1_charge) return error.IncompatibleQuantumNumberValue,
+            .integer => switch (number.kind) {
+                .u1_charge, .zn_phase => {},
+                .ade_irrep, .tensor_rep => return error.IncompatibleQuantumNumberValue,
+            },
             .rational => |value| {
                 if (number.kind != .u1_charge) return error.IncompatibleQuantumNumberValue;
                 if (value.denominator == 0) return error.InvalidRational;
             },
             .symbol => |symbol| {
-                if (number.kind != .ade_irrep) return error.IncompatibleQuantumNumberValue;
+                switch (number.kind) {
+                    .ade_irrep, .tensor_rep => {},
+                    .u1_charge, .zn_phase => return error.IncompatibleQuantumNumberValue,
+                }
                 if (!hasSymbol(d, symbol)) return error.DanglingSymbol;
             },
         }
@@ -1289,4 +1303,31 @@ test "generated theory exposes field builders and direct correlator sink" {
     try std.testing.expectEqual(@as(usize, 1), sink.coordinates);
     try std.testing.expectEqual(@as(usize, 1), sink.tensors);
     try std.testing.expectEqual(@as(usize, 1), sink.base_cases);
+}
+
+test "descriptor accepts named finite and tensor quantum numbers" {
+    const symbols = [_][]const u8{ "test-theory", "charge", "phase", "fermion-number", "spin10", "vector", "psi" };
+    const quantum_numbers = [_]QuantumNumber{
+        .{ .id = 0, .symbol = 1, .kind = .u1_charge },
+        .{ .id = 1, .symbol = 2, .kind = .zn_phase, .modulus = 3 },
+        .{ .id = 2, .symbol = 3, .kind = .zn_phase, .modulus = 2 },
+        .{ .id = 3, .symbol = 4, .kind = .tensor_rep, .group_symbol = 4, .representation_space = 10 },
+    };
+    const fields = [_]Field{.{ .id = 0, .symbol = 6, .insertion = .single, .statistics = .fermionic }};
+    const field_quantum_numbers = [_]FieldQuantumNumber{
+        .{ .field = 0, .quantum_number = 0, .value = .{ .integer = 1 } },
+        .{ .field = 0, .quantum_number = 1, .value = .{ .integer = 2 } },
+        .{ .field = 0, .quantum_number = 2, .value = .{ .integer = 1 } },
+        .{ .field = 0, .quantum_number = 3, .value = .{ .symbol = 5 } },
+    };
+    try validateDescriptor(.{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .quantum_numbers = &quantum_numbers,
+        .field_quantum_numbers = &field_quantum_numbers,
+        .surfaces = &.{},
+        .fields = &fields,
+        .wick_rules = &.{},
+    });
 }

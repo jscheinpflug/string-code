@@ -1,0 +1,459 @@
+:PROPERTIES:
+:ID:       20260609T193500.000000
+:END:
+#+title: Basis Generation Benchmark Report
+
+Benchmark date: 2026-06-09.
+
+Host: Linux =scheinpflug=, x86_64, kernel =7.0.10-arch1-1=.
+
+Tools:
+
+- Zig =0.16.0=, benchmark executable built with =-Doptimize=ReleaseFast=.
+- Wolfram =14.3.0 for Linux x86 (64-bit) (July 8, 2025)=.
+- Mathematica timeout cap: 15 seconds per case.
+
+The benchmark harnesses are specified in
+[[id:20260609T184500.000000][Basis Generation Deep Benchmark]].  The Zig side
+times descriptor construction plus compact streaming.  The Mathematica side
+uses held expressions; this matters because an unheld helper evaluates the
+basis before =AbsoluteTiming= starts.
+
+* Executive Summary
+
+Mathematica crosses one second in the current Bosonic flat-space basis
+workflow at modest weights:
+
+- matter-only local operator output exceeds 1 second by weight 24 and times
+  out at weight 32 under a 15-second cap;
+- holomorphic Bosonic =generateBasisHolo[w,g]= exceeds 1 second by weight 12;
+- level-matched closed Bosonic basis exceeds 1 second by total weight 8 and
+  times out at total weight 12;
+- non-level-matched closed Bosonic basis exceeds 1 second by total weight 6
+  and is close to the timeout by total weight 8.
+
+For same-count current-CFT compact enumeration, the Zig backend is already
+orders of magnitude faster in ReleaseFast:
+
+- free-boson matter counts are about 2,500x to 3,500x faster than Mathematica
+  local-operator matter output for weights 12 through 28;
+- holomorphic free-boson+\(bc\) counts matching =generateBasisHolo= are about
+  1,100x to 2,600x faster for weights 8 through 16;
+- closed-string compact product counts matching Mathematica closed basis rows
+  are about 1,200x to 8,200x faster for the tested level-matched/all-splits
+  cases;
+- compact \(bc\) ghost enumeration is about 320x to 560x faster for the tested
+  cumulative ranges, even though Mathematica remains under one second there.
+
+The 10,000x target is not yet universal on this full-output audit benchmark.
+The best closed all-splits rows are around 7,200x to 8,200x, and the
+level-matched rows are around 1,200x to 2,500x.  The current bottleneck is no
+longer level-matching recomputation; it is the remaining recursive traversal
+and the benchmark sink's emitted-word hash.  The candidate still carries the
+necessary compact output: presentation id, seed id/body, total weight, level,
+per-component weights, quantum vector, and the full mode word.
+
+The observed bottleneck is not the combinatorics alone.  The direct \(bc\)
+prototype enumerator stays below one second through max weight 24, while
+operator-producing Bosonic basis generation is already slow at much smaller
+local-operator counts.  The dominant cost is symbolic local-operator
+construction/canonicalization and retained expression lists.
+
+* Methodology
+
+The Zig benchmark emits rows:
+
+#+begin_example
+engine  name  category  weight  ghost  ns  count  max_depth  hash_or_bytes  scratch_bytes  status
+#+end_example
+
+=ns= is nanoseconds for descriptor construction plus streaming.  The sink only
+counts candidates, tracks maximum word depth, and mixes a structural hash.  It
+does not retain states.
+
+Closed-string Zig rows use the same merged compact product presentation.  The
+level-matched rows set =Query.level_match = .{}=, which requires component 0
+and component 1 to carry equal total weights, including per-component seed
+weights from \(bc\) zero-mode seeds.
+
+The Mathematica benchmark emits rows:
+
+#+begin_example
+engine  name  category  weight  ghost  run  seconds  count  bytes  status
+#+end_example
+
+=bytes= is =ByteCount[result]= for completed cases.  Timeout rows report
+=count=-1= and =bytes=-1=.  Cases are one cold sequential pass in one kernel,
+followed by selected hot reruns.  The hot reruns intentionally test whether
+prototype memoization removes the dominant cost.
+
+This is a single-run engineering benchmark, not a statistical publication
+benchmark.  The gaps are large enough that medians are not needed for the
+conclusion; a future CI benchmark should still use repeated samples.
+
+* Lisp ABI Overhead
+
+The basis DSL ABI was checked from SBCL with CFFI loaded through ASDF and fasls
+redirected to =/tmp/string-code-cl-cache/=.  Each row below is a tight loop
+over the public Lisp surface after the generated shared library was loaded.
+The reported time is total nanoseconds for all calls in the row; the last
+column is the returned count or display value.
+
+#+begin_example
+lisp	bc-count	1000	81001000	1
+lisp	bc-operator	500	40000000	":c(0) d^2c(0):"
+lisp	free-boson-count	1000	219002000	65
+lisp	free-boson-compact	100	69001000	65
+lisp	free-boson-state-text	100	34000000	65
+lisp	free-fermion-count	1000	181002000	10
+lisp	product-level-match-count	1000	366006000	100
+#+end_example
+
+Average per call:
+
+| path | calls | total ns | average ns | result |
+| bc count | 1000 | 81001000 | 81001 | 1 |
+| bc operator text | 500 | 40000000 | 80000 | =:c(0) d^2c(0):= |
+| free boson count | 1000 | 219002000 | 219002 | 65 |
+| free boson compact records | 100 | 69001000 | 690010 | 65 records |
+| free boson state text | 100 | 34000000 | 340000 | 65 rows |
+| free fermion count | 1000 | 181002000 | 181002 | 10 |
+| product level-match count | 1000 | 366006000 | 366006 | 100 |
+
+This confirms the intended split: =basis-count= and =:as :compact= call the
+compact ABI and do not allocate operator text.  Text rendering is explicit
+through =:as :state= or =:as :operator=.  The product row uses the generated
+product presentation with =:level-match t= lowered to the backend
+=Query.level_match= field; it does not form component basis lists in Lisp.
+
+The same worktree also passed the pure Zig benchmark gate after the ABI
+changes:
+
+#+begin_example
+basis case=free-boson-dim2-exact4 count=20 max_depth=4 hash=8665609445657753816 ns=11299
+basis case=ns-fermion-dim2-half-tick3-odd count=2 max_depth=1 hash=4690357477090957096 ns=5368
+basis case=bc-max0-ghost1 count=2 max_depth=0 hash=9226238242377338531 ns=25238
+basis case=bc-exact2-ghost-minus1 count=2 max_depth=1 hash=17231438445709337490 ns=1573
+basis case=product-free-boson-bc-exact2-ghost0 count=13 max_depth=3 hash=12667902517366942147 ns=5657
+#+end_example
+
+* Current Three-Way Run
+
+This follow-up run used the current worktree on 2026-06-09:
+
+#+begin_src sh :tangle no
+zig build -Doptimize=ReleaseFast basis-bench --summary none
+zig build -Doptimize=ReleaseFast basis-deep-bench --summary none
+WolframKernel -script benchmarks/basis_generation_mathematica_bench.wls
+sbcl --script benchmarks/basis_generation_lisp_dsl_bench.lisp
+#+end_src
+
+The Mathematica executable available on this host reported Wolfram
+=14.1.0 for Linux x86 (64-bit) (July 16, 2024)=.  =wolframscript= exited
+with status 255, so the script was run through =WolframKernel -script=.
+
+The exact apples-to-apples rows are the matter-only free-boson rows: both sides
+produce the same counts, while Zig streams compact mode words and Mathematica
+materializes local operators.
+
+| Weight | Count | Zig ms | Mathematica ms | Mathematica / Zig |
+| 12 | 77 | 0.036 | 62.817 | 1742.9x |
+| 16 | 231 | 0.175 | 284.604 | 1625.6x |
+| 20 | 627 | 0.358 | 760.056 | 2125.0x |
+| 24 | 1575 | 0.954 | 2298.016 | 2409.0x |
+| 28 | 3718 | 2.059 | 6676.641 | 3242.8x |
+
+The current generated Lisp DSL benchmark uses generated preset runtimes, not
+the hand-written one-dimensional presentations used by the deep Zig harness.
+For the \(bc\) cumulative count path the conventions are close enough to show
+FFI overhead directly: counts differ by one in the neutral rows because the
+current generated \(bc\) basis skips the empty seed.
+
+| Case | Zig ms | Lisp DSL ms | Lisp / Zig | Lisp result |
+| 8, ghost 0 | 0.015 | 0.134 | 8.8x | 85 |
+| 8, ghost 1 | 0.005 | 0.045 | 8.7x | 19 |
+| 12, ghost 0 | 0.031 | 0.166 | 5.4x | 175 |
+| 12, ghost 1 | 0.009 | 0.071 | 8.2x | 27 |
+| 16, ghost 0 | 0.061 | error | - | =ContextTooSmall= |
+| 16, ghost 1 | 0.019 | error | - | =ContextTooSmall= |
+| 20, ghost 0 | 0.126 | 0.549 | 4.4x | 451 |
+| 20, ghost 1 | 0.019 | 0.179 | 9.5x | 43 |
+| 24, ghost 0 | 0.158 | 0.776 | 4.9x | 637 |
+| 24, ghost 1 | 0.037 | 0.227 | 6.1x | 51 |
+
+For the public generated preset paths that do not match the one-dimensional
+deep benchmark, the current Lisp DSL count timings were:
+
+| Path | Count | Lisp DSL ms |
+| free-boson-10 exact 2 | 65 | 0.054 |
+| free-boson-10 exact 4 | 1430 | 1.270 |
+| free-boson-10 exact 6 | 19415 | 33.991 |
+| free-boson-10 exact 8 | 195910 | 378.981 |
+| free-fermion-10 odd half-tick 13 | 103570 | 167.230 |
+| \(bc\) x free-boson-10 exact 6 ghost 0 | 47615 | 132.581 |
+| \(bc\) x free-boson-10 exact 6 ghost 1 | 117096 | 292.239 |
+| free-boson-10 x free-boson-10 level-matched 6 | 108900 | 293.300 |
+| free-boson-10 compact records exact 4 | 1430 | 29.804 |
+
+The remaining deep rows are closest-category comparisons rather than identical
+counts.  They still measure the architectural gap: Zig streams compact records;
+Mathematica retains symbolic operator expressions.
+
+| Category | Case | Zig count | Mathematica count | Zig ms | Mathematica ms | Mathematica / Zig |
+| compact \(bc\) | 24, ghost 0 | 638 | 7338 | 0.158 | 3703.048 | 23425.4x |
+| compact \(bc\) | 24, ghost 1 | 51 | 9296 | 0.037 | 543.557 | 14522.3x |
+| holo boson+\(bc\) | 16, ghost 0 | 6351 | 5822 | 3.388 | 6607.731 | 1950.2x |
+| holo boson+\(bc\) | 16, ghost 1 | 2127 | 8470 | 1.378 | 9930.439 | 7208.7x |
+| closed level-matched | weight 10 | 13218 | 2726 | 11.477 | 5872.980 | 511.7x |
+| closed all-splits | weight 8 | 30474 | 5270 | 9.007 | 10502.465 | 1166.0x |
+
+The current conclusion is unchanged but sharper: direct Zig compact streaming
+is thousands of times faster than Mathematica on exact matter rows, hundreds
+to thousands of times faster on the broader operator-producing rows, and the
+public Lisp DSL adds roughly 4x-10x overhead over direct Zig for small
+\(bc\) count queries while staying in the Zig backend.  Compact record
+collection through Lisp is substantially more expensive than count-only calls
+because it allocates Lisp records for each candidate.
+
+* Optimization Pass
+
+The previous level-matching implementation recomputed component weights from
+the emitted word whenever a candidate reached the sink.  That made every
+level-matched candidate pay an extra scan over its mode word.  The optimized
+backend now keeps per-component weights in the streaming context and mutates
+them alongside the quantum vector on push/pop.  Seeds can provide
+=component_weight_ticks=, so \(bc\) zero-mode seed weights are included in
+closed-string level matching.
+
+Two plausible optimizations were tested and rejected:
+
+- a level-difference suffix table for level matching;
+- rolling structural hashes stored for every prefix.
+
+Both made the benchmark slower.  The suffix table added dense table build cost
+without enough pruning at these weights.  Rolling hashes moved hash work from
+emitted candidates to every prefix, which is worse because most prefixes do
+not emit.  They were removed from both the Zig source and the org source.
+
+The retained optimization is intentionally small: component weights are O(1)
+state, and the level-match prefix predicate uses the remaining level budget as
+a cheap admissibility bound.  This preserves the compact output and keeps the
+data flow parallel-friendly: a worker owns one fixed scratch context, streams
+borrowed candidate slices to the sink, and retains no basis list.
+
+* Mathematica Cases Above One Second
+
+All rows below are from held Mathematica expressions.
+
+| Case | Category | Weight | Ghost | Run | Seconds | Count | ByteCount | Status |
+| matter-holo-24 | prototype-matter-operator | 24 | 0 | cold | 2.898134 | 1575 | 1445896 | ok |
+| matter-holo-28 | prototype-matter-operator | 28 | 0 | cold | 7.531536 | 3718 | 3772128 | ok |
+| matter-holo-32 | prototype-matter-operator | 32 | 0 | cold | 15.023083 | -1 | -1 | timeout |
+| holo-operator-12-g0 | prototype-holo-operator | 12 | 0 | cold | 1.167727 | 1165 | 730032 | ok |
+| holo-operator-12-g1 | prototype-holo-operator | 12 | 1 | cold | 1.822933 | 1770 | 1180808 | ok |
+| holo-operator-14-g0 | prototype-holo-operator | 14 | 0 | cold | 3.017225 | 2665 | 1824080 | ok |
+| holo-operator-14-g1 | prototype-holo-operator | 14 | 1 | cold | 4.561345 | 3956 | 2859104 | ok |
+| holo-operator-16-g0 | prototype-holo-operator | 16 | 0 | cold | 6.753140 | 5822 | 4304976 | ok |
+| holo-operator-16-g1 | prototype-holo-operator | 16 | 1 | cold | 10.739910 | 8470 | 6570632 | ok |
+| closed-levelmatched-8-g0 | prototype-closed-levelmatched | 8 | 0 | cold | 1.592123 | 760 | 498408 | ok |
+| closed-levelmatched-10-g0 | prototype-closed-levelmatched | 10 | 0 | cold | 5.954489 | 2726 | 2020424 | ok |
+| closed-levelmatched-12-g0 | prototype-closed-levelmatched | 12 | 0 | cold | 15.010828 | -1 | -1 | timeout |
+| closed-all-splits-6-g0 | prototype-closed-all-splits | 6 | 0 | cold | 2.365380 | 1106 | 593624 | ok |
+| closed-all-splits-8-g0 | prototype-closed-all-splits | 8 | 0 | cold | 11.969568 | 5270 | 3321360 | ok |
+
+Selected hot reruns:
+
+| Case | Category | Weight | Ghost | Seconds | Count | ByteCount | Status |
+| matter-holo-24-hot | prototype-matter-operator | 24 | 0 | 2.880478 | 1575 | 1445896 | ok |
+| holo-operator-12-g0-hot | prototype-holo-operator | 12 | 0 | 1.296589 | 1165 | 730032 | ok |
+| closed-levelmatched-8-g0-hot | prototype-closed-levelmatched | 8 | 0 | 1.539457 | 760 | 498408 | ok |
+| closed-all-splits-6-g0-hot | prototype-closed-all-splits | 6 | 0 | 2.399543 | 1106 | 593624 | ok |
+
+The hot reruns are still slow.  The prototype memoizes lower-level helpers such
+as mode partitions and ghost configurations, but these public operator APIs
+still rebuild symbolic operator lists and canonicalize/retain them.
+
+* Direct Compact Comparisons
+
+These rows compare same-count cases: the Mathematica side produces symbolic
+operator lists, while the Zig side streams compact mode words.  That is the
+intended architectural difference, so the ratio measures the cost avoided by
+keeping basis generation compact.
+
+** Free Boson Matter
+
+Mathematica: =generateBasisMatterHolo[w]=.
+
+Zig: one-dimensional free-boson compact exact-weight stream.
+
+| Weight | Count | Mathematica seconds | Zig ns | Zig ms | Ratio |
+| 12 | 77 | 0.070670 | 27565 | 0.027565 | 2563.8x |
+| 16 | 231 | 0.283174 | 95887 | 0.095887 | 2953.2x |
+| 20 | 627 | 0.954059 | 288163 | 0.288163 | 3310.8x |
+| 24 | 1575 | 2.898134 | 816891 | 0.816891 | 3547.8x |
+| 28 | 3718 | 7.531536 | 2217757 | 2.217757 | 3396.0x |
+
+The count sequence matches integer partitions.  The prototype cost is therefore
+not caused by a large target-label expansion; it is local-operator expression
+construction and retention.
+
+** Holomorphic Free Boson Plus \(bc\)
+
+Mathematica: =generateBasisHolo[w,g]=.
+
+Zig: merged free-boson+\(bc\) compact exact-weight stream with the same counts.
+
+| Weight | Ghost | Count | Mathematica seconds | Zig ns | Zig ms | Ratio |
+| 8 | 0 | 185 | 0.171955 | 145721 | 0.145721 | 1180.0x |
+| 8 | 1 | 300 | 0.272321 | 160704 | 0.160704 | 1694.6x |
+| 10 | 0 | 481 | 0.450618 | 290698 | 0.290698 | 1550.1x |
+| 10 | 1 | 752 | 0.801789 | 400621 | 0.400621 | 2001.4x |
+| 12 | 0 | 1165 | 1.167727 | 772989 | 0.772989 | 1510.7x |
+| 12 | 1 | 1770 | 1.822933 | 971494 | 0.971494 | 1876.4x |
+| 14 | 0 | 2665 | 3.017225 | 1455285 | 1.455285 | 2073.3x |
+| 14 | 1 | 3956 | 4.561345 | 1754509 | 1.754509 | 2599.8x |
+| 16 | 0 | 5822 | 6.753140 | 3223596 | 3.223596 | 2094.9x |
+| 16 | 1 | 8470 | 10.739910 | 4081528 | 4.081528 | 2631.3x |
+
+The current compact backend can also stream much larger holomorphic cases:
+
+| Weight | Ghost | Count | Zig seconds |
+| 20 | 0 | 24842 | 0.014410548 |
+| 20 | 1 | 35002 | 0.017795601 |
+| 24 | 0 | 94235 | 0.052730006 |
+| 24 | 1 | 129512 | 0.072144608 |
+| 28 | 0 | 326015 | 0.198554571 |
+| 28 | 1 | 439190 | 0.254065440 |
+
+These are still compact-mode results only.  They show that enumeration is not
+the limiting step at the weights where the prototype operator output is already
+slow.
+
+** Compact \(bc\) Ghost Configurations
+
+Mathematica: private =generateGhostConfigsHolo[maxWeight, ghost]=.
+
+Zig: compact \(bc\) cumulative stream.  This is the closest apples-to-apples
+comparison because both sides are compact ghost configurations rather than
+full local operators.
+
+| Max weight | Ghost | Count | Mathematica seconds | Zig ns | Zig ms | Ratio |
+| 8 | 0 | 67 | 0.004140 | 12799 | 0.012799 | 323.5x |
+| 8 | 1 | 97 | 0.007410 | 14833 | 0.014833 | 499.6x |
+| 12 | 0 | 272 | 0.015161 | 43939 | 0.043939 | 345.0x |
+| 12 | 1 | 373 | 0.024191 | 54935 | 0.054935 | 440.4x |
+| 16 | 0 | 915 | 0.056093 | 145554 | 0.145554 | 385.4x |
+| 16 | 1 | 1212 | 0.078706 | 184477 | 0.184477 | 426.6x |
+| 20 | 0 | 2714 | 0.157148 | 447290 | 0.447290 | 351.3x |
+| 20 | 1 | 3506 | 0.236982 | 589947 | 0.589947 | 401.7x |
+| 24 | 0 | 7338 | 0.685148 | 1273644 | 1.273644 | 537.9x |
+| 24 | 1 | 9296 | 0.911328 | 1634021 | 1.634021 | 557.7x |
+
+The prototype \(bc\) compact path is not the worst offender, but it still
+allocates large symbolic mode lists: at max weight 24 and ghost 1, the result
+has =ByteCount= 5,020,400.  The Zig scratch context for these \(bc\) runs is
+fixed at 77,344 bytes and emission does not retain states.
+
+* Closed-String Prototype Results
+
+The closed-string Zig rows use a two-component compact product with total ghost
+number zero.  The level-matched rows use the new level-matching query filter.
+Counts match completed prototype rows exactly.
+
+| Case | Mathematica seconds | Mathematica count | Zig ns | Zig ms | Ratio | Status |
+| level-matched w=6 g=0 | 0.405706 | 180 | 159813 | 0.159813 | 2538.6x | ok |
+| level-matched w=8 g=0 | 1.592123 | 760 | 704285 | 0.704285 | 2260.6x | ok |
+| level-matched w=10 g=0 | 5.954489 | 2726 | 2902014 | 2.902014 | 2051.8x | ok |
+| level-matched w=12 g=0 | 15.010828 | timeout | 12107130 | 12.107130 | >1239.8x | Mathematica timeout, Zig count 9065 |
+| all-splits w=4 g=0 | 0.341131 | 187 | 47383 | 0.047383 | 7199.4x | ok |
+| all-splits w=6 g=0 | 2.365380 | 1106 | 289457 | 0.289457 | 8171.8x | ok |
+| all-splits w=8 g=0 | 11.969568 | 5270 | 1525787 | 1.525787 | 7844.8x | ok |
+
+The non-level-matched path crosses one second earlier because it materializes
+all weight splits.  This is the pattern the Zig product presentation avoids:
+it streams one merged traversal instead of generating sector bases and taking
+Cartesian products.
+
+The level-matched weight-12 row is the most useful new data point.  Mathematica
+does not complete under the 15-second cap, while Zig streams 9,065 compact
+closed states in 12.1 ms.
+
+* Interpretation
+
+1. The compact backend solves the right problem first.
+
+   The prototype slows down when it lowers to symbolic local operators and
+   retains lists.  The Zig backend keeps the hot path in compact fixed-size
+   words and caller-owned scratch.  The large ratios appear even when counts
+   are identical.
+
+2. The main Mathematica bottleneck is symbolic output, not integer partitions.
+
+   Hot reruns of selected public operator APIs remain over one second.  The
+   cached substructures are not the dominant cost; rebuilding operator
+   expressions and canonicalizing/retaining them is.  Byte counts in the
+   multi-megabyte range appear at the same weights where runtime crosses one
+   second.
+
+3. The \(bc\) compact benchmark is the sanity check, not the stress case.
+
+   The prototype compact \(bc\) generator is below one second through max
+   weight 24, but the Zig backend is still hundreds of times faster and uses a
+   fixed scratch context.  The serious slowdown appears when \(bc\) ghosts are
+   joined with matter and lowered to local operators.
+
+4. The previous Zig bottleneck was emitted-word rescanning.
+
+   Level-matching used to recompute left/right component weights from the
+   candidate word.  That was removed.  The stream context now maintains
+   component weights incrementally, so level matching is a final O(1) equality
+   check plus a cheap prefix admissibility bound.
+
+5. Level matching belongs in the query, not in retained post-processing.
+
+   The new =level_match= query filter checks emitted compact candidates during
+   streaming.  It does not require materializing left and right sector bases or
+   taking their Cartesian product.  Per-component seed weights are part of the
+   seed data, so ghost zero-mode sectors are matched by total component weight,
+   not merely oscillator level.
+
+6. Operator lowering should remain outside enumeration.
+
+   The data support the backend design in [[id:20260606T063253.759714][Basis-Generation]]:
+   stream compact candidates first, then lower only the candidates required by
+   the consumer.  For OPE projection, the next optimization should keep pairing
+   on compact mode data as long as possible instead of eagerly creating full
+   symbolic operator expressions.
+
+* Reproduction
+
+Tangle the harnesses from [[id:20260609T184500.000000][Basis Generation Deep Benchmark]]
+or use the already tangled ignored files in =benchmarks/=.
+
+#+begin_src sh
+zig build -Doptimize=ReleaseFast basis-deep-bench --summary none \
+  --cache-dir /tmp/string-code-zig-cache \
+  --global-cache-dir /tmp/string-code-zig-global-cache \
+  > /tmp/zig_deep_release.tsv 2>&1
+
+wolframscript -script benchmarks/basis_generation_mathematica_bench.wls \
+  > /tmp/mma_deep.tsv 2>&1
+#+end_src
+
+The Wolfram run prints a prototype shadowing warning:
+
+#+begin_example
+r0::shdw: Symbol r0 appears in multiple contexts ...
+#+end_example
+
+The warning was present in successful runs and did not affect the benchmark
+rows.
+
+* Next Benchmark Work
+
+- Add operator-body lowering timings separately from compact enumeration.
+- Add repeated-sample median reporting for CI once the benchmark matrix is
+  stable.
+- Add peak RSS measurement if process-level memory accounting is needed; this
+  report uses Mathematica =ByteCount[result]= and Zig static scratch size, not
+  process peak memory.
