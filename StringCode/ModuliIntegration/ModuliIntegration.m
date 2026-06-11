@@ -143,6 +143,26 @@ Differential[z0]:=0;
 Differential[r0]:=0;
 Differential[0]=0;
 
+(* Total differential of a moduli-dependent function: expand along the moduli list.
+   For f[{t,tbar}] this gives D[f[{t,tbar}], t] Differential[t] + D[f[{t,tbar}], tbar] Differential[tbar].
+   This collapses all dz[n,i] onto the 2-dimensional basis {Differential[t], Differential[tbar]}
+   so wedge antisymmetry kills 3-forms and higher automatically. *)
+Differential[f_[moduli_List]] := 0 /; VectorQ[moduli, NumericQ];
+Differential[f_[moduli_List]] := Sum[D[f[moduli], v] Differential[v], {v, moduli}] /; VectorQ[moduli, MatchQ[#, _Symbol] &];
+Differential[f_[mods__]] := 0 /; AllTrue[{mods}, NumericQ];
+Differential[f_[mods__]] := Sum[D[f[mods], v] Differential[v], {v, {mods}}] /; VectorQ[{mods}, MatchQ[#, _Symbol] &];
+
+(* Tell D and Derivative that Differential[...] and Wedge[...] are constants w.r.t.
+   any variable. Mathematica's chain rule for D on an unknown head emits Derivative[
+   indices][f][args] directly without re-calling D, so we need both forms covered.
+   Without these, ExteriorD's internal D[varying, v] produces spurious
+   Derivative[1][Differential][...] / Wedge^(...)[...] artefacts. *)
+Differential /: D[_Differential, _] := 0;
+Differential /: Derivative[1][Differential] := (0 &);
+
+Wedge /: D[_Wedge, _] := 0;
+Wedge /: Derivative[n__Integer][Wedge] := (0 &) /; Total[{n}] > 0;
+
 
 (* ::Subsection:: *)
 (*Contraction of forms*)
