@@ -1,4 +1,13 @@
+// source-hash lisp/string-code-cft.asd 22ADEA4A
+// source-hash lisp/string-code-cft-descriptor.lisp 46A5ADA4
+// source-hash lisp/string-code-cft-presets.lisp 6D6140FD
+// source-hash lisp/presets/free-fermion-10.lisp 72B5F99D
+// source-hash lisp/presets/eta-xi.lisp 304B74C6
+// source-hash lisp/presets/bc-sphere.lisp D4B9E0F8
+// source-hash lisp/presets/free-boson-10.lisp 2797F855
+
 const std = @import("std");
+const descriptor = @import("descriptor.zig");
 const fixtures = @import("generated_fixtures.zig");
 const kernel = @import("../kernel.zig");
 
@@ -125,12 +134,71 @@ pub fn theoryId(raw: u32) !TheoryId {
     };
 }
 
+fn descriptorFor(comptime id: TheoryId) descriptor.Descriptor {
+    return switch (id) {
+        .free_fermion => fixtures.FreeFermion.descriptor,
+        .eta_xi_sphere => fixtures.EtaXiSphere.descriptor,
+        .eta_xi_torus => fixtures.EtaXiTorus.descriptor,
+        .bc => fixtures.Bc.descriptor,
+        .free_boson => fixtures.FreeBoson.descriptor,
+    };
+}
+
 pub fn theoryHash(id: TheoryId) u32 {
     return switch (id) {
-        .free_fermion => fixtures.FreeFermion.theoryHash(),
-        .eta_xi_sphere => fixtures.EtaXiSphere.theoryHash(),
-        .eta_xi_torus => fixtures.EtaXiTorus.theoryHash(),
-        .bc => fixtures.Bc.theoryHash(),
-        .free_boson => fixtures.FreeBoson.theoryHash(),
+        inline else => |case| descriptorFor(case).theory_hash,
     };
+}
+
+fn coordinateArity(shape: descriptor.InsertionShape) usize {
+    return switch (shape) {
+        .single => 1,
+        .pair => 2,
+    };
+}
+
+fn fieldById(comptime id: TheoryId, field_id: u16) ?descriptor.Field {
+    const desc = descriptorFor(id);
+    if (field_id >= desc.fields.len) return null;
+    return desc.fields[field_id];
+}
+
+/// fieldName returns the descriptor field name for ABI diagnostics.
+pub fn fieldName(id: TheoryId, field_id: u16) ?[]const u8 {
+    return switch (id) {
+        inline else => |case| {
+            const field = fieldById(case, field_id) orelse return null;
+            return descriptorFor(case).symbols[field.symbol];
+        },
+    };
+}
+
+/// fieldCoordinateArity returns the descriptor coordinate arity for ABI diagnostics.
+pub fn fieldCoordinateArity(id: TheoryId, field_id: u16) ?usize {
+    return switch (id) {
+        inline else => |case| {
+            const field = fieldById(case, field_id) orelse return null;
+            return coordinateArity(field.insertion);
+        },
+    };
+}
+
+/// fieldLabelArity returns the descriptor label arity for ABI diagnostics.
+pub fn fieldLabelArity(id: TheoryId, field_id: u16) ?usize {
+    return switch (id) {
+        inline else => |case| {
+            const field = fieldById(case, field_id) orelse return null;
+            return field.labels.len;
+        },
+    };
+}
+
+/// basisBackend returns compact basis metadata declared by the generated descriptor.
+pub fn basisBackend(comptime id: TheoryId) descriptor.BasisBackend {
+    return descriptorFor(id).basis.?;
+}
+
+/// basis returns the compact basis backend declared by the generated descriptor.
+pub fn basis(comptime id: TheoryId) type {
+    return descriptor.GeneratedBasis(descriptorFor(id));
 }

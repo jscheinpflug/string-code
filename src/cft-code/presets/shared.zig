@@ -1076,6 +1076,14 @@ fn operatorBuilder(comptime operator: Spec.Operator) type {
     };
 }
 
+fn singleOperator(local: anytype, kind_id: operators.OperatorKindId, z: Handle.Coord, derivatives: u8, labels: anytype) !*LocalOperator {
+    return buildKindOperator(localBuilder(local), kind_id, singleInsertion(z, derivatives), labels);
+}
+
+fn pairOperator(local: anytype, kind_id: operators.OperatorKindId, z: Handle.Coord, zbar: Handle.Coord, labels: anytype) !*LocalOperator {
+    return buildKindOperator(localBuilder(local), kind_id, pairInsertion(z, zbar), labels);
+}
+
 /// zero_mode exposes compact preset-author helpers for zero-mode rules.
 const zero_mode = ZeroModeDsl;
 
@@ -1126,18 +1134,10 @@ const ZeroModeDsl = struct {
         normalization: RuleScalar = .one,
     };
 
-    /// RankSource records where a power of 2pi gets its exponent.
-    pub const RankSource = union(enum) {
-        none,
-        literal: u16,
-        target_dimension: ConfigRef,
-        projector_rank: ConfigRef,
-    };
-
     /// Normalization records the CFT normalization attached to a zero-mode rule.
     pub const Normalization = struct {
         scalar: RuleScalar = .one,
-        two_pi_power: RankSource = .none,
+        scalar_factors: []const RuleScalar = &.{},
     };
 
     /// FreeBosonConstantMode declares the free-boson constant-mode base case.
@@ -1319,7 +1319,6 @@ fn configData(config_ptr: anytype) *const CorrelatorConfigData {
 const ConfigValue = union(enum) {
     tensor_projector: Handle.TensorProjector,
     target_point: Handle.TargetPoint,
-    target_dimension: u16,
     boundary_stack: Handle.BoundaryStack,
 };
 
@@ -1338,11 +1337,6 @@ const ConfigDsl = struct {
     /// targetPoint binds a target-space point handle to a config reference.
     pub fn targetPoint(id: ConfigRef, value: Handle.TargetPoint) ConfigEntry {
         return .{ .id = id, .value = .{ .target_point = value } };
-    }
-
-    /// targetDimension binds a target-space dimension to a config reference.
-    pub fn targetDimension(id: ConfigRef, value: u16) ConfigEntry {
-        return .{ .id = id, .value = .{ .target_dimension = value } };
     }
 
     /// boundaryStack binds Chan-Paton boundary-stack data to a config reference.
@@ -1644,6 +1638,8 @@ const declareConfigRef = configRef;
 const declareFamilyKind = familyKind;
 const declareSectorId = sectorId;
 const declareOperatorBuilder = operatorBuilder;
+const declareSingleOperator = singleOperator;
+const declarePairOperator = pairOperator;
 const declareCorrelatorConfig = correlatorConfig;
 const declareBoundaryExtension = BoundaryExtension;
 const declareConfigEntries = configEntries;
@@ -1671,6 +1667,10 @@ pub const declare = struct {
     pub const sectorId = declareSectorId;
     /// operatorBuilder generates insertion and label packing from one operator schema.
     pub const operatorBuilder = declareOperatorBuilder;
+    /// singleOperator builds one single-coordinate local operator from a lowered kind id.
+    pub const singleOperator = declareSingleOperator;
+    /// pairOperator builds one bulk-pair local operator from a lowered kind id.
+    pub const pairOperator = declarePairOperator;
     /// correlatorConfig creates an opaque public handle for lowered correlator data.
     pub const correlatorConfig = declareCorrelatorConfig;
     /// BoundaryExtension creates an opaque public handle for boundary preset data.
@@ -2503,8 +2503,8 @@ const ZeroModeRuntime = struct {
     const MomentumDelta = struct {
         projector: ?ConfigValue,
         momenta: []const kernel.Call.LabelValue,
-        two_pi_power: u16,
         scalar: RuleScalar,
+        scalar_factors: []const RuleScalar,
     };
 
     const DirichletPhase = struct {
@@ -2643,7 +2643,6 @@ fn CompactTextSink(comptime Writer: type, comptime budget: TextBudget) type {
             switch (value) {
                 .tensor_projector => |item| try self.writeFmt("P{}", .{@intFromEnum(item)}),
                 .target_point => |item| try self.writeFmt("x{}", .{@intFromEnum(item)}),
-                .target_dimension => |item| try self.writeFmt("D{}", .{item}),
                 .boundary_stack => |item| try self.writeFmt("CP{}", .{@intFromEnum(item)}),
             }
         }
@@ -2947,33 +2946,18 @@ fn configValue(config_ptr: *const CorrelatorConfigData, config_ref: ConfigRef) ?
     return null;
 }
 
-fn projectorRank(value: ConfigValue) ?u16 {
+fn hasNontrivialScalar(value: RuleScalar) bool {
     return switch (value) {
-        .tensor_projector => |projector| @intCast(@intFromEnum(projector) >> 24),
-        else => null,
-    };
-}
-
-fn rankValue(config_ptr: *const CorrelatorConfigData, source: zero_mode.RankSource) ?u16 {
-    return switch (source) {
-        .none => 0,
-        .literal => |value| value,
-        .target_dimension => |config_ref| switch (configValue(config_ptr, config_ref) orelse return null) {
-            .target_dimension => |dimension| dimension,
-            else => null,
-        },
-        .projector_rank => |config_ref| projectorRank(configValue(config_ptr, config_ref) orelse return null),
-    };
-}
-
-fn hasRankSource(source: zero_mode.RankSource) bool {
-    return switch (source) {
-        .none => false,
+        .one => false,
         else => true,
     };
 }
 
-fn emitBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
+fn hasZeroModeNormalization(normalization: zero_mode.Normalization) bool {
+    return hasNontrivialScalar(normalization.scalar) or normalization.scalar_factors.len != 0;
+}
+
+fn emitTopFormFermion(rule: zero_mode.TopFormFermion, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
     var jets: [3]ZeroModeRuntime.CJet = undefined;
     var residual_ids: [3]usize = undefined;
     var jet_count: usize = 0;
@@ -2983,7 +2967,7 @@ fn emitBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.ResidualCu
     while (residual_index < residual.len()) : (residual_index += 1) {
         if (residualConsumed(consumed.*, residual_index)) continue;
         const op = residual.op(residual_index);
-        if (!kindIn(op.kind, rule.c_kind_ids)) continue;
+        if (!kindIn(op.kind, rule.field_kind_ids)) continue;
         if (jet_count >= jets.len) {
             overflow = true;
             continue;
@@ -3007,7 +2991,7 @@ fn emitBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.ResidualCu
     } });
 }
 
-fn acceptBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
+fn acceptTopFormFermion(rule: zero_mode.TopFormFermion, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
     var residual_ids: [3]usize = undefined;
     var jet_count: usize = 0;
     var overflow = false;
@@ -3016,7 +3000,7 @@ fn acceptBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.Residual
     while (residual_index < residual.len()) : (residual_index += 1) {
         if (residualConsumed(consumed.*, residual_index)) continue;
         const op = residual.op(residual_index);
-        if (!kindIn(op.kind, rule.c_kind_ids)) continue;
+        if (!kindIn(op.kind, rule.field_kind_ids)) continue;
         if (localPosition(op) == null) return error.InvalidZeroModeOperator;
         if (jet_count >= residual_ids.len) {
             overflow = true;
@@ -3032,7 +3016,7 @@ fn acceptBcTopForm(rule: zero_mode.BcTopForm, residual: ZeroModeRuntime.Residual
     }
 }
 
-fn emitEtaXiZeroMode(rule: zero_mode.EtaXiZeroMode, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
+fn emitConstantFermion(rule: zero_mode.ConstantFermion, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
     var xi: ZeroModeRuntime.CJet = undefined;
     var residual_id: usize = 0;
     var found = false;
@@ -3042,7 +3026,7 @@ fn emitEtaXiZeroMode(rule: zero_mode.EtaXiZeroMode, residual: ZeroModeRuntime.Re
     while (residual_index < residual.len()) : (residual_index += 1) {
         if (residualConsumed(consumed.*, residual_index)) continue;
         const op = residual.op(residual_index);
-        if (!kindIn(op.kind, rule.xi_kind_ids)) continue;
+        if (!kindIn(op.kind, rule.fermion_kind_ids)) continue;
         if (localDerivativeOrder(op) != 0 or found) {
             overflow = true;
             continue;
@@ -3064,7 +3048,7 @@ fn emitEtaXiZeroMode(rule: zero_mode.EtaXiZeroMode, residual: ZeroModeRuntime.Re
     } });
 }
 
-fn acceptEtaXiZeroMode(rule: zero_mode.EtaXiZeroMode, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
+fn acceptConstantFermion(rule: zero_mode.ConstantFermion, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
     var residual_id: usize = 0;
     var found = false;
     var overflow = false;
@@ -3073,7 +3057,7 @@ fn acceptEtaXiZeroMode(rule: zero_mode.EtaXiZeroMode, residual: ZeroModeRuntime.
     while (residual_index < residual.len()) : (residual_index += 1) {
         if (residualConsumed(consumed.*, residual_index)) continue;
         const op = residual.op(residual_index);
-        if (!kindIn(op.kind, rule.xi_kind_ids)) continue;
+        if (!kindIn(op.kind, rule.fermion_kind_ids)) continue;
         if (localPosition(op) == null) return error.InvalidZeroModeOperator;
         if (localDerivativeOrder(op) != 0 or found) {
             overflow = true;
@@ -3122,13 +3106,13 @@ fn emitFreeBosonConstantMode(comptime limits: BranchLimits, config_ptr: *const C
         }
     }
 
-    if (momentum_count != 0 or hasRankSource(rule.normalization.two_pi_power)) {
+    if (momentum_count != 0 or hasZeroModeNormalization(rule.normalization)) {
         const projector = if (rule.integration_projector) |config_ref| configValue(config_ptr, config_ref) orelse return error.InvalidZeroModeConfig else null;
         try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .momentum_delta = .{
             .projector = projector,
             .momenta = momenta[0..momentum_count],
-            .two_pi_power = rankValue(config_ptr, rule.normalization.two_pi_power) orelse return error.InvalidZeroModeConfig,
             .scalar = rule.normalization.scalar,
+            .scalar_factors = rule.normalization.scalar_factors,
         } });
     }
 
@@ -3170,9 +3154,8 @@ fn acceptFreeBosonConstantMode(comptime limits: BranchLimits, config_ptr: *const
         }
     }
 
-    if (momentum_count != 0 or hasRankSource(rule.normalization.two_pi_power)) {
+    if (momentum_count != 0 or hasZeroModeNormalization(rule.normalization)) {
         if (rule.integration_projector) |config_ref| _ = configValue(config_ptr, config_ref) orelse return error.InvalidZeroModeConfig;
-        _ = rankValue(config_ptr, rule.normalization.two_pi_power) orelse return error.InvalidZeroModeConfig;
     }
 
     if (rule.fixed_projector) |projector_ref| {
@@ -3192,59 +3175,52 @@ fn allResidualsConsumed(residual: ZeroModeRuntime.ResidualCursor, consumed: u128
 }
 
 fn emitEmptyFreeBosonConstantMode(config_ptr: *const CorrelatorConfigData, rule: zero_mode.FreeBosonConstantMode, sink: anytype) !void {
-    if (hasRankSource(rule.normalization.two_pi_power)) {
+    if (hasZeroModeNormalization(rule.normalization)) {
         const empty_momenta: [0]kernel.Call.LabelValue = .{};
         const projector = if (rule.integration_projector) |config_ref| configValue(config_ptr, config_ref) orelse return error.InvalidZeroModeConfig else null;
         try sink.emitZeroModeFactor(ZeroModeRuntime.ZeroModeFactor{ .momentum_delta = .{
             .projector = projector,
             .momenta = empty_momenta[0..],
-            .two_pi_power = rankValue(config_ptr, rule.normalization.two_pi_power) orelse return error.InvalidZeroModeConfig,
             .scalar = rule.normalization.scalar,
+            .scalar_factors = rule.normalization.scalar_factors,
         } });
     }
 }
 
 fn BcTopFormProcedure(comptime rule: zero_mode.BcTopForm) type {
-    return struct {
-        fn canConsumeKind(kind: operators.OperatorKindId) bool {
-            return kindIn(kind, rule.c_kind_ids);
-        }
-
-        fn accept(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
-            _ = limits;
-            _ = config_ptr;
-            return acceptBcTopForm(rule, residual, consumed);
-        }
-
-        fn emit(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
-            _ = limits;
-            _ = config_ptr;
-            return emitBcTopForm(rule, residual, consumed, sink);
-        }
-
-        fn emitEmpty(config_ptr: *const CorrelatorConfigData, sink: anytype) !void {
-            _ = config_ptr;
-            _ = sink;
-        }
+    const adapted = zero_mode.TopFormFermion{
+        .support = rule.support,
+        .field_kind_ids = rule.c_kind_ids,
+        .normalization = rule.normalization,
     };
+    return TopFormFermionProcedure(adapted);
 }
 
 fn EtaXiZeroModeProcedure(comptime rule: zero_mode.EtaXiZeroMode) type {
+    const adapted = zero_mode.ConstantFermion{
+        .support = rule.support,
+        .fermion_kind_ids = rule.xi_kind_ids,
+        .normalization = rule.normalization,
+    };
+    return ConstantFermionProcedure(adapted);
+}
+
+fn ConstantFermionProcedure(comptime rule: zero_mode.ConstantFermion) type {
     return struct {
         fn canConsumeKind(kind: operators.OperatorKindId) bool {
-            return kindIn(kind, rule.xi_kind_ids);
+            return kindIn(kind, rule.fermion_kind_ids);
         }
 
         fn accept(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
             _ = limits;
             _ = config_ptr;
-            return acceptEtaXiZeroMode(rule, residual, consumed);
+            return acceptConstantFermion(rule, residual, consumed);
         }
 
         fn emit(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
             _ = limits;
             _ = config_ptr;
-            return emitEtaXiZeroMode(rule, residual, consumed, sink);
+            return emitConstantFermion(rule, residual, consumed, sink);
         }
 
         fn emitEmpty(config_ptr: *const CorrelatorConfigData, sink: anytype) !void {
@@ -3254,22 +3230,29 @@ fn EtaXiZeroModeProcedure(comptime rule: zero_mode.EtaXiZeroMode) type {
     };
 }
 
-fn ConstantFermionProcedure(comptime rule: zero_mode.ConstantFermion) type {
-    const adapted = zero_mode.EtaXiZeroMode{
-        .support = rule.support,
-        .xi_kind_ids = rule.fermion_kind_ids,
-        .normalization = rule.normalization,
-    };
-    return EtaXiZeroModeProcedure(adapted);
-}
-
 fn TopFormFermionProcedure(comptime rule: zero_mode.TopFormFermion) type {
-    const adapted = zero_mode.BcTopForm{
-        .support = rule.support,
-        .c_kind_ids = rule.field_kind_ids,
-        .normalization = rule.normalization,
+    return struct {
+        fn canConsumeKind(kind: operators.OperatorKindId) bool {
+            return kindIn(kind, rule.field_kind_ids);
+        }
+
+        fn accept(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128) !void {
+            _ = limits;
+            _ = config_ptr;
+            return acceptTopFormFermion(rule, residual, consumed);
+        }
+
+        fn emit(comptime limits: BranchLimits, config_ptr: *const CorrelatorConfigData, residual: ZeroModeRuntime.ResidualCursor, consumed: *u128, sink: anytype) !void {
+            _ = limits;
+            _ = config_ptr;
+            return emitTopFormFermion(rule, residual, consumed, sink);
+        }
+
+        fn emitEmpty(config_ptr: *const CorrelatorConfigData, sink: anytype) !void {
+            _ = config_ptr;
+            _ = sink;
+        }
     };
-    return BcTopFormProcedure(adapted);
 }
 
 fn FreeBosonConstantModeProcedure(comptime rule: zero_mode.FreeBosonConstantMode) type {
@@ -3877,6 +3860,7 @@ fn branchLimits(comptime input: CorrelatorConfigInput) BranchLimits {
     const tensor_terms = atLeastOne(maxTermFactors(input.wick_rules, .tensors));
     const action_terms = atLeastOne(maxTermFactors(input.wick_rules, .actions));
     const residual_terms = atLeastOne(maxTermFactors(input.wick_rules, .residuals));
+    const infinity_scalar_terms = scalar_terms + coordinate_terms;
 
     return .{
         .max_operators = max_operators,
@@ -3889,7 +3873,7 @@ fn branchLimits(comptime input: CorrelatorConfigInput) BranchLimits {
         .max_actions = action_terms * max_terms,
         .max_residuals = residual_terms * max_terms,
         .max_cached_terms = max_cached_terms,
-        .max_cached_scalars = scalar_terms * max_cached_terms,
+        .max_cached_scalars = infinity_scalar_terms * max_cached_terms,
         .max_cached_coordinates = coordinate_terms * max_cached_terms,
         .max_cached_tensors = tensor_terms * max_cached_terms,
         .max_cached_actions = action_terms * max_cached_terms,

@@ -1,0 +1,1348 @@
+:PROPERTIES:
+:ID:       20260612T103000.000000
+:END:
+#+title: CFT DSL Unification Implementation Plan
+#+auto_tangle: nil
+
+This plan turns the current mixed CFT implementation into a single-source DSL
+pipeline:
+
+#+begin_example
+Lisp worldsheet DSL
+  -> validated descriptor data
+  -> Zig comptime lowering
+  -> correlator, basis, zero-mode, infinity, and ABI programs
+#+end_example
+
+The goal is that adding a new free-field worldsheet theory normally means
+writing only the DSL declaration.  We should not write a new handwritten Zig
+preset, a new ABI switch arm, a new basis generator, and a new field-inserter
+module for each theory.  The DSL must carry enough data for Zig to compute the
+static programs at compile time.
+
+This plan responds to the audit in =cft-audit.org= and the response in the root
+file =cft-audit-response.org=.
+
+* Design Principles
+
+1. The user writes worldsheet physics, not plumbing.
+
+   A theory declaration should name fields, weights, statistics, labels,
+   surfaces, Wick kernels, zero-mode measures, basis behavior, infinity
+   behavior, and boundary extensions.  The DSL should derive conventional data
+   when it is unambiguous, and require explicit data when it is not.
+
+2. Lisp macros should do real compile-time work.
+
+   =define-cft-preset= should parse, validate, derive defaults, assign stable
+   names, generate runtime inserters, and export the public interface at macro
+   expansion time.  Runtime builders should remain available for tests and
+   REPL experiments, but the normal development path should fail early with
+   source locations.
+
+3. Zig receives compact data and computes static programs.
+
+   The Zig side should not know about "free boson", "bc", "eta-xi", or "free
+   fermion" as special cases in the core generated path.  It should lower
+   descriptor records into:
+
+   - Wick pair programs.
+   - Infinity descendant programs.
+   - Basis oscillator and seed programs.
+   - Zero-mode measure programs.
+   - ABI dispatch tables.
+
+4. Zero modes are declarative measures, not a short list of presets.
+
+   The current =constant_fermion=, =top_form_fermion=, and momentum-conservation
+   cases are examples of residual measures.  The replacement should describe
+   how residual fields are selected, saturated, transformed, and emitted.  It
+   should not force every new worldsheet zero-mode rule into a hardcoded enum
+   arm.
+
+5. Keep data-oriented, bounded execution.
+
+   Runtime should stream over precomputed arrays with stack-bounded scratch.  No
+   symbolic expression trees, no heap allocation in the Wick walk, and no
+   theory-specific runtime interpreter.
+
+6. Preserve a small public API.
+
+   Existing public names such as =FreeBoson=, =Bc=, =FreeFermion=, =EtaXi=,
+   =product=, and =boundary= should remain stable.  Their implementation can
+   become generated aliases or thin wrappers.
+
+* Target Architecture
+
+** Lisp Layer
+
+The Lisp DSL owns authoring and UX.
+
+It must provide:
+
+- Parameterized preset templates:
+
+  #+begin_example
+  (define-cft-preset (free-boson :dimension d) ...)
+  (instantiate-preset free-boson :dimension 26 :theory-id 5)
+  #+end_example
+
+- Macroexpansion-time parsing and validation.
+- Stable explicit theory IDs.
+- Generated field inserters with docstrings and exports.
+- Derived basis and infinity data from weights when valid.
+- Explicit override forms for non-primary or branch-global fields.
+- Zero-mode measure declarations.
+- A single scalar grammar reused by Wick expressions and metadata.
+- A single expression grammar for chiral and bulk Wick rules.
+
+The macro output is descriptor data, not generated hand-written logic.
+
+** Descriptor Layer
+
+The descriptor becomes the complete bulk-theory contract.
+
+It should contain:
+
+- Theory identity: stable id, name, hash, descriptor ABI version.
+- Parameters: dimension, scalar parameters, modular parameters, group data.
+- Surfaces: sphere, disk, torus, and coordinate model metadata.
+- Fields: insertion shape, statistics, labels, weights, quantum numbers,
+  zero-mode participation, infinity behavior, basis behavior.
+- Wick rules: scalar monomials, coordinate kernels, tensors, actions,
+  residuals, and index constraints.
+- Zero-mode measures: declarative residual measure programs.
+- Basis rules: oscillator families, seeds, derived quantum deltas, render
+  metadata.
+- ABI metadata: generated field inserter names and stable field ids.
+- Reserved future slots: boundary rules, compact-boson winding/lattice data,
+  current-algebra structure data, OPE-specific services.
+
+** Zig Compile-Time Lowering
+
+Zig receives descriptors and builds static storage:
+
+- =wick.Rule= arrays.
+- =InfinityTermProgram= arrays per Wick term/orientation.
+- =BasisRule= storage for basis enumeration.
+- =ZeroModeProgram= storage for residual measures.
+- Generated context and field builders.
+- Generated ABI dispatch tables.
+
+Each program should be a compact array of small tagged operations, with counts
+and offsets known at comptime.
+
+** Runtime
+
+Runtime remains procedural:
+
+- The Wick walk enumerates pairings.
+- Pair terms replay static programs.
+- Zero-mode residuals replay static measure programs.
+- Basis generation traverses static oscillator/seed families.
+- Result sinks receive compact streamed factors.
+
+No runtime branch should inspect Lisp forms, descriptor syntax, or per-theory
+semantic names.
+
+* Priority 0: Guardrails Before Refactor
+
+** Goal
+
+Protect current mathematical behavior before moving source-of-truth boundaries.
+
+** Tasks
+
+1. Add golden correlator tests:
+
+   - Free fermion two-point coefficient and tensor.
+   - Four-fermion sign alternation.
+   - Free-boson four-=dX= all-pairing result.
+   - bc sphere =<c c c>= top-form factor.
+   - Disk doubling two-point fixture.
+   - Infinity descendant BPZ coefficient for =dX= and =psi=.
+
+2. Add descriptor/generated parity tests:
+
+   - Generated free fermion versus handwritten free fermion.
+   - Generated eta-xi versus handwritten eta-xi.
+   - Generated bc sphere versus handwritten bc sphere.
+   - Generated free boson versus handwritten free boson for the currently
+     expressible rules.
+
+3. Add benchmark rows for finite versus infinity descendants:
+
+   - One normal-ordered product of 2 descendants at finite point versus
+     infinity.
+   - One normal-ordered product of 4 descendants at finite point versus
+     infinity.
+   - Both =dX= and =psi=.
+
+** Acceptance
+
+- =zig build test= passes.
+- Existing finite benchmarks remain within optimized gates.
+- The new golden tests pin signs and scalar coefficients, not only counts.
+
+** Progress
+
+2026-06-13: added golden streaming correlator tests for the generated public
+routes.  The tests now pin the free-fermion two-point unit metric pole, the
+four-fermion all-pairing mask and single negative branch, the free-boson
+four-=dX= all-pairing mask with =-alpha'/2= scalars, the bc sphere =<ccc>=
+top-form jets, and disk doubled/mixed =b c= behavior.  Descriptor validation
+compile errors now include the descriptor name and validation error instead of
+only the bare error tag.
+
+Verification: =zig build test --summary none= passes; =git diff --check=
+passes; optimized =basis-bench= preserves hashes =8665609445657753816=,
+=4690357477090957096=, =9226238242377338531=, =17231438445709337490=, and
+=12667902517366942147=; focused optimized correlator gates pass for
+=eta_xi_torus_3_4=, =bc_3_6=, =exp2=, and =psi2=.
+
+2026-06-13 follow-up: added generated-vs-handwritten correlator stream parity
+tests.  The parity sink compares event counts and compact event hashes for
+free-fermion holomorphic four-point streams, bc holomorphic streams with top
+form saturation, and eta-xi sphere/torus streams.  The free-boson dX parity
+uses an order-independent pairing digest because the generated and handwritten
+routes stream the same Wick pairings in different traversal orders.
+
+Verification: =zig build test --summary none= passes; optimized =basis-bench=
+preserves hashes =8665609445657753816=, =4690357477090957096=,
+=9226238242377338531=, =17231438445709337490=, and
+=12667902517366942147=; focused optimized correlator gates pass for
+=eta_xi_torus_3_4=, =bc_3_6=, =exp2=, and =psi2=.
+
+2026-06-13 second follow-up: added generated-vs-handwritten compact basis
+parity tests for the generated holomorphic free-fermion, bc, and eta-xi public
+routes.  The basis parity sink compares compact candidate counts, weights,
+levels, mode counts, and an order-independent semantic hash over seed, quantum,
+and mode fields.  Free-fermion descriptor data now declares
+=:kind-namespace free_fermion= like the other generated public routes, and the
+handwritten free-fermion basis stream now uses its explicit zero-seed helper so
+its neutral seed quantum vector matches the descriptor-generated stream.
+
+Verification: =zig build regen --summary none= completes; =zig build test
+--summary none= passes; and optimized =basis-bench= preserves hashes
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-13 third follow-up: closed the remaining current bulk basis parity
+gap.  The private free-boson preset module now compares
+=GeneratedFreeBoson10.basis= against the private handwritten
+=FreeBosonBasis(.{ .dimension = 10 })= with the same compact semantic digest,
+so the test does not require a public legacy constructor.  The handwritten
+free-boson basis stream also uses its explicit zero-seed helper, matching the
+descriptor-generated seed data path.
+
+Verification: =zig build test --summary none= passes, and optimized
+=basis-bench= preserves hashes =8665609445657753816=,
+=4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-13 fourth follow-up: added generated-vs-handwritten infinity parity
+for the currently exercised public bulk routes.  Free fermion now checks
+primary and first-descendant insertions at infinity, bc checks a sphere top
+form with one =c= insertion at infinity, and free boson checks =dX= primary and
+first-descendant limits with a semantic digest that ignores neutral scalar
+=1= factors.  Eta-xi now pins the divergent =eta(infinity) xi(z)= primary
+limit on both generated and handwritten paths instead of treating it as a
+finite stream.
+
+Verification: =zig build test --summary none= passes; optimized correlator
+gates pass for =psi2_infinity=, =dx8_infinity=, and =exp2_infinity=; and
+optimized =basis-bench= preserves hashes =8665609445657753816=,
+=4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+* Priority 1: Scalar Monomials Everywhere
+
+** Problem
+
+The runtime scalar event stream already understands monomial scalars, but the
+descriptor input still accepts only a small set of scalar cases.  This makes
+valid worldsheet expressions fail in the DSL.
+
+** Data Model
+
+Replace descriptor scalar variants with:
+
+#+begin_example
+ScalarMonomial:
+  rational: Rational
+  imaginary_power: u2
+  atom: optional ParameterId
+  atom_power: i8
+#+end_example
+
+This supports products like:
+
+#+begin_example
+(* -1/2 alpha-prime)
+(* -1/2 i alpha-prime)
+(* 1/4 alpha-prime)
+(* -3/2 i g)
+#+end_example
+
+Sums remain represented as multiple Wick terms.
+
+** Tasks
+
+1. Update descriptor =ScalarFactor=.
+2. Update Lisp =parse-scalar-factor= to emit monomials directly.
+3. Reuse the same scalar-product parser for Wick expressions and metadata.
+4. Update descriptor lowering to =declare.scalars= values.
+5. Bump descriptor ABI version.
+6. Regenerate fixtures.
+7. Add parser and lowering tests.
+
+** Acceptance
+
+- The free-boson =1/4 alpha-prime= weight expression is accepted without a
+  special case.
+- No scalar expression tree is introduced.
+- Existing generated fixtures produce identical correlator output.
+
+** Status
+
+Complete as of 2026-06-12.  Wick and zero-mode scalar factors now have a
+descriptor =monomial= row carrying rational coefficient, =i= power, optional
+scalar parameter atom, and atom power.  Metadata has the same compact
+=scalar_monomial= row, so products such as =(* 1/4 alpha-prime (dot ...))=
+share the scalar-product parser instead of expanding scalar pieces into
+separate metadata expression nodes.  Descriptor ABI version is =3=.
+
+The free-boson fixture has been regenerated: Wick =alpha-prime= factors use
+scalar monomials, and the =expX= weight uses one metadata scalar monomial times
+the bilinear momentum form.  Legacy descriptor scalar tags remain accepted as
+compatibility aliases.  Verification: =zig build test= passes, SBCL loads the
+system, regeneration succeeds, and a Lisp smoke check shows free-boson metadata
+and Wick factors emitted as monomial rows.
+
+* Priority 2: Build Integration, Stable IDs, And Drift Checks
+
+** Problem
+
+Generated Zig sources are manually refreshed.  Stale generated code can survive
+until runtime or until a user notices mismatched behavior.  Theory IDs can be
+assigned by load order.
+
+** Tasks
+
+1. Add =lisp/regen.lisp=.
+2. Add =zig build regen= to run SBCL and write generated sources.
+3. Add a source-hash manifest to generated Zig:
+
+   #+begin_example
+   // source-hash lisp/presets/free-boson.lisp <hash>
+   #+end_example
+
+4. Add a build-time stale check that does not require SBCL.
+5. Add =-Dallow-stale-generated= only for local experiments.
+6. Require explicit =:theory-id= for exported presets.
+7. Detect duplicate theory IDs during Lisp macroexpansion and generation.
+
+** Acceptance
+
+- =zig build regen= refreshes fixtures and dispatch.
+- =zig build test= fails with a clear "run zig build regen" message when Lisp
+  source hashes do not match generated files.
+- Reordering Lisp preset files does not renumber the ABI.
+
+** Status
+
+Complete as of 2026-06-12.  Added =lisp/regen.lisp= as the noninteractive SBCL
+entry point and wired =zig build regen= to run it.  The step refreshes the
+generated fixture and dispatch Zig modules through the existing Lisp preset
+compiler.
+
+Generated fixture and dispatch files now begin with =source-hash= manifest
+comments for the Lisp system, descriptor emitter, preset compiler, and preset
+source files.  =zig build test= and the default build run a no-SBCL Zig stale
+checker over those comments unless =-Dallow-stale-generated=true= is supplied.
+Stale checks fail with a concrete =Run `zig build regen`= message.
+
+Built-in presets now declare explicit stable theory ids matching the previous
+ABI order: free fermion =1=, eta-xi sphere =2=, eta-xi torus =3=, bc sphere
+=4=, and free boson =5=.  =define-cft-preset= requires =:theory-id= and
+reserves ids at macroexpansion and load time, rejecting duplicates.  Reordering
+source files no longer renumbers the ABI.
+
+Verification: =zig build regen= completes; generated dispatch still maps ids
+=1..5= to the same public theories; =zig build test= passes; a copied generated
+file with a deliberately wrong hash fails with the regeneration hint; =zig
+build test -Dallow-stale-generated=true= passes; and a focused SBCL probe
+rejects a duplicate =:theory-id 1= declaration.
+
+Benchmark preservation: the stale-check work is build-only, but the scalar
+monomial work exposed a too-small cached scalar bound for infinity limits.  The
+branch cache now sizes cached scalars for coordinate-limit scalar output while
+keeping ordinary accumulated scalar storage unchanged.  Focused optimized
+benchmark gates pass for the affected and previously noisy cases:
+=dx12_infinity=, =dx4_exp4=, =psi12=, and =psi14=.  Full all-case benchmark
+runs in this shared environment remain sensitive to late-case timing noise, but
+the isolated gates for the touched behavior pass.
+
+* Priority 3: Lisp Macro Compiler Upgrade
+
+** Problem
+
+=define-cft-preset= currently uses little macro power.  It registers a runtime
+builder, and many errors arise later without useful file/line context.
+
+** Macro Responsibilities
+
+The macro should:
+
+- Parse forms at macroexpansion time.
+- Validate field references, labels, scalar syntax, surfaces, and zero-mode
+  references.
+- Generate one runtime inserter per field.
+- Generate exports for public field inserters and runtime constructors.
+- Attach source locations to descriptor records where SBCL exposes them.
+- Derive defaults for weights, basis, infinity, and residuals when rules are
+  unambiguous.
+- Expand parameterized templates into instantiable descriptors.
+
+** UX Target
+
+Users should write:
+
+#+begin_example
+(define-cft-preset (free-boson :dimension d)
+  (:theory-id 5)
+  (parameter alpha-prime "alpha-prime" :scalar-parameter)
+  (surface sphere :sphere :rational)
+  (target-vector mu :dimension d)
+  (bulk-field X ((mu :vector-index)) :bosonic :weight 0 :anti-weight 0)
+  (chiral-field dX ((mu :vector-index)) :bosonic :weight 1)
+  ...)
+#+end_example
+
+The macro should generate:
+
+- Descriptor data.
+- Runtime field inserters.
+- Exported symbols.
+- Stable ids.
+- Source-aware validation messages.
+
+** Tasks
+
+1. Split parsing into pure functions reusable at macroexpansion and runtime.
+2. Make the macro call the parser during expansion.
+3. Add a diagnostic condition type carrying field/rule/source context.
+4. Generate runtime inserters from descriptor field metadata.
+5. Generate package exports.
+6. Add parameterized preset template support.
+
+** Acceptance
+
+- A bad field name in a Wick rule reports the preset, rule, and field.
+- Runtime inserters no longer hardcode field ids by hand.
+- Public Lisp exports for generated fields are not hand-maintained.
+
+** Status
+
+Complete as of 2026-06-12 for the compiler-front-end scope.  Ordinary
+=define-cft-preset= forms are parsed during macroexpansion, so bad field,
+label, surface, scalar, and zero-mode references fail while loading the preset
+source instead of waiting for generation.  Parser failures are wrapped in a
+=preset-diagnostic= condition carrying the preset name, form index, form kind,
+and offending form; a bad Wick field now reports the preset, the =WICK= form,
+and the unknown field.
+
+The preset registry stores compact field-interface metadata derived from the
+parsed descriptor.  The REPL fixture layer now uses =define-preset-fixture= to
+generate descriptor accessors, runtime constructors, field inserters, and
+exports from that metadata.  Existing public names such as =psi=, =eta=,
+=xi=, =b-field=, =c-field=, =dX=, and =expX= are preserved, but their field ids
+and coordinate arities are no longer handwritten.  This also fixes stale
+free-boson REPL inserter ids by using descriptor ids =dX=1 and =expX=3.
+
+Parameterized preset templates have a first concrete path:
+=define-cft-preset= accepts a template name such as =(name :dimension d)=, and
+=instantiate-preset= substitutes supplied keyword parameters into a concrete
+descriptor with an explicit theory id.  This is intentionally shallow and data
+oriented; richer derived defaults for basis and infinity remain in Priority 4
+and Priority 6.
+
+Verification: SBCL loads =string-code-cft= cleanly; a bad Wick field probe
+reports =BAD-FIELD=, =KIND WICK=, and =Unknown field "missing"=; a template
+definition plus instantiation macroexpands; =zig build regen= completes; =zig
+build test= passes; and the focused optimized =dx12_infinity= benchmark passes
+with event median =1426862 ns= and branch median =1342933 ns=.
+
+* Priority 4: Descriptor-Driven Basis And Dimension Parameters
+
+** Problem
+
+Basis generation is the largest remaining hardcoded layer.  The generated ABI
+uses a handwritten theory-id switch and hardcoded dimension =10=.  Adding a new
+free-field theory still requires Zig basis code.
+
+** Data Model
+
+Add descriptor basis records:
+
+#+begin_example
+BasisRule:
+  quantum_schema
+  oscillators: []OscillatorSpec
+  seeds: []SeedSpec
+  render_atoms: []RenderAtom
+
+OscillatorSpec:
+  field
+  base_weight_ticks
+  derivative_step_ticks
+  statistics
+  multiplicity_source
+  quantum_delta
+  component_source
+
+SeedSpec:
+  field
+  fixed_weight_ticks
+  quantum_delta
+  fermionic_subset
+#+end_example
+
+Multiplicities can reference parameters, especially dimension.
+
+** Derivation Rules
+
+The Lisp macro may derive defaults:
+
+- Chiral field with positive weight -> oscillator family.
+- Chiral fermion with half-integer mode spacing -> NS-style oscillator band.
+- Field with nonpositive ghost-like seed weight -> seed family when declared as
+  a seed source.
+- Vector-index label -> multiplicity from dimension or index sort.
+- Quantum-number declarations -> quantum deltas.
+
+Derived data must be emitted explicitly in the descriptor so it can be audited.
+
+** Tasks
+
+1. Add descriptor parameter records.
+2. Add descriptor basis records.
+3. Lower basis records to existing =basis_generation= tables at comptime.
+4. Generate ABI basis dispatch from generated fixtures.
+5. Remove hardcoded dimension =10= from =generated_abi.zig=.
+6. Add parity tests against existing handwritten basis generators.
+
+** Acceptance
+
+- Free fermion, eta-xi, bc, and free-boson basis generation run from descriptor
+  data.
+- Adding a new first-order system with standard oscillator bands requires no new
+  Zig basis code.
+- Product basis generation still composes through the existing generic product
+  machinery.
+
+** Progress
+
+2026-06-12: started the simplification-first slice.  An aborted attempt to add
+a parallel descriptor basis layer was removed; Priority 4 should delete
+duplicated basis plumbing before adding any new basis representation.  The
+generated C ABI basis dispatcher no longer repeats the single-theory basis
+switch in both =dispatchBasis= and =basisRenderTable=, and the product-basis
+arms are driven from one derived compatibility path instead of two
+hand-expanded switch blocks.  This preserves the current compact basis backend and product
+composition while reducing redundant ABI code.
+
+Verification: =zig build test= passes.  The optimized =basis-bench= gate passes
+with stable structural hashes for free boson, NS fermion, bc, and product
+free-boson/bc cases:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 follow-up: removed the detached Lisp =*basis-runtime-metadata*=
+table from the descriptor runtime.  The same compact REPL basis metadata now
+lives on each =define-cft-preset= option list and is carried through the preset
+registry into generated runtime constructors.  Product basis metadata composes
+from the runtime contexts instead of consulting a second id-indexed table.
+
+Verification: SBCL loads =string-code-cft= cleanly; a Lisp probe builds a
+=bc= x =free-boson-10= product metadata record from preset-carried metadata;
+=zig build regen= completes; =zig build test= passes; and the optimized
+=basis-bench= gate preserves the same structural hashes listed above.
+
+2026-06-12 second follow-up: removed the remaining Lisp product-basis theory-id
+allowlist.  Product compatibility now comes from the carried basis metadata:
+two factors compose when their backend tick denominators match, and incompatible
+products fail with the existing denominator diagnostic.  This keeps the public
+=make-product-runtime= API but removes another id-indexed duplicate of basis
+knowledge.
+
+Verification: SBCL loads =string-code-cft= cleanly; a Lisp probe accepts
+=bc= x =free-boson-10= as product id =1069= and rejects
+=free-fermion-10= x =free-boson-10= with incompatible backend ticks =1/2= and
+=1/1=; =zig build regen= completes; =zig build test= passes; and the optimized
+=basis-bench= gate preserves the same structural hashes listed above.
+
+2026-06-12 third follow-up: removed the generated ABI product-pair table.
+Primitive compact basis types now expose a tiny =tick_denominator= constant,
+and product dispatch enumerates generated theory ids at comptime, accepting only
+pairs with matching denominators.  The public product ids remain
+=1000 + left * 16 + right=, so existing Lisp product ids are preserved while
+the duplicate pair list disappears.
+
+Verification: =zig build test= passes.  The optimized =basis-bench= gate
+preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 fourth follow-up: moved primitive basis backend construction facts
+into the existing Lisp =:basis= metadata.  Free fermion and free boson presets
+now declare their backend dimensions next to presentation and tick data, and
+the generated dispatch module emits the compact basis selector.  The
+hand-written generated ABI now calls that selector instead of owning a separate
+theory-id switch with hardcoded dimension =10=.
+
+Verification: =zig build regen= completes; =zig build test= passes; and the
+optimized =basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 fifth follow-up: added a compact descriptor =BasisBackend= record
+for the existing primitive compact basis lowerers.  The Lisp descriptor emitter
+now writes =.basis= rows from each preset's existing =:basis= metadata, and the
+generated dispatch module lowers =fixtures.*.descriptor.basis= through one
+generic =basisFromDescriptor= function.  This moves the backend kind,
+dimension, and tick denominator into the generated descriptor data while still
+reusing the current efficient basis constructors.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; and the optimized
+=basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 sixth follow-up: removed the duplicate primitive basis
+=tick_denominator= constants.  The generated dispatch module now exposes
+=basisBackend= from descriptor data, and ABI product compatibility compares the
+descriptor backend denominators directly.  The compact basis constructors no
+longer carry metadata solely needed by ABI product dispatch.
+
+Verification: =zig build test= passes, and the optimized =basis-bench= gate
+preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 seventh follow-up: moved the free-fermion =fermion-number=
+quantum number into the descriptor declaration itself.  The generated fixture
+now carries both the =spin10= representation label and the \(\mathbb Z_2\)
+fermion parity assignment for =psi=, while the compact basis metadata names the
+same quantum number instead of being the only place it exists.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; =git diff --check=
+passes; and the optimized =basis-bench= gate preserves the same structural
+hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 eighth follow-up: compact basis constructors now accept their
+quantum schema as config data, and generated dispatch derives that schema from
+descriptor quantum-number declarations.  The handwritten preset defaults remain
+as public compatibility defaults, but generated ABI basis streaming no longer
+selects =ghost-number=, =eta-xi-number=, or =fermion-number= from separate
+per-preset schema constants.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; and the optimized
+=basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 ninth follow-up: basis option lists no longer repeat
+quantum-number kind or modulus data.  The preset compiler normalizes compact
+basis metadata from the parsed descriptor quantum-number declarations, so the
+authored =:basis= form only states basis slot placement while runtime metadata
+still receives the full =:kind= and =:modulus= fields.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; a Lisp probe confirms
+=free-fermion-10= runtime basis metadata has derived =:kind :zn= and
+=:modulus 2= for =fermion-number=; and the optimized =basis-bench= gate
+preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 tenth follow-up: seed-bit basis metadata no longer repeats
+per-field quantum-number records.  The authored =:seed-bits= entries keep only
+the presentation-specific bit id, operator, and seed weight; the preset
+compiler derives each seed bit's compact U(1)/\(Z_N\) quantum record from the
+descriptor field quantum assignments.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; a Lisp probe confirms
+=bc-sphere= seed-bit runtime metadata derives =((u1 ghost-number 1))= for both
+=c= seed bits; and the optimized =basis-bench= gate preserves the same
+structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 eleventh follow-up: generated dispatch now has one descriptor
+selector for generated fixture descriptors.  =theoryHash=, =basisBackend=, and
+=basis= reuse that selector instead of each owning a separate theory-id switch
+over the same fixture descriptor set.
+
+Verification: =zig build regen= completes; =zig build test= passes; SBCL loads
+=string-code-cft= with ASDF output redirected to =/tmp=; and the optimized
+=basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 twelfth follow-up: generated ABI product basis dispatch now builds
+the product pair basis type through one =ProductPairBasis= helper.  Product
+streaming and render-table lookup share that type construction instead of
+repeating the same =presets.product= expression.
+
+Verification: =zig build test= passes; SBCL loads =string-code-cft= with ASDF
+output redirected to =/tmp=; and the optimized =basis-bench= gate preserves the
+same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 thirteenth follow-up: seed-bit basis metadata now derives the
+operator from descriptor zero-mode consumption when there is exactly one
+zero-mode field.  The authored =bc= and =eta-xi= =:seed-bits= entries no longer
+repeat =:operator c= or =:operator xi=, while normalized runtime metadata still
+carries those operators for REPL rendering and quantum derivation.  Ambiguous
+seed bits remain explicit.
+
+Verification: SBCL loads =string-code-cft= with ASDF output redirected to
+=/tmp= and a Lisp probe confirms derived =C= and =XI= seed-bit operators; =zig
+build regen= completes; =zig build test= passes; =git diff --check= passes;
+and the optimized =basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+2026-06-12 fourteenth follow-up: basis quantum metadata now derives compact
+slot placement from descriptor quantum-number declarations.  Authored basis
+forms no longer repeat =:slot 0= for the first compact U(1)/\(Z_N\) charge,
+and representation-only entries such as =spin10= default to =:slot nil=.
+Runtime metadata remains explicit after normalization, so REPL filtering and
+product composition keep the same compact slot layout.
+
+Verification: SBCL loads =string-code-cft= with ASDF output redirected to
+=/tmp= and a Lisp probe confirms derived =:slot 0= for =ghost-number= and
+=fermion-number= while =spin10= remains =:slot nil=; =zig build regen=
+completes; direct =zig test src/cft-code/basis-generation/basis-generation.zig=
+passes; and the optimized =basis-bench= gate preserves the same structural
+hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.  The full =zig build
+test= gate is currently blocked by unrelated dirty tensor code:
+=src/tensor-code/projector-constructor.zig= references undeclared
+=tensorEndpointActionBuildBufferEql=.
+
+2026-06-12 fifteenth follow-up: descriptor fixtures now carry explicit compact
+basis rules: oscillator families, seed families, seed rendering, and mode
+rendering.  The generated dispatcher no longer lowers descriptor basis metadata
+through handwritten preset constructors; =basis(id)= returns
+=descriptor.GeneratedBasis(descriptorFor(id))=.  This removes the remaining
+single-theory basis dispatch duplication while keeping the Lisp DSL ergonomic:
+authors still write the compact =:basis= backend metadata, and the descriptor
+emitter derives the concrete rows.
+
+Verification: SBCL loads =string-code-cft= with ASDF output redirected to
+=/tmp=; =zig build regen= completes; direct generated ABI tests pass; direct
+=zig test src/cft-code/basis-generation/basis-generation.zig= passes; =zig
+build test= passes; =git diff --check= passes; and the optimized
+=basis-bench= gate preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.
+
+* Priority 5: General Zero-Mode Measure Builder
+
+** Problem
+
+Zero modes are currently selected from a small closed set.  That is too narrow
+for worldsheet applications.  We need a DSL that declares residual measures,
+and a Zig lowering path that compiles them into bounded procedures.
+
+** Target Concept
+
+A zero-mode rule is a measure program:
+
+#+begin_example
+ZeroModeMeasure:
+  surface
+  selector: ResidualSelector
+  saturation: SaturationRule
+  local_data: LocalDataRule
+  transform: TransformRule
+  emission: EmissionProgram
+  normalization: ScalarMonomial or parameter reference
+#+end_example
+
+This is still not a runtime interpreter.  Each field is compact descriptor data
+lowered into static Zig arrays.
+
+** Residual Selection
+
+Selectors describe which residual fields the measure can consume:
+
+#+begin_example
+ResidualSelector:
+  accepted_fields: []FieldId
+  exact_count: CountExpr
+  optional_labels: []LabelConstraint
+  allow_derivatives: bool
+  allow_infinity: InfinityPolicy
+#+end_example
+
+Examples:
+
+- eta-xi constant mode: one =xi= residual, no jet polynomial.
+- bc sphere top form: three =c= residuals, jet-aware top-form polynomial.
+- free boson momentum conservation: all plane-wave residual momenta plus
+  optional profile residuals.
+- future first-order systems: =N= residual gamma-like zero modes or beta-like
+  moduli insertions, depending on surface and bundle data.
+
+** Saturation Rules
+
+Support a small set of mathematical saturation forms:
+
+1. =grassmann_count=
+
+   Consumes exactly =N= residuals from selected fermionic fields and emits a
+   measure factor.  This covers constant fermions and simple eta-xi zero modes.
+
+2. =grassmann_top_form=
+
+   Consumes exactly =N= residual jets and emits the determinant/Vandermonde-like
+   top-form polynomial specified by the measure.  The current bc sphere case is
+   =N=3.
+
+3. =linear_conservation=
+
+   Accumulates labels such as momenta and emits a conservation delta with
+   normalization data.  This covers free-boson zero modes.
+
+4. =residual_functional=
+
+   Reserved for profile/function residuals where the measure emits a compact
+   symbolic factor or action.  This should stay bounded and explicit; it is not
+   arbitrary Lisp evaluation.
+
+** Emission Programs
+
+The measure emission should be data:
+
+#+begin_example
+EmissionProgram:
+  scalar_ops
+  coordinate_ops
+  tensor_ops
+  zero_mode_factor_ops
+  action_ops
+#+end_example
+
+For top forms, coordinate emission should include determinant-style recipes:
+
+#+begin_example
+TopFormKernel:
+  basis_functions: [1, z, z^2, ...] or named finite basis
+  jet_action: derivative order acts on basis functions
+  antisymmetry: determinant
+#+end_example
+
+This is more general than selecting =bc_top_form=.  It can express the current
+=<c c c>= sphere top form, descendant limits at infinity, and future finite
+rank Grassmann top forms.
+
+** Infinity And Local Coordinates
+
+Zero-mode measures must explicitly state how infinity is handled:
+
+- reject infinity;
+- primary BPZ limit;
+- top-form local-coordinate limit;
+- branch-global exponential/momentum behavior;
+- custom named transform, only if the descriptor has a corresponding lowering
+  implementation.
+
+The current one-=c(infinity)= top-form behavior becomes a specialization of the
+top-form local-coordinate transform, not an ad hoc sink branch.
+
+** Tasks
+
+1. Introduce =ZeroModeMeasure= descriptor records.
+2. Keep old Lisp forms as aliases while authored presets move to explicit
+   measure syntax:
+
+   #+begin_example
+   (zero-mode (grassmann-count :field xi))
+   (zero-mode (grassmann-top-form :field c))
+   (zero-mode (linear-conservation :field expX
+                :normalization (pow (* 2 pi) 10)))
+   #+end_example
+
+   These expand into explicit measure records.  Special named constants such as
+   a two-pi power are not part of the DSL; they are scalar expressions.
+
+3. Add Zig =ZeroModeProgram= storage and lowering.
+4. Port eta-xi constant mode to =grassmann_count=.
+5. Port bc sphere top form to =grassmann_top_form=.
+6. Port free-boson momentum conservation to =linear_conservation=.
+7. Move infinity top-form handling out of the special sink branch and into the
+   top-form program when practical.
+8. Add tests for count, derivative jets, infinity handling, and rejection
+   messages.
+
+** Acceptance
+
+- New zero-mode measures can be declared without adding a Zig enum variant.
+- Existing zero-mode behavior is reproduced exactly.
+- Top-form rank is data-driven, with a clear maximum and explicit determinant
+  lowering.
+- Unsupported measure forms fail at descriptor validation with a precise error.
+
+** Progress
+
+2026-06-12: introduced the first descriptor-side zero-mode measure records.
+Generated descriptors now emit a =ResidualSelector= plus a
+=ZeroModeSaturation= instead of the old descriptor-facing primitive
+=ZeroModeKind=.  Existing ergonomic Lisp forms remain valid and expand to:
+=grassmann_count= for eta-xi constant modes, =grassmann_top_form= with
+=exact_count=3= for the bc sphere top form, and =linear_conservation= for
+free-boson momentum conservation.  The Zig lowerer still targets the existing
+bounded zero-mode runtime rules, so this changes the descriptor source of truth
+without adding a runtime interpreter.  Unsupported arities are rejected at
+descriptor validation for now: =grassmann_count= must have =exact_count=1= and
+=grassmann_top_form= must have =exact_count=3= until the determinant program
+is generalized.  The zero-mode lowerer now derives holomorphic sphere versus
+torus support from the descriptor surface row for constant grassmann measures,
+and rejects top-form measures on torus surfaces until a torus top-form evaluator
+exists.  The Lisp descriptor IR now stores these explicit measure fields
+directly; the old kind names are parsed only as user-facing aliases, and the
+Zig emitter no longer owns that translation.
+
+2026-06-12: removed the authored zero-mode volume side channel from presets.
+Zero-mode normalization now accepts =(pow (* 2 pi) n)= as an ordinary scalar
+expression.  Scalar monomial atoms refer to descriptor symbols, so =alpha-prime=,
+=pi=, and future scalar atoms share one compact expression path.  The generated
+free-boson descriptor now lowers =(pow (* 2 pi) 10)= to =1024*pi^10= in
+=.normalization= instead of carrying a separate power side channel.
+
+Verification: =zig build regen= completes; SBCL loads =string-code-cft= with
+ASDF output redirected to =/tmp=; direct generated ABI tests pass; =zig build
+test= passes; =git diff --check= passes; and the optimized =basis-bench= gate
+preserves the same structural hashes:
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=.  The focused =exp2=
+correlator benchmark preserves the free-boson zero-mode count gate after this
+normalization change.
+
+2026-06-12 follow-up: corrected the generated free-boson zero-mode lowering so
+normalization remains a general scalar value all the way into the runtime
+factor.  Zig no longer recognizes a special =(2*pi)^n= shape.  Empty
+free-boson zero-mode factors are emitted whenever the normalization is
+non-unit, so future DSL expressions such as =3*pi^2= use the same scalar path
+without adding Zig cases.  The runtime rank-source side channel has been
+removed; handwritten boundary normalization now carries =K_D2= and the
+Neumann-volume term as ordinary scalar factors.
+
+Verification: =zig build regen= completes; =zig build test= passes; direct
+generated ABI tests pass; =git diff --check= passes; the optimized
+=basis-bench= gate preserves the same structural hashes; and the focused
+=exp2= correlator benchmark preserves the free-boson zero-mode/base-case
+counts with normalization carried as a scalar monomial.
+
+2026-06-12 second follow-up: moved the handwritten eta-xi and bc presets onto
+the same generic zero-mode measure variants used by generated descriptors.
+Their specs now author =constant_fermion= and =top_form_fermion= directly
+instead of the older eta-xi/bc-specific expression arms.  The old helper arms
+remain as compatibility adapters, but the runtime implementation dependency is
+inverted: generic constant-fermion and top-form procedures are the real
+procedures, and legacy helper names adapt into them.
+
+Verification: =zig build test= passes; direct generated ABI tests pass;
+=git diff --check= passes; a repository search finds no handwritten specs
+using the old eta-xi or bc-specific expression arms; the optimized
+=basis-bench= gate preserves hashes
+=8665609445657753816=, =4690357477090957096=, =9226238242377338531=,
+=17231438445709337490=, and =12667902517366942147=; and focused optimized
+correlator gates preserve counts for =eta_xi_torus_3_4=, =bc_3_6=, and
+=exp2=.
+
+* Priority 6: Descriptor-Driven Infinity Metadata
+
+** Problem
+
+Infinity behavior is partly derived from descriptor weights but incomplete for
+branch-global fields such as exponentials.  Handwritten presets still carry
+important infinity metadata.
+
+** Data Model
+
+Add explicit field infinity behavior:
+
+#+begin_example
+InfinityBehavior:
+  none
+  primary_from_weight
+  primary_explicit(holomorphic_power, antiholomorphic_power)
+  branch_global_exponential(momentum_label)
+  reject(reason)
+#+end_example
+
+** Tasks
+
+1. Require weights when =primary_from_weight= is used.
+2. Add Lisp syntax for explicit infinity behavior.
+3. Derive primary powers from weights when possible.
+4. Preserve free-boson exponential behavior as branch-global.
+5. Lower descriptor infinity data into =InfinityTermProgram= generation.
+6. Add parity tests against current handwritten presets.
+
+** Acceptance
+
+- The free-fermion Lisp preset can produce =psi= infinity behavior from
+  =:weight 1/2=.
+- Free-boson =expX= remains branch-global.
+- Descriptor-generated theories support descendant insertions at infinity for
+  rational primary kernels.
+
+** Progress
+
+2026-06-12: started descriptor-owned infinity metadata.  Field rows now carry an
+=InfinityBehavior= tag plus an optional label slot.  The default =infer= path
+preserves existing primary-from-literal-weight behavior; explicit
+=primary_from_weight= requires declared weight metadata; and
+=branch_global_exponential= validates that the referenced field label is a
+momentum label before lowering to the existing free-boson exponential infinity
+program.  The free-boson Lisp preset now declares
+=:infinity (branch-global-exponential :momentum k)= on =expX=, moving that
+branch-global fact out of handwritten Zig preset metadata and into the DSL
+descriptor source.
+
+2026-06-12: added literal primary weights and explicit =:infinity primary=
+annotations to the free-fermion, eta-xi, and bc Lisp presets.  The generated
+descriptors now validate =primary_from_weight= declarations and derive the
+handwritten primary infinity powers from DSL field metadata: =psi= from
+\(h=1/2\), =eta= from \(h=1\), =xi= from \(h=0\), =b= from \(h=2\), and =c=
+from \(h=-1\).
+
+2026-06-12: added descriptor field support overrides for single-coordinate
+fields and an =anti-chiral-field= DSL form.  The free-boson preset now declares
+=dX= as a holomorphic primary of weight 1 and =dXt= as an antiholomorphic
+primary of anti-weight 1, so their infinity behavior no longer depends on the
+handwritten Zig preset operator table.
+
+2026-06-12: generated fixtures now emit a data-driven test for authored DSL
+infinity metadata.  The test checks each generated field row with explicit
+infinity behavior, including support overrides, rational weight metadata, and
+branch-global labels, so future descriptor simplification cannot silently drop
+the DSL-owned infinity declarations.
+
+* Priority 7: Unified Wick Expression Grammar
+
+** Problem
+
+Chiral rules can use pleasant math-like expressions, while bulk rules sometimes
+fall back to raw =term= forms.
+
+** Target Grammar
+
+Support:
+
+#+begin_example
+(wick (X mu z zb) (X nu w wb)
+  (+ (* -1/2 alpha-prime
+        (metric mu nu)
+        (log (- z w)))
+     (* -1/2 alpha-prime
+        (metric mu nu)
+        (log (- zb wb)))))
+#+end_example
+
+Also support:
+
+- named kernels;
+- Green exponentials;
+- residual declarations;
+- coordinate slots for bulk fields;
+- automatic tensor defaults where unambiguous;
+- explicit raw terms only as an internal escape hatch.
+
+** Tasks
+
+1. Extend expression parser to support sums.
+2. Bind bulk holomorphic and antiholomorphic coordinates by name.
+3. Reuse scalar monomial parser.
+4. Add structured errors for unbound labels and coordinates.
+5. Rewrite current raw Lisp preset terms to the user-facing grammar.
+
+** Acceptance
+
+- =free-boson-10.lisp= no longer uses raw =term= syntax for =X X=.
+- Generated descriptor is unchanged modulo source formatting and scalar
+  monomial representation.
+
+** Progress
+
+2026-06-12: the Lisp Wick expression parser now lowers =(+ ...)= into multiple
+descriptor Wick terms through the existing scalar, tensor, and coordinate
+parsers.  The free-boson =X X= rule now uses the user-facing bulk expression
+grammar:
+
+#+begin_example
+(wick (X mu z zb) (X nu w wb)
+  (+ (* -1/2 alpha-prime (metric mu nu) (log (- z w)))
+     (* -1/2 alpha-prime (metric mu nu) (log (- zb wb)))))
+#+end_example
+
+The generated descriptor still contains the two logarithmic terms with the same
+metric tensor and scalar monomials, while authored preset files no longer use
+raw =term= forms.
+
+* Priority 8: Generated ABI And Runtime UX
+
+** Problem
+
+Runtime field inserters and ABI dispatch still contain handwritten logic and
+hardcoded field ids.
+
+** Tasks
+
+1. Generate Lisp runtime inserters from descriptor field metadata.
+2. Generate Zig ABI theory dispatch from descriptor fixtures.
+3. Generate basis dispatch from descriptor basis rules.
+4. Expose stable field names and arities through the runtime metadata.
+5. Add runtime diagnostics for wrong field arity and wrong label role.
+
+** Acceptance
+
+- No handwritten =psi=, =eta=, =xi=, =b-field=, =c-field=, =dX=, or =expX=
+  runtime inserter ids remain.
+- ABI dispatch changes when and only when generated descriptors change.
+- The user sees field names, not numeric ids, in runtime errors.
+
+** Progress
+
+2026-06-12: the Lisp REPL fixture layer now derives runtime field inserters
+from preset field-interface metadata by default.  Fixture declarations no
+longer repeat the descriptor field inventory for =psi=, =eta=, =xi=, =dX=, or
+=expX=; public compatibility aliases such as =b-field= and =c-field= are
+declared only as aliases to descriptor fields.  The free-boson REPL fixture now
+also exposes descriptor-owned =X= and =dXt= inserters without handwritten field
+ids or arities.
+
+2026-06-12: generated dispatch now exposes descriptor-backed field name,
+coordinate arity, and label arity metadata for the C ABI.  Field insertion
+validates against this metadata before mutating the runtime context, so malformed
+runtime calls report user-facing diagnostics such as =Field psi expects 1
+labels, got 0= instead of only numeric field ids or generic arity errors.
+
+2026-06-12: the generated C ABI now exports descriptor field metadata directly
+through =sc_generated_field_metadata=, and the Lisp runtime exposes the same data
+as =runtime-field-metadata=.  Runtime clients can query stable field names,
+coordinate arities, and label arities from the descriptor-owned metadata instead
+of carrying a parallel field table.
+
+2026-06-13: strengthened the generated ABI dispatch gate.  The C ABI self-test
+now iterates every generated =TheoryId= and every descriptor field exposed by
+that theory, checking =sc_generated_theory_hash= and
+=sc_generated_field_metadata= against descriptor-backed generated dispatch.
+The same pass removed hardcoded numeric theory ids from the product-basis ABI
+self-test, so product basis checks now use =TheoryId.bc= and
+=TheoryId.free_boson= rather than raw =4= and =5=.
+
+Verification: =zig build test --summary none= passes.
+
+2026-06-13 follow-up: extended the ABI gate from metadata to representative
+runtime streams.  The generated C ABI self-test now constructs and runs one
+minimal correlator for each generated theory id: free-fermion =psi psi=,
+eta-xi sphere =eta xi=, eta-xi torus =eta xi= with the named elliptic kernel,
+bc sphere =c c c= top form, and free-boson =dX dX=.  The checks stay semantic:
+they assert branch counts and required event categories rather than duplicating
+large symbolic expressions.
+
+Verification: =zig build test --summary none= passes.
+
+* Priority 9: Remove Redundant Handwritten Bulk Presets
+
+** Problem
+
+The handwritten Zig bulk presets duplicate the Lisp descriptors and violate the
+single-source goal.
+
+** Order
+
+1. Replace free fermion.
+2. Replace eta-xi sphere and torus.
+3. Replace bc sphere.
+4. Replace free-boson sphere.
+5. Keep disk/boundary extensions handwritten until descriptor boundary support
+   exists.
+
+** Compatibility Strategy
+
+Keep public =cft-code= API names stable:
+
+#+begin_example
+cft.FreeBoson.make(...)
+cft.Bc.sphere(...)
+cft.FreeFermion.sphere(...)
+cft.EtaXi.sphere(...)
+#+end_example
+
+Internally these become generated aliases or thin wrappers around instantiated
+descriptors.
+
+** Acceptance
+
+- Bulk duplicate Wick rules are removed from handwritten Zig.
+- Existing tests and benchmarks pass.
+- Boundary code remains explicit and layered through =boundary(...)=.
+- Adding a new bulk free-field theory requires no new handwritten Zig module.
+
+** Progress
+
+2026-06-12: added the generic bridge needed for generated descriptors to feed
+the public Zig preset API.  =GeneratedTheory= now exposes descriptor-lowered
+=basis= and =text= members, and generated fields can build shared
+=LocalOperator= tokens through =localSingle= and =localPair= without duplicating
+operator specs.  The public free-fermion sphere constructor now routes the
+DSL-backed case =dimension=10, include_antiholomorphic_copy=false= through
+=generated_fixtures.FreeFermion= for its operators, config, and basis.  The
+handwritten free-fermion path remains only for dimensions and antiholomorphic
+copies that are not yet instantiated by the DSL fixture.
+
+2026-06-12: attempted the eta-xi public route and kept the safe part only.  The
+torus DSL now spells the kernel as =elliptic_prime_form_log_derivative= instead
+of the shorthand =prime-log-d=.  The first attempt still used separate generated
+and handwritten kind spaces, so public eta-xi stayed on the handwritten path.
+
+2026-06-12: added descriptor =kind_namespace= so generated field kind ids can
+match the public handwritten namespace when a generated bulk preset must compose
+with handwritten extensions.  The Lisp DSL exposes this as =:kind-namespace=.
+The bc and eta-xi descriptors opt in to =bc= and =eta_xi= respectively.  With
+that compatibility layer, =Bc.sphere(.{ .include_antiholomorphic_copy = false })=
+now routes through =generated_fixtures.Bc= for operators, config, and basis,
+while the antiholomorphic and disk boundary extensions remain handwritten.
+
+2026-06-12: routed =EtaXi.sphere(.{ .include_antiholomorphic_copy = false })=
+through =generated_fixtures.EtaXiSphere= and =generated_fixtures.EtaXiTorus= for
+operators, configs, basis, and text.  The targeted torus benchmark gates pass
+with preserved counts for =eta_xi_torus_3_4= and =eta_xi_torus_4_5= after the
+descriptor path emits the neutral tensor factor for tensorless Wick terms.
+
+2026-06-12: routed the public =FreeBoson.make(.{ .dimension = 10 })= bulk path
+through =generated_fixtures.FreeBoson= for operators, config, basis, and text.
+The DSL gained per-field =:kind= aliases so generated field names such as
+=profile= can lower to public families such as =profile_x= without handwritten
+kind remapping.  Linear-conservation zero modes now split selector fields by
+label role, sending momentum fields to =exp_kind_ids= and profile fields to
+=profile_kind_ids=.  The generated route still keeps the handwritten boundary
+extension and vector-profile helper as compatibility layers.
+
+Verification: =zig build regen= completes; =zig build test= passes; direct
+generated ABI tests pass; =git diff --check= passes; the optimized
+=basis-bench= gate preserves the same structural hashes; and the focused
+=exp2= correlator benchmark preserves the free-boson zero-mode/base-case
+counts.
+
+* Priority 10: Boundary And Broader Worldsheet Applications
+
+** Scope
+
+Boundary rules are intentionally later than bulk unification.  The current
+boundary/disk code has one main consumer and more surface-specific conventions.
+
+** Plan
+
+Reserve descriptor space now for:
+
+- boundary fields;
+- bulk-boundary Wick rules;
+- image/doubling prescriptions;
+- Chan-Paton labels;
+- brane/projector data;
+- boundary zero modes;
+- open/closed mixed correlator configs.
+
+Do not implement a general boundary descriptor until the bulk descriptor path
+has replaced the duplicated presets.
+
+** Acceptance
+
+- Boundary extensions continue to work as handwritten layers.
+- The descriptor schema has a clear future location for boundary data.
+- The bulk refactor does not make boundary support harder.
+
+* User Experience Requirements
+
+The final DSL should support this authoring style:
+
+#+begin_example
+(define-cft-preset (bc-system :lambda lambda :rank r)
+  (:theory-id 42)
+  (surface sphere :sphere :rational)
+  (chiral-field b :fermionic :weight lambda
+         :quantum-numbers ((ghost-number -1)))
+  (chiral-field c :fermionic :weight (- 1 lambda)
+         :zero-mode t
+         :quantum-numbers ((ghost-number 1)))
+  (wick (b z) (c w)
+    (/ 1 (- z w)))
+  (zero-mode
+    (grassmann-top-form
+      :field c
+      :count r
+      :basis polynomial
+      :local-coordinate bpz-primary)))
+#+end_example
+
+The exact syntax can change, but the user-level capabilities should not:
+
+- parameterized theories;
+- weights as data;
+- basis derived or explicitly overridden;
+- zero modes declared as measures;
+- infinity behavior declared or derived;
+- no handwritten Zig per new free-field theory;
+- precise errors at macroexpansion time.
+
+* Definition Of Done
+
+This program is complete when:
+
+1. The four existing bulk free-field theories are generated from Lisp
+   descriptors for correlators, basis, zero modes, infinity metadata, and ABI.
+2. Handwritten Zig bulk presets are removed or reduced to compatibility aliases.
+3. Adding a new simple first-order free-field system requires only a Lisp DSL
+   declaration and no new Zig code.
+4. Zero-mode behavior is expressed as descriptor measure data, not a closed list
+   of named preset cases.
+5. =zig build test= catches stale generated sources.
+6. Generated diagnostics name the preset, rule, field, and bad reference.
+7. Golden numeric tests pin the core worldsheet correlators and signs.
+8. Existing public API users do not need to change imports.
+
+* Risk Controls
+
+- Keep each priority independently testable.
+- Preserve handwritten presets until generated parity is proven.
+- Do not delete a handwritten theory before its descriptor-generated version has
+  correlator, basis, zero-mode, infinity, and benchmark parity.
+- Keep raw low-level descriptor forms available internally until the DSL sugar
+  fully covers current use.
+- Do not generalize zero-mode mathematics by buffer resizing alone; every new
+  measure kernel needs an explicit formula and tests.
+
+* Immediate Next Actions
+
+1. Implement Priority 0 golden tests.
+2. Implement Priority 1 scalar monomials.
+3. Implement Priority 2 regeneration and stable IDs.
+4. Start Priority 3 macro compiler changes only after the first two mechanical
+   changes are passing, so user-facing diagnostics can target the new data
+   model.

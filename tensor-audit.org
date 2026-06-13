@@ -1,0 +1,109 @@
+Deep Audit: tensor-code Invariant Generation
+
+ Context
+
+ Audit of the invariant-basis generation feature (Context.invariantBasis in src/tensor-code/context.zig, projector machinery in src/tensor-code/projector-constructor.zig,
+ ~29k lines total), requested against three questions: mathematical soundness, guaranteed independence of generated invariants, and biggest performance bottlenecks — all
+ judged against the rules in AGENTS.md. Findings below were verified by direct code reading, not just sub-agent reports.
+
+ Verdict summary
+
+ - Counting/enumeration: sound. Path counting includes outer multiplicities, enumeration materializes one node per multiplicity copy, and a hard cross-check
+ (error.PathCountMismatch, context.zig:115) forces count == enumeration.
+ - Independence: guaranteed in named mode, NOT guaranteed in expanded mode. The Gram-solver expansion path drops multiplicity_copy, so two coupling steps that differ only by
+ copy index expand to identical formulas → linearly dependent invariants. This is the one genuine soundness hole found.
+ - Projector solver: exact arithmetic, idempotency partially verified, two unverified assumptions (greedy contraction matching; contraction-table constants).
+ - Performance: the dominant cost is early symbolic expansion (already documented in org/tensor-code/tensor-only-performance-handoff.org), compounded by per-access rebuilds
+ of merged term sets and 88 hardcoded std.heap.page_allocator call sites in the WIP diff.
+
+ ---
+ 1. Mathematical soundness of counting/enumeration
+
+ The model: invariants of leg₁⊗…⊗legₙ ↔ paths in the fusion graph through sequential left-to-right coupling. This is standard (coupling-tree basis); dim Inv = Σ over channels
+ of products of outer multiplicities.
+
+ Verified sound:
+ - countContinuations (context.zig:1874) multiplies suffix counts by term.multiplicity and uses checked u128 arithmetic; memoized on (next_index, current_irrep) — correct
+ since the suffix count is independent of the prefix.
+ - enumerateInvariantPaths (context.zig:1778) loops for (0..term.multiplicity) |copy| (line ~1826), creating a distinct node + distinct ProjectorId per copy (intern key
+ includes multiplicity_copy, context.zig:1901-1916).
+ - invariantBasis enforces path_count == paths.items.len else error.PathCountMismatch (context.zig:115) — a strong self-check tying the two independent code paths together.
+ - Decompositions come from the shifted-weight (Racah–Speiser/Klimyk) method in generic-highest-weight-backend.zig; final multiplicities are checked non-negative
+ (error.NegativeShiftedWeightMultiplicity) and overflow-checked into u16. Tests pin SU(2) 2⁴ → 2 paths and Spin(10) 16¹² → 73,744 paths (count == stored count).
+
+ Minor gaps: .fixed tree policy unimplemented; multiplicities > 65535 error out cleanly (fine for physical cases).
+
+ 2. Independence of generated invariants — the soundness hole
+
+ Distinct fusion paths give linearly independent invariants only if each multiplicity copy gets a different intertwiner. The code guarantees this symbolically but not in
+ expanded rendering:
+
+ - multiplicity_copy appears nowhere in projector-constructor.zig (grep: zero hits). The solver is multiplicity-blind.
+ - structuralProjectorSpecFromOrthogonalStep (context.zig:4148) builds the StructuralProjectorSpec from the step without multiplicity_copy, even though
+ OrthogonalStructuralStep carries it (context.zig:1996). So appendLocalStructuralTerm (context.zig:3663) emits the same term stream for copy 0 and copy 1.
+ - Some formula-kind predicates do guard (isIdentityProductStep context.zig:2044, isCartanProductStep :3367, isSimpleAdjointAdjointStep :3445, isSimpleAdjointPairSingletStep
+ :3457 — all if (step.multiplicity_copy != 0) return false;), routing higher copies to .named_only. orthogonalStructuralStep (context.zig:1979) has no such guard, and its
+ audit is unconditionally "verified" (exactGramProjectorFormulaAudit(), context.zig:1955), so expansion proceeds.
+
+ Consequence: for any SO(N) tensor channel with outer multiplicity ≥ 2 (e.g. [2,1]⊗[2,1] ⊃ [2,1] twice), the basis counts m copies but renders m identical expanded invariants
+ — a silently degenerate basis. In named mode the invariants stay distinct (names carry the copy index), so consumers of named output are unaffected.
+
+ Secondary independence assumptions (lower risk, currently unverified):
+ - The Gram inner product structuralCandidateInnerProduct (projector-constructor.zig:10045-10084) uses greedy first-match pairing of primitives with no backtracking and no
+ sum over matchings. This is correct only if at most one right slot can contract non-trivially with each left slot (slots typed by block/rank). If two slots ever admit
+ nonzero contraction, the result is order-dependent and wrong. There is no assert that the admissible matching is unique.
+ - Contraction-table constants (binomials, gamma product coefficients, spinor tower norms spinorTowerPrimitiveNorm :10205 — rank and 2^⌊N/2⌋±… factors) are the load-bearing
+ input to the Gram solve. A wrong constant produces a plausible but wrong projector silently: P = Σ Eᵢ(G⁻¹)ᵢⱼEⱼ† is idempotent by construction only if G is the true Gram
+ matrix. Existing checks are good but partial: Young candidates are verified quasi-idempotent (normalizedBrauerIdempotentCandidate :7357 requires P² ∝ P), trace-free
+ candidates are verified annihilated by trace generators (assertTraceFreeBrauerCandidate), and an unsupported contraction errors loudly rather than returning zero. But no
+ end-to-end P² = P or Tr P = dim check exists for the final Gram-assembled projector.
+
+ Arithmetic is exact throughout (Rational i64 / WideRational i128 with GCD pre-reduction and checked ops → error.GramIntegerOverflow); zero tests are exact numerator checks;
+ singular Gram → error.SingularGramMatrix. No float anywhere. Sound.
+
+ 3. Biggest performance bottlenecks (ranked)
+
+ 1. Early symbolic expansion in the tensor-only Brauer solver — endpoint projector words × raw diagrams × words again → expanded primitive terms → merge after the fact. Young
+ symmetrizers contribute factorial(slot_count) words (8 boxes → 40,320; three endpoints multiply). The budget check exists but the materialization still happens below
+ budget. This is the documented central issue (tensor-only-performance-handoff.org: "The central issue is early symbolic expansion"; fix #1 "Factorized Endpoint Projector
+ Actions — expected gain: largest"). Direct AGENTS.md rule-2 violation (large intermediates).
+ 2. Merged pair-term sets rebuilt on every term access. appendTensorOnlyProgramTermAt → tensorOnlyProgramPairTerms (projector-constructor.zig:5947) reconstructs the full
+ merged hash-set per call; iterating a program's terms via appendTerm(i) is quadratic per pair. Counted once during indexing (indexTensorOnlyPairTermWindows), then recomputed
+ on access. The page API only amortizes within a page. Handoff fix #3 (pair-level merged term index) targets exactly this. Rule-3 violation (redundant calculation).
+ 3. Dense Gram fill: O(candidates²) entries × O(endpoint_actions²) per inner product, endpoint applications recomputed across rows/columns/emission (handoff fix #2: cache
+ endpoint action per raw boundary pattern).
+ 4. Hardcoded std.heap.page_allocator — 88 sites (WIP diff converts fixed arrays to slices freed via page_allocator, e.g. TensorOnlyCandidateWord.deinit,
+ BrauerCandidateBuffer.deinit). Page-granularity allocations in inner loops are syscall-cost and bypass the allocator-passing discipline used everywhere else in the file's
+ public API. Also large BrauerCandidate structs still copied by value through buffers.
+ 5. No parallelization despite embarrassingly parallel structure (Gram entries, per-pair term emission, per-path expansion) — AGENTS.md rule 5 asks that data flow permit it;
+ current data structures (shared mutable program, page_allocator) would block it.
+ 6. Minor: O(n²) insertion sort + linear duplicate scans over candidate signatures; countContinuations memo is per-request (decompositions are interned globally, so
+ re-deriving the memo is cheap by comparison).
+
+ 4. AGENTS.md compliance notes
+
+ - Rule 2 (no large intermediates): violated by bottlenecks 1–2 (acknowledged in the handoff org).
+ - Rule 3 (no redundant calculation): violated by 2–3.
+ - Rule 5 (parallelizable data flow): not yet satisfied in the solver.
+ - Rule 8 (literate org in sync): satisfied — the uncommitted 3,636-line code diff is mirrored by a 3,469-line projector-constructor.org diff.
+ - Rule 10 (tests pin precise invariants): mostly satisfied (PathCountMismatch, quasi-idempotency, trace-annihilation, exact-value Gram tests); the precise missing invariants
+ are listed below.
+
+ Recommended remediation (priority order)
+
+ 1. Close the multiplicity hole (soundness): in orthogonalStructuralStep (context.zig:1979) add if (step.multiplicity_copy != 0) return null; so copies ≥ 1 fall to
+ .named_only (blocked from expansion) like the other guarded formula kinds — a 1-line conservative fix. Longer term: make StructuralProjectorSpec multiplicity-aware (solver
+ returns a basis of the m-dimensional intertwiner space; copy k selects the k-th Gram-orthogonalized candidate).
+ 2. Add final-projector self-checks (test-time, per AGENTS.md rule 10): for representative channels, verify P² = P and Tr P = dim(output) from the emitted terms; add an
+ assert in structuralCandidateInnerProduct that no second nonzero pairing exists for any left slot (validates the greedy-matching assumption exactly where it could silently
+ break).
+ 3. Performance: execute the handoff plan in its stated order — factorized endpoint actions (#1), endpoint-action cache (#2), pair-level merged term index (#3, also fixes
+ per-access rebuild), budget-before-Gram (#4). Replace hardcoded page_allocator with the caller-passed allocator already threaded through the public API.
+
+ Verification
+
+ - Reproduce the independence bug: build an SO(N) basis containing a channel with outer multiplicity 2 (e.g. legs with Young shapes [2,1], [2,1] coupling to [2,1]), render
+ both copies with .projectors = .expanded_terms, and diff the term streams — currently identical.
+ - After fix 1: same request must return error.ProjectorExpansionNotImplemented for copy ≥ 1 (or distinct streams after the multiplicity-aware solver).
+ - Existing suite: zig test src/tensor-code/context.zig and the projector-constructor filters listed in the handoff org; benchmarks/tensor_only_scale_audit for performance
+ regressions.

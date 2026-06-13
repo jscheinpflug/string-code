@@ -4,6 +4,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const allow_stale_generated = b.option(
+        bool,
+        "allow-stale-generated",
+        "Allow generated CFT Zig files to skip Lisp source-hash checks",
+    ) orelse false;
 
     const tensor_mod = b.addModule("tensor-code", .{
         .root_source_file = b.path("src/tensor-code/tensor-code.zig"),
@@ -76,6 +81,20 @@ pub fn build(b: *std.Build) void {
     });
     const run_generated_abi_tests = b.addRunArtifact(generated_abi_tests);
 
+    const check_generated_hashes = b.addExecutable(.{
+        .name = "check_cft_generated_hashes",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/cft-code/correlators/check_generated_hashes.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_check_generated_hashes = b.addRunArtifact(check_generated_hashes);
+    run_check_generated_hashes.addArgs(&.{
+        "src/cft-code/correlators/generated_fixtures.zig",
+        "src/cft-code/correlators/generated_dispatch.zig",
+    });
+
     const generated_abi_lib = b.addLibrary(.{
         .name = "string_code_cft_generated",
         .root_module = generated_abi_mod,
@@ -87,6 +106,7 @@ pub fn build(b: *std.Build) void {
     const run_basis_generation_compare = addBasisGenerationRun(b, target, optimize, "basis_generation_bc_compare", "benchmarks/basis_generation_bc_compare.zig");
     const run_basis_generation_deep_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_deep_bench", "benchmarks/basis_generation_deep_bench.zig");
     const run_basis_generation_operator_bench = addBasisGenerationRun(b, target, optimize, "basis_generation_operator_bench", "benchmarks/basis_generation_operator_bench.zig");
+    const run_tensor_only_scale_audit = addTensorOnlyScaleAuditRun(b, target, optimize);
     const correlator_kernel_median = b.addExecutable(.{
         .name = "correlator_kernel_median",
         .root_module = b.createModule(.{
@@ -105,12 +125,18 @@ pub fn build(b: *std.Build) void {
     b.default_step.dependOn(&run_root_tests.step);
     b.default_step.dependOn(&run_nlsm_tests.step);
     b.default_step.dependOn(&run_generated_abi_tests.step);
+    if (!allow_stale_generated) {
+        b.default_step.dependOn(&run_check_generated_hashes.step);
+    }
 
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_cft_kernel_tests.step);
     test_step.dependOn(&run_root_tests.step);
     test_step.dependOn(&run_nlsm_tests.step);
     test_step.dependOn(&run_generated_abi_tests.step);
+    if (!allow_stale_generated) {
+        test_step.dependOn(&run_check_generated_hashes.step);
+    }
 
     const test_nlsm_step = b.step("test-nlsm", "Run nlsm-code tests");
     test_nlsm_step.dependOn(&run_nlsm_tests.step);
@@ -126,6 +152,13 @@ pub fn build(b: *std.Build) void {
 
     const basis_operator_bench_step = b.step("basis-operator-bench", "Run direct operator basis-generation benchmark");
     basis_operator_bench_step.dependOn(&run_basis_generation_operator_bench.step);
+
+    const tensor_only_scale_audit_step = b.step("tensor-only-scale-audit", "Run tensor-only pre-pivot scale audit");
+    tensor_only_scale_audit_step.dependOn(&run_tensor_only_scale_audit.step);
+
+    const regen_cft = b.addSystemCommand(&.{ "env", "XDG_CACHE_HOME=/tmp/string-code-sbcl-cache", "sbcl", "--script", "lisp/regen.lisp" });
+    const regen_step = b.step("regen", "Regenerate CFT Lisp descriptor Zig sources");
+    regen_step.dependOn(&regen_cft.step);
 
     const correlator_kernel_median_step = b.step("correlator-kernel-median", "Run median correlator kernel benchmark");
     correlator_kernel_median_step.dependOn(&run_correlator_kernel_median.step);
@@ -157,4 +190,32 @@ fn addBasisGenerationRun(
         }),
     });
     return b.addRunArtifact(exe);
+}
+
+fn addTensorOnlyScaleAuditRun(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Run {
+    const exe = b.addExecutable(.{
+        .name = "tensor_only_scale_audit",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmarks/tensor_only_scale_audit.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{
+                    .name = "projector-constructor",
+                    .module = b.createModule(.{
+                        .root_source_file = b.path("src/tensor-code/projector-constructor.zig"),
+                        .target = target,
+                        .optimize = optimize,
+                    }),
+                },
+            },
+        }),
+    });
+    const run = b.addRunArtifact(exe);
+    if (b.args) |args| run.addArgs(args);
+    return run;
 }

@@ -11,6 +11,7 @@
    #:add-metadata
    #:add-wick-rule
    #:add-zero-mode
+   #:add-zero-mode-measure
    #:make-wick-term
    #:emit-zig-descriptor
    #:write-build-manifest
@@ -18,6 +19,7 @@
    #:make-runtime-context
    #:destroy-runtime-context
    #:set-runtime-constant
+   #:runtime-field-metadata
    #:intern-runtime-symbol
    #:insert-runtime-field
    #:normal-order-runtime-field
@@ -36,6 +38,7 @@
 (defstruct (theory (:constructor %make-theory))
   name
   hash
+  kind-namespace
   (symbols (make-array 0 :adjustable t :fill-pointer 0))
   (parameters nil)
   (quantum-numbers nil)
@@ -52,10 +55,14 @@
 (defstruct field-quantum-number field quantum-number value)
 (defstruct surface id kind coordinate-model modular-parameter)
 (defstruct label-schema id role symbol)
-(defstruct field id symbol insertion labels statistics zero-mode weight anti-weight)
+(defstruct field
+  id symbol kind-symbol insertion labels statistics support zero-mode weight anti-weight
+  infinity-behavior infinity-label)
 (defstruct wick-term scalars coordinates tensors actions residuals)
 (defstruct wick-rule surface left right terms constraints)
-(defstruct zero-mode surface kind consumes normalization two-pi-power)
+(defstruct zero-mode
+  surface selector-fields exact-count allow-derivatives allow-infinity
+  saturation normalization normalization-factors)
 (defstruct (runtime-context (:constructor %make-runtime-context))
   handle
   theory-id
@@ -141,16 +148,23 @@
                  :role (role-of-label label)
                  :symbol (add-symbol theory (string-downcase (string (label-name label)))))))
 
-(defun add-field (theory symbol insertion labels statistics &key zero-mode weight anti-weight)
+(defun add-field
+    (theory symbol insertion labels statistics
+     &key kind-symbol support zero-mode weight anti-weight infinity-behavior infinity-label)
   (let ((id (length (theory-fields theory))))
     (push (make-field :id id
                       :symbol (add-symbol theory symbol)
+                      :kind-symbol (when kind-symbol
+                                     (add-symbol theory (descriptor-symbol-name kind-symbol)))
                       :insertion insertion
                       :labels (make-label-rows theory labels)
                       :statistics statistics
+                      :support support
                       :zero-mode zero-mode
                       :weight weight
-                      :anti-weight anti-weight)
+                      :anti-weight anti-weight
+                      :infinity-behavior infinity-behavior
+                      :infinity-label infinity-label)
           (theory-fields theory))
     id))
 
@@ -168,6 +182,7 @@
     (cons
      (case (first form)
        (:rational form)
+       (:scalar-monomial form)
        (:parameter form)
        (:field-label form)
        (:add (list :add
@@ -203,10 +218,34 @@
                         :constraints constraints)
         (theory-wick-rules theory)))
 
-(defun add-zero-mode (theory surface kind consumes &key (normalization :one) (two-pi-power 0))
-  (push (make-zero-mode :surface surface :kind kind :consumes consumes
-                        :normalization normalization :two-pi-power two-pi-power)
+(defun zero-mode-alias-measure (kind)
+  (ecase kind
+    (:constant-fermion (values :grassmann-count 1 nil nil))
+    (:top-form-fermion (values :grassmann-top-form 3 t t))
+    (:boson-momentum-conservation (values :linear-conservation 0 nil t))))
+
+(defun add-zero-mode-measure
+    (theory surface selector-fields saturation
+     &key exact-count allow-derivatives allow-infinity
+       (normalization :one) normalization-factors)
+  (push (make-zero-mode :surface surface
+                        :selector-fields selector-fields
+                        :exact-count (or exact-count 0)
+                        :allow-derivatives allow-derivatives
+                        :allow-infinity allow-infinity
+                        :saturation saturation
+                        :normalization normalization
+                        :normalization-factors normalization-factors)
         (theory-zero-modes theory)))
+
+(defun add-zero-mode (theory surface kind consumes &key (normalization :one))
+  (multiple-value-bind (saturation exact-count allow-derivatives allow-infinity)
+      (zero-mode-alias-measure kind)
+    (add-zero-mode-measure theory surface consumes saturation
+                           :exact-count exact-count
+                           :allow-derivatives allow-derivatives
+                           :allow-infinity allow-infinity
+                           :normalization normalization)))
 
 (defun by-id (items reader)
   (sort (copy-list items) #'< :key reader))
@@ -234,20 +273,31 @@
           (label-schema-symbol label)))
 
 (defun emit-field (stream field)
-  (format stream ".{ .id = ~D, .symbol = ~D, .insertion = .~A, .labels = &.{"
-          (field-id field) (field-symbol field) (zig-keyword (field-insertion field)))
+  (format stream ".{ .id = ~D, .symbol = ~D"
+          (field-id field) (field-symbol field))
+  (when (field-kind-symbol field)
+    (format stream ", .kind_symbol = ~D" (field-kind-symbol field)))
+  (format stream ", .insertion = .~A, .labels = &.{"
+          (zig-keyword (field-insertion field)))
   (loop for label in (field-labels field) for first = t then nil
         do (progn
              (unless first (format stream ", "))
              (emit-label stream label)))
   (format stream "}, .statistics = .~A"
           (zig-keyword (field-statistics field)))
+  (when (field-support field)
+    (format stream ", .support = .~A" (zig-keyword (field-support field))))
   (when (field-zero-mode field)
     (format stream ", .zero_mode_consumable = true"))
   (when (field-weight field)
     (format stream ", .weight = ~D" (field-weight field)))
   (when (field-anti-weight field)
     (format stream ", .anti_weight = ~D" (field-anti-weight field)))
+  (when (field-infinity-behavior field)
+    (format stream ", .infinity_behavior = .~A"
+            (zig-keyword (field-infinity-behavior field))))
+  (when (field-infinity-label field)
+    (format stream ", .infinity_label = ~D" (field-infinity-label field)))
   (format stream " }"))
 
 (defun emit-surface (stream surface)
@@ -311,6 +361,14 @@
      (format stream ".{ .rational = ")
      (emit-rational-row stream (second form) (third form))
      (format stream " }"))
+    (:scalar-monomial
+     (format stream ".{ .scalar_monomial = .{ .rational = ")
+     (emit-rational-row stream (second form) (third form))
+     (format stream ", .imaginary_power = ~D, .atom = " (fourth form))
+     (if (fifth form)
+         (format stream "~D" (fifth form))
+         (format stream "null"))
+     (format stream ", .atom_power = ~D } }" (sixth form)))
     (:parameter
      (format stream ".{ .parameter = ~D }" (second form)))
     (:field-label
@@ -370,6 +428,14 @@
         (format stream ".{ .rational = ")
         (emit-rational-row stream (second form) (third form))
         (format stream " }"))
+       (:monomial
+        (format stream ".{ .monomial = .{ .rational = ")
+        (emit-rational-row stream (second form) (third form))
+        (format stream ", .imaginary_power = ~D, .atom = " (fourth form))
+        (if (fifth form)
+            (format stream "~D" (fifth form))
+            (format stream "null"))
+        (format stream ", .atom_power = ~D } }" (sixth form)))
        (:parameter
         (format stream ".{ .parameter = ~D }" (second form)))
        (:neg-parameter-half
@@ -447,6 +513,15 @@
      (emit-label-ref stream (third form))
      (format stream " } }"))))
 
+(defun emit-action-factor (stream form)
+  (ecase (first form)
+    (:profile-derivative
+     (format stream ".{ .profile_derivative = .{ .profile = ")
+     (emit-label-ref stream (second form))
+     (format stream ", .index = ")
+     (emit-label-ref stream (third form))
+     (format stream " } }"))))
+
 (defun emit-side (stream side)
   (format stream ".~A" (side-name side)))
 
@@ -463,6 +538,8 @@
                  (lambda (out form) (emit-coordinate-factor theory out form)))
   (format stream ", .tensors = ")
   (emit-zig-list stream (wick-term-tensors term) #'emit-tensor-factor)
+  (format stream ", .actions = ")
+  (emit-zig-list stream (wick-term-actions term) #'emit-action-factor)
   (format stream ", .residuals = ")
   (emit-zig-list stream (wick-term-residuals term) #'emit-side)
   (format stream " }"))
@@ -479,16 +556,265 @@
   (format stream " }"))
 
 (defun emit-zero-mode (stream rule)
-  (format stream ".{ .surface = ~D, .kind = .~A, .consumes = "
-          (zero-mode-surface rule)
-          (zig-keyword (zero-mode-kind rule)))
-  (emit-id-list stream (zero-mode-consumes rule))
+  (format stream ".{ .surface = ~D, .selector = .{ .fields = "
+          (zero-mode-surface rule))
+  (emit-id-list stream (zero-mode-selector-fields rule))
+  (format stream ", .exact_count = ~D" (zero-mode-exact-count rule))
+  (when (zero-mode-allow-derivatives rule)
+    (format stream ", .allow_derivatives = true"))
+  (when (zero-mode-allow-infinity rule)
+    (format stream ", .allow_infinity = true"))
+  (format stream " }, .saturation = .~A"
+          (zig-keyword (zero-mode-saturation rule)))
   (unless (eq (zero-mode-normalization rule) :one)
     (format stream ", .normalization = ")
     (emit-scalar-factor stream (zero-mode-normalization rule)))
-  (unless (zerop (zero-mode-two-pi-power rule))
-    (format stream ", .two_pi_power = ~D" (zero-mode-two-pi-power rule)))
+  (when (zero-mode-normalization-factors rule)
+    (format stream ", .normalization_factors = ")
+    (emit-zig-list stream (zero-mode-normalization-factors rule)
+                   #'emit-scalar-factor))
   (format stream " }"))
+
+(defun basis-backend-dimension (metadata backend)
+  (let ((dimension (getf (rest backend) :dimension)))
+    (unless (and (integerp dimension) (plusp dimension))
+      (error "Basis backend ~S requires positive integer :dimension in ~S."
+             (first backend)
+             metadata))
+    dimension))
+
+(defun emit-basis-backend (stream metadata)
+  (let* ((backend (getf metadata :backend))
+         (denominator (getf metadata :tick-denominator)))
+    (unless (consp backend)
+      (error "Basis metadata must declare :backend in ~S." metadata))
+    (unless (and (integerp denominator) (plusp denominator))
+      (error "Basis metadata must declare positive integer :tick-denominator in ~S."
+             metadata))
+    (format stream ".{ .kind = .~A"
+            (zig-keyword (first backend)))
+    (case (first backend)
+      ((:free-fermion :free-boson)
+       (format stream ", .dimension = ~D"
+               (basis-backend-dimension metadata backend)))
+      ((:eta-xi :bc) nil)
+      (otherwise
+       (error "Unknown basis backend ~S in ~S." (first backend) metadata)))
+    (format stream ", .tick_denominator = ~D }" denominator)))
+
+(defun theory-symbol-text (theory id)
+  (aref (theory-symbols theory) id))
+
+(defun descriptor-field-by-name-ci (theory name)
+  (let ((target (string-downcase (string name))))
+    (or (find target (theory-fields theory)
+              :test #'string-equal
+              :key (lambda (field)
+                     (theory-symbol-text theory (field-symbol field))))
+        (error "Basis rule references unknown field ~S." name))))
+
+(defun basis-rule-dimension (metadata)
+  (basis-backend-dimension metadata (getf metadata :backend)))
+
+(defun emit-int-array (stream var values)
+  (format stream "const ~A = [_]i32{ " var)
+  (loop for value in values
+        for first = t then nil
+        do (format stream "~:[, ~;~]~D" first value))
+  (format stream " };~%"))
+
+(defun basis-oscillator-row
+    (&key field statistics first-tick step-tick base-weight-ticks
+       (derivative-step-ticks 1) (multiplicity 1) quantum-delta)
+  (list :field field :statistics statistics :first-tick first-tick
+        :step-tick step-tick :base-weight-ticks base-weight-ticks
+        :derivative-step-ticks derivative-step-ticks :multiplicity multiplicity
+        :quantum-delta quantum-delta))
+
+(defun basis-seed-row
+    (&key field (statistics :fermionic) first-weight-ticks (step-tick 1)
+       last-weight-ticks (multiplicity 1) quantum-delta)
+  (list :field field :statistics statistics :first-weight-ticks first-weight-ticks
+        :step-tick step-tick :last-weight-ticks last-weight-ticks
+        :multiplicity multiplicity :quantum-delta quantum-delta))
+
+(defun basis-render-row
+    (&key id name-symbol base-weight-ticks (derivative-step-ticks 1)
+       fixed-weight-ticks (show-label t))
+  (list :id id :name-symbol name-symbol :base-weight-ticks base-weight-ticks
+        :derivative-step-ticks derivative-step-ticks
+        :fixed-weight-ticks fixed-weight-ticks :show-label show-label))
+
+(defun basis-rule-rows (theory metadata)
+  (case (first (getf metadata :backend))
+    (:free-fermion
+     (let ((psi (descriptor-field-by-name-ci theory 'psi))
+           (dimension (basis-rule-dimension metadata)))
+       (list
+        :oscillators (list (basis-oscillator-row
+                            :field (field-id psi) :statistics :fermionic
+                            :first-tick 1 :step-tick 2 :base-weight-ticks 1
+                            :derivative-step-ticks 2 :multiplicity dimension
+                            :quantum-delta '(1)))
+        :seeds nil
+        :drop-empty-seed nil
+        :render-modes (list (basis-render-row
+                             :id (field-id psi) :name-symbol (field-symbol psi)
+                             :base-weight-ticks 1 :derivative-step-ticks 2))
+        :render-seed-bits nil)))
+    (:eta-xi
+     (let ((eta (descriptor-field-by-name-ci theory 'eta))
+           (xi (descriptor-field-by-name-ci theory 'xi)))
+       (list
+        :oscillators (list (basis-oscillator-row
+                            :field (field-id eta) :statistics :fermionic
+                            :first-tick 1 :step-tick 1 :base-weight-ticks 1
+                            :quantum-delta '(1))
+                           (basis-oscillator-row
+                            :field (field-id xi) :statistics :fermionic
+                            :first-tick 1 :step-tick 1 :base-weight-ticks 0
+                            :quantum-delta '(-1)))
+        :seeds (list (basis-seed-row
+                      :field (field-id xi) :first-weight-ticks 0
+                      :last-weight-ticks 0 :quantum-delta '(-1)))
+        :drop-empty-seed nil
+        :render-modes (list (basis-render-row
+                             :id (field-id eta) :name-symbol (field-symbol eta)
+                             :base-weight-ticks 1 :show-label nil)
+                            (basis-render-row
+                             :id (field-id xi) :name-symbol (field-symbol xi)
+                             :base-weight-ticks 0 :show-label nil))
+        :render-seed-bits (list (basis-render-row
+                                 :id 0 :name-symbol (field-symbol xi)
+                                 :base-weight-ticks 0 :fixed-weight-ticks 0
+                                 :show-label nil)))))
+    (:bc
+     (let ((b (descriptor-field-by-name-ci theory 'b))
+           (c (descriptor-field-by-name-ci theory 'c)))
+       (list
+        :oscillators (list (basis-oscillator-row
+                            :field (field-id b) :statistics :fermionic
+                            :first-tick 2 :step-tick 1 :base-weight-ticks 2
+                            :quantum-delta '(-1))
+                           (basis-oscillator-row
+                            :field (field-id c) :statistics :fermionic
+                            :first-tick 1 :step-tick 1 :base-weight-ticks -1
+                            :quantum-delta '(-1)))
+        :seeds (list (basis-seed-row
+                      :field (field-id c) :first-weight-ticks -1
+                      :last-weight-ticks 0 :quantum-delta '(1)))
+        :drop-empty-seed t
+        :render-modes (list (basis-render-row
+                             :id (field-id b) :name-symbol (field-symbol b)
+                             :base-weight-ticks 2 :show-label nil)
+                            (basis-render-row
+                             :id (field-id c) :name-symbol (field-symbol c)
+                             :base-weight-ticks -1 :show-label nil))
+        :render-seed-bits (list (basis-render-row
+                                 :id 0 :name-symbol (field-symbol c)
+                                 :base-weight-ticks -1 :fixed-weight-ticks -1
+                                 :show-label nil)
+                                (basis-render-row
+                                 :id 1 :name-symbol (field-symbol c)
+                                 :base-weight-ticks -1 :fixed-weight-ticks 0
+                                 :show-label nil)))))
+    (:free-boson
+     (let ((dx (descriptor-field-by-name-ci theory 'dx))
+           (dimension (basis-rule-dimension metadata)))
+       (list
+        :oscillators (list (basis-oscillator-row
+                            :field (field-id dx) :statistics :bosonic
+                            :first-tick 1 :step-tick 1 :base-weight-ticks 0
+                            :multiplicity dimension :quantum-delta nil))
+        :seeds nil
+        :drop-empty-seed nil
+        :render-modes (list (basis-render-row
+                             :id (field-id dx) :name-symbol (field-symbol dx)
+                             :base-weight-ticks 0))
+        :render-seed-bits nil)))
+    (otherwise
+     (error "Unknown basis backend ~S in ~S."
+            (first (getf metadata :backend)) metadata))))
+
+(defun emit-basis-oscillator-row (stream row delta-var)
+  (format stream ".{ .field = ~D, .statistics = .~A, .first_tick = ~D, .step_tick = ~D"
+          (getf row :field)
+          (zig-keyword (getf row :statistics))
+          (getf row :first-tick)
+          (getf row :step-tick))
+  (format stream ", .base_weight_ticks = ~D, .derivative_step_ticks = ~D, .multiplicity = ~D"
+          (getf row :base-weight-ticks)
+          (getf row :derivative-step-ticks)
+          (getf row :multiplicity))
+  (format stream ", .quantum_delta = &~A }" delta-var))
+
+(defun emit-basis-seed-row (stream row delta-var)
+  (format stream ".{ .field = ~D, .statistics = .~A, .first_weight_ticks = ~D, .step_tick = ~D, .last_weight_ticks = ~D"
+          (getf row :field)
+          (zig-keyword (getf row :statistics))
+          (getf row :first-weight-ticks)
+          (getf row :step-tick)
+          (getf row :last-weight-ticks))
+  (format stream ", .multiplicity = ~D, .quantum_delta = &~A }"
+          (getf row :multiplicity)
+          delta-var))
+
+(defun emit-basis-render-row (stream row)
+  (format stream ".{ .id = ~D, .name_symbol = ~D, .base_weight_ticks = ~D, .derivative_step_ticks = ~D"
+          (getf row :id)
+          (getf row :name-symbol)
+          (getf row :base-weight-ticks)
+          (getf row :derivative-step-ticks))
+  (when (getf row :fixed-weight-ticks)
+    (format stream ", .fixed_weight_ticks = ~D" (getf row :fixed-weight-ticks)))
+  (unless (getf row :show-label)
+    (format stream ", .show_label = false"))
+  (format stream " }"))
+
+(defun emit-basis-rule (stream theory metadata prefix)
+  (let* ((rule (basis-rule-rows theory metadata))
+         (oscillators (getf rule :oscillators))
+         (seeds (getf rule :seeds))
+         (render-modes (getf rule :render-modes))
+         (render-seed-bits (getf rule :render-seed-bits))
+         (oscillator-var (format nil "~A_basis_oscillators" prefix))
+         (seed-var (format nil "~A_basis_seeds" prefix))
+         (render-mode-var (format nil "~A_basis_render_modes" prefix))
+         (render-seed-var (format nil "~A_basis_render_seed_bits" prefix)))
+    (loop for row in oscillators
+          for index from 0
+          do (emit-int-array stream
+                             (format nil "~A_basis_oscillator_delta_~D" prefix index)
+                             (getf row :quantum-delta)))
+    (loop for row in seeds
+          for index from 0
+          do (emit-int-array stream
+                             (format nil "~A_basis_seed_delta_~D" prefix index)
+                             (getf row :quantum-delta)))
+    (format stream "const ~A = [_]d.BasisOscillatorFamily{~%" oscillator-var)
+    (loop for row in oscillators
+          for index from 0
+          do (progn
+               (format stream "    ")
+               (emit-basis-oscillator-row
+                stream row (format nil "~A_basis_oscillator_delta_~D" prefix index))
+               (format stream ",~%")))
+    (format stream "};~%")
+    (format stream "const ~A = [_]d.BasisSeedFamily{~%" seed-var)
+    (loop for row in seeds
+          for index from 0
+          do (progn
+               (format stream "    ")
+               (emit-basis-seed-row
+                stream row (format nil "~A_basis_seed_delta_~D" prefix index))
+               (format stream ",~%")))
+    (format stream "};~%")
+    (emit-row-array stream "BasisRenderAtom" render-mode-var
+                    render-modes #'emit-basis-render-row)
+    (emit-row-array stream "BasisRenderAtom" render-seed-var
+                    render-seed-bits #'emit-basis-render-row)
+    (values oscillator-var seed-var render-mode-var render-seed-var
+            (getf rule :drop-empty-seed))))
 
 (defun emit-row-array (stream type var rows printer)
   (format stream "const ~A = [_]d.~A{~%" var type)
@@ -516,7 +842,8 @@
         do (emit-row-array stream "WickTerm" var (wick-rule-terms rule)
                            (lambda (out term) (emit-wick-term theory out term)))))
 
-(defun emit-zig-descriptor (theory stream &key (descriptor-name "generated_descriptor") (prefix "generated"))
+(defun emit-zig-descriptor
+    (theory stream &key (descriptor-name "generated_descriptor") (prefix "generated") basis-metadata)
   (prepare-emitter-symbols theory)
   (let ((symbols-var (format nil "~A_symbols" prefix))
         (parameters-var (format nil "~A_parameters" prefix))
@@ -559,9 +886,16 @@
   (emit-row-array stream "ZeroModeRule" zero-modes-var
                   (reverse (theory-zero-modes theory))
                   #'emit-zero-mode)
+  (multiple-value-bind
+        (basis-oscillator-var basis-seed-var basis-render-mode-var
+         basis-render-seed-var basis-drop-empty-seed)
+      (when basis-metadata
+        (emit-basis-rule stream theory basis-metadata prefix))
   (format stream "pub const ~A = d.Descriptor{~%" descriptor-name)
   (format stream "    .theory_symbol = 0,~%")
   (format stream "    .theory_hash = ~D,~%" (theory-hash theory))
+  (when (theory-kind-namespace theory)
+    (format stream "    .kind_namespace = ~D,~%" (theory-kind-namespace theory)))
   (format stream "    .symbols = &~A,~%" symbols-var)
   (format stream "    .parameters = &~A,~%" parameters-var)
   (format stream "    .quantum_numbers = &~A,~%" quantum-numbers-var)
@@ -571,7 +905,17 @@
   (format stream "    .metadata = &~A,~%" metadata-var)
   (format stream "    .wick_rules = &~A,~%" wick-var)
   (format stream "    .zero_modes = &~A,~%" zero-modes-var)
-  (format stream "};~%")))
+  (when basis-metadata
+    (format stream "    .basis = ")
+    (emit-basis-backend stream basis-metadata)
+    (format stream ",~%")
+    (format stream "    .basis_rule = .{ .oscillators = &~A, .seed_families = &~A, .drop_empty_seed = ~A, .render_modes = &~A, .render_seed_bits = &~A },~%"
+            basis-oscillator-var
+            basis-seed-var
+            (if basis-drop-empty-seed "true" "false")
+            basis-render-mode-var
+            basis-render-seed-var))
+  (format stream "};~%"))))
 
 (defun write-build-manifest (path &key source-hash zig-path library-path)
   (with-open-file (stream path :direction :output)
@@ -602,6 +946,7 @@
         name-pointer-at term-pointer-at basis-mode-pointer-at term-expression
         %abi-last-error %abi-context-create
         %abi-context-destroy %abi-scalar-atom-name
+        %abi-field-metadata
         %abi-symbol-intern %abi-field-insert
         %abi-normal-ordering %abi-operator-list-freeze
         %abi-correlator-count %abi-correlator-run
@@ -772,6 +1117,13 @@
                (atom :uint32)
                (out-name :pointer)
                (out-name-len :pointer)))
+      (eval `(,defcfun ("sc_generated_field_metadata" %abi-field-metadata) :int
+               (theory-id :uint32)
+               (field-id :uint16)
+               (out-name :pointer)
+               (out-name-len :pointer)
+               (out-coordinate-arity :pointer)
+               (out-label-arity :pointer)))
       (eval `(,defcfun ("sc_generated_symbol_intern" %abi-symbol-intern) :int
                (context :pointer)
                (name :string)
@@ -912,7 +1264,7 @@
       (gethash name (runtime-context-constants context))
     (if present value name)))
 
-(defun make-runtime-context (&key library theory-id constants)
+(defun make-runtime-context (&key library theory-id basis-metadata constants)
   (unless theory-id
     (error "A generated theory id is required."))
   (when library
@@ -922,6 +1274,7 @@
     (when (null-pointer-p* handle)
       (check-abi -1))
     (%make-runtime-context :handle handle :theory-id theory-id
+                           :basis-metadata basis-metadata
                            :constants (normalize-runtime-constants constants))))
 
 (defun destroy-runtime-context (context)
@@ -945,6 +1298,33 @@
     (if (and (> id 0) (<= id (length symbols)))
         (or (aref symbols (1- id)) `(:symbol ,id))
         `(:symbol ,id))))
+
+(defun runtime-field-metadata (context field-id)
+  "Return field name, coordinate arity, and label arity for FIELD-ID."
+  (let ((out-name (foreign-alloc* :pointer))
+        (out-name-len (foreign-alloc* :size))
+        (out-coordinate-arity (foreign-alloc* :size))
+        (out-label-arity (foreign-alloc* :size)))
+    (unwind-protect
+         (progn
+           (check-abi
+            (%abi-field-metadata
+             (runtime-context-theory-id context)
+             field-id
+             out-name
+             out-name-len
+             out-coordinate-arity
+             out-label-arity))
+           (values
+            (foreign-string-to-lisp*
+             (mem-ref* out-name :pointer)
+             :count (mem-ref* out-name-len :size))
+            (mem-ref* out-coordinate-arity :size)
+            (mem-ref* out-label-arity :size)))
+      (foreign-free* out-label-arity)
+      (foreign-free* out-coordinate-arity)
+      (foreign-free* out-name-len)
+      (foreign-free* out-name))))
 
 (defun intern-runtime-symbol (context name)
   (let ((out (foreign-alloc* :uint32)))
@@ -993,37 +1373,8 @@
            (mem-ref* out :size))
       (foreign-free* out))))
 
-(defparameter *basis-runtime-metadata*
-  '((1 :presentation free-fermion-10
-     :tick-denominator 2
-     :quantum-numbers ((fermion-number :slot 0 :kind :zn :modulus 2)
-                       (spin10 :slot nil :kind :rep))
-     :seed-bits nil)
-    (2 :presentation eta-xi-sphere
-     :tick-denominator 1
-     :quantum-numbers ((eta-xi-number :slot 0 :kind :u1))
-     :seed-bits ((0 :operator xi :weight 0 :quantum-number ((u1 eta-xi-number -1)))))
-    (3 :presentation eta-xi-torus
-     :tick-denominator 1
-     :quantum-numbers ((eta-xi-number :slot 0 :kind :u1))
-     :seed-bits ((0 :operator xi :weight 0 :quantum-number ((u1 eta-xi-number -1)))))
-    (4 :presentation bc
-     :tick-denominator 1
-     :quantum-numbers ((ghost-number :slot 0 :kind :u1))
-     :seed-bits ((0 :operator c :weight -1 :quantum-number ((u1 ghost-number 1)))
-                 (1 :operator c :weight 0 :quantum-number ((u1 ghost-number 1)))))
-    (5 :presentation free-boson-10
-     :tick-denominator 1
-     :quantum-numbers ((spin10 :slot nil :kind :rep))
-     :seed-bits nil)
-    (100 :presentation product-free-boson-10-free-boson-10
-     :tick-denominator 1
-     :quantum-numbers nil
-     :seed-bits nil)))
-
 (defun basis-runtime-metadata (context)
   (or (runtime-context-basis-metadata context)
-      (cdr (assoc (runtime-context-theory-id context) *basis-runtime-metadata*))
       (error "No basis runtime metadata for theory id ~D."
              (runtime-context-theory-id context))))
 
@@ -1083,11 +1434,7 @@
   "Return a basis-only product runtime backed by a generated product presentation."
   (let ((theory-ids (mapcar #'runtime-context-theory-id runtimes)))
     (cond
-      ((and (= (length theory-ids) 2)
-            (or (and (= (first theory-ids) 1)
-                     (= (second theory-ids) 1))
-                (and (member (first theory-ids) '(2 3 4 5))
-                     (member (second theory-ids) '(2 3 4 5)))))
+      ((= (length theory-ids) 2)
        (%make-runtime-context :handle nil
                               :theory-id (basis-product-pair-id
                                           (first theory-ids)

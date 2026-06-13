@@ -1,5 +1,6 @@
 const std = @import("std");
 const basis_generation = @import("../basis-generation/basis-generation.zig");
+const generated_fixtures = @import("../correlators/generated_fixtures.zig");
 const shared = @import("shared.zig");
 const declare = shared.declare;
 
@@ -38,17 +39,19 @@ fn zeroSector(comptime sector: ZeroSector) zero_mode.Sector {
 
 const BcSphereConfig = struct {
     include_antiholomorphic_copy: bool = true,
+    quantum_schema: []const basis_generation.Quantum = &basis_generation.Preset.ghost_schema,
 };
 
 /// bcSphere builds the generated preset type for the sphere bc ghost CFT.
 pub fn bcSphere(comptime cfg: BcSphereConfig) type {
+    if (!cfg.include_antiholomorphic_copy) return GeneratedBcSphere;
     return struct {
         /// op exposes bc ghost local operator builders.
         pub const op = BcSphereOp(cfg.include_antiholomorphic_copy);
         /// config exposes named correlator configs for this preset.
         pub const config = BcSphereCorrelatorConfig(cfg);
         /// basis streams compact bc ghost mode words.
-        pub const basis = BcBasis;
+        pub const basis = BcBasis(cfg);
         /// text exposes bounded result-inspection sinks.
         pub const text = shared.text;
         /// local constructs a label-preserving local-operator builder.
@@ -63,82 +66,117 @@ pub fn bcSphere(comptime cfg: BcSphereConfig) type {
     };
 }
 
+const GeneratedBcSphere = struct {
+    const Base = generated_fixtures.Bc;
+
+    /// op exposes descriptor-generated bc ghost local operator builders.
+    pub const op = struct {
+        /// b builds a holomorphic b-ghost insertion.
+        pub fn b(builder: anytype, n: u8, z: Handle.Coord) !Operator {
+            return Base.field("b").localSingle(builder, z, n, .{});
+        }
+
+        /// c builds a holomorphic c-ghost insertion.
+        pub fn c(builder: anytype, n: u8, z: Handle.Coord) !Operator {
+            return Base.field("c").localSingle(builder, z, n, .{});
+        }
+    };
+    /// config exposes descriptor-generated correlator configs for this preset.
+    pub const config = Base.config;
+    /// basis streams descriptor-generated compact bc ghost mode words.
+    pub const basis = Base.basis;
+    /// text exposes bounded result-inspection sinks.
+    pub const text = Base.text;
+
+    /// local constructs a label-preserving local-operator builder.
+    pub fn local(allocator: std.mem.Allocator) !Builder {
+        return shared.Local.init(allocator);
+    }
+
+    /// correlator streams descriptor-generated rule matches for bc insertions.
+    pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+        return shared.streamCorrelator(config_ptr, ops, sink);
+    }
+};
+
 fn bcModeCapacity(comptime max_level_ticks: u32) usize {
     if (max_level_ticks == 0) return 0;
     return max_level_ticks + if (max_level_ticks >= 2) max_level_ticks - 1 else 0;
 }
 
-const BcBasis = struct {
-    /// quantum_schema carries the one-slot ghost-number filter.
-    pub const quantum_schema = basis_generation.Preset.ghost_schema;
-    /// render_modes names compact oscillator modes for state/operator text output.
-    pub const render_modes = [_]basis_generation.RenderAtom{
-        .{ .id = kind(.b), .name = "b", .base_weight_ticks = 2, .show_label = false },
-        .{ .id = kind(.c), .name = "c", .base_weight_ticks = -1, .show_label = false },
-    };
-    /// render_seed_bits names finite c-ghost seed factors.
-    pub const render_seed_bits = [_]basis_generation.RenderAtom{
-        .{ .id = 0, .name = "c", .base_weight_ticks = -1, .fixed_weight_ticks = -1, .show_label = false },
-        .{ .id = 1, .name = "c", .base_weight_ticks = -1, .fixed_weight_ticks = 0, .show_label = false },
-    };
-    /// render_table maps compact bc ids to local ghost fields.
-    pub const render_table = basis_generation.RenderTable{ .modes = &render_modes, .seed_bits = &render_seed_bits };
+fn BcBasis(comptime cfg: BcSphereConfig) type {
+    return struct {
+        /// quantum_schema carries the one-slot ghost-number filter.
+        pub const quantum_schema = cfg.quantum_schema;
+        /// render_modes names compact oscillator modes for state/operator text output.
+        pub const render_modes = [_]basis_generation.RenderAtom{
+            .{ .id = kind(.b), .name = "b", .base_weight_ticks = 2, .show_label = false },
+            .{ .id = kind(.c), .name = "c", .base_weight_ticks = -1, .show_label = false },
+        };
+        /// render_seed_bits names finite c-ghost seed factors.
+        pub const render_seed_bits = [_]basis_generation.RenderAtom{
+            .{ .id = 0, .name = "c", .base_weight_ticks = -1, .fixed_weight_ticks = -1, .show_label = false },
+            .{ .id = 1, .name = "c", .base_weight_ticks = -1, .fixed_weight_ticks = 0, .show_label = false },
+        };
+        /// render_table maps compact bc ids to local ghost fields.
+        pub const render_table = basis_generation.RenderTable{ .modes = &render_modes, .seed_bits = &render_seed_bits };
 
-    /// modeCapacity returns the finite oscillator-band capacity for a level budget.
-    pub fn modeCapacity(comptime max_level_ticks: u32) usize {
-        return bcModeCapacity(max_level_ticks);
-    }
-
-    /// seedCapacity returns the number of finite ghost primary seeds.
-    pub fn seedCapacity() usize {
-        return 3;
-    }
-
-    /// writeSeeds writes finite c-seed subsets into a product quantum vector.
-    pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
-        const seed_families = [_]basis_generation.SeedFamily{basis_generation.Preset.bcSeedFamily(kind(.c), 0)};
-        var seed_options_storage: [2]basis_generation.SeedOption = undefined;
-        const seed_options = try basis_generation.buildSeedOptions(&seed_families, &seed_options_storage);
-        var local_seeds_storage: [4]basis_generation.Seed = undefined;
-        var local_quantum_storage: [4]i32 = undefined;
-        const local_seeds = try basis_generation.buildFermionicSeedSubsets(seed_options, quantum_schema.len, &local_seeds_storage, &local_quantum_storage);
-        const seed_count = local_seeds.len - 1;
-        if (seeds.len < seed_count or quantum_storage.len < seed_count * total_quantum_count) return error.ContextTooSmall;
-        for (local_seeds[1..], 0..) |seed, index| {
-            seeds[index] = try basis_generation.copySeed(seed, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
+        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
+            return bcModeCapacity(max_level_ticks);
         }
-        return seeds[0..seed_count];
-    }
 
-    /// writeModes writes component-tagged positive bc ghost bands.
-    pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
-        const families = basis_generation.Preset.bcOscillatorFamilies(kind(.b), kind(.c), component);
-        const written = try basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
-        if (quantum_storage.len < written.len * total_quantum_count) return error.ContextTooSmall;
-        for (written, 0..) |*mode, index| {
-            mode.quantum_delta = try basis_generation.copyQuantumDelta(mode.quantum_delta, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+        /// seedCapacity returns the number of finite ghost primary seeds.
+        pub fn seedCapacity() usize {
+            return 3;
         }
-        return written;
-    }
 
-    /// stream enumerates compact bc ghost words with finite c-seed choices.
-    pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
-        var seeds_storage: [seedCapacity()]basis_generation.Seed = undefined;
-        var seed_quantum_storage: [seedCapacity() * quantum_schema.len]i32 = undefined;
-        const seeds = try writeSeeds(0, quantum_schema.len, &seeds_storage, &seed_quantum_storage);
+        /// writeSeeds writes finite c-seed subsets into a product quantum vector.
+        pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
+            const seed_families = [_]basis_generation.SeedFamily{basis_generation.Preset.bcSeedFamily(kind(.c), 0)};
+            var seed_options_storage: [2]basis_generation.SeedOption = undefined;
+            const seed_options = try basis_generation.buildSeedOptions(&seed_families, &seed_options_storage);
+            var local_seeds_storage: [4]basis_generation.Seed = undefined;
+            var local_quantum_storage: [4]i32 = undefined;
+            const local_seeds = try basis_generation.buildFermionicSeedSubsets(seed_options, quantum_schema.len, &local_seeds_storage, &local_quantum_storage);
+            const seed_count = local_seeds.len - 1;
+            if (seeds.len < seed_count or quantum_storage.len < seed_count * total_quantum_count) return error.ContextTooSmall;
+            for (local_seeds[1..], 0..) |seed, index| {
+                seeds[index] = try basis_generation.copySeed(seed, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+            }
+            return seeds[0..seed_count];
+        }
 
-        var modes_storage: [bcModeCapacity(max_level_ticks)]basis_generation.Mode = undefined;
-        var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
-        const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
-        var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
-        var context = storage.context();
-        return basis_generation.stream(.{
-            .quantum_schema = &quantum_schema,
-            .modes = modes,
-            .seeds = seeds,
-        }, query, &context, sink);
-    }
-};
+        /// writeModes writes component-tagged positive bc ghost bands.
+        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
+            const families = basis_generation.Preset.bcOscillatorFamilies(kind(.b), kind(.c), component);
+            const written = try basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
+            if (quantum_storage.len < written.len * total_quantum_count) return error.ContextTooSmall;
+            for (written, 0..) |*mode, index| {
+                mode.quantum_delta = try basis_generation.copyQuantumDelta(mode.quantum_delta, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+            }
+            return written;
+        }
+
+        /// stream enumerates compact bc ghost words with finite c-seed choices.
+        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var seeds_storage: [seedCapacity()]basis_generation.Seed = undefined;
+            var seed_quantum_storage: [seedCapacity() * quantum_schema.len]i32 = undefined;
+            const seeds = try writeSeeds(0, quantum_schema.len, &seeds_storage, &seed_quantum_storage);
+
+            var modes_storage: [bcModeCapacity(max_level_ticks)]basis_generation.Mode = undefined;
+            var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
+            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
+            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
+            var context = storage.context();
+            return basis_generation.stream(.{
+                .quantum_schema = quantum_schema,
+                .modes = modes,
+                .seeds = seeds,
+            }, query, &context, sink);
+        }
+    };
+}
 fn BcSphereOp(comptime include_antiholomorphic_copy: bool) type {
     const Holomorphic = struct {
         /// b builds a holomorphic b-ghost insertion.
@@ -188,17 +226,17 @@ fn bcBtCt() wick.Expr {
 }
 
 fn sphereZeroSpec(comptime cfg: BcSphereConfig) if (cfg.include_antiholomorphic_copy) [2]Spec.ZeroModeRule else [1]Spec.ZeroModeRule {
-    const holomorphic = Spec.ZeroModeRule{ .sector = zeroSector(.sphere), .expr = .{ .bc_top_form = .{
+    const holomorphic = Spec.ZeroModeRule{ .sector = zeroSector(.sphere), .expr = .{ .top_form_fermion = .{
         .support = .sphere_holomorphic,
-        .c_kind_ids = &.{kind(.c)},
+        .field_kind_ids = &.{kind(.c)},
         .normalization = .one,
     } } };
     if (!cfg.include_antiholomorphic_copy) return [_]Spec.ZeroModeRule{holomorphic};
     return [_]Spec.ZeroModeRule{
         holomorphic,
-        .{ .sector = zeroSector(.sphere), .expr = .{ .bc_top_form = .{
+        .{ .sector = zeroSector(.sphere), .expr = .{ .top_form_fermion = .{
             .support = .sphere_antiholomorphic,
-            .c_kind_ids = &.{kind(.ct)},
+            .field_kind_ids = &.{kind(.ct)},
             .normalization = .one,
         } } },
     };
@@ -397,9 +435,9 @@ const disk_full_fermion_storage = Spec.fermionKinds(&disk_full_operator_spec);
 
 fn diskZeroSpec() [1]Spec.ZeroModeRule {
     return [_]Spec.ZeroModeRule{
-        .{ .sector = zeroSector(.disk), .expr = .{ .bc_top_form = .{
+        .{ .sector = zeroSector(.disk), .expr = .{ .top_form_fermion = .{
             .support = .disk_doubled,
-            .c_kind_ids = &.{ kind(.c), kind(.ct), kind(.c_boundary) },
+            .field_kind_ids = &.{ kind(.c), kind(.ct), kind(.c_boundary) },
             .normalization = .one,
         } } },
     };

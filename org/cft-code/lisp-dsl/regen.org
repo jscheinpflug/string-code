@@ -1,0 +1,20 @@
+:PROPERTIES:
+:ID:       20260612T112000.000000
+:END:
+#+title: Lisp CFT Regeneration Entry Point
+#+PROPERTY: header-args:lisp :tangle ../../../lisp/regen.lisp :mkdirp yes
+
+This script is the noninteractive build entry point for generated CFT Zig
+sources.  It loads the local ASDF system from the repository and asks the preset
+compiler to rewrite the generated fixture and dispatch modules.
+
+#+begin_src lisp
+(require :asdf)
+
+(let* ((script-path (or *load-truename* *compile-file-truename*))
+       (lisp-directory (uiop:pathname-directory-pathname script-path)))
+  (pushnew lisp-directory asdf:*central-registry* :test #'equal)
+  (asdf:load-system :string-code-cft)
+  (funcall (find-symbol "WRITE-GENERATED-SOURCES" "STRING-CODE.CFT.PRESETS"))
+  (format t "Regenerated CFT generated Zig sources.~%"))
+#+end_src

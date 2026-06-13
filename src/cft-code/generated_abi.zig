@@ -202,7 +202,7 @@ fn expressionRecordThunk(payload: *anyopaque, event: descriptor.ResultEvent) !vo
     }
 }
 
-var last_error_storage: [160]u8 = [_]u8{0} ** 160;
+var last_error_storage: [256]u8 = [_]u8{0} ** 256;
 
 fn clearError() void {
     last_error_storage[0] = 0;
@@ -217,6 +217,35 @@ fn setErrorName(name: []const u8) c_int {
 
 fn setError(err: anyerror) c_int {
     return setErrorName(@errorName(err));
+}
+
+fn setErrorFmt(comptime format: []const u8, args: anytype) c_int {
+    const text = std.fmt.bufPrint(last_error_storage[0 .. last_error_storage.len - 1], format, args) catch {
+        return setErrorName("ErrorMessageTooLong");
+    };
+    last_error_storage[text.len] = 0;
+    return -1;
+}
+
+fn validateFieldInsert(id: TheoryId, field_id: u16, coord_len: usize, label_len: usize) c_int {
+    const name = dispatch.fieldName(id, field_id) orelse {
+        return setErrorFmt("UnknownField id={d}", .{field_id});
+    };
+    const expected_coords = dispatch.fieldCoordinateArity(id, field_id).?;
+    if (coord_len != expected_coords) {
+        return setErrorFmt(
+            "Field {s} expects {d} coordinates, got {d}",
+            .{ name, expected_coords, coord_len },
+        );
+    }
+    const expected_labels = dispatch.fieldLabelArity(id, field_id).?;
+    if (label_len != expected_labels) {
+        return setErrorFmt(
+            "Field {s} expects {d} labels, got {d}",
+            .{ name, expected_labels, label_len },
+        );
+    }
+    return 0;
 }
 
 fn basisFilterSlice(ptr: ?[*]const BasisQuantumFilter, len: usize) ![]const BasisQuantumFilter {
@@ -266,29 +295,27 @@ fn basisProductPairId(left: u32, right: u32) u32 {
 }
 
 fn singleBasis(comptime raw_theory: u32) type {
-    return switch (raw_theory) {
-        1 => presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis,
-        2, 3 => presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis,
-        4 => presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis,
-        5 => presets.FreeBoson.make(.{ .dimension = 10 }).basis,
-        else => @compileError("unknown generated basis runtime"),
-    };
+    return dispatch.basis(@as(TheoryId, @enumFromInt(raw_theory)));
 }
 
-fn productPairRun(comptime left: u32, comptime right: u32, query: basis_generation.Query, sink: anytype) !void {
-    return basisRun(presets.product(.{ struct {
-        pub const basis = singleBasis(left);
-    }, struct {
-        pub const basis = singleBasis(right);
-    } }).basis, query, sink);
+fn basisProductCompatible(comptime left: u32, comptime right: u32) bool {
+    return dispatch.basisBackend(@as(TheoryId, @enumFromInt(left))).tick_denominator == dispatch.basisBackend(@as(TheoryId, @enumFromInt(right))).tick_denominator;
 }
 
-fn productPairRenderTable(comptime left: u32, comptime right: u32) basis_generation.RenderTable {
+fn ProductPairBasis(comptime left: u32, comptime right: u32) type {
     return presets.product(.{ struct {
         pub const basis = singleBasis(left);
     }, struct {
         pub const basis = singleBasis(right);
-    } }).basis.render_table;
+    } }).basis;
+}
+
+fn productPairRun(comptime left: u32, comptime right: u32, query: basis_generation.Query, sink: anytype) !void {
+    return basisRun(ProductPairBasis(left, right), query, sink);
+}
+
+fn productPairRenderTable(comptime left: u32, comptime right: u32) basis_generation.RenderTable {
+    return ProductPairBasis(left, right).render_table;
 }
 
 fn basisWeightLimit(query: basis_generation.Query) i32 {
@@ -373,63 +400,46 @@ fn basisRun(comptime Basis: type, query: basis_generation.Query, sink: anytype) 
     return basisRunWithTicks(Basis, abi_basis_max_level_ticks, query, sink);
 }
 
-fn dispatchBasis(raw_theory: u32, query: basis_generation.Query, sink: anytype) !void {
-    switch (raw_theory) {
-        basisProductPairId(1, 1) => return productPairRun(1, 1, query, sink),
-        basisProductPairId(2, 2) => return productPairRun(2, 2, query, sink),
-        basisProductPairId(2, 3) => return productPairRun(2, 3, query, sink),
-        basisProductPairId(2, 4) => return productPairRun(2, 4, query, sink),
-        basisProductPairId(2, 5) => return productPairRun(2, 5, query, sink),
-        basisProductPairId(3, 2) => return productPairRun(3, 2, query, sink),
-        basisProductPairId(3, 3) => return productPairRun(3, 3, query, sink),
-        basisProductPairId(3, 4) => return productPairRun(3, 4, query, sink),
-        basisProductPairId(3, 5) => return productPairRun(3, 5, query, sink),
-        basisProductPairId(4, 2) => return productPairRun(4, 2, query, sink),
-        basisProductPairId(4, 3) => return productPairRun(4, 3, query, sink),
-        basisProductPairId(4, 4) => return productPairRun(4, 4, query, sink),
-        basisProductPairId(4, 5) => return productPairRun(4, 5, query, sink),
-        basisProductPairId(5, 2) => return productPairRun(5, 2, query, sink),
-        basisProductPairId(5, 3) => return productPairRun(5, 3, query, sink),
-        basisProductPairId(5, 4) => return productPairRun(5, 4, query, sink),
-        basisProductPairId(5, 5) => return productPairRun(5, 5, query, sink),
-        else => {},
+fn dispatchProductBasis(raw_theory: u32, query: basis_generation.Query, sink: anytype) !bool {
+    inline for (std.meta.fields(TheoryId)) |left_field| {
+        inline for (std.meta.fields(TheoryId)) |right_field| {
+            const left: u32 = left_field.value;
+            const right: u32 = right_field.value;
+            if (basisProductCompatible(left, right) and raw_theory == basisProductPairId(left, right)) {
+                try productPairRun(left, right, query, sink);
+                return true;
+            }
+        }
     }
+    return false;
+}
+
+fn dispatchBasis(raw_theory: u32, query: basis_generation.Query, sink: anytype) !void {
+    if (try dispatchProductBasis(raw_theory, query, sink)) return;
     const id = try dispatch.theoryId(raw_theory);
     return switch (id) {
-        .free_fermion => basisRun(presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis, query, sink),
-        .eta_xi_sphere, .eta_xi_torus => basisRun(presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis, query, sink),
-        .bc => basisRun(presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis, query, sink),
-        .free_boson => basisRun(presets.FreeBoson.make(.{ .dimension = 10 }).basis, query, sink),
+        inline else => |case| basisRun(singleBasis(@intFromEnum(case)), query, sink),
     };
 }
 
-fn basisRenderTable(raw_theory: u32) !basis_generation.RenderTable {
-    switch (raw_theory) {
-        basisProductPairId(1, 1) => return productPairRenderTable(1, 1),
-        basisProductPairId(2, 2) => return productPairRenderTable(2, 2),
-        basisProductPairId(2, 3) => return productPairRenderTable(2, 3),
-        basisProductPairId(2, 4) => return productPairRenderTable(2, 4),
-        basisProductPairId(2, 5) => return productPairRenderTable(2, 5),
-        basisProductPairId(3, 2) => return productPairRenderTable(3, 2),
-        basisProductPairId(3, 3) => return productPairRenderTable(3, 3),
-        basisProductPairId(3, 4) => return productPairRenderTable(3, 4),
-        basisProductPairId(3, 5) => return productPairRenderTable(3, 5),
-        basisProductPairId(4, 2) => return productPairRenderTable(4, 2),
-        basisProductPairId(4, 3) => return productPairRenderTable(4, 3),
-        basisProductPairId(4, 4) => return productPairRenderTable(4, 4),
-        basisProductPairId(4, 5) => return productPairRenderTable(4, 5),
-        basisProductPairId(5, 2) => return productPairRenderTable(5, 2),
-        basisProductPairId(5, 3) => return productPairRenderTable(5, 3),
-        basisProductPairId(5, 4) => return productPairRenderTable(5, 4),
-        basisProductPairId(5, 5) => return productPairRenderTable(5, 5),
-        else => {},
+fn productBasisRenderTable(raw_theory: u32) ?basis_generation.RenderTable {
+    inline for (std.meta.fields(TheoryId)) |left_field| {
+        inline for (std.meta.fields(TheoryId)) |right_field| {
+            const left: u32 = left_field.value;
+            const right: u32 = right_field.value;
+            if (basisProductCompatible(left, right) and raw_theory == basisProductPairId(left, right)) {
+                return productPairRenderTable(left, right);
+            }
+        }
     }
+    return null;
+}
+
+fn basisRenderTable(raw_theory: u32) !basis_generation.RenderTable {
+    if (productBasisRenderTable(raw_theory)) |table| return table;
     const id = try dispatch.theoryId(raw_theory);
     return switch (id) {
-        .free_fermion => presets.FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = false }).basis.render_table,
-        .eta_xi_sphere, .eta_xi_torus => presets.EtaXi.sphere(.{ .include_antiholomorphic_copy = false }).basis.render_table,
-        .bc => presets.Bc.sphere(.{ .include_antiholomorphic_copy = false }).basis.render_table,
-        .free_boson => presets.FreeBoson.make(.{ .dimension = 10 }).basis.render_table,
+        inline else => |case| singleBasis(@intFromEnum(case)).render_table,
     };
 }
 
@@ -554,6 +564,24 @@ export fn sc_generated_scalar_atom_name(raw_theory: u32, atom: u32, out_ptr: ?*?
     return 0;
 }
 
+/// sc_generated_field_metadata returns descriptor field name and insertion arities.
+export fn sc_generated_field_metadata(raw_theory: u32, field_id: u16, out_ptr: ?*?[*]const u8, out_len: ?*usize, out_coord_arity: ?*usize, out_label_arity: ?*usize) c_int {
+    clearError();
+    const id = dispatch.theoryId(raw_theory) catch |err| return setError(err);
+    const ptr = out_ptr orelse return setErrorName("NullOutput");
+    const len = out_len orelse return setErrorName("NullOutput");
+    const coords = out_coord_arity orelse return setErrorName("NullOutput");
+    const labels = out_label_arity orelse return setErrorName("NullOutput");
+    const name = dispatch.fieldName(id, field_id) orelse {
+        return setErrorFmt("UnknownField id={d}", .{field_id});
+    };
+    ptr.* = name.ptr;
+    len.* = name.len;
+    coords.* = dispatch.fieldCoordinateArity(id, field_id).?;
+    labels.* = dispatch.fieldLabelArity(id, field_id).?;
+    return 0;
+}
+
 /// sc_generated_context_create allocates a context for a generated theory id.
 export fn sc_generated_context_create(raw_theory: u32) ?*Context {
     clearError();
@@ -605,6 +633,7 @@ export fn sc_generated_symbol_intern(ctx: ?*Context, name_ptr: ?[*]const u8, nam
 export fn sc_generated_field_insert(ctx: ?*Context, field_id: u16, coords_ptr: ?[*]const u32, coord_len: usize, labels_ptr: ?[*]const u32, label_len: usize) c_int {
     clearError();
     const handle = ctx orelse return setErrorName("NullContext");
+    if (validateFieldInsert(std.meta.activeTag(handle.inner), field_id, coord_len, label_len) != 0) return -1;
     const coords = u32Slice(coords_ptr, coord_len) catch |err| return setError(err);
     const labels = u32Slice(labels_ptr, label_len) catch |err| return setError(err);
     handle.inner.fieldInsert(field_id, coords, labels) catch |err| return setError(err);
@@ -721,20 +750,37 @@ export fn sc_generated_expression_buffer_free(
     if (names) |ptr| allocator.free(ptr[0..name_count]);
 }
 
-const AbiRecorder = struct {
-    count: usize = 0,
-    saw_tensor: bool = false,
-    saw_coordinate: bool = false,
+const AbiEventDigest = struct {
+    events: usize = 0,
+    scalars: usize = 0,
+    coordinates: usize = 0,
+    tensors: usize = 0,
+    zero_modes: usize = 0,
+    saw_green_kernel: bool = false,
+    saw_bc_top_form: bool = false,
 
     fn push(payload: ?*anyopaque, event_ptr: *const Event) callconv(.c) c_int {
-        const self: *AbiRecorder = @ptrCast(@alignCast(payload.?));
+        const self: *@This() = @ptrCast(@alignCast(payload.?));
         const event = event_ptr.*;
-        self.count += 1;
-        if (event.kind == @intFromEnum(descriptor.ResultEventKind.tensor) and event.a == 1 and event.b == 2) {
-            self.saw_tensor = true;
-        }
-        if (event.kind == @intFromEnum(descriptor.ResultEventKind.coordinate) and event.a == 3 and event.b == 4) {
-            self.saw_coordinate = true;
+        self.events += 1;
+        switch (@as(descriptor.ResultEventKind, @enumFromInt(event.kind))) {
+            .scalar => self.scalars += 1,
+            .coordinate => {
+                self.coordinates += 1;
+                if (event.name_ptr) |ptr| {
+                    const name = ptr[0..event.name_len];
+                    self.saw_green_kernel = self.saw_green_kernel or std.mem.eql(u8, name, "elliptic_prime_form_log_derivative");
+                }
+            },
+            .tensor => self.tensors += 1,
+            .zero_mode => {
+                self.zero_modes += 1;
+                if (event.name_ptr) |ptr| {
+                    const name = ptr[0..event.name_len];
+                    self.saw_bc_top_form = self.saw_bc_top_form or std.mem.eql(u8, name, "bc-top-form");
+                }
+            },
+            .sum_term_begin, .sum_term_end, .wick_term_begin, .wick_term_end, .residual_operator => {},
         }
         return 0;
     }
@@ -776,6 +822,122 @@ const NamedBasisModeRecorder = struct {
     }
 };
 
+fn expectSymbol(ctx: *Context, name: []const u8) !u32 {
+    var symbol: u32 = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, name.ptr, name.len, &symbol));
+    return symbol;
+}
+
+fn expectInsert(ctx: *Context, field_id: u16, coords: []const u32, labels: []const u32) !void {
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert(
+        ctx,
+        field_id,
+        if (coords.len == 0) null else coords.ptr,
+        coords.len,
+        if (labels.len == 0) null else labels.ptr,
+        labels.len,
+    ));
+}
+
+fn expectFrozenDigest(ctx: *Context, expected_count: usize) !AbiEventDigest {
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_operator_list_freeze(ctx));
+
+    var count: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_count(ctx, &count));
+    try std.testing.expectEqual(expected_count, count);
+
+    var digest = AbiEventDigest{};
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_run(ctx, &digest, AbiEventDigest.push));
+    try std.testing.expect(digest.events > 0);
+    return digest;
+}
+
+fn expectFreeFermionAbiStream() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.free_fermion)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const mu = try expectSymbol(ctx, "mu");
+    const nu = try expectSymbol(ctx, "nu");
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 0, &.{z}, &.{mu});
+    try expectInsert(ctx, 0, &.{w}, &.{nu});
+
+    const digest = try expectFrozenDigest(ctx, 1);
+    try std.testing.expect(digest.coordinates >= 1);
+    try std.testing.expect(digest.tensors >= 1);
+    try std.testing.expectEqual(@as(usize, 0), digest.zero_modes);
+}
+
+fn expectEtaXiSphereAbiStream() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.eta_xi_sphere)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 0, &.{z}, &.{});
+    try expectInsert(ctx, 1, &.{w}, &.{});
+
+    const digest = try expectFrozenDigest(ctx, 1);
+    try std.testing.expect(digest.coordinates >= 1);
+    try std.testing.expectEqual(@as(usize, 0), digest.zero_modes);
+}
+
+fn expectEtaXiTorusAbiStream() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.eta_xi_torus)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 0, &.{z}, &.{});
+    try expectInsert(ctx, 1, &.{w}, &.{});
+
+    const digest = try expectFrozenDigest(ctx, 1);
+    try std.testing.expect(digest.coordinates >= 1);
+    try std.testing.expect(digest.saw_green_kernel);
+}
+
+fn expectBcAbiStream() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.bc)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const z1 = try expectSymbol(ctx, "z1");
+    const z2 = try expectSymbol(ctx, "z2");
+    const z3 = try expectSymbol(ctx, "z3");
+    try expectInsert(ctx, 1, &.{z1}, &.{});
+    try expectInsert(ctx, 1, &.{z2}, &.{});
+    try expectInsert(ctx, 1, &.{z3}, &.{});
+
+    const digest = try expectFrozenDigest(ctx, 1);
+    try std.testing.expect(digest.zero_modes >= 1);
+    try std.testing.expect(digest.saw_bc_top_form);
+}
+
+fn expectFreeBosonAbiStream() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.free_boson)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const mu = try expectSymbol(ctx, "mu");
+    const nu = try expectSymbol(ctx, "nu");
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 1, &.{z}, &.{mu});
+    try expectInsert(ctx, 1, &.{w}, &.{nu});
+
+    const digest = try expectFrozenDigest(ctx, 1);
+    try std.testing.expect(digest.scalars >= 1);
+    try std.testing.expect(digest.coordinates >= 1);
+    try std.testing.expect(digest.tensors >= 1);
+}
+
+fn expectGeneratedCorrelatorStreams() !void {
+    try expectFreeFermionAbiStream();
+    try expectEtaXiSphereAbiStream();
+    try expectEtaXiTorusAbiStream();
+    try expectBcAbiStream();
+    try expectFreeBosonAbiStream();
+}
+
 fn expectBasisCount(raw_theory: u32, weight_kind: u8, weight_ticks: i32, max_depth: u16, filters: []const BasisQuantumFilter, expected: usize) !void {
     return expectBasisCountLevel(raw_theory, weight_kind, weight_ticks, max_depth, 0, filters, expected);
 }
@@ -795,12 +957,51 @@ fn expectBasisCountLevel(raw_theory: u32, weight_kind: u8, weight_ticks: i32, ma
     try std.testing.expectEqual(expected, count);
 }
 
-test "generated C ABI counts and streams free-fermion events" {
+fn expectGeneratedMetadataMatchesDispatch() !void {
+    inline for (std.meta.fields(TheoryId)) |field| {
+        const raw_theory: u32 = field.value;
+        const id: TheoryId = @enumFromInt(raw_theory);
+        try std.testing.expectEqual(dispatch.theoryHash(id), sc_generated_theory_hash(raw_theory));
+
+        var field_id: u16 = 0;
+        var seen: usize = 0;
+        while (true) : (field_id += 1) {
+            var name_ptr: ?[*]const u8 = null;
+            var name_len: usize = 0;
+            var coordinate_arity: usize = 0;
+            var label_arity: usize = 0;
+            const result = sc_generated_field_metadata(
+                raw_theory,
+                field_id,
+                &name_ptr,
+                &name_len,
+                &coordinate_arity,
+                &label_arity,
+            );
+            const expected_name = dispatch.fieldName(id, field_id) orelse {
+                try std.testing.expectEqual(@as(c_int, -1), result);
+                try std.testing.expect(std.mem.startsWith(u8, std.mem.span(sc_generated_last_error()), "UnknownField id="));
+                break;
+            };
+            try std.testing.expectEqual(@as(c_int, 0), result);
+            try std.testing.expect(std.mem.eql(u8, name_ptr.?[0..name_len], expected_name));
+            try std.testing.expectEqual(dispatch.fieldCoordinateArity(id, field_id).?, coordinate_arity);
+            try std.testing.expectEqual(dispatch.fieldLabelArity(id, field_id).?, label_arity);
+            seen += 1;
+        }
+        try std.testing.expect(seen > 0);
+    }
+}
+
+test "generated C ABI matches descriptor dispatch metadata and streams events" {
     try selfTest();
 }
 
 /// selfTest runs the generated C ABI fixture invariants.
 pub fn selfTest() !void {
+    try expectGeneratedMetadataMatchesDispatch();
+    try expectGeneratedCorrelatorStreams();
+
     const ctx = sc_generated_context_create(@intFromEnum(dispatch.first_theory_id)) orelse return error.ContextCreateFailed;
     defer sc_generated_context_destroy(ctx);
 
@@ -813,18 +1014,31 @@ pub fn selfTest() !void {
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "z".ptr, 1, &z));
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_symbol_intern(ctx, "w".ptr, 1, &w));
 
+    var field_name_ptr: ?[*]const u8 = null;
+    var field_name_len: usize = 0;
+    var field_coord_arity: usize = 0;
+    var field_label_arity: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_metadata(
+        @intFromEnum(dispatch.first_theory_id),
+        0,
+        &field_name_ptr,
+        &field_name_len,
+        &field_coord_arity,
+        &field_label_arity,
+    ));
+    try std.testing.expect(std.mem.eql(u8, field_name_ptr.?[0..field_name_len], "psi"));
+    try std.testing.expectEqual(@as(usize, 1), field_coord_arity);
+    try std.testing.expectEqual(@as(usize, 1), field_label_arity);
+
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert(ctx, 0, &.{z}, 1, &.{mu}, 1));
+    try std.testing.expectEqual(@as(c_int, -1), sc_generated_field_insert(ctx, 0, &.{z}, 1, &.{}, 0));
+    try std.testing.expect(std.mem.eql(u8, std.mem.span(sc_generated_last_error()), "Field psi expects 1 labels, got 0"));
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert(ctx, 0, &.{w}, 1, &.{nu}, 1));
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_operator_list_freeze(ctx));
 
     var count: usize = 0;
     try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_count(ctx, &count));
     try std.testing.expectEqual(@as(usize, 1), count);
-
-    var recorder = AbiRecorder{};
-    try std.testing.expectEqual(@as(c_int, 0), sc_generated_correlator_run(ctx, &recorder, AbiRecorder.push));
-    try std.testing.expect(recorder.saw_tensor);
-    try std.testing.expect(recorder.saw_coordinate);
 
     const filters = [_]BasisQuantumFilter{.{ .slot = 0, .value = 0 }};
     var basis_count: usize = 0;
@@ -897,6 +1111,6 @@ pub fn selfTest() !void {
     try std.testing.expectEqual(@as(usize, 10), fermion_recorder.count);
     try std.testing.expect(fermion_recorder.saw_name);
 
-    try expectBasisCountLevel(basisProductPairId(5, 5), 0, 2, 2, 1, &.{}, 100);
-    try expectBasisCountLevel(basisProductPairId(4, 5), 0, 0, 1, 0, &.{.{ .slot = 0, .value = 0 }}, 1);
+    try expectBasisCountLevel(basisProductPairId(@intFromEnum(TheoryId.free_boson), @intFromEnum(TheoryId.free_boson)), 0, 2, 2, 1, &.{}, 100);
+    try expectBasisCountLevel(basisProductPairId(@intFromEnum(TheoryId.bc), @intFromEnum(TheoryId.free_boson)), 0, 0, 1, 0, &.{.{ .slot = 0, .value = 0 }}, 1);
 }

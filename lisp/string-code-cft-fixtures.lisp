@@ -15,11 +15,15 @@
    #:make-bc-runtime
    #:b-field
    #:c-field
+   #:b
+   #:c
    #:basis-count
    #:basis
    #:make-product-runtime
    #:make-free-boson-runtime
+   #:X
    #:dX
+   #:dXt
    #:expX
    #:with-correlator-context
    #:correlator
@@ -104,78 +108,115 @@
   "Alias for CORRELATOR."
   `(correlator (,maker ,@runtime-args) ,@fields))
 
-(defun free-fermion-10 ()
-  (string-code.cft.presets:free-fermion-10))
-
-(defun eta-xi-sphere ()
-  (string-code.cft.presets:eta-xi-sphere))
-
-(defun eta-xi-torus ()
-  (string-code.cft.presets:eta-xi-torus))
-
-(defun bc-sphere ()
-  (string-code.cft.presets:bc-sphere))
-
-(defun free-boson-10 ()
-  (string-code.cft.presets:free-boson-10))
-
-(defun make-preset-runtime (name library &key constants)
+(defun make-preset-runtime (name library &key constants basis-metadata)
   (make-runtime-context
    :library library
    :theory-id (string-code.cft.presets:preset-theory-id-for name)
+   :basis-metadata basis-metadata
    :constants constants))
 
-(defun make-free-fermion-runtime (&key library)
-  (make-preset-runtime 'free-fermion-10 library))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun fixture-symbol (symbol)
+    (intern (symbol-name symbol) (find-package '#:string-code.cft.fixtures)))
 
-(defun psi (context mu z)
-  (insert-runtime-field context 0
-                        (list (runtime-symbol-id context z))
-                        (list (runtime-symbol-id context mu))))
+  (defun field-interface-name= (name field)
+    (string-equal (symbol-name name)
+                  (symbol-name
+                   (string-code.cft.presets::preset-field-interface-name field))))
 
-(defun make-eta-xi-sphere-runtime (&key library)
-  (make-preset-runtime 'eta-xi-sphere library))
+  (defun fixture-field-interface (preset field-name)
+    (or (find field-name
+              (string-code.cft.presets:preset-field-interfaces preset)
+              :test #'field-interface-name=)
+        (error "Preset ~S has no generated field ~S." preset field-name)))
 
-(defun make-eta-xi-torus-runtime (&key library)
-  (make-preset-runtime 'eta-xi-torus library))
+  (defun field-label-variables (field)
+    (mapcar (lambda (label)
+              (fixture-symbol (getf label :name)))
+            (string-code.cft.presets::preset-field-interface-labels field)))
 
-(defun eta (context z)
-  (insert-runtime-field context 0
-                        (list (runtime-symbol-id context z))
-                        nil))
+  (defun field-coordinate-variables (field)
+    (ecase (string-code.cft.presets::preset-field-interface-insertion field)
+      (:single (list (fixture-symbol 'z)))
+      (:pair (list (fixture-symbol 'z)
+                   (fixture-symbol 'z-bar)))))
 
-(defun xi (context z)
-  (insert-runtime-field context 1
-                        (list (runtime-symbol-id context z))
-                        nil))
+  (defun runtime-symbol-list-form (context variables)
+    `(list ,@(mapcar (lambda (variable)
+                       `(runtime-symbol-id ,context ,variable))
+                     variables)))
 
-(defun make-bc-runtime (&key library)
-  (make-preset-runtime 'bc-sphere library))
+  (defun generated-field-inserter-form (preset alias)
+    (destructuring-bind (function-name field-name) alias
+      (let* ((field (fixture-field-interface preset field-name))
+             (public-name (fixture-symbol function-name))
+             (context (fixture-symbol 'context))
+             (labels (field-label-variables field))
+             (coordinates (field-coordinate-variables field)))
+        `(defun ,public-name (,context ,@labels ,@coordinates)
+           ,(format nil "~A inserts generated field ~A from preset ~A."
+                    function-name field-name preset)
+           (insert-runtime-field
+            ,context
+            ,(string-code.cft.presets::preset-field-interface-id field)
+            ,(runtime-symbol-list-form context coordinates)
+            ,(if labels
+                 (runtime-symbol-list-form context labels)
+                 nil))))))
 
-(defun b-field (context z)
-  (insert-runtime-field context 0
-                        (list (runtime-symbol-id context z))
-                        nil))
+  (defun descriptor-field-aliases (preset)
+    (mapcar (lambda (field)
+              (let ((name (string-code.cft.presets::preset-field-interface-name field)))
+                (list (fixture-symbol name) name)))
+            (string-code.cft.presets:preset-field-interfaces preset)))
 
-(defun c-field (context z)
-  (insert-runtime-field context 1
-                        (list (runtime-symbol-id context z))
-                        nil))
+  (defun normalize-field-aliases (preset fields field-aliases)
+    (append (if (eq fields :all)
+                (descriptor-field-aliases preset)
+                fields)
+            field-aliases))
+
+  (defun generated-fixture-export-symbols (preset maker fields)
+    (cons (fixture-symbol maker)
+          (cons (fixture-symbol preset)
+                (mapcar (lambda (field)
+                          (fixture-symbol (first field)))
+                        fields)))))
+
+(defmacro define-preset-fixture
+    (preset maker &key (fields :all) field-aliases constructor-options constants)
+  "Generate descriptor, runtime, and field inserter functions for PRESET."
+  (let* ((field-forms (normalize-field-aliases preset fields field-aliases))
+         (exports (generated-fixture-export-symbols preset maker field-forms)))
+    `(progn
+       (eval-when (:compile-toplevel :load-toplevel :execute)
+         (export ',exports))
+       (defun ,preset ()
+         ,(format nil "~A returns a fresh generated descriptor." preset)
+         (string-code.cft.presets:preset-theory ',preset))
+       (defun ,maker (&key library ,@constructor-options)
+         ,(format nil "~A creates a generated runtime context." maker)
+         (make-preset-runtime ',preset library
+                              :basis-metadata (string-code.cft.presets:preset-basis-metadata-for ',preset)
+                              :constants ,constants))
+       ,@(mapcar (lambda (field)
+                   (generated-field-inserter-form preset field))
+                 field-forms))))
 
 (defun free-boson-constants (alpha-prime constants)
   (acons :alpha-prime alpha-prime constants))
 
-(defun make-free-boson-runtime (&key library (alpha-prime :alpha-prime) constants)
-  (make-preset-runtime 'free-boson-10 library
-                       :constants (free-boson-constants alpha-prime constants)))
+(define-preset-fixture free-fermion-10 make-free-fermion-runtime)
 
-(defun dX (context mu z)
-  (insert-runtime-field context 0
-                        (list (runtime-symbol-id context z))
-                        (list (runtime-symbol-id context mu))))
+(define-preset-fixture eta-xi-sphere make-eta-xi-sphere-runtime)
 
-(defun expX (context k z z-bar)
-  (insert-runtime-field context 1
-                        (list (runtime-symbol-id context z)
-                              (runtime-symbol-id context z-bar))
-                        (list (runtime-symbol-id context k))))
+(define-preset-fixture eta-xi-torus make-eta-xi-torus-runtime
+  :fields nil)
+
+(define-preset-fixture bc-sphere make-bc-runtime
+  :field-aliases ((b-field b)
+                  (c-field c)))
+
+(define-preset-fixture free-boson-10 make-free-boson-runtime
+  :constructor-options ((alpha-prime :alpha-prime) constants)
+  :constants (free-boson-constants alpha-prime constants))

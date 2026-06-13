@@ -20,6 +20,7 @@ projectors.
 #+begin_src zig
 const std = @import("std");
 const basis_generation = @import("../basis-generation/basis-generation.zig");
+const generated_fixtures = @import("../correlators/generated_fixtures.zig");
 const shared = @import("shared.zig");
 const declare = shared.declare;
 
@@ -45,12 +46,12 @@ const scalars = declare.scalars;
 const RuleScalar = @TypeOf(scalars.one());
 const alpha_prime_atom = scalars.atom(namespace, "alpha_prime");
 const k_disk_atom = scalars.atom(namespace, "K_D2");
+const pi_atom = scalars.atom(namespace, "pi");
 const neumann_projector_ref = declare.configRef(namespace, "neumann_projector");
 const dirichlet_projector_ref = declare.configRef(namespace, "dirichlet_projector");
 const bulk_boundary_projector_ref = declare.configRef(namespace, "bulk_boundary_projector");
 const dirichlet_position_ref = declare.configRef(namespace, "dirichlet_position");
 const chan_paton_ref = declare.configRef(namespace, "chan_paton");
-const target_dimension_ref = declare.configRef(namespace, "target_dimension");
 
 const Family = enum {
     x,
@@ -104,6 +105,20 @@ fn stableSubspaceId(comptime dimensions: []const u16) u32 {
 
 fn projectorId(comptime rank: u8, hash: u32) u32 {
     return (@as(u32, rank) << 24) | (hash & 0x00ff_ffff);
+}
+
+fn projectorRank(comptime projector: Handle.TensorProjector) u16 {
+    return @intCast(@intFromEnum(projector) >> 24);
+}
+
+fn powerOfTwo(comptime power: u16) i64 {
+    if (power >= @bitSizeOf(i64) - 1) @compileError("free-boson zero-mode normalization exceeds scalar integer range");
+    return @as(i64, 1) << @intCast(power);
+}
+
+fn volumeScalar(comptime rank: u16) RuleScalar {
+    if (rank > std.math.maxInt(i8)) @compileError("free-boson zero-mode normalization exceeds scalar atom-power range");
+    return scalars.monomial(powerOfTwo(rank), 1, 0, pi_atom, @intCast(rank));
 }
 
 fn polynomialProfileTerm(term: anytype) struct { coefficient: Handle.ProfileCoefficient, power: u16 } {
@@ -161,10 +176,12 @@ differently.
 #+begin_src zig
 const FreeBosonConfig = struct {
     dimension: u16,
+    quantum_schema: []const basis_generation.Quantum = &.{},
 };
 
 /// freeBoson builds the generated preset type for a noncompact free-boson CFT.
 pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
+    if (cfg.dimension == 10) return GeneratedFreeBoson10;
     return struct {
         /// op exposes free-boson local operator builders.
         pub const op = FreeBosonOp;
@@ -190,6 +207,67 @@ pub fn freeBoson(comptime cfg: FreeBosonConfig) type {
     };
 }
 
+const GeneratedFreeBoson10 = struct {
+    const Base = generated_fixtures.FreeBoson;
+
+    /// op exposes descriptor-generated free-boson local operator builders.
+    pub const op = struct {
+        /// X builds an explicit bulk free-boson field insertion.
+        pub fn X(builder: anytype, mu: anytype, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(mu));
+            return Base.field("X").localPair(builder, z, zbar, .{mu});
+        }
+
+        /// dX builds a holomorphic derivative field insertion.
+        pub fn dX(builder: anytype, mu: anytype, n: u8, z: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(mu));
+            return Base.field("dX").localSingle(builder, z, n, .{mu});
+        }
+
+        /// dXt builds an antiholomorphic derivative field insertion.
+        pub fn dXt(builder: anytype, mu: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(mu));
+            return Base.field("dXt").localSingle(builder, zbar, n, .{mu});
+        }
+
+        /// expX builds a normal-ordered plane-wave insertion.
+        pub fn expX(builder: anytype, k: Handle.Momentum, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+            return Base.field("expX").localPair(builder, z, zbar, .{k});
+        }
+
+        /// profile builds a target-space profile insertion.
+        pub fn profile(builder: anytype, f: Handle.Profile, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+            return Base.field("profile").localPair(builder, z, zbar, .{f});
+        }
+
+        /// profileVector builds a vector-valued target-space profile insertion.
+        pub fn profileVector(builder: anytype, f: Handle.Profile, nu: anytype, z: Handle.Coord, zbar: Handle.Coord) !Operator {
+            comptime shared.assertTargetIndexHandle(@TypeOf(nu));
+            return declare.operatorBuilder(profile_vector_operator).pair(builder, z, zbar, .{ f, nu });
+        }
+    };
+    /// profile exposes profile-presentation builders.
+    pub const profile = ProfileOp;
+    /// target exposes deterministic target-space tokens for preset data.
+    pub const target = TargetSpace;
+    /// config exposes descriptor-generated sphere correlator configs.
+    pub const config = Base.config;
+    /// basis streams descriptor-generated compact free-boson oscillator words.
+    pub const basis = Base.basis;
+    /// text exposes bounded result-inspection sinks.
+    pub const text = Base.text;
+
+    /// local constructs a label-preserving local-operator builder.
+    pub fn local(allocator: std.mem.Allocator) !Builder {
+        return shared.Local.init(allocator);
+    }
+
+    /// correlator streams descriptor-generated rule matches for free-boson insertions.
+    pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+        return shared.streamCorrelator(config_ptr, ops, sink);
+    }
+};
+
 fn freeBosonModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32) usize {
     return @as(usize, dimension) * max_level_ticks;
 }
@@ -197,7 +275,7 @@ fn freeBosonModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32)
 fn FreeBosonBasis(comptime cfg: FreeBosonConfig) type {
     return struct {
         /// quantum_schema is empty for the neutral free-boson oscillator backend.
-        pub const quantum_schema = [_]basis_generation.Quantum{};
+        pub const quantum_schema = cfg.quantum_schema;
         /// render_modes names compact modes for state/operator text output.
         pub const render_modes = [_]basis_generation.RenderAtom{.{ .id = kind(.d_x), .name = "X" }};
         /// render_table maps compact free-boson ids to local fields.
@@ -230,14 +308,19 @@ fn FreeBosonBasis(comptime cfg: FreeBosonConfig) type {
 
         /// stream enumerates compact free-boson mode words with stack-bounded scratch.
         pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var seeds_storage: [seedCapacity()]basis_generation.Seed = undefined;
+            var seed_quantum_storage: [seedCapacity() * quantum_schema.len]i32 = undefined;
+            const seeds = try writeSeeds(0, quantum_schema.len, &seeds_storage, &seed_quantum_storage);
+
             var modes_storage: [freeBosonModeCapacity(cfg.dimension, max_level_ticks)]basis_generation.Mode = undefined;
-            var mode_quantum_storage: [0]i32 = .{};
+            var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
             const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
             var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
             var context = storage.context();
             return basis_generation.stream(.{
-                .quantum_schema = &quantum_schema,
+                .quantum_schema = quantum_schema,
                 .modes = modes,
+                .seeds = seeds,
             }, query, &context, sink);
         }
     };
@@ -442,14 +525,13 @@ fn sphereZeroSpec(comptime normalization: RuleScalar) [1]Spec.ZeroModeRule {
             .profile_kind_ids = &.{kind(.profile_x)},
             .normalization = .{
                 .scalar = normalization,
-                .two_pi_power = .{ .target_dimension = target_dimension_ref },
             },
         } } },
     };
 }
 
-fn sphereZeroStorage() [1]zero_mode.Rule {
-    const spec = sphereZeroSpec(.one);
+fn sphereZeroStorage(comptime cfg: FreeBosonConfig) [1]zero_mode.Rule {
+    const spec = sphereZeroSpec(volumeScalar(cfg.dimension));
     return Spec.zeroModeRules(&spec);
 }
 
@@ -492,7 +574,7 @@ const torus_wick_spec = [_]Spec.WickRule{
     .{ .left = kind(.exp_x), .right = kind(.exp_x), .coordinate_kernels = &.{.elliptic_green_exponential} },
 };
 
-const sphere_zero_spec = sphereZeroSpec(.one);
+const sphere_zero_spec = sphereZeroSpec(volumeScalar(10));
 #+end_src
 
 The torus draft follows the genus-one convention in the stringbook: the
@@ -592,7 +674,7 @@ fn FreeBosonRules(comptime cfg: FreeBosonConfig) type {
 fn FreeBosonCorrelatorConfig(comptime cfg: FreeBosonConfig) type {
     const rules = FreeBosonRules(cfg);
     return struct {
-        const sphere_zero_storage = sphereZeroStorage();
+        const sphere_zero_storage = sphereZeroStorage(cfg);
         comptime {
             assertSphereSpec(rules.sphere_wick.len, sphere_zero_storage.len);
             assertTorusDraftSpec();
@@ -602,9 +684,6 @@ fn FreeBosonCorrelatorConfig(comptime cfg: FreeBosonConfig) type {
         pub const sphere = declare.correlatorConfig(.{
             .wick_rules = rules.sphere_wick,
             .zero_modes = &sphere_zero_storage,
-            .config_entries = &declare.configEntries(.{
-                declare.config.targetDimension(target_dimension_ref, cfg.dimension),
-            }),
             .infinity_data = rules.sphere_infinity_data,
         }){};
     };
@@ -769,7 +848,7 @@ fn diskWickSpec(comptime alpha: RuleScalar) [11]Spec.WickRule {
     };
 }
 
-fn diskZeroSpec(comptime normalization: RuleScalar) [1]Spec.ZeroModeRule {
+fn diskZeroSpec(comptime normalization: RuleScalar, comptime volume: RuleScalar) [1]Spec.ZeroModeRule {
     return [_]Spec.ZeroModeRule{
         .{ .sector = zeroSector(.boundary), .expr = .{ .free_boson_constant_mode = .{
             .integration_projector = neumann_projector_ref,
@@ -779,14 +858,14 @@ fn diskZeroSpec(comptime normalization: RuleScalar) [1]Spec.ZeroModeRule {
             .profile_kind_ids = &.{ kind(.profile_x), kind(.profile_x_boundary) },
             .normalization = .{
                 .scalar = normalization,
-                .two_pi_power = .{ .projector_rank = neumann_projector_ref },
+                .scalar_factors = &.{volume},
             },
         } } },
     };
 }
 
-fn diskZeroStorage() [1]zero_mode.Rule {
-    const spec = diskZeroSpec(scalars.atomScalar(k_disk_atom));
+fn diskZeroStorage(comptime cfg: FreeBosonBoundaryConfig) [1]zero_mode.Rule {
+    const spec = diskZeroSpec(scalars.atomScalar(k_disk_atom), volumeScalar(projectorRank(cfg.neumann)));
     return Spec.zeroModeRules(&spec);
 }
 
@@ -795,7 +874,7 @@ fn FreeBosonBoundaryData(comptime cfg: FreeBosonBoundaryConfig) type {
     return struct {
         const disk_wick_runtime_spec = diskWickSpec(alpha);
         const disk_wick_storage = Spec.wickRules(&disk_wick_runtime_spec, &disk_operator_spec);
-        const disk_zero_storage = diskZeroStorage();
+        const disk_zero_storage = diskZeroStorage(cfg);
         const config_storage = if (cfg.chan_paton) |stack| declare.configEntries(.{
             declare.config.tensorProjector(neumann_projector_ref, cfg.neumann),
             declare.config.tensorProjector(dirichlet_projector_ref, cfg.dirichlet),
@@ -813,6 +892,90 @@ fn FreeBosonBoundaryData(comptime cfg: FreeBosonBoundaryConfig) type {
         const disk_zero_modes: []const zero_mode.Rule = &disk_zero_storage;
         const config_entries = &config_storage;
     };
+}
+
+const BasisDigest = struct {
+    count: usize = 0,
+    hash_xor: u64 = 0,
+    hash_sum: u64 = 0,
+    hash_square_sum: u64 = 0,
+    mode_count_sum: usize = 0,
+    weight_sum: i64 = 0,
+    level_sum: u64 = 0,
+
+    fn fnv(hash: u64, value: u64) u64 {
+        return (hash ^ value) *% 1099511628211;
+    }
+
+    fn fnvI64(hash: u64, value: i64) u64 {
+        return fnv(hash, @as(u64, @bitCast(value)));
+    }
+
+    fn candidateHash(candidate: anytype) u64 {
+        var hash: u64 = 14695981039346656037;
+        hash = fnv(hash, candidate.presentation);
+        hash = fnv(hash, candidate.seed);
+        hash = fnv(hash, candidate.seed_body);
+        hash = fnvI64(hash, candidate.base_weight_ticks);
+        hash = fnvI64(hash, candidate.weight_ticks);
+        hash = fnv(hash, candidate.level_ticks);
+        for (candidate.base_component_weight_ticks) |value| hash = fnvI64(hash, value);
+        for (candidate.base_quantum_values) |value| hash = fnvI64(hash, value);
+        for (candidate.component_weight_ticks) |value| hash = fnvI64(hash, value);
+        for (candidate.quantum_values) |value| hash = fnvI64(hash, value);
+        for (candidate.modes) |mode| {
+            hash = fnv(hash, mode.id);
+            hash = fnv(hash, mode.component);
+            hash = fnv(hash, mode.label);
+            hash = fnv(hash, mode.weight_ticks);
+            hash = fnvI64(hash, mode.base_weight_ticks);
+            hash = fnv(hash, mode.derivative_step_ticks);
+            hash = fnv(hash, @intFromEnum(mode.statistics));
+            hash = fnv(hash, mode.body);
+        }
+        return hash;
+    }
+
+    /// emitBasisState records one compact basis candidate.
+    pub fn emitBasisState(self: *@This(), candidate: anytype) !void {
+        const hash = candidateHash(candidate);
+        self.count += 1;
+        self.hash_xor ^= hash;
+        self.hash_sum +%= hash;
+        self.hash_square_sum +%= hash *% hash;
+        self.mode_count_sum += candidate.modes.len;
+        self.weight_sum += candidate.weight_ticks;
+        self.level_sum += candidate.level_ticks;
+    }
+};
+
+fn expectBasisDigestEqual(expected: BasisDigest, actual: BasisDigest) !void {
+    const testing = std.testing;
+    try testing.expectEqual(expected.count, actual.count);
+    try testing.expectEqual(expected.hash_xor, actual.hash_xor);
+    try testing.expectEqual(expected.hash_sum, actual.hash_sum);
+    try testing.expectEqual(expected.hash_square_sum, actual.hash_square_sum);
+    try testing.expectEqual(expected.mode_count_sum, actual.mode_count_sum);
+    try testing.expectEqual(expected.weight_sum, actual.weight_sum);
+    try testing.expectEqual(expected.level_sum, actual.level_sum);
+}
+
+test "generated free-boson basis matches handwritten dimension-ten basis" {
+    const Generated = GeneratedFreeBoson10.basis;
+    const Legacy = FreeBosonBasis(.{ .dimension = 10 });
+
+    const Runner = struct {
+        fn run(comptime Basis: type) !BasisDigest {
+            var sink = BasisDigest{};
+            try Basis.stream(3, 3, .{
+                .weight = .{ .exact = 3 },
+                .max_word_length = 3,
+            }, &sink);
+            return sink;
+        }
+    };
+
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
 }
 
 test "free-boson schema builders return opaque local tokens" {

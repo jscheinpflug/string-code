@@ -2,6 +2,7 @@ const std = @import("std");
 const kernel = @import("../kernel.zig");
 const normal_ordering = @import("../normal-ordering/normal-ordering.zig");
 const operators = @import("../expressions/operators.zig");
+const basis_generation = @import("../basis-generation/basis-generation.zig");
 const shared = @import("../presets/shared.zig");
 
 const declare = shared.declare;
@@ -10,7 +11,7 @@ const zero_mode = declare.zero_mode;
 const scalars = declare.scalars;
 
 /// descriptor_abi_version is the generated descriptor table ABI understood here.
-pub const descriptor_abi_version: u32 = 2;
+pub const descriptor_abi_version: u32 = 8;
 
 /// Id is one dense descriptor table index.
 pub const Id = u16;
@@ -46,6 +47,21 @@ pub const Statistics = enum {
 pub const InsertionShape = enum {
     single,
     pair,
+};
+
+/// FieldSupport overrides the worldsheet side for single-coordinate fields.
+pub const FieldSupport = enum {
+    infer,
+    holomorphic,
+    antiholomorphic,
+};
+
+/// InfinityBehavior declares how a field behaves in the u=1/z chart.
+pub const InfinityBehavior = enum {
+    infer,
+    none,
+    primary_from_weight,
+    branch_global_exponential,
 };
 
 /// Parameter declares one generated scalar or modular parameter.
@@ -106,12 +122,16 @@ pub const LabelSchema = struct {
 pub const Field = struct {
     id: Id,
     symbol: Id,
+    kind_symbol: ?Id = null,
     insertion: InsertionShape,
     labels: []const LabelSchema = &.{},
     statistics: Statistics,
+    support: FieldSupport = .infer,
     zero_mode_consumable: bool = false,
     weight: ?Id = null,
     anti_weight: ?Id = null,
+    infinity_behavior: InfinityBehavior = .infer,
+    infinity_label: ?Id = null,
 };
 
 /// Rational is one exact small rational value.
@@ -120,9 +140,18 @@ pub const Rational = struct {
     denominator: i64,
 };
 
+/// ScalarMonomial is one compact scalar coefficient row.
+pub const ScalarMonomial = struct {
+    rational: Rational = .{ .numerator = 1, .denominator = 1 },
+    imaginary_power: u2 = 0,
+    atom: ?Id = null,
+    atom_power: i8 = 0,
+};
+
 /// MetadataExpr is a compact expression tree over ids, labels, and parameters.
 pub const MetadataExpr = union(enum) {
     rational: Rational,
+    scalar_monomial: ScalarMonomial,
     parameter: Id,
     field_label: struct { field: Id, label: Id },
     add: struct { left: Id, right: Id },
@@ -173,6 +202,7 @@ pub const PairIndexConstraintRow = struct {
 pub const ScalarFactor = union(enum) {
     one,
     rational: Rational,
+    monomial: ScalarMonomial,
     parameter: Id,
     neg_parameter_half: Id,
     neg_i_parameter_half: Id,
@@ -218,20 +248,90 @@ pub const WickRule = struct {
     index_constraints: []const PairIndexConstraintRow = &.{},
 };
 
-/// ZeroModeKind selects one implemented residual base-case primitive.
-pub const ZeroModeKind = enum {
-    constant_fermion,
-    top_form_fermion,
-    boson_momentum_conservation,
+/// ResidualSelector declares the fields and count selected by a zero-mode measure.
+pub const ResidualSelector = struct {
+    fields: []const Id,
+    exact_count: u16 = 0,
+    allow_derivatives: bool = false,
+    allow_infinity: bool = false,
 };
 
-/// ZeroModeRule declares one residual base-case primitive.
+/// ZeroModeSaturation selects one implemented zero-mode measure form.
+pub const ZeroModeSaturation = enum {
+    grassmann_count,
+    grassmann_top_form,
+    linear_conservation,
+};
+
+/// ZeroModeRule declares one residual measure lowered to a runtime base case.
 pub const ZeroModeRule = struct {
     surface: Id,
-    kind: ZeroModeKind,
-    consumes: []const Id,
+    selector: ResidualSelector,
+    saturation: ZeroModeSaturation,
     normalization: ScalarFactor = .one,
-    two_pi_power: u16 = 0,
+    normalization_factors: []const ScalarFactor = &.{},
+};
+
+/// BasisBackendKind selects one compact primitive basis lowerer.
+pub const BasisBackendKind = enum {
+    free_fermion,
+    eta_xi,
+    bc,
+    free_boson,
+};
+
+/// BasisBackend records primitive basis facts carried by the descriptor.
+pub const BasisBackend = struct {
+    kind: BasisBackendKind,
+    dimension: u16 = 0,
+    tick_denominator: u16,
+};
+
+/// BasisOscillatorFamily declares one compact oscillator band.
+pub const BasisOscillatorFamily = struct {
+    field: Id,
+    component: u16 = 0,
+    statistics: Statistics,
+    first_tick: u32,
+    step_tick: u32,
+    base_weight_ticks: i32 = 0,
+    derivative_step_ticks: u32 = 1,
+    multiplicity: u16 = 1,
+    quantum_delta: []const i32 = &.{},
+    body: u32 = 0,
+};
+
+/// BasisSeedFamily declares one finite seed-option band.
+pub const BasisSeedFamily = struct {
+    field: Id,
+    component: u16 = 0,
+    statistics: Statistics = .fermionic,
+    first_weight_ticks: i32,
+    step_tick: u32 = 1,
+    last_weight_ticks: i32 = 0,
+    multiplicity: u16 = 1,
+    quantum_delta: []const i32 = &.{},
+    body: u32 = 0,
+};
+
+/// BasisRenderAtom names one compact mode or seed bit.
+pub const BasisRenderAtom = struct {
+    id: u32,
+    component: ?u16 = null,
+    name_symbol: Id,
+    base_weight_ticks: i32 = 0,
+    derivative_step_ticks: u32 = 1,
+    fixed_weight_ticks: ?i32 = null,
+    show_label: bool = true,
+};
+
+/// BasisRule is the explicit compact basis program attached to a descriptor.
+pub const BasisRule = struct {
+    oscillators: []const BasisOscillatorFamily = &.{},
+    seed_families: []const BasisSeedFamily = &.{},
+    drop_empty_seed: bool = false,
+    render_modes: []const BasisRenderAtom = &.{},
+    render_seed_bits: []const BasisRenderAtom = &.{},
 };
 
 /// ReservedServices records descriptor slots not implemented in this slice.
@@ -247,6 +347,7 @@ pub const Descriptor = struct {
     abi_version: u32 = descriptor_abi_version,
     theory_symbol: Id,
     theory_hash: u32,
+    kind_namespace: ?Id = null,
     symbols: []const []const u8,
     parameters: []const Parameter = &.{},
     quantum_numbers: []const QuantumNumber = &.{},
@@ -256,6 +357,8 @@ pub const Descriptor = struct {
     metadata: []const MetadataExpr = &.{},
     wick_rules: []const WickRule,
     zero_modes: []const ZeroModeRule = &.{},
+    basis: ?BasisBackend = null,
+    basis_rule: ?BasisRule = null,
     result_symbols: []const Id = &.{},
     reserved: ReservedServices = .{},
 };
@@ -301,9 +404,17 @@ fn validateLabelRef(d: Descriptor, field_id: Id, label_id: Id) !void {
     if (fieldLabel(d.fields[field_id], label_id) == null) return error.DanglingLabel;
 }
 
+fn validateScalarMonomial(d: Descriptor, value: ScalarMonomial) !void {
+    if (value.rational.denominator == 0) return error.InvalidRational;
+    if (value.atom) |id| if (id >= d.symbols.len) return error.DanglingSymbol;
+    if (value.atom == null and value.atom_power != 0) return error.InvalidScalarMonomial;
+    if (value.atom != null and value.atom_power == 0) return error.InvalidScalarMonomial;
+}
+
 fn validateMetadata(d: Descriptor, index: Id, expr: MetadataExpr) !void {
     switch (expr) {
         .rational => |value| if (value.denominator == 0) return error.InvalidRational,
+        .scalar_monomial => |value| try validateScalarMonomial(d, value),
         .parameter => |id| if (!hasParameter(d, id)) return error.DanglingParameter,
         .field_label => |ref| try validateLabelRef(d, ref.field, ref.label),
         .add => |pair| {
@@ -358,13 +469,44 @@ fn validateIndexConstraint(d: Descriptor, row: PairIndexConstraintRow, left_fiel
     if (try labelRole(d, .{ .side = .right, .slot = row.right_slot }, left_field, right_field) != .vector_index) return error.IncompatibleLabelRole;
 }
 
+fn validateBasisBackend(backend: BasisBackend) !void {
+    if (backend.tick_denominator == 0) return error.InvalidBasisBackend;
+    switch (backend.kind) {
+        .free_fermion, .free_boson => if (backend.dimension == 0) return error.InvalidBasisBackend,
+        .eta_xi, .bc => if (backend.dimension != 0) return error.InvalidBasisBackend,
+    }
+}
+
+fn validateBasisRule(d: Descriptor, rule: BasisRule) !void {
+    for (rule.oscillators) |oscillator| {
+        if (!hasField(d, oscillator.field)) return error.DanglingField;
+        if (oscillator.first_tick == 0 or oscillator.step_tick == 0 or oscillator.multiplicity == 0) return error.InvalidBasisBackend;
+        if (oscillator.derivative_step_ticks == 0) return error.InvalidBasisBackend;
+    }
+    for (rule.seed_families) |seed| {
+        if (!hasField(d, seed.field)) return error.DanglingField;
+        if (seed.step_tick == 0 or seed.multiplicity == 0 or seed.first_weight_ticks > seed.last_weight_ticks) return error.InvalidBasisBackend;
+    }
+    for (rule.render_modes) |atom| {
+        if (!hasSymbol(d, atom.name_symbol)) return error.DanglingSymbol;
+        if (atom.derivative_step_ticks == 0) return error.InvalidBasisBackend;
+    }
+    for (rule.render_seed_bits) |atom| {
+        if (!hasSymbol(d, atom.name_symbol)) return error.DanglingSymbol;
+        if (atom.derivative_step_ticks == 0) return error.InvalidBasisBackend;
+    }
+}
+
 /// validateDescriptor rejects malformed generated descriptor data.
 pub fn validateDescriptor(d: Descriptor) !void {
     if (d.abi_version != descriptor_abi_version) return error.UnsupportedDescriptorAbi;
     if (!hasSymbol(d, d.theory_symbol)) return error.DanglingSymbol;
+    if (d.kind_namespace) |symbol| if (!hasSymbol(d, symbol)) return error.DanglingSymbol;
     if (d.reserved.ope_rules != 0 or d.reserved.operator_templates != 0 or d.reserved.relation_rules != 0 or d.reserved.basis_rules != 0) {
         return error.UnsupportedReservedService;
     }
+    if (d.basis) |backend| try validateBasisBackend(backend);
+    if (d.basis_rule) |rule| try validateBasisRule(d, rule);
 
     try denseUniqueIds(Parameter, d.parameters);
     try denseUniqueIds(QuantumNumber, d.quantum_numbers);
@@ -409,10 +551,24 @@ pub fn validateDescriptor(d: Descriptor) !void {
     }
     for (d.fields) |field| {
         if (!hasSymbol(d, field.symbol)) return error.DanglingSymbol;
+        if (field.kind_symbol) |id| if (!hasSymbol(d, id)) return error.DanglingSymbol;
         try denseUniqueIds(LabelSchema, field.labels);
         for (field.labels) |label| if (!hasSymbol(d, label.symbol)) return error.DanglingSymbol;
+        if (field.support != .infer and field.insertion != .single) return error.InvalidFieldSupport;
         if (field.weight) |id| if (id >= d.metadata.len) return error.DanglingMetadata;
         if (field.anti_weight) |id| if (id >= d.metadata.len) return error.DanglingMetadata;
+        switch (field.infinity_behavior) {
+            .infer, .none => if (field.infinity_label != null) return error.InvalidInfinityBehavior,
+            .primary_from_weight => {
+                if (field.weight == null and field.anti_weight == null) return error.InvalidInfinityBehavior;
+                if (field.infinity_label != null) return error.InvalidInfinityBehavior;
+            },
+            .branch_global_exponential => {
+                const label_id = field.infinity_label orelse return error.InvalidInfinityBehavior;
+                const label = fieldLabel(field, label_id) orelse return error.DanglingFieldLabel;
+                if (label.role != .momentum) return error.InvalidInfinityBehavior;
+            },
+        }
     }
     for (d.metadata, 0..) |expr, index| try validateMetadata(d, @intCast(index), expr);
 
@@ -425,6 +581,8 @@ pub fn validateDescriptor(d: Descriptor) !void {
         const right_arity = d.fields[rule.right].labels.len;
         for (rule.terms) |term| {
             for (term.scalars) |scalar| switch (scalar) {
+                .rational => |value| if (value.denominator == 0) return error.InvalidRational,
+                .monomial => |value| try validateScalarMonomial(d, value),
                 .parameter, .neg_parameter_half, .neg_i_parameter_half, .parameter_half => |id| if (!hasParameter(d, id)) return error.DanglingParameter,
                 else => {},
             };
@@ -437,10 +595,48 @@ pub fn validateDescriptor(d: Descriptor) !void {
 
     for (d.zero_modes) |rule| {
         if (!hasSurface(d, rule.surface)) return error.DanglingSurface;
-        if (rule.consumes.len == 0) return error.EmptyZeroMode;
-        for (rule.consumes) |field_id| {
+        if (rule.selector.fields.len == 0) return error.EmptyZeroMode;
+        switch (rule.normalization) {
+            .rational => |value| if (value.denominator == 0) return error.InvalidRational,
+            .monomial => |value| try validateScalarMonomial(d, value),
+            .parameter, .neg_parameter_half, .neg_i_parameter_half, .parameter_half => |id| if (!hasParameter(d, id)) return error.DanglingParameter,
+            else => {},
+        }
+        for (rule.normalization_factors) |factor| switch (factor) {
+            .rational => |value| if (value.denominator == 0) return error.InvalidRational,
+            .monomial => |value| try validateScalarMonomial(d, value),
+            .parameter, .neg_parameter_half, .neg_i_parameter_half, .parameter_half => |id| if (!hasParameter(d, id)) return error.DanglingParameter,
+            else => {},
+        };
+        for (rule.selector.fields) |field_id| {
             if (!hasField(d, field_id)) return error.DanglingField;
             if (!d.fields[field_id].zero_mode_consumable) return error.IncompatibleZeroModeField;
+        }
+        switch (rule.saturation) {
+            .grassmann_count => {
+                if (rule.selector.exact_count != 1) return error.InvalidZeroMode;
+                if (rule.normalization_factors.len != 0) return error.InvalidZeroMode;
+                for (rule.selector.fields) |field_id| {
+                    if (d.fields[field_id].statistics != .fermionic) return error.IncompatibleZeroModeField;
+                }
+            },
+            .grassmann_top_form => {
+                if (rule.selector.exact_count != 3) return error.InvalidZeroMode;
+                if (d.surfaces[rule.surface].kind != .sphere) return error.InvalidZeroMode;
+                if (rule.normalization_factors.len != 0) return error.InvalidZeroMode;
+                for (rule.selector.fields) |field_id| {
+                    if (d.fields[field_id].statistics != .fermionic) return error.IncompatibleZeroModeField;
+                }
+            },
+            .linear_conservation => {
+                if (rule.selector.allow_derivatives) return error.InvalidZeroMode;
+                for (rule.selector.fields) |field_id| {
+                    const field = d.fields[field_id];
+                    if (!fieldHasLabelRole(field, .momentum) and !fieldHasLabelRole(field, .profile)) {
+                        return error.IncompatibleZeroModeField;
+                    }
+                }
+            },
         }
     }
 }
@@ -451,17 +647,260 @@ fn stableId(seed: u32, local: u32) u32 {
     return if (hash == 0) 1 else hash;
 }
 
+fn stableNameId(namespace: []const u8, name: []const u8) u32 {
+    var hash: u32 = 2166136261;
+    for (namespace) |byte| hash = (hash ^ @as(u32, byte)) *% 16777619;
+    hash = (hash ^ @as(u32, ':')) *% 16777619;
+    for (name) |byte| hash = (hash ^ @as(u32, byte)) *% 16777619;
+    return if (hash == 0) 1 else hash;
+}
+
 fn kindId(comptime d: Descriptor, field: Id) operators.OperatorKindId {
+    if (d.kind_namespace) |namespace_symbol| {
+        const kind_symbol = d.fields[field].kind_symbol orelse d.fields[field].symbol;
+        return stableNameId(d.symbols[namespace_symbol], d.symbols[kind_symbol]);
+    }
     return stableId(d.theory_hash, field + 1);
+}
+
+fn lowerBasisStatistics(statistics: Statistics) basis_generation.Statistics {
+    return switch (statistics) {
+        .bosonic => .bosonic,
+        .fermionic => .fermionic,
+    };
+}
+
+fn compactBasisQuantumCount(comptime d: Descriptor) usize {
+    var count: usize = 0;
+    inline for (d.quantum_numbers) |number| switch (number.kind) {
+        .u1_charge, .zn_phase, .tensor_rep => count += 1,
+        .ade_irrep => {},
+    };
+    return count;
+}
+
+fn compactBasisQuantumSchema(comptime d: Descriptor) [compactBasisQuantumCount(d)]basis_generation.Quantum {
+    var schema: [compactBasisQuantumCount(d)]basis_generation.Quantum = undefined;
+    var index: usize = 0;
+    inline for (d.quantum_numbers) |number| {
+        const name = d.symbols[number.symbol];
+        switch (number.kind) {
+            .u1_charge => schema[index] = .{ .name = name, .kind = .additive },
+            .zn_phase => schema[index] = .{ .name = name, .kind = .zn, .modulus = @intCast(number.modulus) },
+            .tensor_rep => schema[index] = .{ .name = name, .kind = .tensor_rep, .representation_space = number.representation_space },
+            .ade_irrep => continue,
+        }
+        index += 1;
+    }
+    return schema;
+}
+
+fn basisOscillatorFamilies(comptime d: Descriptor) [d.basis_rule.?.oscillators.len]basis_generation.OscillatorFamily {
+    const rule = d.basis_rule.?;
+    var families: [rule.oscillators.len]basis_generation.OscillatorFamily = undefined;
+    inline for (rule.oscillators, 0..) |row, index| {
+        families[index] = .{
+            .id = kindId(d, row.field),
+            .component = row.component,
+            .statistics = lowerBasisStatistics(row.statistics),
+            .first_tick = row.first_tick,
+            .step_tick = row.step_tick,
+            .base_weight_ticks = row.base_weight_ticks,
+            .derivative_step_ticks = row.derivative_step_ticks,
+            .multiplicity = row.multiplicity,
+            .quantum_delta = row.quantum_delta,
+            .body = row.body,
+        };
+    }
+    return families;
+}
+
+fn basisSeedFamilies(comptime d: Descriptor) [d.basis_rule.?.seed_families.len]basis_generation.SeedFamily {
+    const rule = d.basis_rule.?;
+    var families: [rule.seed_families.len]basis_generation.SeedFamily = undefined;
+    inline for (rule.seed_families, 0..) |row, index| {
+        families[index] = .{
+            .id = kindId(d, row.field),
+            .component = row.component,
+            .first_weight_ticks = row.first_weight_ticks,
+            .step_tick = row.step_tick,
+            .last_weight_ticks = row.last_weight_ticks,
+            .statistics = lowerBasisStatistics(row.statistics),
+            .multiplicity = row.multiplicity,
+            .quantum_delta = row.quantum_delta,
+            .body = row.body,
+        };
+    }
+    return families;
+}
+
+fn basisRenderModeAtoms(comptime d: Descriptor) [d.basis_rule.?.render_modes.len]basis_generation.RenderAtom {
+    const rows = d.basis_rule.?.render_modes;
+    var atoms: [rows.len]basis_generation.RenderAtom = undefined;
+    inline for (rows, 0..) |row, index| {
+        atoms[index] = .{
+            .id = kindId(d, @intCast(row.id)),
+            .component = row.component,
+            .name = d.symbols[row.name_symbol],
+            .base_weight_ticks = row.base_weight_ticks,
+            .derivative_step_ticks = row.derivative_step_ticks,
+            .fixed_weight_ticks = row.fixed_weight_ticks,
+            .show_label = row.show_label,
+        };
+    }
+    return atoms;
+}
+
+fn basisRenderSeedAtoms(comptime d: Descriptor) [d.basis_rule.?.render_seed_bits.len]basis_generation.RenderAtom {
+    const rows = d.basis_rule.?.render_seed_bits;
+    var atoms: [rows.len]basis_generation.RenderAtom = undefined;
+    inline for (rows, 0..) |row, index| {
+        atoms[index] = .{
+            .id = row.id,
+            .component = row.component,
+            .name = d.symbols[row.name_symbol],
+            .base_weight_ticks = row.base_weight_ticks,
+            .derivative_step_ticks = row.derivative_step_ticks,
+            .fixed_weight_ticks = row.fixed_weight_ticks,
+            .show_label = row.show_label,
+        };
+    }
+    return atoms;
+}
+
+fn basisModeCapacity(comptime d: Descriptor, comptime max_level_ticks: u32) usize {
+    const rows = d.basis_rule.?.oscillators;
+    comptime var count: usize = 0;
+    inline for (rows) |row| {
+        if (row.first_tick > max_level_ticks) continue;
+        const level_count = ((max_level_ticks - row.first_tick) / row.step_tick) + 1;
+        count += @as(usize, level_count) * row.multiplicity;
+    }
+    return count;
+}
+
+fn basisSeedOptionCapacity(comptime d: Descriptor) usize {
+    const rows = d.basis_rule.?.seed_families;
+    comptime var count: usize = 0;
+    inline for (rows) |row| {
+        const span: u32 = @intCast(row.last_weight_ticks - row.first_weight_ticks);
+        const level_count = (span / row.step_tick) + 1;
+        count += @as(usize, level_count) * row.multiplicity;
+    }
+    return count;
+}
+
+fn basisSeedSubsetTotalCapacity(comptime d: Descriptor) usize {
+    if (d.basis_rule.?.seed_families.len == 0) return 1;
+    const option_count = basisSeedOptionCapacity(d);
+    if (option_count >= @bitSizeOf(usize)) @compileError("too many descriptor basis seed options");
+    return @as(usize, 1) << @intCast(option_count);
+}
+
+fn basisSeedSubsetCapacity(comptime d: Descriptor) usize {
+    const subset_count = basisSeedSubsetTotalCapacity(d);
+    return subset_count - if (d.basis_rule.?.drop_empty_seed and d.basis_rule.?.seed_families.len != 0) 1 else 0;
+}
+
+fn descriptorDebugName(comptime d: Descriptor) []const u8 {
+    if (d.theory_symbol < d.symbols.len) return d.symbols[d.theory_symbol];
+    return "<dangling theory_symbol>";
+}
+
+fn descriptorCompileError(comptime d: Descriptor, comptime err: anyerror) noreturn {
+    @compileError(std.fmt.comptimePrint("invalid descriptor '{s}': {s}", .{ descriptorDebugName(d), @errorName(err) }));
+}
+
+/// GeneratedBasis lowers descriptor basis rows to the compact enumerator API.
+pub fn GeneratedBasis(comptime d: Descriptor) type {
+    comptime {
+        validateDescriptor(d) catch |err| descriptorCompileError(d, err);
+        if (d.basis_rule == null) @compileError("descriptor has no basis rule");
+    }
+    const quantum_schema_storage = compactBasisQuantumSchema(d);
+    const render_mode_storage = basisRenderModeAtoms(d);
+    const render_seed_storage = basisRenderSeedAtoms(d);
+    const seed_option_capacity = basisSeedOptionCapacity(d);
+    const seed_subset_total_capacity = basisSeedSubsetTotalCapacity(d);
+    const seed_subset_capacity = basisSeedSubsetCapacity(d);
+
+    return struct {
+        /// quantum_schema is the compact basis quantum-number layout.
+        pub const quantum_schema = quantum_schema_storage;
+        /// render_table maps compact descriptor basis ids to field names.
+        pub const render_table = basis_generation.RenderTable{ .modes = &render_mode_storage, .seed_bits = &render_seed_storage };
+
+        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
+        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
+            return basisModeCapacity(d, max_level_ticks);
+        }
+
+        /// seedCapacity returns the number of finite primary seeds.
+        pub fn seedCapacity() usize {
+            return seed_subset_capacity;
+        }
+
+        /// writeSeeds writes descriptor seed subsets into a product quantum vector.
+        pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
+            if (d.basis_rule.?.seed_families.len == 0) {
+                return basis_generation.zeroSeed(total_quantum_count, seeds, quantum_storage);
+            }
+            const families = basisSeedFamilies(d);
+            var seed_options_storage: [seed_option_capacity]basis_generation.SeedOption = undefined;
+            const seed_options = try basis_generation.buildSeedOptions(&families, &seed_options_storage);
+            var local_seed_storage: [seed_subset_total_capacity]basis_generation.Seed = undefined;
+            var local_quantum_storage: [local_seed_storage.len * quantum_schema.len]i32 = undefined;
+            const local_seeds = try basis_generation.buildFermionicSeedSubsets(seed_options, quantum_schema.len, &local_seed_storage, &local_quantum_storage);
+            const source = if (d.basis_rule.?.drop_empty_seed) local_seeds[1..] else local_seeds;
+            if (seeds.len < source.len or quantum_storage.len < source.len * total_quantum_count) return error.ContextTooSmall;
+            for (source, 0..) |seed, index| {
+                seeds[index] = try basis_generation.copySeed(seed, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+            }
+            return seeds[0..source.len];
+        }
+
+        /// writeModes writes descriptor oscillator bands into a product quantum vector.
+        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
+            const base_families = basisOscillatorFamilies(d);
+            var families: [base_families.len]basis_generation.OscillatorFamily = base_families;
+            for (&families) |*family| family.component = component;
+            const written = try basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
+            if (quantum_storage.len < written.len * total_quantum_count) return error.ContextTooSmall;
+            for (written, 0..) |*mode, index| {
+                mode.quantum_delta = try basis_generation.copyQuantumDelta(mode.quantum_delta, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
+            }
+            return written;
+        }
+
+        /// stream enumerates compact descriptor basis states with stack-bounded scratch.
+        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
+            var modes_storage: [modeCapacity(max_level_ticks)]basis_generation.Mode = undefined;
+            var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
+            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
+            var seeds_storage: [seedCapacity()]basis_generation.Seed = undefined;
+            var seed_quantum_storage: [seedCapacity() * quantum_schema.len]i32 = undefined;
+            const seeds = try writeSeeds(0, quantum_schema.len, &seeds_storage, &seed_quantum_storage);
+            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
+            var context = storage.context();
+            return basis_generation.stream(.{
+                .quantum_schema = &quantum_schema,
+                .modes = modes,
+                .seeds = seeds,
+            }, query, &context, sink);
+        }
+    };
 }
 
 fn sectorId(comptime d: Descriptor, surface: Id, zero_rule: usize) zero_mode.Sector {
     return stableId(d.theory_hash ^ 0x51f1_0000, (@as(u32, surface) << 16) | @as(u32, @intCast(zero_rule + 1)));
 }
 
-fn lowerSupport(shape: InsertionShape) wick.Support {
-    return switch (shape) {
-        .single => .holomorphic,
+fn lowerSupport(field: Field) wick.Support {
+    return switch (field.insertion) {
+        .single => switch (field.support) {
+            .infer, .holomorphic => .holomorphic,
+            .antiholomorphic => .antiholomorphic,
+        },
         .pair => .bulk_pair,
     };
 }
@@ -483,20 +922,25 @@ fn lowerLabelKind(role: LabelRole) declare.Spec.LabelKind {
 }
 
 fn lowerWeightPower(comptime d: Descriptor, comptime id: Id) ?i16 {
-    return switch (d.metadata[id]) {
-        .rational => |value| blk: {
-            if (value.denominator == 0) return null;
-            const numerator = -2 * value.numerator;
-            if (@rem(numerator, value.denominator) != 0) return null;
-            const power = @divExact(numerator, value.denominator);
-            if (power < std.math.minInt(i16) or power > std.math.maxInt(i16)) return null;
-            break :blk @intCast(power);
+    const value = switch (d.metadata[id]) {
+        .rational => |rational| rational,
+        .scalar_monomial => |monomial| blk: {
+            if (monomial.imaginary_power != 0 or monomial.atom != null or monomial.atom_power != 0) return null;
+            break :blk monomial.rational;
         },
-        else => null,
+        else => return null,
+    };
+    return blk: {
+        if (value.denominator == 0) return null;
+        const numerator = -2 * value.numerator;
+        if (@rem(numerator, value.denominator) != 0) return null;
+        const power = @divExact(numerator, value.denominator);
+        if (power < std.math.minInt(i16) or power > std.math.maxInt(i16)) return null;
+        break :blk @intCast(power);
     };
 }
 
-fn lowerInfinity(comptime d: Descriptor, comptime field: Field) ?declare.Spec.InfinityBehavior {
+fn lowerPrimaryInfinity(comptime d: Descriptor, comptime field: Field) ?declare.Spec.InfinityBehavior {
     if (field.weight == null and field.anti_weight == null) return null;
     const holomorphic_power = if (field.weight) |id| lowerWeightPower(d, id) orelse return null else 0;
     const antiholomorphic_power = if (field.anti_weight) |id| lowerWeightPower(d, id) orelse return null else 0;
@@ -506,13 +950,22 @@ fn lowerInfinity(comptime d: Descriptor, comptime field: Field) ?declare.Spec.In
     } };
 }
 
+fn lowerInfinity(comptime d: Descriptor, comptime field: Field) ?declare.Spec.InfinityBehavior {
+    return switch (field.infinity_behavior) {
+        .none => null,
+        .branch_global_exponential => .free_boson_exponential,
+        .infer => lowerPrimaryInfinity(d, field),
+        .primary_from_weight => lowerPrimaryInfinity(d, field) orelse @compileError("descriptor field infinity behavior requires literal primary weight metadata"),
+    };
+}
+
 fn lowerField(comptime d: Descriptor, comptime field: Field) declare.Spec.Operator {
     comptime var labels: [field.labels.len]declare.Spec.LabelKind = undefined;
     inline for (field.labels, 0..) |label, index| labels[index] = lowerLabelKind(label.role);
     return .{
         .name = d.symbols[field.symbol],
         .kind = kindId(d, field.id),
-        .support = lowerSupport(field.insertion),
+        .support = lowerSupport(field),
         .insertion = lowerInsertion(field.insertion),
         .labels = &labels,
         .statistics = if (field.statistics == .fermionic) .fermionic else .bosonic,
@@ -558,10 +1011,25 @@ fn lowerDerivative(left: bool, right: bool) wick.DerivativeAction {
 }
 
 fn parameterScalar(comptime d: Descriptor, id: Id) @TypeOf(scalars.one()) {
-    return scalars.atomScalar(parameterAtom(d, id));
+    return scalars.atomScalar(symbolAtom(d, d.parameters[id].symbol));
 }
 
-fn parameterAtom(comptime d: Descriptor, id: Id) u32 {
+fn stableScalarAtomByte(byte: u8) u8 {
+    return if (byte == '-') '_' else byte;
+}
+
+fn stableScalarAtomId(namespace: []const u8, name: []const u8) u32 {
+    var hash: u32 = 2166136261;
+    for (namespace) |byte| hash = (hash ^ @as(u32, stableScalarAtomByte(byte))) *% 16777619;
+    hash = (hash ^ @as(u32, ':')) *% 16777619;
+    for (name) |byte| hash = (hash ^ @as(u32, stableScalarAtomByte(byte))) *% 16777619;
+    return if (hash == 0) 1 else hash;
+}
+
+fn symbolAtom(comptime d: Descriptor, id: Id) u32 {
+    if (d.kind_namespace) |namespace_symbol| {
+        return stableScalarAtomId(d.symbols[namespace_symbol], d.symbols[id]);
+    }
     return stableId(d.theory_hash ^ 0xa170_0000, id + 1);
 }
 
@@ -569,6 +1037,13 @@ fn lowerScalar(comptime d: Descriptor, factor: ScalarFactor) wick.ScalarFactor {
     return switch (factor) {
         .one => wick.scalar(scalars.one()),
         .rational => |value| wick.scalar(scalars.rational(value.numerator, value.denominator)),
+        .monomial => |value| wick.scalar(scalars.monomial(
+            value.rational.numerator,
+            value.rational.denominator,
+            value.imaginary_power,
+            if (value.atom) |id| symbolAtom(d, id) else null,
+            value.atom_power,
+        )),
         .parameter => |id| wick.scalar(parameterScalar(d, id)),
         .neg_parameter_half => |id| wick.scalar(scalars.div(scalars.neg(parameterScalar(d, id)), 2)),
         .neg_i_parameter_half => |id| wick.scalar(scalars.div(scalars.neg(scalars.i(parameterScalar(d, id))), 2)),
@@ -581,6 +1056,12 @@ fn lowerScalarValue(comptime d: Descriptor, factor: ScalarFactor) @TypeOf(scalar
         .value => |value| value,
         else => @compileError("descriptor zero-mode normalization must be a value scalar"),
     };
+}
+
+fn lowerScalarValues(comptime d: Descriptor, comptime factors: []const ScalarFactor) [factors.len]@TypeOf(scalars.one()) {
+    var storage: [factors.len]@TypeOf(scalars.one()) = undefined;
+    inline for (factors, 0..) |factor, index| storage[index] = lowerScalarValue(d, factor);
+    return storage;
 }
 
 fn lowerCoordinate(comptime d: Descriptor, factor: CoordinateFactor) wick.CoordinateFactor {
@@ -630,7 +1111,7 @@ fn LoweredTerm(comptime d: Descriptor, comptime term: WickTerm) type {
             for (term.coordinates, 0..) |factor, index| storage[index] = lowerCoordinate(d, factor);
             break :blk storage;
         };
-        const tensor_storage = blk: {
+        const tensor_storage = if (term.tensors.len == 0) [_]wick.TensorFactor{.none} else blk: {
             var storage: [term.tensors.len]wick.TensorFactor = undefined;
             for (term.tensors, 0..) |factor, index| storage[index] = lowerTensor(factor);
             break :blk storage;
@@ -662,8 +1143,8 @@ fn LoweredWickRule(comptime d: Descriptor, comptime rule: WickRule) type {
             break :blk storage;
         };
         const value = wick.constrainedRule(
-            wick.pattern(kindId(d, rule.left), lowerSupport(d.fields[rule.left].insertion)),
-            wick.pattern(kindId(d, rule.right), lowerSupport(d.fields[rule.right].insertion)),
+            wick.pattern(kindId(d, rule.left), lowerSupport(d.fields[rule.left])),
+            wick.pattern(kindId(d, rule.right), lowerSupport(d.fields[rule.right])),
             wick.expr(&terms),
             &constraint_storage,
         );
@@ -680,27 +1161,73 @@ fn lowerConsumeKinds(comptime d: Descriptor, comptime consumes: []const Id) [con
     return storage;
 }
 
+fn fieldHasLabelRole(field: Field, role: LabelRole) bool {
+    for (field.labels) |label| if (label.role == role) return true;
+    return false;
+}
+
+fn consumeKindCountByRole(comptime d: Descriptor, comptime consumes: []const Id, comptime role: LabelRole) usize {
+    var count: usize = 0;
+    inline for (consumes) |field_id| {
+        if (fieldHasLabelRole(d.fields[field_id], role)) count += 1;
+    }
+    return count;
+}
+
+fn lowerConsumeKindsByRole(
+    comptime d: Descriptor,
+    comptime consumes: []const Id,
+    comptime role: LabelRole,
+) [consumeKindCountByRole(d, consumes, role)]operators.OperatorKindId {
+    var storage: [consumeKindCountByRole(d, consumes, role)]operators.OperatorKindId = undefined;
+    var index: usize = 0;
+    inline for (consumes) |field_id| {
+        if (fieldHasLabelRole(d.fields[field_id], role)) {
+            storage[index] = kindId(d, field_id);
+            index += 1;
+        }
+    }
+    return storage;
+}
+
+fn lowerConstantFermionSupport(comptime d: Descriptor, comptime surface: Id) zero_mode.EtaXiSupport {
+    return switch (d.surfaces[surface].kind) {
+        .sphere => .sphere_holomorphic,
+        .torus => .torus_holomorphic,
+    };
+}
+
+fn lowerTopFormFermionSupport(comptime d: Descriptor, comptime surface: Id) zero_mode.BcSupport {
+    return switch (d.surfaces[surface].kind) {
+        .sphere => .sphere_holomorphic,
+        .torus => @compileError("torus top-form zero-mode support is not implemented"),
+    };
+}
+
 fn LoweredZeroMode(comptime d: Descriptor, comptime rule: ZeroModeRule, comptime index: usize) type {
     return struct {
-        const consume_storage = lowerConsumeKinds(d, rule.consumes);
+        const consume_storage = lowerConsumeKinds(d, rule.selector.fields);
+        const exp_consume_storage = lowerConsumeKindsByRole(d, rule.selector.fields, .momentum);
+        const profile_consume_storage = lowerConsumeKindsByRole(d, rule.selector.fields, .profile);
+        const normalization_factor_storage = lowerScalarValues(d, rule.normalization_factors);
         const sector = sectorId(d, rule.surface, index);
-        const value = switch (rule.kind) {
-            .constant_fermion => zero_mode.rule(sector, .{ .constant_fermion = .{
-                .support = .sphere_holomorphic,
+        const value = switch (rule.saturation) {
+            .grassmann_count => zero_mode.rule(sector, .{ .constant_fermion = .{
+                .support = lowerConstantFermionSupport(d, rule.surface),
                 .fermion_kind_ids = &consume_storage,
                 .normalization = lowerScalarValue(d, rule.normalization),
             } }),
-            .top_form_fermion => zero_mode.rule(sector, .{ .top_form_fermion = .{
-                .support = .sphere_holomorphic,
+            .grassmann_top_form => zero_mode.rule(sector, .{ .top_form_fermion = .{
+                .support = lowerTopFormFermionSupport(d, rule.surface),
                 .field_kind_ids = &consume_storage,
                 .normalization = lowerScalarValue(d, rule.normalization),
             } }),
-            .boson_momentum_conservation => zero_mode.rule(sector, .{ .boson_momentum_conservation = .{
-                .exp_kind_ids = &consume_storage,
-                .profile_kind_ids = &.{},
+            .linear_conservation => zero_mode.rule(sector, .{ .boson_momentum_conservation = .{
+                .exp_kind_ids = &exp_consume_storage,
+                .profile_kind_ids = &profile_consume_storage,
                 .normalization = .{
                     .scalar = lowerScalarValue(d, rule.normalization),
-                    .two_pi_power = if (rule.two_pi_power == 0) .none else .{ .literal = rule.two_pi_power },
+                    .scalar_factors = &normalization_factor_storage,
                 },
             } }),
         };
@@ -889,7 +1416,8 @@ const EventSink = struct {
             .eta_xi_zero_mode => |item| try self.emit(.{ .kind = .zero_mode, .a = item.xi.coordinate.raw, .name = "eta-xi-zero-mode" }),
             .momentum_delta => |item| {
                 try self.emit(try scalarEvent(item.scalar));
-                try self.emit(.{ .kind = .zero_mode, .a = item.two_pi_power, .b = @intCast(item.momenta.len), .name = "momentum-delta" });
+                for (item.scalar_factors) |scalar| try self.emit(try scalarEvent(scalar));
+                try self.emit(.{ .kind = .zero_mode, .b = @intCast(item.momenta.len), .name = "momentum-delta" });
                 for (item.momenta) |momentum| {
                     try self.emit(.{ .kind = .zero_mode, .a = labelSymbol(momentum), .name = "momentum-delta-momentum" });
                 }
@@ -966,6 +1494,22 @@ fn GeneratedField(comptime d: Descriptor, comptime field_id: Id) type {
         /// name is the descriptor symbol for this generated field builder.
         pub const name = d.symbols[field.symbol];
 
+        /// localSingle builds a shared local-operator token for one single-coordinate insertion.
+        pub fn localSingle(local: anytype, z: shared.Handle.Coord, derivatives: u8, labels: anytype) !*shared.LocalOperator {
+            if (field.insertion != .single) return error.InvalidInsertionShape;
+            const count = comptime labelTupleCount(@TypeOf(labels));
+            if (count != field.labels.len) return error.InvalidFieldArity;
+            return declare.singleOperator(local, kindId(d, field_id), z, derivatives, labels);
+        }
+
+        /// localPair builds a shared local-operator token for one bulk-pair insertion.
+        pub fn localPair(local: anytype, z: shared.Handle.Coord, zbar: shared.Handle.Coord, labels: anytype) !*shared.LocalOperator {
+            if (field.insertion != .pair) return error.InvalidInsertionShape;
+            const count = comptime labelTupleCount(@TypeOf(labels));
+            if (count != field.labels.len) return error.InvalidFieldArity;
+            return declare.pairOperator(local, kindId(d, field_id), z, zbar, labels);
+        }
+
         /// single appends a single-coordinate generated field insertion.
         pub fn single(local: anytype, z: anytype, derivatives: u8, labels: anytype) !void {
             if (field.insertion != .single) return error.InvalidInsertionShape;
@@ -1018,7 +1562,7 @@ fn GeneratedConfig(comptime d: Descriptor, comptime Config: type) type {
 /// GeneratedTheory lowers one descriptor to an executable theory boundary.
 pub fn GeneratedTheory(comptime d: Descriptor) type {
     comptime {
-        validateDescriptor(d) catch |err| @compileError(@errorName(err));
+        validateDescriptor(d) catch |err| descriptorCompileError(d, err);
     }
     const rules = wickStorage(d);
     const zeros = zeroStorage(d);
@@ -1041,6 +1585,10 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
         pub const descriptor = d;
         /// config exposes generated correlator configs through the theory API.
         pub const config = GeneratedConfig(d, Config);
+        /// basis exposes descriptor-lowered compact basis enumeration.
+        pub const basis = if (d.basis_rule != null) GeneratedBasis(d) else struct {};
+        /// text exposes bounded result-inspection sinks.
+        pub const text = shared.text;
 
         /// op groups compile-time generated field builders.
         pub const op = struct {
@@ -1186,10 +1734,10 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             return theory_hash;
         }
 
-        /// scalarAtomParameterName resolves a descriptor parameter scalar atom.
+        /// scalarAtomParameterName resolves a descriptor scalar atom symbol.
         pub fn scalarAtomParameterName(atom: u32) ?[]const u8 {
-            inline for (d.parameters) |parameter| {
-                if (parameterAtom(d, parameter.id) == atom) return d.symbols[parameter.symbol];
+            inline for (d.symbols, 0..) |symbol, index| {
+                if (symbolAtom(d, @intCast(index)) == atom) return symbol;
             }
             return null;
         }
@@ -1250,7 +1798,10 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
 }
 
 test "generated theory exposes field builders and direct correlator sink" {
-    const symbols = [_][]const u8{ "free-fermion-10", "spin10", "d5", "psi", "mu", "vector" };
+    const symbols = [_][]const u8{ "free-fermion-10", "spin10", "d5", "psi", "mu", "vector", "alpha-prime" };
+    const parameters = [_]Parameter{
+        .{ .id = 0, .symbol = 6, .role = .scalar_parameter },
+    };
     const quantum_numbers = [_]QuantumNumber{
         .{ .id = 0, .symbol = 1, .kind = .ade_irrep, .group_symbol = 2 },
     };
@@ -1268,7 +1819,12 @@ test "generated theory exposes field builders and direct correlator sink" {
     };
     const terms = [_]WickTerm{
         .{
-            .scalars = &.{.one},
+            .scalars = &.{.{ .monomial = .{
+                .rational = .{ .numerator = -1, .denominator = 2 },
+                .imaginary_power = 1,
+                .atom = 0,
+                .atom_power = 1,
+            } }},
             .coordinates = &.{.{ .difference_power = .{
                 .left = .{ .side = .left, .slot = .position },
                 .right = .{ .side = .right, .slot = .position },
@@ -1289,6 +1845,7 @@ test "generated theory exposes field builders and direct correlator sink" {
         .theory_symbol = 0,
         .theory_hash = 0x1933f00d,
         .symbols = &symbols,
+        .parameters = &parameters,
         .quantum_numbers = &quantum_numbers,
         .field_quantum_numbers = &field_quantum_numbers,
         .surfaces = &surfaces,
@@ -1315,6 +1872,7 @@ test "generated theory exposes field builders and direct correlator sink" {
 
     const Sink = struct {
         wick_terms: usize = 0,
+        scalars: usize = 0,
         coordinates: usize = 0,
         tensors: usize = 0,
         base_cases: usize = 0,
@@ -1323,7 +1881,9 @@ test "generated theory exposes field builders and direct correlator sink" {
         pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
             self.wick_terms += 1;
         }
-        pub fn emitWickScalar(_: *@This(), _: anytype) !void {}
+        pub fn emitWickScalar(self: *@This(), _: anytype) !void {
+            self.scalars += 1;
+        }
         pub fn emitWickCoordinate(self: *@This(), _: anytype) !void {
             self.coordinates += 1;
         }
@@ -1342,6 +1902,7 @@ test "generated theory exposes field builders and direct correlator sink" {
     try theory.correlator(&theory.config.sphere, ops, &sink);
 
     try std.testing.expectEqual(@as(usize, 1), sink.wick_terms);
+    try std.testing.expectEqual(@as(usize, 1), sink.scalars);
     try std.testing.expectEqual(@as(usize, 1), sink.coordinates);
     try std.testing.expectEqual(@as(usize, 1), sink.tensors);
     try std.testing.expectEqual(@as(usize, 1), sink.base_cases);
@@ -1366,7 +1927,10 @@ test "generated theory exposes field builders and direct correlator sink" {
 }
 
 test "descriptor accepts named finite and tensor quantum numbers" {
-    const symbols = [_][]const u8{ "test-theory", "charge", "phase", "fermion-number", "spin10", "vector", "psi" };
+    const symbols = [_][]const u8{ "test-theory", "charge", "phase", "fermion-number", "spin10", "vector", "psi", "alpha-prime" };
+    const parameters = [_]Parameter{
+        .{ .id = 0, .symbol = 7, .role = .scalar_parameter },
+    };
     const quantum_numbers = [_]QuantumNumber{
         .{ .id = 0, .symbol = 1, .kind = .u1_charge },
         .{ .id = 1, .symbol = 2, .kind = .zn_phase, .modulus = 3 },
@@ -1380,14 +1944,123 @@ test "descriptor accepts named finite and tensor quantum numbers" {
         .{ .field = 0, .quantum_number = 2, .value = .{ .integer = 1 } },
         .{ .field = 0, .quantum_number = 3, .value = .{ .symbol = 5 } },
     };
+    const metadata = [_]MetadataExpr{
+        .{ .scalar_monomial = .{ .rational = .{ .numerator = 1, .denominator = 4 }, .atom = 0, .atom_power = 1 } },
+    };
     try validateDescriptor(.{
         .theory_symbol = 0,
         .theory_hash = 0,
         .symbols = &symbols,
+        .parameters = &parameters,
         .quantum_numbers = &quantum_numbers,
         .field_quantum_numbers = &field_quantum_numbers,
         .surfaces = &.{},
         .fields = &fields,
+        .metadata = &metadata,
         .wick_rules = &.{},
     });
+}
+
+test "descriptor validates branch-global infinity label" {
+    const symbols = [_][]const u8{ "test-theory", "expX", "k", "mu" };
+    const good_fields = [_]Field{.{
+        .id = 0,
+        .symbol = 1,
+        .insertion = .pair,
+        .labels = &.{.{ .id = 0, .role = .momentum, .symbol = 2 }},
+        .statistics = .bosonic,
+        .infinity_behavior = .branch_global_exponential,
+        .infinity_label = 0,
+    }};
+    try validateDescriptor(.{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .surfaces = &.{},
+        .fields = &good_fields,
+        .wick_rules = &.{},
+    });
+
+    const bad_fields = [_]Field{.{
+        .id = 0,
+        .symbol = 1,
+        .insertion = .pair,
+        .labels = &.{.{ .id = 0, .role = .vector_index, .symbol = 3 }},
+        .statistics = .bosonic,
+        .infinity_behavior = .branch_global_exponential,
+        .infinity_label = 0,
+    }};
+    try std.testing.expectError(error.InvalidInfinityBehavior, validateDescriptor(.{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .surfaces = &.{},
+        .fields = &bad_fields,
+        .wick_rules = &.{},
+    }));
+}
+
+test "descriptor rejects support override on pair field" {
+    const symbols = [_][]const u8{ "test-theory", "X" };
+    const fields = [_]Field{.{
+        .id = 0,
+        .symbol = 1,
+        .insertion = .pair,
+        .statistics = .bosonic,
+        .support = .antiholomorphic,
+    }};
+    try std.testing.expectError(error.InvalidFieldSupport, validateDescriptor(.{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .surfaces = &.{},
+        .fields = &fields,
+        .wick_rules = &.{},
+    }));
+}
+
+test "descriptor rejects unsupported zero-mode measure arity" {
+    const symbols = [_][]const u8{ "test-theory", "c" };
+    const surfaces = [_]Surface{.{ .id = 0, .kind = .sphere, .coordinate_model = .rational }};
+    const fields = [_]Field{.{ .id = 0, .symbol = 1, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true }};
+    const zero_modes = [_]ZeroModeRule{.{
+        .surface = 0,
+        .selector = .{ .fields = &.{0}, .exact_count = 2 },
+        .saturation = .grassmann_top_form,
+    }};
+    try std.testing.expectError(error.InvalidZeroMode, validateDescriptor(.{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .surfaces = &surfaces,
+        .fields = &fields,
+        .wick_rules = &.{},
+        .zero_modes = &zero_modes,
+    }));
+}
+
+test "descriptor zero-mode support follows surface kind" {
+    const symbols = [_][]const u8{ "test-theory", "xi" };
+    const surfaces = [_]Surface{.{ .id = 0, .kind = .torus, .coordinate_model = .elliptic }};
+    const fields = [_]Field{.{ .id = 0, .symbol = 1, .insertion = .single, .statistics = .fermionic, .zero_mode_consumable = true }};
+    const rule = ZeroModeRule{
+        .surface = 0,
+        .selector = .{ .fields = &.{0}, .exact_count = 1 },
+        .saturation = .grassmann_count,
+    };
+    const d = Descriptor{
+        .theory_symbol = 0,
+        .theory_hash = 0,
+        .symbols = &symbols,
+        .surfaces = &surfaces,
+        .fields = &fields,
+        .wick_rules = &.{},
+        .zero_modes = &.{rule},
+    };
+    try validateDescriptor(d);
+    const lowered = comptime lowerZeroMode(d, rule, 0);
+    switch (lowered.expr) {
+        .constant_fermion => |item| try std.testing.expectEqual(zero_mode.EtaXiSupport.torus_holomorphic, item.support),
+        else => return error.TestUnexpectedResult,
+    }
 }

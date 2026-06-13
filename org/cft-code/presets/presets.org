@@ -79,6 +79,371 @@ fn noopZeroModeFactor(_: anytype, _: anytype) !void {}
 fn noopZeroModeBaseEnd(_: anytype) !void {}
 #+end_src
 
+Golden correlator tests use small pair masks instead of allocating symbolic
+expressions.
+
+#+begin_src zig
+fn labelSymbol(value: anytype) !u32 {
+    return switch (value) {
+        .symbol => |symbol| symbol,
+        else => error.UnexpectedLabel,
+    };
+}
+
+fn slotOf(raw: u32, expected: []const u32) !u6 {
+    for (expected, 0..) |candidate, index| {
+        if (raw == candidate) return @intCast(index);
+    }
+    return error.UnexpectedSlot;
+}
+
+fn unorderedPairBit(left: u6, right: u6) u64 {
+    const a = if (left < right) left else right;
+    const b = if (left < right) right else left;
+    return @as(u64, 1) << @intCast(a * 8 + b);
+}
+
+fn pairMask(left_raw: u32, right_raw: u32, expected: []const u32) !u64 {
+    return unorderedPairBit(try slotOf(left_raw, expected), try slotOf(right_raw, expected));
+}
+
+fn allFourPairMask() u64 {
+    return unorderedPairBit(0, 1) | unorderedPairBit(0, 2) | unorderedPairBit(0, 3) |
+        unorderedPairBit(1, 2) | unorderedPairBit(1, 3) | unorderedPairBit(2, 3);
+}
+
+const ParitySink = struct {
+    hash: u64 = 14695981039346656037,
+    branches: usize = 0,
+    terms: usize = 0,
+    scalars: usize = 0,
+    coordinates: usize = 0,
+    tensors: usize = 0,
+    residuals: usize = 0,
+    term_ends: usize = 0,
+    zero_modes: usize = 0,
+    bases: usize = 0,
+
+    fn mix(self: *@This(), value: u64) void {
+        self.hash = (self.hash ^ value) *% 1099511628211;
+    }
+
+    fn mixI64(self: *@This(), value: i64) void {
+        self.mix(@as(u64, @bitCast(value)));
+    }
+
+    fn mixBytes(self: *@This(), bytes: []const u8) void {
+        self.mix(bytes.len);
+        for (bytes) |byte| self.mix(byte);
+    }
+
+    fn mixOptionalU8(self: *@This(), value: ?u8) void {
+        if (value) |unwrapped| {
+            self.mix(1);
+            self.mix(unwrapped);
+        } else {
+            self.mix(0);
+        }
+    }
+
+    fn mixRuleScalar(self: *@This(), scalar: anytype) !void {
+        switch (scalar) {
+            .one => self.mix(10),
+            .rational => |value| {
+                self.mix(11);
+                self.mixI64(value.numerator);
+                self.mixI64(value.denominator);
+            },
+            .monomial => |value| {
+                self.mix(12);
+                self.mixI64(value.rational.numerator);
+                self.mixI64(value.rational.denominator);
+                self.mix(value.imaginary_power);
+                self.mix(value.atom orelse 0);
+                self.mixI64(value.atom_power);
+            },
+        }
+    }
+
+    fn mixLabel(self: *@This(), label: anytype) !void {
+        switch (label) {
+            .integer => |value| {
+                self.mix(20);
+                self.mixI64(value);
+            },
+            .rational => |value| {
+                self.mix(21);
+                self.mixI64(value.numerator);
+                self.mixI64(value.denominator);
+            },
+            .tensor => |value| {
+                self.mix(22);
+                self.mix(value);
+            },
+            .symbol => |value| {
+                self.mix(23);
+                self.mix(value);
+            },
+        }
+    }
+
+    fn mixCoordinateDifference(self: *@This(), coordinate: anytype) void {
+        self.mix(coordinate.left);
+        self.mix(coordinate.right);
+    }
+
+    fn mixInsertion(self: *@This(), insertion: anytype) void {
+        switch (insertion) {
+            .single => |item| {
+                self.mix(60);
+                self.mix(item.position.raw);
+                self.mix(item.derivatives);
+            },
+            .pair => |item| {
+                self.mix(61);
+                self.mix(item.holomorphic_position.raw);
+                self.mix(item.antiholomorphic_position.raw);
+                self.mix(item.holomorphic_derivatives);
+                self.mix(item.antiholomorphic_derivatives);
+            },
+        }
+    }
+
+    /// emitWickBranchSign records the generic Wick branch parity.
+    pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
+        self.branches += 1;
+        self.mix(100);
+        self.mixI64(sign);
+    }
+
+    /// emitWickTermStart records one primitive Wick term boundary.
+    pub fn emitWickTermStart(self: *@This(), event: anytype) !void {
+        self.terms += 1;
+        self.mix(101);
+        self.mix(event.left_index);
+        self.mix(event.right_index);
+        self.mix(event.term_index);
+    }
+
+    /// emitWickScalar records a scalar multiplier.
+    pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+        self.scalars += 1;
+        self.mix(102);
+        switch (factor) {
+            .value => |value| try self.mixRuleScalar(value),
+            .label_bilinear_phase => |value| {
+                self.mix(13);
+                try self.mixLabel(value.left);
+                try self.mixLabel(value.right);
+                self.mixBytes(value.form);
+            },
+            .cocycle => |value| {
+                self.mix(14);
+                self.mixBytes(value.table);
+                try self.mixLabel(value.left);
+                try self.mixLabel(value.right);
+            },
+            .spin_structure => |name| {
+                self.mix(15);
+                self.mixBytes(name);
+            },
+        }
+    }
+
+    /// emitWickCoordinate records a coordinate multiplier.
+    pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+        self.coordinates += 1;
+        self.mix(103);
+        self.mixI64(factor.scalar.numerator);
+        self.mixI64(factor.scalar.denominator);
+        switch (factor.kernel) {
+            .difference_power => |power| {
+                self.mix(30);
+                self.mixCoordinateDifference(power.coordinate);
+                self.mixI64(power.exponent);
+            },
+            .point_power => |power| {
+                self.mix(31);
+                self.mix(power.point);
+                self.mixI64(power.exponent);
+            },
+            .logarithm => |logarithm| {
+                self.mix(32);
+                self.mixCoordinateDifference(logarithm);
+            },
+            .green_kernel => |kernel| {
+                self.mix(33);
+                self.mixBytes(kernel.name);
+                self.mixCoordinateDifference(kernel.coordinate);
+                self.mix(kernel.left_derivatives);
+                self.mix(kernel.right_derivatives);
+            },
+            .green_exponential => |coordinate| {
+                self.mix(34);
+                self.mixCoordinateDifference(coordinate);
+            },
+        }
+    }
+
+    /// emitWickTensor records a tensor multiplier.
+    pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+        self.tensors += 1;
+        self.mix(104);
+        switch (factor) {
+            .none => self.mix(40),
+            .metric => |metric| {
+                self.mix(41);
+                try self.mixLabel(metric.left);
+                try self.mixLabel(metric.right);
+            },
+            .momentum_pair => |pair| {
+                self.mix(42);
+                try self.mixLabel(pair.left);
+                try self.mixLabel(pair.right);
+            },
+            else => return error.UnexpectedTensorFactor,
+        }
+    }
+
+    /// emitWickAction rejects parity cases that unexpectedly stream actions.
+    pub fn emitWickAction(_: *@This(), _: anytype) !void {
+        return error.UnexpectedActionFactor;
+    }
+
+    /// emitWickResidualOperator records surviving input operators.
+    pub fn emitWickResidualOperator(self: *@This(), residual: anytype) !void {
+        self.residuals += 1;
+        self.mix(105);
+        self.mix(residual.input_index);
+        self.mix(residual.operator.kind);
+        self.mixInsertion(residual.operator.insertion);
+    }
+
+    /// emitWickTermEnd records a primitive term boundary.
+    pub fn emitWickTermEnd(self: *@This()) !void {
+        self.term_ends += 1;
+        self.mix(106);
+    }
+
+    /// emitZeroModeFactor records zero-mode base-case data.
+    pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
+        self.zero_modes += 1;
+        self.mix(107);
+        switch (factor) {
+            .bc_top_form => |top| {
+                self.mix(50);
+                self.mix(@intFromEnum(top.support));
+                try self.mixRuleScalar(top.normalization);
+                for (top.jets) |jet| {
+                    self.mix(jet.coordinate.raw);
+                    self.mix(jet.derivative_order);
+                }
+            },
+            .eta_xi_zero_mode => |zero| {
+                self.mix(51);
+                self.mix(@intFromEnum(zero.support));
+                try self.mixRuleScalar(zero.normalization);
+                self.mix(zero.xi.coordinate.raw);
+                self.mix(zero.xi.derivative_order);
+            },
+            .momentum_delta => |delta| {
+                self.mix(52);
+                try self.mixRuleScalar(delta.scalar);
+                for (delta.scalar_factors) |scalar| try self.mixRuleScalar(scalar);
+                for (delta.momenta) |momentum| try self.mixLabel(momentum);
+            },
+            else => return error.UnexpectedZeroModeFactor,
+        }
+    }
+
+    /// emitZeroModeBaseEnd records an accepted residual base case.
+    pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+        self.bases += 1;
+        self.mix(108);
+    }
+};
+
+fn expectParityDigestEqual(expected: ParitySink, actual: ParitySink) !void {
+    const testing = @import("std").testing;
+    try testing.expectEqual(expected.hash, actual.hash);
+    try testing.expectEqual(expected.branches, actual.branches);
+    try testing.expectEqual(expected.terms, actual.terms);
+    try testing.expectEqual(expected.scalars, actual.scalars);
+    try testing.expectEqual(expected.coordinates, actual.coordinates);
+    try testing.expectEqual(expected.tensors, actual.tensors);
+    try testing.expectEqual(expected.residuals, actual.residuals);
+    try testing.expectEqual(expected.term_ends, actual.term_ends);
+    try testing.expectEqual(expected.zero_modes, actual.zero_modes);
+    try testing.expectEqual(expected.bases, actual.bases);
+}
+
+const BasisDigest = struct {
+    count: usize = 0,
+    hash_xor: u64 = 0,
+    hash_sum: u64 = 0,
+    hash_square_sum: u64 = 0,
+    mode_count_sum: usize = 0,
+    weight_sum: i64 = 0,
+    level_sum: u64 = 0,
+
+    fn fnv(hash: u64, value: u64) u64 {
+        return (hash ^ value) *% 1099511628211;
+    }
+
+    fn fnvI64(hash: u64, value: i64) u64 {
+        return fnv(hash, @as(u64, @bitCast(value)));
+    }
+
+    fn candidateHash(candidate: anytype) u64 {
+        var hash: u64 = 14695981039346656037;
+        hash = fnv(hash, candidate.presentation);
+        hash = fnv(hash, candidate.seed);
+        hash = fnv(hash, candidate.seed_body);
+        hash = fnvI64(hash, candidate.base_weight_ticks);
+        hash = fnvI64(hash, candidate.weight_ticks);
+        hash = fnv(hash, candidate.level_ticks);
+        for (candidate.base_component_weight_ticks) |value| hash = fnvI64(hash, value);
+        for (candidate.base_quantum_values) |value| hash = fnvI64(hash, value);
+        for (candidate.component_weight_ticks) |value| hash = fnvI64(hash, value);
+        for (candidate.quantum_values) |value| hash = fnvI64(hash, value);
+        for (candidate.modes) |mode| {
+            hash = fnv(hash, mode.id);
+            hash = fnv(hash, mode.component);
+            hash = fnv(hash, mode.label);
+            hash = fnv(hash, mode.weight_ticks);
+            hash = fnvI64(hash, mode.base_weight_ticks);
+            hash = fnv(hash, mode.derivative_step_ticks);
+            hash = fnv(hash, @intFromEnum(mode.statistics));
+            hash = fnv(hash, mode.body);
+        }
+        return hash;
+    }
+
+    /// emitBasisState records one compact basis candidate.
+    pub fn emitBasisState(self: *@This(), candidate: anytype) !void {
+        const hash = candidateHash(candidate);
+        self.count += 1;
+        self.hash_xor ^= hash;
+        self.hash_sum +%= hash;
+        self.hash_square_sum +%= hash *% hash;
+        self.mode_count_sum += candidate.modes.len;
+        self.weight_sum += candidate.weight_ticks;
+        self.level_sum += candidate.level_ticks;
+    }
+};
+
+fn expectBasisDigestEqual(expected: BasisDigest, actual: BasisDigest) !void {
+    const testing = @import("std").testing;
+    try testing.expectEqual(expected.count, actual.count);
+    try testing.expectEqual(expected.hash_xor, actual.hash_xor);
+    try testing.expectEqual(expected.hash_sum, actual.hash_sum);
+    try testing.expectEqual(expected.hash_square_sum, actual.hash_square_sum);
+    try testing.expectEqual(expected.mode_count_sum, actual.mode_count_sum);
+    try testing.expectEqual(expected.weight_sum, actual.weight_sum);
+    try testing.expectEqual(expected.level_sum, actual.level_sum);
+}
+#+end_src
+
 * Preset Families
 
 The constructor bridge is grouped by CFT family.  The root public API can
@@ -297,6 +662,63 @@ test "product preset streams merged compact basis without factor basis products"
     try testing.expect(sink.mixed_count > 0);
 }
 
+test "generated free fermion basis matches handwritten holomorphic basis" {
+    const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Psi: type) !BasisDigest {
+            var sink = BasisDigest{};
+            try Psi.basis.stream(3, 3, .{
+                .weight = .{ .exact = 3 },
+                .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
+                .max_word_length = 3,
+            }, &sink);
+            return sink;
+        }
+    };
+
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+}
+
+test "generated bc basis matches handwritten holomorphic basis" {
+    const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Ghost: type) !BasisDigest {
+            var sink = BasisDigest{};
+            try Ghost.basis.stream(3, 3, .{
+                .weight = .{ .exact = 2 },
+                .quantum_filters = &.{.{ .slot = 0, .value = -1 }},
+                .max_word_length = 3,
+            }, &sink);
+            return sink;
+        }
+    };
+
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+}
+
+test "generated eta-xi basis matches handwritten holomorphic basis" {
+    const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime EtaXiPreset: type) !BasisDigest {
+            var sink = BasisDigest{};
+            try EtaXiPreset.basis.stream(2, 2, .{
+                .weight = .{ .exact = 1 },
+                .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
+                .max_word_length = 2,
+            }, &sink);
+            return sink;
+        }
+    };
+
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+}
+
 test "local operator tokens are owned by their builder" {
     const testing = @import("std").testing;
 
@@ -344,34 +766,144 @@ test "preset compile-time flags change generated public behavior" {
 
     const Sink = struct {
         pub const emitWickScalar = noopWickScalar;
-        pub const emitWickCoordinate = noopWickCoordinate;
         pub const emitWickTensor = noopWickTensor;
         pub const emitWickAction = noopWickAction;
         pub const emitWickTermEnd = noopWickTermEnd;
         pub const emitZeroModeFactor = noopZeroModeFactor;
         pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
 
+        expected_z: u32,
+        expected_y: u32,
         wick_terms: usize = 0,
+        coordinate_terms: usize = 0,
 
         /// emitWickTermStart counts one streamed primitive contraction.
         pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
             self.wick_terms += 1;
         }
+
+        /// emitWickCoordinate pins the mixed bulk-boundary disk pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.coordinate.left != self.expected_z or power.coordinate.right != self.expected_y) return error.UnexpectedCoordinatePair;
+                    if (power.exponent != -1) return error.UnexpectedCoordinateFactor;
+                    self.coordinate_terms += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
     };
 
-    var full_sink = Sink{};
+    var full_sink = Sink{ .expected_z = @intFromEnum(z), .expected_y = @intFromEnum(y) };
     try FullGhostDisk.correlator(&FullGhostDisk.config.disk, ops, &full_sink);
     try testing.expectEqual(@as(usize, 1), full_sink.wick_terms);
+    try testing.expectEqual(@as(usize, 1), full_sink.coordinate_terms);
 
-    var boundary_only_sink = Sink{};
+    var boundary_only_sink = Sink{ .expected_z = @intFromEnum(z), .expected_y = @intFromEnum(y) };
     try BoundaryOnlyGhost.correlator(&BoundaryOnlyGhost.config.disk, ops, &boundary_only_sink);
     try testing.expectEqual(@as(usize, 0), boundary_only_sink.wick_terms);
+    try testing.expectEqual(@as(usize, 0), boundary_only_sink.coordinate_terms);
+}
+
+test "free fermion two point streams unit metric pole" {
+    const testing = @import("std").testing;
+
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+
+    var local = try Psi.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const z = try local.coord("z");
+    const w = try local.coord("w");
+    const ops = try local.ops(.{
+        try Psi.op.psi(&local, mu, 0, z),
+        try Psi.op.psi(&local, nu, 0, w),
+    });
+
+    const Sink = struct {
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        expected_z: u32,
+        expected_w: u32,
+        expected_mu: u32,
+        expected_nu: u32,
+        terms: usize = 0,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        bases: usize = 0,
+
+        /// emitWickTermStart pins the single psi-psi primitive.
+        pub fn emitWickTermStart(self: *@This(), event: anytype) !void {
+            if (event.left_index != 0 or event.right_index != 1 or event.term_index != 0) return error.UnexpectedWickTermEvent;
+            self.terms += 1;
+        }
+
+        /// emitWickScalar pins the unit coefficient.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .one => self.scalars += 1,
+                    else => return error.UnexpectedScalarFactor,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate checks the z-w pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.coordinate.left != self.expected_z or power.coordinate.right != self.expected_w) return error.UnexpectedCoordinatePair;
+                    if (power.exponent != -1) return error.UnexpectedCoordinateFactor;
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor checks the target-space metric labels.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => |metric| {
+                    if (try labelSymbol(metric.left) != self.expected_mu or try labelSymbol(metric.right) != self.expected_nu) return error.UnexpectedTensorFactor;
+                    self.tensors += 1;
+                },
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickTermEnd accepts the primitive boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeBaseEnd records the fully contracted base.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.bases += 1;
+        }
+    };
+
+    var sink = Sink{
+        .expected_z = @intFromEnum(z),
+        .expected_w = @intFromEnum(w),
+        .expected_mu = @intFromEnum(mu),
+        .expected_nu = @intFromEnum(nu),
+    };
+    try Psi.correlator(&Psi.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 1), sink.terms);
+    try testing.expectEqual(@as(usize, 1), sink.scalars);
+    try testing.expectEqual(@as(usize, 1), sink.coordinates);
+    try testing.expectEqual(@as(usize, 1), sink.tensors);
+    try testing.expectEqual(@as(usize, 1), sink.bases);
 }
 
 test "free fermion sphere uses generic fermionic Wick signs" {
     const testing = @import("std").testing;
 
-    const Psi = freeFermionSphere(.{ .dimension = 10 });
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
 
     var local = try Psi.local(testing.allocator);
     defer local.deinit();
@@ -393,17 +925,19 @@ test "free fermion sphere uses generic fermionic Wick signs" {
 
     const Sink = struct {
         pub const emitWickScalar = noopWickScalar;
-        pub const emitWickCoordinate = noopWickCoordinate;
-        pub const emitWickTensor = noopWickTensor;
         pub const emitWickAction = noopWickAction;
         pub const emitWickTermEnd = noopWickTermEnd;
         pub const emitZeroModeFactor = noopZeroModeFactor;
         pub const emitZeroModeBaseEnd = noopZeroModeBaseEnd;
 
+        coords: [4]u32,
+        labels: [4]u32,
         branch_count: usize = 0,
         primitive_count: usize = 0,
         negative_branch_count: usize = 0,
         pending_negative: bool = false,
+        coordinate_mask: u64 = 0,
+        tensor_mask: u64 = 0,
 
         /// emitWickBranchSign records signs supplied by the generic branch walker.
         pub fn emitWickBranchSign(self: *@This(), sign: i8) !void {
@@ -421,15 +955,102 @@ test "free fermion sphere uses generic fermionic Wick signs" {
                 }
             }
         }
+
+        /// emitWickCoordinate records every primitive fermion pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.exponent != -1) return error.UnexpectedCoordinateFactor;
+                    self.coordinate_mask |= try pairMask(power.coordinate.left, power.coordinate.right, &self.coords);
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor records every metric pairing.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => |metric| self.tensor_mask |= try pairMask(try labelSymbol(metric.left), try labelSymbol(metric.right), &self.labels),
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
     };
 
-    var sink = Sink{};
+    var sink = Sink{
+        .coords = .{ @intFromEnum(z1), @intFromEnum(z2), @intFromEnum(z3), @intFromEnum(z4) },
+        .labels = .{ @intFromEnum(mu), @intFromEnum(nu), @intFromEnum(rho), @intFromEnum(sigma) },
+    };
     try Psi.correlator(&Psi.config.sphere, ops, &sink);
     try testing.expectEqual(@as(usize, 3), sink.branch_count);
     try testing.expectEqual(@as(usize, 6), sink.primitive_count);
     try testing.expectEqual(@as(usize, 1), sink.negative_branch_count);
+    try testing.expectEqual(allFourPairMask(), sink.coordinate_mask);
+    try testing.expectEqual(allFourPairMask(), sink.tensor_mask);
     try testing.expect(!@hasDecl(@TypeOf(Psi.config.sphere), "fermion_kinds"));
     try testing.expect(!@hasDecl(@TypeOf(Psi.config.sphere), "pair_lookup"));
+}
+
+test "generated free fermion matches handwritten holomorphic stream" {
+    const testing = @import("std").testing;
+    const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Psi: type) !ParitySink {
+            var local = try Psi.local(testing.allocator);
+            defer local.deinit();
+
+            const mu = try local.index("mu");
+            const nu = try local.index("nu");
+            const rho = try local.index("rho");
+            const sigma = try local.index("sigma");
+            const z1 = try local.coord("z1");
+            const z2 = try local.coord("z2");
+            const z3 = try local.coord("z3");
+            const z4 = try local.coord("z4");
+            const ops = try local.ops(.{
+                try Psi.op.psi(&local, mu, 0, z1),
+                try Psi.op.psi(&local, nu, 0, z2),
+                try Psi.op.psi(&local, rho, 0, z3),
+                try Psi.op.psi(&local, sigma, 0, z4),
+            });
+
+            var sink = ParitySink{};
+            try Psi.correlator(&Psi.config.sphere, ops, &sink);
+            return sink;
+        }
+    };
+
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+}
+
+test "generated free fermion infinity stream matches handwritten" {
+    const testing = @import("std").testing;
+    const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
+    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Psi: type, comptime infinity_derivative: u8) !ParitySink {
+            var local = try Psi.local(testing.allocator);
+            defer local.deinit();
+
+            const mu = try local.index("mu");
+            const nu = try local.index("nu");
+            const z = try local.coord("z");
+            const inf = local.infinity();
+            const ops = try local.ops(.{
+                try Psi.op.psi(&local, mu, 0, z),
+                try Psi.op.psi(&local, nu, infinity_derivative, inf),
+            });
+
+            var sink = ParitySink{};
+            try Psi.correlator(&Psi.config.sphere, ops, &sink);
+            return sink;
+        }
+    };
+
+    try expectParityDigestEqual(try Runner.run(Generated, 0), try Runner.run(Legacy, 0));
+    try expectParityDigestEqual(try Runner.run(Generated, 1), try Runner.run(Legacy, 1));
 }
 
 test "eta-xi sphere saturates one xi zero mode" {
@@ -568,6 +1189,79 @@ test "eta-xi torus lowers prime-form log-derivative Wick and xi zero mode" {
     try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.torus), "zero_modes"));
 }
 
+test "generated eta-xi matches handwritten sphere and torus streams" {
+    const testing = @import("std").testing;
+    const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn runSphere(comptime EtaXiPreset: type) !ParitySink {
+            var local = try EtaXiPreset.local(testing.allocator);
+            defer local.deinit();
+
+            const z_eta = try local.coord("z_eta");
+            const z_xi_a = try local.coord("z_xi_a");
+            const z_xi_b = try local.coord("z_xi_b");
+            const ops = try local.ops(.{
+                try EtaXiPreset.op.eta(&local, 0, z_eta),
+                try EtaXiPreset.op.xi(&local, 0, z_xi_a),
+                try EtaXiPreset.op.xi(&local, 0, z_xi_b),
+            });
+
+            var sink = ParitySink{};
+            try EtaXiPreset.correlator(&EtaXiPreset.config.sphere, ops, &sink);
+            return sink;
+        }
+
+        fn runTorus(comptime EtaXiPreset: type) !ParitySink {
+            var local = try EtaXiPreset.local(testing.allocator);
+            defer local.deinit();
+
+            const z_eta = try local.coord("z_eta");
+            const z_xi_a = try local.coord("z_xi_a");
+            const z_xi_b = try local.coord("z_xi_b");
+            const ops = try local.ops(.{
+                try EtaXiPreset.op.eta(&local, 0, z_eta),
+                try EtaXiPreset.op.xi(&local, 0, z_xi_a),
+                try EtaXiPreset.op.xi(&local, 0, z_xi_b),
+            });
+
+            var sink = ParitySink{};
+            try EtaXiPreset.correlator(&EtaXiPreset.config.torus, ops, &sink);
+            return sink;
+        }
+    };
+
+    try expectParityDigestEqual(try Runner.runSphere(Generated), try Runner.runSphere(Legacy));
+    try expectParityDigestEqual(try Runner.runTorus(Generated), try Runner.runTorus(Legacy));
+}
+
+test "generated eta-xi infinity stream matches handwritten" {
+    const testing = @import("std").testing;
+    const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime EtaXiPreset: type) !void {
+            var local = try EtaXiPreset.local(testing.allocator);
+            defer local.deinit();
+
+            const inf = local.infinity();
+            const z = try local.coord("z");
+            const ops = try local.ops(.{
+                try EtaXiPreset.op.eta(&local, 0, inf),
+                try EtaXiPreset.op.xi(&local, 0, z),
+            });
+
+            var sink = ParitySink{};
+            try EtaXiPreset.correlator(&EtaXiPreset.config.sphere, ops, &sink);
+        }
+    };
+
+    try testing.expectError(error.DivergentInfinityLimit, Runner.run(Generated));
+    try testing.expectError(error.DivergentInfinityLimit, Runner.run(Legacy));
+}
+
 test "compact text sink inspects a small correlator without custom callbacks" {
     const testing = @import("std").testing;
     const Buffer = struct {
@@ -629,9 +1323,12 @@ test "bc zero modes consume c jets by top-form saturation" {
         pub const emitWickAction = noopWickAction;
         pub const emitWickTermEnd = noopWickTermEnd;
 
+        coords: [3]u32,
         factor_count: usize = 0,
         base_end_count: usize = 0,
         derivative_sum: u16 = 0,
+        coordinate_mask: u8 = 0,
+        derivative_mask: u8 = 0,
 
         /// emitZeroModeFactor records the top-form factor emitted by the base case.
         pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
@@ -639,7 +1336,11 @@ test "bc zero modes consume c jets by top-form saturation" {
             switch (factor) {
                 .bc_top_form => |top| {
                     if (top.support != .sphere_holomorphic) return error.UnexpectedBcSupport;
-                    self.derivative_sum = @as(u16, top.jets[0].derivative_order) + top.jets[1].derivative_order + top.jets[2].derivative_order;
+                    for (top.jets) |jet| {
+                        self.coordinate_mask |= @as(u8, 1) << @intCast(try slotOf(jet.coordinate.raw, &self.coords));
+                        self.derivative_mask |= @as(u8, 1) << @intCast(jet.derivative_order);
+                        self.derivative_sum += jet.derivative_order;
+                    }
                 },
                 else => return error.UnexpectedZeroModeFactor,
             }
@@ -651,11 +1352,13 @@ test "bc zero modes consume c jets by top-form saturation" {
         }
     };
 
-    var sink = Sink{};
+    var sink = Sink{ .coords = .{ @intFromEnum(z1), @intFromEnum(z2), @intFromEnum(z3) } };
     try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
     try testing.expectEqual(@as(usize, 1), sink.factor_count);
     try testing.expectEqual(@as(usize, 1), sink.base_end_count);
     try testing.expectEqual(@as(u16, 3), sink.derivative_sum);
+    try testing.expectEqual(@as(u8, 0b111), sink.coordinate_mask);
+    try testing.expectEqual(@as(u8, 0b111), sink.derivative_mask);
 }
 
 test "disk bc zero modes use one doubled chiral top form" {
@@ -685,12 +1388,17 @@ test "disk bc zero modes use one doubled chiral top form" {
         pub const emitWickAction = noopWickAction;
         pub const emitWickTermEnd = noopWickTermEnd;
 
+        coords: [3]u32,
         saw_disk_doubled: bool = false,
+        coordinate_mask: u8 = 0,
 
         /// emitZeroModeFactor records whether the doubled disk top form was emitted.
         pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
             switch (factor) {
-                .bc_top_form => |top| self.saw_disk_doubled = top.support == .disk_doubled,
+                .bc_top_form => |top| {
+                    self.saw_disk_doubled = top.support == .disk_doubled;
+                    for (top.jets) |jet| self.coordinate_mask |= @as(u8, 1) << @intCast(try slotOf(jet.coordinate.raw, &self.coords));
+                },
                 else => return error.UnexpectedZeroModeFactor,
             }
         }
@@ -701,9 +1409,68 @@ test "disk bc zero modes use one doubled chiral top form" {
         }
     };
 
-    var sink = Sink{};
+    var sink = Sink{ .coords = .{ @intFromEnum(z), @intFromEnum(zbar), @intFromEnum(y) } };
     try Disk.correlator(&Disk.config.disk, ops, &sink);
     try testing.expect(sink.saw_disk_doubled);
+    try testing.expectEqual(@as(u8, 0b111), sink.coordinate_mask);
+}
+
+test "generated bc matches handwritten holomorphic stream" {
+    const testing = @import("std").testing;
+    const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Ghost: type) !ParitySink {
+            var local = try Ghost.local(testing.allocator);
+            defer local.deinit();
+
+            const zb = try local.coord("zb");
+            const z1 = try local.coord("z1");
+            const z2 = try local.coord("z2");
+            const z3 = try local.coord("z3");
+            const ops = try local.ops(.{
+                try Ghost.op.b(&local, 0, zb),
+                try Ghost.op.c(&local, 0, z1),
+                try Ghost.op.c(&local, 1, z2),
+                try Ghost.op.c(&local, 2, z3),
+            });
+
+            var sink = ParitySink{};
+            try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+            return sink;
+        }
+    };
+
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+}
+
+test "generated bc top form at infinity matches handwritten" {
+    const testing = @import("std").testing;
+    const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
+    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+
+    const Runner = struct {
+        fn run(comptime Ghost: type) !ParitySink {
+            var local = try Ghost.local(testing.allocator);
+            defer local.deinit();
+
+            const inf = local.infinity();
+            const z1 = try local.coord("z1");
+            const z2 = try local.coord("z2");
+            const ops = try local.ops(.{
+                try Ghost.op.c(&local, 0, inf),
+                try Ghost.op.c(&local, 0, z1),
+                try Ghost.op.c(&local, 0, z2),
+            });
+
+            var sink = ParitySink{};
+            try Ghost.correlator(&Ghost.config.sphere, ops, &sink);
+            return sink;
+        }
+    };
+
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
 }
 
 test "free boson zero modes emit momentum delta and profile presentations" {
@@ -744,14 +1511,24 @@ test "free boson zero modes emit momentum delta and profile presentations" {
         fourier_count: usize = 0,
         polynomial_count: usize = 0,
         base_end_count: usize = 0,
-        two_pi_power: u16 = 0,
+        saw_general_normalization: bool = false,
 
         /// emitZeroModeFactor records each free-boson zero-mode factor by presentation.
         pub fn emitZeroModeFactor(self: *@This(), factor: anytype) !void {
             switch (factor) {
                 .momentum_delta => |delta| {
                     self.delta_count += 1;
-                    self.two_pi_power = delta.two_pi_power;
+                    if (delta.scalar_factors.len != 0) return error.UnexpectedZeroModeNormalization;
+                    switch (delta.scalar) {
+                        .monomial => |monomial| {
+                            if (monomial.rational.numerator != 1024 or monomial.rational.denominator != 1) return error.UnexpectedZeroModeNormalization;
+                            if (monomial.imaginary_power != 0) return error.UnexpectedZeroModeNormalization;
+                            if (monomial.atom != scalars.atom("free_boson", "pi")) return error.UnexpectedZeroModeNormalization;
+                            if (monomial.atom_power != 10) return error.UnexpectedZeroModeNormalization;
+                            self.saw_general_normalization = true;
+                        },
+                        else => return error.UnexpectedZeroModeNormalization,
+                    }
                     if (delta.projector != null or delta.momenta.len != 1) return error.UnexpectedMomentumDelta;
                 },
                 .profile_gaussian_differential => self.gaussian_count += 1,
@@ -770,7 +1547,7 @@ test "free boson zero modes emit momentum delta and profile presentations" {
     var sink = Sink{};
     try X.correlator(&X.config.sphere, ops, &sink);
     try testing.expectEqual(@as(usize, 1), sink.delta_count);
-    try testing.expectEqual(@as(u16, 10), sink.two_pi_power);
+    try testing.expect(sink.saw_general_normalization);
     try testing.expectEqual(@as(usize, 1), sink.gaussian_count);
     try testing.expectEqual(@as(usize, 1), sink.fourier_count);
     try testing.expectEqual(@as(usize, 1), sink.polynomial_count);
@@ -808,8 +1585,8 @@ test "disk free boson zero modes emit Neumann delta and Dirichlet phase" {
         delta_count: usize = 0,
         phase_count: usize = 0,
         base_end_count: usize = 0,
-        two_pi_power: u16 = 0,
         saw_disk_scalar: bool = false,
+        saw_disk_volume: bool = false,
         saw_projector: bool = false,
         saw_position: bool = false,
 
@@ -818,10 +1595,20 @@ test "disk free boson zero modes emit Neumann delta and Dirichlet phase" {
             switch (factor) {
                 .momentum_delta => |delta| {
                     self.delta_count += 1;
-                    self.two_pi_power = delta.two_pi_power;
                     self.saw_projector = delta.projector != null;
                     switch (delta.scalar) {
-                        .monomial => |monomial| self.saw_disk_scalar = monomial.atom != null and monomial.atom_power == 1,
+                        .monomial => |monomial| self.saw_disk_scalar = monomial.atom == scalars.atom("free_boson", "K_D2") and monomial.atom_power == 1,
+                        else => return error.UnexpectedDiskNormalization,
+                    }
+                    if (delta.scalar_factors.len != 1) return error.UnexpectedDiskNormalization;
+                    switch (delta.scalar_factors[0]) {
+                        .monomial => |monomial| {
+                            if (monomial.rational.numerator != 16 or monomial.rational.denominator != 1) return error.UnexpectedDiskNormalization;
+                            if (monomial.imaginary_power != 0) return error.UnexpectedDiskNormalization;
+                            if (monomial.atom != scalars.atom("free_boson", "pi")) return error.UnexpectedDiskNormalization;
+                            if (monomial.atom_power != 4) return error.UnexpectedDiskNormalization;
+                            self.saw_disk_volume = true;
+                        },
                         else => return error.UnexpectedDiskNormalization,
                     }
                     if (delta.momenta.len != 1) return error.UnexpectedMomentumDelta;
@@ -848,8 +1635,8 @@ test "disk free boson zero modes emit Neumann delta and Dirichlet phase" {
     try Disk.correlator(&Disk.config.disk, ops, &sink);
     try testing.expectEqual(@as(usize, 1), sink.delta_count);
     try testing.expectEqual(@as(usize, 1), sink.phase_count);
-    try testing.expectEqual(@as(u16, 4), sink.two_pi_power);
     try testing.expect(sink.saw_disk_scalar);
+    try testing.expect(sink.saw_disk_volume);
     try testing.expect(sink.saw_projector);
     try testing.expect(sink.saw_position);
     try testing.expectEqual(@as(usize, 1), sink.base_end_count);
@@ -978,6 +1765,330 @@ test "pair Wick streams preset scalar atoms through correlator" {
     try X.correlator(&X.config.sphere, ops, &sink);
     try testing.expect(sink.saw_scalar);
     try testing.expect(sink.saw_coordinate);
+}
+
+test "free boson four dX streams all metric pairings" {
+    const testing = @import("std").testing;
+
+    const X = freeBoson(.{ .dimension = 10 });
+    const preset_alpha = scalars.atom("free_boson", "alpha_prime");
+
+    var local = try X.local(testing.allocator);
+    defer local.deinit();
+
+    const mu = try local.index("mu");
+    const nu = try local.index("nu");
+    const rho = try local.index("rho");
+    const sigma = try local.index("sigma");
+    const z1 = try local.coord("z1");
+    const z2 = try local.coord("z2");
+    const z3 = try local.coord("z3");
+    const z4 = try local.coord("z4");
+    const ops = try local.ops(.{
+        try X.op.dX(&local, mu, 0, z1),
+        try X.op.dX(&local, nu, 0, z2),
+        try X.op.dX(&local, rho, 0, z3),
+        try X.op.dX(&local, sigma, 0, z4),
+    });
+
+    const Sink = struct {
+        pub const emitWickAction = noopWickAction;
+        pub const emitZeroModeFactor = noopZeroModeFactor;
+
+        expected_alpha: @TypeOf(preset_alpha),
+        coords: [4]u32,
+        labels: [4]u32,
+        terms: usize = 0,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        bases: usize = 0,
+        coordinate_mask: u64 = 0,
+        tensor_mask: u64 = 0,
+
+        /// emitWickTermStart records one primitive dX contraction.
+        pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+            self.terms += 1;
+        }
+
+        /// emitWickScalar pins the -alpha'/2 coefficient.
+        pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .value => |scalar| switch (scalar) {
+                    .monomial => |monomial| {
+                        if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2) return error.UnexpectedScalarFactor;
+                        if (monomial.imaginary_power != 0 or monomial.atom_power != 1) return error.UnexpectedScalarFactor;
+                        try testing.expectEqual(self.expected_alpha, monomial.atom.?);
+                        self.scalars += 1;
+                    },
+                    else => return error.UnexpectedScalarShape,
+                },
+                else => return error.UnexpectedScalarFactor,
+            }
+        }
+
+        /// emitWickCoordinate records the differentiated rational pole.
+        pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+            switch (factor.kernel) {
+                .difference_power => |power| {
+                    if (power.exponent != -2) return error.UnexpectedCoordinateFactor;
+                    self.coordinate_mask |= try pairMask(power.coordinate.left, power.coordinate.right, &self.coords);
+                    self.coordinates += 1;
+                },
+                else => return error.UnexpectedCoordinateFactor,
+            }
+        }
+
+        /// emitWickTensor records the metric label pair.
+        pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+            switch (factor) {
+                .metric => |metric| {
+                    self.tensor_mask |= try pairMask(try labelSymbol(metric.left), try labelSymbol(metric.right), &self.labels);
+                    self.tensors += 1;
+                },
+                else => return error.UnexpectedTensorFactor,
+            }
+        }
+
+        /// emitWickTermEnd accepts each primitive boundary.
+        pub fn emitWickTermEnd(_: *@This()) !void {}
+
+        /// emitZeroModeBaseEnd records each full Wick pairing.
+        pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+            self.bases += 1;
+        }
+    };
+
+    var sink = Sink{
+        .expected_alpha = preset_alpha,
+        .coords = .{ @intFromEnum(z1), @intFromEnum(z2), @intFromEnum(z3), @intFromEnum(z4) },
+        .labels = .{ @intFromEnum(mu), @intFromEnum(nu), @intFromEnum(rho), @intFromEnum(sigma) },
+    };
+    try X.correlator(&X.config.sphere, ops, &sink);
+    try testing.expectEqual(@as(usize, 6), sink.terms);
+    try testing.expectEqual(@as(usize, 6), sink.scalars);
+    try testing.expectEqual(@as(usize, 6), sink.coordinates);
+    try testing.expectEqual(@as(usize, 6), sink.tensors);
+    try testing.expectEqual(@as(usize, 3), sink.bases);
+    try testing.expectEqual(allFourPairMask(), sink.coordinate_mask);
+    try testing.expectEqual(allFourPairMask(), sink.tensor_mask);
+}
+
+test "generated free boson dX Wick stream matches handwritten rule" {
+    const testing = @import("std").testing;
+    const Generated = freeBoson(.{ .dimension = 10 });
+    const Legacy = freeBoson(.{ .dimension = 9 });
+    const preset_alpha = scalars.atom("free_boson", "alpha_prime");
+    const Digest = struct {
+        terms: usize = 0,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        bases: usize = 0,
+        coordinate_mask: u64 = 0,
+        tensor_mask: u64 = 0,
+    };
+
+    const Runner = struct {
+        fn run(comptime X: type, expected_alpha: @TypeOf(preset_alpha)) !Digest {
+            var local = try X.local(testing.allocator);
+            defer local.deinit();
+
+            const mu = try local.index("mu");
+            const nu = try local.index("nu");
+            const rho = try local.index("rho");
+            const sigma = try local.index("sigma");
+            const z1 = try local.coord("z1");
+            const z2 = try local.coord("z2");
+            const z3 = try local.coord("z3");
+            const z4 = try local.coord("z4");
+            const ops = try local.ops(.{
+                try X.op.dX(&local, mu, 0, z1),
+                try X.op.dX(&local, nu, 0, z2),
+                try X.op.dX(&local, rho, 0, z3),
+                try X.op.dX(&local, sigma, 0, z4),
+            });
+
+            const Sink = struct {
+                expected_alpha: @TypeOf(preset_alpha),
+                coords: [4]u32,
+                labels: [4]u32,
+                digest: Digest = .{},
+
+                pub const emitWickAction = noopWickAction;
+                pub const emitZeroModeFactor = noopZeroModeFactor;
+
+                pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+                    self.digest.terms += 1;
+                }
+
+                pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+                    switch (factor) {
+                        .value => |scalar| switch (scalar) {
+                            .monomial => |monomial| {
+                                if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2) return error.UnexpectedScalarFactor;
+                                if (monomial.imaginary_power != 0 or monomial.atom_power != 1) return error.UnexpectedScalarFactor;
+                                try testing.expectEqual(self.expected_alpha, monomial.atom.?);
+                                self.digest.scalars += 1;
+                            },
+                            else => return error.UnexpectedScalarFactor,
+                        },
+                        else => return error.UnexpectedScalarFactor,
+                    }
+                }
+
+                pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+                    switch (factor.kernel) {
+                        .difference_power => |power| {
+                            if (power.exponent != -2) return error.UnexpectedCoordinateFactor;
+                            self.digest.coordinate_mask |= try pairMask(power.coordinate.left, power.coordinate.right, &self.coords);
+                            self.digest.coordinates += 1;
+                        },
+                        else => return error.UnexpectedCoordinateFactor,
+                    }
+                }
+
+                pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+                    switch (factor) {
+                        .metric => |metric| {
+                            self.digest.tensor_mask |= try pairMask(try labelSymbol(metric.left), try labelSymbol(metric.right), &self.labels);
+                            self.digest.tensors += 1;
+                        },
+                        else => return error.UnexpectedTensorFactor,
+                    }
+                }
+
+                pub fn emitWickTermEnd(_: *@This()) !void {}
+
+                pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+                    self.digest.bases += 1;
+                }
+            };
+
+            var sink = Sink{
+                .expected_alpha = expected_alpha,
+                .coords = .{ @intFromEnum(z1), @intFromEnum(z2), @intFromEnum(z3), @intFromEnum(z4) },
+                .labels = .{ @intFromEnum(mu), @intFromEnum(nu), @intFromEnum(rho), @intFromEnum(sigma) },
+            };
+            try X.correlator(&X.config.sphere, ops, &sink);
+            return sink.digest;
+        }
+    };
+
+    const generated = try Runner.run(Generated, preset_alpha);
+    const legacy = try Runner.run(Legacy, preset_alpha);
+    try testing.expectEqual(generated, legacy);
+    try testing.expectEqual(allFourPairMask(), generated.coordinate_mask);
+    try testing.expectEqual(allFourPairMask(), generated.tensor_mask);
+}
+
+test "generated free boson dX infinity stream matches handwritten rule" {
+    const testing = @import("std").testing;
+    const Generated = freeBoson(.{ .dimension = 10 });
+    const Legacy = freeBoson(.{ .dimension = 9 });
+    const preset_alpha = scalars.atom("free_boson", "alpha_prime");
+    const Digest = struct {
+        terms: usize = 0,
+        scalars: usize = 0,
+        coordinates: usize = 0,
+        tensors: usize = 0,
+        bases: usize = 0,
+        point_power: i16 = 0,
+        point_scalar: i64 = 0,
+    };
+
+    const Runner = struct {
+        fn run(comptime X: type, comptime infinity_derivative: u8, expected_alpha: @TypeOf(preset_alpha)) !Digest {
+            var local = try X.local(testing.allocator);
+            defer local.deinit();
+
+            const mu = try local.index("mu");
+            const nu = try local.index("nu");
+            const z = try local.coord("z");
+            const inf = local.infinity();
+            const ops = try local.ops(.{
+                try X.op.dX(&local, mu, 0, z),
+                try X.op.dX(&local, nu, infinity_derivative, inf),
+            });
+
+            const Sink = struct {
+                expected_alpha: @TypeOf(preset_alpha),
+                z: u32,
+                digest: Digest = .{},
+
+                pub const emitWickAction = noopWickAction;
+                pub const emitZeroModeFactor = noopZeroModeFactor;
+
+                pub fn emitWickTermStart(self: *@This(), _: anytype) !void {
+                    self.digest.terms += 1;
+                }
+
+                pub fn emitWickScalar(self: *@This(), factor: anytype) !void {
+                    switch (factor) {
+                        .value => |scalar| switch (scalar) {
+                            .one => {},
+                            .rational => |rational| {
+                                if (rational.numerator != 1 or rational.denominator != 1) return error.UnexpectedScalarFactor;
+                            },
+                            .monomial => |monomial| {
+                                if (monomial.rational.numerator != -1 or monomial.rational.denominator != 2) return error.UnexpectedScalarFactor;
+                                if (monomial.imaginary_power != 0 or monomial.atom_power != 1) return error.UnexpectedScalarFactor;
+                                try testing.expectEqual(self.expected_alpha, monomial.atom.?);
+                                self.digest.scalars += 1;
+                            },
+                        },
+                        else => return error.UnexpectedScalarFactor,
+                    }
+                }
+
+                pub fn emitWickCoordinate(self: *@This(), factor: anytype) !void {
+                    switch (factor.kernel) {
+                        .point_power => |power| {
+                            try testing.expectEqual(self.z, power.point);
+                            self.digest.point_power += power.exponent;
+                            self.digest.point_scalar += factor.scalar.numerator;
+                            try testing.expectEqual(@as(i64, 1), factor.scalar.denominator);
+                            self.digest.coordinates += 1;
+                        },
+                        else => return error.UnexpectedCoordinateFactor,
+                    }
+                }
+
+                pub fn emitWickTensor(self: *@This(), factor: anytype) !void {
+                    switch (factor) {
+                        .metric => self.digest.tensors += 1,
+                        else => return error.UnexpectedTensorFactor,
+                    }
+                }
+
+                pub fn emitWickTermEnd(_: *@This()) !void {}
+
+                pub fn emitZeroModeBaseEnd(self: *@This()) !void {
+                    self.digest.bases += 1;
+                }
+            };
+
+            var sink = Sink{ .expected_alpha = expected_alpha, .z = @intFromEnum(z) };
+            try X.correlator(&X.config.sphere, ops, &sink);
+            return sink.digest;
+        }
+    };
+
+    const generated_primary = try Runner.run(Generated, 0, preset_alpha);
+    const legacy_primary = try Runner.run(Legacy, 0, preset_alpha);
+    try testing.expectEqual(generated_primary, legacy_primary);
+    try testing.expectEqual(@as(usize, 0), generated_primary.coordinates);
+    try testing.expectEqual(@as(usize, 1), generated_primary.tensors);
+    try testing.expectEqual(@as(usize, 1), generated_primary.bases);
+
+    const generated_descendant = try Runner.run(Generated, 1, preset_alpha);
+    const legacy_descendant = try Runner.run(Legacy, 1, preset_alpha);
+    try testing.expectEqual(generated_descendant, legacy_descendant);
+    try testing.expectEqual(@as(usize, 1), generated_descendant.coordinates);
+    try testing.expectEqual(@as(i16, 1), generated_descendant.point_power);
+    try testing.expectEqual(@as(i64, -2), generated_descendant.point_scalar);
+    try testing.expectEqual(@as(usize, 1), generated_descendant.tensors);
+    try testing.expectEqual(@as(usize, 1), generated_descendant.bases);
 }
 
 test "pair Wick resolves derivative action on a vector profile" {
