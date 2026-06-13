@@ -80,26 +80,7 @@ const EtaXiSphereConfig = struct {
 
 /// etaXiSphere builds the generated preset type for the sphere eta-xi system.
 pub fn etaXiSphere(comptime cfg: EtaXiSphereConfig) type {
-    if (!cfg.include_antiholomorphic_copy) return GeneratedEtaXi;
-    return struct {
-        /// op exposes eta-xi local operator builders.
-        pub const op = EtaXiSphereOp(cfg.include_antiholomorphic_copy);
-        /// config exposes named correlator configs for this preset.
-        pub const config = EtaXiSphereCorrelatorConfig(cfg);
-        /// basis streams compact eta-xi ghost mode words.
-        pub const basis = EtaXiBasis(cfg);
-        /// text exposes bounded result-inspection sinks.
-        pub const text = shared.text;
-        /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) !Builder {
-            return shared.Local.init(allocator);
-        }
-
-        /// correlator streams rule matches for eta-xi insertions.
-        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
-            return shared.streamCorrelator(config_ptr, ops, sink);
-        }
-    };
+    return if (cfg.include_antiholomorphic_copy) GeneratedEtaXiFull else GeneratedEtaXi;
 }
 
 const GeneratedEtaXi = struct {
@@ -116,6 +97,55 @@ const GeneratedEtaXi = struct {
         /// xi builds a holomorphic xi insertion.
         pub fn xi(builder: anytype, n: u8, z: Handle.Coord) !Operator {
             return Sphere.field("xi").localSingle(builder, z, n, .{});
+        }
+    };
+    /// config exposes descriptor-generated sphere and torus correlator configs.
+    pub const config = struct {
+        /// sphere selects descriptor-generated eta-xi sphere rules.
+        pub const sphere = Sphere.config.sphere;
+        /// torus selects descriptor-generated eta-xi torus rules.
+        pub const torus = Torus.config.torus;
+    };
+    /// basis streams descriptor-generated compact eta-xi ghost mode words.
+    pub const basis = Sphere.basis;
+    /// text exposes bounded result-inspection sinks.
+    pub const text = Sphere.text;
+
+    /// local constructs a label-preserving local-operator builder.
+    pub fn local(allocator: std.mem.Allocator) !Builder {
+        return shared.Local.init(allocator);
+    }
+
+    /// correlator streams descriptor-generated rule matches for eta-xi insertions.
+    pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+        return shared.streamCorrelator(config_ptr, ops, sink);
+    }
+};
+
+const GeneratedEtaXiFull = struct {
+    const Sphere = generated_fixtures.EtaXiSphereFull;
+    const Torus = generated_fixtures.EtaXiTorusFull;
+
+    /// op exposes descriptor-generated eta-xi local operator builders.
+    pub const op = struct {
+        /// eta builds a holomorphic eta insertion.
+        pub fn eta(builder: anytype, n: u8, z: Handle.Coord) !Operator {
+            return Sphere.field("eta").localSingle(builder, z, n, .{});
+        }
+
+        /// xi builds a holomorphic xi insertion.
+        pub fn xi(builder: anytype, n: u8, z: Handle.Coord) !Operator {
+            return Sphere.field("xi").localSingle(builder, z, n, .{});
+        }
+
+        /// etat builds an antiholomorphic eta insertion.
+        pub fn etat(builder: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            return Sphere.field("etat").localSingle(builder, zbar, n, .{});
+        }
+
+        /// xit builds an antiholomorphic xi insertion.
+        pub fn xit(builder: anytype, n: u8, zbar: Handle.Coord) !Operator {
+            return Sphere.field("xit").localSingle(builder, zbar, n, .{});
         }
     };
     /// config exposes descriptor-generated sphere and torus correlator configs.

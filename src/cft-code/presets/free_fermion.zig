@@ -1,54 +1,21 @@
 const std = @import("std");
-const basis_generation = @import("../basis-generation/basis-generation.zig");
 const generated_fixtures = @import("../correlators/generated_fixtures.zig");
 const shared = @import("shared.zig");
-const declare = shared.declare;
 
-const operators = @import("../expressions/operators.zig");
 const Handle = shared.Handle;
 const Builder = *shared.Local;
 const Operator = *shared.LocalOperator;
-const Spec = declare.Spec;
-const wick = declare.wick;
-const namespace = "free_fermion";
 
-const Family = enum {
-    psi,
-    psit,
-};
-
-fn kind(comptime family: Family) operators.OperatorKindId {
-    return declare.familyKind(namespace, family);
-}
 const FreeFermionSphereConfig = struct {
     dimension: u16,
     include_antiholomorphic_copy: bool = true,
-    quantum_schema: []const basis_generation.Quantum = &basis_generation.Preset.fermion_number_schema,
 };
 
 /// freeFermionSphere builds the generated preset type for sphere NS free fermions.
 pub fn freeFermionSphere(comptime cfg: FreeFermionSphereConfig) type {
     if (cfg.dimension == 0) @compileError("free-fermion target dimension must be nonzero");
-    if (cfg.dimension == 10 and !cfg.include_antiholomorphic_copy) return GeneratedFreeFermionSphere10;
-    return struct {
-        /// op exposes NS free-fermion local operator builders.
-        pub const op = FreeFermionSphereOp(cfg.include_antiholomorphic_copy);
-        /// config exposes named correlator configs for this preset.
-        pub const config = FreeFermionCorrelatorConfig(cfg);
-        /// basis streams compact NS free-fermion mode words.
-        pub const basis = FreeFermionBasis(cfg);
-        /// text exposes bounded result-inspection sinks.
-        pub const text = shared.text;
-        /// local constructs a label-preserving local-operator builder.
-        pub fn local(allocator: std.mem.Allocator) !Builder {
-            return shared.Local.init(allocator);
-        }
-
-        /// correlator streams rule matches for NS free-fermion insertions.
-        pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
-            return shared.streamCorrelator(config_ptr, ops, sink);
-        }
-    };
+    if (cfg.dimension != 10) @compileError("freeFermionSphere exposes generated fixtures only; instantiate the Lisp free-fermion template for this dimension and regenerate");
+    return if (cfg.include_antiholomorphic_copy) GeneratedFreeFermionSphere10Full else GeneratedFreeFermionSphere10;
 }
 
 const GeneratedFreeFermionSphere10 = struct {
@@ -80,183 +47,37 @@ const GeneratedFreeFermionSphere10 = struct {
     }
 };
 
-fn freeFermionModeCapacity(comptime dimension: u16, comptime max_level_ticks: u32) usize {
-    return @as(usize, dimension) * ((max_level_ticks + 1) / 2);
-}
+const GeneratedFreeFermionSphere10Full = struct {
+    const Base = generated_fixtures.FreeFermion10Full;
 
-fn FreeFermionBasis(comptime cfg: FreeFermionSphereConfig) type {
-    return struct {
-        /// quantum_schema carries the one-slot fermion-number Z2 filter.
-        pub const quantum_schema = cfg.quantum_schema;
-        /// render_modes names compact NS modes for state/operator text output.
-        pub const render_modes = [_]basis_generation.RenderAtom{.{ .id = kind(.psi), .name = "psi", .base_weight_ticks = 1, .derivative_step_ticks = 2 }};
-        /// render_table maps compact free-fermion ids to local fields.
-        pub const render_table = basis_generation.RenderTable{ .modes = &render_modes };
-
-        /// modeCapacity returns the finite oscillator-band capacity for a level budget.
-        pub fn modeCapacity(comptime max_level_ticks: u32) usize {
-            return freeFermionModeCapacity(cfg.dimension, max_level_ticks);
-        }
-
-        /// seedCapacity returns the number of finite primary seeds.
-        pub fn seedCapacity() usize {
-            return 1;
-        }
-
-        /// writeSeeds writes the neutral NS vacuum seed.
-        pub fn writeSeeds(quantum_offset: usize, comptime total_quantum_count: usize, seeds: []basis_generation.Seed, quantum_storage: []i32) ![]const basis_generation.Seed {
-            _ = quantum_offset;
-            return basis_generation.zeroSeed(total_quantum_count, seeds, quantum_storage);
-        }
-
-        /// writeModes writes component-tagged NS free-fermion bands.
-        pub fn writeModes(comptime max_level_ticks: u32, comptime component: u16, quantum_offset: usize, comptime total_quantum_count: usize, modes: []basis_generation.Mode, quantum_storage: []i32) ![]const basis_generation.Mode {
-            const families = [_]basis_generation.OscillatorFamily{basis_generation.Preset.nsFreeFermionFamily(kind(.psi), component, cfg.dimension)};
-            const written = try basis_generation.buildOscillatorModes(&families, max_level_ticks, modes);
-            if (quantum_storage.len < written.len * total_quantum_count) return error.ContextTooSmall;
-            for (written, 0..) |*mode, index| {
-                mode.quantum_delta = try basis_generation.copyQuantumDelta(mode.quantum_delta, quantum_offset, total_quantum_count, quantum_storage[index * total_quantum_count .. (index + 1) * total_quantum_count]);
-            }
-            return written;
-        }
-
-        /// stream enumerates compact NS free-fermion mode words in half-ticks.
-        pub fn stream(comptime max_level_ticks: u32, comptime max_depth: usize, query: basis_generation.Query, sink: anytype) !void {
-            var seeds_storage: [seedCapacity()]basis_generation.Seed = undefined;
-            var seed_quantum_storage: [seedCapacity() * quantum_schema.len]i32 = undefined;
-            const seeds = try writeSeeds(0, quantum_schema.len, &seeds_storage, &seed_quantum_storage);
-
-            var modes_storage: [freeFermionModeCapacity(cfg.dimension, max_level_ticks)]basis_generation.Mode = undefined;
-            var mode_quantum_storage: [modes_storage.len * quantum_schema.len]i32 = undefined;
-            const modes = try writeModes(max_level_ticks, 0, 0, quantum_schema.len, &modes_storage, &mode_quantum_storage);
-            var storage = basis_generation.StackContext(modes_storage.len, max_level_ticks, quantum_schema.len, max_depth){};
-            var context = storage.context();
-            return basis_generation.stream(.{
-                .quantum_schema = quantum_schema,
-                .modes = modes,
-                .seeds = seeds,
-            }, query, &context, sink);
-        }
-    };
-}
-fn FreeFermionSphereOp(comptime include_antiholomorphic_copy: bool) type {
-    const Holomorphic = struct {
+    /// op exposes descriptor-generated NS free-fermion local operator builders.
+    pub const op = struct {
         /// psi builds a holomorphic NS free-fermion insertion.
-        pub fn psi(local: anytype, mu: anytype, n: u8, z: Handle.Coord) !Operator {
+        pub fn psi(builder: anytype, mu: anytype, n: u8, z: Handle.Coord) !Operator {
             comptime shared.assertTargetIndexHandle(@TypeOf(mu));
-            return declare.operatorBuilder(fermionOperator(.psi)).single(local, z, n, .{mu});
+            return Base.field("psi").localSingle(builder, z, n, .{mu});
         }
-    };
-
-    if (!include_antiholomorphic_copy) return Holomorphic;
-
-    return struct {
-        /// psi builds a holomorphic NS free-fermion insertion.
-        pub const psi = Holomorphic.psi;
 
         /// psit builds an antiholomorphic NS free-fermion insertion.
-        pub fn psit(local: anytype, mu: anytype, n: u8, zbar: Handle.Coord) !Operator {
+        pub fn psit(builder: anytype, mu: anytype, n: u8, zbar: Handle.Coord) !Operator {
             comptime shared.assertTargetIndexHandle(@TypeOf(mu));
-            return declare.operatorBuilder(fermionOperator(.psit)).single(local, zbar, n, .{mu});
+            return Base.field("psit").localSingle(builder, zbar, n, .{mu});
         }
     };
-}
-fn holomorphicDifference() wick.CoordinateDifference {
-    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
-}
+    /// config exposes descriptor-generated correlator configs for this preset.
+    pub const config = Base.config;
+    /// basis streams descriptor-generated compact NS free-fermion mode words.
+    pub const basis = Base.basis;
+    /// text exposes bounded result-inspection sinks.
+    pub const text = Base.text;
 
-fn antiholomorphicDifference() wick.CoordinateDifference {
-    return wick.difference(wick.coord(.left, .position), wick.coord(.right, .position));
-}
-
-fn psiPsi() wick.Expr {
-    return wick.differentiatedPole(.one, .{ .metric = .{
-        .left = wick.label(.left, 0),
-        .right = wick.label(.right, 0),
-    } }, holomorphicDifference(), -1, .{ .include_left = true, .include_right = true });
-}
-
-fn psitPsit() wick.Expr {
-    return wick.differentiatedPole(.one, .{ .metric = .{
-        .left = wick.label(.left, 0),
-        .right = wick.label(.right, 0),
-    } }, antiholomorphicDifference(), -1, .{ .include_left = true, .include_right = true });
-}
-
-const sphere_holomorphic_operator_spec = [_]Spec.Operator{
-    .{ .name = "psi", .kind = kind(.psi), .support = .holomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .fermionic, .infinity = .{ .primary = .{ .holomorphic_power = -1 } } },
-};
-
-const sphere_full_operator_spec = sphere_holomorphic_operator_spec ++ [_]Spec.Operator{
-    .{ .name = "psit", .kind = kind(.psit), .support = .antiholomorphic, .insertion = .single, .labels = &.{.index}, .statistics = .fermionic, .infinity = .{ .primary = .{ .antiholomorphic_power = -1 } } },
-};
-
-const sphere_holomorphic_wick_spec = [_]Spec.WickRule{
-    .{ .left = kind(.psi), .right = kind(.psi), .expr = psiPsi() },
-};
-
-const sphere_full_wick_spec = sphere_holomorphic_wick_spec ++ [_]Spec.WickRule{
-    .{ .left = kind(.psit), .right = kind(.psit), .expr = psitPsit() },
-};
-
-const sphere_holomorphic_wick_storage = Spec.wickRules(&sphere_holomorphic_wick_spec, &sphere_holomorphic_operator_spec);
-const sphere_full_wick_storage = Spec.wickRules(&sphere_full_wick_spec, &sphere_full_operator_spec);
-
-const sphere_holomorphic_fermion_storage = Spec.fermionKinds(&sphere_holomorphic_operator_spec);
-const sphere_full_fermion_storage = Spec.fermionKinds(&sphere_full_operator_spec);
-const sphere_holomorphic_infinity_storage = Spec.infinityData(&sphere_holomorphic_operator_spec);
-const sphere_full_infinity_storage = Spec.infinityData(&sphere_full_operator_spec);
-
-const sphere_holomorphic_zero_spec = [_]Spec.ZeroModeRule{};
-const sphere_full_zero_spec = [_]Spec.ZeroModeRule{};
-
-fn sphereSpec(comptime include_antiholomorphic_copy: bool) Spec.Theory {
-    return .{
-        .operators = if (include_antiholomorphic_copy) &sphere_full_operator_spec else &sphere_holomorphic_operator_spec,
-        .wick_rules = if (include_antiholomorphic_copy) &sphere_full_wick_spec else &sphere_holomorphic_wick_spec,
-        .zero_modes = if (include_antiholomorphic_copy) &sphere_full_zero_spec else &sphere_holomorphic_zero_spec,
-    };
-}
-
-fn fermionOperator(comptime family: Family) Spec.Operator {
-    const kind_id = kind(family);
-    inline for (sphere_full_operator_spec) |operator| {
-        if (operator.kind == kind_id) return operator;
+    /// local constructs a label-preserving local-operator builder.
+    pub fn local(allocator: std.mem.Allocator) !Builder {
+        return shared.Local.init(allocator);
     }
-    @compileError("missing free-fermion operator spec");
-}
 
-fn assertSphereSpec(comptime include_antiholomorphic_copy: bool, comptime wick_count: usize, comptime zero_count: usize, comptime fermion_count: usize) void {
-    const spec = sphereSpec(include_antiholomorphic_copy);
-    if (spec.wick_rules.len != wick_count) @compileError("free-fermion sphere spec Wick count does not match lowered rules");
-    if (spec.zero_modes.len != zero_count) @compileError("free-fermion sphere spec zero-mode count does not match lowered rules");
-    if (spec.operators.len != fermion_count) @compileError("free-fermion sphere spec fermion coverage does not match lowered rules");
-}
-
-fn FreeFermionRules(comptime include_antiholomorphic_copy: bool) type {
-    const selected_wick = if (include_antiholomorphic_copy) sphere_full_wick_storage else sphere_holomorphic_wick_storage;
-    const selected_fermions = if (include_antiholomorphic_copy) sphere_full_fermion_storage else sphere_holomorphic_fermion_storage;
-    const selected_infinity = if (include_antiholomorphic_copy) sphere_full_infinity_storage else sphere_holomorphic_infinity_storage;
-    return struct {
-        const sphere_wick: []const wick.Rule = &selected_wick;
-        const sphere_fermion_kinds: []const operators.OperatorKindId = &selected_fermions;
-        const sphere_infinity_data = &selected_infinity;
-    };
-}
-
-fn FreeFermionCorrelatorConfig(comptime cfg: FreeFermionSphereConfig) type {
-    const rules = FreeFermionRules(cfg.include_antiholomorphic_copy);
-    return struct {
-        comptime {
-            assertSphereSpec(cfg.include_antiholomorphic_copy, rules.sphere_wick.len, 0, rules.sphere_fermion_kinds.len);
-        }
-
-        /// sphere selects NS free-fermion sphere Wick rules.
-        pub const sphere = declare.correlatorConfig(.{
-            .wick_rules = rules.sphere_wick,
-            .zero_modes = &.{},
-            .fermion_kinds = rules.sphere_fermion_kinds,
-            .infinity_data = rules.sphere_infinity_data,
-        }){};
-    };
-}
+    /// correlator streams descriptor-generated rule matches for NS free-fermion insertions.
+    pub fn correlator(config_ptr: anytype, ops: anytype, sink: anytype) !void {
+        return shared.streamCorrelator(config_ptr, ops, sink);
+    }
+};

@@ -15,19 +15,32 @@ that owns runtime lifetime and returns the symbolic expression directly.
   (:use #:cl #:string-code.cft.descriptor)
   (:export
    #:free-fermion-10
+   #:free-fermion-10-full
    #:eta-xi-sphere
+   #:eta-xi-sphere-full
    #:eta-xi-torus
+   #:eta-xi-torus-full
    #:bc-sphere
+   #:bc-sphere-full
    #:free-boson-10
    #:make-free-fermion-runtime
+   #:make-free-fermion-full-runtime
    #:psi
+   #:psit
    #:make-eta-xi-sphere-runtime
+   #:make-eta-xi-sphere-full-runtime
    #:make-eta-xi-torus-runtime
+   #:make-eta-xi-torus-full-runtime
    #:eta
    #:xi
+   #:etat
+   #:xit
    #:make-bc-runtime
+   #:make-bc-full-runtime
    #:b-field
    #:c-field
+   #:bt
+   #:ct
    #:b
    #:c
    #:basis-count
@@ -234,14 +247,31 @@ remain stable, but field ids and insertion arities come from the descriptor.
 
 (define-preset-fixture free-fermion-10 make-free-fermion-runtime)
 
+(define-preset-fixture free-fermion-10-full make-free-fermion-full-runtime
+  :fields nil
+  :field-aliases ((psit psit)))
+
 (define-preset-fixture eta-xi-sphere make-eta-xi-sphere-runtime)
 
+(define-preset-fixture eta-xi-sphere-full make-eta-xi-sphere-full-runtime
+  :fields nil
+  :field-aliases ((etat etat)
+                  (xit xit)))
+
 (define-preset-fixture eta-xi-torus make-eta-xi-torus-runtime
+  :fields nil)
+
+(define-preset-fixture eta-xi-torus-full make-eta-xi-torus-full-runtime
   :fields nil)
 
 (define-preset-fixture bc-sphere make-bc-runtime
   :field-aliases ((b-field b)
                   (c-field c)))
+
+(define-preset-fixture bc-sphere-full make-bc-full-runtime
+  :fields nil
+  :field-aliases ((bt bt)
+                  (ct ct)))
 
 (define-preset-fixture free-boson-10 make-free-boson-runtime
   :constructor-options ((alpha-prime :alpha-prime) constants)

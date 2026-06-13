@@ -814,6 +814,7 @@ fn descriptorCompileError(comptime d: Descriptor, comptime err: anyerror) noretu
 /// GeneratedBasis lowers descriptor basis rows to the compact enumerator API.
 pub fn GeneratedBasis(comptime d: Descriptor) type {
     comptime {
+        @setEvalBranchQuota(10_000);
         validateDescriptor(d) catch |err| descriptorCompileError(d, err);
         if (d.basis_rule == null) @compileError("descriptor has no basis rule");
     }
@@ -1562,6 +1563,7 @@ fn GeneratedConfig(comptime d: Descriptor, comptime Config: type) type {
 /// GeneratedTheory lowers one descriptor to an executable theory boundary.
 pub fn GeneratedTheory(comptime d: Descriptor) type {
     comptime {
+        @setEvalBranchQuota(10_000);
         validateDescriptor(d) catch |err| descriptorCompileError(d, err);
     }
     const rules = wickStorage(d);

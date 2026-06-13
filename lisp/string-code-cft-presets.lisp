@@ -14,9 +14,13 @@
    #:compile-preset-library
    #:instantiate-preset
    #:free-fermion-10
+   #:free-fermion-10-full
    #:eta-xi-sphere
+   #:eta-xi-sphere-full
    #:eta-xi-torus
+   #:eta-xi-torus-full
    #:bc-sphere
+   #:bc-sphere-full
    #:free-boson-10))
 
 (in-package #:string-code.cft.presets)
@@ -56,6 +60,47 @@
              (preset-diagnostic-context condition)
              (preset-diagnostic-form condition)
              (preset-diagnostic-cause condition)))))
+
+(defun field-call-name (form)
+  (and (consp form) (first form)))
+
+(defun optional-surface-form-p (form)
+  (and (symbolp form) (not (keywordp form))))
+
+(defun wick-context (index form)
+  (let* ((items (rest form))
+         (has-surface (and items (optional-surface-form-p (first items))
+                           (consp (second items))))
+         (left (if has-surface (second items) (first items)))
+         (right (if has-surface (third items) (second items))))
+    (append (list :index index :kind 'wick)
+            (when has-surface (list :surface (first items)))
+            (list :left (field-call-name left)
+                  :right (field-call-name right)))))
+
+(defun zero-mode-context (index form)
+  (let* ((items (rest form))
+         (has-surface (and items (optional-surface-form-p (first items))
+                           (or (consp (second items)) (keywordp (second items)))))
+         (body (if has-surface (rest items) items))
+         (measure (if (and (consp (first body)) (keywordp (first (first body))))
+                      (first (first body))
+                      (first body))))
+    (append (list :index index :kind 'zero-mode)
+            (when has-surface (list :surface (first items)))
+            (list :measure measure))))
+
+(defun preset-form-context (index form)
+  (let ((kind (and (consp form) (first form))))
+    (case kind
+      ((field chiral-field anti-chiral-field bulk-field)
+       (list :index index :kind kind :field (second form)))
+      (wick
+       (wick-context index form))
+      (zero-mode
+       (zero-mode-context index form))
+      (otherwise
+       (list :index index :kind kind)))))
 
 (defun preset-options-form-p (form)
   (and (consp form) (keywordp (first form))))
@@ -333,7 +378,7 @@
          (user-options (if (preset-options-form-p (first body)) (first body) nil))
          (forms (if user-options (rest body) body)))
     (if (consp name)
-        `(progn
+        `(eval-when (:compile-toplevel :load-toplevel :execute)
            (setf (gethash ',preset-name *preset-templates*)
                  (make-preset-template
                   :name ',preset-name
@@ -614,13 +659,19 @@
      (/ (second value) (third value)))
     (t nil)))
 
+(defun product-form-p (form)
+  (and (consp form) (member (first form) '(* :mul mul))))
+
+(defun power-form-p (form)
+  (and (consp form) (member (first form) '(:pow :power pow power expt))))
+
 (defun scalar-product-factors (form)
-  (if (and (consp form) (member (first form) '(* :mul mul)))
+  (if (product-form-p form)
       (rest form)
       (list form)))
 
 (defun metadata-product-factors (form)
-  (if (and (consp form) (member (first form) '(* :mul mul)))
+  (if (product-form-p form)
       (loop for factor in (rest form) append (metadata-product-factors factor))
       (list form)))
 
@@ -633,7 +684,7 @@
   (cond
     ((and (consp factor) (member (first factor) '(:parameter parameter)))
      (scalar-parameter-ref-p parameters (second factor)))
-    ((and (consp factor) (member (first factor) '(:pow :power pow power expt)))
+    ((power-form-p factor)
      (and (integerp (third factor))
           (scalar-atom-factor-p theory parameters (second factor))))
     ((symbolp factor)
@@ -650,7 +701,7 @@
   (cond
     ((and (consp factor) (member (first factor) '(:parameter parameter)))
      (values (parameter-symbol-ref theory (parse-parameter-ref parameters (second factor))) 1))
-    ((and (consp factor) (member (first factor) '(:pow :power pow power expt)))
+    ((power-form-p factor)
      (unless (integerp (third factor))
        (error "Scalar atom power must be an integer in ~S." factor))
      (let ((power (third factor)))
@@ -688,12 +739,10 @@
                     (setf coefficient (* coefficient (expt rational scale))))
                    ((i-symbol-p factor)
                     (setf imaginary-power (mod (+ imaginary-power scale) 4)))
-                   ((and (consp factor)
-                         (member (first factor) '(* :mul mul)))
+                   ((product-form-p factor)
                     (dolist (item (rest factor))
                       (apply-factor item scale)))
-                   ((and (consp factor)
-                         (member (first factor) '(:pow :power pow power expt))
+                   ((and (power-form-p factor)
                          (integerp (third factor)))
                     (apply-factor (second factor) (* scale (third factor))))
                    (t
@@ -743,12 +792,10 @@
                         (setf coefficient (* coefficient (expt rational scale))))
                        ((i-symbol-p factor)
                         (setf imaginary-power (mod (+ imaginary-power scale) 4)))
-                       ((and (consp factor)
-                             (member (first factor) '(* :mul mul)))
+                       ((product-form-p factor)
                         (dolist (item (rest factor))
                           (apply-factor item scale)))
-                       ((and (consp factor)
-                             (member (first factor) '(:pow :power pow power expt))
+                       ((and (power-form-p factor)
                              (integerp (third factor)))
                         (apply-factor (second factor) (* scale (third factor))))
                        (t
@@ -944,7 +991,7 @@
           (= (length form) 3)
           (eql (second form) 1))
      (lower-difference-power coordinate-env (third form) -1))
-    ((and (consp form) (member (first form) '(pow expt))
+    ((and (power-form-p form)
           (= (length form) 3))
      (lower-difference-power coordinate-env (second form) (third form)))
     ((and (consp form) (member (first form) '(green-exp green-exponential))
@@ -990,7 +1037,7 @@
                              ,(env-ref label-env (third form) "label"))))))
 
 (defun expression-product-factors (form)
-  (if (and (consp form) (member (first form) '(* :mul mul)))
+  (if (product-form-p form)
       (loop for factor in (rest form) append (expression-product-factors factor))
       (list form)))
 
@@ -1225,7 +1272,7 @@
     (error (condition)
       (error 'preset-diagnostic
              :preset preset
-             :context (list :index index :kind (and (consp form) (first form)))
+             :context (preset-form-context index form)
              :form form
              :cause condition))))
 
@@ -1374,8 +1421,10 @@
     (intern (string-upcase (join-name-parts (nreverse parts) "-"))
             (find-package '#:string-code.cft.presets))))
 
-(defun instantiate-options (template bindings)
-  (let ((options (copy-list (or (preset-template-options template) nil))))
+(defun instantiate-options (template bindings substitutions)
+  (let ((options (substitute-template-form
+                  (or (preset-template-options template) nil)
+                  substitutions)))
     (dolist (key '(:theory-id :name :hash))
       (multiple-value-bind (value found) (template-binding bindings key)
         (when found
@@ -1389,7 +1438,7 @@
          (instance-name (or (option-value bindings :as)
                             (option-value bindings :preset)
                             (generated-template-instance-name template substitutions)))
-         (options (instantiate-options template bindings))
+         (options (instantiate-options template bindings substitutions))
          (forms (mapcar (lambda (form)
                           (substitute-template-form form substitutions))
                         (preset-template-forms template))))

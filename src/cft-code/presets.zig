@@ -381,38 +381,107 @@ fn expectBasisDigestEqual(expected: BasisDigest, actual: BasisDigest) !void {
     try testing.expectEqual(expected.weight_sum, actual.weight_sum);
     try testing.expectEqual(expected.level_sum, actual.level_sum);
 }
+
+fn cfgHasField(comptime cfg: anytype, comptime name: []const u8) bool {
+    return switch (@typeInfo(@TypeOf(cfg))) {
+        .@"struct" => @hasField(@TypeOf(cfg), name),
+        else => false,
+    };
+}
+
+fn cfgDimension(comptime cfg: anytype, comptime constructor: []const u8) u16 {
+    if (!cfgHasField(cfg, "dimension")) {
+        @compileError(constructor ++ " requires .{ .dimension = 10 }");
+    }
+    return cfg.dimension;
+}
+
+fn cfgIncludeAntiholomorphic(comptime cfg: anytype) bool {
+    if (cfgHasField(cfg, "include_antiholomorphic_copy")) return cfg.include_antiholomorphic_copy;
+    return false;
+}
+
+fn publicFreeBosonMake(comptime cfg: anytype) type {
+    const dimension = cfgDimension(cfg, "cft.FreeBoson.make");
+    if (dimension != 10) {
+        @compileError("cft.FreeBoson.make is generated only for dimension=10; instantiate a Lisp descriptor for another dimension");
+    }
+    return freeBoson(.{ .dimension = 10 });
+}
+
+fn publicBcSphere(comptime cfg: anytype) type {
+    return bcSphere(.{ .include_antiholomorphic_copy = cfgIncludeAntiholomorphic(cfg) });
+}
+
+fn publicFreeFermionSphere(comptime cfg: anytype) type {
+    const dimension = cfgDimension(cfg, "cft.FreeFermion.sphere");
+    if (dimension != 10) {
+        @compileError("cft.FreeFermion.sphere is generated only for dimension=10; instantiate a Lisp descriptor for another dimension");
+    }
+    return freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = cfgIncludeAntiholomorphic(cfg) });
+}
+
+fn publicEtaXiSphere(comptime cfg: anytype) type {
+    return etaXiSphere(.{ .include_antiholomorphic_copy = cfgIncludeAntiholomorphic(cfg) });
+}
+
 /// FreeBoson groups the free-boson preset constructors.
 pub const FreeBoson = struct {
-    /// make builds the generated preset type for a noncompact free-boson CFT.
-    pub const make = free_boson.freeBoson;
+    /// make builds the descriptor-generated noncompact free-boson CFT.
+    pub const make = publicFreeBosonMake;
     /// boundary declares the Neumann/Dirichlet free-boson boundary extension.
     pub const boundary = free_boson.boundaryExtension;
 };
 
 /// Bc groups the bc-ghost preset constructors.
 pub const Bc = struct {
-    /// sphere builds the generated preset type for the sphere bc ghost CFT.
-    pub const sphere = bc.bcSphere;
+    /// sphere builds the descriptor-generated sphere bc ghost CFT.
+    pub const sphere = publicBcSphere;
     /// diskBoundary declares boundary and mixed bulk-boundary bc rules on the disk.
     pub const diskBoundary = bc.boundaryExtension;
 };
 
 /// FreeFermion groups the NS free-fermion preset constructors.
 pub const FreeFermion = struct {
-    /// sphere builds the generated preset type for sphere NS free fermions.
-    pub const sphere = free_fermion.freeFermionSphere;
+    /// sphere builds the descriptor-generated sphere NS free-fermion CFT.
+    pub const sphere = publicFreeFermionSphere;
 };
 
 /// EtaXi groups the eta-xi preset constructors.
 pub const EtaXi = struct {
-    /// sphere builds the generated preset type for the sphere eta-xi system.
-    pub const sphere = eta_xi.etaXiSphere;
+    /// sphere builds the descriptor-generated eta-xi sphere and torus CFT.
+    pub const sphere = publicEtaXiSphere;
 };
 
 /// product builds the generated preset type for a product of independent bulk presets.
 pub const product = composition.product;
 /// boundary builds the generated preset type for a BCFT from a bulk preset and boundary extensions.
 pub const boundary = composition.boundary;
+test "public bulk constructors route through descriptor-generated fixtures" {
+    const testing = @import("std").testing;
+
+    const X = FreeBoson.make(.{ .dimension = 10 });
+    const Ghost = Bc.sphere(.{});
+    const Psi = FreeFermion.sphere(.{ .dimension = 10 });
+    const EtaXiPreset = EtaXi.sphere(.{});
+    const FullGhost = Bc.sphere(.{ .include_antiholomorphic_copy = true });
+    const FullPsi = FreeFermion.sphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+    const FullEtaXi = EtaXi.sphere(.{ .include_antiholomorphic_copy = true });
+
+    try testing.expect(@hasDecl(X.op, "dX"));
+    try testing.expect(@hasDecl(Ghost.op, "b"));
+    try testing.expect(@hasDecl(Psi.op, "psi"));
+    try testing.expect(@hasDecl(EtaXiPreset.op, "eta"));
+    try testing.expect(!@hasDecl(Ghost.op, "bt"));
+    try testing.expect(!@hasDecl(Psi.op, "psit"));
+    try testing.expect(!@hasDecl(EtaXiPreset.op, "etat"));
+    try testing.expect(@hasDecl(FullGhost.op, "bt"));
+    try testing.expect(@hasDecl(FullGhost.op, "ct"));
+    try testing.expect(@hasDecl(FullPsi.op, "psit"));
+    try testing.expect(@hasDecl(FullEtaXi.op, "etat"));
+    try testing.expect(@hasDecl(FullEtaXi.op, "xit"));
+}
+
 test "presets compose operator builders without exposing theory tables" {
     const testing = @import("std").testing;
 
@@ -522,14 +591,14 @@ test "primitive presets expose compact basis streaming" {
     try X.basis.stream(2, 2, .{ .weight = .{ .exact = 2 }, .max_word_length = 2 }, &x_sink);
     try testing.expectEqual(@as(usize, 5), x_sink.count);
 
-    const Psi = freeFermionSphere(.{ .dimension = 2, .include_antiholomorphic_copy = false });
+    const Psi = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
     var psi_sink = Sink{};
     try Psi.basis.stream(3, 3, .{
         .weight = .{ .exact = 3 },
         .quantum_filters = &.{.{ .slot = 0, .value = 1 }},
         .max_word_length = 3,
     }, &psi_sink);
-    try testing.expectEqual(@as(usize, 2), psi_sink.count);
+    try testing.expectEqual(@as(usize, 130), psi_sink.count);
 
     const Ghost = bcSphere(.{ .include_antiholomorphic_copy = false });
     var ghost_sink = Sink{};
@@ -582,9 +651,9 @@ test "product preset streams merged compact basis without factor basis products"
     try testing.expect(sink.mixed_count > 0);
 }
 
-test "generated free fermion basis matches handwritten holomorphic basis" {
+test "generated free fermion full basis matches holomorphic basis" {
     const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
-    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+    const Full = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Psi: type) !BasisDigest {
@@ -598,12 +667,12 @@ test "generated free fermion basis matches handwritten holomorphic basis" {
         }
     };
 
-    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
-test "generated bc basis matches handwritten holomorphic basis" {
+test "generated bc full basis matches holomorphic basis" {
     const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = bcSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Ghost: type) !BasisDigest {
@@ -617,12 +686,12 @@ test "generated bc basis matches handwritten holomorphic basis" {
         }
     };
 
-    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
-test "generated eta-xi basis matches handwritten holomorphic basis" {
+test "generated eta-xi full basis matches holomorphic basis" {
     const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = etaXiSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime EtaXiPreset: type) !BasisDigest {
@@ -636,7 +705,7 @@ test "generated eta-xi basis matches handwritten holomorphic basis" {
         }
     };
 
-    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectBasisDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
 test "local operator tokens are owned by their builder" {
@@ -910,10 +979,10 @@ test "free fermion sphere uses generic fermionic Wick signs" {
     try testing.expect(!@hasDecl(@TypeOf(Psi.config.sphere), "pair_lookup"));
 }
 
-test "generated free fermion matches handwritten holomorphic stream" {
+test "generated free fermion full preset matches holomorphic stream" {
     const testing = @import("std").testing;
     const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
-    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+    const Full = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Psi: type) !ParitySink {
@@ -941,13 +1010,13 @@ test "generated free fermion matches handwritten holomorphic stream" {
         }
     };
 
-    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
-test "generated free fermion infinity stream matches handwritten" {
+test "generated free fermion full infinity stream matches holomorphic stream" {
     const testing = @import("std").testing;
     const Generated = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = false });
-    const Legacy = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
+    const Full = freeFermionSphere(.{ .dimension = 10, .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Psi: type, comptime infinity_derivative: u8) !ParitySink {
@@ -969,8 +1038,8 @@ test "generated free fermion infinity stream matches handwritten" {
         }
     };
 
-    try expectParityDigestEqual(try Runner.run(Generated, 0), try Runner.run(Legacy, 0));
-    try expectParityDigestEqual(try Runner.run(Generated, 1), try Runner.run(Legacy, 1));
+    try expectParityDigestEqual(try Runner.run(Generated, 0), try Runner.run(Full, 0));
+    try expectParityDigestEqual(try Runner.run(Generated, 1), try Runner.run(Full, 1));
 }
 
 test "eta-xi sphere saturates one xi zero mode" {
@@ -1109,10 +1178,10 @@ test "eta-xi torus lowers prime-form log-derivative Wick and xi zero mode" {
     try testing.expect(!@hasDecl(@TypeOf(EtaXiPreset.config.torus), "zero_modes"));
 }
 
-test "generated eta-xi matches handwritten sphere and torus streams" {
+test "generated eta-xi full preset matches holomorphic sphere and torus streams" {
     const testing = @import("std").testing;
     const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = etaXiSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn runSphere(comptime EtaXiPreset: type) !ParitySink {
@@ -1152,14 +1221,14 @@ test "generated eta-xi matches handwritten sphere and torus streams" {
         }
     };
 
-    try expectParityDigestEqual(try Runner.runSphere(Generated), try Runner.runSphere(Legacy));
-    try expectParityDigestEqual(try Runner.runTorus(Generated), try Runner.runTorus(Legacy));
+    try expectParityDigestEqual(try Runner.runSphere(Generated), try Runner.runSphere(Full));
+    try expectParityDigestEqual(try Runner.runTorus(Generated), try Runner.runTorus(Full));
 }
 
-test "generated eta-xi infinity stream matches handwritten" {
+test "generated eta-xi full infinity stream matches holomorphic stream" {
     const testing = @import("std").testing;
     const Generated = etaXiSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = etaXiSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = etaXiSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime EtaXiPreset: type) !void {
@@ -1179,7 +1248,7 @@ test "generated eta-xi infinity stream matches handwritten" {
     };
 
     try testing.expectError(error.DivergentInfinityLimit, Runner.run(Generated));
-    try testing.expectError(error.DivergentInfinityLimit, Runner.run(Legacy));
+    try testing.expectError(error.DivergentInfinityLimit, Runner.run(Full));
 }
 
 test "compact text sink inspects a small correlator without custom callbacks" {
@@ -1335,10 +1404,10 @@ test "disk bc zero modes use one doubled chiral top form" {
     try testing.expectEqual(@as(u8, 0b111), sink.coordinate_mask);
 }
 
-test "generated bc matches handwritten holomorphic stream" {
+test "generated bc full preset matches holomorphic stream" {
     const testing = @import("std").testing;
     const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = bcSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Ghost: type) !ParitySink {
@@ -1362,13 +1431,13 @@ test "generated bc matches handwritten holomorphic stream" {
         }
     };
 
-    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
-test "generated bc top form at infinity matches handwritten" {
+test "generated bc full top form at infinity matches holomorphic stream" {
     const testing = @import("std").testing;
     const Generated = bcSphere(.{ .include_antiholomorphic_copy = false });
-    const Legacy = bcSphere(.{ .include_antiholomorphic_copy = true });
+    const Full = bcSphere(.{ .include_antiholomorphic_copy = true });
 
     const Runner = struct {
         fn run(comptime Ghost: type) !ParitySink {
@@ -1390,7 +1459,7 @@ test "generated bc top form at infinity matches handwritten" {
         }
     };
 
-    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Legacy));
+    try expectParityDigestEqual(try Runner.run(Generated), try Runner.run(Full));
 }
 
 test "free boson zero modes emit momentum delta and profile presentations" {

@@ -5,7 +5,8 @@
 #+auto_tangle: t
 #+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/free-fermion-10.lisp :mkdirp yes
 
-This preset declares the indexed sphere free fermion.  The only Wick datum is
+This template declares the indexed sphere free fermion.  The concrete
+ten-dimensional fixture is an instance of the template.  The only Wick datum is
 the \(\eta_{\mu\nu}/(z-w)\) contraction.
 
 #+begin_src lisp
@@ -13,11 +14,10 @@ the \(\eta_{\mu\nu}/(z-w)\) contraction.
 #+end_src
 
 #+begin_src lisp
-(define-cft-preset free-fermion-10
-  (:theory-id 1
-   :kind-namespace free_fermion
-   :basis (:presentation free-fermion-10
-           :backend (:free-fermion :dimension 10)
+(define-cft-preset (free-fermion :dimension dimension)
+  (:kind-namespace free_fermion
+   :basis (:presentation free-fermion
+           :backend (:free-fermion :dimension dimension)
            :tick-denominator 2
            :quantum-numbers ((fermion-number)
                              (spin10))
@@ -32,4 +32,44 @@ the \(\eta_{\mu\nu}/(z-w)\) contraction.
                            (fermion-number 1)))
   (wick (psi mu z) (psi nu w)
     (* (metric mu nu) (/ 1 (- z w)))))
+
+(instantiate-preset free-fermion
+  :dimension 10
+  :as free-fermion-10
+  :theory-id 1)
+#+end_src
+
+* Full Copy
+
+The full-copy fixture is still descriptor-authored.  It exists so the Zig API can
+route the antiholomorphic option through generated data instead of through the
+old handwritten preset branch.
+
+#+begin_src lisp
+(define-cft-preset free-fermion-10-full
+  (:theory-id 6
+   :kind-namespace free_fermion
+   :basis (:presentation free-fermion
+           :backend (:free-fermion :dimension 10)
+           :tick-denominator 2
+           :quantum-numbers ((fermion-number)
+                             (spin10))
+           :seed-bits nil))
+  (surface sphere :sphere :rational)
+  (quantum-number spin10 (:ade-irrep) :group d5)
+  (quantum-number fermion-number (:zn 2))
+  (chiral-field psi ((mu :vector-index)) :fermionic
+         :weight (rational 1 2)
+         :infinity primary
+         :quantum-numbers ((spin10 vector)
+                           (fermion-number 1)))
+  (anti-chiral-field psit ((mu :vector-index)) :fermionic
+         :weight (rational 1 2)
+         :infinity primary
+         :quantum-numbers ((spin10 vector)
+                           (fermion-number 1)))
+  (wick (psi mu z) (psi nu w)
+    (* (metric mu nu) (/ 1 (- z w))))
+  (wick (psit mu zbar) (psit nu wbar)
+    (* (metric mu nu) (/ 1 (- zbar wbar)))))
 #+end_src

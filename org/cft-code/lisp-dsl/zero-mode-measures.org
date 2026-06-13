@@ -1,0 +1,268 @@
+:PROPERTIES:
+:ID:       20260613T183000.000000
+:END:
+#+title: Zero-Mode Measure DSL
+#+auto_tangle: nil
+
+This note records the intended zero-mode DSL shape after the bulk descriptor
+cleanup.  It links to the preset compiler rather than replacing it:
+[[id:20260609T004000.000000][Lisp Preset Compiler]].
+
+* Principle
+
+A zero-mode declaration must define the actual multilinear functional, not only
+a nonzero selection rule.
+
+The descriptor should carry:
+
+1. the finite zero-mode space or named global correlator functional;
+2. the insertion map from fields to that space;
+3. the functional that evaluates saturated insertions;
+4. the scalar normalization expression.
+
+The common form is:
+
+#+begin_src lisp
+(zero-mode <surface>
+  (measure <kernel>
+    :variables (...)
+    :insertions (...)
+    :functional (...)
+    :normalization <scalar-expression>))
+#+end_src
+
+The current compact forms may remain as aliases, but the lowered descriptor
+should use this measure model.
+
+* Existing Measures
+
+** Free Boson Momentum Delta
+
+The free-boson zero mode is integration over the constant target coordinate.
+It produces momentum conservation and a scalar normalization.
+
+#+begin_src lisp
+(zero-mode sphere
+  (measure :momentum-delta
+    :insertions ((expX :momentum k))
+    :functional (:delta (= (sum k) 0))
+    :normalization (pow (mul 2 pi) dimension)))
+#+end_src
+
+This is why the old two-pi side channel was wrong: powers of \(2\pi\) are just
+ordinary scalar expressions in the DSL.
+
+** eta-xi Constant Mode
+
+The eta-xi system has a single constant xi zero mode on the sphere/torus in the
+current presets.  The functional is coefficient extraction.
+
+#+begin_src lisp
+(zero-mode sphere
+  (measure :berezin-coefficient
+    :variables ((xi0 :field xi
+                     :mode-space (:constant)))
+    :insertions ((xi :projects-to xi0))
+    :functional (:coefficient xi0)
+    :normalization 1))
+#+end_src
+
+Consequences:
+
+- =<xi>= evaluates to the normalization;
+- =<eta>= vanishes from this measure;
+- =<d xi>= vanishes because it does not project to the constant mode;
+- extra xi insertions vanish by Grassmann degree.
+
+** bc On The Sphere
+
+For the sphere bc ghost, =<c c c>= is not merely nonzero.  It is the top
+Berezin functional on the finite c zero-mode space.
+
+#+begin_src lisp
+(zero-mode sphere
+  (measure :berezin-top-form
+    :variables ((c0 :field c
+                    :mode-space (:global-sections
+                                  :field c
+                                  :bundle "K^-1"
+                                  :basis (:auto :sphere))))
+    :insertions ((c :evaluate c0
+                    :allow-derivatives t
+                    :allow-infinity t))
+    :functional (:determinant :orientation :declared)
+    :normalization 1))
+#+end_src
+
+In the usual affine coordinate this may lower to a basis such as =1,z,z^2=, but
+that is not the user-level concept.  The user-level concept is the global
+section space.  If \(phi_a\) is the selected basis, then:
+
+#+begin_example
+<c(z1)c(z2)c(z3)> = det(phi_a(zi))
+#+end_example
+
+Derivative insertions replace the relevant row by derivative evaluation rows.
+Infinity insertion is evaluation in the local coordinate at infinity.
+
+** Higher-Genus bc Systems
+
+The general \(b_lambda,c_{1-lambda}\) system should not be forced into the
+sphere determinant syntax.  The stringbook higher-genus formula uses the
+ghost-number anomaly, Abel-Jacobi map, Riemann theta functions, prime forms,
+and the sigma function.
+
+For genus-two b zero modes, one concrete determinant form is:
+
+#+begin_src lisp
+(zero-mode genus-2
+  (measure :berezin-top-form
+    :variables ((b0 :field b
+                    :mode-space (:holomorphic-sections
+                                  :bundle "K^2"
+                                  :basis ((pow omega1 2)
+                                          (mul omega1 omega2)
+                                          (pow omega2 2)))))
+    :insertions ((b :evaluate b0))
+    :functional (:determinant)
+    :normalization (:moduli-factor bc-partition)))
+#+end_src
+
+For the fully general correlator, use a named kernel:
+
+#+begin_src lisp
+(correlator-kernel :bc-lambda
+  :fields (b c)
+  :selection (:ghost-number-anomaly
+              (= (- (count b) (count c))
+                 (mul (- (mul 2 lambda) 1)
+                      (- genus 1))))
+  :functional (:theta-prime-form))
+#+end_src
+
+This avoids pretending that all higher-genus ghost correlators are finite
+determinants over elementary monomials.
+
+** Superghost, Picture, And xi
+
+The \((phi,eta,xi)\) representation needs two related pieces:
+
+#+begin_src lisp
+(zero-mode sphere
+  (measure :berezin-coefficient
+    :variables ((xi0 :field xi :mode-space (:constant)))
+    :insertions ((xi :implicit t))
+    :functional (:coefficient xi0)))
+#+end_src
+
+and a delta-Berezin measure for picture changing / odd moduli:
+
+#+begin_src lisp
+(zero-mode surface
+  (measure :delta-berezin
+    :variables ((beta0 :field beta
+                       :mode-space (:odd-moduli
+                                    :super-riemann-surface)))
+    :insertions ((PCO :contains (delta beta)))
+    :functional (:inverse-evaluation-determinant)))
+#+end_src
+
+This matches the practical role of PCO insertions: their \(\delta(beta)\)
+factors absorb beta zero modes, while the xi zero mode is handled separately.
+
+* Pure Spinor
+
+Pure spinor should be a named cohomology functional, not a generic Grassmann
+determinant.  At tree level:
+
+#+begin_src lisp
+(zero-mode disk
+  (measure :pure-spinor-tree
+    :variables ((lambda :field lambda
+                        :kind :bosonic-pure-spinor
+                        :constraint (pure-spinor ten-d))
+                (theta  :field theta
+                        :kind :grassmann-spinor))
+    :insertions ((lambda :degree 3)
+                 (theta  :degree 5))
+    :functional
+      (:cohomology-bracket
+       :representative
+       (mul (lambda-gamma-theta m)
+            (lambda-gamma-theta n)
+            (lambda-gamma-theta p)
+            (theta-gamma-theta m n p))
+       :value 1)
+    :normalization 1))
+#+end_src
+
+After OPE reduction, the evaluator:
+
+1. collects the zero-mode polynomial;
+2. keeps terms of degree lambda^3 theta^5;
+3. projects onto the unique ghost-number-three pure-spinor cohomology scalar;
+4. applies the declared normalization.
+
+For closed type-II tree amplitudes:
+
+#+begin_src lisp
+(zero-mode sphere
+  (measure :product
+    :factors ((:pure-spinor-tree :sector left)
+              (:pure-spinor-tree :sector right))))
+#+end_src
+
+Nonminimal or loop pure-spinor measures should be separate kernels.  Do not add
+them by enlarging a generic buffer; add a named functional once the formula and
+regulator are explicit.
+
+* Zig Boundary
+
+Zig should receive compact descriptor rows, not a symbolic integral tree.
+
+#+begin_src zig
+const ZeroModeKernel = enum {
+    momentum_delta,
+    berezin_coefficient,
+    berezin_determinant,
+    delta_berezin_determinant,
+    bc_lambda_theta_prime_form,
+    pure_spinor_tree_bracket,
+};
+#+end_src
+
+Each kernel receives only the data it needs:
+
+- field ids and selected insertion ids;
+- surface and moduli ids;
+- mode-space descriptor;
+- derivative/infinity policy;
+- scalar normalization expression.
+
+Kernels stream compact factors or emit a compact zero-mode factor.  They should
+not allocate large symbolic intermediate expressions.
+
+* Implementation Order
+
+1. Add the explicit measure AST and keep current compact forms as aliases.
+2. Lower existing =:constant-fermion=, =:top-form-fermion=, and
+   =:momentum-delta= forms through the same descriptor measure rows.
+3. Delete =add-legacy-zero-mode-form= once all preset files use explicit
+   measure syntax.
+4. Add the pure-spinor tree bracket only with a dedicated evaluator and golden
+   normalization tests.
+5. Add higher-genus bc / superghost kernels only when the corresponding
+   amplitude path needs them.
+
+* Sources
+
+- The stringbook notes discuss bc/c zero modes as unmatched Grassmann modes,
+  conformal Killing vectors, higher-genus b zero modes as holomorphic quadratic
+  differentials, PCO absorption of beta zero modes, implicit xi insertion, and
+  higher-genus bc theta/prime-form correlators:
+  [[file:../../../stringbook/texsource/string notes.tex]].
+- The pure-spinor tree bracket follows the standard normalization used by
+  Mafra, Schlotterer, and Stieberger, where the zero-mode bracket selects the
+  ghost-number-three cohomology representative and normalizes
+  =<(lambda gamma theta)^3 (theta gamma theta)>= to one:
+  https://arxiv.org/pdf/1106.2645.

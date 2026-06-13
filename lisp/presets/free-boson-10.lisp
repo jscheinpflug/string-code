@@ -1,10 +1,9 @@
 (in-package #:string-code.cft.presets)
 
-(define-cft-preset free-boson-10
-  (:theory-id 5
-   :kind-namespace free_boson
-   :basis (:presentation free-boson-10
-           :backend (:free-boson :dimension 10)
+(define-cft-preset (free-boson :dimension dimension)
+  (:kind-namespace free_boson
+   :basis (:presentation free-boson
+           :backend (:free-boson :dimension dimension)
            :tick-denominator 1
            :quantum-numbers ((spin10))
            :seed-bits nil))
@@ -95,4 +94,9 @@
      (green-exp zb wb))
   :residuals (:left :right))
 
-(zero-mode (linear-conservation :fields (expX profile) :normalization (pow (* 2 pi) 10))))
+(zero-mode (linear-conservation :fields (expX profile) :normalization (pow (mul 2 pi) dimension))))
+
+(instantiate-preset free-boson
+  :dimension 10
+  :as free-boson-10
+  :theory-id 5)

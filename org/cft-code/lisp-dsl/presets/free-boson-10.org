@@ -5,9 +5,10 @@
 #+auto_tangle: t
 #+PROPERTY: header-args:lisp :tangle ../../../../lisp/presets/free-boson-10.lisp :mkdirp yes
 
-This preset declares the ten-dimensional free boson on the sphere.  The scalar
-parameter =alpha-prime= is symbolic in the descriptor and can be assigned a
-runtime convention value by the Lisp REPL layer.
+This template declares a noncompact free boson on the sphere.  The concrete
+ten-dimensional fixture is an instance of the template.  The scalar parameter
+=alpha-prime= is symbolic in the descriptor and can be assigned a runtime
+convention value by the Lisp REPL layer.
 
 #+begin_src lisp
 (in-package #:string-code.cft.presets)
@@ -18,11 +19,10 @@ metadata.  The \(k \cdot k\) expression references the =expX= momentum label
 by name, not by a numeric slot.
 
 #+begin_src lisp
-(define-cft-preset free-boson-10
-  (:theory-id 5
-   :kind-namespace free_boson
-   :basis (:presentation free-boson-10
-           :backend (:free-boson :dimension 10)
+(define-cft-preset (free-boson :dimension dimension)
+  (:kind-namespace free_boson
+   :basis (:presentation free-boson
+           :backend (:free-boson :dimension dimension)
            :tick-denominator 1
            :quantum-numbers ((spin10))
            :seed-bits nil))
@@ -135,9 +135,15 @@ factors with the shared momentum-pair tensor.
 #+end_src
 
 The sphere zero-mode factor is the stringbook momentum-conservation
-normalization for ten noncompact bosons, written as the scalar expression it
-represents.
+normalization for =dimension= noncompact bosons, written as the scalar
+expression it represents.  The template instance below substitutes =10= into
+both the basis backend and this scalar expression.
 
 #+begin_src lisp
-  (zero-mode (linear-conservation :fields (expX profile) :normalization (pow (* 2 pi) 10))))
+  (zero-mode (linear-conservation :fields (expX profile) :normalization (pow (mul 2 pi) dimension))))
+
+(instantiate-preset free-boson
+  :dimension 10
+  :as free-boson-10
+  :theory-id 5)
 #+end_src
