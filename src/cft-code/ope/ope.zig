@@ -44,7 +44,6 @@ pub const Expression = struct {
 /// Projection bounds the local Taylor expansion requested from the OPE.
 pub const Projection = struct {
     target_holomorphic_ticks: i32 = 0,
-    target_charge: ?i32 = null,
     max_taylor_level: u8 = 0,
 };
 
@@ -492,9 +491,6 @@ pub fn GenericKernel(comptime d: descriptor.Descriptor, comptime limits: Limits)
             var sign: i64 = 1;
             if (!canonicalizeOutput(ordered[0..state.output_count], &sign)) return;
             if (outputWeightTicks(ordered[0..state.output_count]) != projection.target_holomorphic_ticks) return;
-            if (projection.target_charge) |target| {
-                if (outputCharge(ordered[0..state.output_count]) != target) return;
-            }
             var scalar = state.scalar;
             if (sign < 0) try scalar.mulRational(-1, 1);
             const term = TermView{
@@ -673,18 +669,22 @@ pub fn GenericKernel(comptime d: descriptor.Descriptor, comptime limits: Limits)
             var mask: u32 = 1;
             while (mask <= masks) : (mask += 1) {
                 var weight: i32 = 0;
-                var charge: i32 = 0;
+                var left_survivors: usize = 0;
+                var right_survivors: usize = 0;
                 var index: usize = 0;
                 while (index < total) : (index += 1) {
                     if (((mask >> @intCast(index)) & 1) == 0) continue;
-                    const factor = if (index < left.factors.len) left.factors[index] else right.factors[index - left.factors.len];
+                    const is_left = index < left.factors.len;
+                    const factor = if (is_left) left.factors[index] else right.factors[index - left.factors.len];
+                    if (is_left) {
+                        left_survivors += 1;
+                    } else {
+                        right_survivors += 1;
+                    }
                     weight += factorWeightTicks(factor);
-                    charge += fieldCharge(factor.field);
                 }
                 if (weight != projection.target_holomorphic_ticks) continue;
-                if (projection.target_charge) |target| {
-                    if (charge != target) continue;
-                }
+                if (left.factors.len - left_survivors != right.factors.len - right_survivors) continue;
                 return true;
             }
             return false;
@@ -693,12 +693,6 @@ pub fn GenericKernel(comptime d: descriptor.Descriptor, comptime limits: Limits)
         fn outputWeightTicks(output: []const OutputFactor) i32 {
             var total: i32 = 0;
             for (output) |factor| total += factorWeightTicks(factor);
-            return total;
-        }
-
-        fn outputCharge(output: []const OutputFactor) i32 {
-            var total: i32 = 0;
-            for (output) |factor| total += fieldCharge(factor.field);
             return total;
         }
 
@@ -727,19 +721,6 @@ pub fn GenericKernel(comptime d: descriptor.Descriptor, comptime limits: Limits)
             return @intCast(@divExact(numerator, den));
         }
 
-        fn fieldCharge(field: descriptor.Id) i32 {
-            for (d.field_quantum_numbers) |row| {
-                if (row.field != field) continue;
-                const number = d.quantum_numbers[row.quantum_number];
-                if (number.kind != .u1_charge) continue;
-                return switch (row.value) {
-                    .integer => |value| @intCast(value),
-                    .rational => |value| if (value.denominator == 1) @intCast(value.numerator) else 0,
-                    .symbol => 0,
-                };
-            }
-            return 0;
-        }
     };
 }
 

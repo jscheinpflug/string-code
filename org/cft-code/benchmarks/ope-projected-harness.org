@@ -129,7 +129,7 @@ fn runBcPair(comptime case: CaseName, sample_count: usize, form: Form, comptime 
     for (&right_factors, 0..) |*factor, i| factor.* = .{ .field = 1, .derivative = @intCast(i) };
     const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
     const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
-    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{});
 }
 
 fn renderBcPair(comptime case: CaseName, allocator: std.mem.Allocator, comptime pair_count: usize) ![]const u8 {
@@ -146,7 +146,7 @@ fn renderBcPair(comptime case: CaseName, allocator: std.mem.Allocator, comptime 
     for (&right_factors, 0..) |*factor, i| factor.* = .{ .field = 1, .derivative = @intCast(i) };
     const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
     const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
-    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{});
 }
 
 fn runBcDerivativePair(comptime case: CaseName, sample_count: usize, form: Form) !Result {
@@ -155,7 +155,7 @@ fn runBcDerivativePair(comptime case: CaseName, sample_count: usize, form: Form)
     const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 1, .derivative = 2 }};
     const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
     const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
-    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{});
 }
 
 fn renderBcDerivativePair(comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
@@ -164,7 +164,7 @@ fn renderBcDerivativePair(comptime case: CaseName, allocator: std.mem.Allocator)
     const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 1, .derivative = 2 }};
     const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
     const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
-    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{});
 }
 
 fn runFermionPair(comptime case: CaseName, sample_count: usize, form: Form, comptime pair_count: usize) !Result {

@@ -20,6 +20,8 @@ zig build --global-cache-dir /tmp/zig-global ope-projected-compare \
 The on-demand collected form is selected explicitly with =--form collect=, or
 implicitly by =--verify-json=.  This is the form comparable to Mathematica,
 because =Expand[OPEProjected[...]]= has already combined equal symbolic terms.
+The projection arguments are target weights, matching the Mathematica
+=OPEProjected= call shape.
 
 The optional =--emit-expression= Zig mode renders the collected result as a
 Mathematica-readable expression.  Passing that file to the Mathematica script
@@ -74,10 +76,10 @@ collector folds equal structural terms:
 | bc-1-pair-w0 | 1 | 1 | 1 | 0.006396 | 8322 |
 | bc-derivative-pair-w0 | 1 | 1 | 1 | 0.018248 | 8522 |
 | bc-2-pairs-w0 | 2 | 1 | 1 | 0.020453 | 11443 |
-| bc-6-pairs-w0 | 720 | 1 | 1 | 14.800791 | 1085105 |
+| bc-6-pairs-w0 | 720 | 1 | 1 | 14.800791 | 732012 |
 
 The large =bc-6-pairs-w0= case has actual Mathematica median above =1s= and
-is roughly =13640x= faster in the current Zig collector path.  It passes the
+is roughly =20219x= faster in the current Zig collector path.  It passes the
 conditional =10000x= gate.
 
 The current one-sample Mathematica oracle and seven-sample Zig verification
@@ -101,8 +103,8 @@ descriptor normalization.
 Large free-fermion and free-boson derivative cases have also been measured:
 
 | case | raw Zig terms | collected Zig terms | Mathematica terms | Mathematica seconds | Zig median ns | ratio |
-| fermion-6-pairs-w0 | 720 | 720 | 720 | 103.309975 | 933407 | 110681x |
-| boson-dx-6-pairs-w0 | 720 | 720 | 720 | 32.95555 | 1143105 | 28830x |
+| fermion-6-pairs-w0 | 720 | 720 | 720 | 103.309975 | 428250 | 241238x |
+| boson-dx-6-pairs-w0 | 720 | 720 | 720 | 32.95555 | 916104 | 35974x |
 
 Both have actual Mathematica median above =1s= and pass the conditional
 =10000x= gate.
