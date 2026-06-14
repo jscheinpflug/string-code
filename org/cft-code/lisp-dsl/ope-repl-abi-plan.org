@@ -1,0 +1,135 @@
+:PROPERTIES:
+:ID:       20260614T181933.066454
+:END:
+#+title: Lisp OPE ABI and REPL Plan
+
+This plan adds a Lisp-facing API for the generic expanded [[id:20260603T094112.928043][OPE]] path.
+It should reuse the generated correlator ABI shape and keep the hot path
+streamed.  Materialized expressions and REPL text are requested explicitly.
+
+* Goal
+
+Expose OPE from Lisp with one user-facing macro:
+
+#+begin_src lisp :tangle no
+(ope (make-bc-runtime :library lib)
+  (R (b z1) (b z1))
+  (R (c z2) (c z2))
+  :weight 0
+  :as :expression)
+#+end_src
+
+The supported output modes are:
+
+- =:stream=: call a sink with compact OPE records.
+- =:expression=: return a reusable structured expression, the default.
+- =:text=: return display text for REPL inspection.
+
+The reusable result is a sum of terms, each an exact coefficient multiplying an
+operator form shaped like normal input to =ope= or =correlator=.  It must be
+possible to pass an OPE expression term back into =ope= in this implementation.
+Accepting raw streams as later input to =ope= or =correlator= is future work,
+but the stream records must be complete enough to support it without an ABI
+redesign.
+
+Projection remains target-weight only, matching Mathematica =OPEProjected=.
+Do not add U(1) charge filters or diagnostics.
+
+* ABI Shape
+
+Reuse the generated correlator ABI pattern:
+
+- extend the generated runtime context, not a separate OPE context;
+- lower Lisp field and =R= forms using the existing macro machinery;
+- freeze one operator list, pass a =left-count= split point to OPE;
+- add a buffered OPE stream function analogous to
+  =sc_generated_correlator_run_buffered=;
+- add an OPE expression-record function analogous to
+  =sc_generated_correlator_expression_records=;
+- add a matching OPE buffer-free function.
+
+The streamed OPE record must include:
+
+- scalar coefficient data;
+- coordinate/local pole factors;
+- tensor and action factors;
+- the normal-ordered RHS operator word;
+- branch/projection level metadata.
+
+Keep the stream compact: field ids, derivative orders, label ids, coordinate
+factor records, and tensor/action records.  Do not emit printed algebra on the
+hot path.
+
+* Lisp Surface
+
+Add =ope= to the generated fixture package and macro layer.
+
+The macro should:
+
+1. create a generated runtime context with the selected maker;
+2. lower the left operand forms;
+3. record the left operand count;
+4. lower the right operand forms;
+5. freeze the operator list;
+6. call the requested OPE mode.
+
+For =:expression= input terms, expand term-by-term in Lisp:
+
+- lower the term's operator part;
+- run OPE through the ABI;
+- multiply the existing coefficient into every returned coefficient;
+- combine the result in Lisp.
+
+For =:text=, use the same structured expression path unless a direct text path
+is needed for performance after benchmarking.  For =:stream=, do not allocate a
+Lisp expression.
+
+* Performance Gate
+
+Benchmark direct Zig OPE against Lisp ABI OPE on:
+
+- =bc-6-pairs-w0=;
+- =fermion-6-pairs-w0=;
+- =boson-dx-6-pairs-w0=.
+
+Also benchmark existing direct-vs-ABI correlator overhead with the buffered
+correlator path.  Accept the OPE ABI only if:
+
+#+begin_example
+ope_abi_median / ope_direct_median
+<= correlator_abi_median / correlator_direct_median * 1.05
+#+end_example
+
+Use seven-sample ReleaseFast medians.  If the gate fails, tune chunk capacity
+or reduce Lisp allocation before accepting the implementation.
+
+* Tests
+
+Zig tests:
+
+- frozen operator split by =left-count= builds the expected left/right OPE
+  operands;
+- streamed OPE chunk records match direct OPE term counts for =bc=, free
+  fermion, free-boson derivative, and =expX= cases;
+- OPE expression-record materialization matches collected stream counts.
+
+Lisp tests:
+
+- =:expression= returns coefficient/operator terms;
+- =:text= prints the same result without changing numeric factors;
+- =:stream= calls a user sink and does not build a Lisp expression;
+- an OPE expression term can be passed as an operand to a second =ope= call;
+- existing =correlator=, =corr=, and basis REPL calls remain unchanged.
+
+Mathematica checks:
+
+- keep the representative exact/proportional checks;
+- keep Mathematica timing restricted to =OPEProjected= only.
+
+* Defaults
+
+- =:expression= is the default =ope= output mode.
+- =R= remains accepted for normal-ordering, but reusable OPE results need only
+  preserve the same operator structure, not the printed name =R=.
+- Raw stream ingestion by =ope= or =correlator= is not implemented in this pass.
+- OPE projection has no charge input.

@@ -1583,7 +1583,8 @@
   (format stream "const std = @import(\"std\");~%")
   (format stream "const descriptor = @import(\"descriptor.zig\");~%")
   (format stream "const fixtures = @import(\"generated_fixtures.zig\");~%")
-  (format stream "const kernel = @import(\"../kernel.zig\");~%~%")
+  (format stream "const kernel = @import(\"../kernel.zig\");~%")
+  (format stream "const cft_ope = @import(\"../ope/ope.zig\");~%~%")
   (format stream "const allocator = std.heap.c_allocator;~%~%"))
 
 (defun emit-theory-id (stream presets)
@@ -1644,6 +1645,14 @@
             (generated-prefix preset presets)
             (generated-type-name preset presets)))
   (format stream "        }~%")
+  (format stream "    }~%~%")
+  (format stream "    pub fn fieldInsertDerivative(self: ContextTag, field_id: u16, coords: []const u32, labels: []const u32, derivative: u8) !void {~%")
+  (format stream "        switch (self) {~%")
+  (dolist (preset presets)
+    (format stream "            .~A => |inner| try fixtures.~A.fieldInsertDerivative(inner, field_id, coords, labels, derivative),~%"
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream "        }~%")
   (format stream "    }~%~%"))
 
 (defun emit-normal-ordering-method (stream presets)
@@ -1686,6 +1695,16 @@
   (format stream "        }~%")
   (format stream "    }~%~%"))
 
+(defun emit-ope-method (stream presets)
+  (format stream "    pub fn opeProjected(self: ContextTag, ops: kernel.Call.MultiOp, left_count: usize, projection: cft_ope.Projection, sink: anytype) !void {~%")
+  (format stream "        switch (self) {~%")
+  (dolist (preset presets)
+    (format stream "            .~A => try fixtures.~A.opeProjected(ops, left_count, projection, sink),~%"
+            (generated-prefix preset presets)
+            (generated-type-name preset presets)))
+  (format stream "        }~%")
+  (format stream "    }~%~%"))
+
 (defun emit-context-end (stream)
   (format stream "};~%~%"))
 
@@ -1696,6 +1715,15 @@
     (format stream "        .~A => fixtures.~A.scalarAtomParameterName(atom),~%"
             (generated-prefix preset presets)
             (generated-type-name preset presets)))
+  (format stream "    };~%")
+  (format stream "}~%~%")
+  (format stream "pub fn descriptorSymbolName(id: TheoryId, symbol: u32) ?[]const u8 {~%")
+  (format stream "    return switch (id) {~%")
+  (format stream "        inline else => |case| {~%")
+  (format stream "            const desc = descriptorFor(case);~%")
+  (format stream "            if (symbol >= desc.symbols.len) return null;~%")
+  (format stream "            return desc.symbols[symbol];~%")
+  (format stream "        },~%")
   (format stream "    };~%")
   (format stream "}~%~%"))
 
@@ -1797,6 +1825,7 @@
       (emit-freeze-method stream presets)
       (emit-count-method stream presets)
       (emit-run-method stream presets)
+      (emit-ope-method stream presets)
       (emit-context-end stream)
       (emit-scalar-atom-name-function stream presets)
       (emit-theory-id-function stream presets)

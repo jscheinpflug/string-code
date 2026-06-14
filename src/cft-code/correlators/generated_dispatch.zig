@@ -1,6 +1,6 @@
 // source-hash lisp/string-code-cft.asd 22ADEA4A
-// source-hash lisp/string-code-cft-descriptor.lisp 46A5ADA4
-// source-hash lisp/string-code-cft-presets.lisp BE42205D
+// source-hash lisp/string-code-cft-descriptor.lisp FAD306CF
+// source-hash lisp/string-code-cft-presets.lisp B707C9FD
 // source-hash lisp/presets/free-fermion-10.lisp AD507CFC
 // source-hash lisp/presets/eta-xi.lisp 7841298B
 // source-hash lisp/presets/bc-sphere.lisp 9DCE20B7
@@ -10,6 +10,7 @@ const std = @import("std");
 const descriptor = @import("descriptor.zig");
 const fixtures = @import("generated_fixtures.zig");
 const kernel = @import("../kernel.zig");
+const cft_ope = @import("../ope/ope.zig");
 
 const allocator = std.heap.c_allocator;
 
@@ -95,6 +96,20 @@ pub const ContextTag = union(TheoryId) {
         }
     }
 
+    pub fn fieldInsertDerivative(self: ContextTag, field_id: u16, coords: []const u32, labels: []const u32, derivative: u8) !void {
+        switch (self) {
+            .free_fermion => |inner| try fixtures.FreeFermion.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .eta_xi_sphere => |inner| try fixtures.EtaXiSphere.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .eta_xi_torus => |inner| try fixtures.EtaXiTorus.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .bc => |inner| try fixtures.Bc.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .free_boson => |inner| try fixtures.FreeBoson.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .free_fermion_10_full => |inner| try fixtures.FreeFermion10Full.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .eta_xi_sphere_full => |inner| try fixtures.EtaXiSphereFull.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .eta_xi_torus_full => |inner| try fixtures.EtaXiTorusFull.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+            .bc_sphere_full => |inner| try fixtures.BcSphereFull.fieldInsertDerivative(inner, field_id, coords, labels, derivative),
+        }
+    }
+
     pub fn normalOrdering(self: ContextTag, field_count: usize) !void {
         switch (self) {
             .free_fermion => |inner| try fixtures.FreeFermion.normalOrdering(inner, field_count),
@@ -151,6 +166,20 @@ pub const ContextTag = union(TheoryId) {
         }
     }
 
+    pub fn opeProjected(self: ContextTag, ops: kernel.Call.MultiOp, left_count: usize, projection: cft_ope.Projection, sink: anytype) !void {
+        switch (self) {
+            .free_fermion => try fixtures.FreeFermion.opeProjected(ops, left_count, projection, sink),
+            .eta_xi_sphere => try fixtures.EtaXiSphere.opeProjected(ops, left_count, projection, sink),
+            .eta_xi_torus => try fixtures.EtaXiTorus.opeProjected(ops, left_count, projection, sink),
+            .bc => try fixtures.Bc.opeProjected(ops, left_count, projection, sink),
+            .free_boson => try fixtures.FreeBoson.opeProjected(ops, left_count, projection, sink),
+            .free_fermion_10_full => try fixtures.FreeFermion10Full.opeProjected(ops, left_count, projection, sink),
+            .eta_xi_sphere_full => try fixtures.EtaXiSphereFull.opeProjected(ops, left_count, projection, sink),
+            .eta_xi_torus_full => try fixtures.EtaXiTorusFull.opeProjected(ops, left_count, projection, sink),
+            .bc_sphere_full => try fixtures.BcSphereFull.opeProjected(ops, left_count, projection, sink),
+        }
+    }
+
 };
 
 pub fn scalarAtomParameterName(id: TheoryId, atom: u32) ?[]const u8 {
@@ -164,6 +193,16 @@ pub fn scalarAtomParameterName(id: TheoryId, atom: u32) ?[]const u8 {
         .eta_xi_sphere_full => fixtures.EtaXiSphereFull.scalarAtomParameterName(atom),
         .eta_xi_torus_full => fixtures.EtaXiTorusFull.scalarAtomParameterName(atom),
         .bc_sphere_full => fixtures.BcSphereFull.scalarAtomParameterName(atom),
+    };
+}
+
+pub fn descriptorSymbolName(id: TheoryId, symbol: u32) ?[]const u8 {
+    return switch (id) {
+        inline else => |case| {
+            const desc = descriptorFor(case);
+            if (symbol >= desc.symbols.len) return null;
+            return desc.symbols[symbol];
+        },
     };
 }
 

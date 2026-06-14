@@ -41,6 +41,7 @@
    #:with-correlator-context
    #:correlator
    #:corr
+   #:ope
    #:ops
    #:R))
 
@@ -99,7 +100,57 @@
       (t (error "Unknown correlator form ~S." form))))
 
   (defun correlator-body-forms (context forms)
-    (loop for form in forms append (correlator-form-forms context form))))
+    (loop for form in forms append (correlator-form-forms context form)))
+
+  (defun ope-product-operator-form (form)
+    (find-if (lambda (item)
+               (and (consp item)
+                    (member (fixture-form-name item) '(ops R)
+                            :test #'string-equal)))
+             (rest form)))
+
+  (defun product-expression-form (factors)
+    (cond
+      ((null factors) 1)
+      ((null (rest factors)) (first factors))
+      (t `(* ,@factors))))
+
+  (defun sum-expression-form (terms)
+    (cond
+      ((null terms) 0)
+      ((null (rest terms)) (first terms))
+      (t `(+ ,@terms))))
+
+  (defun ope-term-parts (form)
+    (cond
+      ((and (consp form) (string-equal (fixture-form-name form) '*))
+       (let ((operator (ope-product-operator-form form)))
+         (unless operator
+           (error "OPE product term has no operator factor: ~S." form))
+         (values operator
+                 (product-expression-form (remove operator (rest form) :count 1 :test #'eq)))))
+      (t (values form 1))))
+
+  (defun ope-term-forms (form)
+    (cond
+      ((and (consp form) (string-equal (fixture-form-name form) '+))
+       (loop for term in (rest form) append (ope-term-forms term)))
+      (t (multiple-value-bind (operator coefficient) (ope-term-parts form)
+           (list (list operator coefficient)))))))
+
+(defun expression-product (factors)
+  (let ((items (remove 1 factors :test #'equal)))
+    (cond
+      ((null items) 1)
+      ((null (rest items)) (first items))
+      (t (cons '* items)))))
+
+(defun expression-sum (terms)
+  (let ((items (remove 0 terms :test #'equal)))
+    (cond
+      ((null items) 0)
+      ((null (rest items)) (first items))
+      (t (cons '+ items)))))
 
 (defmacro with-correlator-context ((context (maker &rest runtime-args)) &body body)
   "Bind CONTEXT to a generated runtime and release it after BODY."
@@ -120,6 +171,56 @@
 (defmacro corr ((maker &rest runtime-args) &body fields)
   "Alias for CORRELATOR."
   `(correlator (,maker ,@runtime-args) ,@fields))
+
+(defmacro ope ((maker &rest runtime-args) left right &rest options)
+  "Evaluate the projected OPE and return reusable coefficient/operator forms."
+  (let* ((weight (or (getf options :weight) 0))
+         (max-taylor-level (or (getf options :max-taylor-level) 0))
+         (as (or (getf options :as) :expression))
+         (sink (getf options :sink))
+         (pairs (loop for left-term in (ope-term-forms left)
+                      append (loop for right-term in (ope-term-forms right)
+                                   collect (append left-term right-term)))))
+    (labels ((one-call (left-operator left-coefficient right-operator right-coefficient)
+               (let ((context (gensym "CONTEXT-"))
+                     (frozen (gensym "FROZEN-"))
+                     (left-count (insertion-count left-operator))
+                     (coefficient (product-expression-form
+                                   (remove 1 (list left-coefficient right-coefficient)
+                                           :test #'equal))))
+                 `(with-correlator-context (,context (,(fixture-call-symbol maker) ,@runtime-args))
+                    ,@(correlator-form-forms context left-operator)
+                    ,@(correlator-form-forms context right-operator)
+                    (let ((,frozen (freeze-runtime-operators ,context)))
+                      ,(ecase as
+                         (:expression
+                          (let ((body `(ope-expression ,context ,frozen ,left-count
+                                                       :weight ,weight
+                                                       :max-taylor-level ,max-taylor-level)))
+                            (if (equal coefficient 1)
+                                body
+                                `(expression-product (list ',coefficient ,body)))))
+                         (:text
+                          `(prin1-to-string
+                            ,(let ((body `(ope-expression ,context ,frozen ,left-count
+                                                          :weight ,weight
+                                                          :max-taylor-level ,max-taylor-level)))
+                               (if (equal coefficient 1)
+                                   body
+                                   `(expression-product (list ',coefficient ,body))))))
+                         (:stream
+                          (unless sink
+                            (error "OPE :stream mode requires :sink."))
+                          `(progn
+                             ,@(unless (equal coefficient 1)
+                                 `((funcall ,sink (list :kind :input-coefficient
+                                                        :value ',coefficient))))
+                             (run-ope ,context ,frozen ,left-count ,sink
+                                      :weight ,weight
+                                      :max-taylor-level ,max-taylor-level)))))))))
+      (if (eq as :stream)
+          `(progn ,@(mapcar (lambda (pair) (apply #'one-call pair)) pairs))
+          `(expression-sum (list ,@(mapcar (lambda (pair) (apply #'one-call pair)) pairs)))))))
 
 (defun make-preset-runtime (name library &key constants basis-metadata)
   (make-runtime-context
@@ -166,16 +267,25 @@
              (context (fixture-symbol 'context))
              (labels (field-label-variables field))
              (coordinates (field-coordinate-variables field)))
-        `(defun ,public-name (,context ,@labels ,@coordinates)
+        `(defun ,public-name (,context ,@labels ,@coordinates &key (derivative 0))
            ,(format nil "~A inserts generated field ~A from preset ~A."
                     function-name field-name preset)
-           (insert-runtime-field
-            ,context
-            ,(string-code.cft.presets::preset-field-interface-id field)
-            ,(runtime-symbol-list-form context coordinates)
-            ,(if labels
-                 (runtime-symbol-list-form context labels)
-                 nil))))))
+           (if (zerop derivative)
+               (insert-runtime-field
+                ,context
+                ,(string-code.cft.presets::preset-field-interface-id field)
+                ,(runtime-symbol-list-form context coordinates)
+                ,(if labels
+                     (runtime-symbol-list-form context labels)
+                     nil))
+               (insert-runtime-field-derivative
+                ,context
+                ,(string-code.cft.presets::preset-field-interface-id field)
+                ,(runtime-symbol-list-form context coordinates)
+                ,(if labels
+                     (runtime-symbol-list-form context labels)
+                     nil)
+                derivative))))))
 
   (defun descriptor-field-aliases (preset)
     (mapcar (lambda (field)

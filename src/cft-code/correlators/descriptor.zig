@@ -3,6 +3,7 @@ const kernel = @import("../kernel.zig");
 const normal_ordering = @import("../normal-ordering/normal-ordering.zig");
 const operators = @import("../expressions/operators.zig");
 const basis_generation = @import("../basis-generation/basis-generation.zig");
+const cft_ope = @import("../ope/ope.zig");
 const shared = @import("../presets/shared.zig");
 
 const declare = shared.declare;
@@ -1589,6 +1590,16 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
         pub const config = GeneratedConfig(d, Config);
         /// basis exposes descriptor-lowered compact basis enumeration.
         pub const basis = if (d.basis_rule != null) GeneratedBasis(d) else struct {};
+        /// local_ope exposes the descriptor-generic projected OPE walker.
+        pub const local_ope = cft_ope.GenericKernel(d, .{
+            .max_factors = 32,
+            .max_output_factors = 64,
+            .max_coordinates = 64,
+            .max_tensors = 64,
+            .max_actions = 32,
+            .max_scalar_atoms = 8,
+            .max_taylor_level = 4,
+        });
         /// text exposes bounded result-inspection sinks.
         pub const text = shared.text;
 
@@ -1744,6 +1755,14 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             return null;
         }
 
+        /// fieldIdFromKind resolves a generated runtime kind id to a descriptor field id.
+        pub fn fieldIdFromKind(kind: operators.OperatorKindId) ?Id {
+            inline for (d.fields) |descriptor_field| {
+                if (kindId(d, descriptor_field.id) == kind) return descriptor_field.id;
+            }
+            return null;
+        }
+
         /// contextCreate allocates a generated-theory context.
         pub fn contextCreate(allocator: std.mem.Allocator) !*Context {
             const ctx = try allocator.create(Context);
@@ -1766,6 +1785,18 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
         /// fieldInsert appends one field occurrence.
         pub fn fieldInsert(ctx: *Context, field_id: Id, coords: []const u32, label_symbols: []const u32) !void {
             return ctx.insertField(field_id, coords, label_symbols);
+        }
+
+        /// fieldInsertDerivative appends one derivative field occurrence.
+        pub fn fieldInsertDerivative(ctx: *Context, field_id: Id, coords: []const u32, label_symbols: []const u32, derivative: u8) !void {
+            if (field_id >= d.fields.len) return error.DanglingField;
+            const field_info = d.fields[field_id];
+            var insertion = try insertionFrom(field_info.insertion, coords);
+            switch (insertion) {
+                .single => |*single| single.derivatives = derivative,
+                .pair => |*pair| pair.holomorphic_derivatives = derivative,
+            }
+            return ctx.insertFieldRaw(field_id, insertion, label_symbols);
         }
 
         /// normalOrdering tags the last count insertions as one normal product.
@@ -1795,6 +1826,64 @@ pub fn GeneratedTheory(comptime d: Descriptor) type {
             var sink = EventSink{ .payload = payload, .stream = stream };
             try sink.emit(.{ .kind = .sum_term_begin });
             try shared.streamCorrelator(&config.default, ops, &sink);
+        }
+
+        fn symbolLabel(ops: kernel.Call.MultiOp, index: usize) !u32 {
+            return switch (ops.labels.values[index]) {
+                .symbol => |value| value,
+                else => error.InvalidLabel,
+            };
+        }
+
+        fn monomialFromOps(
+            ops: kernel.Call.MultiOp,
+            start: usize,
+            end: usize,
+            factors: []cft_ope.PrimitiveFactor,
+            labels: []u32,
+            label_cursor: *usize,
+        ) !cft_ope.Monomial {
+            if (end < start or end > ops.operators.len) return error.InvalidOpeSplit;
+            if (end - start > factors.len) return error.ContextTooSmall;
+            for (ops.operators[start..end], 0..) |local_op, index| {
+                const field_id = fieldIdFromKind(local_op.kind) orelse return error.UnknownOperatorKind;
+                const field_info = d.fields[field_id];
+                const label_start = label_cursor.*;
+                if (label_start + field_info.labels.len > labels.len) return error.ContextTooSmall;
+                for (0..field_info.labels.len) |label_index| {
+                    labels[label_cursor.*] = try symbolLabel(ops, local_op.labels + label_index);
+                    label_cursor.* += 1;
+                }
+                const derivative = switch (local_op.insertion) {
+                    .single => |single| single.derivatives,
+                    .pair => |pair| pair.holomorphic_derivatives,
+                };
+                factors[index] = .{
+                    .field = field_id,
+                    .derivative = derivative,
+                    .labels = labels[label_start..label_cursor.*],
+                };
+            }
+            return .{ .factors = factors[0 .. end - start] };
+        }
+
+        /// opeProjected splits a frozen operator list and streams projected OPE terms.
+        pub fn opeProjected(
+            ops: kernel.Call.MultiOp,
+            left_count: usize,
+            projection: cft_ope.Projection,
+            sink: anytype,
+        ) !void {
+            if (left_count > ops.operators.len) return error.InvalidOpeSplit;
+            var left_factors: [32]cft_ope.PrimitiveFactor = undefined;
+            var right_factors: [32]cft_ope.PrimitiveFactor = undefined;
+            var labels: [128]u32 = undefined;
+            var label_cursor: usize = 0;
+            const left = try monomialFromOps(ops, 0, left_count, &left_factors, &labels, &label_cursor);
+            const right = try monomialFromOps(ops, left_count, ops.operators.len, &right_factors, &labels, &label_cursor);
+            const left_terms = [_]cft_ope.Monomial{left};
+            const right_terms = [_]cft_ope.Monomial{right};
+            return local_ope.opeProjected(.{ .terms = &left_terms }, .{ .terms = &right_terms }, projection, sink);
         }
     };
 }

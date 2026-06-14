@@ -22,12 +22,15 @@
    #:runtime-field-metadata
    #:intern-runtime-symbol
    #:insert-runtime-field
+   #:insert-runtime-field-derivative
    #:normal-order-runtime-field
    #:freeze-runtime-operators
    #:run-correlator
    #:count-correlator
    #:correlator-expression
    #:collect-correlator
+   #:run-ope
+   #:ope-expression
    #:unsupported-basis-filter
    #:make-product-runtime
    #:basis-count
@@ -925,15 +928,19 @@
 (defvar *abi-bound* nil)
 (defvar *abi-callback-pointer* nil)
 (defvar *abi-chunk-callback-pointer* nil)
+(defvar *abi-ope-chunk-callback-pointer* nil)
 (defvar *abi-basis-callback-pointer* nil)
 (defvar *abi-sinks* (make-hash-table))
 (defvar *next-abi-sink-id* 0)
 (defvar *event-size* 0)
+(defvar *ope-event-size* 0)
 (defvar *factor-size* 0)
+(defvar *ope-factor-size* 0)
 (defvar *name-size* 0)
 (defvar *name-ptr-offset* 0)
 (defvar *name-len-offset* 0)
 (defvar *term-size* 0)
+(defvar *ope-term-size* 0)
 (defvar *basis-mode-size* 0)
 (defparameter *event-kinds*
   #(:sum-term-begin :sum-term-end :wick-term-begin :wick-term-end
@@ -943,14 +950,17 @@
  (ftype function
         set-mem-aref* mem-ref* foreign-slot-value* null-pointer-p*
         set-foreign-slot-value* pointer-address* inc-pointer* foreign-type-size* event-pointer-at
-        name-pointer-at term-pointer-at basis-mode-pointer-at term-expression
+        ope-event-pointer-at name-pointer-at term-pointer-at ope-term-pointer-at ope-factor-pointer-at
+        basis-mode-pointer-at term-expression
         %abi-last-error %abi-context-create
         %abi-context-destroy %abi-scalar-atom-name
         %abi-field-metadata
         %abi-symbol-intern %abi-field-insert
+        %abi-field-insert-derivative
         %abi-normal-ordering %abi-operator-list-freeze
         %abi-correlator-count %abi-correlator-run
         %abi-correlator-run-buffered %abi-correlator-expression-records
+        %abi-ope-run-buffered %abi-ope-expression-records %abi-ope-buffer-free
         %abi-expression-buffer-free %abi-basis-count
         %abi-basis-run-compact %abi-basis-text
         %abi-basis-text-free))
@@ -960,7 +970,7 @@
         factor-name-token-by-id factor-coordinate-expression-values
         factor-tensor-expression-values factor-scalar-expression-values
         factor-zero-mode-expression-values factor-expression-values
-        term-product-expression))
+        term-product-expression ope-term-expression))
 
 (defun cffi-package ()
   (or (find-package '#:cffi)
@@ -993,6 +1003,22 @@
           :d (foreign-slot-value* pointer type 'd)
           :name name)))
 
+(defun ope-event-from-pointer (pointer)
+  (let* ((type '(:struct generated-ope-event))
+         (kind (foreign-slot-value* pointer type 'kind))
+         (name-pointer (foreign-slot-value* pointer type 'name-ptr))
+         (name-length (foreign-slot-value* pointer type 'name-len))
+         (name (and (> name-length 0)
+                    (not (null-pointer-p* name-pointer))
+                    (keyword-name (foreign-string-to-lisp* name-pointer :count name-length)))))
+    (list :kind kind
+          :a (foreign-slot-value* pointer type 'a)
+          :b (foreign-slot-value* pointer type 'b)
+          :c (foreign-slot-value* pointer type 'c)
+          :d (foreign-slot-value* pointer type 'd)
+          :e (foreign-slot-value* pointer type 'e)
+          :name name)))
+
 (defun ensure-abi-bindings ()
   (unless *abi-bound*
     (let ((defcstruct (cffi-symbol "DEFCSTRUCT"))
@@ -1016,6 +1042,15 @@
                (d :int32)
                (name-ptr :pointer)
                (name-len :size)))
+      (eval `(,defcstruct generated-ope-event
+               (kind :uint8)
+               (a :uint32)
+               (b :uint32)
+               (c :uint32)
+               (d :int64)
+               (e :int64)
+               (name-ptr :pointer)
+               (name-len :size)))
       (eval `(,defcstruct generated-factor
                (kind :uint8)
                (a :uint32)
@@ -1023,12 +1058,24 @@
                (c :uint32)
                (d :int32)
                (name-id :uint32)))
+      (eval `(,defcstruct generated-ope-factor
+               (kind :uint8)
+               (a :uint32)
+               (b :uint32)
+               (c :uint32)
+               (d :int64)
+               (e :int64)
+               (name-id :uint32)))
       (eval `(,defcstruct generated-name
                (ptr :pointer)
                (len :size)))
       (eval `(,defcstruct generated-term
                (first-factor :size)
                (factor-count :size)))
+      (eval `(,defcstruct generated-ope-term
+               (first-factor :size)
+               (factor-count :size)
+               (branch-level :uint8)))
       (eval `(,defcstruct generated-basis-filter
                (slot :uint8)
                (value :int32)))
@@ -1072,18 +1119,27 @@
                (,foreign-type-size type)))
       (eval `(defun event-pointer-at (events index)
                (,inc-pointer events (* index *event-size*))))
+      (eval `(defun ope-event-pointer-at (events index)
+               (,inc-pointer events (* index *ope-event-size*))))
       (eval `(defun name-pointer-at (names index)
                (,inc-pointer names (* index *name-size*))))
       (eval `(defun term-pointer-at (terms index)
                (,inc-pointer terms (* index *term-size*))))
+      (eval `(defun ope-term-pointer-at (terms index)
+               (,inc-pointer terms (* index *ope-term-size*))))
+      (eval `(defun ope-factor-pointer-at (factors index)
+               (,inc-pointer factors (* index *ope-factor-size*))))
       (eval `(defun basis-mode-pointer-at (modes index)
                (,inc-pointer modes (* index *basis-mode-size*))))
       (setf *event-size* (eval `(,foreign-type-size '(:struct generated-event)))
+            *ope-event-size* (eval `(,foreign-type-size '(:struct generated-ope-event)))
             *factor-size* (eval `(,foreign-type-size '(:struct generated-factor)))
+            *ope-factor-size* (eval `(,foreign-type-size '(:struct generated-ope-factor)))
             *name-size* (eval `(,foreign-type-size '(:struct generated-name)))
             *name-ptr-offset* (eval `(,foreign-slot-offset '(:struct generated-name) 'ptr))
             *name-len-offset* (eval `(,foreign-slot-offset '(:struct generated-name) 'len))
             *term-size* (eval `(,foreign-type-size '(:struct generated-term)))
+            *ope-term-size* (eval `(,foreign-type-size '(:struct generated-ope-term)))
             *basis-mode-size* (eval `(,foreign-type-size '(:struct generated-basis-mode))))
       (eval `(defun term-expression (builder factors names term)
                (declare (optimize (speed 3) (safety 1) (debug 0)))
@@ -1136,6 +1192,14 @@
                (coordinate-count :size)
                (labels :pointer)
                (label-count :size)))
+      (eval `(,defcfun ("sc_generated_field_insert_derivative" %abi-field-insert-derivative) :int
+               (context :pointer)
+               (field-id :uint16)
+               (coordinates :pointer)
+               (coordinate-count :size)
+               (labels :pointer)
+               (label-count :size)
+               (derivative :uint8)))
       (eval `(,defcfun ("sc_generated_normal_ordering" %abi-normal-ordering) :int
                (context :pointer)
                (field-count :size)))
@@ -1160,6 +1224,31 @@
                (out-factor-count :pointer)
                (out-names :pointer)
                (out-name-count :pointer)))
+      (eval `(,defcfun ("sc_generated_ope_run_buffered" %abi-ope-run-buffered) :int
+               (context :pointer)
+               (left-count :size)
+               (target-weight-ticks :int32)
+               (max-taylor-level :uint8)
+               (payload :pointer)
+               (callback :pointer)))
+      (eval `(,defcfun ("sc_generated_ope_expression_records" %abi-ope-expression-records) :int
+               (context :pointer)
+               (left-count :size)
+               (target-weight-ticks :int32)
+               (max-taylor-level :uint8)
+               (out-terms :pointer)
+               (out-term-count :pointer)
+               (out-factors :pointer)
+               (out-factor-count :pointer)
+               (out-names :pointer)
+               (out-name-count :pointer)))
+      (eval `(,defcfun ("sc_generated_ope_buffer_free" %abi-ope-buffer-free) :void
+               (terms :pointer)
+               (term-count :size)
+               (factors :pointer)
+               (factor-count :size)
+               (names :pointer)
+               (name-count :size)))
       (eval `(,defcfun ("sc_generated_expression_buffer_free" %abi-expression-buffer-free) :void
                (terms :pointer)
                (term-count :size)
@@ -1214,6 +1303,15 @@
                    (loop for index below event-count
                          do (funcall sink (event-pointer-at events index))))
                  0)))
+      (eval `(,defcallback %abi-ope-event-chunk-callback :int
+               ((payload :pointer) (events :pointer) (event-count :size))
+               (let ((sink (gethash (mem-ref* payload :uint64) *abi-sinks*)))
+                 (when sink
+                   (if (and (consp sink) (eq (car sink) :chunked))
+                       (funcall (cdr sink) events event-count)
+                       (loop for index below event-count
+                             do (funcall sink (ope-event-pointer-at events index)))))
+                 0)))
       (eval `(,defcallback %abi-basis-callback :int
                ((payload :pointer) (record :pointer))
                (let ((sink (gethash (mem-ref* payload :uint64) *abi-sinks*)))
@@ -1222,6 +1320,7 @@
                  0)))
       (setf *abi-callback-pointer* (eval `(,callback %abi-event-callback)))
       (setf *abi-chunk-callback-pointer* (eval `(,callback %abi-event-chunk-callback)))
+      (setf *abi-ope-chunk-callback-pointer* (eval `(,callback %abi-ope-event-chunk-callback)))
       (setf *abi-basis-callback-pointer* (eval `(,callback %abi-basis-callback)))
       (setf *abi-bound* t))))
 
@@ -1349,6 +1448,18 @@
       (unwind-protect
            (check-abi
             (%abi-field-insert (runtime-handle context) field-id coord-pointer coord-count label-pointer label-count))
+        (foreign-free* label-pointer)
+        (foreign-free* coord-pointer))))
+  field-id)
+
+(defun insert-runtime-field-derivative (context field-id coordinates labels derivative)
+  (multiple-value-bind (coord-pointer coord-count) (copy-uint32-values coordinates)
+    (multiple-value-bind (label-pointer label-count) (copy-uint32-values labels)
+      (unwind-protect
+           (check-abi
+            (%abi-field-insert-derivative
+             (runtime-handle context) field-id coord-pointer coord-count
+             label-pointer label-count derivative))
         (foreign-free* label-pointer)
         (foreign-free* coord-pointer))))
   field-id)
@@ -1771,6 +1882,25 @@
                       (lambda (event)
                         (funcall sink (event-from-pointer event)))))
 
+(defun run-ope (context frozen left-count sink &key (weight 0) (max-taylor-level 0) raw chunked)
+  (declare (ignore frozen))
+  (let* ((sink-id (prog1 *next-abi-sink-id*
+                    (incf *next-abi-sink-id*)))
+         (payload (foreign-alloc* :uint64)))
+    (setf (gethash sink-id *abi-sinks*)
+          (if chunked
+              (cons :chunked sink)
+              (lambda (event)
+                (funcall sink (if raw event (ope-event-from-pointer event))))))
+    (set-mem-aref* payload :uint64 0 sink-id)
+    (unwind-protect
+         (check-abi
+          (%abi-ope-run-buffered
+           (runtime-handle context) left-count weight max-taylor-level
+           payload *abi-ope-chunk-callback-pointer*))
+      (remhash sink-id *abi-sinks*)
+      (foreign-free* payload))))
+
 (defstruct (expression-builder (:constructor make-expression-builder (context)))
   context
   terms)
@@ -2053,9 +2183,164 @@
       (foreign-free* out-term-count)
       (foreign-free* out-terms))))
 
+(defun fixture-field-symbol (name)
+  (let ((package (or (find-package '#:string-code.cft.fixtures)
+                     (find-package '#:cl-user))))
+    (or (find-symbol (string-upcase name) package)
+        (intern (string-upcase name) package))))
+
+(defun ope-field-expression (context field-id coordinate derivative labels)
+  (multiple-value-bind (name coordinate-arity label-arity)
+      (runtime-field-metadata context field-id)
+    (declare (ignore label-arity))
+    (let* ((coordinates (loop repeat coordinate-arity
+                              collect (runtime-symbol-name context coordinate)))
+           (form (cons (fixture-field-symbol name)
+                       (append labels coordinates))))
+      (if (zerop derivative)
+          form
+          (append form (list :derivative derivative))))))
+
+(defun ope-factor-name (names name-id)
+  (or (factor-name-token-by-id names name-id) :factor))
+
+(defun ope-coordinate-expression (context kind a b c d name)
+  (declare (ignore c))
+  (let ((left (runtime-symbol-name context a))
+        (right (runtime-symbol-name context b)))
+    (case kind
+      (3 `(expt (- ,left ,right) ,d))
+      (4 `(,name ,left ,right))
+      (5 `(:exp-green ,left ,right))
+      (6 `(expt (- ,left ,right) ,d))
+      (otherwise 1))))
+
+(defun ope-tensor-expression (context kind a b name)
+  (let ((left (runtime-symbol-name context a))
+        (right (runtime-symbol-name context b)))
+    (case kind
+      (10 `(,name ,left ,right))
+      (11 `(,name ,left ,right))
+      (12 `(,name ,left ,right))
+      (13 `(,name ,left ,right))
+      (otherwise 1))))
+
+(defun ope-scalar-factor-expression (context kind a d)
+  (case kind
+    (0 (rational-expression d a))
+    (1 (product-expression (scalar-imaginary-factors a)))
+    (2 (scalar-atom-power-expression (scalar-atom-expression context a) d))
+    (otherwise 1)))
+
+(defun ope-output-field-expression (context factors index)
+  (let* ((factor (ope-factor-pointer-at factors index))
+         (type '(:struct generated-ope-factor))
+         (field-id (foreign-slot-value* factor type 'a))
+         (coordinate (foreign-slot-value* factor type 'b))
+         (derivative (foreign-slot-value* factor type 'c))
+         (label-count (foreign-slot-value* factor type 'd))
+         (labels nil)
+         (cursor (1+ index)))
+    (loop repeat label-count
+          for label-factor = (ope-factor-pointer-at factors cursor)
+          do (push (runtime-symbol-name
+                    context
+                    (foreign-slot-value* label-factor type 'a))
+                   labels)
+             (incf cursor))
+    (values (ope-field-expression context field-id coordinate derivative (nreverse labels))
+            cursor)))
+
+(defun ope-term-expression (builder factors names term)
+  (let* ((context (expression-builder-context builder))
+         (type '(:struct generated-ope-term))
+         (first-factor (foreign-slot-value* term type 'first-factor))
+         (factor-count (foreign-slot-value* term type 'factor-count))
+         (end (+ first-factor factor-count))
+         (index first-factor)
+         (coefficients nil)
+         (operators nil))
+    (loop while (< index end)
+          for factor = (ope-factor-pointer-at factors index)
+          do (let* ((factor-type '(:struct generated-ope-factor))
+                    (kind (foreign-slot-value* factor factor-type 'kind))
+                    (a (foreign-slot-value* factor factor-type 'a))
+                    (b (foreign-slot-value* factor factor-type 'b))
+                    (c (foreign-slot-value* factor factor-type 'c))
+                    (d (foreign-slot-value* factor factor-type 'd))
+                    (name-id (foreign-slot-value* factor factor-type 'name-id))
+                    (name (ope-factor-name names name-id)))
+               (cond
+                 ((= kind 20)
+                  (multiple-value-bind (field next)
+                      (ope-output-field-expression context factors index)
+                    (push field operators)
+                    (setf index next)))
+                 ((= kind 21)
+                  (incf index))
+                 ((member kind '(0 1 2))
+                  (let ((expr (ope-scalar-factor-expression context kind a d)))
+                    (unless (eql expr 1) (push expr coefficients)))
+                  (incf index))
+                 ((member kind '(3 4 5 6))
+                  (let ((expr (ope-coordinate-expression context kind a b c d name)))
+                    (unless (eql expr 1) (push expr coefficients)))
+                  (incf index))
+                 ((member kind '(10 11 12 13))
+                  (let ((expr (ope-tensor-expression context kind a b name)))
+                    (unless (eql expr 1) (push expr coefficients)))
+                  (incf index))
+                 (t (incf index)))))
+    (let* ((operator (cond
+                       ((null operators) 1)
+                       (t (cons (fixture-field-symbol "R")
+                                (nreverse operators)))))
+           (items (append (nreverse coefficients)
+                          (unless (eql operator 1) (list operator)))))
+      (product-expression items))))
+
+(defun fold-ope-expression-records (context left-count weight max-taylor-level)
+  (let ((out-terms (foreign-alloc* :pointer))
+        (out-term-count (foreign-alloc* :size))
+        (out-factors (foreign-alloc* :pointer))
+        (out-factor-count (foreign-alloc* :size))
+        (out-names (foreign-alloc* :pointer))
+        (out-name-count (foreign-alloc* :size))
+        (builder (make-expression-builder context)))
+    (unwind-protect
+         (progn
+           (check-abi
+            (%abi-ope-expression-records
+             (runtime-handle context) left-count weight max-taylor-level
+             out-terms out-term-count out-factors out-factor-count out-names out-name-count))
+           (let ((terms (mem-ref* out-terms :pointer))
+                 (term-count (mem-ref* out-term-count :size))
+                 (factors (mem-ref* out-factors :pointer))
+                 (factor-count (mem-ref* out-factor-count :size))
+                 (names (mem-ref* out-names :pointer))
+                 (name-count (mem-ref* out-name-count :size)))
+             (unwind-protect
+                  (let ((name-tokens (expression-name-vector names name-count)))
+                    (loop for index below term-count
+                          do (push (ope-term-expression builder factors name-tokens
+                                                        (ope-term-pointer-at terms index))
+                                   (expression-builder-terms builder))))
+               (%abi-ope-buffer-free terms term-count factors factor-count names name-count)))
+           (sum-expression (nreverse (expression-builder-terms builder))))
+      (foreign-free* out-name-count)
+      (foreign-free* out-names)
+      (foreign-free* out-factor-count)
+      (foreign-free* out-factors)
+      (foreign-free* out-term-count)
+      (foreign-free* out-terms))))
+
 (defun correlator-expression (context frozen)
   (declare (ignore frozen))
   (fold-expression-records context))
+
+(defun ope-expression (context frozen left-count &key (weight 0) (max-taylor-level 0))
+  (declare (ignore frozen))
+  (fold-ope-expression-records context left-count weight max-taylor-level))
 
 (defun collect-correlator (context frozen &key (limit 1024))
   (let ((events nil)

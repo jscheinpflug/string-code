@@ -20,8 +20,8 @@ CFT-Code prototypes and the semantic target is Mathematica
   sector-specific compressed object.
 
 The implementation belongs under [[id:20260603T094112.928043][OPE]].  It should use the same coarse theory
-data style as the existing CFT descriptors: fields, quantum numbers, local Wick
-rules, derivative rules, normal-ordering order/sign rules, and basis queries.
+data style as the existing CFT descriptors: fields, local Wick rules,
+derivative rules, normal-ordering order/sign rules, and basis queries.
 No OPE procedure may branch on names such as =bc=, =free fermion=, or =free
 boson=.
 
@@ -41,12 +41,12 @@ materialize a symbolic expression unless a collector or renderer is attached.
 
 The OPE module may ask the theory for:
 
-- primitive field ids, statistics, weights, charges, and derivative bounds;
+- primitive field ids, statistics, weights, and derivative bounds;
 - local Wick rules for ordered field pairs, including derivative action on the
   pole kernel;
 - normal-ordering comparison and sign rules;
 - Taylor coefficients for moving uncontracted fields to the output point;
-- a basis-generation predicate for allowed RHS quantum numbers and level.
+- a basis-generation predicate for allowed RHS level/weight data.
 
 The OPE module must not ask for:
 
@@ -64,7 +64,7 @@ ordered operator.
 
 For each input monomial pair:
 
-1. Compute the requested output charge, weight window, and level window.
+1. Compute the requested output weight window and level window.
 2. Walk cross-contractions in a fixed field order.
 3. For every contracted pair, multiply the branch by the Wick pole kernel with
    derivative factors already represented as compact rule-table references.
@@ -74,7 +74,7 @@ For each input monomial pair:
 5. Normal order the output word incrementally, applying the descriptor's
    statistics and sign rules.
 6. Reject a branch as soon as the partial output word cannot reach an allowed
-   RHS charge/level.
+   RHS weight/level.
 7. Emit one explicit RHS term:
 
 #+begin_example
@@ -93,19 +93,17 @@ comptime while keeping the runtime branch walk generic.
 
 The kernel constructor should build these lean tables:
 
-- =field_info=: weight numerator/denominator if needed, statistics bit,
-  charge vector index, and sort key;
+- =field_info=: weight numerator/denominator if needed, statistics bit, and
+  sort key;
 - =pair_rule_matrix=: dense =field_count * field_count= lookup into local Wick
   rules, with =none= for non-contracting pairs;
 - =derived_pair_rules=: derivative-shifted pole data up to the configured
   derivative limit, stored as small coefficient/pole records;
 - =normal_order_table=: swap sign and canonical order outcome for primitive
   adjacent fields;
-- =charge_delta_table=: packed charge contribution of each primitive derivative
-  field;
 - =taylor_table=: coefficients for derivative-field translation around the
   output point up to the configured projection level;
-- =basis_filter_tables=: fast level/charge admissibility masks used for early
+- =basis_filter_tables=: fast level/weight admissibility masks used for early
   branch pruning;
 - =operator_word_layout=: fixed-capacity scratch layout for branch-local output
   words.
@@ -131,7 +129,7 @@ Term {
   scalar coefficient,
   pole/local-coordinate factor,
   rhs operator word,
-  rhs charge/level metadata,
+  rhs level metadata,
 }
 #+end_example
 
@@ -182,7 +180,7 @@ The Zig side should run the same case through the generic path and export:
 - canonical structural hash;
 - median runtime excluding process startup;
 - setup time separately;
-- peak allocator bytes for collector benchmarks;
+- heap bytes and caller-owned collector table bytes for collector benchmarks;
 - emitted branch count and collected term count.
 
 The equality gate is:
@@ -285,7 +283,7 @@ The generic CFT-Code path can be improved while staying explicit:
 
 - drive Taylor expansion from the requested projection level and the partial
   branch level, not from a larger object;
-- prune branches using charge and level masks before constructing the full RHS
+- prune branches using weight and level masks before constructing the full RHS
   word;
 - precompute derivative Wick kernels as rule-table records rather than
   differentiating pole expressions at runtime;

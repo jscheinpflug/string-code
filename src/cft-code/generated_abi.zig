@@ -4,6 +4,7 @@ const dispatch = @import("correlators/generated_dispatch.zig");
 const kernel = @import("kernel.zig");
 const presets = @import("presets.zig");
 const basis_generation = @import("basis-generation/basis-generation.zig");
+const cft_ope = @import("ope/ope.zig");
 
 const allocator = std.heap.c_allocator;
 const TheoryId = dispatch.TheoryId;
@@ -48,11 +49,44 @@ pub const ExpressionName = extern struct {
     len: usize,
 };
 
+/// OpeTerm is one reusable OPE expression product.
+pub const OpeTerm = extern struct {
+    first_factor: usize,
+    factor_count: usize,
+    branch_level: u8,
+};
+
+/// OpeFactor is one compact coefficient or output-operator OPE factor.
+pub const OpeFactor = extern struct {
+    kind: u8,
+    a: u32,
+    b: u32,
+    c: u32,
+    d: i64,
+    e: i64,
+    name_id: u32,
+};
+
+/// OpeEvent is one stable compact streamed OPE record.
+pub const OpeEvent = extern struct {
+    kind: u8,
+    a: u32,
+    b: u32,
+    c: u32,
+    d: i64,
+    e: i64,
+    name_ptr: ?[*]const u8,
+    name_len: usize,
+};
+
 /// EventCallback receives one streamed result event.
 pub const EventCallback = *const fn (?*anyopaque, *const Event) callconv(.c) c_int;
 
 /// EventChunkCallback receives a bounded chunk of streamed result events.
 pub const EventChunkCallback = *const fn (?*anyopaque, [*]const Event, usize) callconv(.c) c_int;
+
+/// OpeEventChunkCallback receives a bounded chunk of compact OPE records.
+pub const OpeEventChunkCallback = *const fn (?*anyopaque, [*]const OpeEvent, usize) callconv(.c) c_int;
 
 /// BasisQuantumFilter is one dense slot/value query constraint.
 pub const BasisQuantumFilter = extern struct {
@@ -201,6 +235,365 @@ fn expressionRecordThunk(payload: *anyopaque, event: descriptor.ResultEvent) !vo
         .scalar, .coordinate, .tensor, .zero_mode, .residual_operator => try state.pushFactor(event),
     }
 }
+
+const OpeFactorKind = struct {
+    const term_begin: u8 = 250;
+    const term_end: u8 = 251;
+    const scalar_rational: u8 = 0;
+    const scalar_i: u8 = 1;
+    const scalar_atom: u8 = 2;
+    const coordinate_difference: u8 = 3;
+    const coordinate_named: u8 = 4;
+    const coordinate_exp_green: u8 = 5;
+    const coordinate_local_power: u8 = 6;
+    const tensor_metric: u8 = 10;
+    const tensor_momentum_index: u8 = 11;
+    const tensor_momentum_pair: u8 = 12;
+    const action_profile_derivative: u8 = 13;
+    const output_field: u8 = 20;
+    const output_label: u8 = 21;
+};
+
+const ope_event_chunk_capacity = 2048;
+
+const OpeBufferedStreamState = struct {
+    theory: TheoryId,
+    left_coords: []const u32,
+    right_coord: u32,
+    payload: ?*anyopaque,
+    callback: OpeEventChunkCallback,
+    events: [ope_event_chunk_capacity]OpeEvent = undefined,
+    len: usize = 0,
+
+    fn flush(self: *@This()) !void {
+        if (self.len == 0) return;
+        if (self.callback(self.payload, &self.events, self.len) != 0) return error.CallbackFailed;
+        self.len = 0;
+    }
+
+    fn push(self: *@This(), event: OpeEvent) !void {
+        self.events[self.len] = event;
+        self.len += 1;
+        if (self.len == self.events.len) try self.flush();
+    }
+
+    fn pushNamed(self: *@This(), kind: u8, a: u32, b: u32, c: u32, d: i64, e: i64, name: ?[]const u8) !void {
+        _ = name;
+        try self.push(.{
+            .kind = kind,
+            .a = a,
+            .b = b,
+            .c = c,
+            .d = d,
+            .e = e,
+            .name_ptr = null,
+            .name_len = 0,
+        });
+    }
+
+    fn leftCoord(self: *@This(), index: usize) u32 {
+        if (self.left_coords.len == 0) return self.right_coord;
+        if (index < self.left_coords.len) return self.left_coords[index];
+        return self.left_coords[0];
+    }
+
+    fn pushScalar(self: *@This(), scalar: cft_ope.Scalar) !void {
+        if (scalar.numerator != 1 or scalar.denominator != 1) {
+            try self.pushNamed(OpeFactorKind.scalar_rational, @intCast(scalar.denominator), 0, 0, @intCast(scalar.numerator), 0, null);
+        }
+        if (scalar.imaginary_power != 0) {
+            try self.pushNamed(OpeFactorKind.scalar_i, scalar.imaginary_power, 0, 0, 0, 0, null);
+        }
+        for (scalar.atoms[0..scalar.atom_count]) |atom| {
+            try self.pushNamed(OpeFactorKind.scalar_atom, atom.symbol, 0, 0, atom.power, 0, dispatch.descriptorSymbolName(self.theory, atom.symbol));
+        }
+    }
+
+    fn pushCoordinate(self: *@This(), coordinate: cft_ope.CoordinateAtom) !void {
+        switch (coordinate) {
+            .difference_power => |item| try self.pushNamed(
+                OpeFactorKind.coordinate_difference,
+                self.leftCoord(0),
+                self.right_coord,
+                (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                item.exponent,
+                0,
+                null,
+            ),
+            .logarithm => |item| try self.pushNamed(
+                OpeFactorKind.coordinate_named,
+                self.leftCoord(0),
+                self.right_coord,
+                (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                0,
+                0,
+                "log",
+            ),
+            .named_kernel => |item| try self.pushNamed(
+                OpeFactorKind.coordinate_named,
+                self.leftCoord(0),
+                self.right_coord,
+                (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                0,
+                0,
+                dispatch.descriptorSymbolName(self.theory, item.symbol),
+            ),
+            .green_exponential => try self.pushNamed(OpeFactorKind.coordinate_exp_green, self.leftCoord(0), self.right_coord, 0, 0, 0, "exp-green"),
+            .local_power => |item| try self.pushNamed(OpeFactorKind.coordinate_local_power, self.leftCoord(item.source_index), self.right_coord, 0, item.power, 0, null),
+        }
+    }
+
+    fn pushTensor(self: *@This(), tensor: cft_ope.TensorAtom) !void {
+        switch (tensor) {
+            .none => {},
+            .metric => |item| try self.pushNamed(OpeFactorKind.tensor_metric, item.left, item.right, 0, 0, 0, "metric"),
+            .momentum_index => |item| try self.pushNamed(OpeFactorKind.tensor_momentum_index, item.momentum, item.index, 0, 0, 0, "momentum-index"),
+            .momentum_pair => |item| try self.pushNamed(OpeFactorKind.tensor_momentum_pair, item.left, item.right, 0, 0, 0, "momentum-pair"),
+        }
+    }
+
+    fn pushAction(self: *@This(), action: cft_ope.ActionAtom) !void {
+        switch (action) {
+            .profile_derivative => |item| try self.pushNamed(OpeFactorKind.action_profile_derivative, item.profile, item.index, 0, 0, 0, "profile-derivative"),
+        }
+    }
+
+    fn pushOutput(self: *@This(), output: []const cft_ope.OutputFactor) !void {
+        for (output) |factor| {
+            try self.pushNamed(
+                OpeFactorKind.output_field,
+                factor.field,
+                self.right_coord,
+                factor.derivative,
+                @intCast(factor.labels.len),
+                0,
+                dispatch.fieldName(self.theory, factor.field),
+            );
+            for (factor.labels) |label| {
+                try self.pushNamed(OpeFactorKind.output_label, label, 0, 0, 0, 0, null);
+            }
+        }
+    }
+
+    pub fn emitOpeTerm(self: *@This(), term: cft_ope.TermView) !void {
+        try self.pushNamed(OpeFactorKind.term_begin, term.branch_level, 0, 0, 0, 0, null);
+        try self.pushScalar(term.scalar);
+        for (term.coordinates) |coordinate| try self.pushCoordinate(coordinate);
+        for (term.tensors) |tensor| try self.pushTensor(tensor);
+        for (term.actions) |action| try self.pushAction(action);
+        try self.pushOutput(term.output);
+        try self.pushNamed(OpeFactorKind.term_end, term.branch_level, 0, 0, 0, 0, null);
+    }
+};
+
+const OpeRecordState = struct {
+    theory: TheoryId,
+    left_coords: []const u32,
+    right_coord: u32,
+    terms: std.ArrayList(OpeTerm) = .empty,
+    factors: std.ArrayList(OpeFactor) = .empty,
+    names: std.ArrayList(ExpressionName) = .empty,
+    name_ids: std.AutoHashMap(NameKey, u32) = std.AutoHashMap(NameKey, u32).init(allocator),
+
+    fn deinit(self: *@This()) void {
+        self.terms.deinit(allocator);
+        self.factors.deinit(allocator);
+        self.names.deinit(allocator);
+        self.name_ids.deinit();
+    }
+
+    fn nameId(self: *@This(), maybe_name: ?[]const u8) !u32 {
+        const name = maybe_name orelse return 0;
+        const key = NameKey{ .ptr = @intFromPtr(name.ptr), .len = name.len };
+        if (self.name_ids.get(key)) |id| return id;
+        const id: u32 = @intCast(self.names.items.len + 1);
+        try self.names.append(allocator, .{ .ptr = name.ptr, .len = name.len });
+        try self.name_ids.put(key, id);
+        return id;
+    }
+
+    fn push(self: *@This(), factor: OpeFactor) !void {
+        try self.factors.append(allocator, factor);
+    }
+
+    fn pushScalar(self: *@This(), scalar: cft_ope.Scalar) !void {
+        if (scalar.numerator != 1 or scalar.denominator != 1) {
+            try self.push(.{
+                .kind = OpeFactorKind.scalar_rational,
+                .a = @intCast(scalar.denominator),
+                .b = 0,
+                .c = 0,
+                .d = @intCast(scalar.numerator),
+                .e = 0,
+                .name_id = 0,
+            });
+        }
+        if (scalar.imaginary_power != 0) {
+            try self.push(.{
+                .kind = OpeFactorKind.scalar_i,
+                .a = scalar.imaginary_power,
+                .b = 0,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = 0,
+            });
+        }
+        for (scalar.atoms[0..scalar.atom_count]) |atom| {
+            try self.push(.{
+                .kind = OpeFactorKind.scalar_atom,
+                .a = atom.symbol,
+                .b = 0,
+                .c = 0,
+                .d = atom.power,
+                .e = 0,
+                .name_id = 0,
+            });
+        }
+    }
+
+    fn pushCoordinate(self: *@This(), coordinate: cft_ope.CoordinateAtom) !void {
+        switch (coordinate) {
+            .difference_power => |item| try self.push(.{
+                .kind = OpeFactorKind.coordinate_difference,
+                .a = self.leftCoord(0),
+                .b = self.right_coord,
+                .c = (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                .d = item.exponent,
+                .e = 0,
+                .name_id = 0,
+            }),
+            .logarithm => |item| try self.push(.{
+                .kind = OpeFactorKind.coordinate_named,
+                .a = self.leftCoord(0),
+                .b = self.right_coord,
+                .c = (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("log"),
+            }),
+            .named_kernel => |item| try self.push(.{
+                .kind = OpeFactorKind.coordinate_named,
+                .a = self.leftCoord(0),
+                .b = self.right_coord,
+                .c = (@as(u32, item.left_derivatives) << 16) | item.right_derivatives,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId(dispatch.descriptorSymbolName(self.theory, item.symbol)),
+            }),
+            .green_exponential => try self.push(.{
+                .kind = OpeFactorKind.coordinate_exp_green,
+                .a = self.leftCoord(0),
+                .b = self.right_coord,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("exp-green"),
+            }),
+            .local_power => |item| try self.push(.{
+                .kind = OpeFactorKind.coordinate_local_power,
+                .a = self.leftCoord(item.source_index),
+                .b = self.right_coord,
+                .c = 0,
+                .d = item.power,
+                .e = 0,
+                .name_id = 0,
+            }),
+        }
+    }
+
+    fn pushTensor(self: *@This(), tensor: cft_ope.TensorAtom) !void {
+        switch (tensor) {
+            .none => {},
+            .metric => |item| try self.push(.{
+                .kind = OpeFactorKind.tensor_metric,
+                .a = item.left,
+                .b = item.right,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("metric"),
+            }),
+            .momentum_index => |item| try self.push(.{
+                .kind = OpeFactorKind.tensor_momentum_index,
+                .a = item.momentum,
+                .b = item.index,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("momentum-index"),
+            }),
+            .momentum_pair => |item| try self.push(.{
+                .kind = OpeFactorKind.tensor_momentum_pair,
+                .a = item.left,
+                .b = item.right,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("momentum-pair"),
+            }),
+        }
+    }
+
+    fn pushAction(self: *@This(), action: cft_ope.ActionAtom) !void {
+        switch (action) {
+            .profile_derivative => |item| try self.push(.{
+                .kind = OpeFactorKind.action_profile_derivative,
+                .a = item.profile,
+                .b = item.index,
+                .c = 0,
+                .d = 0,
+                .e = 0,
+                .name_id = try self.nameId("profile-derivative"),
+            }),
+        }
+    }
+
+    fn pushOutput(self: *@This(), output: []const cft_ope.OutputFactor) !void {
+        for (output) |factor| {
+            try self.push(.{
+                .kind = OpeFactorKind.output_field,
+                .a = factor.field,
+                .b = self.right_coord,
+                .c = factor.derivative,
+                .d = @intCast(factor.labels.len),
+                .e = 0,
+                .name_id = 0,
+            });
+            for (factor.labels) |label| {
+                try self.push(.{
+                    .kind = OpeFactorKind.output_label,
+                    .a = label,
+                    .b = 0,
+                    .c = 0,
+                    .d = 0,
+                    .e = 0,
+                    .name_id = 0,
+                });
+            }
+        }
+    }
+
+    fn leftCoord(self: *@This(), index: usize) u32 {
+        if (self.left_coords.len == 0) return self.right_coord;
+        if (index < self.left_coords.len) return self.left_coords[index];
+        return self.left_coords[0];
+    }
+
+    pub fn emitOpeTerm(self: *@This(), term: cft_ope.TermView) !void {
+        const start = self.factors.items.len;
+        try self.pushScalar(term.scalar);
+        for (term.coordinates) |coordinate| try self.pushCoordinate(coordinate);
+        for (term.tensors) |tensor| try self.pushTensor(tensor);
+        for (term.actions) |action| try self.pushAction(action);
+        try self.pushOutput(term.output);
+        try self.terms.append(allocator, .{
+            .first_factor = start,
+            .factor_count = self.factors.items.len - start,
+            .branch_level = term.branch_level,
+        });
+    }
+};
 
 var last_error_storage: [256]u8 = [_]u8{0} ** 256;
 
@@ -641,6 +1034,18 @@ export fn sc_generated_field_insert(ctx: ?*Context, field_id: u16, coords_ptr: ?
     return 0;
 }
 
+/// sc_generated_field_insert_derivative appends one derivative field occurrence.
+export fn sc_generated_field_insert_derivative(ctx: ?*Context, field_id: u16, coords_ptr: ?[*]const u32, coord_len: usize, labels_ptr: ?[*]const u32, label_len: usize, derivative: u8) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    if (validateFieldInsert(std.meta.activeTag(handle.inner), field_id, coord_len, label_len) != 0) return -1;
+    const coords = u32Slice(coords_ptr, coord_len) catch |err| return setError(err);
+    const labels = u32Slice(labels_ptr, label_len) catch |err| return setError(err);
+    handle.inner.fieldInsertDerivative(field_id, coords, labels, derivative) catch |err| return setError(err);
+    handle.frozen = null;
+    return 0;
+}
+
 /// sc_generated_normal_ordering tags the last count fields as one normal product.
 export fn sc_generated_normal_ordering(ctx: ?*Context, count: usize) c_int {
     clearError();
@@ -660,6 +1065,27 @@ export fn sc_generated_operator_list_freeze(ctx: ?*Context) c_int {
 
 fn frozen(handle: *Context) !kernel.Call.MultiOp {
     return handle.frozen orelse error.OperatorListNotFrozen;
+}
+
+fn operatorCoordinate(op: kernel.Call.LocalOp) u32 {
+    return switch (op.insertion) {
+        .single => |single| single.position.raw,
+        .pair => |pair| pair.holomorphic_position.raw,
+    };
+}
+
+fn leftCoordinateSlice(ops: kernel.Call.MultiOp, left_count: usize, out: []u32) ![]const u32 {
+    if (left_count > ops.operators.len or left_count > out.len) return error.InvalidOpeSplit;
+    for (ops.operators[0..left_count], 0..) |op, index| {
+        out[index] = operatorCoordinate(op);
+    }
+    return out[0..left_count];
+}
+
+fn rightCoordinate(ops: kernel.Call.MultiOp, left_count: usize) !u32 {
+    if (left_count > ops.operators.len) return error.InvalidOpeSplit;
+    if (left_count == ops.operators.len) return 0;
+    return operatorCoordinate(ops.operators[left_count]);
 }
 
 /// sc_generated_correlator_count returns the number of accepted branches.
@@ -736,6 +1162,103 @@ export fn sc_generated_correlator_expression_records(
     return 0;
 }
 
+/// sc_generated_ope_expression_records returns reusable structured OPE terms.
+export fn sc_generated_ope_expression_records(
+    ctx: ?*Context,
+    left_count: usize,
+    target_weight_ticks: i32,
+    max_taylor_level: u8,
+    out_terms: ?*[*]OpeTerm,
+    out_term_count: ?*usize,
+    out_factors: ?*[*]OpeFactor,
+    out_factor_count: ?*usize,
+    out_names: ?*[*]ExpressionName,
+    out_name_count: ?*usize,
+) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const terms_out = out_terms orelse return setErrorName("NullOutput");
+    const term_count_out = out_term_count orelse return setErrorName("NullOutput");
+    const factors_out = out_factors orelse return setErrorName("NullOutput");
+    const factor_count_out = out_factor_count orelse return setErrorName("NullOutput");
+    const names_out = out_names orelse return setErrorName("NullOutput");
+    const name_count_out = out_name_count orelse return setErrorName("NullOutput");
+    const ops = frozen(handle) catch |err| return setError(err);
+    var left_coords_buffer: [64]u32 = undefined;
+    const left_coords = leftCoordinateSlice(ops, left_count, &left_coords_buffer) catch |err| return setError(err);
+    var state = OpeRecordState{
+        .theory = std.meta.activeTag(handle.inner),
+        .left_coords = left_coords,
+        .right_coord = rightCoordinate(ops, left_count) catch |err| return setError(err),
+    };
+    defer state.deinit();
+    handle.inner.opeProjected(ops, left_count, .{
+        .target_holomorphic_ticks = target_weight_ticks,
+        .max_taylor_level = max_taylor_level,
+    }, &state) catch |err| return setError(err);
+    const factors = state.factors.toOwnedSlice(allocator) catch |err| return setError(err);
+    const terms = state.terms.toOwnedSlice(allocator) catch |err| {
+        allocator.free(factors);
+        return setError(err);
+    };
+    const names = state.names.toOwnedSlice(allocator) catch |err| {
+        allocator.free(terms);
+        allocator.free(factors);
+        return setError(err);
+    };
+    terms_out.* = terms.ptr;
+    term_count_out.* = terms.len;
+    factors_out.* = factors.ptr;
+    factor_count_out.* = factors.len;
+    names_out.* = names.ptr;
+    name_count_out.* = names.len;
+    return 0;
+}
+
+/// sc_generated_ope_run_buffered streams compact OPE records in bounded chunks.
+export fn sc_generated_ope_run_buffered(
+    ctx: ?*Context,
+    left_count: usize,
+    target_weight_ticks: i32,
+    max_taylor_level: u8,
+    payload: ?*anyopaque,
+    callback: ?OpeEventChunkCallback,
+) c_int {
+    clearError();
+    const handle = ctx orelse return setErrorName("NullContext");
+    const cb = callback orelse return setErrorName("NullCallback");
+    const ops = frozen(handle) catch |err| return setError(err);
+    var left_coords_buffer: [64]u32 = undefined;
+    const left_coords = leftCoordinateSlice(ops, left_count, &left_coords_buffer) catch |err| return setError(err);
+    var state = OpeBufferedStreamState{
+        .theory = std.meta.activeTag(handle.inner),
+        .left_coords = left_coords,
+        .right_coord = rightCoordinate(ops, left_count) catch |err| return setError(err),
+        .payload = payload,
+        .callback = cb,
+    };
+    handle.inner.opeProjected(ops, left_count, .{
+        .target_holomorphic_ticks = target_weight_ticks,
+        .max_taylor_level = max_taylor_level,
+    }, &state) catch |err| return setError(err);
+    state.flush() catch |err| return setError(err);
+    return 0;
+}
+
+/// sc_generated_ope_buffer_free releases buffers returned by OPE expression calls.
+export fn sc_generated_ope_buffer_free(
+    terms: ?[*]OpeTerm,
+    term_count: usize,
+    factors: ?[*]OpeFactor,
+    factor_count: usize,
+    names: ?[*]ExpressionName,
+    name_count: usize,
+) void {
+    if (terms) |ptr| allocator.free(ptr[0..term_count]);
+    if (factors) |ptr| allocator.free(ptr[0..factor_count]);
+    if (names) |ptr| allocator.free(ptr[0..name_count]);
+}
+
 /// sc_generated_expression_buffer_free releases compact expression buffers.
 export fn sc_generated_expression_buffer_free(
     terms: ?[*]ExpressionTerm,
@@ -804,6 +1327,49 @@ const BasisAbiRecorder = struct {
     }
 };
 
+const OpeAbiDigest = struct {
+    events: usize = 0,
+    term_begin: usize = 0,
+    term_end: usize = 0,
+    scalars: usize = 0,
+    coordinates: usize = 0,
+    tensors: usize = 0,
+    actions: usize = 0,
+    output_fields: usize = 0,
+    output_labels: usize = 0,
+    saw_branch_level: bool = false,
+
+    fn push(payload: ?*anyopaque, events: [*]const OpeEvent, event_count: usize) callconv(.c) c_int {
+        const self: *OpeAbiDigest = @ptrCast(@alignCast(payload.?));
+        for (events[0..event_count]) |event| {
+            self.events += 1;
+            switch (event.kind) {
+                OpeFactorKind.term_begin => {
+                    self.term_begin += 1;
+                    self.saw_branch_level = self.saw_branch_level or event.a != 0;
+                },
+                OpeFactorKind.term_end => self.term_end += 1,
+                OpeFactorKind.scalar_rational, OpeFactorKind.scalar_i, OpeFactorKind.scalar_atom => self.scalars += 1,
+                OpeFactorKind.coordinate_difference, OpeFactorKind.coordinate_named, OpeFactorKind.coordinate_exp_green, OpeFactorKind.coordinate_local_power => self.coordinates += 1,
+                OpeFactorKind.tensor_metric, OpeFactorKind.tensor_momentum_index, OpeFactorKind.tensor_momentum_pair => self.tensors += 1,
+                OpeFactorKind.action_profile_derivative => self.actions += 1,
+                OpeFactorKind.output_field => self.output_fields += 1,
+                OpeFactorKind.output_label => self.output_labels += 1,
+                else => return -1,
+            }
+        }
+        return 0;
+    }
+};
+
+const OpeDirectCount = struct {
+    count: usize = 0,
+
+    pub fn emitOpeTerm(self: *@This(), _: cft_ope.TermView) !void {
+        self.count += 1;
+    }
+};
+
 const NamedBasisModeRecorder = struct {
     expected_name: []const u8,
     count: usize = 0,
@@ -836,6 +1402,18 @@ fn expectInsert(ctx: *Context, field_id: u16, coords: []const u32, labels: []con
         coords.len,
         if (labels.len == 0) null else labels.ptr,
         labels.len,
+    ));
+}
+
+fn expectInsertDerivative(ctx: *Context, field_id: u16, coords: []const u32, labels: []const u32, derivative: u8) !void {
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_field_insert_derivative(
+        ctx,
+        field_id,
+        if (coords.len == 0) null else coords.ptr,
+        coords.len,
+        if (labels.len == 0) null else labels.ptr,
+        labels.len,
+        derivative,
     ));
 }
 
@@ -877,6 +1455,76 @@ fn expectExpressionRecords(ctx: *Context, expected_terms: usize, min_factors: us
         try std.testing.expect(term.first_factor <= factor_count);
         try std.testing.expect(term.first_factor + term.factor_count <= factor_count);
     }
+}
+
+fn expectOpeExpressionRecords(ctx: *Context, left_count: usize, expected_terms: usize, min_factors: usize) !void {
+    var terms: [*]OpeTerm = undefined;
+    var term_count: usize = 0;
+    var factors: [*]OpeFactor = undefined;
+    var factor_count: usize = 0;
+    var names: [*]ExpressionName = undefined;
+    var name_count: usize = 0;
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_ope_expression_records(
+        ctx,
+        left_count,
+        0,
+        0,
+        &terms,
+        &term_count,
+        &factors,
+        &factor_count,
+        &names,
+        &name_count,
+    ));
+    defer sc_generated_ope_buffer_free(terms, term_count, factors, factor_count, names, name_count);
+
+    try std.testing.expectEqual(expected_terms, term_count);
+    try std.testing.expect(factor_count >= min_factors);
+    for (terms[0..term_count]) |term| {
+        try std.testing.expect(term.first_factor <= factor_count);
+        try std.testing.expect(term.first_factor + term.factor_count <= factor_count);
+    }
+}
+
+fn expectDirectOpeCount(ctx: *Context, left_count: usize, expected_terms: usize) !void {
+    const ops = try frozen(ctx);
+    var sink = OpeDirectCount{};
+    try ctx.inner.opeProjected(ops, left_count, .{
+        .target_holomorphic_ticks = 0,
+        .max_taylor_level = 0,
+    }, &sink);
+    try std.testing.expectEqual(expected_terms, sink.count);
+}
+
+fn expectOpeStream(ctx: *Context, left_count: usize, expected_terms: usize, min_factors: usize, expected: struct {
+    coordinates: bool = false,
+    tensors: bool = false,
+    outputs: bool = false,
+    output_labels: bool = false,
+}) !void {
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_operator_list_freeze(ctx));
+
+    var digest = OpeAbiDigest{};
+    try std.testing.expectEqual(@as(c_int, 0), sc_generated_ope_run_buffered(
+        ctx,
+        left_count,
+        0,
+        0,
+        &digest,
+        OpeAbiDigest.push,
+    ));
+    try std.testing.expectEqual(expected_terms, digest.term_begin);
+    try std.testing.expectEqual(expected_terms, digest.term_end);
+    try std.testing.expect(digest.events >= expected_terms * 2 + min_factors);
+    if (expected.outputs) {
+        try std.testing.expect(digest.output_fields > 0);
+    }
+    if (expected.coordinates) try std.testing.expect(digest.coordinates > 0);
+    if (expected.tensors) try std.testing.expect(digest.tensors > 0);
+    if (expected.output_labels) try std.testing.expect(digest.output_labels > 0);
+
+    try expectOpeExpressionRecords(ctx, left_count, expected_terms, min_factors);
+    try expectDirectOpeCount(ctx, left_count, expected_terms);
 }
 
 fn expectFreeFermionAbiStream() !void {
@@ -960,6 +1608,72 @@ fn expectFreeBosonAbiStream() !void {
     try std.testing.expect(digest.coordinates >= 1);
     try std.testing.expect(digest.tensors >= 1);
     try expectExpressionRecords(ctx, 1, 3, 3);
+}
+
+fn expectBcOpeAbi() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.bc)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 0, &.{z}, &.{});
+    try expectInsert(ctx, 1, &.{w}, &.{});
+
+    try expectOpeStream(ctx, 1, 1, 1, .{ .coordinates = true });
+
+    var digest = OpeAbiDigest{};
+    try std.testing.expectEqual(@as(c_int, -1), sc_generated_ope_run_buffered(ctx, 3, 0, 0, &digest, OpeAbiDigest.push));
+    try std.testing.expect(std.mem.eql(u8, std.mem.span(sc_generated_last_error()), "InvalidOpeSplit"));
+}
+
+fn expectFreeFermionOpeAbi() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.free_fermion)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const mu = try expectSymbol(ctx, "mu");
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsert(ctx, 0, &.{z}, &.{mu});
+    try expectInsert(ctx, 0, &.{w}, &.{mu});
+
+    try expectOpeStream(ctx, 1, 1, 2, .{ .coordinates = true, .tensors = true });
+}
+
+fn expectFreeBosonDerivativeOpeAbi() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.free_boson)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const mu = try expectSymbol(ctx, "mu");
+    const nu = try expectSymbol(ctx, "nu");
+    const z = try expectSymbol(ctx, "z");
+    const w = try expectSymbol(ctx, "w");
+    try expectInsertDerivative(ctx, 1, &.{z}, &.{mu}, 1);
+    try expectInsertDerivative(ctx, 1, &.{w}, &.{nu}, 3);
+
+    try expectOpeStream(ctx, 1, 1, 3, .{ .coordinates = true, .tensors = true });
+}
+
+fn expectFreeBosonExpOpeAbi() !void {
+    const ctx = sc_generated_context_create(@intFromEnum(TheoryId.free_boson)) orelse return error.ContextCreateFailed;
+    defer sc_generated_context_destroy(ctx);
+
+    const k = try expectSymbol(ctx, "k");
+    const p = try expectSymbol(ctx, "p");
+    const z = try expectSymbol(ctx, "z");
+    const zb = try expectSymbol(ctx, "zb");
+    const w = try expectSymbol(ctx, "w");
+    const wb = try expectSymbol(ctx, "wb");
+    try expectInsert(ctx, 3, &.{ z, zb }, &.{k});
+    try expectInsert(ctx, 3, &.{ w, wb }, &.{p});
+
+    try expectOpeStream(ctx, 1, 1, 5, .{ .coordinates = true, .tensors = true, .outputs = true, .output_labels = true });
+}
+
+fn expectGeneratedOpeAbi() !void {
+    try expectBcOpeAbi();
+    try expectFreeFermionOpeAbi();
+    try expectFreeBosonDerivativeOpeAbi();
+    try expectFreeBosonExpOpeAbi();
 }
 
 fn expectGeneratedCorrelatorStreams() !void {
@@ -1071,6 +1785,7 @@ test "generated C ABI matches descriptor dispatch metadata and streams events" {
 pub fn selfTest() !void {
     try expectGeneratedMetadataMatchesDispatch();
     try expectGeneratedCorrelatorStreams();
+    try expectGeneratedOpeAbi();
     try expectGeneratedAbiFailurePaths();
 
     const ctx = sc_generated_context_create(@intFromEnum(dispatch.first_theory_id)) orelse return error.ContextCreateFailed;
