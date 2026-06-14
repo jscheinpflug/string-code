@@ -1,0 +1,1143 @@
+:PROPERTIES:
+:ID:       20260614T194500.000000
+:END:
+#+title: OPEProjected Benchmark Harness
+#+auto_tangle: t
+
+This node contains the runnable benchmark harness for the generic expanded [[id:20260603T094112.928043][OPE]] path.
+The evidence and command record are kept in [[id:20260614T180200.000000][OPEProjected Mathematica Benchmark]].
+
+* Zig Cases
+
+#+begin_src zig :tangle ../../../benchmarks/ope_projected_cases.zig :mkdirp yes
+const std = @import("std");
+const cft = @import("cft-code");
+
+const Ope = cft.Ope;
+const fixtures = Ope.BenchmarkDescriptors;
+
+/// Family names the benchmark group selected by the command line.
+pub const Family = enum {
+    bc,
+    fermion,
+    boson,
+};
+
+/// Form selects the sink used by a benchmark run.
+pub const Form = enum {
+    stream,
+    collect,
+};
+
+/// CaseName names one descriptor-driven OPE benchmark fixture.
+pub const CaseName = enum {
+    bc_1_pair_w0,
+    bc_derivative_pair_w0,
+    bc_2_pairs_w0,
+    bc_6_pairs_w0,
+    fermion_1_pair_w0,
+    fermion_2_pairs_w0,
+    fermion_6_pairs_w0,
+    boson_dx_pair_w0,
+    boson_dx_6_pairs_w0,
+    boson_exp_pair_w0,
+};
+
+/// Result is the canonical output of one Zig OPE benchmark case.
+pub const Result = struct {
+    name: []const u8,
+    family: Family,
+    form: Form,
+    raw_terms: usize,
+    terms: usize,
+    hash: u64,
+    median_ns: u128,
+    samples: usize,
+    heap_bytes: usize,
+    collector_capacity: usize,
+    collector_bytes: usize,
+};
+
+/// name returns the stable CLI name for a benchmark case.
+pub fn name(comptime case: CaseName) []const u8 {
+    return switch (case) {
+        .bc_1_pair_w0 => "bc-1-pair-w0",
+        .bc_derivative_pair_w0 => "bc-derivative-pair-w0",
+        .bc_2_pairs_w0 => "bc-2-pairs-w0",
+        .bc_6_pairs_w0 => "bc-6-pairs-w0",
+        .fermion_1_pair_w0 => "fermion-1-pair-w0",
+        .fermion_2_pairs_w0 => "fermion-2-pairs-w0",
+        .fermion_6_pairs_w0 => "fermion-6-pairs-w0",
+        .boson_dx_pair_w0 => "boson-dx-pair-w0",
+        .boson_dx_6_pairs_w0 => "boson-dx-6-pairs-w0",
+        .boson_exp_pair_w0 => "boson-exp-pair-w0",
+    };
+}
+
+/// family returns the benchmark family for filtering.
+pub fn family(comptime case: CaseName) Family {
+    return switch (case) {
+        .bc_1_pair_w0, .bc_derivative_pair_w0, .bc_2_pairs_w0, .bc_6_pairs_w0 => .bc,
+        .fermion_1_pair_w0, .fermion_2_pairs_w0, .fermion_6_pairs_w0 => .fermion,
+        .boson_dx_pair_w0, .boson_dx_6_pairs_w0, .boson_exp_pair_w0 => .boson,
+    };
+}
+
+/// run executes one benchmark case and returns its median runtime and sink hash.
+pub fn run(comptime case: CaseName, sample_count: usize, form: Form) !Result {
+    return switch (case) {
+        .bc_1_pair_w0 => runBcPair(case, sample_count, form, 1),
+        .bc_derivative_pair_w0 => runBcDerivativePair(case, sample_count, form),
+        .bc_2_pairs_w0 => runBcPair(case, sample_count, form, 2),
+        .bc_6_pairs_w0 => runBcPair(case, sample_count, form, 6),
+        .fermion_1_pair_w0 => runFermionPair(case, sample_count, form, 1),
+        .fermion_2_pairs_w0 => runFermionPair(case, sample_count, form, 2),
+        .fermion_6_pairs_w0 => runFermionPair(case, sample_count, form, 6),
+        .boson_dx_pair_w0 => runBosonDx(case, sample_count, form),
+        .boson_dx_6_pairs_w0 => runBosonDxPair(case, sample_count, form, 6),
+        .boson_exp_pair_w0 => runBosonExp(case, sample_count, form),
+    };
+}
+
+/// renderExpression materializes the collected OPE as a Mathematica-readable expression.
+pub fn renderExpression(comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
+    return switch (case) {
+        .bc_1_pair_w0 => renderBcPair(case, allocator, 1),
+        .bc_derivative_pair_w0 => renderBcDerivativePair(case, allocator),
+        .bc_2_pairs_w0 => renderBcPair(case, allocator, 2),
+        .bc_6_pairs_w0 => renderBcPair(case, allocator, 6),
+        .fermion_1_pair_w0 => renderFermionPair(case, allocator, 1),
+        .fermion_2_pairs_w0 => renderFermionPair(case, allocator, 2),
+        .fermion_6_pairs_w0 => renderFermionPair(case, allocator, 6),
+        .boson_dx_pair_w0 => renderBosonDx(case, allocator),
+        .boson_dx_6_pairs_w0 => renderBosonDxPair(case, allocator, 6),
+        .boson_exp_pair_w0 => renderBosonExp(case, allocator),
+    };
+}
+
+fn runBcPair(comptime case: CaseName, sample_count: usize, form: Form, comptime pair_count: usize) !Result {
+    const Kernel = Ope.GenericKernel(fixtures.bc, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = 0,
+        .max_actions = 0,
+    });
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_factors, 0..) |*factor, i| factor.* = .{ .field = 0, .derivative = @intCast(i) };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{ .field = 1, .derivative = @intCast(i) };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+}
+
+fn renderBcPair(comptime case: CaseName, allocator: std.mem.Allocator, comptime pair_count: usize) ![]const u8 {
+    const Kernel = Ope.GenericKernel(fixtures.bc, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = 0,
+        .max_actions = 0,
+    });
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_factors, 0..) |*factor, i| factor.* = .{ .field = 0, .derivative = @intCast(i) };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{ .field = 1, .derivative = @intCast(i) };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+}
+
+fn runBcDerivativePair(comptime case: CaseName, sample_count: usize, form: Form) !Result {
+    const Kernel = Ope.GenericKernel(fixtures.bc, .{ .max_factors = 1, .max_output_factors = 2, .max_coordinates = 1 });
+    const left_factors = [_]Ope.PrimitiveFactor{.{ .field = 0, .derivative = 1 }};
+    const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 1, .derivative = 2 }};
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+}
+
+fn renderBcDerivativePair(comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
+    const Kernel = Ope.GenericKernel(fixtures.bc, .{ .max_factors = 1, .max_output_factors = 2, .max_coordinates = 1 });
+    const left_factors = [_]Ope.PrimitiveFactor{.{ .field = 0, .derivative = 1 }};
+    const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 1, .derivative = 2 }};
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return render(case, allocator, fixtures.bc, Kernel, &left_terms, &right_terms, .{ .target_charge = 0 });
+}
+
+fn runFermionPair(comptime case: CaseName, sample_count: usize, form: Form, comptime pair_count: usize) !Result {
+    const Kernel = Ope.GenericKernel(fixtures.free_fermion, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = pair_count,
+    });
+    var labels: [pair_count][1]u32 = undefined;
+    for (&labels, 0..) |*label, i| label.* = .{@intCast(i + 1)};
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_factors, 0..) |*factor, i| factor.* = .{
+        .field = 0,
+        .derivative = if (pair_count > 2) 0 else @intCast(i),
+        .labels = &labels[i],
+    };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{
+        .field = 0,
+        .derivative = if (pair_count > 2) 0 else @intCast(i + pair_count),
+        .labels = &labels[i],
+    };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn renderFermionPair(comptime case: CaseName, allocator: std.mem.Allocator, comptime pair_count: usize) ![]const u8 {
+    const Kernel = Ope.GenericKernel(fixtures.free_fermion, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = pair_count,
+    });
+    var labels: [pair_count][1]u32 = undefined;
+    for (&labels, 0..) |*label, i| label.* = .{@intCast(i + 1)};
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_factors, 0..) |*factor, i| factor.* = .{
+        .field = 0,
+        .derivative = if (pair_count > 2) 0 else @intCast(i),
+        .labels = &labels[i],
+    };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{
+        .field = 0,
+        .derivative = if (pair_count > 2) 0 else @intCast(i + pair_count),
+        .labels = &labels[i],
+    };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return render(case, allocator, fixtures.free_fermion, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn runBosonDx(comptime case: CaseName, sample_count: usize, form: Form) !Result {
+    return runBosonDxPair(case, sample_count, form, 1);
+}
+
+fn runBosonDxPair(comptime case: CaseName, sample_count: usize, form: Form, comptime pair_count: usize) !Result {
+    const Kernel = Ope.GenericKernel(fixtures.free_boson, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = pair_count,
+        .max_scalar_atoms = 2,
+    });
+    var left_labels: [pair_count][1]u32 = undefined;
+    var right_labels: [pair_count][1]u32 = undefined;
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_labels, &right_labels, 0..) |*left_label, *right_label, i| {
+        left_label.* = .{@intCast(i + 1)};
+        right_label.* = .{@intCast(if (pair_count == 1) 2 else i + 1)};
+    }
+    for (&left_factors, 0..) |*factor, i| factor.* = .{
+        .field = 1,
+        .derivative = if (pair_count > 1) 0 else 1,
+        .labels = &left_labels[i],
+    };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{
+        .field = 1,
+        .derivative = if (pair_count > 1) 0 else 3,
+        .labels = &right_labels[i],
+    };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn renderBosonDx(comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
+    return renderBosonDxPair(case, allocator, 1);
+}
+
+fn renderBosonDxPair(comptime case: CaseName, allocator: std.mem.Allocator, comptime pair_count: usize) ![]const u8 {
+    const Kernel = Ope.GenericKernel(fixtures.free_boson, .{
+        .max_factors = pair_count,
+        .max_output_factors = 2 * pair_count,
+        .max_coordinates = pair_count,
+        .max_tensors = pair_count,
+        .max_scalar_atoms = 2,
+    });
+    var left_labels: [pair_count][1]u32 = undefined;
+    var right_labels: [pair_count][1]u32 = undefined;
+    var left_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    var right_factors: [pair_count]Ope.PrimitiveFactor = undefined;
+    for (&left_labels, &right_labels, 0..) |*left_label, *right_label, i| {
+        left_label.* = .{@intCast(i + 1)};
+        right_label.* = .{@intCast(if (pair_count == 1) 2 else i + 1)};
+    }
+    for (&left_factors, 0..) |*factor, i| factor.* = .{
+        .field = 1,
+        .derivative = if (pair_count > 1) 0 else 1,
+        .labels = &left_labels[i],
+    };
+    for (&right_factors, 0..) |*factor, i| factor.* = .{
+        .field = 1,
+        .derivative = if (pair_count > 1) 0 else 3,
+        .labels = &right_labels[i],
+    };
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return render(case, allocator, fixtures.free_boson, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn runBosonExp(comptime case: CaseName, sample_count: usize, form: Form) !Result {
+    const Kernel = Ope.GenericKernel(fixtures.free_boson, .{
+        .max_factors = 1,
+        .max_output_factors = 2,
+        .max_coordinates = 2,
+        .max_tensors = 1,
+        .max_scalar_atoms = 2,
+    });
+    const k = [_]u32{1};
+    const p = [_]u32{2};
+    const left_factors = [_]Ope.PrimitiveFactor{.{ .field = 3, .labels = &k }};
+    const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 3, .labels = &p }};
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return measure(case, sample_count, form, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn renderBosonExp(comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
+    const Kernel = Ope.GenericKernel(fixtures.free_boson, .{
+        .max_factors = 1,
+        .max_output_factors = 2,
+        .max_coordinates = 2,
+        .max_tensors = 1,
+        .max_scalar_atoms = 2,
+    });
+    const k = [_]u32{1};
+    const p = [_]u32{2};
+    const left_factors = [_]Ope.PrimitiveFactor{.{ .field = 3, .labels = &k }};
+    const right_factors = [_]Ope.PrimitiveFactor{.{ .field = 3, .labels = &p }};
+    const left_terms = [_]Ope.Monomial{.{ .factors = &left_factors }};
+    const right_terms = [_]Ope.Monomial{.{ .factors = &right_factors }};
+    return render(case, allocator, fixtures.free_boson, Kernel, &left_terms, &right_terms, .{});
+}
+
+fn measure(comptime case: CaseName, sample_count: usize, form: Form, comptime Kernel: type, left_terms: []const Ope.Monomial, right_terms: []const Ope.Monomial, projection: Ope.Projection) !Result {
+    return switch (form) {
+        .stream => measureStream(case, sample_count, Kernel, left_terms, right_terms, projection),
+        .collect => measureCollect(case, sample_count, Kernel, left_terms, right_terms, projection),
+    };
+}
+
+const StoredFactor = struct {
+    field: u16 = 0,
+    derivative: u8 = 0,
+    label_count: u8 = 0,
+    labels: [1]u32 = .{0},
+};
+
+fn ExpressionCollector(comptime d: anytype, comptime capacity: usize) type {
+    return struct {
+        const Entry = struct {
+            used: bool = false,
+            scalar: Ope.Scalar = .one,
+            coordinates: [32]Ope.CoordinateAtom = undefined,
+            coordinate_count: usize = 0,
+            tensors: [32]Ope.TensorAtom = undefined,
+            tensor_count: usize = 0,
+            actions: [16]Ope.ActionAtom = undefined,
+            action_count: usize = 0,
+            output: [32]StoredFactor = undefined,
+            output_count: usize = 0,
+            branch_level: u8 = 0,
+        };
+
+        entries: [capacity]Entry = [_]Entry{.{}} ** capacity,
+
+        pub fn emitOpeTerm(self: *@This(), term: Ope.TermView) !void {
+            const entry = try storedEntry(term);
+            for (&self.entries) |*slot| {
+                if (slot.used and sameStructure(slot.*, entry)) {
+                    try addScalar(&slot.scalar, entry.scalar);
+                    return;
+                }
+            }
+            for (&self.entries) |*slot| {
+                if (!slot.used) {
+                    slot.* = entry;
+                    slot.used = true;
+                    return;
+                }
+            }
+            return error.ContextTooSmall;
+        }
+
+        fn storedEntry(term: Ope.TermView) !Entry {
+            if (term.coordinates.len > 32 or term.tensors.len > 32 or term.actions.len > 16 or term.output.len > 32) return error.ContextTooSmall;
+            var entry = Entry{
+                .used = true,
+                .scalar = term.scalar,
+                .coordinate_count = term.coordinates.len,
+                .tensor_count = term.tensors.len,
+                .action_count = term.actions.len,
+                .output_count = term.output.len,
+                .branch_level = term.branch_level,
+            };
+            @memcpy(entry.coordinates[0..term.coordinates.len], term.coordinates);
+            @memcpy(entry.tensors[0..term.tensors.len], term.tensors);
+            @memcpy(entry.actions[0..term.actions.len], term.actions);
+            for (term.output, 0..) |factor, index| {
+                if (factor.labels.len > 1) return error.ContextTooSmall;
+                entry.output[index] = .{
+                    .field = factor.field,
+                    .derivative = factor.derivative,
+                    .label_count = @intCast(factor.labels.len),
+                    .labels = .{if (factor.labels.len == 0) 0 else factor.labels[0]},
+                };
+            }
+            return entry;
+        }
+
+        fn sameStructure(left: Entry, right: Entry) bool {
+            if (left.branch_level != right.branch_level or
+                left.coordinate_count != right.coordinate_count or
+                left.tensor_count != right.tensor_count or
+                left.action_count != right.action_count or
+                left.output_count != right.output_count)
+            {
+                return false;
+            }
+            for (left.coordinates[0..left.coordinate_count], right.coordinates[0..right.coordinate_count]) |a, b| if (!std.meta.eql(a, b)) return false;
+            for (left.tensors[0..left.tensor_count], right.tensors[0..right.tensor_count]) |a, b| if (!std.meta.eql(a, b)) return false;
+            for (left.actions[0..left.action_count], right.actions[0..right.action_count]) |a, b| if (!std.meta.eql(a, b)) return false;
+            for (left.output[0..left.output_count], right.output[0..right.output_count]) |a, b| if (!std.meta.eql(a, b)) return false;
+            return true;
+        }
+
+        pub fn render(self: *@This(), comptime case: CaseName, allocator: std.mem.Allocator) ![]const u8 {
+            var bytes: std.ArrayList(u8) = .empty;
+            var writer = TextWriter{ .bytes = &bytes, .allocator = allocator };
+            var emitted = false;
+            for (self.entries) |entry| {
+                if (!entry.used or entry.scalar.numerator == 0) continue;
+                const green = hasGreen(entry);
+                const negative = entry.scalar.numerator < 0 and !green;
+                if (emitted) {
+                    try writer.writeAll(if (negative) " - " else " + ");
+                } else if (negative) {
+                    try writer.writeAll("-");
+                }
+                var scalar = entry.scalar;
+                if (scalar.numerator < 0 and !green) scalar.numerator = -scalar.numerator;
+                try renderEntry(&writer, case, scalar, entry);
+                emitted = true;
+            }
+            if (!emitted) try writer.writeAll("0");
+            return bytes.toOwnedSlice(allocator);
+        }
+
+        fn renderEntry(writer: *TextWriter, comptime case: CaseName, scalar: Ope.Scalar, entry: Entry) !void {
+            const green = hasGreen(entry);
+            const consumed_momentum = if (green) firstMomentumPair(entry) else null;
+            const consumed_tensor = if (consumed_momentum) |index| entry.tensors[index] else null;
+            var factors: usize = 0;
+            if (!green and (!scalarIsOne(scalar) or multiplicativeFactorCount(entry, null) == 0)) {
+                try renderProductSeparator(writer, &factors);
+                try renderScalar(writer, scalar);
+            }
+            for (entry.coordinates[0..entry.coordinate_count]) |coordinate| {
+                try renderProductSeparator(writer, &factors);
+                try renderCoordinate(writer, scalar, coordinate, consumed_tensor);
+            }
+            for (entry.tensors[0..entry.tensor_count], 0..) |tensor, index| {
+                if (consumed_momentum) |consumed| if (index == consumed) continue;
+                try renderProductSeparator(writer, &factors);
+                try renderTensor(writer, case, tensor);
+            }
+            if (entry.output_count != 0) {
+                try renderProductSeparator(writer, &factors);
+                try renderOutput(writer, case, entry.output[0..entry.output_count]);
+            }
+            if (factors == 0) try writer.writeAll("1");
+        }
+
+        fn multiplicativeFactorCount(entry: Entry, consumed_momentum: ?usize) usize {
+            var count = entry.coordinate_count + entry.output_count;
+            for (entry.tensors[0..entry.tensor_count], 0..) |_, index| {
+                if (consumed_momentum) |consumed| if (index == consumed) continue;
+                count += 1;
+            }
+            return count;
+        }
+
+        fn hasGreen(entry: Entry) bool {
+            for (entry.coordinates[0..entry.coordinate_count]) |coordinate| {
+                if (std.meta.activeTag(coordinate) == .green_exponential) return true;
+            }
+            return false;
+        }
+
+        fn firstMomentumPair(entry: Entry) ?usize {
+            for (entry.tensors[0..entry.tensor_count], 0..) |tensor, index| {
+                if (std.meta.activeTag(tensor) == .momentum_pair) return index;
+            }
+            return null;
+        }
+
+        fn renderProductSeparator(writer: *TextWriter, factors: *usize) !void {
+            if (factors.* != 0) try writer.writeAll("*");
+            factors.* += 1;
+        }
+
+        fn renderCoordinate(writer: *TextWriter, scalar: Ope.Scalar, coordinate: Ope.CoordinateAtom, consumed_tensor: ?Ope.TensorAtom) !void {
+            switch (coordinate) {
+                .difference_power => |item| try format(writer, "({s} - {s})^({})", .{
+                    coordinateName(item.left_slot, .left),
+                    coordinateName(item.right_slot, .right),
+                    item.exponent,
+                }),
+                .green_exponential => |item| {
+                    try format(writer, "({s} - {s})^(", .{
+                        coordinateName(item.left_slot, .left),
+                        coordinateName(item.right_slot, .right),
+                    });
+                    try renderGreenExponent(writer, scalar, consumed_tensor);
+                    try writer.writeAll(")");
+                },
+                else => return error.UnsupportedRenderedOpeTerm,
+            }
+        }
+
+        fn renderGreenExponent(writer: *TextWriter, scalar: Ope.Scalar, consumed_tensor: ?Ope.TensorAtom) !void {
+            try writer.writeAll("(");
+            try renderSignedScalar(writer, scalar);
+            if (consumed_tensor) |tensor| {
+                try writer.writeAll("*");
+                try renderTensor(writer, .boson_exp_pair_w0, tensor);
+            }
+            try writer.writeAll(")");
+        }
+
+        fn renderTensor(writer: *TextWriter, comptime case: CaseName, tensor: Ope.TensorAtom) !void {
+            switch (tensor) {
+                .none => try writer.writeAll("1"),
+                .metric => |item| try format(writer, "\\[Delta][{s}, {s}]", .{ vectorLabel(case, item.left), vectorLabel(case, item.right) }),
+                .momentum_pair => |item| try format(writer, "dot[{s}, {s}]", .{ momentumLabel(item.left), momentumLabel(item.right) }),
+                .momentum_index => |item| try format(writer, "{s}[{s}]", .{ momentumLabel(item.momentum), vectorLabel(case, item.index) }),
+            }
+        }
+
+        fn renderOutput(writer: *TextWriter, comptime case: CaseName, output: []const StoredFactor) !void {
+            try writer.writeAll("R[");
+            for (output, 0..) |factor, index| {
+                if (index != 0) try writer.writeAll(", ");
+                try renderFactor(writer, case, factor);
+            }
+            try writer.writeAll("]");
+        }
+
+        fn renderFactor(writer: *TextWriter, comptime case: CaseName, factor: StoredFactor) !void {
+            const symbol = d.symbols[d.fields[factor.field].symbol];
+            if (std.mem.eql(u8, symbol, "expX")) {
+                try format(writer, "expX[{s}, 0, 0]", .{momentumLabel(factor.labels[0])});
+            } else if (std.mem.eql(u8, symbol, "psi")) {
+                try format(writer, "\\[Psi][{s}, {}, 0]", .{ vectorLabel(case, factor.labels[0]), factor.derivative });
+            } else if (std.mem.eql(u8, symbol, "dX")) {
+                try format(writer, "dX[{s}, {}, 0]", .{ vectorLabel(case, factor.labels[0]), factor.derivative });
+            } else {
+                try format(writer, "{s}[{}, 0]", .{ symbol, factor.derivative });
+            }
+        }
+
+        fn renderScalar(writer: *TextWriter, scalar: Ope.Scalar) !void {
+            const numerator = if (scalar.numerator < 0) -scalar.numerator else scalar.numerator;
+            if (scalar.denominator != 1) try writer.writeAll("(");
+            var factors: usize = 0;
+            if (numerator != 1 or (scalar.atom_count == 0 and scalar.imaginary_power == 0)) {
+                try renderProductSeparator(writer, &factors);
+                try format(writer, "{}", .{numerator});
+            }
+            if (scalar.imaginary_power != 0) {
+                try renderProductSeparator(writer, &factors);
+                try writer.writeAll(switch (scalar.imaginary_power) {
+                    1 => "I",
+                    2 => "-1",
+                    3 => "-I",
+                    else => unreachable,
+                });
+            }
+            for (scalar.atoms[0..scalar.atom_count]) |atom| {
+                try renderProductSeparator(writer, &factors);
+                try renderScalarAtom(writer, atom);
+            }
+            if (scalar.denominator != 1) try format(writer, ")/{}", .{scalar.denominator});
+        }
+
+        fn renderSignedScalar(writer: *TextWriter, scalar: Ope.Scalar) !void {
+            if (scalar.numerator < 0) try writer.writeAll("-");
+            var abs_scalar = scalar;
+            if (abs_scalar.numerator < 0) abs_scalar.numerator = -abs_scalar.numerator;
+            try renderScalar(writer, abs_scalar);
+        }
+
+        fn renderScalarAtom(writer: *TextWriter, atom: Ope.Scalar.Atom) !void {
+            const symbol = d.symbols[atom.symbol];
+            if (std.mem.eql(u8, symbol, "alpha-prime")) {
+                try writer.writeAll("\\[Alpha]p");
+            } else {
+                try writer.writeAll(symbol);
+            }
+            if (atom.power != 1) try format(writer, "^({})", .{atom.power});
+        }
+
+        fn scalarIsOne(scalar: Ope.Scalar) bool {
+            return scalar.numerator == 1 and scalar.denominator == 1 and scalar.imaginary_power == 0 and scalar.atom_count == 0;
+        }
+
+        fn coordinateName(slot: anytype, side: anytype) []const u8 {
+            return switch (slot) {
+                .position, .holomorphic => if (side == .left) "z1" else "z2",
+                .antiholomorphic => if (side == .left) "z1b" else "z2b",
+            };
+        }
+
+        fn vectorLabel(comptime case: CaseName, label: u32) []const u8 {
+            return switch (case) {
+                .boson_dx_pair_w0 => if (label == 1) "mu" else "nu",
+                else => switch (label) {
+                    1 => "mu1",
+                    2 => "mu2",
+                    3 => "mu3",
+                    4 => "mu4",
+                    5 => "mu5",
+                    6 => "mu6",
+                    else => "mu",
+                },
+            };
+        }
+
+        fn momentumLabel(label: u32) []const u8 {
+            return switch (label) {
+                1 => "k",
+                2 => "p",
+                else => "q",
+            };
+        }
+
+        const TextWriter = struct {
+            bytes: *std.ArrayList(u8),
+            allocator: std.mem.Allocator,
+
+            pub fn writeAll(self: *@This(), data: []const u8) !void {
+                try self.bytes.appendSlice(self.allocator, data);
+            }
+        };
+
+        fn format(writer: *TextWriter, comptime fmt: []const u8, args: anytype) !void {
+            var buffer: [256]u8 = undefined;
+            const text = try std.fmt.bufPrint(&buffer, fmt, args);
+            try writer.writeAll(text);
+        }
+    };
+}
+
+fn render(comptime case: CaseName, allocator: std.mem.Allocator, comptime d: anytype, comptime Kernel: type, left_terms: []const Ope.Monomial, right_terms: []const Ope.Monomial, projection: Ope.Projection) ![]const u8 {
+    var sink = ExpressionCollector(d, 4096){};
+    try Kernel.opeProjected(.{ .terms = left_terms }, .{ .terms = right_terms }, projection, &sink);
+    return sink.render(case, allocator);
+}
+
+fn addScalar(left: *Ope.Scalar, right: Ope.Scalar) !void {
+    if (left.imaginary_power != right.imaginary_power or left.atom_count != right.atom_count) return error.IncompatibleScalar;
+    for (left.atoms[0..left.atom_count], right.atoms[0..right.atom_count]) |a, b| {
+        if (a.symbol != b.symbol or a.power != b.power) return error.IncompatibleScalar;
+    }
+    const left_num = try std.math.mul(i64, left.numerator, right.denominator);
+    const right_num = try std.math.mul(i64, right.numerator, left.denominator);
+    left.numerator = try std.math.add(i64, left_num, right_num);
+    left.denominator = try std.math.mul(i64, left.denominator, right.denominator);
+    normalizeScalar(left);
+}
+
+fn normalizeScalar(value: *Ope.Scalar) void {
+    if (value.numerator == 0) {
+        value.denominator = 1;
+        value.imaginary_power = 0;
+        value.atom_count = 0;
+        return;
+    }
+    if (value.denominator < 0) {
+        value.numerator = -value.numerator;
+        value.denominator = -value.denominator;
+    }
+    const divisor: i64 = @intCast(std.math.gcd(absInt(value.numerator), absInt(value.denominator)));
+    value.numerator = @divExact(value.numerator, divisor);
+    value.denominator = @divExact(value.denominator, divisor);
+}
+
+fn absInt(value: i64) u64 {
+    if (value == std.math.minInt(i64)) return @as(u64, 1) << 63;
+    return if (value < 0) @intCast(-value) else @intCast(value);
+}
+
+fn measureStream(comptime case: CaseName, sample_count: usize, comptime Kernel: type, left_terms: []const Ope.Monomial, right_terms: []const Ope.Monomial, projection: Ope.Projection) !Result {
+    var samples_storage: [101]u128 = undefined;
+    if (sample_count == 0 or sample_count > samples_storage.len) return error.InvalidSampleCount;
+    var final_terms: usize = 0;
+    var final_hash: u64 = 0;
+    for (samples_storage[0..sample_count]) |*sample| {
+        var sink = Ope.CountHashSink{};
+        const start = nowNs();
+        try Kernel.opeProjected(.{ .terms = left_terms }, .{ .terms = right_terms }, projection, &sink);
+        sample.* = nowNs() - start;
+        final_terms = sink.term_count;
+        final_hash = sink.hash;
+    }
+    std.mem.sort(u128, samples_storage[0..sample_count], {}, struct {
+        fn lessThan(_: void, a: u128, b: u128) bool {
+            return a < b;
+        }
+    }.lessThan);
+    return .{
+        .name = name(case),
+        .family = family(case),
+        .form = .stream,
+        .raw_terms = final_terms,
+        .terms = final_terms,
+        .hash = final_hash,
+        .median_ns = samples_storage[sample_count / 2],
+        .samples = sample_count,
+        .heap_bytes = 0,
+        .collector_capacity = 0,
+        .collector_bytes = 0,
+    };
+}
+
+fn measureCollect(comptime case: CaseName, sample_count: usize, comptime Kernel: type, left_terms: []const Ope.Monomial, right_terms: []const Ope.Monomial, projection: Ope.Projection) !Result {
+    var samples_storage: [101]u128 = undefined;
+    if (sample_count == 0 or sample_count > samples_storage.len) return error.InvalidSampleCount;
+    var final_raw_terms: usize = 0;
+    var final_terms: usize = 0;
+    var final_hash: u64 = 0;
+    const Collector = Ope.FixedCollector(collectCapacity(case));
+    const collector_capacity = collectCapacity(case);
+    const collector_bytes = @sizeOf(Collector);
+    for (samples_storage[0..sample_count]) |*sample| {
+        var sink = Collector{};
+        const start = nowNs();
+        try Kernel.opeProjected(.{ .terms = left_terms }, .{ .terms = right_terms }, projection, &sink);
+        sample.* = nowNs() - start;
+        sink.finish();
+        final_raw_terms = sink.raw_term_count;
+        final_terms = sink.term_count;
+        final_hash = sink.hash;
+    }
+    std.mem.sort(u128, samples_storage[0..sample_count], {}, struct {
+        fn lessThan(_: void, a: u128, b: u128) bool {
+            return a < b;
+        }
+    }.lessThan);
+    return .{
+        .name = name(case),
+        .family = family(case),
+        .form = .collect,
+        .raw_terms = final_raw_terms,
+        .terms = final_terms,
+        .hash = final_hash,
+        .median_ns = samples_storage[sample_count / 2],
+        .samples = sample_count,
+        .heap_bytes = 0,
+        .collector_capacity = collector_capacity,
+        .collector_bytes = collector_bytes,
+    };
+}
+
+fn collectCapacity(comptime case: CaseName) usize {
+    return switch (case) {
+        .bc_1_pair_w0, .bc_derivative_pair_w0, .bc_2_pairs_w0, .bc_6_pairs_w0 => 4,
+        .fermion_1_pair_w0, .boson_dx_pair_w0, .boson_exp_pair_w0 => 4,
+        .fermion_2_pairs_w0 => 8,
+        .fermion_6_pairs_w0 => 1024,
+        .boson_dx_6_pairs_w0 => 1024,
+    };
+}
+
+fn nowNs() u128 {
+    var ts: std.os.linux.timespec = undefined;
+    _ = std.os.linux.clock_gettime(.MONOTONIC, &ts);
+    return @as(u128, @intCast(ts.sec)) * std.time.ns_per_s + @as(u128, @intCast(ts.nsec));
+}
+#+end_src
+
+* Zig Runner
+
+#+begin_src zig :tangle ../../../benchmarks/ope_projected_mathematica_compare.zig :mkdirp yes
+const std = @import("std");
+const cases = @import("ope-cases");
+
+const max_samples = 101;
+
+const Options = struct {
+    case_filter: ?[]const u8 = null,
+    family_filter: ?cases.Family = null,
+    form: ?cases.Form = null,
+    emit_json: ?[]const u8 = null,
+    emit_expression: bool = false,
+    verify_json: ?[]const u8 = null,
+    samples: usize = 11,
+};
+
+pub fn main(init: std.process.Init) !void {
+    const options = try parseOptions(init.minimal.args);
+    if (options.samples == 0 or options.samples > max_samples or (options.samples & 1) == 0) return error.InvalidSampleCount;
+    const form = options.form orelse if (options.verify_json != null) cases.Form.collect else cases.Form.stream;
+    if (options.verify_json != null and form != .collect) return error.InvalidBenchmarkForm;
+
+    var file: ?std.Io.File = null;
+    if (options.emit_json) |path| file = try createFile(init.io, path);
+    defer if (file) |f| f.close(init.io);
+
+    const oracle_json = if (options.verify_json) |path| try readFileAlloc(init.io, path, init.arena.allocator()) else null;
+
+    try writeBytes(init.io, file, "[\n");
+    var emitted: usize = 0;
+    const allocator = init.arena.allocator();
+    try maybeRun(.bc_1_pair_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.bc_derivative_pair_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.bc_2_pairs_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.bc_6_pairs_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.fermion_1_pair_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.fermion_2_pairs_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.fermion_6_pairs_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.boson_dx_pair_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.boson_dx_6_pairs_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try maybeRun(.boson_exp_pair_w0, options, form, init.io, file, oracle_json, allocator, &emitted);
+    try writeBytes(init.io, file, "]\n");
+}
+
+fn maybeRun(comptime case: cases.CaseName, options: Options, form: cases.Form, io: std.Io, file: ?std.Io.File, oracle_json: ?[]const u8, allocator: std.mem.Allocator, emitted: *usize) !void {
+    if (options.case_filter) |filter| {
+        if (!std.mem.eql(u8, filter, cases.name(case))) return;
+    }
+    if (options.family_filter) |filter| {
+        if (filter != cases.family(case)) return;
+    }
+
+    const result = try cases.run(case, options.samples, form);
+    const expression = if (options.emit_expression) try cases.renderExpression(case, allocator) else null;
+    if (emitted.* != 0) try writeBytes(io, file, ",\n");
+    emitted.* += 1;
+    try writeResult(io, file, result, expression);
+    if (oracle_json) |json| try verifyAgainstOracle(json, result);
+    std.debug.print(
+        "case={s} family={s} form={s} raw_terms={} terms={} hash={x} median_ns={} samples={} heap_bytes={} collector_bytes={}\n",
+        .{ result.name, @tagName(result.family), @tagName(result.form), result.raw_terms, result.terms, result.hash, result.median_ns, result.samples, result.heap_bytes, result.collector_bytes },
+    );
+}
+
+fn writeResult(io: std.Io, file: ?std.Io.File, result: cases.Result, expression: ?[]const u8) !void {
+    var buffer: [768]u8 = undefined;
+    const line = try std.fmt.bufPrint(
+        &buffer,
+        "  {{\"case\":\"{s}\",\"family\":\"{s}\",\"form\":\"{s}\",\"zig_raw_term_count\":{},\"zig_term_count\":{},\"zig_hash\":\"{x}\",\"zig_median_ns\":{},\"samples\":{},\"zig_heap_bytes\":{},\"zig_collector_capacity\":{},\"zig_collector_bytes\":{}",
+        .{ result.name, @tagName(result.family), @tagName(result.form), result.raw_terms, result.terms, result.hash, result.median_ns, result.samples, result.heap_bytes, result.collector_capacity, result.collector_bytes },
+    );
+    try writeBytes(io, file, line);
+    if (expression) |value| {
+        try writeBytes(io, file, ",\"zig_expression\":");
+        try writeJsonString(io, file, value);
+    }
+    try writeBytes(io, file, "}");
+}
+
+fn writeJsonString(io: std.Io, file: ?std.Io.File, value: []const u8) !void {
+    try writeBytes(io, file, "\"");
+    for (value) |byte| {
+        switch (byte) {
+            '"' => try writeBytes(io, file, "\\\""),
+            '\\' => try writeBytes(io, file, "\\\\"),
+            '\n' => try writeBytes(io, file, "\\n"),
+            '\r' => try writeBytes(io, file, "\\r"),
+            '\t' => try writeBytes(io, file, "\\t"),
+            else => try writeBytes(io, file, (&[_]u8{byte})[0..]),
+        }
+    }
+    try writeBytes(io, file, "\"");
+}
+
+fn writeBytes(io: std.Io, file: ?std.Io.File, bytes: []const u8) !void {
+    if (file) |f| {
+        try f.writeStreamingAll(io, bytes);
+    }
+}
+
+fn createFile(io: std.Io, path: []const u8) !std.Io.File {
+    if (std.fs.path.isAbsolute(path)) return std.Io.Dir.createFileAbsolute(io, path, .{ .truncate = true });
+    return std.Io.Dir.cwd().createFile(io, path, .{ .truncate = true });
+}
+
+fn openFile(io: std.Io, path: []const u8) !std.Io.File {
+    if (std.fs.path.isAbsolute(path)) return std.Io.Dir.openFileAbsolute(io, path, .{});
+    return std.Io.Dir.cwd().openFile(io, path, .{});
+}
+
+fn readFileAlloc(io: std.Io, path: []const u8, allocator: std.mem.Allocator) ![]const u8 {
+    if (!std.fs.path.isAbsolute(path)) return std.Io.Dir.cwd().readFileAlloc(io, path, allocator, .limited(16 * 1024 * 1024));
+    const dir_name = std.fs.path.dirname(path) orelse "/";
+    const base_name = std.fs.path.basename(path);
+    const dir = try std.Io.Dir.openDirAbsolute(io, dir_name, .{});
+    defer dir.close(io);
+    return dir.readFileAlloc(io, base_name, allocator, .limited(16 * 1024 * 1024));
+}
+
+fn verifyAgainstOracle(json: []const u8, result: cases.Result) !void {
+    if (result.form != .collect) return error.InvalidBenchmarkForm;
+    const block = findCaseBlock(json, result.name) orelse return error.MissingOracleCase;
+    const math_terms = try parseUnsignedField(block, "mathematica_term_count");
+    if (math_terms != result.terms) {
+        std.debug.print("term-count gate failed case={s} mathematica={} zig={}\n", .{ result.name, math_terms, result.terms });
+        return error.OpeOracleTermMismatch;
+    }
+    if (parseOptionalBoolField(block, "zig_expression_present")) |present| {
+        const proportional = parseOptionalBoolField(block, "zig_expression_proportional") orelse false;
+        if (present and !proportional) {
+            std.debug.print("expression gate failed case={s}: Mathematica did not find proportional equality\n", .{result.name});
+            return error.OpeOracleExpressionMismatch;
+        }
+    }
+    const math_s = try parseFloatField(block, "mathematica_median_s");
+    const zig_s = @as(f64, @floatFromInt(result.median_ns)) / 1_000_000_000.0;
+    if (math_s > 1.0 and zig_s > math_s / 10_000.0) {
+        std.debug.print("speed gate failed case={s} mathematica_s={d} zig_s={d}\n", .{ result.name, math_s, zig_s });
+        return error.OpeOracleSpeedMismatch;
+    }
+}
+
+fn findCaseBlock(json: []const u8, name: []const u8) ?[]const u8 {
+    var needle_storage: [128]u8 = undefined;
+    const needle = std.fmt.bufPrint(&needle_storage, "\"case\":\"{s}\"", .{name}) catch return null;
+    const case_index = std.mem.indexOf(u8, json, needle) orelse return null;
+    var start = case_index;
+    while (start > 0 and json[start] != '{') : (start -= 1) {}
+    var end = case_index;
+    while (end < json.len and json[end] != '}') : (end += 1) {}
+    if (end >= json.len or json[start] != '{') return null;
+    return json[start .. end + 1];
+}
+
+fn parseUnsignedField(block: []const u8, comptime field: []const u8) !usize {
+    const value = fieldValue(block, field) orelse return error.MissingOracleField;
+    return std.fmt.parseUnsigned(usize, value, 10);
+}
+
+fn parseFloatField(block: []const u8, comptime field: []const u8) !f64 {
+    const value = fieldValue(block, field) orelse return error.MissingOracleField;
+    return std.fmt.parseFloat(f64, value);
+}
+
+fn parseOptionalBoolField(block: []const u8, comptime field: []const u8) ?bool {
+    const value = fieldValue(block, field) orelse return null;
+    if (std.mem.eql(u8, value, "true")) return true;
+    if (std.mem.eql(u8, value, "false")) return false;
+    return null;
+}
+
+fn fieldValue(block: []const u8, comptime field: []const u8) ?[]const u8 {
+    const needle = "\"" ++ field ++ "\":";
+    const raw_start = std.mem.indexOf(u8, block, needle) orelse return null;
+    var start = raw_start + needle.len;
+    while (start < block.len and (block[start] == ' ' or block[start] == '\t')) : (start += 1) {}
+    var end = start;
+    while (end < block.len and block[end] != ',' and block[end] != '}') : (end += 1) {}
+    return std.mem.trim(u8, block[start..end], " \t\n\r");
+}
+
+fn parseOptions(raw_args: std.process.Args) !Options {
+    var options = Options{};
+    var args = std.process.Args.Iterator.init(raw_args);
+    _ = args.next();
+    while (args.next()) |arg| {
+        if (std.mem.eql(u8, arg, "--case")) {
+            options.case_filter = args.next() orelse return error.MissingArgument;
+        } else if (std.mem.eql(u8, arg, "--family")) {
+            options.family_filter = try parseFamily(args.next() orelse return error.MissingArgument);
+        } else if (std.mem.eql(u8, arg, "--form")) {
+            options.form = try parseForm(args.next() orelse return error.MissingArgument);
+        } else if (std.mem.eql(u8, arg, "--emit-json")) {
+            options.emit_json = args.next() orelse return error.MissingArgument;
+        } else if (std.mem.eql(u8, arg, "--emit-expression")) {
+            options.emit_expression = true;
+        } else if (std.mem.eql(u8, arg, "--verify-json")) {
+            options.verify_json = args.next() orelse return error.MissingArgument;
+        } else if (std.mem.eql(u8, arg, "--samples")) {
+            options.samples = try std.fmt.parseUnsigned(usize, args.next() orelse return error.MissingArgument, 10);
+        } else {
+            return error.UnknownArgument;
+        }
+    }
+    return options;
+}
+
+fn parseFamily(raw: []const u8) !cases.Family {
+    if (std.mem.eql(u8, raw, "bc")) return .bc;
+    if (std.mem.eql(u8, raw, "fermion")) return .fermion;
+    if (std.mem.eql(u8, raw, "boson")) return .boson;
+    return error.UnknownFamily;
+}
+
+fn parseForm(raw: []const u8) !cases.Form {
+    if (std.mem.eql(u8, raw, "stream")) return .stream;
+    if (std.mem.eql(u8, raw, "collect")) return .collect;
+    return error.UnknownForm;
+}
+#+end_src
+
+* Mathematica Oracle
+
+#+begin_src wolfram :tangle ../../../scripts/benchmark_ope_projected.wls :mkdirp yes
+$Path = Prepend[$Path, FileNameJoin[{Directory[], "prototype-string-code"}]];
+Needs["StringCode`"];
+StringCode`InitStringCode[
+  <|"theory" -> "TypeII", "CFT" -> "FlatSpace",
+    "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>
+];
+
+parseArgs[raw_] := Module[
+  {opts = <|"case" -> All, "family" -> All, "samples" -> 3,
+      "emit-json" -> "/tmp/string-code-mathematica-ope.json",
+      "verify-zig-json" -> None|>,
+   i = 1},
+  While[i <= Length[raw],
+    Switch[raw[[i]],
+      "--case", i++; opts["case"] = raw[[i]],
+      "--family", i++; opts["family"] = raw[[i]],
+      "--samples", i++; opts["samples"] = ToExpression[raw[[i]], InputForm],
+      "--emit-json", i++; opts["emit-json"] = raw[[i]],
+      "--verify-zig-json", i++; opts["verify-zig-json"] = raw[[i]],
+      _, Print["unknown argument: ", raw[[i]]]; Quit[2]
+    ];
+    i++;
+  ];
+  opts
+];
+
+termsCount[expr_] := Module[{expanded = Expand[expr]},
+  If[expanded === 0, 0, If[Head[expanded] === Plus, Length[List @@ expanded], 1]]
+];
+
+canonicalHash[expr_] := IntegerString[
+  Hash[ToString[InputForm[Expand[expr]]], "SHA256"],
+  16,
+  64
+];
+
+rowValue[row_, key_] := Lookup[If[AssociationQ[row], row, Association[row]], key, Missing[key]];
+
+numericOverallFactor[actual_, candidate_] := Module[
+  {expandedActual = Expand[actual], expandedCandidate = Expand[candidate],
+   ratio},
+  Which[
+    expandedActual === 0 && expandedCandidate === 0, 1,
+    expandedActual === 0 || expandedCandidate === 0, Missing["not-proportional"],
+    True,
+      ratio = Quiet[FullSimplify[expandedActual/expandedCandidate]];
+      If[TrueQ[NumericQ[N[ratio]]] &&
+         TrueQ[FullSimplify[Expand[expandedActual - ratio expandedCandidate] === 0]],
+        ratio,
+        Missing["not-proportional"]
+      ]
+  ]
+];
+
+zigVerificationFields[row_, expr_, zigByCase_] := Module[
+  {zigRow, zigExpressionString, zigExpression, exact, factor},
+  zigRow = Lookup[zigByCase, row["case"], Missing["zig-case"]];
+  If[MissingQ[zigRow], Return[<|"zig_expression_present" -> False|>]];
+  zigExpressionString = rowValue[zigRow, "zig_expression"];
+  If[MissingQ[zigExpressionString], Return[<|"zig_expression_present" -> False|>]];
+  zigExpression = ToExpression[zigExpressionString, InputForm];
+  exact = TrueQ[FullSimplify[Expand[expr - zigExpression] === 0]];
+  factor = numericOverallFactor[expr, zigExpression];
+  <|
+    "zig_expression_present" -> True,
+    "zig_expression_equal" -> exact,
+    "zig_expression_proportional" -> ! MissingQ[factor],
+    "zig_expression_factor" -> If[MissingQ[factor], "not-proportional", ToString[InputForm[factor]]]
+  |>
+];
+
+timedOPEProjectedSeconds[code_, samples_Integer] := Module[{times},
+  times = Table[First@AbsoluteTiming[ToExpression[code, InputForm]], {samples}];
+  Median[times]
+];
+
+caseRows = {
+  <|"case" -> "bc-1-pair-w0", "family" -> "bc",
+    "code" -> "OPEProjected[0,0][R[b[0,z1]],R[c[0,z2]]]"|>,
+  <|"case" -> "bc-derivative-pair-w0", "family" -> "bc",
+    "code" -> "OPEProjected[0,0][R[b[1,z1]],R[c[2,z2]]]"|>,
+  <|"case" -> "bc-2-pairs-w0", "family" -> "bc",
+    "code" -> "OPEProjected[0,0][R[b[0,z1],b[1,z1]],R[c[0,z2],c[1,z2]]]"|>,
+  <|"case" -> "bc-6-pairs-w0", "family" -> "bc",
+    "code" -> "OPEProjected[0,0][R[b[0,z1],b[1,z1],b[2,z1],b[3,z1],b[4,z1],b[5,z1]],R[c[0,z2],c[1,z2],c[2,z2],c[3,z2],c[4,z2],c[5,z2]]]"|>,
+  <|"case" -> "fermion-1-pair-w0", "family" -> "fermion",
+    "code" -> "OPEProjected[0,0][R[\[Psi][mu1,0,z1]],R[\[Psi][mu1,1,z2]]]"|>,
+  <|"case" -> "fermion-2-pairs-w0", "family" -> "fermion",
+    "code" -> "OPEProjected[0,0][R[\[Psi][mu1,0,z1],\[Psi][mu2,1,z1]],R[\[Psi][mu1,2,z2],\[Psi][mu2,3,z2]]]"|>,
+  <|"case" -> "fermion-6-pairs-w0", "family" -> "fermion",
+    "code" -> "OPEProjected[0,0][R[\[Psi][mu1,0,z1],\[Psi][mu2,0,z1],\[Psi][mu3,0,z1],\[Psi][mu4,0,z1],\[Psi][mu5,0,z1],\[Psi][mu6,0,z1]],R[\[Psi][mu1,0,z2],\[Psi][mu2,0,z2],\[Psi][mu3,0,z2],\[Psi][mu4,0,z2],\[Psi][mu5,0,z2],\[Psi][mu6,0,z2]]]"|>,
+  <|"case" -> "boson-dx-pair-w0", "family" -> "boson",
+    "code" -> "OPEProjected[0,0][R[dX[mu,1,z1]],R[dX[nu,3,z2]]]"|>,
+  <|"case" -> "boson-dx-6-pairs-w0", "family" -> "boson",
+    "code" -> "OPEProjected[0,0][R[dX[mu1,0,z1],dX[mu2,0,z1],dX[mu3,0,z1],dX[mu4,0,z1],dX[mu5,0,z1],dX[mu6,0,z1]],R[dX[mu1,0,z2],dX[mu2,0,z2],dX[mu3,0,z2],dX[mu4,0,z2],dX[mu5,0,z2],dX[mu6,0,z2]]]"|>,
+  <|"case" -> "boson-exp-pair-w0", "family" -> "boson",
+    "code" -> "OPEProjected[0,0][R[expX[k,z1,z1b]],R[expX[p,z2,z2b]]]"|>
+};
+
+allArgs = Join[$CommandLine, $ScriptCommandLine];
+firstFlag = FirstPosition[
+  allArgs,
+  "--case" | "--family" | "--samples" | "--emit-json" | "--verify-zig-json",
+  Missing["NotFound"]
+];
+rawArgs = If[MissingQ[firstFlag], {}, allArgs[[firstFlag[[1]] ;;]]];
+opts = parseArgs[rawArgs];
+selected = Select[caseRows,
+   (opts["case"] === All || #["case"] === opts["case"]) &&
+     (opts["family"] === All || #["family"] === opts["family"]) &];
+zigRows = If[opts["verify-zig-json"] === None, {}, Import[opts["verify-zig-json"], "JSON"]];
+zigByCase = Association[
+  Table[rowValue[row, "case"] -> row, {row, zigRows}]
+];
+
+results = Table[
+   Module[{expr, seconds},
+    (* Timing intentionally covers only OPEProjected evaluation.  Expansion,
+       hashing, import of Zig output, and proportional equality checks are
+       oracle work and are computed after this value is fixed. *)
+    seconds = timedOPEProjectedSeconds[row["code"], opts["samples"]];
+    expr = ToExpression[row["code"], InputForm];
+    Join[
+    <|
+      "case" -> row["case"],
+      "family" -> row["family"],
+      "mathematica_term_count" -> termsCount[expr],
+      "mathematica_hash" -> canonicalHash[expr],
+      "mathematica_median_s" -> seconds,
+      "mathematica_timed_operation" -> "OPEProjected only",
+      "comparison_timed_in_mathematica_median" -> False,
+      "samples" -> opts["samples"],
+      "mathematica_version" -> $Version,
+      "prototype_path" -> FileNameJoin[{Directory[], "prototype-string-code"}]
+    |>,
+    If[opts["verify-zig-json"] === None, <||>, zigVerificationFields[row, expr, zigByCase]]
+    ]
+   ],
+   {row, selected}
+];
+
+Export[opts["emit-json"], results, "JSON"];
+Print["wrote ", opts["emit-json"], " cases=", Length[results]];
+Quit[0];
+#+end_src

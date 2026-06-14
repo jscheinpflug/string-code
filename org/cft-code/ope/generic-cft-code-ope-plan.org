@@ -1,0 +1,327 @@
+:PROPERTIES:
+:ID:       20260614T142414.448696
+:END:
+#+title: Generic CFT-Code OPE Path Plan
+
+* Goal
+
+Implement the generic CFT-Code OPE path in Zig as a theory-agnostic local
+expansion engine.  The target behavior is the expanded, non-compact path of the
+CFT-Code prototypes and the semantic target is Mathematica
+=OPEProjected=.  The performance target is strict:
+
+- every benchmark where Mathematica takes more than =1s= must run at least
+  =10 000x= faster in Zig;
+- every Mathematica-comparison benchmark must agree with Mathematica after the
+  on-demand collection/rendering step, exactly or up to a documented overall
+  numeric normalization factor;
+- the output representation must remain explicit: a coefficient and local
+  coordinate factor multiplied by an output operator, not a determinant or
+  sector-specific compressed object.
+
+The implementation belongs under [[id:20260603T094112.928043][OPE]].  It should use the same coarse theory
+data style as the existing CFT descriptors: fields, quantum numbers, local Wick
+rules, derivative rules, normal-ordering order/sign rules, and basis queries.
+No OPE procedure may branch on names such as =bc=, =free fermion=, or =free
+boson=.
+
+* Interface boundary
+
+The public OPE interface should be small:
+
+- a compile-time kernel constructor parameterized by a theory descriptor and
+  limits;
+- a streaming =opeProjected= routine for two expanded input expressions;
+- an optional collector that combines equal expanded RHS terms;
+- a benchmark-only canonical serializer for comparison against Mathematica.
+
+The last two items are sinks requested by the caller.  The default OPE path is
+like the correlator DSL path: it streams explicit primitive events and does not
+materialize a symbolic expression unless a collector or renderer is attached.
+
+The OPE module may ask the theory for:
+
+- primitive field ids, statistics, weights, charges, and derivative bounds;
+- local Wick rules for ordered field pairs, including derivative action on the
+  pole kernel;
+- normal-ordering comparison and sign rules;
+- Taylor coefficients for moving uncontracted fields to the output point;
+- a basis-generation predicate for allowed RHS quantum numbers and level.
+
+The OPE module must not ask for:
+
+- named-theory special cases;
+- zero-mode sector internals;
+- determinant shortcuts;
+- precomputed complete OPE tables for arbitrary operator pairs.
+
+* Runtime algorithm
+
+The generic path expands each pair of input monomials by enumerating local
+Wick branches.  A branch is the choice of which primitive factors contract
+across the two inputs and which primitive factors survive into the RHS normal
+ordered operator.
+
+For each input monomial pair:
+
+1. Compute the requested output charge, weight window, and level window.
+2. Walk cross-contractions in a fixed field order.
+3. For every contracted pair, multiply the branch by the Wick pole kernel with
+   derivative factors already represented as compact rule-table references.
+4. For every uncontracted input factor, Taylor expand only to the remaining
+   requested level and append the shifted derivative field to a branch-local
+   output word.
+5. Normal order the output word incrementally, applying the descriptor's
+   statistics and sign rules.
+6. Reject a branch as soon as the partial output word cannot reach an allowed
+   RHS charge/level.
+7. Emit one explicit RHS term:
+
+#+begin_example
+coefficient * local_pole_factor * normal_ordered_output_operator
+#+end_example
+
+The algorithm therefore computes only local OPE data through the requested
+projection level.  It does not build a larger object and then prune it.  The
+Taylor loop is bounded by the residual output level, not by a global expansion
+limit of an intermediate expression.
+
+* Comptime data
+
+The speed-critical design decision is to move descriptor interpretation to
+comptime while keeping the runtime branch walk generic.
+
+The kernel constructor should build these lean tables:
+
+- =field_info=: weight numerator/denominator if needed, statistics bit,
+  charge vector index, and sort key;
+- =pair_rule_matrix=: dense =field_count * field_count= lookup into local Wick
+  rules, with =none= for non-contracting pairs;
+- =derived_pair_rules=: derivative-shifted pole data up to the configured
+  derivative limit, stored as small coefficient/pole records;
+- =normal_order_table=: swap sign and canonical order outcome for primitive
+  adjacent fields;
+- =charge_delta_table=: packed charge contribution of each primitive derivative
+  field;
+- =taylor_table=: coefficients for derivative-field translation around the
+  output point up to the configured projection level;
+- =basis_filter_tables=: fast level/charge admissibility masks used for early
+  branch pruning;
+- =operator_word_layout=: fixed-capacity scratch layout for branch-local output
+  words.
+
+The runtime should not allocate per branch.  It should use stack or caller-owned
+scratch for:
+
+- contraction mark bits;
+- branch scalar and pole factors;
+- branch-local output word;
+- recursion stack frames;
+- collector insertion scratch.
+
+The collector may allocate once for its sparse table, but the streaming API
+must allow benchmarks and later solvers to consume terms without collecting.
+
+* Output representation
+
+Each streamed term is explicit and close to the natural mathematical object:
+
+#+begin_example
+Term {
+  scalar coefficient,
+  pole/local-coordinate factor,
+  rhs operator word,
+  rhs charge/level metadata,
+}
+#+end_example
+
+This is intentionally not a hyper-compressed sector representation.  The core
+stream still uses compact records instead of textual symbolic syntax: ids for
+primitive fields, packed derivative orders, and small references to comptime
+rule records.  That is bookkeeping, not an algebraic shortcut.
+
+The correlator-style rendered result is produced only on demand by a sink.  A
+plain streaming sink counts/hashes every emitted RHS term.  A collector sink
+combines equal structural RHS terms and is the form used when comparing against
+Mathematica's already-expanded symbolic =OPEProjected= output.
+
+* Keeping the code small
+
+The implementation should be one generic engine plus a small descriptor adapter.
+Avoid a second engine per theory.
+
+Code-size controls:
+
+- specialize by descriptor and numeric limits, not by operator expression;
+- keep the branch walker iterative or shallow-recursive with shared procedures;
+- use rule tables instead of generated source for every field pair;
+- keep benchmark serialization outside the public runtime API;
+- expose collectors as optional helpers rather than embedding accumulation into
+  the core walker.
+
+This gives comptime the data layout benefits without producing a large amount
+of generated Zig code.
+
+* Benchmark oracle
+
+Benchmarks must compare against actual Mathematica runs, not estimates.  The
+benchmark harness should run =WolframKernel= or =math= with a script that loads
+the prototype package, evaluates =OPEProjected=, fully expands the result, and
+exports:
+
+- canonical expanded term count;
+- canonical structural hash;
+- optional sample of the first and last terms for debugging;
+- median Mathematica wall time;
+- Mathematica version and prototype commit/path.
+
+The Zig side should run the same case through the generic path and export:
+
+- raw streamed RHS term count;
+- collected RHS term count when the on-demand collector is selected;
+- canonical structural hash;
+- median runtime excluding process startup;
+- setup time separately;
+- peak allocator bytes for collector benchmarks;
+- emitted branch count and collected term count.
+
+The equality gate is:
+
+#+begin_example
+mathematica_term_count == zig_term_count
+mathematica_expression == factor * zig_expression
+#+end_example
+
+The factor must be numeric and recorded in the oracle JSON.  This keeps
+descriptor fixtures free to use their own coarse normalization while still
+checking the expanded operator structure.  The Mathematica median timing must
+not include expansion, hashing, importing Zig JSON, or this comparison step.
+
+The speed gate is:
+
+#+begin_example
+if mathematica_median_s > 1.0:
+    zig_median_s <= mathematica_median_s / 10_000
+#+end_example
+
+For Mathematica cases below =1s=, report the ratio but do not use them for the
+=10 000x= claim.
+
+* Benchmark cases
+
+The first benchmark suite should cover three independent theories and a range
+of operator sizes.  Each family needs small correctness cases, medium cases
+that expose branch costs, and large cases where Mathematica exceeds =1s=.
+
+** =bc= system
+
+Use the expanded generic path, not determinant shortcuts.
+
+- =b(z) c(w)=;
+- =b(z) del c(w)=;
+- =del b(z) del^2 c(w)=;
+- =:b del b:(z) :c del c:(w)=;
+- =:b del b del^2 b:(z) :c del c del^2 c:(w)=;
+- several =OPEProjected= calls with many =b= and =c= derivatives, chosen so
+  Mathematica crosses =1s=.
+
+These cases stress signs, nilpotent fermionic normal ordering, and many
+possible cross-contractions.
+
+** Free fermion
+
+- =psi(z) psi(w)=;
+- =del psi(z) del^3 psi(w)=;
+- =:psi del psi:(z) :psi del^2 psi:(w)=;
+- =:psi del psi del^2 psi:(z) :psi del^3 psi del^4 psi:(w)=;
+- multi-species cases if the descriptor exposes species labels.
+
+These cases isolate fermionic signs without ghost-number structure.
+
+** Free boson
+
+- =del X(z) del X(w)=;
+- =del^2 X(z) del^3 X(w)=;
+- =:del X del^2 X:(z) :del X del^3 X:(w)=;
+- exponential cases =V_k(z) V_p(w)= with momentum conservation in the
+  descriptor-level rules;
+- mixed derivative/exponential cases, for example
+  =:del X V_k:(z) :del^2 X V_p:(w)=.
+
+These cases stress always-nonzero bosonic branches, higher derivative pole
+rules, Taylor expansion, and momentum metadata.
+
+** Mixed string-sector cases
+
+After the three primitive families pass, add cases combining matter, fermion,
+and ghost sectors through the same generic engine.  The expected result is that
+the OPE module still sees only a larger descriptor and larger rule matrices.
+
+* Benchmark layout
+
+Add these files:
+
+- =benchmarks/ope_projected_mathematica_compare.zig= for Zig timing and
+  canonical export;
+- =benchmarks/ope_projected_cases.zig= for shared case definitions;
+- =scripts/benchmark_ope_projected.wls= for Mathematica timing and export;
+- =org/cft-code/benchmarks/ope-projected-mathematica.org= for the literate
+  benchmark documentation and gates.
+
+The benchmark runner should support:
+
+- =--case <name>=;
+- =--family bc|fermion|boson|mixed=;
+- =--emit-json <path>=;
+- =--verify-json <mathematica-json>=;
+- =--samples <n>=.
+
+The report should sort cases by Mathematica time and display only ratios from
+actual measured pairs.
+
+* Expected big wins
+
+The generic CFT-Code path can be improved while staying explicit:
+
+- drive Taylor expansion from the requested projection level and the partial
+  branch level, not from a larger object;
+- prune branches using charge and level masks before constructing the full RHS
+  word;
+- precompute derivative Wick kernels as rule-table records rather than
+  differentiating pole expressions at runtime;
+- normal order incrementally using adjacent-swap tables and a small word buffer;
+- stream terms directly to a sink so benchmark counting does not allocate;
+- collect only when the caller asks for combined output.
+
+These same ideas would also improve the prototype generic path: it can avoid
+Taylor coefficients for levels that are impossible after the current branch, and
+it can use branch-local admissibility masks before materializing expanded
+operator objects.
+
+* Milestones
+
+1. Define the descriptor adapter and compile-time rule tables.
+2. Implement the streaming branch walker for primitive derivative fields.
+3. Add explicit term emission and a sparse collector.
+4. Add =bc= and free-fermion correctness cases against hand-checkable outputs.
+5. Add Mathematica export/import comparison and canonical hashes.
+6. Add free-boson derivative cases.
+7. Add exponential/momentum cases.
+8. Add large Mathematica-backed benchmarks and enforce the =10 000x= gate only
+   for cases with measured Mathematica median above =1s=.
+9. Profile the largest failing cases and move only descriptor interpretation,
+   derivative kernels, Taylor coefficients, or pruning masks to comptime.
+
+* Acceptance criteria
+
+The feature is accepted when:
+
+- all benchmark families match Mathematica by expanded count and on-demand
+  rendered expression, exactly or up to a documented numeric factor;
+- at least one large case in each of =bc=, free fermion, and free boson has
+  Mathematica median above =1s=;
+- every above-=1s= case is at least =10 000x= faster in Zig;
+- streaming benchmarks allocate zero bytes per emitted branch;
+- collected-output benchmarks report bounded peak memory proportional to final
+  distinct expanded terms;
+- the OPE runtime contains no named-theory branches.

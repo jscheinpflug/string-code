@@ -1,0 +1,123 @@
+:PROPERTIES:
+:ID:       20260614T180200.000000
+:END:
+#+title: OPEProjected Mathematica Benchmark
+
+This note tracks the generic expanded [[id:20260603T094112.928043][OPE]] benchmark against the Mathematica
+=OPEProjected= oracle.
+
+The default Zig runner uses the correlator-style stream sink.  It counts and
+hashes each explicit RHS term as it is emitted, without materializing a symbolic
+expression.  The emitted JSON records =zig_heap_bytes=, =zig_collector_capacity=,
+and =zig_collector_bytes= so the memory mode is visible in the artifact:
+
+#+begin_src sh
+zig build --global-cache-dir /tmp/zig-global ope-projected-compare \
+  -Dallow-stale-generated=true -Doptimize=ReleaseFast -- \
+  --samples 5 --emit-json /tmp/ope-release.json
+#+end_src
+
+The on-demand collected form is selected explicitly with =--form collect=, or
+implicitly by =--verify-json=.  This is the form comparable to Mathematica,
+because =Expand[OPEProjected[...]]= has already combined equal symbolic terms.
+
+The optional =--emit-expression= Zig mode renders the collected result as a
+Mathematica-readable expression.  Passing that file to the Mathematica script
+with =--verify-zig-json= checks exact equality, or equality up to an overall
+numeric factor for fixtures whose coarse descriptor normalization deliberately
+differs from the TypeII Ashoke prototype convention.
+
+The Mathematica oracle is:
+
+#+begin_src sh
+WolframKernel -script scripts/benchmark_ope_projected.wls \
+  --samples 1 --emit-json /tmp/math-ope-all.json
+#+end_src
+
+The Mathematica median times only =OPEProjected= evaluation.  Expansion,
+hashing, importing the Zig JSON, and exact/proportional comparison are computed
+after the timed samples and are marked in JSON with:
+
+#+begin_example
+"mathematica_timed_operation": "OPEProjected only"
+"comparison_timed_in_mathematica_median": false
+#+end_example
+
+The Zig runner can verify Mathematica term counts and the conditional speed
+gate directly:
+
+#+begin_src sh
+zig build --global-cache-dir /tmp/zig-global ope-projected-compare \
+  -Dallow-stale-generated=true -Doptimize=ReleaseFast -- \
+  --samples 7 --verify-json /tmp/math-ope-all.json \
+  --emit-json /tmp/ope-release-verified.json
+#+end_src
+
+* Current Evidence
+
+The current Zig path is descriptor-driven: it uses generated field metadata,
+statistics, Wick rules, derivative flags, projection weights, and normal
+ordering.  It has no branches on named theories.  The fixed open-addressed
+collector is an on-demand caller-owned sink used for oracle comparison, not
+part of the normal streaming path.
+
+A five-sample stream run across all current cases emitted =zig_heap_bytes = 0=,
+=zig_collector_capacity = 0=, and =zig_collector_bytes = 0= for every row.  The
+stream benchmark therefore has no per-branch heap allocation and no collection
+table.
+
+On the current machine the on-demand collected =bc= counts match the
+Mathematica oracle.  The raw count is the streamed RHS term count before the
+collector folds equal structural terms:
+
+| case | raw Zig terms | collected Zig terms | Mathematica terms | Mathematica seconds | Zig median ns |
+| bc-1-pair-w0 | 1 | 1 | 1 | 0.006396 | 8322 |
+| bc-derivative-pair-w0 | 1 | 1 | 1 | 0.018248 | 8522 |
+| bc-2-pairs-w0 | 2 | 1 | 1 | 0.020453 | 11443 |
+| bc-6-pairs-w0 | 720 | 1 | 1 | 14.800791 | 1085105 |
+
+The large =bc-6-pairs-w0= case has actual Mathematica median above =1s= and
+is roughly =13640x= faster in the current Zig collector path.  It passes the
+conditional =10000x= gate.
+
+The current one-sample Mathematica oracle and seven-sample Zig verification
+also match expanded term counts for the initial free-fermion, free-boson
+derivative, and =expX= cases.
+
+On-demand expression checks against Mathematica currently give:
+
+| case | equality | proportional | factor | comparison timed? |
+| bc-2-pairs-w0 | true | true | 1 | false |
+| fermion-2-pairs-w0 | false | true | 1/4 | false |
+| boson-dx-pair-w0 | true | true | 1 | false |
+| boson-exp-pair-w0 | true | true | 1 | false |
+
+The free-fermion factor is expected: the descriptor fixture keeps its original
+unit free-fermion normalization, while the TypeII Ashoke Mathematica prototype
+uses =fermionToBosonWickRatio = -1/2=.  The structural comparison therefore
+checks equality up to the overall numeric factor instead of changing the
+descriptor normalization.
+
+Large free-fermion and free-boson derivative cases have also been measured:
+
+| case | raw Zig terms | collected Zig terms | Mathematica terms | Mathematica seconds | Zig median ns | ratio |
+| fermion-6-pairs-w0 | 720 | 720 | 720 | 103.309975 | 933407 | 110681x |
+| boson-dx-6-pairs-w0 | 720 | 720 | 720 | 32.95555 | 1143105 | 28830x |
+
+Both have actual Mathematica median above =1s= and pass the conditional
+=10000x= gate.
+
+The collected large-case memory fields are:
+
+| case | Zig heap bytes | collector capacity | collector bytes |
+| bc-6-pairs-w0 | 0 | 4 | 312 |
+| fermion-6-pairs-w0 | 0 | 1024 | 73752 |
+| boson-dx-6-pairs-w0 | 0 | 1024 | 73752 |
+
+* Diagnostic Gap
+
+The Zig and Mathematica hash formats are not bridged.  The acceptance gate uses
+expanded term counts, optional exact/proportional rendered-expression equality
+when Mathematica verification fields are present, zero-heap memory fields, and
+the conditional speed gate.  The hashes remain useful only as side-specific
+debugging fingerprints.

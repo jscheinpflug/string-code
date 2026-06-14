@@ -121,6 +121,28 @@ pub fn build(b: *std.Build) void {
     const run_correlator_kernel_median = b.addRunArtifact(correlator_kernel_median);
     if (b.args) |args| run_correlator_kernel_median.addArgs(args);
 
+    const ope_cases_mod = b.createModule(.{
+        .root_source_file = b.path("benchmarks/ope_projected_cases.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "cft-code", .module = cft_mod },
+        },
+    });
+    const ope_projected_compare = b.addExecutable(.{
+        .name = "ope_projected_mathematica_compare",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("benchmarks/ope_projected_mathematica_compare.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "ope-cases", .module = ope_cases_mod },
+            },
+        }),
+    });
+    const run_ope_projected_compare = b.addRunArtifact(ope_projected_compare);
+    if (b.args) |args| run_ope_projected_compare.addArgs(args);
+
     b.default_step.dependOn(&run_cft_kernel_tests.step);
     b.default_step.dependOn(&run_root_tests.step);
     b.default_step.dependOn(&run_nlsm_tests.step);
@@ -162,6 +184,9 @@ pub fn build(b: *std.Build) void {
 
     const correlator_kernel_median_step = b.step("correlator-kernel-median", "Run median correlator kernel benchmark");
     correlator_kernel_median_step.dependOn(&run_correlator_kernel_median.step);
+
+    const ope_projected_compare_step = b.step("ope-projected-compare", "Run descriptor-driven OPEProjected comparison export");
+    ope_projected_compare_step.dependOn(&run_ope_projected_compare.step);
 }
 
 fn addBasisGenerationRun(

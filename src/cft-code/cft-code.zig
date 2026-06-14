@@ -1,6 +1,8 @@
 const preset_impl = @import("presets.zig");
 const basis_generation = @import("basis-generation/basis-generation.zig");
 
+/// Ope exposes the generic descriptor-driven explicit OPE engine.
+pub const Ope = @import("ope/ope.zig");
 /// FreeBoson groups the public free-boson preset constructors.
 pub const FreeBoson = preset_impl.FreeBoson;
 /// Bc groups the public bc-ghost preset constructors.
@@ -26,6 +28,7 @@ test "root CFT API exposes selected constructors without implementation namespac
     try testing.expect(@hasDecl(@This(), "IndexSort"));
     try testing.expect(@hasDecl(@This(), "PrimitivePairKernels"));
     try testing.expect(@hasDecl(@This(), "EtaXi"));
+    try testing.expect(@hasDecl(@This(), "Ope"));
     try testing.expect(@hasDecl(@This(), "product"));
     try testing.expect(@hasDecl(@This(), "boundary"));
     try testing.expect(@hasDecl(FreeBoson, "make"));

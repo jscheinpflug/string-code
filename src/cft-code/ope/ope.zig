@@ -1,39 +1,3 @@
-:PROPERTIES:
-:ID:       20260603T094112.928043
-:END:
-#+title: OPE
-#+auto_tangle: t
-#+PROPERTY: header-args :tangle ../../../src/cft-code/ope/ope.zig :mkdirp yes
-
-#+interface:
-
-This module defines the notion of an OPE, which takes symbolic [[id:20260605T082209.767536][Expressions]] and computes their OPE (again [[id:20260605T082209.767536][Expressions]]) via several possible tactics inferred from the definition of the [[id:20260605T090102.250727][Theory]] involved.
-
-Since the OPE is a local expression, we evaluate it via the definition of the theory on the Riemann sphere. When the user defines a non-degenerate pairing (for a unitary CFT, can be the usual BPZ pairing) on the basis of [[id:20260603T094125.997360][Operators]], we can evaluate the OPE by writing out all [[id:20260603T094125.997360][Operators]] that can appear in the OPE (we know the quantum numbers of the inputs so we know the quantum numbers of the output, being in their tensor product) via [[id:20260606T063253.759714][Basis-Generation]] and compute their coefficients by combining the pairing with [[id:20260603T094138.285453][Correlators]]. This way, we can immediately transfer optimizations of [[id:20260603T094138.285453][Correlators]] and [[id:20260606T063253.759714][Basis-Generation]] to an optimized [[id:20260603T094112.928043][OPE]].
-
-* Generic Expanded Path
-
-The first generic path is implemented in =src/cft-code/ope/ope.zig=.  It is a
-descriptor-driven streaming branch walker for primitive derivative fields:
-
-- branch enumeration uses descriptor Wick rules and statistics;
-- derivative poles are evaluated from descriptor derivative flags;
-- output words are normal ordered before emission;
-- projection currently filters by descriptor holomorphic weight ticks;
-- callers can use a streaming sink or request a fixed collector on demand.
-
-The kernel does not build a symbolic expression by default.  Like the
-correlator DSL, it streams explicit primitive events; the collector or later
-renderer is just a sink for callers that need the dressed operator expression
-as a materialized object.
-
-The current benchmark record is [[id:20260614T180200.000000][OPEProjected Mathematica Benchmark]].
-
-* Source
-
-The generic expanded path is kept in the following tangled Zig block.
-
-#+begin_src zig
 const std = @import("std");
 const descriptor = @import("../correlators/descriptor.zig");
 const generated_fixtures = @import("../correlators/generated_fixtures.zig");
@@ -823,4 +787,3 @@ test "generic OPE differentiates descriptor pole kernels" {
 
     try std.testing.expectEqual(@as(usize, 1), sink.term_count);
 }
-#+end_src
