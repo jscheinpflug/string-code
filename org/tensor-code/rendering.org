@@ -44,7 +44,10 @@ pub const RenderOptions = struct {
     preserve_caller_index_names: bool = true,
     stream_clifford_product_factors: bool = false,
     lower_clifford_product_atoms: bool = false,
+    lower_generalized_delta_atoms: bool = false,
     gamma_only: bool = false,
+    first_term: usize = 0,
+    max_terms: ?usize = null,
 };
 
 /// FilterDecision is the tri-state result for a streamed expansion prefix.
@@ -151,17 +154,17 @@ pub const IndexBlockId = u32;
 /// VectorSlotDelta identifies one vector slot delta between ordered tensor blocks.
 pub const VectorSlotDelta = struct {
     upper: IndexBlockId,
-    upper_slot: u8,
+    upper_slot: usize,
     lower: IndexBlockId,
-    lower_slot: u8,
+    lower_slot: usize,
 };
 
 /// VectorSlotMetric identifies one metric contraction between vector tensor slots.
 pub const VectorSlotMetric = struct {
     left: IndexBlockId,
-    left_slot: u8,
+    left_slot: usize,
     right: IndexBlockId,
-    right_slot: u8,
+    right_slot: usize,
 };
 
 /// RationalId stores one exact rational coefficient by value.
@@ -1209,6 +1212,17 @@ pub fn rationalFromSmall(numerator: i64, denominator: u64) !RationalId {
     return .{
         .numerator = @divExact(@as(i128, numerator), @as(i128, @intCast(divisor))),
         .denominator = @divExact(@as(u128, denominator), divisor),
+    };
+}
+
+/// rationalFromWide normalizes an exact wide rational coefficient.
+pub fn rationalFromWide(numerator: i128, denominator: u128) !RationalId {
+    if (denominator == 0) return error.InvalidRationalDenominator;
+    if (numerator == 0) return .{ .numerator = 0, .denominator = 1 };
+    const divisor = gcdU128(absI128(numerator), denominator);
+    return .{
+        .numerator = @divExact(numerator, @as(i128, @intCast(divisor))),
+        .denominator = @divExact(denominator, divisor),
     };
 }
 

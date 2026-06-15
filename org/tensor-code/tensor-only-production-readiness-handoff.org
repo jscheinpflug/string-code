@@ -1,0 +1,685 @@
+:PROPERTIES:
+:ID:       20260614T180000.000000
+:END:
+#+title: Tensor-Only Production Readiness Handoff
+#+auto_tangle: nil
+
+This handoff records the tensor-only production gate, the closed acceptance
+items, and the remaining future boundaries after the first production cut.  It
+is a continuation of
+[[id:20260613T120000.000000][Performant Tensor-Only Solver Plan]],
+[[id:20260610T235000.000000][General Tensor Product Brauer Solver Handoff]],
+[[id:20260610T191000.000000][Tensor-Only Scale Audit Benchmark]], and the live
+implementation in [[id:20260608T001501.000000][Projector Constructor]] and
+[[id:20260606T211001.000000][Tensor Context]].
+
+The target is a production solver for non-spinor orthogonal \(B/D\) tensor
+irreps.  Spinor and tensor-spinor channels may continue to use the Clifford
+route, but the tensor route must be independent, stream-shaped, budgeted, and
+usable from the public context API.
+
+* Current Position
+
+The current implementation is past the proof-of-concept phase.  The core
+tensor-only route exists:
+
+#+begin_src text :tangle no
+Dynkin descriptor
+  -> orthogonal tensor descriptor
+  -> structural endpoint
+  -> tensor-only endpoint/channel
+  -> endpoint projectors
+  -> raw Brauer diagram stream
+  -> projected endpoint action stream
+  -> canonical candidates
+  -> exact sparse Gram pivots
+  -> paged primitive atom stream
+#+end_src
+
+Important capabilities already present:
+
+#+begin_src text :tangle no
+wide Young row lengths are preserved
+box counts use usize in the public descriptor handoff
+public/context and constructor Young row capacity is 32
+public structural Young row spans past 32 rows preserve span metadata and
+  budget-fail through tensor-only instead of compact fallback
+high-row Spin10 symmetric products route structurally
+D12 ten-row descriptor lowering is covered
+wide tensor-only structural routes bypass legacy compact vector-size fallbacks
+product endpoints can enter generic tensor-only Brauer streams
+product endpoint channels are covered by shifted factor projector, factor
+  scalar cursor, and generic Brauer stream tests rather than product formula
+  tables
+solve audit separates logical dense candidate pairs from actual dense
+  Gram/inverse storage
+multi-Hodge residual networks have an exact epsilon fallback
+Hodge Levi-Civita signs are no longer capped by a u128 bitset
+termCountWide and appendTermAt support wide streamed term indices
+ContextOptions carries a tensor-only resource policy
+Context can reset the active tensor-only resource policy
+tensor-only budget failures propagate as TensorResourceBudgetExceeded
+public expanded structural rendering obeys the active tensor-only resource policy
+expanded local formula paths budget the Cartesian product of step term counts
+  before streaming any terms
+tensor-only cache deinit/reset clears cached programs and indexes while
+  preserving the active policy for reuse
+#+end_src
+
+The solver has moved through the acceptance checklist for the tensor-only
+non-spinor target.  The remaining release work is final validation and keeping
+future expansion boundaries explicit.  Tensor-spinor joining, wider
+trace-removal cleanup, and broader family universality are not hidden fallback
+work for this gate; they are separate future scopes.
+
+* Production Definition
+
+The solver is production-ready when all of the following are true:
+
+1. A caller can register any supported non-spinor \(B/D\) tensor irreps, request
+   an invariant basis or product channel, and stream expanded independent
+   invariants without naming representation-specific formulas.
+2. The implementation path is the general tensor path for supported endpoints:
+   descriptor lowering, endpoint projector construction, Brauer action,
+   canonicalization, sparse Gram pivots, and primitive atom rendering.  It must
+   not rely on vector-only fixtures or per-representation formula tables.
+3. Every mathematically supported tensor-only request either streams terms or
+   fails by an explicit resource budget.  It must not become
+   =ProjectorExpansionNotImplemented= because an old helper had a compact
+   fixture cap.
+4. The live path never materializes a full large expression.  It counts, audits,
+   pages, and streams with bounded memory.
+5. Every hard implementation cap is documented as either:
+   - a deliberate public resource policy field,
+   - a small scratch chunk with chunked continuation,
+   - or a known unsupported algebraic case.
+6. Scale benchmarks cover mixed Young shapes, products, Hodge endpoints, large
+   row lengths, many factors, and failure under tight budgets.
+7. Output is primitive tensor algebra: rational coefficients, deltas, metrics,
+   form slot maps, Hodge or epsilon atoms.  No placeholder projector, Young, or
+   trace-free atoms may appear in expanded tensor-only output.
+
+* Supported Target
+
+The production target is:
+
+#+begin_src text :tangle no
+B_r / D_r non-spinor tensor irreps
+ordinary Young tensor shapes
+exterior form shapes
+middle-rank self/anti-self-dual forms
+products of such endpoints
+scalar invariant channels and non-scalar structural output channels
+#+end_src
+
+Here "supported families" means all tensor-only endpoint families in that
+non-spinor \(B/D\) target: Young, exterior, Hodge, mixed tensor/form where
+lowered structurally, and products of those endpoints.  It does not mean
+spinor or tensor-spinor endpoints through the tensor-only solver.
+
+Out of target unless explicitly joined later:
+
+#+begin_src text :tangle no
+spinor irreps as tensor-only endpoints
+tensor-spinor irreps as tensor-only endpoints
+Clifford/gamma routes
+exceptional and A/C family tensor-only universality
+symbolic closed-form product decomposition for every Lie type
+unbounded computation with no caller resource policy
+#+end_src
+
+Spinor and tensor-spinor paths should remain working, but they are not the
+criterion for shipping the tensor-only solver.  Their current route remains the
+separate Clifford/gamma path until a future tensor-spinor join is explicitly
+designed and audited.
+
+* P0 Production Gate Work
+
+These P0 items defined the production release gate for the tensor-only
+non-spinor route.  The acceptance checklist below records their closed status.
+
+** P0.1 Algebraic Coverage Audit
+
+Before further widening work, write down and check the actual mathematical
+route for every supported endpoint class.  This is the proof spine of the
+solver, not a test matrix.
+
+Current audit artifact:
+
+#+begin_src text :tangle no
+[[id:20260614T230000.000000][Tensor-Only Algebraic Coverage Audit]]
+#+end_src
+
+The audit records the intended singular route, classifies Young, exterior,
+Hodge, mixed, and product endpoints, and separates exact special cursors from
+legacy compatibility fallbacks.  It also lists the remaining fixed ceilings.
+The constructor exposes =tensorOnlyCapAudit= as code-level cap output, and
+=Context= exposes the same audit for the active tensor-only policy.  Public
+product-routing gaps are closed for supported tensor-only endpoints by shifted
+factor projectors, exact factor scalar cursors, or generic Brauer streams.
+
+Required work:
+
+#+begin_src text :tangle no
+classify supported B/D non-spinor endpoints as Young, form, Hodge, or product
+state the endpoint projector construction used for each class
+state the invariant bilinear form / contraction oracle for each class
+state how Hodge constraints enter the endpoint projector and render atoms
+state how tensor products compose endpoint actions without decomposing by tables
+state why sparse Gram pivots give independent invariants after projection
+identify every place where trace removal, symmetrization, antisymmetrization,
+  and Hodge projection can still fall through a vector-only helper
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+there is one explicit route from descriptor to primitive atoms for each endpoint class
+no supported class depends on a hand-written product formula table
+Hodge and multi-Hodge products have a stated exact algebraic path
+remaining unknowns are tagged as unsupported mathematics, not implementation gaps
+#+end_src
+
+** P0.2 End-To-End Arbitrary Tensor Product Path
+
+The constructor can solve many general tensor channels, but public invariant
+generation still depends on coupling paths and local projector derivations.  We
+need arbitrary registered tensor products to route through the tensor-only
+solver wherever the endpoints are tensor descriptors.
+
+Required work:
+
+#+begin_src text :tangle no
+make tensor descriptor lowering the only live entry for supported tensor irreps
+audit localProductProjectorDerivation for every B/D tensor descriptor kind
+ensure multiplicity handling never masks a tensor-only route
+route product endpoints through structural specs without legacy shape fixtures
+remove any public fallback that emits named projectors for supported tensor paths
+make missing decomposition distinct from missing tensor projector construction
+verify scalar invariant and non-scalar structural channels use the same engine
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+vector x vector -> scalar/form/symmetric uses the tensor-only engine where applicable
+form x form -> scalar/Young/form/Hodge uses the tensor-only engine where applicable
+Young x Young -> Young/scalar uses the tensor-only engine where applicable
+Hodge x Hodge and mixed Hodge products use exact endpoint constraints
+product endpoints with 6-12 factors compile or budget-fail
+all supported failures are resource-policy failures, not formula gaps
+#+end_src
+
+** P0.3 Streaming Sparse Solver Path
+
+Production performance depends on never building the expanded object unless the
+caller asks for a bounded page.  The solver must treat diagrams, endpoint
+actions, candidates, pivots, and rendered atoms as streams or compact sparse
+buffers.
+
+Required work:
+
+#+begin_src text :tangle no
+keep raw Brauer diagrams behind a cursor, not an owned full list
+apply endpoint projectors into sparse action words with bounded scratch storage
+canonicalize candidates incrementally and deduplicate by compact keys
+build sparse Gram rows lazily and pivot without dense matrices
+render primitive atoms by page from the solved basis
+make filters skip rejected terms without materializing them
+carry first_term and max_terms through Context to constructor page APIs
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+large expanded symbolic expressions are never allocated before paging
+page 0 and page 1 concatenate to the same stream as full rendering
+page beyond term_count returns zero emitted terms after bounded work
+peak live memory scales with sparse row/page width, not total expression size
+#+end_src
+
+** P0.4 Remove Or Classify Remaining Fixed Tensor Ceilings
+
+Some old constants are still implementation boundaries.  Each must become a
+resource-policy field, a chunked cursor, or a documented unsupported algebraic
+case.
+
+Known boundaries to audit:
+
+#+begin_src text :tangle no
+max_young_rows = 32
+max_tensor_endpoint_factors fixed inline storage for public StructuralEndpoint
+legacy vector-backed specs with u8 slot counts
+trace-removal/idempotent functions with u8 rank inputs
+max_vector_young_boxes = 8 in legacy vector fallback paths
+max_vector_brauer_edges = 16 in symmetric trace-removal shortcut
+max_tensor_trace_closure_basis default policy
+max_tensor_hodge_epsilon_components default policy
+coefficient bit limit default policy
+u16 term-count adapters in tensor-form/tensor-spinor helpers
+#+end_src
+
+Do not simply widen every integer.  For each boundary, decide:
+
+#+begin_src text :tangle no
+wide live path already exists -> bypass legacy fallback
+wide live path missing -> implement span/cursor path
+mathematical work explosive -> make it a resource-policy limit
+algebra not implemented -> return unsupported, with coverage audit
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+no supported tensor-only request fails because a compact fixture array is full
+large row/box/factor requests fail only by policy after descriptor lowering
+legacy u8 vector-backed path is not chosen for wide tensor-only channels
+all remaining caps are listed in one policy/audit report
+#+end_src
+
+** P0.5 Scale Audits In Public Context
+
+The constructor has scale/solve/render audits.  They must be available from the
+public context path because performance cannot be debugged from final output.
+
+Expose enough data to explain production failures:
+
+#+begin_src text :tangle no
+endpoint slot counts
+raw diagram count / stream kind
+endpoint action count and word count
+canonical candidate count
+pivot count
+sparse row width maxima
+coefficient bit maxima
+term count or output page count
+peak allocator footprint where available
+first resource limit exceeded
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+one audit call explains why a request is expensive
+one failed render reports the same limiting category as the audit
+audit does not allocate rendered symbolic expressions
+benchmark cases record enough data to identify the dominant growth source
+#+end_src
+
+* P1 Release Support Work
+
+P1 items support the production route with release evidence, deterministic
+streaming, cache discipline, public budget/count/page surfaces, and failure
+classification.
+
+** P1.1 Benchmark Matrix
+
+Create a focused benchmark matrix in or near
+[[id:20260610T191000.000000][Tensor-Only Scale Audit Benchmark]].  Do not run broad
+tests constantly during development; run this matrix before release.
+
+Minimum cases:
+
+#+begin_src text :tangle no
+D5 vector^4 -> scalar
+D5 two_form x two_form -> scalar
+D5 two_form x two_form -> Weyl
+D5 hook x symmetric^2 -> middle Hodge form, budgeted when the raw Brauer
+  boundary is too large for the release matrix
+D5 hook x symmetric -> vector
+D5 product of 8 vectors -> scalar
+D5 product of mixed forms with Hodge factors -> scalar
+D8 product of 10 vector/form factors -> scalar
+D12 ten-row Young descriptor route -> budgeted count/audit
+wide symmetric row 300 x vector -> row 301 route
+tight raw_diagram_count_limit -> TensorResourceBudgetExceeded
+tight output_term_page_limit -> partial page and audit
+#+end_src
+
+Current status: the broad =large=, =solve-large=, and =render-large= audit
+matrix completes.  The D5 hook/symmetric-to-Hodge stress row budget-fails by
+resource policy instead of entering unbounded pre-pivot work.  The D5
+one-sided vector-product scalar row now audits through the streamed pairing
+cursor in scale, solve, and render modes.  The mixed Hodge product and D8
+ten-factor vector/form product rows are now broad release-matrix rows and
+budget-fail by resource policy in scale, solve, and render modes.
+
+The one-sided vector-product scalar stream is structural, not a =D5= or
+=vector8= fixture.  It is exercised across different dimensions, factor
+counts, and product sides, and its page emitter reuses pairing buffers across a
+page instead of allocating per emitted term.
+
+Record for each case:
+
+#+begin_src text :tangle no
+term count
+raw diagram count
+candidate count
+pivot count
+max sparse row width
+max coefficient bits
+first page latency
+process RSS before/after/delta and VmHWM
+peak allocator footprint remains future work unless an allocator-threaded route is used
+error under tight policy
+#+end_src
+
+Current benchmark rows now print =rss_before_kb=, =rss_after_kb=,
+=rss_delta_kb=, and =vmhwm_kb= for scale, solve, and render modes.  These are
+process-level memory counters from =/proc=, not exact owned allocator bytes,
+but they give the release matrix a comparable memory signal for success and
+budget-failure rows.
+
+The public =Context.renderInvariantFiltered(... expanded_terms ...)= path now
+uses the same policy-scoped structural cache term counts as the direct
+count/page surface.  A budgeted Spin10 two-form times symmetric-tensor channel
+is covered by a regression that previously emitted 324 terms despite
+=output_term_count_limit = 0= and now stops with
+=TensorResourceBudgetExceeded= before emitting.
+
+** P1.2 Determinism And Ordering
+
+Production streams must be deterministic.  Hash maps are used internally for
+deduplication; output order must not depend on hash iteration order.
+
+Audit:
+
+#+begin_src text :tangle no
+candidate ordering
+pivot ordering
+raw diagram cursor ordering
+endpoint action canonicalization
+term page ordering
+filter ordering
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+same request, same policy, same output byte-for-byte
+page concatenation matches full stream
+cache hit and cache miss produce same order
+#+end_src
+
+** P1.3 Cache Discipline And Memory Lifetime
+
+The structural/tensor-only cache now honors the context resource policy and has
+focused reset/deinit coverage.  The release requirement is performance and
+memory safety: cache keys must not reuse wrong programs, large failed compiles
+must not leave owned state behind, and cache size must remain measurable.
+
+Required work:
+
+#+begin_src text :tangle no
+cache key includes policy-relevant fields or cache is scoped to policy
+setTensorOnlyResourcePolicy invalidates all policy-dependent programs
+cache memory can be measured and cleared
+large failed compile does not leave partial owned state
+cache hit counters separate vector fallback, tensor-only, and structural paths
+audit all owned spans in:
+OrthogonalTensorDescriptor
+ExplicitEndpoint
+TensorOnlyEndpoint
+TensorOnlyEndpointFactor
+TensorOnlyProgram
+TensorEndpointActionBuffer
+TensorEndpointActionWord
+EndpointProjector
+TraceRemovalPathBuffer
+VectorBrauerProgram
+StructuralProjectorProgramCache
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+all errdefer paths free partially-built programs
+cache reset frees old programs
+failed resource-policy compile frees descriptors and action words
+focused leak checks pass under Zig test allocator where feasible
+cache audit reports hit/miss and approximate owned bytes by backend route
+#+end_src
+
+** P1.4 Minimal Public Solver Surface
+
+Expose only the public methods required to run the high-performance path from
+=Context=.  The shape of the API is secondary; the important requirement is
+that callers can budget, audit, count, and page without touching internals.
+
+Candidate surface:
+
+#+begin_src text :tangle no
+tensorOnlyResourcePolicy()
+setTensorOnlyResourcePolicy(policy)
+tensorOnlyScaleAudit(request/channel)
+tensorOnlySolveAudit(request/channel)
+tensorOnlyTermCount(request/channel)
+renderTensorOnlyTermPage(request/channel, first, max)
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+caller can set a budget before basis generation/rendering
+caller can ask for count/audit without rendering terms
+caller can render a bounded page of terms
+expanded output contains only primitive atoms
+public API does not expose internal endpoint/program storage
+#+end_src
+
+** P1.5 Failure Classification
+
+Failure shape is not a main solver target, but production runs need enough
+classification to distinguish mathematical gaps from resource limits.
+
+Keep this small:
+
+#+begin_src text :tangle no
+invalid request or malformed descriptor
+unsupported family/endpoint mathematics
+supported tensor-only request stopped by resource policy
+internal formula gap that must be converted to tensor-only or unsupported
+invalid page/term index
+singular or inconsistent Gram system requiring mathematical handling
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+supported but too large is recognizable as a budget stop
+unsupported mathematics is not reported as a budget stop
+public expanded rendering does not hide tensor budget failures
+#+end_src
+
+* Remaining P2 Work
+
+P2 items improve maintainability or broaden coverage after the first production
+cut.
+
+** P2.1 Dynamic Young Row Count Beyond 32
+
+The public and constructor row capacity is now 32.  This is enough for many
+rank-sized tests but is still a fixed mathematical boundary.
+
+The clean route is:
+
+#+begin_src text :tangle no
+keep compact [max_young_rows] storage for small shapes
+store row_span / row_wide_span for arbitrary row counts
+make StructuralEndpoint own or borrow stable factor spans explicitly
+make structural cache keys hash spans, not only fixed arrays
+route all wide-row paths through TensorEndpointShapeView
+remove descriptor rejection at row_count > max_young_rows
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+D_r labels with more than 32 nonzero Young rows lower to descriptors
+count/audit fails by resource policy if projector construction is too large
+no stack-local row slices are stored in returned specs
+#+end_src
+
+** P2.2 Wide Trace-Removal Rank
+
+Several trace-removal/idempotent routines still use compact rank types.  The
+Brauer word edge storage is already wide, so this is an algorithmic cleanup
+rather than a representation impossibility.
+
+Work:
+
+#+begin_src text :tangle no
+replace u8 rank APIs in trace-removal recursion with usize
+keep combinatorial recursion budgeted before allocation
+chunk trace-pair generation
+avoid generating all pairings when a sparse cursor suffices
+#+end_src
+
+Acceptance criteria:
+
+#+begin_src text :tangle no
+large slot count fails by trace_generator_count_limit or work policy
+no u8 cast is on the live tensor-only endpoint projector route
+legacy vector fallback remains available only for small shapes
+#+end_src
+
+** P2.3 Multi-Family Future Boundary
+
+Do not generalize to A/C/exceptional families during the production tensor-only
+cut.  Preserve clean seams:
+
+#+begin_src text :tangle no
+descriptor lowering boundary
+endpoint projector boundary
+raw diagram cursor boundary
+inner product oracle boundary
+render atom boundary
+#+end_src
+
+This keeps the B/D tensor solver shippable without contaminating it with
+unfinished family-specific rules.
+
+* Validation Plan
+
+Run focused tests during development.  Run the full release validation before
+declaring production readiness.
+
+** Focused Development Tests
+
+Use filters like:
+
+#+begin_src sh :tangle no
+zig test src/tensor-code/context.zig \
+  --test-filter "context applies tensor-only resource policy to structural tensor formulas" \
+  --test-filter "context routes high-row Spin10 tensor products to structural tensor-only formula"
+
+zig test src/tensor-code/projector-constructor.zig \
+  --test-filter "projector constructor lowers Dynkin descriptor product endpoints through generic Brauer stream" \
+  --test-filter "projector constructor evaluates non-pairwise residual Hodge epsilon networks exactly" \
+  --test-filter "projector constructor evaluates Levi-Civita signs beyond u128 bitset dimension"
+#+end_src
+
+** Release Validation
+
+Release validation must include:
+
+#+begin_src text :tangle no
+public context count/audit/page tests
+constructor scale audit tests
+cache reset/policy tests
+Hodge exact fallback tests
+wide Young row tests
+multi-factor product endpoint tests
+deterministic page concatenation tests
+tight-budget error tests
+#+end_src
+
+Do not require every broad render test to run on every edit.  The production
+gate should run the benchmark matrix once per release candidate.
+
+* Production Acceptance Checklist
+
+The solver is ready to ship when this checklist is complete:
+
+#+begin_src text :tangle no
+[x] algebraic route is documented for every supported B/D non-spinor endpoint class
+[x] no supported tensor-only route depends on a hand-written product formula table
+[x] no supported tensor-only route emits named projector placeholders in expanded mode
+[x] legacy u8 vector fallback is bypassed for wide tensor-only channels
+[x] multi-Hodge products stream or budget-fail
+[x] expanded expressions are generated only by bounded page streaming
+[x] sparse Gram/pivot path does not allocate dense candidate or expression matrices
+[x] 6-12 factor benchmark cases pass or budget-fail as expected
+[x] benchmark matrix records counts, sparse widths, coefficient growth, latency, and memory
+[x] page concatenation equals full stream
+[x] all fixed caps are classified in audit output
+[x] row-count > 32 is either supported by spans or explicitly policy/unsupported classified
+[x] Context resource policy controls every tensor-only compile/render path
+[x] public count/audit/page API exists for bounded production runs
+[x] cache reset and deinit are leak-clean in focused tests
+[x] documentation states supported families and excluded spinor route clearly
+#+end_src
+
+* Completed Implementation Order
+
+1. Complete the algebraic coverage audit for Young, form, Hodge, and product
+   endpoints.
+2. Force all supported B/D non-spinor tensor products through descriptor
+   lowering and the tensor-only engine; remove table/formula fallthroughs.
+3. Finish the stream/sparse execution path from Brauer cursor to paged primitive
+   atoms, with no full-expression allocation.
+4. Audit every remaining =ProjectorExpansionNotImplemented= in expanded tensor
+   rendering and convert supported tensor cases to tensor-only or resource
+   limits.
+5. Add benchmark matrix cases and record baseline counts, sparse widths,
+   coefficient growth, first-page latency, and memory.
+6. Convert row_count > 32 from a descriptor cap into span-backed metadata, or
+   explicitly declare 32 rows as the first production limit.
+7. Remove the live-path dependence on compact vector-backed =u8= rank APIs for
+   wide tensor-only endpoint projectors.
+8. Add the minimal public count/audit/page surface in =Context= for bounded
+   production runs.
+9. Run release validation and keep failure classification minimal.
+
+The remaining post-cut work is deliberately scoped outside this gate:
+
+#+begin_src text :tangle no
+tensor-spinor tensor-only joining
+wider trace-removal recursion and compact rank adapter cleanup
+larger residual epsilon-network policy promotion
+additional family universality beyond B/D tensor-only endpoints
+#+end_src
+
+* Stop Conditions
+
+Stop and redesign if any of these happen:
+
+#+begin_src text :tangle no
+large expanded symbolic expressions are allocated before paging
+cache keys cannot distinguish resource-policy-sensitive programs
+public rendering emits named projectors for a supported tensor-only path
+unsupported and resource-budget failures become indistinguishable
+span-backed descriptors require stack-owned slices in returned specs
+#+end_src
+
+These conditions indicate the data flow is wrong, not just incomplete.
+
+* Operational Notes
+
+Use temporary Zig caches outside the repository during long validation runs:
+
+#+begin_src sh :tangle no
+zig test src/tensor-code/context.zig \
+  --cache-dir /tmp/string-code-zig-cache \
+  --global-cache-dir /tmp/string-code-zig-global-cache
+#+end_src
+
+Remove temporary caches after heavy runs:
+
+#+begin_src sh :tangle no
+rm -r /tmp/string-code-zig-cache /tmp/string-code-zig-global-cache
+#+end_src
+
+Do not use broad tests as a substitute for proof.  Use them only after the
+scale/audit contracts are explicit and the mathematical route for each endpoint
+kind is understood.

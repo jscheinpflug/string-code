@@ -1,0 +1,705 @@
+:PROPERTIES:
+:ID:       20260613T120000.000000
+:END:
+#+title: Performant Tensor-Only Solver Plan
+#+auto_tangle: nil
+
+This is the completion plan for the non-spinor \(B/D\) tensor solver.  It
+consolidates the current implementation notes in
+[[id:20260610T171730.755085][Unbounded Tensor Product Solver Plan]] and
+[[id:20260610T235000.000000][General Tensor Product Brauer Solver Handoff]] into
+one step-by-step execution order.
+
+The target is not a new solver.  The target is the current descriptor-driven
+compiler in [[id:20260608T001501.000000][Projector Constructor]], with the live
+data path changed so it is limited by the final explicit output and by caller
+resource policy, not by fixed construction buffers or expanded intermediate
+projector products.
+
+* Goal Command
+
+Use this as the implementation goal:
+
+#+begin_src text :tangle no
+/goal Finish the performant general tensor-only B/D Brauer solver from org/tensor-code/performant-tensor-only-solver-plan.org. Keep one descriptor-driven compiler, no representation-name formulas, no parallel solver, and no large intermediate symbolic expressions. Make arbitrary non-spinor tensor products compile as compact endpoint factor programs, raw Brauer cursors, canonical action/candidate streams, sparse exact pivots, and paged primitive metric/form/Hodge output. Replace live fixed caps with allocator-backed spans and explicit resource budgets, preserve the spinor/Clifford bypass and future tensor-spinor join boundary, keep code slim and org/source synchronized, and verify only focused mathematical or scale invariants.
+#+end_src
+
+* End State
+
+The tensor-only solver is done when every non-spinor product channel
+
+#+begin_src text :tangle no
+R_1 x ... x R_k -> T
+#+end_src
+
+whose endpoints are supported tensor realizations follows one route:
+
+#+begin_src text :tangle no
+descriptors
+  -> compact tensor endpoints
+  -> endpoint factor programs
+  -> raw Brauer diagram cursor
+  -> projected endpoint action stream
+  -> canonical candidate stream
+  -> exact sparse Gram pivots
+  -> paged primitive tensor atom stream
+#+end_src
+
+The public output is explicit tensor algebra: rational coefficients, deltas,
+metrics, form slot maps, Hodge or epsilon atoms according to the requested
+rendering mode, and no placeholder Young, trace-free, or projector atoms.
+
+Spinor channels stay on the fast Clifford route.  The tensor-only records must
+keep a common future join boundary:
+
+#+begin_src text :tangle no
+compact factor word
+canonical candidate id
+exact rational coefficient
+sparse pivot row
+primitive factor stream
+render sink
+#+end_src
+
+* Design Rules
+
+1. One solver route.  Channel-kind labels may choose diagnostics, not
+   mathematics.
+2. No expanded endpoint projector products in the live path.
+3. No full rendered expression buffer.  Count, page, and stream.
+4. Fixed constants may size tiny scratch chunks, but never define mathematical
+   reach.
+5. Unsupported-shape errors mean missing algebra.  Budget errors mean the
+   algebra is supported but the caller's resource policy stopped the run.
+6. Data structures come first: compact spans, sorted ids, cursors, and
+   append-only stores before new control flow.
+7. Keep declarations private unless another module must call them.
+8. Add tests only for real solver invariants or scale contracts.
+
+* Mathematical Contract
+
+The tensor-only solver is justified by the orthogonal first and second
+fundamental theorems, applied after each requested non-spinor irrep has been
+realized inside a vector tensor power.
+
+For a product channel
+
+#+begin_src text :tangle no
+R_1 x ... x R_k -> T
+#+end_src
+
+the solver computes
+
+#+begin_src text :tangle no
+Hom_G(T, R_1 x ... x R_k)
+#+end_src
+
+as invariant tensors in
+
+#+begin_src text :tangle no
+R_1 x ... x R_k x T^*
+#+end_src
+
+Each endpoint descriptor must lower to a compact vector-tensor realization:
+Young row symmetrizers, column antisymmetrizers, trace removal, form
+antisymmetry, product factors, and Hodge splitting where applicable.  After
+that lowering, the orthogonal first fundamental theorem says that the ambient
+invariant space is spanned by complete metric pairings of vector slots.  The
+raw Brauer cursor is therefore a spanning-set cursor, not a heuristic candidate
+source.
+
+The projected Brauer span may be dependent.  Dependencies come from endpoint
+relations and, outside the stable range, from the orthogonal second fundamental
+theorem.  Exact Gram computation and exact sparse pivots are the quotient step:
+they remove dependent projected pairings and leave an independent invariant
+basis.
+
+Therefore a supported non-spinor channel is mathematically correct only if its
+live path satisfies all of these obligations:
+
+#+begin_src text :tangle no
+descriptor endpoint realizes the requested irrep
+raw cursor enumerates the full Brauer pairing span for the endpoint slots
+endpoint factors act on every raw pairing without dropping nonzero terms
+canonical action/candidate keys identify equal projected tensors only
+Gram oracle computes the exact pairing of projected candidates
+sparse pivots compute rank over the exact rational Gram data
+rendering pages are views of the solved pivot data, not separate formulas
+#+end_src
+
+Special scalar, vector, Young-output, contraction, form, or Hodge routines are
+allowed only as fast cursors for the same descriptor-compiled object, with the
+same count, candidate, Gram, solve, and render semantics.  They are not allowed
+to be separate representation-name formulas in the live mathematical route.
+
+Resource policy may stop any stage before large allocation.  It may not change
+the represented span, skip diagrams, replace a projector by a placeholder, or
+turn a supported algebraic case into an unsupported-shape error.
+
+* Current Mathematical Audit
+
+The live tensor-only route has the right proof shape for ordinary non-spinor
+tensor irreps:
+
+#+begin_src text :tangle no
+descriptor endpoint -> endpoint projector factors
+full raw Brauer pairing cursor -> projected action buffers
+projective candidate canonicalization -> exact rational Gram
+exact sparse pivots -> paged primitive terms
+#+end_src
+
+This is not an empirical candidate test.  It is the FFT/SFT construction once
+the endpoint descriptor has been faithfully realized.  Product endpoints are
+also on the correct route: each factor is projected in its own slots, while the
+raw Brauer cursor still ranges over pairings between all product slots.  That
+is exactly the invariant space of a tensor product of irreps.
+
+The non-Hodge Young/form path is mostly aligned with this contract.  Young row
+and column operators realize the requested Schur image inside vector tensor
+space, trace removal is solved from exact Brauer trace closure, raw trace
+pruning only removes pairings killed by trace-free endpoint factors, and sparse
+pivots quotient the projected span over exact rational Gram entries.
+
+The live descriptor path now keeps wide endpoint shape data in owned row and
+column spans.  When an older =u8= Brauer-word helper is still needed, overflow is
+reported as =TensorResourceBudgetExceeded=, not as an unsupported irrep.  Input
+slot totals in the tensor-only stream and raw-diagram boundary are checked before
+use, so wide descriptor products cannot wrap into a smaller channel.
+
+Public fast cursors do not override an explicit caller resource stop.  The cache
+may use a deliberately small descriptor-compiler probe before selecting a scalar
+or product cursor, but if the caller's own policy caused
+=TensorResourceBudgetExceeded=, public count/render entry points propagate that
+budget result instead of falling through to a separate cursor.  Cursors remain
+valid only as alternate streams for a descriptor-supported channel that was not
+stopped by caller policy.  Their count side is also budget-checked before the
+public API returns it, so a cursor cannot report a product count above the active
+output term limit.
+
+Tensor-only combinatorial growth is classified as resource pressure, not as
+missing mathematics.  Factorials, double factorials, action-pair products, trace
+surviving raw diagram sums, and accumulated output term counts on descriptor
+streams now fail as =TensorResourceBudgetExceeded= when they overflow or exceed
+policy.  Legacy projector helpers keep their legacy size errors, but they are no
+longer the signal used by descriptor tensor-only count paths.
+
+Sparse and dense pivot bookkeeping follows the same rule.  Dense Gram entry
+counts, pivot-Gram entry counts, sparse support probe totals, pair-window slot
+counts, pair action work totals, and compact inverse storage sizes are checked
+with tensor-only resource errors before allocation or indexing.
+
+B/D Dynkin tensor descriptors also lower through wide Young-row spans now.  Large
+non-spinor labels no longer bounce through byte-sized row storage before reaching
+the tensor-only descriptor path.
+
+Symmetric-delta orbit channels have a compact internal one-candidate
+representation, but public count/page/term APIs expose the expanded action-pair
+cursor.  The compact program is therefore not allowed to truncate the public
+stream count to one.  The cursor still honors the compact raw-orbit budget:
+=raw_diagram_count_limit = 0= stops it before count or page emission.
+
+The Hodge/self-dual path is not yet at the same proof level.  Hodge actions are
+carried as compact metadata through action buffers and primitive rendering.  The
+Gram oracle now cancels paired compact stars on the same middle-form endpoint by
+=*^\dagger *= before Brauer contraction.  A single residual compact star is a
+trace of the middle-form star and contributes zero.  Source-side residual
+multi-Hodge scalar pairings are live for any number of left/right middle-form
+spans: the Hodge projectors keep endpoint-specific side/block metadata, and the
+channel-aware Gram oracle asks each Brauer word for the global perfect matching
+from residual left Hodge source spans to residual right Hodge source spans.  The
+ordinary Brauer contraction is multiplied by the product of the two matching
+orientation signs.  Crossed pairings between Hodge factors therefore contribute
+with the correct block-permutation sign, and repeated or incomplete source-span
+pairings contribute zero instead of being collapsed by metadata equality.
+Output-side and mixed source/output residual compact stars are also live when
+the ordinary Brauer Gram graph gives a pairwise perfect matching of Hodge slots
+and each compact star pairs wholly with one partner star; the same
+permutation-sign determinant is used.  Other residual compact-star networks now
+fall through to an exact epsilon network evaluator: the oracle materializes only
+endpoint nodes and compact Levi-Civita factors, unions metric/delta edges into
+components, and enumerates component labels under explicit work and component
+caps.  This gives the mathematically general compact-star contraction for
+resource-sized channels instead of relying on pairwise shape assumptions.
+
+The primitive renderer must still expand the compact Hodge projectors honestly.
+For a projector \((1 \pm *)/2\), paged output counts and emits all nonzero
+action-word products, including identity-star and star-identity cross terms.
+Those cross terms remain compact =hodge_star= atoms; they are not dropped by
+Hodge metadata equality.  The channel-aware Gram oracle now contracts these
+compact star atoms through fast pairwise/source matchings or the exact epsilon
+fallback; only the legacy dimension-only inner product remains deliberately
+unable to contract multiple compact stars because it lacks endpoint metadata.
+
+The live public tensor-only solve is therefore guarded at the Gram-entry level.
+Paired-star entries may contribute to dense or sparse pivots; single residual
+star entries contribute zero.  Residual left/right source stars on complete
+middle-form input-span scalar pairings, including product factors, contribute
+the ordinary Brauer contraction multiplied by the source-pairing orientation
+signs, or zero when a source matching has repeated rows.  Residual output or
+mixed source/output stars whose Brauer Gram graph gives pairwise component
+matchings also contribute the ordinary Brauer contraction multiplied by the
+matching signs.  Entries outside those fast paths use the exact epsilon fallback
+and fail only as =TensorResourceBudgetExceeded= when the component-label
+enumeration is beyond the configured cap.  Sparse support no longer uses Hodge
+metadata as a zero-support proof.
+
+The compact-star Gram algebra is now complete for the resource-bounded tensor
+endpoint model: common projectors cancel by parity, fast pairwise/source
+matchings cover the frequent cases, and the exact epsilon network covers the
+remaining multi-way components.  The remaining work is scale engineering and
+descriptor coverage, not a missing Hodge contraction formula.
+Hook-vector products into middle-rank Hodge outputs now solve through the same
+generic tensor-only Brauer stream and cache path, so Hodge output factors are no
+longer limited to scalar/pairing channels.  Dynkin-built B/D tensor descriptors
+also have a direct private clone path into product endpoints; a D5 hook times
+vector product lowered from Dynkin descriptors now compiles to a symmetric
+output without hand-written Young-row structural fixtures.
+The public context path no longer treats Young descriptors above the old
+eight-box fixture cap as unsupported.  High-row Spin10 symmetric products now
+derive structural projector formulas and reach budgeted tensor-only routing
+from registered Dynkin labels.  The public structural endpoint handoff also
+preserves exact wide Young rows and =usize= box counts, so shapes past the old
+=u8= row-length boundary are routed and keyed by their true shape instead of a
+truncated compact fixture.
+The shared public/context and constructor Young-row descriptor capacity is now
+32 rows rather than the old eight-row fixture size.  This does not make the
+solver unbounded, but it moves B/D tensor descriptor lowering into the rank
+range used by the form-profile machinery and prevents ordinary rank-sized
+Young diagrams from being rejected at the first public handoff.
+Wide tensor-only term counting now propagates =TensorResourceBudgetExceeded=
+instead of converting it to a zero term count, so public expanded rendering can
+distinguish a real resource limit from a missing formula.
+The public =Context= now accepts a tensor-only resource policy in
+=ContextOptions= and exposes a resettable active policy.  The context-owned
+structural/tensor-only cache is rebuilt under that policy, so public structural
+formula counts and expanded rendering see the same resource budget as direct
+constructor calls.
+Exact Hodge epsilon signs no longer use a =u128= seen-label bitset.  The
+Levi-Civita sign check now uses a scratch label set, so ambient dimensions above
+128 are governed by the existing exact-work budget rather than an unrelated
+integer-width cap.
+Single Hodge-output channels whose Gram entries contain only paired stars or a
+single residual star now compile through the descriptor tensor-only cache and
+page primitive =hodge_star= atoms; they no longer require a channel-kind formula.
+Scalar pairings of any number of self/anti-self-dual middle-form source factors
+now compile through the tensor-only cache instead of stopping at the legacy
+channel-kind formula boundary.  The signed contraction is slot-span based, so a
+product endpoint can use it whenever each Brauer word gives a complete residual
+left/right Hodge-source matching.  Product endpoints containing Hodge factors
+now also use a product scalar input-pairing raw cursor that enumerates all
+compatible factor matchings and all slot permutations inside each matched factor,
+instead of falling back to the full trace-surviving raw diagram set.
+
+The remaining correctness work is therefore:
+
+#+begin_src text :tangle no
+prove endpoint descriptor lowering for each supported irrep family
+keep exact non-pairwise Hodge-star fallback budgeted and stream-shaped
+carry the descriptor-product route through public invariant rendering at scale
+keep all shape-size failures as resource-budget failures, not silent caps
+keep rendering tied to solved pivot data, never to a separate formula path
+#+end_src
+
+* Current Baseline
+
+The current implementation already has the important algebraic pieces:
+
+#+begin_src text :tangle no
+descriptor-owned tensor routing
+compact tensor endpoints and product endpoint factors
+raw Brauer semantics from slot counts
+Young, trace-removal, scalar, and Hodge endpoint operators
+projected action buffers
+exact rational Gram entries
+small dense Gram path for tiny channels
+sparse pivot scaffolding and audits
+merged primitive term table for current bounded programs
+wide count/page rendering for tensor-only term streams
+primitive vector/form/Hodge atom boundary
+#+end_src
+
+The remaining work is mostly data-flow work:
+
+#+begin_src text :tangle no
+remove live descriptor and endpoint shape caps
+make raw/action/candidate construction chunked throughout
+make endpoint factors authoritative before Gram and rendering
+finish sparse exact pivot behavior and coefficient audits
+route every bounded tensor-only product through the descriptor compiler
+guarantee primitive explicit output on demand
+#+end_src
+
+* Minimal Data Model
+
+** Tensor Endpoint
+
+An endpoint is compact local data:
+
+#+begin_src text :tangle no
+side
+block id
+slot span
+Young rows
+form profile
+duality
+rendering slot map
+#+end_src
+
+Young rows are owned slices or store spans, not a fixed global shape cap.
+Endpoint construction validates representation semantics once, then the later
+passes use only this compact record.
+
+** Endpoint Factor Program
+
+Every local projector is a short factor program:
+
+#+begin_src text :tangle no
+row symmetrizers
+column antisymmetrizers
+normalization scalar
+trace-removal branch cursor
+Hodge action metadata
+optional diagnostic dense basis, tiny only
+#+end_src
+
+The live path applies factors directly to action words.  If a dense endpoint
+basis still exists, it is a diagnostic fallback for small cases and is fenced
+away from production Gram and rendering.
+
+** Append-Only Store
+
+The solver owns a single compact store with spans:
+
+#+begin_src text :tangle no
+endpoint records
+factor records
+raw diagram pages
+action words
+candidate signatures
+pivot rows
+inverse pivot coefficients
+pair term windows
+primitive terms
+#+end_src
+
+Records name spans by offset and length.  Small stack buffers are allowed only
+inside one chunk before canonical data is committed to the store.
+
+** Cursors
+
+Large stages are resumable cursors:
+
+#+begin_src text :tangle no
+RawDiagramCursor
+EndpointActionCursor
+CandidateCursor
+GramRowCursor
+SparsePivotCursor
+PairTermCursor
+RenderCursor
+#+end_src
+
+A cursor must support count-only execution, page execution, and deterministic
+resume.  This makes later parallelization mechanical because each stage exposes
+independent ranges.
+
+** Resource Policy
+
+Resource policy is a small private struct threaded through compile and render:
+
+#+begin_src text :tangle no
+memory budget
+slot budget
+raw page size
+action page size
+candidate page size
+pivot row budget
+coefficient bit budget
+output page size
+optional time budget
+#+end_src
+
+Every expensive stage estimates or counts before allocation.  A stage may
+return a typed budget error; it must not silently fall back to a placeholder
+formula.
+
+* Step-By-Step Implementation
+
+** Step 1: Audit Live Gates
+
+Classify every remaining cap as one of:
+
+#+begin_src text :tangle no
+mathematical limit
+resource policy
+chunk scratch size
+diagnostic-only fixture
+dead constant
+#+end_src
+
+Acceptance:
+
+#+begin_src text :tangle no
+no tensor-only live path returns unsupported only because a store array is full
+budget failures are named resource failures
+diagnostic caps are visibly fenced from production compile
+#+end_src
+
+** Step 2: Make Descriptors Truly Dynamic
+
+Replace fixed Young-row, box, product-factor, and label-rank storage in the
+tensor-only descriptor path with owned spans or compact store spans.
+
+Keep the conversion procedural:
+
+#+begin_src text :tangle no
+Dynkin or realization descriptor
+  -> tensor descriptor
+  -> compact endpoint span
+  -> factor program span
+#+end_src
+
+Acceptance:
+
+#+begin_src text :tangle no
+arbitrary product arity is represented as spans
+Young shapes are rejected only by algebraic support or resource policy
+the public descriptor API does not grow except for resource policy if needed
+#+end_src
+
+** Step 3: Factorize Endpoint Projectors Completely
+
+Make endpoint operator factors the only live representation of Young,
+trace-free, form, and Hodge projectors.  Trace-removal branches are applied to
+action words as compact operations; expanded trace-free bases are tiny
+diagnostics only.
+
+Acceptance:
+
+#+begin_src text :tangle no
+Gram construction reads action buffers, not expanded endpoint bases
+rendering reads action buffers or pair-term windows
+trace-free projection can stop by branch/action budget before Gram
+#+end_src
+
+** Step 4: Stream Raw Brauer Diagrams
+
+Raw diagrams are generated by cursor from boundary slot counts.  The cursor
+supports:
+
+#+begin_src text :tangle no
+count
+seek page
+append next page
+canonical local signature
+#+end_src
+
+No large run requires storing all raw diagrams before endpoint actions begin.
+
+Acceptance:
+
+#+begin_src text :tangle no
+large raw counts are reported without allocation
+raw pages feed action construction directly
+odd or impossible boundaries fail before action work
+#+end_src
+
+** Step 5: Build Chunked Endpoint Action Streams
+
+Apply endpoint factor programs to raw pages and write canonical action words.
+After each factor, merge equal words and drop zero coefficients before the next
+factor.
+
+Action keys are stable:
+
+#+begin_src text :tangle no
+endpoint projector id
+side
+raw diagram id or raw cursor coordinate
+boundary signature
+#+end_src
+
+Acceptance:
+
+#+begin_src text :tangle no
+action buffers are reusable by Gram and render
+equivalent endpoint symmetries merge before candidate construction
+zero trace branches disappear before Gram
+action pages can be regenerated when cheaper than stored
+#+end_src
+
+** Step 6: Canonicalize Candidates Before Pivoting
+
+Candidates are not raw diagrams.  A candidate is a canonical projected action
+signature with exact coefficient metadata.  Candidate construction consumes
+action pages, hashes canonical signatures, and stores only independent
+candidate records needed for Gram rows.
+
+Acceptance:
+
+#+begin_src text :tangle no
+duplicate raw/action combinations merge before Gram
+candidate count is auditable before pivot
+candidate ids are deterministic across chunk sizes
+#+end_src
+
+** Step 7: Use A Gram Oracle, Not A Gram Matrix
+
+Keep dense Gram only below a tiny threshold.  Large channels call a Gram oracle
+that contracts two candidate action signatures directly and returns one exact
+rational value.
+
+Acceptance:
+
+#+begin_src text :tangle no
+large channels do not allocate candidate_count^2 entries
+small dense and oracle values agree on focused fixtures
+contraction uses compact graph/signature data, not rendered atoms
+#+end_src
+
+** Step 8: Finish Sparse Exact Pivots
+
+Sparse elimination owns sorted candidate-id rows with exact rational
+coefficients.  It normalizes rows, chooses low-fill pivots, removes dependent
+candidates, and records inverse data needed by rendering.
+
+Audit every large solve:
+
+#+begin_src text :tangle no
+candidate count
+pivot count
+rank
+max row width
+mean row width
+coefficient bit growth
+budget stop reason
+#+end_src
+
+Acceptance:
+
+#+begin_src text :tangle no
+sparse and dense pivots agree on small channels
+fill-in is bounded by resource policy
+coefficient growth is measured before it becomes an opaque slowdown
+independent invariants are properly normalized by the solved Gram data
+#+end_src
+
+** Step 9: Build Pair-Term Windows From Pivots
+
+Rendering should not rescan all candidate pairs for each term.  After pivots,
+build pair-term windows that name spans of merged primitive signatures.
+
+The merge key includes:
+
+#+begin_src text :tangle no
+primitive atom kind
+slot map
+metric/delta endpoints
+form slot map
+Hodge or epsilon action
+coefficient normalization data
+#+end_src
+
+Acceptance:
+
+#+begin_src text :tangle no
+term_count reads merged windows
+appendTerm(i) seeks directly to one primitive signature
+zero and duplicate primitive terms are removed before public rendering
+#+end_src
+
+** Step 10: Guarantee Explicit Primitive Output
+
+The renderer streams only primitive tensor atoms.  Hodge may remain a compact
+internal factor, but explicit rendering mode must lower it to the chosen public
+primitive basis, including epsilon/metric atoms when that mode requires them.
+
+Acceptance:
+
+#+begin_src text :tangle no
+public output has no placeholder projectors
+count-only output needs no primitive materialization
+paged output is deterministic and stable across page sizes
+selected invariants can be expanded fully in terms of metrics/forms/Hodge/epsilon
+#+end_src
+
+** Step 11: Route Every Tensor-Only Product Through One Compiler
+
+Remove channel-kind mathematics from the live path.  Former special routes
+such as scalar pairing, Young output, tensor contraction, mixed form bridge,
+and Hodge bridge become descriptor inputs to the same compiler.
+
+Acceptance:
+
+#+begin_src text :tangle no
+all bounded non-spinor products call the descriptor compiler first
+fallbacks run only after true unsupported algebra or explicit budget failure
+tests assert former channel kinds share compiler route
+#+end_src
+
+** Step 12: Add Scale Benchmarks As Audits
+
+Benchmarks report counts and audits, not giant formulas:
+
+#+begin_src text :tangle no
+repeated vector tensor powers
+large Young shapes
+many-factor products
+mixed form/tensor products
+Hodge middle-form products
+dense-impossible sparse channels
+#+end_src
+
+For each benchmark:
+
+#+begin_src text :tangle no
+count basis
+stream selected low/middle/high invariants
+verify exact trace/symmetry identities
+report peak store sizes
+report pivot audit
+report primitive output count
+#+end_src
+
+* Verification Invariants
+
+Add only focused tests or audits for these boundaries:
+
+#+begin_src text :tangle no
+descriptor dynamic shape survives endpoint conversion
+raw Brauer count depends only on boundary slot counts
+endpoint factor program matches dense tiny projector
+action stream is chunk-size invariant
+candidate ids are chunk-size invariant
+Gram oracle matches dense Gram on tiny fixtures
+sparse pivots match dense pivots on tiny fixtures
+dependent multiplicity is handled by exact Gram rank
+normalization matches inverse Gram coefficients
+term_count equals paged appendTerm traversal
+primitive output contains no placeholder projectors
+budget errors occur before expensive allocation
+spinor bypass is unchanged after shared dispatch or atom edits
+#+end_src
+
+Do not test long formulas by snapshots.  Test exact identities, counts,
+normalizations, and deterministic streaming.
+
+* Completion Criteria
+
+The tensor-only solver is complete when:
+
+#+begin_src text :tangle no
+arbitrary non-spinor tensor products are representable by descriptor spans
+all supported endpoint factors apply directly into action streams
+raw/action/candidate construction is chunked
+large solves use sparse exact pivots instead of dense Gram
+all output can be counted, paged, and streamed as primitive atoms
+old fixed caps are not live mathematical limits
+unsupported and budget failures are typed and early
+the code remains one slim procedural compiler
+#+end_src
+
+At that point the practical limit is the requested output size plus explicit
+resource policy.  Some products will still be infeasible because their final
+primitive expansion is enormous, but they should fail by measured budget, not
+because a construction buffer was hardcoded too small.

@@ -1,0 +1,306 @@
+:PROPERTIES:
+:ID:       20260614T203500.000000
+:END:
+#+title: SO(10) Hook-Six Tensor-Only Public Expansion Gap
+#+auto_tangle: nil
+
+This note records a production blocker found after
+[[id:20260614T180000.000000][Tensor-Only Production Readiness Handoff]] and
+[[id:20260614T230000.000000][Tensor-Only Algebraic Coverage Audit]].  The concrete
+case is \(SO(10)\) with six copies of the non-spinor hook tensor irrep
+\([1,1,0,0,0]\), the Young shape \((2,1)\).  This is not an isolated fixture
+failure.  It exposes a broader mismatch between the public invariant-basis
+router and the tensor-only structural solver.
+
+* Target Case
+
+#+begin_src text :tangle no
+algebra: SO(10) = D5
+external legs: H^6
+H: Dynkin [1,1,0,0,0]
+H: non-spinor tensor-only hook, Young rows [2,1]
+request: scalar invariant basis and expanded primitive terms
+#+end_src
+
+The public basis counter reports:
+
+#+begin_src text :tangle no
+independent invariants = 16945
+#+end_src
+
+This is the right scale for a serious tensor-only stress case.  It is smaller
+than the spinor \(16^{12}\) benchmark with 73744 paths, but large enough to
+exercise multiplicities, repeated tensor channels, public path enumeration, and
+expanded rendering.
+
+* Observed Failure
+
+The public formula coverage probe for \(H^6\) returned:
+
+#+begin_src text :tangle no
+paths                  = 16945
+fully_expandable_paths = 2272
+local_steps            = 84725
+expandable_steps       = 56847
+missing_steps          = 27878
+#+end_src
+
+The first missing local projector was:
+
+#+begin_src text :tangle no
+first_missing_projector = 461
+status                  = expandable_named
+formula                 = named_only
+product left            = 21
+product right           = 0
+product output          = 2
+multiplicity_copy       = 1
+#+end_src
+
+This means the public path router is still assigning named-only product
+projectors to supported tensor-only channels once multiplicity copies beyond
+zero appear.  That violates the production rule that supported non-spinor
+tensor-only routes must expand to primitive atoms or fail by explicit resource
+policy.
+
+Trying to render sampled public invariants through:
+
+#+begin_src text :tangle no
+RenderOptions{ .projectors = .expanded_terms }
+#+end_src
+
+hit =ProjectorExpansionNotImplemented= on sampled non-expandable paths.  A
+direct structural hook-six scalar solve through the tensor-only constructor did
+not emit a first page within a 120 second ad hoc run.  That is also a production
+failure: first-term rendering must be bounded, diagnosable, and stream-shaped.
+
+* Contract Violations
+
+** Public Expandability
+
+All supported non-spinor tensor-only public paths for this case must be
+expandable.  The current count:
+
+#+begin_src text :tangle no
+2272 / 16945 fully expandable
+#+end_src
+
+is not acceptable.  The missing paths are not spinor paths and not unsupported
+family mathematics.  They are supported \(D5\) tensor product channels.
+
+The likely systemic cause is the hard multiplicity guard in the public local
+formula path:
+
+#+begin_src text :tangle no
+if (step.multiplicity_copy != 0) return null;
+#+end_src
+
+That guard appears in the structural formula recognizer and related exact
+formula routes.  It was tolerable for multiplicity-free smoke tests, but it is
+wrong for production tensor-only bases.  Multiplicity copies need an explicit
+primitive structural basis, not a fallback to named projectors.
+
+** First-Term Latency
+
+Rendering one term from a supported tensor-only request must not require
+materializing or solving a huge unrelated object first.  The 120 second timeout
+for direct structural hook-six scalar rendering indicates at least one of:
+
+#+begin_src text :tangle no
+raw Brauer stream is still too broad before pruning
+endpoint projector actions are recomputed or materialized too eagerly
+candidate canonicalization waits for full candidate construction
+sparse pivots are not incremental enough for first-page rendering
+term paging depends on global solve work that needs a cheaper audit/budget stop
+#+end_src
+
+If the exact first term is genuinely expensive, the result must be a fast
+=TensorResourceBudgetExceeded= with audit counters showing the limiting stage,
+not a silent 120 second wait.
+
+* Root-Cause Hypotheses
+
+** Multiplicity Copies Are Not Structural
+
+The first missing projector has =multiplicity_copy = 1=.  The local structural
+recognizer handles copy zero but refuses later copies.  For repeated hook
+products, multiplicities appear frequently, so the public basis contains a mix
+of structural and named-only product channels.
+
+The fix is not to special-case the hook.  The multiplicity basis must be
+represented in data:
+
+#+begin_src text :tangle no
+descriptor product channel
+  -> structural tensor-only channel
+  -> exact Gram/pivot multiplicity basis
+  -> stable copy ordinal in that basis
+  -> primitive term page for that copy
+#+end_src
+
+Every multiplicity copy must either map to a concrete structural basis vector
+or fail by a resource policy with the same audit path as copy zero.
+
+** Public Path Basis And Structural Solver Are Split
+
+The constructor can compile many product endpoints through the generic Brauer
+stream, while the public context path still builds a coupling tree whose local
+steps may carry named-only projectors.  This split lets the acceptance tests
+pass for direct structural routes while public invariant bases remain partially
+non-expandable.
+
+Production should have one routing rule:
+
+#+begin_src text :tangle no
+if every external irrep in a local D/B channel lowers to a non-spinor tensor
+descriptor, the local projector is tensor-only structural for every
+multiplicity copy
+#+end_src
+
+Named-only local projectors are allowed only after the router proves the
+channel is outside the supported tensor-only boundary.
+
+** First-Page Rendering Depends On Whole-Problem Work
+
+The direct structural hook-six scalar request has 18 input vector slots before
+projection.  The first page should still start from bounded audits and early
+limits.  If a full solve is needed, the solver must expose why:
+
+#+begin_src text :tangle no
+raw diagrams
+endpoint action words
+candidate count
+candidate duplicate count
+sparse row count and width
+pivot count
+term count
+first resource policy exceeded
+#+end_src
+
+The public caller should never experience an unexplained long stall while
+asking for the first rendered term.
+
+* Required Passes
+
+** Pass 1: Reproduce As A Focused Regression
+
+Add a focused context test for \(SO(10)\), \(H^6\):
+
+#+begin_src text :tangle no
+register D5
+register H = [1,1,0,0,0]
+build invariant basis on six primitive H legs
+assert basisInvariantCount == 16945
+assert basisFormulaCoverageAudit.path_count == 16945
+assert fully_expandable_path_count == 16945
+assert missing_step_count == 0
+assert first_missing_projector == null
+#+end_src
+
+This test should fail before the fix.  It is an invariant of the public
+tensor-only contract, not a cosmetic coverage test.
+
+** Pass 2: Remove Multiplicity Copy Named-Only Fallthrough
+
+Audit every guard shaped like:
+
+#+begin_src text :tangle no
+step.multiplicity_copy != 0
+#+end_src
+
+Classify each one:
+
+#+begin_src text :tangle no
+copy ordinal selects structural Gram basis vector -> implement
+copy ordinal selects special primitive route basis -> implement
+copy ordinal unsupported for non-tensor math -> return unsupported, not named
+legacy shortcut only -> bypass for tensor-only public routes
+#+end_src
+
+For supported tensor-only product channels, no multiplicity copy may return
+=named_only= solely because its ordinal is nonzero.
+
+** Pass 3: Structural Multiplicity Basis
+
+Represent multiplicity copies as rows of the tensor-only solve, not as separate
+representation-name formulas.  The data flow should be:
+
+#+begin_src text :tangle no
+TensorOnlyChannel
+  -> projected candidate words
+  -> sparse Gram pivots
+  -> ordered independent basis rows
+  -> multiplicity_copy indexes a row
+  -> term page streams that row
+#+end_src
+
+The ordering must be deterministic and independent of hash-map iteration.  Cache
+keys must include enough channel and policy data that copy ordinals cannot reuse
+the wrong solved program.
+
+** Pass 4: First-Page Performance Gate
+
+Add a tight audit/render test for \(H^6\) that never asks for the full expanded
+object:
+
+#+begin_src text :tangle no
+render one selected expandable invariant page
+max_terms = 1 or 3
+assert no named_projector_atoms
+assert no tensor_form_projection_atoms
+assert no tensor_spinor_projection_atoms
+assert primitive atom count > 0
+assert time/resource behavior is bounded by policy
+#+end_src
+
+The exact time threshold should not be brittle in unit tests.  Use resource
+policy gates and audit counters in tests; keep wall-time thresholds in the
+benchmark matrix.
+
+** Pass 5: Benchmark Matrix Row
+
+Add a release-matrix row:
+
+#+begin_src text :tangle no
+d5_hook6_to_scalar_public_basis
+  algebra: D5
+  irrep: [1,1,0,0,0]
+  legs: 6
+  expected basis count: 16945
+  expected public coverage: 16945 / 16945 fully expandable
+  render sample: page first term from at least one high-index invariant
+  record: first-page latency, RSS/HWM, sparse rows, max row width, pivots
+#+end_src
+
+This row must become the canonical public tensor-only multiplicity benchmark.
+
+* Acceptance Criteria
+
+The case is fixed only when all of these hold:
+
+#+begin_src text :tangle no
+SO(10) H^6 basis count is 16945
+fully_expandable_path_count is 16945
+missing_step_count is 0
+no local tensor-only product channel falls back to named_only because
+  multiplicity_copy > 0
+expanded rendering of sampled invariants emits primitive atoms only
+rendering first page either succeeds quickly or budget-fails quickly with audit
+direct structural route and public context route agree on primitive atom kinds
+no hook-specific representation-name formula table is introduced
+#+end_src
+
+* Non-Goals
+
+Do not solve this by adding a special \(D5\) hook-six formula.  The bug is
+systemic:
+
+#+begin_src text :tangle no
+multiplicity-bearing tensor-only products
+public path coverage vs constructor structural coverage
+first-page performance under sparse solve pressure
+named-only fallback leaking into supported tensor-only routes
+#+end_src
+
+The fix should improve every repeated Young/form/Hodge product with
+multiplicity, not only \([1,1,0,0,0]^6\).

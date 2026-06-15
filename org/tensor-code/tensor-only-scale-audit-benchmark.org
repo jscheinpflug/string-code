@@ -1,0 +1,921 @@
+:PROPERTIES:
+:ID:       20260610T191000.000000
+:END:
+#+title: Tensor-Only Scale Audit Benchmark
+#+auto_tangle: t
+#+PROPERTY: header-args:zig :tangle ../../benchmarks/tensor_only_scale_audit.zig :mkdirp yes
+
+This benchmark reports the tensor-only fast path just before sparse pivots.
+The counters show how raw Brauer diagrams compress into projected endpoint
+actions and canonical candidates.  The normal run includes cheap one-raw
+fixtures plus a multi-raw hook product; passing =large= includes larger
+symmetric tensor channels, D5 form/Young/product routes, and explicit budget
+rows for Hodge stress cases whose broad construction is intentionally bounded.
+
+#+begin_src zig
+const std = @import("std");
+const projector = @import("projector-constructor");
+
+const DualityTag = @TypeOf((projector.StructuralEndpoint{ .index = 0 }).form_duality);
+const AuditMode = enum { scale, solve, render };
+
+fn nowNs() u128 {
+    var ts: std.os.linux.timespec = undefined;
+    _ = std.os.linux.clock_gettime(.MONOTONIC, &ts);
+    return @as(u128, @intCast(ts.sec)) * std.time.ns_per_s + @as(u128, @intCast(ts.nsec));
+}
+
+const MemorySample = struct {
+    rss_kb: usize = 0,
+    vmhwm_kb: usize = 0,
+};
+
+fn readProcFile(path: []const u8, buffer: []u8) usize {
+    const fd = std.posix.openat(std.posix.AT.FDCWD, path, .{}, 0) catch return 0;
+    defer _ = std.os.linux.close(fd);
+    return std.posix.read(fd, buffer) catch 0;
+}
+
+fn parseFirstUsize(text: []const u8) usize {
+    var index: usize = 0;
+    while (index < text.len and (text[index] < '0' or text[index] > '9')) : (index += 1) {}
+    var value: usize = 0;
+    while (index < text.len and text[index] >= '0' and text[index] <= '9') : (index += 1) {
+        value = std.math.mul(usize, value, 10) catch return std.math.maxInt(usize);
+        value = std.math.add(usize, value, text[index] - '0') catch return std.math.maxInt(usize);
+    }
+    return value;
+}
+
+fn currentRssKb() usize {
+    var buffer: [256]u8 = undefined;
+    const len = readProcFile("/proc/self/statm", buffer[0..]);
+    if (len == 0) return 0;
+    var fields = std.mem.tokenizeScalar(u8, buffer[0..len], ' ');
+    _ = fields.next() orelse return 0;
+    const resident_pages_text = fields.next() orelse return 0;
+    const resident_pages = parseFirstUsize(resident_pages_text);
+    return resident_pages * (std.heap.page_size_min / 1024);
+}
+
+fn currentVmHwmKb() usize {
+    var buffer: [4096]u8 = undefined;
+    const len = readProcFile("/proc/self/status", buffer[0..]);
+    if (len == 0) return 0;
+    var lines = std.mem.splitScalar(u8, buffer[0..len], '\n');
+    while (lines.next()) |line| {
+        if (std.mem.startsWith(u8, line, "VmHWM:")) return parseFirstUsize(line["VmHWM:".len..]);
+    }
+    return 0;
+}
+
+fn memorySample() MemorySample {
+    return .{
+        .rss_kb = currentRssKb(),
+        .vmhwm_kb = currentVmHwmKb(),
+    };
+}
+
+fn rssDeltaKb(before: MemorySample, after: MemorySample) isize {
+    return @as(isize, @intCast(after.rss_kb)) - @as(isize, @intCast(before.rss_kb));
+}
+
+fn symmetricEndpoint(index: u32, boxes: u8) projector.StructuralEndpoint {
+    var endpoint: projector.StructuralEndpoint = .{
+        .index = index,
+        .young_row_count = if (boxes == 0) 0 else 1,
+        .young_box_count = boxes,
+    };
+    if (boxes != 0) endpoint.young_rows[0] = boxes;
+    return endpoint;
+}
+
+fn symmetricProductSpec(operator_id: u32, left_boxes: u8, right_boxes: u8, output_boxes: u8) projector.StructuralProjectorSpec {
+    return .{
+        .operator_id = operator_id,
+        .orthogonal_dimension = 10,
+        .left = symmetricEndpoint(1, left_boxes),
+        .right = symmetricEndpoint(2, right_boxes),
+        .output = symmetricEndpoint(3, output_boxes),
+    };
+}
+
+fn youngEndpoint(index: u32, rows: []const u8) projector.StructuralEndpoint {
+    var endpoint: projector.StructuralEndpoint = .{
+        .index = index,
+        .young_row_count = @intCast(rows.len),
+    };
+    var row_index: usize = 0;
+    while (row_index < rows.len) : (row_index += 1) {
+        endpoint.young_rows[row_index] = rows[row_index];
+        endpoint.young_box_count += rows[row_index];
+    }
+    return endpoint;
+}
+
+fn scalarEndpoint(index: u32) projector.StructuralEndpoint {
+    return .{ .index = index };
+}
+
+fn youngProductSpec(operator_id: u32, left_rows: []const u8, right_rows: []const u8, output_rows: []const u8) projector.StructuralProjectorSpec {
+    return .{
+        .operator_id = operator_id,
+        .orthogonal_dimension = 10,
+        .left = youngEndpoint(1, left_rows),
+        .right = youngEndpoint(2, right_rows),
+        .output = youngEndpoint(3, output_rows),
+    };
+}
+
+fn youngScalarPairingSpec(operator_id: u32, rows: []const u8) projector.StructuralProjectorSpec {
+    return .{
+        .operator_id = operator_id,
+        .orthogonal_dimension = 10,
+        .left = youngEndpoint(1, rows),
+        .right = youngEndpoint(2, rows),
+        .output = scalarEndpoint(3),
+    };
+}
+
+fn formProfile(rank: u8) u128 {
+    return @as(u128, 1) << @intCast((@as(usize, rank) - 1) * 4);
+}
+
+fn formEndpoint(index: u32, rank: u8) projector.StructuralEndpoint {
+    var endpoint: projector.StructuralEndpoint = .{
+        .index = index,
+        .form_profile = formProfile(rank),
+        .form_mask = @as(u64, 1) << @intCast(rank - 1),
+        .form_count = 1,
+        .form_rank = rank,
+        .young_row_count = rank,
+        .young_box_count = rank,
+    };
+    var row_index: usize = 0;
+    while (row_index < rank) : (row_index += 1) {
+        endpoint.young_rows[row_index] = 1;
+        endpoint.young_wide_rows[row_index] = 1;
+    }
+    return endpoint;
+}
+
+fn hodgeFormEndpoint(index: u32, dimension: u16, rank: u8, duality: DualityTag) projector.StructuralEndpoint {
+    _ = dimension;
+    var endpoint = formEndpoint(index, rank);
+    endpoint.form_duality = duality;
+    return endpoint;
+}
+
+fn vectorFactor(index: u32) projector.StructuralEndpointFactor {
+    var factor: projector.StructuralEndpointFactor = .{
+        .index = index,
+        .young_row_count = 1,
+        .young_box_count = 1,
+    };
+    factor.young_rows[0] = 1;
+    factor.young_wide_rows[0] = 1;
+    return factor;
+}
+
+fn formFactor(index: u32, rank: u8) projector.StructuralEndpointFactor {
+    var factor: projector.StructuralEndpointFactor = .{
+        .index = index,
+        .form_profile = formProfile(rank),
+        .form_mask = @as(u64, 1) << @intCast(rank - 1),
+        .form_count = 1,
+        .form_rank = rank,
+        .young_row_count = rank,
+        .young_box_count = rank,
+    };
+    var row_index: usize = 0;
+    while (row_index < rank) : (row_index += 1) {
+        factor.young_rows[row_index] = 1;
+        factor.young_wide_rows[row_index] = 1;
+    }
+    return factor;
+}
+
+fn hodgeFormFactor(index: u32, rank: u8, duality: DualityTag) projector.StructuralEndpointFactor {
+    var factor = formFactor(index, rank);
+    factor.form_duality = duality;
+    return factor;
+}
+
+fn wideSymmetricEndpoint(index: u32, boxes: usize) projector.StructuralEndpoint {
+    var endpoint: projector.StructuralEndpoint = .{
+        .index = index,
+        .young_row_count = 1,
+        .young_box_count = boxes,
+    };
+    endpoint.young_rows[0] = if (boxes > std.math.maxInt(u8)) std.math.maxInt(u8) else @intCast(boxes);
+    endpoint.young_wide_rows[0] = boxes;
+    return endpoint;
+}
+
+fn wideSymmetricProductSpec(operator_id: u32, left_boxes: usize, right_boxes: usize, output_boxes: usize) projector.StructuralProjectorSpec {
+    return .{
+        .operator_id = operator_id,
+        .orthogonal_dimension = 10,
+        .left = wideSymmetricEndpoint(1, left_boxes),
+        .right = wideSymmetricEndpoint(2, right_boxes),
+        .output = wideSymmetricEndpoint(3, output_boxes),
+    };
+}
+
+fn structuralFactorSlotCount(factor: projector.StructuralEndpointFactor) usize {
+    if (factor.young_box_count != 0) return factor.young_box_count;
+    if (factor.form_count != 0) return @as(usize, factor.form_count) * factor.form_rank;
+    return 0;
+}
+
+fn structuralEndpointSlotCount(endpoint: projector.StructuralEndpoint) usize {
+    if (endpoint.factor_span.len != 0) {
+        var count: usize = 0;
+        for (endpoint.factor_span) |factor| count += structuralFactorSlotCount(factor);
+        return count;
+    }
+    if (endpoint.factor_count != 0) {
+        var count: usize = 0;
+        var factor_index: usize = 0;
+        while (factor_index < endpoint.factor_count) : (factor_index += 1) {
+            count += structuralFactorSlotCount(endpoint.factors[factor_index]);
+        }
+        return count;
+    }
+    if (endpoint.young_box_count != 0) return endpoint.young_box_count;
+    if (endpoint.form_count != 0) return @as(usize, endpoint.form_count) * endpoint.form_rank;
+    return 0;
+}
+
+fn structuralSpecInputSlotCount(spec: projector.StructuralProjectorSpec) usize {
+    return structuralEndpointSlotCount(spec.left) + structuralEndpointSlotCount(spec.right);
+}
+
+fn structuralSpecOutputSlotCount(spec: projector.StructuralProjectorSpec) usize {
+    return structuralEndpointSlotCount(spec.output);
+}
+
+fn selected(filter: ?[]const u8, comptime name: []const u8, comptime large: bool) bool {
+    if (filter) |value| {
+        if (std.mem.eql(u8, value, "large")) return true;
+        if (std.mem.eql(u8, value, "strict")) return true;
+        if (std.mem.startsWith(u8, value, "strict:")) return std.mem.eql(u8, value["strict:".len..], name);
+        return std.mem.eql(u8, value, name);
+    }
+    return !large;
+}
+
+fn strictSelected(filter: ?[]const u8, comptime name: []const u8) bool {
+    if (filter) |value| {
+        if (std.mem.eql(u8, value, "strict")) return true;
+        if (std.mem.startsWith(u8, value, "strict:")) return std.mem.eql(u8, value["strict:".len..], name);
+    }
+    return false;
+}
+
+fn exactScaleSelected(filter: ?[]const u8, comptime name: []const u8) bool {
+    if (filter) |value| {
+        if (std.mem.startsWith(u8, value, "strict:")) return std.mem.eql(u8, value["strict:".len..], name);
+        return std.mem.eql(u8, value, name);
+    }
+    return false;
+}
+
+fn renderMode(filter: ?[]const u8) bool {
+    if (filter) |value| {
+        return std.mem.eql(u8, value, "render") or
+            std.mem.eql(u8, value, "render-large") or
+            std.mem.startsWith(u8, value, "render-strict:") or
+            std.mem.startsWith(u8, value, "render:");
+    }
+    return false;
+}
+
+fn renderSelected(filter: ?[]const u8, comptime name: []const u8, comptime large: bool) bool {
+    if (filter) |value| {
+        if (std.mem.eql(u8, value, "render")) return !large;
+        if (std.mem.eql(u8, value, "render-large")) return true;
+        if (std.mem.startsWith(u8, value, "render-strict:")) return std.mem.eql(u8, value["render-strict:".len..], name);
+        if (std.mem.startsWith(u8, value, "render:")) return std.mem.eql(u8, value["render:".len..], name);
+    }
+    return false;
+}
+
+fn exactRenderSelected(filter: ?[]const u8, comptime name: []const u8) bool {
+    if (filter) |value| {
+        if (std.mem.startsWith(u8, value, "render-strict:")) return std.mem.eql(u8, value["render-strict:".len..], name);
+        if (std.mem.startsWith(u8, value, "render:")) return std.mem.eql(u8, value["render:".len..], name);
+    }
+    return false;
+}
+
+fn solveMode(filter: ?[]const u8) bool {
+    if (filter) |value| {
+        return std.mem.eql(u8, value, "solve") or
+            std.mem.eql(u8, value, "solve-large") or
+            std.mem.startsWith(u8, value, "solve-strict:") or
+            std.mem.startsWith(u8, value, "solve:");
+    }
+    return false;
+}
+
+fn solveSelected(filter: ?[]const u8, comptime name: []const u8, comptime large: bool) bool {
+    if (filter) |value| {
+        if (std.mem.eql(u8, value, "solve")) return !large;
+        if (std.mem.eql(u8, value, "solve-large")) return true;
+        if (std.mem.startsWith(u8, value, "solve-strict:")) return std.mem.eql(u8, value["solve-strict:".len..], name);
+        if (std.mem.startsWith(u8, value, "solve:")) return std.mem.eql(u8, value["solve:".len..], name);
+    }
+    return false;
+}
+
+fn exactSolveSelected(filter: ?[]const u8, comptime name: []const u8) bool {
+    if (filter) |value| {
+        if (std.mem.startsWith(u8, value, "solve-strict:")) return std.mem.eql(u8, value["solve-strict:".len..], name);
+        if (std.mem.startsWith(u8, value, "solve:")) return std.mem.eql(u8, value["solve:".len..], name);
+    }
+    return false;
+}
+
+fn printHeader() void {
+    std.debug.print(
+        "engine\tcase\tinput_slots\toutput_slots\traw_diagrams\tendpoint_in\tendpoint_kept\tendpoint_dup\tendpoint_reused_output_input\tendpoint_words_in\tendpoint_words_kept\tcandidate_in\tcandidate_kept\tcandidate_dup\tns\trss_before_kb\trss_after_kb\trss_delta_kb\tvmhwm_kb\tstatus\n",
+        .{},
+    );
+}
+
+fn printRenderHeader() void {
+    std.debug.print(
+        "engine\tcase\tterms\temitted\tatoms\tcoefficients\tatom_ends\tdeltas\tmetrics\thodge\tcompact\tns\trss_before_kb\trss_after_kb\trss_delta_kb\tvmhwm_kb\tstatus\n",
+        .{},
+    );
+}
+
+fn printSolveHeader() void {
+    std.debug.print(
+        "engine\tcase\tinput_slots\toutput_slots\traw\tcandidates\tpivots\tsparse_rows\tdense_pairs\tdense_gram_entries\tdense_inverse_entries\tsupport_probes\tsupport_pruned\tmin_support\tmax_support\tmax_row\ttotal_row\tcoeff_bits\tpair_actions\tmax_pair_actions\tlogical_pair_slots\tstored_pair_windows\tactive_pairs\tmax_pair_terms\tterms\tns\trss_before_kb\trss_after_kb\trss_delta_kb\tvmhwm_kb\tstatus\n",
+        .{},
+    );
+}
+
+fn runCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!selected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const audit = if (strictSelected(filter, name))
+        try projector.tensorOnlyStructuralScaleAudit(spec)
+    else
+        projector.tensorOnlyStructuralScaleAudit(spec) catch |err| {
+            const elapsed_ns = nowNs() - start;
+            const memory_after = memorySample();
+            std.debug.print(
+                "tensor-only-scale\t{s}\t{}\t{}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+                .{
+                    name,
+                    structuralSpecInputSlotCount(spec),
+                    structuralSpecOutputSlotCount(spec),
+                    elapsed_ns,
+                    memory_before.rss_kb,
+                    memory_after.rss_kb,
+                    rssDeltaKb(memory_before, memory_after),
+                    memory_after.vmhwm_kb,
+                    @errorName(err),
+                },
+            );
+            return;
+        };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-scale\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.input_slot_count,
+            audit.output_slot_count,
+            audit.raw_diagram_count,
+            audit.endpoint_action_input_count,
+            audit.endpoint_action_kept_count,
+            audit.endpoint_action_duplicate_count,
+            audit.endpoint_action_reused_output_input_count,
+            audit.endpoint_action_input_word_count,
+            audit.endpoint_action_kept_word_count,
+            audit.candidate_input_count,
+            audit.candidate_kept_count,
+            audit.candidate_duplicate_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runBudgetCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec, policy: projector.TensorOnlyResourcePolicy) !void {
+    if (!selected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const audit = projector.tensorOnlyStructuralScaleAuditWithTensorOnlyResourcePolicy(spec, policy) catch |err| {
+        const elapsed_ns = nowNs() - start;
+        const memory_after = memorySample();
+        std.debug.print(
+            "tensor-only-scale\t{s}\t{}\t{}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+            .{
+                name,
+                structuralSpecInputSlotCount(spec),
+                structuralSpecOutputSlotCount(spec),
+                elapsed_ns,
+                memory_before.rss_kb,
+                memory_after.rss_kb,
+                rssDeltaKb(memory_before, memory_after),
+                memory_after.vmhwm_kb,
+                @errorName(err),
+            },
+        );
+        return;
+    };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-scale\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.input_slot_count,
+            audit.output_slot_count,
+            audit.raw_diagram_count,
+            audit.endpoint_action_input_count,
+            audit.endpoint_action_kept_count,
+            audit.endpoint_action_duplicate_count,
+            audit.endpoint_action_reused_output_input_count,
+            audit.endpoint_action_input_word_count,
+            audit.endpoint_action_kept_word_count,
+            audit.candidate_input_count,
+            audit.candidate_kept_count,
+            audit.candidate_duplicate_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runSolveCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!solveSelected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const strict = if (filter) |value| std.mem.startsWith(u8, value, "solve-strict:") else false;
+    const audit = if (strict)
+        try projector.tensorOnlyStructuralSolveAudit(spec)
+    else
+        projector.tensorOnlyStructuralSolveAudit(spec) catch |err| {
+            const elapsed_ns = nowNs() - start;
+            const memory_after = memorySample();
+            std.debug.print(
+                "tensor-only-solve\t{s}\t{}\t{}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+                .{
+                    name,
+                    structuralSpecInputSlotCount(spec),
+                    structuralSpecOutputSlotCount(spec),
+                    elapsed_ns,
+                    memory_before.rss_kb,
+                    memory_after.rss_kb,
+                    rssDeltaKb(memory_before, memory_after),
+                    memory_after.vmhwm_kb,
+                    @errorName(err),
+                },
+            );
+            return;
+        };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-solve\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.input_slot_count,
+            audit.output_slot_count,
+            audit.raw_diagram_count,
+            audit.candidate_count,
+            audit.pivot_count,
+            audit.sparse_row_count,
+            audit.dense_candidate_pair_count,
+            audit.dense_gram_entry_count,
+            audit.dense_inverse_entry_count,
+            audit.support_candidate_pair_probe_count,
+            audit.support_pruned_candidate_pair_count,
+            audit.min_support_width,
+            audit.max_support_width,
+            audit.max_row_width,
+            audit.total_row_width,
+            audit.max_coefficient_bits,
+            audit.total_pair_action_terms,
+            audit.max_pair_action_terms,
+            audit.logical_pair_slot_count,
+            audit.stored_pair_window_count,
+            audit.active_pair_count,
+            audit.max_pair_merged_terms,
+            audit.term_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runSolveBudgetCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec, policy: projector.TensorOnlyResourcePolicy) !void {
+    if (!solveSelected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const audit = projector.tensorOnlyStructuralSolveAuditWithTensorOnlyResourcePolicy(spec, policy) catch |err| {
+        const elapsed_ns = nowNs() - start;
+        const memory_after = memorySample();
+        std.debug.print(
+            "tensor-only-solve\t{s}\t{}\t{}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+            .{
+                name,
+                structuralSpecInputSlotCount(spec),
+                structuralSpecOutputSlotCount(spec),
+                elapsed_ns,
+                memory_before.rss_kb,
+                memory_after.rss_kb,
+                rssDeltaKb(memory_before, memory_after),
+                memory_after.vmhwm_kb,
+                @errorName(err),
+            },
+        );
+        return;
+    };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-solve\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.input_slot_count,
+            audit.output_slot_count,
+            audit.raw_diagram_count,
+            audit.candidate_count,
+            audit.pivot_count,
+            audit.sparse_row_count,
+            audit.dense_candidate_pair_count,
+            audit.dense_gram_entry_count,
+            audit.dense_inverse_entry_count,
+            audit.support_candidate_pair_probe_count,
+            audit.support_pruned_candidate_pair_count,
+            audit.min_support_width,
+            audit.max_support_width,
+            audit.max_row_width,
+            audit.total_row_width,
+            audit.max_coefficient_bits,
+            audit.total_pair_action_terms,
+            audit.max_pair_action_terms,
+            audit.logical_pair_slot_count,
+            audit.stored_pair_window_count,
+            audit.active_pair_count,
+            audit.max_pair_merged_terms,
+            audit.term_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runFrontierSolveCase(comptime name: []const u8, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!exactSolveSelected(filter, name)) return;
+    try runSolveCase(name, true, filter, spec);
+}
+
+fn runRenderCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!renderSelected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const strict = if (filter) |value| std.mem.startsWith(u8, value, "render-strict:") else false;
+    const audit = if (strict)
+        try projector.tensorOnlyStructuralRenderPageAudit(spec, 0, 4)
+    else
+        projector.tensorOnlyStructuralRenderPageAudit(spec, 0, 4) catch |err| {
+            const elapsed_ns = nowNs() - start;
+            const memory_after = memorySample();
+            std.debug.print(
+                "tensor-only-render\t{s}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+                .{ name, elapsed_ns, memory_before.rss_kb, memory_after.rss_kb, rssDeltaKb(memory_before, memory_after), memory_after.vmhwm_kb, @errorName(err) },
+            );
+            return;
+        };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-render\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.term_count,
+            audit.emitted_count,
+            audit.atom_count,
+            audit.coefficient_count,
+            audit.atom_end_count,
+            audit.vector_delta_count,
+            audit.vector_metric_count,
+            audit.hodge_star_count,
+            audit.compact_atom_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runRenderBudgetCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, spec: projector.StructuralProjectorSpec, policy: projector.TensorOnlyResourcePolicy) !void {
+    if (!renderSelected(filter, name, large)) return;
+    const memory_before = memorySample();
+    const start = nowNs();
+    const audit = projector.tensorOnlyStructuralRenderPageAuditWithTensorOnlyResourcePolicy(spec, 0, 4, policy) catch |err| {
+        const elapsed_ns = nowNs() - start;
+        const memory_after = memorySample();
+        std.debug.print(
+            "tensor-only-render\t{s}\t0\t0\t0\t0\t0\t0\t0\t0\t0\t{}\t{}\t{}\t{}\t{}\terror.{s}\n",
+            .{ name, elapsed_ns, memory_before.rss_kb, memory_after.rss_kb, rssDeltaKb(memory_before, memory_after), memory_after.vmhwm_kb, @errorName(err) },
+        );
+        return;
+    };
+    const elapsed_ns = nowNs() - start;
+    const memory_after = memorySample();
+    std.debug.print(
+        "tensor-only-render\t{s}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\tok\n",
+        .{
+            name,
+            audit.term_count,
+            audit.emitted_count,
+            audit.atom_count,
+            audit.coefficient_count,
+            audit.atom_end_count,
+            audit.vector_delta_count,
+            audit.vector_metric_count,
+            audit.hodge_star_count,
+            audit.compact_atom_count,
+            elapsed_ns,
+            memory_before.rss_kb,
+            memory_after.rss_kb,
+            rssDeltaKb(memory_before, memory_after),
+            memory_after.vmhwm_kb,
+        },
+    );
+}
+
+fn runFrontierRenderCase(comptime name: []const u8, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!exactRenderSelected(filter, name)) return;
+    try runRenderCase(name, true, filter, spec);
+}
+
+fn runFrontierCase(comptime name: []const u8, filter: ?[]const u8, spec: projector.StructuralProjectorSpec) !void {
+    if (!exactScaleSelected(filter, name)) return;
+    try runCase(name, true, filter, spec);
+}
+
+fn runVectorProductScalarCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, comptime factor_count: usize, comptime mode: AuditMode) !void {
+    var factors = [_]projector.StructuralEndpointFactor{.{}} ** factor_count;
+    var factor_index: usize = 0;
+    while (factor_index < factor_count) : (factor_index += 1) {
+        factors[factor_index] = vectorFactor(@intCast(10 + factor_index));
+    }
+    const spec: projector.StructuralProjectorSpec = .{
+        .operator_id = 9300 + factor_count,
+        .orthogonal_dimension = 10,
+        .left = .{ .index = 1, .factor_span = factors[0..] },
+        .right = scalarEndpoint(2),
+        .output = scalarEndpoint(3),
+    };
+    switch (mode) {
+        .scale => try runCase(name, large, filter, spec),
+        .solve => try runSolveCase(name, large, filter, spec),
+        .render => try runRenderCase(name, large, filter, spec),
+    }
+}
+
+fn runMixedFormHodgeProductScalarCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, comptime mode: AuditMode) !void {
+    var left_factors = [_]projector.StructuralEndpointFactor{
+        formFactor(10, 2),
+        hodgeFormFactor(11, 5, .self_dual),
+    };
+    var right_factors = [_]projector.StructuralEndpointFactor{
+        hodgeFormFactor(20, 5, .self_dual),
+        formFactor(21, 2),
+    };
+    const spec: projector.StructuralProjectorSpec = .{
+        .operator_id = 9340,
+        .orthogonal_dimension = 10,
+        .left = .{ .index = 1, .factor_span = left_factors[0..] },
+        .right = .{ .index = 2, .factor_span = right_factors[0..] },
+        .output = scalarEndpoint(3),
+    };
+    switch (mode) {
+        .scale => try runCase(name, large, filter, spec),
+        .solve => try runSolveCase(name, large, filter, spec),
+        .render => try runRenderCase(name, large, filter, spec),
+    }
+}
+
+fn runMixedFormHodgeProductScalarBudgetCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, comptime mode: AuditMode, policy: projector.TensorOnlyResourcePolicy) !void {
+    var left_factors = [_]projector.StructuralEndpointFactor{
+        formFactor(10, 2),
+        hodgeFormFactor(11, 5, .self_dual),
+    };
+    var right_factors = [_]projector.StructuralEndpointFactor{
+        hodgeFormFactor(20, 5, .self_dual),
+        formFactor(21, 2),
+    };
+    const spec: projector.StructuralProjectorSpec = .{
+        .operator_id = 9340,
+        .orthogonal_dimension = 10,
+        .left = .{ .index = 1, .factor_span = left_factors[0..] },
+        .right = .{ .index = 2, .factor_span = right_factors[0..] },
+        .output = scalarEndpoint(3),
+    };
+    switch (mode) {
+        .scale => try runBudgetCase(name, large, filter, spec, policy),
+        .solve => try runSolveBudgetCase(name, large, filter, spec, policy),
+        .render => try runRenderBudgetCase(name, large, filter, spec, policy),
+    }
+}
+
+fn runFrontierMixedFormHodgeProductScalarCase(comptime name: []const u8, filter: ?[]const u8, comptime mode: AuditMode) !void {
+    switch (mode) {
+        .scale => if (!exactScaleSelected(filter, name)) return,
+        .solve => if (!exactSolveSelected(filter, name)) return,
+        .render => if (!exactRenderSelected(filter, name)) return,
+    }
+    try runMixedFormHodgeProductScalarCase(name, true, filter, mode);
+}
+
+fn runD8TenFactorProductScalarCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, comptime mode: AuditMode) !void {
+    var factors = [_]projector.StructuralEndpointFactor{.{}} ** 10;
+    var factor_index: usize = 0;
+    while (factor_index < factors.len) : (factor_index += 1) {
+        factors[factor_index] = if (factor_index < 4)
+            vectorFactor(@intCast(40 + factor_index))
+        else
+            formFactor(@intCast(40 + factor_index), 2);
+    }
+    const spec: projector.StructuralProjectorSpec = .{
+        .operator_id = 9350,
+        .orthogonal_dimension = 16,
+        .left = .{ .index = 1, .factor_span = factors[0..] },
+        .right = scalarEndpoint(2),
+        .output = scalarEndpoint(3),
+    };
+    switch (mode) {
+        .scale => try runCase(name, large, filter, spec),
+        .solve => try runSolveCase(name, large, filter, spec),
+        .render => try runRenderCase(name, large, filter, spec),
+    }
+}
+
+fn runD8TenFactorProductScalarBudgetCase(comptime name: []const u8, comptime large: bool, filter: ?[]const u8, comptime mode: AuditMode, policy: projector.TensorOnlyResourcePolicy) !void {
+    var factors = [_]projector.StructuralEndpointFactor{.{}} ** 10;
+    var factor_index: usize = 0;
+    while (factor_index < factors.len) : (factor_index += 1) {
+        factors[factor_index] = if (factor_index < 4)
+            vectorFactor(@intCast(40 + factor_index))
+        else
+            formFactor(@intCast(40 + factor_index), 2);
+    }
+    const spec: projector.StructuralProjectorSpec = .{
+        .operator_id = 9350,
+        .orthogonal_dimension = 16,
+        .left = .{ .index = 1, .factor_span = factors[0..] },
+        .right = scalarEndpoint(2),
+        .output = scalarEndpoint(3),
+    };
+    switch (mode) {
+        .scale => try runBudgetCase(name, large, filter, spec, policy),
+        .solve => try runSolveBudgetCase(name, large, filter, spec, policy),
+        .render => try runRenderBudgetCase(name, large, filter, spec, policy),
+    }
+}
+
+fn runFrontierD8TenFactorProductScalarCase(comptime name: []const u8, filter: ?[]const u8, comptime mode: AuditMode) !void {
+    switch (mode) {
+        .scale => if (!exactScaleSelected(filter, name)) return,
+        .solve => if (!exactSolveSelected(filter, name)) return,
+        .render => if (!exactRenderSelected(filter, name)) return,
+    }
+    try runD8TenFactorProductScalarCase(name, true, filter, mode);
+}
+
+pub fn main(init: std.process.Init) !void {
+    var args = std.process.Args.Iterator.init(init.minimal.args);
+    _ = args.next();
+    const filter = args.next();
+    if (solveMode(filter)) {
+        printSolveHeader();
+        try runSolveCase("boundary_eight_sym2_sym2_to_sym4", false, filter, symmetricProductSpec(2010, 2, 2, 4));
+        try runSolveCase("hook3_hook3_to_scalar", false, filter, youngScalarPairingSpec(2020, &.{ 2, 1 }));
+        try runSolveCase("weyl4_weyl4_to_scalar", true, filter, youngScalarPairingSpec(2021, &.{ 2, 2 }));
+        try runSolveCase("hook3_vec1_to_hook4", true, filter, youngProductSpec(2023, &.{ 2, 1 }, &.{1}, &.{ 3, 1 }));
+        try runSolveCase("hook4_hook4_to_scalar", true, filter, youngScalarPairingSpec(2024, &.{ 3, 1 }));
+        try runSolveCase("exterior5_exterior5_to_scalar", true, filter, youngScalarPairingSpec(2022, &.{ 1, 1, 1, 1, 1 }));
+        try runFrontierSolveCase("young5_32_young5_32_to_scalar", filter, youngScalarPairingSpec(2025, &.{ 3, 2 }));
+        try runFrontierSolveCase("young5_221_young5_221_to_scalar", filter, youngScalarPairingSpec(2026, &.{ 2, 2, 1 }));
+        try runSolveCase("d5_two_form_two_form_to_weyl", true, filter, youngProductSpec(2030, &.{ 1, 1 }, &.{ 1, 1 }, &.{ 2, 2 }));
+        try runSolveBudgetCase("d5_hook_sym2_to_hodge5", true, filter, .{
+            .operator_id = 2031,
+            .orthogonal_dimension = 10,
+            .left = youngEndpoint(1, &.{ 2, 1 }),
+            .right = symmetricEndpoint(2, 2),
+            .output = hodgeFormEndpoint(3, 10, 5, .self_dual),
+        }, .{
+            .raw_diagram_count_limit = 0,
+        });
+        try runSolveCase("d5_hook_symmetric_to_vector", true, filter, youngProductSpec(2032, &.{ 2, 1 }, &.{2}, &.{1}));
+        try runVectorProductScalarCase("d5_vector8_to_scalar", true, filter, 8, .solve);
+        try runMixedFormHodgeProductScalarBudgetCase("d5_mixed_form_hodge_product_to_scalar", true, filter, .solve, .{
+            .raw_diagram_count_limit = 256,
+            .endpoint_action_word_limit = 64,
+        });
+        try runD8TenFactorProductScalarBudgetCase("d8_product10_vector_form_to_scalar", true, filter, .solve, .{
+            .raw_diagram_enumeration_limit = 1024,
+        });
+        return;
+    }
+    if (renderMode(filter)) {
+        printRenderHeader();
+        try runRenderCase("boundary_eight_sym2_sym2_to_sym4", false, filter, symmetricProductSpec(2010, 2, 2, 4));
+        try runRenderCase("hook3_vec1_to_hook4", true, filter, youngProductSpec(2023, &.{ 2, 1 }, &.{1}, &.{ 3, 1 }));
+        try runRenderCase("ten_slot_sym2_sym3_to_sym5", true, filter, symmetricProductSpec(2011, 2, 3, 5));
+        try runRenderCase("twelve_slot_sym3_sym3_to_sym6", true, filter, symmetricProductSpec(2012, 3, 3, 6));
+        try runRenderCase("exterior5_exterior5_to_scalar", true, filter, youngScalarPairingSpec(2022, &.{ 1, 1, 1, 1, 1 }));
+        try runFrontierRenderCase("young5_32_young5_32_to_scalar", filter, youngScalarPairingSpec(2025, &.{ 3, 2 }));
+        try runFrontierRenderCase("young5_221_young5_221_to_scalar", filter, youngScalarPairingSpec(2026, &.{ 2, 2, 1 }));
+        try runRenderCase("d5_two_form_two_form_to_weyl", true, filter, youngProductSpec(2030, &.{ 1, 1 }, &.{ 1, 1 }, &.{ 2, 2 }));
+        try runRenderBudgetCase("d5_hook_sym2_to_hodge5", true, filter, .{
+            .operator_id = 2031,
+            .orthogonal_dimension = 10,
+            .left = youngEndpoint(1, &.{ 2, 1 }),
+            .right = symmetricEndpoint(2, 2),
+            .output = hodgeFormEndpoint(3, 10, 5, .self_dual),
+        }, .{
+            .raw_diagram_count_limit = 0,
+        });
+        try runRenderCase("d5_hook_symmetric_to_vector", true, filter, youngProductSpec(2032, &.{ 2, 1 }, &.{2}, &.{1}));
+        try runVectorProductScalarCase("d5_vector8_to_scalar", true, filter, 8, .render);
+        try runMixedFormHodgeProductScalarBudgetCase("d5_mixed_form_hodge_product_to_scalar", true, filter, .render, .{
+            .raw_diagram_count_limit = 256,
+            .endpoint_action_word_limit = 64,
+        });
+        try runD8TenFactorProductScalarBudgetCase("d8_product10_vector_form_to_scalar", true, filter, .render, .{
+            .raw_diagram_enumeration_limit = 1024,
+        });
+        return;
+    }
+    printHeader();
+    try runCase("boundary_eight_sym2_sym2_to_sym4", false, filter, symmetricProductSpec(2010, 2, 2, 4));
+    try runCase("hook3_hook3_to_scalar", false, filter, youngScalarPairingSpec(2020, &.{ 2, 1 }));
+    try runCase("hook3_vec1_to_hook4", false, filter, youngProductSpec(2023, &.{ 2, 1 }, &.{1}, &.{ 3, 1 }));
+    try runCase("ten_slot_sym2_sym3_to_sym5", true, filter, symmetricProductSpec(2011, 2, 3, 5));
+    try runCase("twelve_slot_sym3_sym3_to_sym6", true, filter, symmetricProductSpec(2012, 3, 3, 6));
+    try runCase("weyl4_weyl4_to_scalar", true, filter, youngScalarPairingSpec(2021, &.{ 2, 2 }));
+    try runCase("exterior5_exterior5_to_scalar", true, filter, youngScalarPairingSpec(2022, &.{ 1, 1, 1, 1, 1 }));
+    try runCase("hook4_hook4_to_scalar", true, filter, youngScalarPairingSpec(2024, &.{ 3, 1 }));
+    try runFrontierCase("young5_32_young5_32_to_scalar", filter, youngScalarPairingSpec(2025, &.{ 3, 2 }));
+    try runFrontierCase("young5_221_young5_221_to_scalar", filter, youngScalarPairingSpec(2026, &.{ 2, 2, 1 }));
+    try runCase("d5_two_form_two_form_to_scalar", true, filter, youngScalarPairingSpec(2027, &.{ 1, 1 }));
+    try runCase("d5_two_form_two_form_to_weyl", true, filter, youngProductSpec(2030, &.{ 1, 1 }, &.{ 1, 1 }, &.{ 2, 2 }));
+    try runBudgetCase("d5_hook_sym2_to_hodge5", true, filter, .{
+        .operator_id = 2031,
+        .orthogonal_dimension = 10,
+        .left = youngEndpoint(1, &.{ 2, 1 }),
+        .right = symmetricEndpoint(2, 2),
+        .output = hodgeFormEndpoint(3, 10, 5, .self_dual),
+    }, .{
+        .raw_diagram_count_limit = 0,
+    });
+    try runCase("d5_hook_symmetric_to_vector", true, filter, youngProductSpec(2032, &.{ 2, 1 }, &.{2}, &.{1}));
+    try runVectorProductScalarCase("d5_vector8_to_scalar", true, filter, 8, .scale);
+    try runMixedFormHodgeProductScalarBudgetCase("d5_mixed_form_hodge_product_to_scalar", true, filter, .scale, .{
+        .raw_diagram_count_limit = 256,
+        .endpoint_action_word_limit = 64,
+    });
+    try runD8TenFactorProductScalarBudgetCase("d8_product10_vector_form_to_scalar", true, filter, .scale, .{
+        .raw_diagram_enumeration_limit = 1024,
+    });
+    try runFrontierCase("d12_ten_row_young_scalar", filter, .{
+        .operator_id = 2033,
+        .orthogonal_dimension = 24,
+        .left = youngEndpoint(1, &.{ 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 }),
+        .right = youngEndpoint(2, &.{ 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 }),
+        .output = scalarEndpoint(3),
+    });
+    try runCase("wide_sym300_vector_to_sym301", true, filter, wideSymmetricProductSpec(2034, 300, 1, 301));
+    try runBudgetCase("tight_raw_budget_sym2_sym2_to_sym4", true, filter, symmetricProductSpec(2040, 2, 2, 4), .{
+        .raw_diagram_count_limit = 0,
+    });
+}
+#+end_src

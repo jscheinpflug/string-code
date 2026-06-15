@@ -1,0 +1,217 @@
+:PROPERTIES:
+:ID:       20260614T201500.000000
+:END:
+#+title: Expression Stream Plan
+
+This plan adds a small Zig-native stream model for symbolic CFT expressions.
+It generalizes the current [[id:20260603T094112.928043][OPE]] stream work without turning streams into a
+new symbolic language.  The stream is a sequence of exact expression terms.
+Zig code can pipe it into another OPE, into a correlator, or into an
+independent calculation.  Lisp only receives an opaque handle to this Zig
+object.
+
+* Principle
+
+The core object is an expression-term stream with sinks.
+
+- A stream produces terms; a sink consumes terms.
+- A term has an exact coefficient and compact factors.
+- A term may also carry an output operator word.
+- Only terms with an output operator word can be used as OPE input.
+- Correlator output is still a valid expression stream, even when it has no
+  output operator word.
+
+Do not build a general rewrite engine in this pass.  Do not expose the internal
+term layout to Lisp.  Do not replay C ABI event records between internal
+stages.  The hot path is Zig-to-Zig.
+
+* Cleanup
+
+First remove the interrupted compact C-event tape prototype from the worktree.
+That prototype stored OPE records as ABI events and replayed them.  It is the
+wrong abstraction for this feature because it serializes internal computation
+through a boundary format.
+
+The final implementation should not add functions like
+=sc_generated_ope_stream_records= or parse =OpeEvent= buffers as input.  C ABI
+records remain only for the existing user callback stream.
+
+* Core Zig Model
+
+Add a small module for expression streams, for example
+=src/cft-code/expressions/stream.zig=.  Keep it independent of Lisp and C ABI.
+
+The module owns these concepts:
+
+- =ExpressionStream=: an opaque/ref-counted stream handle.
+- =ExpressionTerm=: one compact owned term.
+- =ExpressionSink=: a sink interface with =emitExpressionTerm=.
+- =MaterializedStream=: owned arrays of terms and factor storage.
+- =StreamNode=: lazy node describing how to produce terms.
+
+An =ExpressionTerm= stores:
+
+- exact scalar coefficient;
+- coordinate factors;
+- tensor factors;
+- action factors;
+- zero-mode or residual factors when produced by correlators;
+- optional output operator word.
+
+For the OPE path, reuse the current =cft_ope.Scalar= and primitive factor
+encoding where possible.  If correlator-only factors do not fit the OPE factor
+types, add a small tagged =ExpressionFactor= union rather than widening the OPE
+kernel structs.
+
+Term storage must be owned after emission.  Never store slices from
+=cft_ope.TermView= or correlator scratch state.
+
+* Lazy Execution and Cache
+
+Streams are lazy by default.  Constructing a stream stores a node, not all
+terms.  Draining the stream executes its node into the requested sink.
+
+Supported node kinds for v1:
+
+- =explicit=: lowered operator expression from runtime operators;
+- =ope=: OPE of two operands;
+- =correlator=: correlator of explicit operators or stream terms plus extra
+  operators;
+- =materialized=: cached owned term tape.
+
+Add =materializeStream(stream)=.  It drains once into owned compact term
+storage, replaces or attaches a materialized cache, and keeps future drains
+linear over the cache.
+
+Stream-vs-stream OPE must not recompute the right stream for every left term.
+When both operands are lazy streams, materialize the right operand for the
+duration of the drain unless it already has a cache.  This is a local execution
+rule, not a global optimizer.
+
+* Zig API
+
+Expose this as a Zig-native API first.  The generated ABI is only an adapter.
+
+Required core functions:
+
+- =retainStream(stream)= and =releaseStream(stream)=;
+- =drainStream(stream, sink)=;
+- =materializeStream(stream)=;
+- =streamFromExplicitExpression(...)=;
+- =opeToStream(left, right, projection, allocator)=;
+- =correlatorToStream(input, allocator)=.
+
+Operands accepted by =opeToStream=:
+
+- explicit lowered operator expression;
+- expression stream with operator-word terms.
+
+If a term lacks an operator word and is used as OPE input, return a clear error.
+
+Correlator consumption accepts:
+
+- explicit operators only;
+- a stream with operator-word terms;
+- a stream with operator-word terms plus extra explicit operators.
+
+For each stream term consumed by a correlator, concatenate the term output word
+with the extra operators, run the existing correlator, and multiply/prepend the
+term coefficient and prefactors into every emitted correlator term.
+
+Independent Zig calculations use =drainStream= with their own sink.  No generic
+map/filter API is needed in v1.
+
+* Generated Descriptor Adapter
+
+The generated descriptor boundary should lower frozen runtime operators into
+the core stream model.
+
+Add descriptor helpers that can:
+
+- lower a frozen =kernel.Call.MultiOp= span into explicit OPE monomials;
+- build an =ExpressionStream= from explicit OPE operands;
+- run the generic OPE kernel from stream terms without returning through Lisp;
+- run correlators from stream terms plus extra frozen operators.
+
+Keep the generated dispatch switch minimal.  It should only route theory-tagged
+calls to the generated descriptor helpers.  Do not duplicate stream execution
+logic in the generated ABI file.
+
+* Lisp and C ABI Surface
+
+Expose only opaque handles through the C ABI.
+
+Required ABI operations:
+
+- create OPE internal stream from current runtime operators and =left-count=;
+- create OPE internal stream from one or two internal stream handles plus
+  optional explicit operators;
+- create correlator internal stream from current runtime operators;
+- consume a stream by correlator with optional extra explicit operators;
+- retain, release, and materialize stream handle;
+- drain stream to existing compact callback records;
+- drain stream to expression records;
+- drain stream to text through the expression-record path.
+
+In Lisp:
+
+- =(ope ... :as :internal-stream)= returns an opaque internal stream object;
+- =(correlator ... :as :internal-stream)= returns an opaque internal stream
+  object;
+- internal stream objects are accepted as OPE operands;
+- correlator accepts an internal stream plus ordinary field or =R= forms;
+- =materialize-internal-stream= forces a cache;
+- =destroy-internal-stream= releases the handle and is idempotent;
+- =internal-stream->expression=, =internal-stream->text=, and
+  =run-internal-stream= drain the handle.
+
+Attach a Lisp finalizer as a fallback, but keep explicit destruction available.
+
+* Tests
+
+Zig tests:
+
+- OPE internal stream drained to expression records matches direct OPE records.
+- Correlator internal stream drained to expression records matches direct
+  correlator records.
+- OPE stream piped into OPE matches OPE of the materialized Lisp expression.
+- OPE stream piped into correlator matches correlating each materialized term.
+- Correlator output can be drained into a simple Zig counting/hash sink.
+- Using a stream term without an operator word as OPE input returns an error.
+- Lazy and materialized drains produce the same deterministic hash.
+- Retain/release frees children and caches without dangling scratch pointers.
+
+Lisp smoke tests:
+
+- =:internal-stream= works for OPE and correlator.
+- Internal streams drain to =:expression=, =:text=, and user =:stream=.
+- Stream-left, stream-right, and stream-stream OPE work.
+- =materialize-internal-stream= preserves results and allows reuse.
+- Destroyed streams and theory-mismatched streams signal clean ABI errors.
+
+Benchmarks:
+
+- expression-fed OPE chain vs lazy internal stream chain;
+- lazy internal stream chain vs materialized internal stream chain;
+- internal-stream-to-correlator vs expression-to-correlator;
+- confirm internal pipeline stages do not cross CFFI per term.
+
+* Non-Goals
+
+- No general symbolic optimizer.
+- No arbitrary stream rewrite DSL.
+- No exposed internal term layout in Lisp.
+- No C ABI event replay as internal input.
+- No correlator-output-to-OPE unless the stream term has an operator word.
+
+* Implementation Order
+
+1. Remove the interrupted event-tape prototype.
+2. Add the core =ExpressionStream= module with owned materialized terms and a
+   counting/hash sink.
+3. Add OPE stream production and stream-to-OPE consumption in Zig.
+4. Add correlator stream production and stream-to-correlator consumption.
+5. Add generated descriptor dispatch adapters.
+6. Add C ABI opaque handles and Lisp wrappers.
+7. Add conversion drains to existing expression/text/callback modes.
+8. Add benchmarks and only then tune cache/materialization thresholds if needed.

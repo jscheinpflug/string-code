@@ -39,6 +39,7 @@ pub const ContextId = struct {
 pub const ContextOptions = struct {
     algebra_conventions: root_data.AlgebraConventions = .{},
     default_signature: rendering.SignatureConvention = .complex,
+    tensor_only_resource_policy: projector_constructor.TensorOnlyResourcePolicy = .{},
 };
 
 /// FormulaCoverageAudit stores formula-readiness counters for a generated basis.
@@ -123,10 +124,9 @@ pub const Context = struct {
     /// invariantBasis generates or retrieves a compact invariant basis.
     pub fn invariantBasis(self: *Context, request: coupling.InvariantBasisRequest) !coupling.BasisHandle {
         try self.validateInvariantBasisRequest(request);
-        const path_count = try self.impl().countInvariantPaths(request);
         var paths = try self.impl().enumerateInvariantPaths(request);
         defer paths.deinit();
-        if (path_count != paths.paths.items.len) return error.PathCountMismatch;
+        const path_count: u128 = @intCast(paths.paths.items.len);
         const boundary_projector_count = try self.impl().countBoundaryProjectors(request);
         return self.impl().couplings.internBasisRequestWithPaths(request, path_count, paths.paths.items, paths.steps.items, boundary_projector_count);
     }
@@ -149,6 +149,60 @@ pub const Context = struct {
     /// projectorDescriptor resolves a streamed projector operator id.
     pub fn projectorDescriptor(self: Context, operator_id: u32) ?projector.ProjectorDescriptor {
         return self.impl().projectors.projectorDescriptor(operator_id);
+    }
+
+    /// tensorOnlyResourcePolicy returns the active tensor-only compile/render budget.
+    pub fn tensorOnlyResourcePolicy(self: Context) projector_constructor.TensorOnlyResourcePolicy {
+        return self.impl().structural_projection_programs.tensor_only_resource_policy;
+    }
+
+    /// tensorOnlyCapAudit returns the fixed-cap classifications for the active tensor-only policy.
+    pub fn tensorOnlyCapAudit(self: Context) projector_constructor.TensorOnlyCapAudit {
+        return projector_constructor.tensorOnlyCapAudit(self.tensorOnlyResourcePolicy());
+    }
+
+    /// setTensorOnlyResourcePolicy resets cached tensor-only programs and installs a new budget.
+    pub fn setTensorOnlyResourcePolicy(self: *Context, policy: projector_constructor.TensorOnlyResourcePolicy) void {
+        self.impl().structural_projection_programs.deinit();
+        self.impl().structural_projection_programs = projector_constructor.StructuralProjectorProgramCache.initWithTensorOnlyResourcePolicy(self.allocator, policy);
+    }
+
+    /// tensorOnlyStructuralTermCount returns the wide streamed count for one structural tensor route.
+    pub fn tensorOnlyStructuralTermCount(self: *Context, spec: projector_constructor.StructuralProjectorSpec) !usize {
+        return self.impl().structural_projection_programs.termCountWide(spec);
+    }
+
+    /// tensorOnlyStructuralScaleAudit returns pre-solve tensor-only growth counters under the active budget.
+    pub fn tensorOnlyStructuralScaleAudit(self: Context, spec: projector_constructor.StructuralProjectorSpec) !projector_constructor.TensorOnlyScaleAudit {
+        return projector_constructor.tensorOnlyStructuralScaleAuditWithTensorOnlyResourcePolicy(spec, self.tensorOnlyResourcePolicy());
+    }
+
+    /// tensorOnlyStructuralSolveAudit returns sparse solve counters under the active budget.
+    pub fn tensorOnlyStructuralSolveAudit(self: Context, spec: projector_constructor.StructuralProjectorSpec) !projector_constructor.TensorOnlySolveAudit {
+        return projector_constructor.tensorOnlyStructuralSolveAuditWithTensorOnlyResourcePolicy(spec, self.tensorOnlyResourcePolicy());
+    }
+
+    /// tensorOnlyStructuralRenderPageAudit returns primitive render counters for a bounded page.
+    pub fn tensorOnlyStructuralRenderPageAudit(
+        self: Context,
+        spec: projector_constructor.StructuralProjectorSpec,
+        first_term: usize,
+        max_terms: usize,
+    ) !projector_constructor.TensorOnlyRenderPageAudit {
+        return projector_constructor.tensorOnlyStructuralRenderPageAuditWithTensorOnlyResourcePolicy(spec, first_term, max_terms, self.tensorOnlyResourcePolicy());
+    }
+
+    /// appendTensorOnlyStructuralTermPage emits one bounded primitive page through the policy-scoped cache.
+    pub fn appendTensorOnlyStructuralTermPage(
+        self: *Context,
+        atoms: *std.ArrayList(rendering.SymbolicAtom),
+        coefficients: *std.ArrayList(rendering.RationalId),
+        atom_ends: *std.ArrayList(usize),
+        spec: projector_constructor.StructuralProjectorSpec,
+        first_term: usize,
+        max_terms: usize,
+    ) !usize {
+        return self.impl().structural_projection_programs.appendTermPage(atoms, coefficients, atom_ends, spec, first_term, max_terms);
     }
 
     /// renderInvariant streams one invariant in the requested convention.
@@ -287,7 +341,7 @@ const Impl = struct {
             .realizations = realization.Store.init(allocator),
             .decompositions = decomposition.Store.init(allocator),
             .projectors = projector.Store.init(allocator),
-            .structural_projection_programs = projector_constructor.StructuralProjectorProgramCache.init(allocator),
+            .structural_projection_programs = projector_constructor.StructuralProjectorProgramCache.initWithTensorOnlyResourcePolicy(allocator, options.tensor_only_resource_policy),
             .couplings = coupling.Store.init(allocator),
         };
     }
@@ -443,23 +497,15 @@ const Impl = struct {
             .coefficient = rendering.rationalOne(),
             .atoms = scratch.atoms.items,
         };
-        const decision = try filter.decide(term);
-        audit.recordDecision(decision);
-        switch (decision) {
-            .reject => return audit,
-            .accept, .undecided => {
-                if (options.projectors == .named) {
-                    try emitRenderedTerm(self.allocator, options, sink, term, &audit, &scratch.lowered_atoms);
-                    return audit;
-                }
-                if (!explicit_formula and steps.len != 0) {
-                    try self.requirePathProjectorExpansion(steps, options.projectors);
-                    return error.ProjectorExpansionNotImplemented;
-                }
-                try emitRenderedTerm(self.allocator, options, sink, term, &audit, &scratch.lowered_atoms);
-                return audit;
-            },
+        if (options.projectors != .named and !explicit_formula and steps.len != 0) {
+            const decision = try filter.decide(term);
+            audit.recordDecision(decision);
+            if (decision == .reject) return audit;
+            try self.requirePathProjectorExpansion(steps, options.projectors);
+            return error.ProjectorExpansionNotImplemented;
         }
+        try self.emitFormulaTerm(term, steps, options, filter, sink, &audit, &scratch.generalized_delta_atoms, &scratch.lowered_atoms);
+        return audit;
     }
 
     fn appendBoundaryRealizationAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), request: coupling.InvariantBasisRequest) !u32 {
@@ -1806,83 +1852,129 @@ const Impl = struct {
             return out;
         }
 
-        var nodes: std.ArrayList(PartialPathNode) = .empty;
-        defer nodes.deinit(self.allocator);
-        var current: std.ArrayList(u32) = .empty;
-        defer current.deinit(self.allocator);
-        var next: std.ArrayList(u32) = .empty;
-        defer next.deinit(self.allocator);
         var continuation_counts = std.AutoHashMap(u64, u128).init(self.allocator);
         defer continuation_counts.deinit();
+        var viable_choices: std.ArrayList(ViableCouplingChoice) = .empty;
+        defer viable_choices.deinit(self.allocator);
+        var viable_spans = std.AutoHashMap(u64, ViableCouplingChoiceSpan).init(self.allocator);
+        defer viable_spans.deinit();
+        var step_stack: std.ArrayList(coupling.CouplingStep) = .empty;
+        defer step_stack.deinit(self.allocator);
 
         const first = try self.externalLegIrrep(request.external_legs[0]);
-        try nodes.append(self.allocator, .{
-            .output = first,
-            .parent = 0,
-            .has_parent = false,
-            .step = undefined,
-        });
-        try current.append(self.allocator, 0);
+        try self.enumerateInvariantPathSuffix(
+            request,
+            first,
+            1,
+            target,
+            &continuation_counts,
+            &viable_choices,
+            &viable_spans,
+            &step_stack,
+            &out,
+        );
+        return out;
+    }
 
-        for (request.external_legs[1..], 1..) |leg, leg_index| {
-            next.clearRetainingCapacity();
-            const factor = try self.externalLegIrrep(leg);
-            for (current.items) |node_index| {
-                const node = nodes.items[node_index];
-                const product = try self.decomposeProduct(node.output, factor);
-                const terms = self.decompositions.productTerms(product) orelse return error.UnknownProductDecomposition;
-                var terms_copy: std.ArrayList(decomposition.ProductTerm) = .empty;
-                defer terms_copy.deinit(self.allocator);
-                try terms_copy.appendSlice(self.allocator, terms);
-                for (terms_copy.items) |term| {
-                    const suffix_count = try self.countContinuations(request, term.irrep, leg_index + 1, target, &continuation_counts);
-                    if (suffix_count == 0) continue;
-                    for (0..term.multiplicity) |copy| {
-                        const local_projector = try self.localProductProjector(node.output, factor, term.irrep, @intCast(copy));
-                        const child_index: u32 = @intCast(nodes.items.len);
-                        try nodes.append(self.allocator, .{
-                            .output = term.irrep,
-                            .parent = node_index,
-                            .has_parent = true,
-                            .step = .{
-                                .left = node.output,
-                                .right = factor,
-                                .output = term.irrep,
-                                .multiplicity_copy = @intCast(copy),
-                                .projector = local_projector,
-                            },
-                        });
-                        try next.append(self.allocator, child_index);
-                    }
-                }
-            }
-            current.clearRetainingCapacity();
-            try current.appendSlice(self.allocator, next.items);
-        }
-
-        var reverse_steps: std.ArrayList(coupling.CouplingStep) = .empty;
-        defer reverse_steps.deinit(self.allocator);
-        for (current.items) |node_index| {
-            if (nodes.items[node_index].output.value != target.value) continue;
-            reverse_steps.clearRetainingCapacity();
-            var cursor = node_index;
-            while (nodes.items[cursor].has_parent) {
-                try reverse_steps.append(self.allocator, nodes.items[cursor].step);
-                cursor = nodes.items[cursor].parent;
-            }
-
+    fn enumerateInvariantPathSuffix(
+        self: *Impl,
+        request: coupling.InvariantBasisRequest,
+        current: store.IrrepHandle,
+        next_index: usize,
+        target: store.IrrepHandle,
+        continuation_counts: *std.AutoHashMap(u64, u128),
+        viable_choices: *std.ArrayList(ViableCouplingChoice),
+        viable_spans: *std.AutoHashMap(u64, ViableCouplingChoiceSpan),
+        step_stack: *std.ArrayList(coupling.CouplingStep),
+        out: *PathEnumeration,
+    ) !void {
+        if (next_index == request.external_legs.len) {
+            if (current.value != target.value) return;
             const step_offset: u32 = @intCast(out.steps.items.len);
-            var i = reverse_steps.items.len;
-            while (i > 0) {
-                i -= 1;
-                try out.steps.append(self.allocator, reverse_steps.items[i]);
-            }
+            try out.steps.appendSlice(self.allocator, step_stack.items);
             try out.paths.append(self.allocator, .{
                 .step_offset = step_offset,
-                .step_len = @intCast(reverse_steps.items.len),
+                .step_len = @intCast(step_stack.items.len),
             });
+            return;
         }
-        return out;
+
+        const factor = try self.externalLegIrrep(request.external_legs[next_index]);
+        const span = try self.viableCouplingChoices(
+            request,
+            current,
+            factor,
+            next_index,
+            target,
+            continuation_counts,
+            viable_choices,
+            viable_spans,
+        );
+        var choice_index = span.offset;
+        const choice_end = span.offset + span.len;
+        while (choice_index < choice_end) : (choice_index += 1) {
+            const choice = viable_choices.items[choice_index];
+            try step_stack.append(self.allocator, .{
+                .left = current,
+                .right = factor,
+                .output = choice.output,
+                .multiplicity_copy = choice.multiplicity_copy,
+                .projector = choice.projector,
+            });
+            try self.enumerateInvariantPathSuffix(
+                request,
+                choice.output,
+                next_index + 1,
+                target,
+                continuation_counts,
+                viable_choices,
+                viable_spans,
+                step_stack,
+                out,
+            );
+            _ = step_stack.pop();
+        }
+    }
+
+    fn viableCouplingChoices(
+        self: *Impl,
+        request: coupling.InvariantBasisRequest,
+        current: store.IrrepHandle,
+        factor: store.IrrepHandle,
+        leg_index: usize,
+        target: store.IrrepHandle,
+        continuation_counts: *std.AutoHashMap(u64, u128),
+        choices: *std.ArrayList(ViableCouplingChoice),
+        spans: *std.AutoHashMap(u64, ViableCouplingChoiceSpan),
+    ) !ViableCouplingChoiceSpan {
+        const key = continuationKey(leg_index, current);
+        if (spans.get(key)) |cached| return cached;
+
+        const offset = choices.items.len;
+        const product = try self.decomposeProduct(current, factor);
+        const terms = self.decompositions.productTerms(product) orelse return error.UnknownProductDecomposition;
+        var terms_copy: std.ArrayList(decomposition.ProductTerm) = .empty;
+        defer terms_copy.deinit(self.allocator);
+        try terms_copy.appendSlice(self.allocator, terms);
+
+        for (terms_copy.items) |term| {
+            const suffix_count = try self.countContinuations(request, term.irrep, leg_index + 1, target, continuation_counts);
+            if (suffix_count == 0) continue;
+            for (0..term.multiplicity) |copy| {
+                try choices.append(self.allocator, .{
+                    .output = term.irrep,
+                    .multiplicity_copy = @intCast(copy),
+                    .projector = try self.localProductProjector(current, factor, term.irrep, @intCast(copy)),
+                });
+            }
+        }
+
+        const span: ViableCouplingChoiceSpan = .{
+            .offset = offset,
+            .len = choices.items.len - offset,
+        };
+        try spans.put(key, span);
+        return span;
     }
 
     fn countContinuations(self: *Impl, request: coupling.InvariantBasisRequest, current: store.IrrepHandle, next_index: usize, target: store.IrrepHandle, memo: *std.AutoHashMap(u64, u128)) !u128 {
@@ -3503,24 +3595,72 @@ const Impl = struct {
     fn streamLocalFormulaPathTerms(self: *Impl, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, scratch: *ExpansionScratch) !bool {
         if (steps.len == 0) return false;
         if (steps.len > max_local_formula_steps) return error.ProjectorExpansionNotImplemented;
+        if (options.max_terms) |max_terms| {
+            if (max_terms == 0) return true;
+            if (options.first_term == 0 and max_terms == 1) return self.streamFirstLocalFormulaPathTerm(steps, options, filter, sink, audit, scratch);
+        }
 
-        var term_counts = [_]u16{0} ** max_local_formula_steps;
-        var term_indices = [_]u16{0} ** max_local_formula_steps;
+        var term_counts = [_]usize{0} ** max_local_formula_steps;
+        var term_indices = [_]usize{0} ** max_local_formula_steps;
         var formula_kinds = [_]projector.ProjectorFormulaKind{.named_only} ** max_local_formula_steps;
         if (!try self.prepareLocalFormulaTermFrontier(steps, term_counts[0..steps.len], formula_kinds[0..steps.len])) return false;
+        try self.budgetLocalFormulaExpandedTermProduct(term_counts[0..steps.len], 1);
         var cached_steps = [_]CachedLocalFormulaStep{.{}} ** max_local_formula_steps;
         try self.prepareLocalFormulaTermCache(scratch, steps, formula_kinds[0..steps.len], term_counts[0..steps.len], cached_steps[0..steps.len]);
 
         while (true) {
             scratch.local_path_atoms.clearRetainingCapacity();
             const coefficient = try self.appendLocalFormulaPathTermAtoms(&scratch.local_path_atoms, steps, formula_kinds[0..steps.len], term_indices[0..steps.len], cached_steps[0..steps.len], scratch);
-            try self.emitLocalFormulaTerm(&scratch.local_term_atoms, scratch.local_path_atoms.items, coefficient, options, filter, sink, audit, &scratch.lowered_atoms);
+            try self.emitLocalFormulaTerm(&scratch.local_term_atoms, scratch.local_path_atoms.items, steps, coefficient, options, filter, sink, audit, &scratch.generalized_delta_atoms, &scratch.lowered_atoms);
             if (!incrementLocalFormulaTermIndices(term_indices[0..steps.len], term_counts[0..steps.len])) break;
         }
         return true;
     }
 
-    fn prepareLocalFormulaTermFrontier(self: *Impl, steps: []const coupling.CouplingStep, term_counts: []u16, formula_kinds: []projector.ProjectorFormulaKind) !bool {
+    fn streamFirstLocalFormulaPathTerm(self: *Impl, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, scratch: *ExpansionScratch) !bool {
+        var formula_kinds = [_]projector.ProjectorFormulaKind{.named_only} ** max_local_formula_steps;
+        if (!try self.prepareLocalFormulaKindFrontier(steps, formula_kinds[0..steps.len])) return false;
+        scratch.local_path_atoms.clearRetainingCapacity();
+        const coefficient = try self.appendFirstLocalFormulaPathTermAtoms(&scratch.local_path_atoms, steps, formula_kinds[0..steps.len], scratch);
+        try self.emitLocalFormulaTerm(&scratch.local_term_atoms, scratch.local_path_atoms.items, steps, coefficient, options, filter, sink, audit, &scratch.generalized_delta_atoms, &scratch.lowered_atoms);
+        return true;
+    }
+
+    fn prepareLocalFormulaKindFrontier(self: *Impl, steps: []const coupling.CouplingStep, formula_kinds: []projector.ProjectorFormulaKind) !bool {
+        if (steps.len == 0 or steps.len != formula_kinds.len) return false;
+        for (steps, 0..) |step, step_index| {
+            const formula_kind = self.localProductFormulaKind(step);
+            if (formula_kind == .named_only) return false;
+            const cached_kind = try self.projectors.ensureFormulaProgram(step.projector);
+            if (cached_kind != formula_kind) return error.InvalidProjectorExpansion;
+            formula_kinds[step_index] = cached_kind;
+        }
+        return true;
+    }
+
+    fn appendFirstLocalFormulaPathTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), steps: []const coupling.CouplingStep, formula_kinds: []const projector.ProjectorFormulaKind, scratch: *ExpansionScratch) !rendering.RationalId {
+        if (steps.len != formula_kinds.len) return error.InvalidProjectorExpansion;
+        const scratch_base: u32 = @intCast(steps.len + 1);
+        var coefficient = rendering.rationalOne();
+        var previous_formula_atom: ?rendering.SymbolicAtom = null;
+        for (steps, 0..) |step, step_index| {
+            const left_index: rendering.IndexRef = if (step_index == 0) 0 else scratch_base + @as(u32, @intCast(step_index - 1));
+            const right_index: rendering.IndexRef = @intCast(step_index + 1);
+            const output_index: rendering.IndexRef = scratch_base + @as(u32, @intCast(step_index));
+            const atom_index = atoms.items.len;
+            const step_coefficient = try self.appendLocalFormulaStepFirstPageTermAtoms(atoms, step, left_index, right_index, output_index, formula_kinds[step_index], scratch);
+            coefficient = try multiplyRenderingRationals(coefficient, step_coefficient);
+            if (atoms.items.len == atom_index) return error.InvalidProjectorExpansion;
+            const current_formula_atom = atoms.items[atom_index];
+            if (previous_formula_atom) |previous| {
+                try appendCliffordProductAtoms(self.allocator, atoms, previous, current_formula_atom);
+            }
+            previous_formula_atom = current_formula_atom;
+        }
+        return coefficient;
+    }
+
+    fn prepareLocalFormulaTermFrontier(self: *Impl, steps: []const coupling.CouplingStep, term_counts: []usize, formula_kinds: []projector.ProjectorFormulaKind) !bool {
         if (steps.len == 0 or steps.len != term_counts.len or steps.len != formula_kinds.len) return false;
         for (steps, 0..) |step, step_index| {
             const formula_kind = self.localProductFormulaKind(step);
@@ -3535,7 +3675,7 @@ const Impl = struct {
         return true;
     }
 
-    fn localFormulaStepTermCount(self: *Impl, step: coupling.CouplingStep, formula_kind: projector.ProjectorFormulaKind) !u16 {
+    fn localFormulaStepTermCount(self: *Impl, step: coupling.CouplingStep, formula_kind: projector.ProjectorFormulaKind) !usize {
         if (try self.localFormulaProjectionStepTermCount(step, formula_kind)) |count| return count;
         return switch (formula_kind) {
             .backend_specific_structure, .named_only => 0,
@@ -3543,7 +3683,7 @@ const Impl = struct {
         };
     }
 
-    fn localFormulaProjectionStepTermCount(self: *Impl, step: coupling.CouplingStep, formula_kind: projector.ProjectorFormulaKind) !?u16 {
+    fn localFormulaProjectionStepTermCount(self: *Impl, step: coupling.CouplingStep, formula_kind: projector.ProjectorFormulaKind) !?usize {
         if (formula_kind == .orthogonal_structural_projection) {
             const count = try self.localStructuralTermCount(step, 0, 1, 2);
             if (count == 0) return null;
@@ -3569,7 +3709,7 @@ const Impl = struct {
         };
     }
 
-    fn prepareLocalFormulaTermCache(self: *Impl, scratch: *ExpansionScratch, steps: []const coupling.CouplingStep, formula_kinds: []const projector.ProjectorFormulaKind, term_counts: []const u16, cached_steps: []CachedLocalFormulaStep) !void {
+    fn prepareLocalFormulaTermCache(self: *Impl, scratch: *ExpansionScratch, steps: []const coupling.CouplingStep, formula_kinds: []const projector.ProjectorFormulaKind, term_counts: []const usize, cached_steps: []CachedLocalFormulaStep) !void {
         if (steps.len != formula_kinds.len or steps.len != term_counts.len or steps.len != cached_steps.len) return error.InvalidProjectorExpansion;
         scratch.cached_local_terms.clearRetainingCapacity();
         scratch.cached_local_atoms.clearRetainingCapacity();
@@ -3584,9 +3724,9 @@ const Impl = struct {
             cached_steps[step_index] = .{
                 .cached = true,
                 .term_offset = @intCast(scratch.cached_local_terms.items.len),
-                .count = count,
+                .count = @intCast(count),
             };
-            var term_index: u16 = 0;
+            var term_index: usize = 0;
             while (term_index < count) : (term_index += 1) {
                 const left_index: rendering.IndexRef = if (step_index == 0) 0 else scratch_base + @as(u32, @intCast(step_index - 1));
                 const right_index: rendering.IndexRef = @intCast(step_index + 1);
@@ -3606,7 +3746,18 @@ const Impl = struct {
         }
     }
 
-    fn appendLocalFormulaPathTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), steps: []const coupling.CouplingStep, formula_kinds: []const projector.ProjectorFormulaKind, term_indices: []const u16, cached_steps: []const CachedLocalFormulaStep, scratch: *const ExpansionScratch) !rendering.RationalId {
+    fn budgetLocalFormulaExpandedTermProduct(self: *Impl, term_counts: []const usize, multiplier: usize) !void {
+        const limit = self.structural_projection_programs.tensor_only_resource_policy.output_term_count_limit;
+        var total = if (multiplier == 0) @as(usize, 1) else multiplier;
+        if (limit != std.math.maxInt(usize) and total > limit) return error.TensorResourceBudgetExceeded;
+        for (term_counts) |count| {
+            if (count == 0) return error.InvalidProjectorExpansion;
+            total = std.math.mul(usize, total, count) catch return error.TensorResourceBudgetExceeded;
+            if (limit != std.math.maxInt(usize) and total > limit) return error.TensorResourceBudgetExceeded;
+        }
+    }
+
+    fn appendLocalFormulaPathTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), steps: []const coupling.CouplingStep, formula_kinds: []const projector.ProjectorFormulaKind, term_indices: []const usize, cached_steps: []const CachedLocalFormulaStep, scratch: *const ExpansionScratch) !rendering.RationalId {
         if (steps.len != formula_kinds.len or steps.len != term_indices.len or steps.len != cached_steps.len) return error.InvalidProjectorExpansion;
         const scratch_base: u32 = @intCast(steps.len + 1);
         var coefficient = rendering.rationalOne();
@@ -3631,7 +3782,7 @@ const Impl = struct {
         return coefficient;
     }
 
-    fn appendCachedLocalFormulaStepTermAtoms(allocator: std.mem.Allocator, atoms: *std.ArrayList(rendering.SymbolicAtom), cached_step: CachedLocalFormulaStep, term_index: u16, scratch: *const ExpansionScratch) !rendering.RationalId {
+    fn appendCachedLocalFormulaStepTermAtoms(allocator: std.mem.Allocator, atoms: *std.ArrayList(rendering.SymbolicAtom), cached_step: CachedLocalFormulaStep, term_index: usize, scratch: *const ExpansionScratch) !rendering.RationalId {
         if (!cached_step.cached or term_index >= cached_step.count) return error.ProjectorConstructorTermOutOfBounds;
         const term = scratch.cached_local_terms.items[@as(usize, cached_step.term_offset) + term_index];
         const atom_start: usize = @intCast(term.atom_offset);
@@ -3641,14 +3792,36 @@ const Impl = struct {
         return term.coefficient;
     }
 
-    fn appendLocalFormulaStepTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, formula_kind: projector.ProjectorFormulaKind, term_index: u16) !rendering.RationalId {
+    fn appendLocalFormulaStepTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, formula_kind: projector.ProjectorFormulaKind, term_index: usize) !rendering.RationalId {
         if (try self.appendLocalFormulaProjectionStepTerm(atoms, step, left_index, right_index, output_index, formula_kind, term_index)) |coefficient| return coefficient;
         if (term_index != 0) return error.ProjectorConstructorTermOutOfBounds;
         if (!try self.appendLocalFormulaStepAtomForKind(atoms, step, left_index, right_index, output_index, formula_kind)) return error.ProjectorExpansionNotImplemented;
         return rendering.rationalOne();
     }
 
-    fn appendLocalFormulaProjectionStepTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, formula_kind: projector.ProjectorFormulaKind, term_index: u16) !?rendering.RationalId {
+    fn appendLocalFormulaStepFirstPageTermAtoms(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, formula_kind: projector.ProjectorFormulaKind, scratch: *ExpansionScratch) !rendering.RationalId {
+        if (formula_kind == .orthogonal_structural_projection) {
+            const structural = self.orthogonalStructuralStep(step, left_index, right_index, output_index) orelse return error.ProjectorExpansionNotImplemented;
+            const policy = self.structural_projection_programs.tensor_only_resource_policy;
+            if (policy.output_term_count_limit == 0 or policy.output_term_page_limit == 0 or policy.term_pair_work_limit == 0) return error.TensorResourceBudgetExceeded;
+            scratch.local_page_coefficients.clearRetainingCapacity();
+            scratch.local_page_atom_ends.clearRetainingCapacity();
+            const emitted = try self.structural_projection_programs.appendTermPage(
+                atoms,
+                &scratch.local_page_coefficients,
+                &scratch.local_page_atom_ends,
+                structuralProjectorSpecFromOrthogonalStep(structural),
+                0,
+                1,
+            );
+            if (emitted != 1 or scratch.local_page_coefficients.items.len != 1 or scratch.local_page_atom_ends.items.len != 1) return error.ProjectorConstructorTermOutOfBounds;
+            if (scratch.local_page_atom_ends.items[0] != atoms.items.len) return error.InvalidProjectorExpansion;
+            return scratch.local_page_coefficients.items[0];
+        }
+        return self.appendLocalFormulaStepTermAtoms(atoms, step, left_index, right_index, output_index, formula_kind, 0);
+    }
+
+    fn appendLocalFormulaProjectionStepTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, formula_kind: projector.ProjectorFormulaKind, term_index: usize) !?rendering.RationalId {
         if (formula_kind == .orthogonal_structural_projection) {
             return try self.appendLocalStructuralTerm(atoms, step, left_index, right_index, output_index, term_index);
         }
@@ -3659,42 +3832,41 @@ const Impl = struct {
         return switch (compact_atoms.items[0]) {
             .tensor_spinor_projection => |projection| blk: {
                 const spec = tensorSpinorProjectionSpec(projection);
-                break :blk try self.structural_projection_programs.appendTensorSpinorTerm(atoms, spec, term_index);
+                if (term_index > std.math.maxInt(u16)) return error.ProjectorConstructorTermOutOfBounds;
+                break :blk try self.structural_projection_programs.appendTensorSpinorTerm(atoms, spec, @intCast(term_index));
             },
             .tensor_form_projection => |projection| blk: {
                 const spec = tensorFormProjectionSpec(projection);
-                break :blk try self.structural_projection_programs.appendTensorFormTerm(atoms, spec, term_index);
+                if (term_index > std.math.maxInt(u16)) return error.ProjectorConstructorTermOutOfBounds;
+                break :blk try self.structural_projection_programs.appendTensorFormTerm(atoms, spec, @intCast(term_index));
             },
             else => null,
         };
     }
 
-    fn localStructuralTermCount(self: *Impl, step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef) !u16 {
+    fn localStructuralTermCount(self: *Impl, step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef) !usize {
         const structural = self.orthogonalStructuralStep(step, left_index, right_index, output_index) orelse return 0;
-        return self.structural_projection_programs.termCount(structuralProjectorSpecFromOrthogonalStep(structural));
+        if (self.structural_projection_programs.tensor_only_resource_policy.output_term_count_limit == 0) return error.TensorResourceBudgetExceeded;
+        return self.structural_projection_programs.termCountWide(structuralProjectorSpecFromOrthogonalStep(structural));
     }
 
-    fn appendLocalStructuralTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, term_index: u16) !rendering.RationalId {
+    fn appendLocalStructuralTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), step: coupling.CouplingStep, left_index: rendering.IndexRef, right_index: rendering.IndexRef, output_index: rendering.IndexRef, term_index: usize) !rendering.RationalId {
         const structural = self.orthogonalStructuralStep(step, left_index, right_index, output_index) orelse return error.ProjectorExpansionNotImplemented;
-        return self.structural_projection_programs.appendTerm(atoms, structuralProjectorSpecFromOrthogonalStep(structural), term_index) catch |err| switch (err) {
+        if (self.structural_projection_programs.tensor_only_resource_policy.output_term_count_limit == 0) return error.TensorResourceBudgetExceeded;
+        return self.structural_projection_programs.appendTermAt(atoms, structuralProjectorSpecFromOrthogonalStep(structural), term_index) catch |err| switch (err) {
             error.UnsupportedStructuralProjectorTerm => error.ProjectorExpansionNotImplemented,
             else => err,
         };
     }
 
-    fn emitLocalFormulaTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), formula_atoms: []const rendering.SymbolicAtom, coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) !void {
+    fn emitLocalFormulaTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), formula_atoms: []const rendering.SymbolicAtom, steps: []const coupling.CouplingStep, coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, generalized_delta_atoms: *std.ArrayList(rendering.SymbolicAtom), lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) !void {
         atoms.clearRetainingCapacity();
         try atoms.appendSlice(self.allocator, formula_atoms);
         const term: rendering.SymbolicTerm = .{
             .coefficient = coefficient,
             .atoms = atoms.items,
         };
-        const decision = try filter.decide(term);
-        audit.recordDecision(decision);
-        switch (decision) {
-            .reject => {},
-            .accept, .undecided => try emitRenderedTerm(self.allocator, options, sink, term, audit, lowered_atoms),
-        }
+        try self.emitFormulaTerm(term, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
     }
 
     fn streamBoundaryFormulaTerms(self: *Impl, request: coupling.InvariantBasisRequest, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, scratch: *ExpansionScratch) !void {
@@ -3726,43 +3898,44 @@ const Impl = struct {
         };
 
         if (steps.len == 0) {
-            try self.streamBoundaryFormulaTermsWithPath(spec, &.{}, rendering.rationalOne(), options, filter, sink, audit, scratch);
+            try self.streamBoundaryFormulaTermsWithPath(spec, &.{}, &.{}, rendering.rationalOne(), options, filter, sink, audit, scratch);
             return;
         }
 
         scratch.boundary_path_atoms.clearRetainingCapacity();
         if (try self.appendSpecialExplicitPathAtoms(&scratch.boundary_path_atoms, steps)) {
-            try self.streamBoundaryFormulaTermsWithPath(spec, scratch.boundary_path_atoms.items, rendering.rationalOne(), options, filter, sink, audit, scratch);
+            try self.streamBoundaryFormulaTermsWithPath(spec, scratch.boundary_path_atoms.items, steps, rendering.rationalOne(), options, filter, sink, audit, scratch);
             return;
         }
 
         if (steps.len > max_local_formula_steps) return error.ProjectorExpansionNotImplemented;
-        var term_counts = [_]u16{0} ** max_local_formula_steps;
-        var term_indices = [_]u16{0} ** max_local_formula_steps;
+        var term_counts = [_]usize{0} ** max_local_formula_steps;
+        var term_indices = [_]usize{0} ** max_local_formula_steps;
         var formula_kinds = [_]projector.ProjectorFormulaKind{.named_only} ** max_local_formula_steps;
         if (!try self.prepareLocalFormulaTermFrontier(steps, term_counts[0..steps.len], formula_kinds[0..steps.len])) return error.ProjectorExpansionNotImplemented;
+        try self.budgetLocalFormulaExpandedTermProduct(term_counts[0..steps.len], projector_constructor.vectorSpinorTracelessTermCount(spec));
         var cached_steps = [_]CachedLocalFormulaStep{.{}} ** max_local_formula_steps;
         try self.prepareLocalFormulaTermCache(scratch, steps, formula_kinds[0..steps.len], term_counts[0..steps.len], cached_steps[0..steps.len]);
 
         while (true) {
             scratch.boundary_path_atoms.clearRetainingCapacity();
             const path_coefficient = try self.appendLocalFormulaPathTermAtoms(&scratch.boundary_path_atoms, steps, formula_kinds[0..steps.len], term_indices[0..steps.len], cached_steps[0..steps.len], scratch);
-            try self.streamBoundaryFormulaTermsWithPath(spec, scratch.boundary_path_atoms.items, path_coefficient, options, filter, sink, audit, scratch);
+            try self.streamBoundaryFormulaTermsWithPath(spec, scratch.boundary_path_atoms.items, steps, path_coefficient, options, filter, sink, audit, scratch);
             if (!incrementLocalFormulaTermIndices(term_indices[0..steps.len], term_counts[0..steps.len])) break;
         }
     }
 
-    fn streamBoundaryFormulaTermsWithPath(self: *Impl, spec: projector_constructor.VectorSpinorTracelessSpec, path_atoms: []const rendering.SymbolicAtom, path_coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, scratch: *ExpansionScratch) !void {
+    fn streamBoundaryFormulaTermsWithPath(self: *Impl, spec: projector_constructor.VectorSpinorTracelessSpec, path_atoms: []const rendering.SymbolicAtom, path_steps: []const coupling.CouplingStep, path_coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, scratch: *ExpansionScratch) !void {
         var term_index: u16 = 0;
         while (term_index < projector_constructor.vectorSpinorTracelessTermCount(spec)) : (term_index += 1) {
             scratch.boundary_formula_atoms.clearRetainingCapacity();
             const formula_coefficient = try projector_constructor.appendVectorSpinorTracelessTerm(self.allocator, &scratch.boundary_formula_atoms, spec, term_index);
             const coefficient = try multiplyRenderingRationals(path_coefficient, formula_coefficient);
-            try self.emitBoundaryFormulaTerm(&scratch.boundary_term_atoms, path_atoms, scratch.boundary_formula_atoms.items, coefficient, options, filter, sink, audit, &scratch.lowered_atoms);
+            try self.emitBoundaryFormulaTerm(&scratch.boundary_term_atoms, path_atoms, scratch.boundary_formula_atoms.items, path_steps, coefficient, options, filter, sink, audit, &scratch.generalized_delta_atoms, &scratch.lowered_atoms);
         }
     }
 
-    fn emitBoundaryFormulaTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), path_atoms: []const rendering.SymbolicAtom, formula_atoms: []const rendering.SymbolicAtom, coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) !void {
+    fn emitBoundaryFormulaTerm(self: *Impl, atoms: *std.ArrayList(rendering.SymbolicAtom), path_atoms: []const rendering.SymbolicAtom, formula_atoms: []const rendering.SymbolicAtom, path_steps: []const coupling.CouplingStep, coefficient: rendering.RationalId, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, generalized_delta_atoms: *std.ArrayList(rendering.SymbolicAtom), lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) !void {
         atoms.clearRetainingCapacity();
         try atoms.appendSlice(self.allocator, formula_atoms);
         try atoms.appendSlice(self.allocator, path_atoms);
@@ -3770,14 +3943,106 @@ const Impl = struct {
             .coefficient = coefficient,
             .atoms = atoms.items,
         };
+        try self.emitFormulaTerm(term, path_steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
+    }
+
+    fn emitFormulaTerm(self: *Impl, term: rendering.SymbolicTerm, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, generalized_delta_atoms: *std.ArrayList(rendering.SymbolicAtom), lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) !void {
+        if (options.lower_generalized_delta_atoms) {
+            generalized_delta_atoms.clearRetainingCapacity();
+            try self.emitGeneralizedDeltaLoweredTerm(term.atoms, 0, term.coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
+            return;
+        }
+
         const decision = try filter.decide(term);
         audit.recordDecision(decision);
         switch (decision) {
             .reject => {},
-            .accept, .undecided => {
-                try emitRenderedTerm(self.allocator, options, sink, term, audit, lowered_atoms);
+            .accept, .undecided => try emitRenderedTerm(self.allocator, options, sink, term, audit, lowered_atoms),
+        }
+    }
+
+    fn emitGeneralizedDeltaLoweredTerm(self: *Impl, source_atoms: []const rendering.SymbolicAtom, atom_index: usize, coefficient: rendering.RationalId, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, generalized_delta_atoms: *std.ArrayList(rendering.SymbolicAtom), lowered_atoms: *std.ArrayList(rendering.SymbolicAtom)) anyerror!void {
+        if (atom_index == source_atoms.len) {
+            const term: rendering.SymbolicTerm = .{
+                .coefficient = coefficient,
+                .atoms = generalized_delta_atoms.items,
+            };
+            const decision = try filter.decide(term);
+            audit.recordDecision(decision);
+            switch (decision) {
+                .reject => {},
+                .accept, .undecided => try emitRenderedTerm(self.allocator, options, sink, term, audit, lowered_atoms),
+            }
+            return;
+        }
+
+        switch (source_atoms[atom_index]) {
+            .generalized_delta => |delta| {
+                const rank = try self.generalizedDeltaRank(delta, steps);
+                if (rank > max_lowered_generalized_delta_rank) return error.TensorResourceBudgetExceeded;
+                if (rank == 0) {
+                    try self.emitGeneralizedDeltaLoweredTerm(source_atoms, atom_index + 1, coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
+                    return;
+                }
+                var permutation: [max_lowered_generalized_delta_rank]u8 = undefined;
+                var used = [_]bool{false} ** max_lowered_generalized_delta_rank;
+                try self.emitGeneralizedDeltaPermutations(source_atoms, atom_index, coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms, delta, rank, 0, &permutation, &used);
+            },
+            else => |atom| {
+                try generalized_delta_atoms.append(self.allocator, atom);
+                errdefer _ = generalized_delta_atoms.pop();
+                try self.emitGeneralizedDeltaLoweredTerm(source_atoms, atom_index + 1, coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
+                _ = generalized_delta_atoms.pop();
             },
         }
+    }
+
+    fn emitGeneralizedDeltaPermutations(self: *Impl, source_atoms: []const rendering.SymbolicAtom, atom_index: usize, coefficient: rendering.RationalId, steps: []const coupling.CouplingStep, options: rendering.RenderOptions, filter: rendering.ExpansionFilter, sink: anytype, audit: *rendering.ExpansionAudit, generalized_delta_atoms: *std.ArrayList(rendering.SymbolicAtom), lowered_atoms: *std.ArrayList(rendering.SymbolicAtom), delta: GeneralizedDeltaAtom, rank: u8, slot: u8, permutation: *[max_lowered_generalized_delta_rank]u8, used: *[max_lowered_generalized_delta_rank]bool) anyerror!void {
+        if (slot == rank) {
+            const atom_start = generalized_delta_atoms.items.len;
+            errdefer generalized_delta_atoms.shrinkRetainingCapacity(atom_start);
+            var metric_slot: u8 = 0;
+            while (metric_slot < rank) : (metric_slot += 1) {
+                try generalized_delta_atoms.append(self.allocator, .{ .vector_slot_metric = .{
+                    .left = delta.upper,
+                    .left_slot = metric_slot,
+                    .right = delta.lower,
+                    .right_slot = permutation[metric_slot],
+                } });
+            }
+            const signed_coefficient = if (permutationOdd(permutation[0..rank]))
+                try negateRenderingRational(coefficient)
+            else
+                coefficient;
+            try self.emitGeneralizedDeltaLoweredTerm(source_atoms, atom_index + 1, signed_coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms);
+            generalized_delta_atoms.shrinkRetainingCapacity(atom_start);
+            return;
+        }
+
+        var candidate: u8 = 0;
+        while (candidate < rank) : (candidate += 1) {
+            if (used[candidate]) continue;
+            used[candidate] = true;
+            permutation[slot] = candidate;
+            try self.emitGeneralizedDeltaPermutations(source_atoms, atom_index, coefficient, steps, options, filter, sink, audit, generalized_delta_atoms, lowered_atoms, delta, rank, slot + 1, permutation, used);
+            used[candidate] = false;
+        }
+    }
+
+    fn generalizedDeltaRank(self: *Impl, delta: GeneralizedDeltaAtom, steps: []const coupling.CouplingStep) !u8 {
+        const upper_rank = self.pathBlockFormRank(delta.upper, steps) orelse return error.GeneralizedDeltaRankNotAvailable;
+        const lower_rank = self.pathBlockFormRank(delta.lower, steps) orelse return error.GeneralizedDeltaRankNotAvailable;
+        if (upper_rank != lower_rank) return error.GeneralizedDeltaRankMismatch;
+        return upper_rank;
+    }
+
+    fn pathBlockFormRank(self: *Impl, block: rendering.IndexBlockId, steps: []const coupling.CouplingStep) ?u8 {
+        if (tensorFormBlockRank(block)) |rank| return rank;
+        const irrep = pathIndexIrrep(steps, tensorFormBlockIndex(block)) orelse return null;
+        const algebra = self.representations.irrepAlgebra(irrep) orelse return null;
+        const simple = self.representations.simpleAlgebra(algebra) orelse return null;
+        const label = self.representations.irrepDynkin(irrep) orelse return null;
+        return singlePlainFormRank(orthogonalIrrepDescriptor(simple, label));
     }
 
     fn hasOrthogonalVectorSpinorBoundaryFormula(self: *Impl, handle: realization.RealizationHandle) !bool {
@@ -3880,6 +4145,17 @@ const PartialPathNode = struct {
     step: coupling.CouplingStep,
 };
 
+const ViableCouplingChoice = struct {
+    output: store.IrrepHandle,
+    multiplicity_copy: u16,
+    projector: projector.ProjectorId,
+};
+
+const ViableCouplingChoiceSpan = struct {
+    offset: usize,
+    len: usize,
+};
+
 const OrthogonalFormInfo = struct {
     rank: u8,
     duality: rendering.DualityTag = .none,
@@ -3902,7 +4178,8 @@ const OrthogonalFormSetInfo = struct {
 const OrthogonalYoungShape = struct {
     row_count: u8,
     rows: [max_orthogonal_young_rows]u8 = [_]u8{0} ** max_orthogonal_young_rows,
-    box_count: u8,
+    wide_rows: [max_orthogonal_young_rows]usize = [_]usize{0} ** max_orthogonal_young_rows,
+    box_count: usize,
 };
 
 const OrthogonalTensorSpinorInfo = struct {
@@ -3936,7 +4213,7 @@ const OrthogonalTensorFormSpinorInfo = struct {
     output: OrthogonalTensorSpinorInfo,
 };
 
-const max_orthogonal_young_rows = 8;
+const max_orthogonal_young_rows = 32;
 
 const OrthogonalIrrepKind = enum {
     scalar,
@@ -3958,7 +4235,8 @@ const OrthogonalIrrepDescriptor = struct {
     form_duality: rendering.DualityTag = .none,
     young_row_count: u8 = 0,
     young_rows: [max_orthogonal_young_rows]u8 = [_]u8{0} ** max_orthogonal_young_rows,
-    young_box_count: u8 = 0,
+    young_wide_rows: [max_orthogonal_young_rows]usize = [_]usize{0} ** max_orthogonal_young_rows,
+    young_box_count: usize = 0,
     has_spinor: bool = false,
     chirality: u8 = 0,
     tower_power: u16 = 0,
@@ -4008,16 +4286,22 @@ const ExpansionScratch = struct {
     cached_local_terms: std.ArrayList(CachedLocalFormulaTerm) = .empty,
     cached_local_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
     cached_local_step_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
+    local_page_coefficients: std.ArrayList(rendering.RationalId) = .empty,
+    local_page_atom_ends: std.ArrayList(usize) = .empty,
     boundary_path_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
     boundary_formula_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
     boundary_term_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
+    generalized_delta_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
     lowered_atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
 
     fn deinit(self: *ExpansionScratch, allocator: std.mem.Allocator) void {
         self.lowered_atoms.deinit(allocator);
+        self.generalized_delta_atoms.deinit(allocator);
         self.boundary_term_atoms.deinit(allocator);
         self.boundary_formula_atoms.deinit(allocator);
         self.boundary_path_atoms.deinit(allocator);
+        self.local_page_atom_ends.deinit(allocator);
+        self.local_page_coefficients.deinit(allocator);
         self.cached_local_step_atoms.deinit(allocator);
         self.cached_local_atoms.deinit(allocator);
         self.cached_local_terms.deinit(allocator);
@@ -4066,6 +4350,12 @@ const BackendRegistry = struct {
     }
 };
 
+const max_lowered_generalized_delta_rank: usize = 8;
+const GeneralizedDeltaAtom = @TypeOf((rendering.SymbolicAtom{ .generalized_delta = .{
+    .upper = 0,
+    .lower = 0,
+} }).generalized_delta);
+
 fn EvaluationSinkAdapter(comptime Sink: type) type {
     return struct {
         inner: Sink,
@@ -4105,7 +4395,7 @@ fn emitRenderedTerm(allocator: std.mem.Allocator, options: rendering.RenderOptio
     }
 }
 
-fn incrementLocalFormulaTermIndices(indices: []u16, counts: []const u16) bool {
+fn incrementLocalFormulaTermIndices(indices: []usize, counts: []const usize) bool {
     if (indices.len != counts.len) return false;
     var index = indices.len;
     while (index > 0) {
@@ -4115,6 +4405,54 @@ fn incrementLocalFormulaTermIndices(indices: []u16, counts: []const u16) bool {
         indices[index] = 0;
     }
     return false;
+}
+
+fn tensorFormBlockRank(block: rendering.IndexBlockId) ?u8 {
+    return if ((block & 0xf0000000) == 0x40000000) @intCast((block >> 24) & 0x3f) else null;
+}
+
+fn tensorFormBlockIndex(block: rendering.IndexBlockId) rendering.IndexRef {
+    return switch (block & 0xf0000000) {
+        0x40000000 => block & 0x00ffffff,
+        0x60000000 => block & 0x0fffffff,
+        else => block,
+    };
+}
+
+fn pathIndexIrrep(steps: []const coupling.CouplingStep, index: rendering.IndexRef) ?store.IrrepHandle {
+    if (steps.len == 0) return null;
+    const step_count: rendering.IndexRef = @intCast(steps.len);
+    if (index == 0) return steps[0].left;
+    if (index <= step_count) return steps[@intCast(index - 1)].right;
+    const scratch_base = step_count + 1;
+    if (index >= scratch_base and index < scratch_base + step_count) return steps[@intCast(index - scratch_base)].output;
+    return null;
+}
+
+fn singlePlainFormRank(descriptor: OrthogonalIrrepDescriptor) ?u8 {
+    if (descriptor.form_rank == 0 or descriptor.form_duality != .none) return null;
+    return switch (descriptor.kind) {
+        .form_profile, .tensor_spinor => if (descriptor.form_count == 1 and descriptor.form_total_power == 1) descriptor.form_rank else null,
+        else => null,
+    };
+}
+
+fn permutationOdd(permutation: []const u8) bool {
+    var odd = false;
+    for (permutation, 0..) |left, left_index| {
+        for (permutation[left_index + 1 ..]) |right| {
+            if (left > right) odd = !odd;
+        }
+    }
+    return odd;
+}
+
+fn negateRenderingRational(coefficient: rendering.RationalId) !rendering.RationalId {
+    if (coefficient.numerator == std.math.minInt(i128)) return error.RationalOverflow;
+    return .{
+        .numerator = -coefficient.numerator,
+        .denominator = coefficient.denominator,
+    };
 }
 
 fn tensorSpinorProjectionSpec(projection: rendering.TensorSpinorProjection) projector_constructor.TensorSpinorProjectionSpec {
@@ -4163,6 +4501,7 @@ fn structuralProjectorSpecFromOrthogonalStep(step: OrthogonalStructuralStep) pro
     var spec: projector_constructor.StructuralProjectorSpec = .{
         .operator_id = step.operator_id,
         .orthogonal_dimension = step.dimension,
+        .multiplicity_copy = step.multiplicity_copy,
         .left = structuralEndpointFromOrthogonalEndpoint(step.left),
         .right = structuralEndpointFromOrthogonalEndpoint(step.right),
         .output = structuralEndpointFromOrthogonalEndpoint(step.output),
@@ -4187,6 +4526,7 @@ fn structuralEndpointFromOrthogonalEndpoint(endpoint: OrthogonalEndpoint) projec
         .form_duality = irrep.form_duality,
         .young_row_count = irrep.young_row_count,
         .young_rows = irrep.young_rows,
+        .young_wide_rows = irrep.young_wide_rows,
         .young_box_count = irrep.young_box_count,
         .tower_power = irrep.tower_power,
         .chirality = irrep.chirality,
@@ -4202,6 +4542,7 @@ fn isTypedTensorCompilerCapError(err: anyerror) bool {
         error.UnsupportedTensorPrimitiveTermCap,
         error.UnsupportedTensorBridge,
         error.ProjectorProgramTooLarge,
+        error.TensorResourceBudgetExceeded,
         => true,
         else => false,
     };
@@ -4718,9 +5059,17 @@ test "context expands Spin10 vector square Young channels" {
     try testing.expectEqual(@as(u8, 2), seven_box_descriptor.young_row_count);
     try testing.expectEqual(@as(u8, 5), seven_box_descriptor.young_rows[0]);
     try testing.expectEqual(@as(u8, 2), seven_box_descriptor.young_rows[1]);
-    try testing.expectEqual(@as(u8, 7), seven_box_descriptor.young_box_count);
-    const over_cap_descriptor = orthogonalIrrepDescriptor(simple, &.{ 16, 0, 0, 0, 0 });
-    try testing.expectEqual(OrthogonalIrrepKind.unsupported, over_cap_descriptor.kind);
+    try testing.expectEqual(@as(usize, 7), seven_box_descriptor.young_box_count);
+    const high_symmetric_descriptor = orthogonalIrrepDescriptor(simple, &.{ 16, 0, 0, 0, 0 });
+    try testing.expectEqual(OrthogonalIrrepKind.vector_young_shape, high_symmetric_descriptor.kind);
+    try testing.expectEqual(@as(u8, 1), high_symmetric_descriptor.young_row_count);
+    try testing.expectEqual(@as(u8, 16), high_symmetric_descriptor.young_rows[0]);
+    try testing.expectEqual(@as(usize, 16), high_symmetric_descriptor.young_box_count);
+    const high_symmetric = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 2, 0, 0, 0, 0 } });
+    const high_symmetric_next = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 3, 0, 0, 0, 0 } });
+    const high_derivation = ctx.impl().localProductProjectorDerivation(vector, high_symmetric, high_symmetric_next, 0);
+    try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, high_derivation.formula_kind);
+    try testing.expectEqual(projector.ExpansionStatus.expandable_terms, high_derivation.status);
 
     const product = try ctx.impl().decomposeProduct(vector, vector);
     const terms = ctx.impl().decompositions.productTerms(product) orelse return error.UnknownProductDecomposition;
@@ -4854,6 +5203,52 @@ test "context expands Spin10 vector square Young channels" {
     try testing.expect(metric_count != 0);
 }
 
+test "context routes high-row Spin10 tensor products to structural tensor-only formula" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const vector = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 1, 0, 0, 0, 0 } });
+    const high_symmetric = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 16, 0, 0, 0, 0 } });
+    const high_symmetric_next = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 17, 0, 0, 0, 0 } });
+    const wide_symmetric = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 300, 0, 0, 0, 0 } });
+    const wide_symmetric_next = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 301, 0, 0, 0, 0 } });
+    const simple: symmetry.SimpleLieAlgebra = .{ .family = .d, .rank = 5 };
+    const high_descriptor = orthogonalIrrepDescriptor(simple, &.{ 16, 0, 0, 0, 0 });
+    try testing.expectEqual(OrthogonalIrrepKind.vector_young_shape, high_descriptor.kind);
+    try testing.expectEqual(@as(u8, 1), high_descriptor.young_row_count);
+    try testing.expectEqual(@as(u8, 16), high_descriptor.young_rows[0]);
+    try testing.expectEqual(@as(usize, 16), high_descriptor.young_wide_rows[0]);
+    try testing.expectEqual(@as(usize, 16), high_descriptor.young_box_count);
+
+    const derivation = ctx.impl().localProductProjectorDerivation(vector, high_symmetric, high_symmetric_next, 0);
+    try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, derivation.formula_kind);
+    try testing.expectEqual(projector.ExpansionStatus.expandable_terms, derivation.status);
+    try testing.expect(derivation.formula_audit.verified());
+
+    const wide_descriptor = orthogonalIrrepDescriptor(simple, &.{ 300, 0, 0, 0, 0 });
+    try testing.expectEqual(OrthogonalIrrepKind.vector_young_shape, wide_descriptor.kind);
+    try testing.expectEqual(@as(u8, 1), wide_descriptor.young_row_count);
+    try testing.expectEqual(@as(u8, 255), wide_descriptor.young_rows[0]);
+    try testing.expectEqual(@as(usize, 300), wide_descriptor.young_wide_rows[0]);
+    try testing.expectEqual(@as(usize, 300), wide_descriptor.young_box_count);
+
+    const wide_derivation = ctx.impl().localProductProjectorDerivation(vector, wide_symmetric, wide_symmetric_next, 0);
+    try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, wide_derivation.formula_kind);
+    try testing.expectEqual(projector.ExpansionStatus.expandable_terms, wide_derivation.status);
+    try testing.expect(wide_derivation.formula_audit.verified());
+
+    const so24: symmetry.SimpleLieAlgebra = .{ .family = .d, .rank = 12 };
+    const ten_row_descriptor = orthogonalIrrepDescriptor(so24, &.{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0 });
+    try testing.expectEqual(OrthogonalIrrepKind.vector_young_shape, ten_row_descriptor.kind);
+    try testing.expectEqual(@as(u8, 10), ten_row_descriptor.young_row_count);
+    try testing.expectEqual(@as(usize, 10), ten_row_descriptor.young_wide_rows[0]);
+    try testing.expectEqual(@as(usize, 1), ten_row_descriptor.young_wide_rows[9]);
+    try testing.expectEqual(@as(usize, 55), ten_row_descriptor.young_box_count);
+}
+
 test "context renders Spin10 two-form square Weyl channel through primitive Brauer stream" {
     const testing = std.testing;
 
@@ -4900,6 +5295,127 @@ test "context renders Spin10 two-form square Weyl channel through primitive Brau
         saw_weyl_structural_step = true;
     }
     try testing.expect(saw_weyl_structural_step);
+}
+
+test "context lowers generalized two-form delta to vector slot metrics by option" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const two_form = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 0, 1, 0, 0, 0 } });
+    const two_form_leg = realization.ExternalLeg.primitive(two_form, &.{
+        .init(.form, "A"),
+    });
+    const basis = try ctx.invariantBasis(.{
+        .algebra = so10,
+        .external_legs = &.{ two_form_leg, two_form_leg },
+    });
+    try testing.expectEqual(@as(u128, 1), ctx.basisInvariantCount(basis).?);
+
+    var compact_sink: CountingSink = .{};
+    const compact_audit = try ctx.renderInvariantFiltered(basis, .init(0), .{ .projectors = .expanded_terms }, rendering.ExpansionFilter.acceptAll(), &compact_sink);
+    try testing.expectEqual(@as(u32, 1), compact_sink.term_count);
+    try testing.expectEqual(@as(u32, 1), compact_sink.generalized_delta_count);
+    try testing.expectEqual(@as(u32, 0), compact_sink.vector_slot_metric_count);
+    try testing.expectEqual(@as(u64, 1), compact_audit.emitted);
+
+    var lowered_sink: CountingSink = .{};
+    const lowered_audit = try ctx.renderInvariantFiltered(basis, .init(0), .{
+        .projectors = .expanded_terms,
+        .lower_generalized_delta_atoms = true,
+    }, rendering.ExpansionFilter.acceptAll(), &lowered_sink);
+    try testing.expectEqual(@as(u32, 2), lowered_sink.term_count);
+    try testing.expectEqual(@as(u32, 0), lowered_sink.generalized_delta_count);
+    try testing.expectEqual(@as(u32, 4), lowered_sink.vector_slot_metric_count);
+    try testing.expectEqual(@as(u32, 1), lowered_sink.positive_coefficient_count);
+    try testing.expectEqual(@as(u32, 1), lowered_sink.negative_coefficient_count);
+    try testing.expectEqual(@as(u64, 2), lowered_audit.accepted);
+    try testing.expectEqual(@as(u64, 2), lowered_audit.emitted);
+
+    var metric_filter_sink: CountingSink = .{};
+    const metric_filter_audit = try ctx.renderInvariantFiltered(basis, .init(0), .{
+        .projectors = .expanded_terms,
+        .lower_generalized_delta_atoms = true,
+    }, rendering.ExpansionFilter.withoutOperatorKind(.metric), &metric_filter_sink);
+    try testing.expectEqual(@as(u32, 0), metric_filter_sink.term_count);
+    try testing.expectEqual(@as(u64, 2), metric_filter_audit.rejected);
+    try testing.expectEqual(@as(u64, 0), metric_filter_audit.emitted);
+}
+
+test "context lowered form deltas obey input symmetries and hook route verifies nontrivial output" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const vector = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 1, 0, 0, 0, 0 } });
+    const two_form = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 0, 1, 0, 0, 0 } });
+    const three_form = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 0, 0, 1, 0, 0 } });
+    const hook = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 1, 1, 0, 0, 0 } });
+
+    const two_form_leg = realization.ExternalLeg.primitive(two_form, &.{
+        .init(.form, "A"),
+    });
+    const two_form_basis = try ctx.invariantBasis(.{
+        .algebra = so10,
+        .external_legs = &.{ two_form_leg, two_form_leg },
+    });
+    var two_form_terms = TermCollector.init(testing.allocator);
+    defer two_form_terms.deinit();
+    _ = try ctx.renderInvariantFiltered(two_form_basis, .init(0), .{
+        .projectors = .expanded_terms,
+        .lower_generalized_delta_atoms = true,
+    }, rendering.ExpansionFilter.acceptAll(), &two_form_terms);
+    try testing.expectEqual(@as(usize, 2), two_form_terms.terms.items.len);
+    try expectCollectedTermPermutationSymmetry(two_form_terms, .{
+        .left_slots = 2,
+        .right_slots = 2,
+        .output_slots = 0,
+    }, .left, &.{ 1, 0 }, -1, 3);
+    try expectCollectedTermPermutationSymmetry(two_form_terms, .{
+        .left_slots = 2,
+        .right_slots = 2,
+        .output_slots = 0,
+    }, .right, &.{ 1, 0 }, -1, 3);
+
+    const three_form_leg = realization.ExternalLeg.primitive(three_form, &.{
+        .init(.form, "C"),
+    });
+    const three_form_basis = try ctx.invariantBasis(.{
+        .algebra = so10,
+        .external_legs = &.{ three_form_leg, three_form_leg },
+    });
+    var three_form_terms = TermCollector.init(testing.allocator);
+    defer three_form_terms.deinit();
+    _ = try ctx.renderInvariantFiltered(three_form_basis, .init(0), .{
+        .projectors = .expanded_terms,
+        .lower_generalized_delta_atoms = true,
+    }, rendering.ExpansionFilter.acceptAll(), &three_form_terms);
+    try testing.expectEqual(@as(usize, 6), three_form_terms.terms.items.len);
+    try expectCollectedTermPermutationSymmetry(three_form_terms, .{
+        .left_slots = 3,
+        .right_slots = 3,
+        .output_slots = 0,
+    }, .left, &.{ 1, 0, 2 }, -1, 3);
+    try expectCollectedTermPermutationSymmetry(three_form_terms, .{
+        .left_slots = 3,
+        .right_slots = 3,
+        .output_slots = 0,
+    }, .right, &.{ 0, 2, 1 }, -1, 3);
+
+    const hook_projector = try ctx.impl().localProductProjector(vector, two_form, hook, 0);
+    const hook_derivation = ctx.impl().projectors.projectorDerivation(hook_projector).?;
+    try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, hook_derivation.formula_kind);
+    try testing.expectEqual(projector.ExpansionStatus.expandable_terms, hook_derivation.status);
+    try testing.expect(hook_derivation.formula_audit.verified());
+    const hook_descriptor = orthogonalIrrepDescriptor(.{ .family = .d, .rank = 5 }, &.{ 1, 1, 0, 0, 0 });
+    try testing.expectEqual(OrthogonalIrrepKind.vector_young_shape, hook_descriptor.kind);
+    try testing.expectEqual(@as(u8, 2), hook_descriptor.young_row_count);
+    try testing.expectEqual(@as(usize, 2), hook_descriptor.young_wide_rows[0]);
+    try testing.expectEqual(@as(usize, 1), hook_descriptor.young_wide_rows[1]);
 }
 
 test "context renders Spin10 two-form symmetric tensor channel through primitive Brauer stream" {
@@ -4950,6 +5466,117 @@ test "context renders Spin10 two-form symmetric tensor channel through primitive
         saw_mixed_structural_step = true;
     }
     try testing.expect(saw_mixed_structural_step);
+}
+
+test "context indexes wide tensor-only structural projector terms" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const symmetric_2 = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 2, 0, 0, 0, 0 } });
+    const symmetric_3 = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 3, 0, 0, 0, 0 } });
+    const symmetric_5 = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 5, 0, 0, 0, 0 } });
+
+    const projector_id = try ctx.impl().localProductProjector(symmetric_2, symmetric_3, symmetric_5, 0);
+    const step: coupling.CouplingStep = .{
+        .left = symmetric_2,
+        .right = symmetric_3,
+        .output = symmetric_5,
+        .multiplicity_copy = 0,
+        .projector = projector_id,
+    };
+    const derivation = ctx.impl().projectors.projectorDerivation(projector_id).?;
+    try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, derivation.formula_kind);
+
+    const term_count = try ctx.impl().localFormulaStepTermCount(step, .orthogonal_structural_projection);
+    try testing.expectEqual(@as(usize, 893025), term_count);
+    const wide_index = @as(usize, std.math.maxInt(u16)) + 1;
+
+    var atoms: std.ArrayList(rendering.SymbolicAtom) = .empty;
+    defer atoms.deinit(testing.allocator);
+    const coefficient = try ctx.impl().appendLocalFormulaStepTermAtoms(&atoms, step, 0, 1, 2, .orthogonal_structural_projection, wide_index);
+    try testing.expect(coefficient.numerator != 0);
+    try testing.expect(atoms.items.len != 0);
+    for (atoms.items) |atom| switch (atom) {
+        .vector_slot_delta, .vector_slot_metric, .hodge_star => {},
+        else => return error.ExpectedPrimitiveTensorAtom,
+    };
+}
+
+test "context routes structural expansion multiplicity copies to tensor-only formulas" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const hook = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 1, 1, 0, 0, 0 } });
+    const product = try ctx.impl().decomposeProduct(hook, hook);
+    const terms = ctx.impl().decompositions.productTerms(product) orelse return error.UnknownProductDecomposition;
+
+    var saw_structural_copy = false;
+    for (terms) |term| {
+        if (term.multiplicity < 2) continue;
+        const first = ctx.impl().localProductProjectorDerivation(hook, hook, term.irrep, 0);
+        if (first.formula_kind != .orthogonal_structural_projection) continue;
+        try testing.expectEqual(projector.ExpansionStatus.expandable_terms, first.status);
+
+        const second = ctx.impl().localProductProjectorDerivation(hook, hook, term.irrep, 1);
+        try testing.expectEqual(projector.ProjectorFormulaKind.orthogonal_structural_projection, second.formula_kind);
+        try testing.expectEqual(projector.ExpansionStatus.expandable_terms, second.status);
+        try testing.expect(second.formula_audit.verified());
+        saw_structural_copy = true;
+        break;
+    }
+    try testing.expect(saw_structural_copy);
+}
+
+test "context renders hook scalar pairing without duplicate metric atoms" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const hook = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 1, 1, 0, 0, 0 } });
+    const product = try ctx.impl().decomposeProduct(hook, hook);
+    const terms = ctx.impl().decompositions.productTerms(product) orelse return error.UnknownProductDecomposition;
+    for (terms) |term| {
+        const output = ctx.impl().representations.irrepDynkin(term.irrep) orelse continue;
+        if (!isZeroDynkin(output)) continue;
+        const projector_id = try ctx.impl().localProductProjector(hook, hook, term.irrep, 0);
+        const step: coupling.CouplingStep = .{
+            .left = hook,
+            .right = hook,
+            .output = term.irrep,
+            .multiplicity_copy = 0,
+            .projector = projector_id,
+        };
+        var atoms: std.ArrayList(rendering.SymbolicAtom) = .empty;
+        defer atoms.deinit(testing.allocator);
+        _ = try ctx.impl().appendLocalStructuralTerm(&atoms, step, 0, 1, 6, 0);
+        try testing.expectEqual(@as(usize, 3), atoms.items.len);
+        for (atoms.items, 0..) |atom, atom_index| {
+            const metric = switch (atom) {
+                .vector_slot_metric => |metric| metric,
+                else => return error.ExpectedVectorSlotPrimitive,
+            };
+            for (atoms.items[0..atom_index]) |previous_atom| {
+                const previous = switch (previous_atom) {
+                    .vector_slot_metric => |previous| previous,
+                    else => unreachable,
+                };
+                try testing.expect(metric.left != previous.left or
+                    metric.left_slot != previous.left_slot or
+                    metric.right != previous.right or
+                    metric.right_slot != previous.right_slot);
+            }
+        }
+        return;
+    }
+    return error.NoScalarHookPairing;
 }
 
 test "context streams Spin10 spinor conjugate spinor as spinor pairing formula" {
@@ -5586,8 +6213,192 @@ test "context preserves typed tensor cap errors during formula routing" {
     try testing.expect(isTypedTensorCompilerCapError(error.UnsupportedTensorPrimitiveTermCap));
     try testing.expect(isTypedTensorCompilerCapError(error.UnsupportedTensorBridge));
     try testing.expect(isTypedTensorCompilerCapError(error.ProjectorProgramTooLarge));
+    try testing.expect(isTypedTensorCompilerCapError(error.TensorResourceBudgetExceeded));
     try testing.expect(!isTypedTensorCompilerCapError(error.UnsupportedStructuralProjectorTerm));
     try testing.expect(!isTypedTensorCompilerCapError(error.ProjectorExpansionNotImplemented));
+}
+
+fn contextTensorOnlyHookRouteSpec() projector_constructor.StructuralProjectorSpec {
+    return .{
+        .operator_id = 9001,
+        .orthogonal_dimension = 10,
+        .left = .{
+            .index = 1,
+            .young_row_count = 2,
+            .young_rows = .{ 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            .young_box_count = 3,
+        },
+        .right = .{
+            .index = 2,
+            .young_row_count = 1,
+            .young_rows = .{ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            .young_box_count = 1,
+        },
+        .output = .{
+            .index = 3,
+            .young_row_count = 2,
+            .young_rows = .{ 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            .young_box_count = 4,
+        },
+    };
+}
+
+test "context applies tensor-only resource policy to structural tensor formulas" {
+    const testing = std.testing;
+
+    var ctx = try Context.initWithOptions(testing.allocator, .{
+        .tensor_only_resource_policy = .{ .output_term_count_limit = 0 },
+    });
+    defer ctx.deinit();
+
+    const spec = contextTensorOnlyHookRouteSpec();
+    try testing.expectEqual(@as(usize, 0), ctx.tensorOnlyResourcePolicy().output_term_count_limit);
+    try testing.expectError(error.TensorResourceBudgetExceeded, ctx.tensorOnlyStructuralTermCount(spec));
+
+    ctx.setTensorOnlyResourcePolicy(.{});
+    try testing.expect(ctx.tensorOnlyResourcePolicy().raw_diagram_count_limit > 0);
+    try testing.expect(try ctx.tensorOnlyStructuralTermCount(spec) >= 2);
+}
+
+test "context tensor-only policy reset clears cached structural tensor programs" {
+    const testing = std.testing;
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const spec = contextTensorOnlyHookRouteSpec();
+    try testing.expect((try ctx.tensorOnlyStructuralTermCount(spec)) != 0);
+    try testing.expectEqual(@as(usize, 1), ctx.impl().structural_projection_programs.tensor_only_entries.items.len);
+
+    ctx.setTensorOnlyResourcePolicy(.{ .output_term_count_limit = 0 });
+    try testing.expectEqual(@as(usize, 0), ctx.impl().structural_projection_programs.tensor_only_entries.items.len);
+    try testing.expectEqual(@as(usize, 0), ctx.impl().structural_projection_programs.tensor_only_index_by_hash.count());
+    try testing.expectEqual(@as(usize, 0), ctx.impl().structural_projection_programs.vector_entries.items.len);
+    try testing.expectEqual(@as(usize, 0), ctx.impl().structural_projection_programs.entries.items.len);
+    try testing.expectError(error.TensorResourceBudgetExceeded, ctx.tensorOnlyStructuralTermCount(spec));
+    try testing.expectEqual(@as(usize, 0), ctx.impl().structural_projection_programs.tensor_only_entries.items.len);
+}
+
+test "context budgets expanded local formula Cartesian products before streaming" {
+    const testing = std.testing;
+
+    var budgeted = try Context.initWithOptions(testing.allocator, .{
+        .tensor_only_resource_policy = .{ .output_term_count_limit = 5 },
+    });
+    defer budgeted.deinit();
+    try budgeted.impl().budgetLocalFormulaExpandedTermProduct(&.{ 2, 2 }, 1);
+    try testing.expectError(error.TensorResourceBudgetExceeded, budgeted.impl().budgetLocalFormulaExpandedTermProduct(&.{ 2, 3 }, 1));
+    try testing.expectError(error.TensorResourceBudgetExceeded, budgeted.impl().budgetLocalFormulaExpandedTermProduct(&.{ 2 }, 3));
+    try testing.expectError(error.InvalidProjectorExpansion, budgeted.impl().budgetLocalFormulaExpandedTermProduct(&.{0}, 1));
+
+    var unbounded = try Context.init(testing.allocator);
+    defer unbounded.deinit();
+    try testing.expectError(error.TensorResourceBudgetExceeded, unbounded.impl().budgetLocalFormulaExpandedTermProduct(&.{ std.math.maxInt(usize), 2 }, 1));
+}
+
+test "context exposes tensor-only cap audit for active policy" {
+    const testing = std.testing;
+
+    var ctx = try Context.initWithOptions(testing.allocator, .{
+        .tensor_only_resource_policy = .{
+            .trace_generator_count_limit = 7,
+            .trace_closure_basis_limit = 11,
+            .coefficient_bit_limit = 31,
+        },
+    });
+    defer ctx.deinit();
+
+    const audit = ctx.tensorOnlyCapAudit();
+    const entries = audit.items();
+    try testing.expectEqual(@as(usize, 10), entries.len);
+    try testing.expectEqual(projector_constructor.TensorOnlyCapBoundary.trace_closure_basis, entries[6].boundary);
+    try testing.expectEqual(@as(usize, 7), entries[6].policy_limit);
+    try testing.expect(entries[6].can_stop_supported_route);
+    try testing.expectEqual(projector_constructor.TensorOnlyCapBoundary.coefficient_bits, entries[8].boundary);
+    try testing.expectEqual(@as(usize, 31), entries[8].policy_limit);
+}
+
+test "context exposes tensor-only structural count audit and page surface" {
+    const testing = std.testing;
+
+    const spec = contextTensorOnlyHookRouteSpec();
+
+    var budgeted = try Context.initWithOptions(testing.allocator, .{
+        .tensor_only_resource_policy = .{ .output_term_count_limit = 0 },
+    });
+    defer budgeted.deinit();
+    try testing.expectError(error.TensorResourceBudgetExceeded, budgeted.tensorOnlyStructuralTermCount(spec));
+    const budgeted_scale = try budgeted.tensorOnlyStructuralScaleAudit(spec);
+    try testing.expect(budgeted_scale.raw_diagram_count != 0);
+    try testing.expectError(error.TensorResourceBudgetExceeded, budgeted.tensorOnlyStructuralSolveAudit(spec));
+    try testing.expectError(error.TensorResourceBudgetExceeded, budgeted.tensorOnlyStructuralRenderPageAudit(spec, 0, 1));
+
+    var ctx = try Context.init(testing.allocator);
+    defer ctx.deinit();
+
+    const count = try ctx.tensorOnlyStructuralTermCount(spec);
+    try testing.expect(count != 0);
+    const scale_audit = try ctx.tensorOnlyStructuralScaleAudit(spec);
+    try testing.expect(scale_audit.raw_diagram_count != 0);
+    const solve_audit = try ctx.tensorOnlyStructuralSolveAudit(spec);
+    try testing.expectEqual(count, solve_audit.term_count);
+    const render_audit = try ctx.tensorOnlyStructuralRenderPageAudit(spec, 0, 1);
+    try testing.expectEqual(count, render_audit.term_count);
+    try testing.expectEqual(@as(usize, 1), render_audit.emitted_count);
+    try testing.expect(render_audit.vector_delta_count + render_audit.vector_metric_count != 0);
+
+    var atoms: std.ArrayList(rendering.SymbolicAtom) = .empty;
+    defer atoms.deinit(testing.allocator);
+    var coefficients: std.ArrayList(rendering.RationalId) = .empty;
+    defer coefficients.deinit(testing.allocator);
+    var atom_ends: std.ArrayList(usize) = .empty;
+    defer atom_ends.deinit(testing.allocator);
+    try testing.expectEqual(@as(usize, 1), try ctx.appendTensorOnlyStructuralTermPage(&atoms, &coefficients, &atom_ends, spec, 0, 1));
+    try testing.expectEqual(@as(usize, 1), coefficients.items.len);
+    try testing.expectEqual(@as(usize, 1), atom_ends.items.len);
+    for (atoms.items) |atom| switch (atom) {
+        .vector_slot_delta, .vector_slot_metric, .hodge_star, .epsilon => {},
+        else => return error.ExpectedPrimitiveTensorOnlyAtom,
+    };
+}
+
+test "context applies tensor-only resource policy to public expanded structural rendering" {
+    const testing = std.testing;
+
+    var ctx = try Context.initWithOptions(testing.allocator, .{
+        .tensor_only_resource_policy = .{ .output_term_count_limit = 0 },
+    });
+    defer ctx.deinit();
+
+    const so10 = try ctx.registerAlgebra(.{ .simple = .{ .family = .d, .rank = 5 } });
+    const two_form = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 0, 1, 0, 0, 0 } });
+    const symmetric_traceless = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 2, 0, 0, 0, 0 } });
+    const mixed_young = try ctx.registerIrrep(so10, .{ .dynkin = &.{ 2, 1, 0, 0, 0 } });
+    const two_form_leg = realization.ExternalLeg.primitive(two_form, &.{
+        .init(.form, "A"),
+    });
+    const symmetric_leg = realization.ExternalLeg.primitive(symmetric_traceless, &.{
+        .init(.custom, "S"),
+    });
+    const basis = try ctx.invariantBasis(.{
+        .algebra = so10,
+        .external_legs = &.{ two_form_leg, symmetric_leg },
+        .target = .{ .irrep = mixed_young },
+    });
+
+    var budgeted_sink: CountingSink = .{};
+    try testing.expectError(
+        error.TensorResourceBudgetExceeded,
+        ctx.renderInvariantFiltered(basis, .init(0), .{ .projectors = .expanded_terms }, rendering.ExpansionFilter.acceptAll(), &budgeted_sink),
+    );
+    try testing.expectEqual(@as(u32, 0), budgeted_sink.term_count);
+
+    ctx.setTensorOnlyResourcePolicy(.{});
+    var sink: CountingSink = .{};
+    const audit = try ctx.renderInvariantFiltered(basis, .init(0), .{ .projectors = .expanded_terms }, rendering.ExpansionFilter.acceptAll(), &sink);
+    try testing.expect(sink.term_count != 0);
+    try testing.expectEqual(@as(u32, 0), sink.projector_operator_count);
+    try testing.expectEqual(@as(u64, sink.term_count), audit.emitted);
 }
 
 test "context reject filter stops non-empty expansion before projector formulas" {
@@ -5717,9 +6528,177 @@ test "context benchmarks Spin10 spinor twelfth power invariant paths" {
     try testing.expectEqual(@as(u32, 0), sink.cartan_product_count);
 }
 
+const max_structural_component_slots = 8;
+
+const LocalStructuralComponentShape = struct {
+    left_slots: u8,
+    right_slots: u8,
+    output_slots: u8,
+};
+
+const LocalStructuralComponent = struct {
+    left: [max_structural_component_slots]u8 = [_]u8{0} ** max_structural_component_slots,
+    right: [max_structural_component_slots]u8 = [_]u8{0} ** max_structural_component_slots,
+    output: [max_structural_component_slots]u8 = [_]u8{0} ** max_structural_component_slots,
+};
+
+const LocalStructuralBlock = enum {
+    left,
+    right,
+    output,
+};
+
+const CollectedTerm = struct {
+    coefficient: rendering.RationalId,
+    atom_offset: usize,
+    atom_len: usize,
+};
+
+const TermCollector = struct {
+    allocator: std.mem.Allocator,
+    terms: std.ArrayList(CollectedTerm) = .empty,
+    atoms: std.ArrayList(rendering.SymbolicAtom) = .empty,
+
+    fn init(allocator: std.mem.Allocator) TermCollector {
+        return .{ .allocator = allocator };
+    }
+
+    fn deinit(self: *TermCollector) void {
+        self.atoms.deinit(self.allocator);
+        self.terms.deinit(self.allocator);
+        self.* = undefined;
+    }
+
+    pub fn emitTerm(self: *TermCollector, term: rendering.SymbolicTerm) !void {
+        const atom_offset = self.atoms.items.len;
+        try self.atoms.appendSlice(self.allocator, term.atoms);
+        try self.terms.append(self.allocator, .{
+            .coefficient = term.coefficient,
+            .atom_offset = atom_offset,
+            .atom_len = term.atoms.len,
+        });
+    }
+
+    fn termAtoms(self: TermCollector, term: CollectedTerm) []const rendering.SymbolicAtom {
+        return self.atoms.items[term.atom_offset .. term.atom_offset + term.atom_len];
+    }
+};
+
+fn expectCollectedTermPermutationSymmetry(terms: TermCollector, shape: LocalStructuralComponentShape, block: LocalStructuralBlock, permutation: []const u8, sign: i2, dimension: u8) !void {
+    const slot_count = @as(usize, shape.left_slots) + shape.right_slots + shape.output_slots;
+    const assignment_count = try componentAssignmentCount(dimension, slot_count);
+
+    var assignment_index: usize = 0;
+    while (assignment_index < assignment_count) : (assignment_index += 1) {
+        const component = decodeLocalStructuralComponent(assignment_index, dimension, shape);
+        var permuted = component;
+        applyLocalStructuralPermutation(&permuted, block, permutation);
+
+        const value = try collectedComponentValue(terms, shape, component);
+        const permuted_value = try collectedComponentValue(terms, shape, permuted);
+        try expectSignedRationalEqual(value, permuted_value, sign);
+    }
+}
+
+fn collectedComponentValue(terms: TermCollector, shape: LocalStructuralComponentShape, component: LocalStructuralComponent) !rendering.RationalId {
+    var sum = rendering.RationalId{ .numerator = 0, .denominator = 1 };
+    for (terms.terms.items) |term| {
+        if (try localStructuralTermMatches(shape, component, terms.termAtoms(term))) {
+            sum = try addRenderingRationals(sum, term.coefficient);
+        }
+    }
+    return sum;
+}
+
+fn localStructuralTermMatches(shape: LocalStructuralComponentShape, component: LocalStructuralComponent, atoms: []const rendering.SymbolicAtom) !bool {
+    for (atoms) |atom| {
+        const matches = switch (atom) {
+            .vector_slot_delta => |delta| localStructuralSlotValue(shape, component, delta.upper, delta.upper_slot) == localStructuralSlotValue(shape, component, delta.lower, delta.lower_slot),
+            .vector_slot_metric => |metric| localStructuralSlotValue(shape, component, metric.left, metric.left_slot) == localStructuralSlotValue(shape, component, metric.right, metric.right_slot),
+            else => return error.ExpectedVectorSlotPrimitive,
+        };
+        if (!matches) return false;
+    }
+    return true;
+}
+
+fn localStructuralSlotValue(shape: LocalStructuralComponentShape, component: LocalStructuralComponent, block: rendering.IndexBlockId, slot: usize) u8 {
+    return switch (tensorFormBlockIndex(block)) {
+        0 => if (slot < shape.left_slots) component.left[slot] else 0,
+        1 => if (slot < shape.right_slots) component.right[slot] else 0,
+        2 => if (slot < shape.output_slots) component.output[slot] else 0,
+        else => 0,
+    };
+}
+
+fn componentAssignmentCount(dimension: u8, slot_count: usize) !usize {
+    var count: usize = 1;
+    var slot: usize = 0;
+    while (slot < slot_count) : (slot += 1) {
+        count = try std.math.mul(usize, count, dimension);
+    }
+    return count;
+}
+
+fn decodeLocalStructuralComponent(index: usize, dimension: u8, shape: LocalStructuralComponentShape) LocalStructuralComponent {
+    var component: LocalStructuralComponent = .{};
+    var remaining = index;
+    var slot: usize = 0;
+    while (slot < shape.left_slots) : (slot += 1) {
+        component.left[slot] = @intCast(remaining % dimension);
+        remaining /= dimension;
+    }
+    slot = 0;
+    while (slot < shape.right_slots) : (slot += 1) {
+        component.right[slot] = @intCast(remaining % dimension);
+        remaining /= dimension;
+    }
+    slot = 0;
+    while (slot < shape.output_slots) : (slot += 1) {
+        component.output[slot] = @intCast(remaining % dimension);
+        remaining /= dimension;
+    }
+    return component;
+}
+
+fn applyLocalStructuralPermutation(component: *LocalStructuralComponent, block: LocalStructuralBlock, permutation: []const u8) void {
+    var copy = [_]u8{0} ** max_structural_component_slots;
+    switch (block) {
+        .left => {
+            copy = component.left;
+            for (permutation, 0..) |source_slot, target_slot| component.left[target_slot] = copy[source_slot];
+        },
+        .right => {
+            copy = component.right;
+            for (permutation, 0..) |source_slot, target_slot| component.right[target_slot] = copy[source_slot];
+        },
+        .output => {
+            copy = component.output;
+            for (permutation, 0..) |source_slot, target_slot| component.output[target_slot] = copy[source_slot];
+        },
+    }
+}
+
+fn addRenderingRationals(left: rendering.RationalId, right: rendering.RationalId) !rendering.RationalId {
+    const left_scaled = try std.math.mul(i128, left.numerator, @as(i128, @intCast(right.denominator)));
+    const right_scaled = try std.math.mul(i128, right.numerator, @as(i128, @intCast(left.denominator)));
+    const numerator = try std.math.add(i128, left_scaled, right_scaled);
+    const denominator = try std.math.mul(u128, left.denominator, right.denominator);
+    return rendering.rationalFromWide(numerator, denominator);
+}
+
+fn expectSignedRationalEqual(base: rendering.RationalId, transformed: rendering.RationalId, sign: i2) !void {
+    const testing = std.testing;
+    const expected_numerator = if (sign < 0) -base.numerator else base.numerator;
+    try testing.expectEqual(expected_numerator, transformed.numerator);
+    try testing.expectEqual(base.denominator, transformed.denominator);
+}
+
 const CountingSink = struct {
     term_count: u32 = 0,
     atom_count: u32 = 0,
+    positive_coefficient_count: u32 = 0,
+    negative_coefficient_count: u32 = 0,
     metric_pair_count: u32 = 0,
     vector_slot_delta_count: u32 = 0,
     vector_slot_metric_count: u32 = 0,
@@ -5852,6 +6831,8 @@ const CountingSink = struct {
     pub fn emitTerm(self: *CountingSink, term: rendering.SymbolicTerm) !void {
         self.term_count += 1;
         self.atom_count += @intCast(term.atoms.len);
+        if (term.coefficient.numerator > 0) self.positive_coefficient_count += 1;
+        if (term.coefficient.numerator < 0) self.negative_coefficient_count += 1;
         for (term.atoms) |atom| {
             switch (atom) {
                 .metric_pair => self.metric_pair_count += 1,
@@ -6315,6 +7296,7 @@ fn descriptorFromYoungShape(dimension: u16, shape: OrthogonalYoungShape, forms: 
         .dimension = dimension,
         .young_row_count = shape.row_count,
         .young_rows = shape.rows,
+        .young_wide_rows = shape.wide_rows,
         .young_box_count = shape.box_count,
     };
     if (forms) |form_set| {
@@ -6484,17 +7466,19 @@ fn orthogonalYoungShape(simple: symmetry.SimpleLieAlgebra, label: []const i16) ?
         },
         else => return null,
     }
-    return if (shape.row_count == 0 or shape.box_count > max_orthogonal_young_rows) null else shape;
+    return if (shape.row_count == 0) null else shape;
 }
 
 fn tryAppendOrthogonalYoungRow(shape: *OrthogonalYoungShape, length: i32) !void {
-    if (length < 0 or length > std.math.maxInt(u8)) return error.InvalidOrthogonalYoungShape;
+    if (length < 0) return error.InvalidOrthogonalYoungShape;
     if (length == 0) return;
-    if (shape.row_count != 0 and @as(u8, @intCast(length)) > shape.rows[shape.row_count - 1]) return error.InvalidOrthogonalYoungShape;
+    const wide_length: usize = @intCast(length);
+    if (shape.row_count != 0 and wide_length > shape.wide_rows[shape.row_count - 1]) return error.InvalidOrthogonalYoungShape;
     if (shape.row_count == max_orthogonal_young_rows) return error.InvalidOrthogonalYoungShape;
-    shape.rows[shape.row_count] = @intCast(length);
+    shape.rows[shape.row_count] = if (wide_length > std.math.maxInt(u8)) std.math.maxInt(u8) else @intCast(wide_length);
+    shape.wide_rows[shape.row_count] = wide_length;
     shape.row_count += 1;
-    shape.box_count = std.math.add(u8, shape.box_count, @intCast(length)) catch return error.InvalidOrthogonalYoungShape;
+    shape.box_count = std.math.add(usize, shape.box_count, wide_length) catch return error.InvalidOrthogonalYoungShape;
 }
 
 fn outputSpinorTowerInfo(simple: symmetry.SimpleLieAlgebra, label: []const i16) ?SpinorTowerInfo {
