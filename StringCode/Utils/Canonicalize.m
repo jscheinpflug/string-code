@@ -40,13 +40,25 @@ positionSymbolNameQ[name_String] := AnyTrue[
   $canonicalizeDummiesPositionPatterns, StringMatchQ[name, #] &
 ];
 
+$canonicalizeDummiesProtectedPatterns::usage = "$canonicalizeDummiesProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming symbols that must never be treated as Einstein dummies by canonicalizeDummies: physical parameters and moduli such as the plumbing coordinates q1/qbar1/r0 and the string scale \[Alpha]p. Extend it when introducing new named parameters that can appear exactly twice in a term.";
+$canonicalizeDummiesProtectedPatterns = {
+  "q" ~~ ("" | DigitCharacter ..) ~~ ("" | "bar"),
+  "r" ~~ DigitCharacter ..,
+  "\[Alpha]p"
+};
+
+protectedSymbolNameQ::usage = "protectedSymbolNameQ[name] checks whether a symbol name matches $canonicalizeDummiesProtectedPatterns and is therefore exempt from Einstein-dummy detection.";
+protectedSymbolNameQ[name_String] := AnyTrue[
+  $canonicalizeDummiesProtectedPatterns, StringMatchQ[name, #] &
+];
+
 holdMarkerNameQ[name_String] := StringEndsQ[name, "Hold"];
 
 dummySymbolQ[s_Symbol] := With[{name = SymbolName[s]},
   StringContainsQ[name, "$" ~~ DigitCharacter ..] ||
-  StringMatchQ[name, "\[Mu]Canon" ~~ DigitCharacter ..] ||
-  StringMatchQ[name, "\[Alpha]Dummies" ~~ DigitCharacter ..] ||
-  StringMatchQ[name, "\[Alpha]tDummies" ~~ DigitCharacter ..]
+  StringMatchQ[name, "\[Mu]Canon" ~~ ("$" | "") ~~ DigitCharacter ..] ||
+  StringMatchQ[name, "\[Alpha]Dummies" ~~ ("$" | "") ~~ DigitCharacter ..] ||
+  StringMatchQ[name, "\[Alpha]tDummies" ~~ ("$" | "") ~~ DigitCharacter ..]
 ];
 dummySymbolQ[_] := False;
 
@@ -60,14 +72,24 @@ dummyKind[s_Symbol] := With[{name = SymbolName[s]},
   ]
 ];
 
-canonicalNameFor["Alpha",  n_Integer] := Symbol["\[Alpha]Dummies" <> ToString[n]];
-canonicalNameFor["AlphaT", n_Integer] := Symbol["\[Alpha]tDummies" <> ToString[n]];
-canonicalNameFor[_,        n_Integer] := Symbol["\[Mu]Canon" <> ToString[n]];
+(* Canonical names carry a "$" so that canonicalized dummies stay visible to every
+   $-keyed integrity audit (BracketProjection/EffectiveBracketDirectPCO guards,
+   projectionStrandViolations): canonicalization must not disarm the safety net. *)
+canonicalNameFor["Alpha",  n_Integer] := Symbol["\[Alpha]Dummies$" <> ToString[n]];
+canonicalNameFor["AlphaT", n_Integer] := Symbol["\[Alpha]tDummies$" <> ToString[n]];
+canonicalNameFor[_,        n_Integer] := Symbol["\[Mu]Canon$" <> ToString[n]];
 
-einsteinCandidatesIn[term_] := Module[{leaves, freq},
-  leaves = Cases[term, _Symbol, {0, Infinity}, Heads -> False];
+einsteinCandidatesIn::usage = "einsteinCandidatesIn[term] returns the symbols appearing exactly twice in argument position within term (integer powers counted with multiplicity, matching the projection guard's convention), excluding position/protected/field/hold-marker names. These are treated as Einstein-contracted dummies by canonicalizeOneTermDummies.";
+einsteinCandidatesIn[term_] := Module[{exploded, leaves, freq},
+  (* count integer powers with multiplicity: x^2 is an Einstein pair, and
+     f[a] g[a]^2 has THREE occurrences of a, not two -- same convention as
+     projectionStrandViolations in Brackets/TypeII *)
+  exploded = term //. Power[b_, n_Integer /; n >= 2] :>
+    canonicalizePowerHold @@ ConstantArray[b, n];
+  leaves = Cases[exploded, _Symbol, {0, Infinity}, Heads -> False];
   leaves = Select[leaves,
     !positionSymbolNameQ[SymbolName[#]] &&
+    !protectedSymbolNameQ[SymbolName[#]] &&
     !isField[#] &&
     !holdMarkerNameQ[SymbolName[#]] &
   ];
@@ -106,10 +128,11 @@ canonicalizeDummies[expr_] := Module[{expanded, terms},
 
 deltaFactorQ[fac_] := MatchQ[fac, (d_Symbol)[_, _] /; SymbolName[d] === "\[Delta]"];
 
+contractOneDelta::usage = "contractOneDelta[factors] contracts the first Kronecker delta whose index occurs in another factor, replacing the index and removing the delta. Trace deltas \[Delta][a,a] are deliberately left untouched: their value (the spacetime dimension) is a downstream convention (e.g. \[Delta][a_,a_] :> 10), and dropping them here would silently lose dimension factors.";
 contractOneDelta[factors_List] := Catch[
   Module[{a, b, nonDeltaPositions},
     Do[
-      If[deltaFactorQ[factors[[i]]],
+      If[deltaFactorQ[factors[[i]]] && factors[[i, 1]] =!= factors[[i, 2]],
         a = factors[[i, 1]]; b = factors[[i, 2]];
         nonDeltaPositions = Select[
           Range[Length[factors]],
@@ -152,15 +175,23 @@ rFactorQ[fac_] := MatchQ[fac, (r_Symbol)[___] /; SymbolName[r] === "R"];
 
 profileXFactorQ[arg_] := MatchQ[arg, (p_Symbol)[_, _List, _, _] /; SymbolName[p] === "ProfileX"];
 
+derAppend::ambiguousProfile = "Term contains `1` ProfileX factors with the identical profile `2`; folding der[...] factors into it is ambiguous, so they are left standalone for this term. Resolve by distinguishing the profiles (labels) or folding upstream where the association is known.";
+
 derAppendInTimes[t_Times] := Module[
-  {factors, profileMap, toRemove, info, profHead, idx, exponent, pos},
+  {factors, profileMap, ambiguous, toRemove, info, profHead, idx, exponent, pos},
   factors = List @@ t;
   profileMap = <||>;
+  ambiguous = <||>;
   Do[
     If[rFactorQ[factors[[i]]],
       Do[
         If[profileXFactorQ[factors[[i, j]]],
-          profileMap[factors[[i, j, 1]]] = {i, j}
+          If[KeyExistsQ[profileMap, factors[[i, j, 1]]],
+            (* identical profile appears twice: folding target is ambiguous *)
+            ambiguous[factors[[i, j, 1]]] =
+              Lookup[ambiguous, Key[factors[[i, j, 1]]], 1] + 1,
+            profileMap[factors[[i, j, 1]]] = {i, j}
+          ]
         ],
         {j, 1, Length[factors[[i]]]}
       ]
@@ -174,7 +205,10 @@ derAppendInTimes[t_Times] := Module[
     If[derFactorQ[factors[[i]]],
       info = derFactorInfo[factors[[i]]];
       profHead = info[[1]]; idx = info[[2]]; exponent = info[[3]];
-      If[KeyExistsQ[profileMap, profHead],
+      Which[
+        KeyExistsQ[ambiguous, profHead],
+        Message[derAppend::ambiguousProfile, ambiguous[profHead], profHead],
+        KeyExistsQ[profileMap, profHead],
         pos = profileMap[profHead];
         factors[[pos[[1]], pos[[2]], 2]] =
           Join[factors[[pos[[1]], pos[[2]], 2]], ConstantArray[idx, exponent]];
