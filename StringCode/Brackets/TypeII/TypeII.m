@@ -140,8 +140,41 @@ result]
 (*Define projection of the string bracket*)
 
 
+$StringCodeProjectionGuard::usage = "$StringCodeProjectionGuard gates the Einstein-pairing postcondition on BracketProjection output (default True). When True, a projection whose \"$\"-named dummy indices are not exactly paired per term issues BracketProjection::strand and returns $Failed instead of a plausible-but-corrupt expression.";
+If[!ValueQ[$StringCodeProjectionGuard], $StringCodeProjectionGuard = True];
+
+projectionStrandViolations::usage = "projectionStrandViolations[expr] returns {term, {{dummy, count}..}} for every additive term whose \"$\"-named dummy indices do not appear exactly twice (integer powers counted with multiplicity).";
+projectionStrandViolations[expr_] := Module[{terms, factorsOf, dollarTally},
+  terms = If[Head[#] === Plus, List @@ #, {#}] &@ Expand[expr];
+  factorsOf[term_] := Flatten@Replace[
+     If[Head[term] === Times, List @@ term, {term}],
+     p_^n_Integer?Positive :> ConstantArray[p, n], {1}];
+  dollarTally[term_] := Tally@Flatten[
+     Cases[#, s_Symbol /; StringContainsQ[SymbolName[s], "$"],
+       {0, Infinity}, Heads -> True] & /@ factorsOf[term]];
+  Cases[Map[{#, Select[dollarTally[#], Last[#] != 2 &]} &, terms],
+    {_, v_ /; v =!= {}}]];
+
+BracketProjection::strand = "Projection postcondition failed: `1` term(s) carry uncontracted dummy index(es) `2` that were minted during the projection. The result is corrupted, not merely unsimplified; returning $Failed. Set $StringCodeProjectionGuard = False (in the Private context) to bypass.";
+
+assertProjectionContracted::usage = "assertProjectionContracted[expr, inputExpr] returns expr unchanged unless a \"$\"-named dummy that is ABSENT from inputExpr fails Einstein pairing per term, in which case it issues BracketProjection::strand and returns $Failed. Dummies already present in the projection input are exempt: their pairing partner may legitimately sit in scalar prefactors peeled off by BracketProjected's multilinearity before the projection ran, so only projection-minted dummies must pair internally. Gated by $StringCodeProjectionGuard.";
+assertProjectionContracted[expr_, inputExpr_] := Module[{viol, inputDummies},
+  If[!TrueQ[$StringCodeProjectionGuard], Return[expr]];
+  viol = projectionStrandViolations[expr];
+  If[viol === {}, Return[expr]];
+  inputDummies = DeleteDuplicates@Cases[inputExpr,
+    s_Symbol /; StringContainsQ[SymbolName[s], "$"],
+    {0, Infinity}, Heads -> True];
+  viol = Map[{#[[1]], Select[#[[2]], !MemberQ[inputDummies, First[#]] &]} &, viol];
+  viol = Select[viol, #[[2]] =!= {} &];
+  If[viol === {},
+    expr,
+    Message[BracketProjection::strand, Length[viol],
+      Short[DeleteDuplicates@Flatten[viol[[All, 2, All, 1]]], 3]];
+    $Failed]];
+
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"
-BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:= 
+BracketProjection[bracket_, weightHolo_, weightAntiHolo_]:=
 Module[{result, numberOfHoloPCOs = 0, numberOfAntiHoloPCOs = 0, bracketNoPCOs, prefac, localOps, projectionData, projectedOPE, holoOPEWithPCOs, antiHoloOPEWithPCOs},
 
 (*Strip off PCOs*)
@@ -171,7 +204,7 @@ Sow[Nest[actPCO, projectedOPE, numberOfHoloPCOs + numberOfAntiHoloPCOs]]
 _,
 Total[#2] &
 ];
-result
+assertProjectionContracted[result, bracket]
 ];
 
 
@@ -179,8 +212,25 @@ result
 (*Define action of PCOs*)
 
 
-actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
-actPCOHolo[Ra_ /; RTest[Ra]] := actPCOHolo[Ra] = Module[
+freshenCachedDummies::usage = "freshenCachedDummies[expr, inputExpr] renames every Module-generated dummy symbol (name containing $<digits>) in a memoized value to a fresh \[Mu]-symbol via one fixed map, preserving Einstein pairing inside expr -- EXCEPT dummies that already occur in inputExpr. Input-inherited dummies must keep their names: their pairing partner may live outside the cached value (e.g. in scalar prefactors peeled off by linearity), so renaming them strands both halves. Only internally minted dummies are freshened; without that, physically independent insertions of the same cached value silently share dummy indices (the ProfileXPoly bug class).";
+freshenCachedDummies[expr_, inputExpr_] := Module[{oldNames, inputNames, newNames},
+  inputNames = DeleteDuplicates@Cases[inputExpr,
+    s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
+    {0, Infinity}, Heads -> True];
+  oldNames = Complement[
+    DeleteDuplicates@Cases[expr,
+      s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
+      {0, Infinity}, Heads -> True],
+    inputNames];
+  If[oldNames === {}, Return[expr]];
+  (* Module-minted so fresh dummies keep the standard $-naming: visible to the
+     projection guard and to this very pattern on a later re-freshening pass,
+     and unable to collide with user-facing labels like \[Mu]1. *)
+  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
+  expr /. Thread[oldNames -> newNames]];
+
+actPCOHoloCached::usage = "actPCOHoloCached[Ra] memoizes the raw holomorphic-PCO OPE on a local operator. Its value can bake in surviving dummy indices, so consume it only through actPCOHolo, which freshens them on every retrieval.";
+actPCOHoloCached[Ra_ /; RTest[Ra]] := actPCOHoloCached[Ra] = Module[
   {wH, z, result},
   wH = totalWeightHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
@@ -188,15 +238,21 @@ actPCOHolo[Ra_ /; RTest[Ra]] := actPCOHolo[Ra] = Module[
   Expand[result]/.{z->0}
 ];
 
+actPCOHolo::usage = "Acts zero mode of holomorphic PCO on a local operator";
+actPCOHolo[Ra_ /; RTest[Ra]] := freshenCachedDummies[actPCOHoloCached[Ra], Ra];
 
-actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
-actPCOAntiHolo[Ra_ /; RTest[Ra]] := actPCOAntiHolo[Ra] = Module[
+
+actPCOAntiHoloCached::usage = "actPCOAntiHoloCached[Ra] memoizes the raw antiholomorphic-PCO OPE on a local operator. Consume only through actPCOAntiHolo, which freshens surviving dummies on every retrieval.";
+actPCOAntiHoloCached[Ra_ /; RTest[Ra]] := actPCOAntiHoloCached[Ra] = Module[
   {wH, zBar, result},
   wH = totalWeightAntiHolo[Ra];
   inputAtOrigin = Expand[RAtPos[Ra, 0, 0]];
   result = OPEProjectedAntiHolo[wH][PCObar[zBar], inputAtOrigin];
   Expand[result]/.{zBar->0}
 ];
+
+actPCOAntiHolo::usage = "Acts zero mode of antiholomorphic PCO on a local operator";
+actPCOAntiHolo[Ra_ /; RTest[Ra]] := freshenCachedDummies[actPCOAntiHoloCached[Ra], Ra];
 
 
 (*Multilinearity of PCO zero mode actions*)
@@ -411,8 +467,20 @@ EffectiveBracketDirectPCO[args___, a_ + b_, rest___, wH_, wA_] :=
 EffectiveBracketDirectPCO[args___, c_ d_, rest___, wH_, wA_] :=
   c EffectiveBracketDirectPCO[args, d, rest, wH, wA] /; isScalarFactorQ[c];
 
+EffectiveBracketDirectPCO::strand = "Effective-bracket postcondition failed: `1` term(s) of the final result carry uncontracted dummy index(es) `2`. The result is corrupted; returning $Failed. Set $StringCodeProjectionGuard = False (in the Private context) to bypass.";
+
+assertEffectiveBracketContracted::usage = "assertEffectiveBracketContracted[expr] returns expr unchanged when every \"$\"-named dummy of the COMPLETE effective-bracket result is Einstein-paired per term (the sound top-level invariant: nothing is peeled outside a finished result), else issues EffectiveBracketDirectPCO::strand and returns $Failed. Gated by $StringCodeProjectionGuard.";
+assertEffectiveBracketContracted[expr_] := Module[{viol},
+  If[!TrueQ[$StringCodeProjectionGuard], Return[expr]];
+  viol = projectionStrandViolations[expr];
+  If[viol === {},
+    expr,
+    Message[EffectiveBracketDirectPCO::strand, Length[viol],
+      Short[DeleteDuplicates@Flatten[viol[[All, 2, All, 1]]], 3]];
+    $Failed]];
+
 EffectiveBracketDirectPCO[fields__, wH_, wA_] :=
-  EffectiveBracketHold[fields, wH, wA] //. subsList;
+  assertEffectiveBracketContracted[EffectiveBracketHold[fields, wH, wA] //. subsList];
 
 
 

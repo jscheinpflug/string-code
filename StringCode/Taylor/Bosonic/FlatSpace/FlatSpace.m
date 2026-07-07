@@ -127,7 +127,7 @@ ProfileXPoly[profile_, n_] := Module[{cached, oldNames, newNames},
   oldNames = DeleteDuplicates @ Cases[cached,
      s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
      {0, Infinity}, Heads -> True];
-  newNames = Table[Unique["\[Mu]"], Length[oldNames]];
+  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
   cached /. Thread[oldNames -> newNames]
 ];
        
@@ -144,7 +144,7 @@ ProfileXPolyT[profile_, n_] := Module[{cached, oldNames, newNames},
   oldNames = DeleteDuplicates @ Cases[cached,
      s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
      {0, Infinity}, Heads -> True];
-  newNames = Table[Unique["\[Mu]"], Length[oldNames]];
+  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
   cached /. Thread[oldNames -> newNames]
 ];
 
