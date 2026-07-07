@@ -290,17 +290,17 @@ collectProjectedSectorBuckets[collOPE_, targetWeight_, minRestWeight_, projectFn
 ];
 
 projectWithNonCollapsable::usage =
-  "projectWithNonCollapsable[collOPEHolo, collOPEAnti, εHolo, εAntiHolo, wH, wA, collWH, collWA, restR, minRestWH, minRestWA, opts] combines collapsable projections with delegated remainder projections.";
+  "projectWithNonCollapsable[collOPEHolo, collOPEAnti, \:03b5Holo, \:03b5AntiHolo, wH, wA, collWH, collWA, restR, minRestWH, minRestWA, opts] combines collapsable projections with delegated remainder projections.";
 projectWithNonCollapsable[
-  collOPEHolo_, collOPEAnti_, εHolo_, εAntiHolo_,
+  collOPEHolo_, collOPEAnti_, \:03b5Holo_, \:03b5AntiHolo_,
   wH_, wA_, collWH_, collWA_,
   restR_List, minRestWH_, minRestWA_, opts_List
 ] := Module[
   {restWH, restWA, holoBuckets, antiBuckets, result = 0, collProj, restProj},
   restWH = Total[totalWeightHolo /@ restR];
   restWA = Total[totalWeightAntiHolo /@ restR];
-  holoBuckets = collectProjectedSectorBuckets[collOPEHolo, wH - restWH - collWH, minRestWH - restWH, projectHolo, εHolo];
-  antiBuckets = collectProjectedSectorBuckets[collOPEAnti, wA - restWA - collWA, minRestWA - restWA, projectAntiHolo, εAntiHolo];
+  holoBuckets = collectProjectedSectorBuckets[collOPEHolo, wH - restWH - collWH, minRestWH - restWH, projectHolo, \:03b5Holo];
+  antiBuckets = collectProjectedSectorBuckets[collOPEAnti, wA - restWA - collWA, minRestWA - restWA, projectAntiHolo, \:03b5AntiHolo];
   If[holoBuckets === <||> || antiBuckets === <||>, Return[0]];
   Do[
     collProj = combineChiral[holoBuckets[hKey], antiBuckets[aKey]];
@@ -314,9 +314,9 @@ projectWithNonCollapsable[
 ];
 
 projectWithNonCollapsableHolo::usage =
-  "projectWithNonCollapsableHolo[collOPEHolo, antiExpr, εHolo, wH, collWH, restR, minRestWH] combines holomorphically projected collapsable terms with delegated holomorphic remainder projections.";
+  "projectWithNonCollapsableHolo[collOPEHolo, antiExpr, \:03b5Holo, wH, collWH, restR, minRestWH] combines holomorphically projected collapsable terms with delegated holomorphic remainder projections.";
 projectWithNonCollapsableHolo[
-  collOPEHolo_, antiExpr_, εHolo_, wH_, collWH_, restR_List, minRestWH_
+  collOPEHolo_, antiExpr_, \:03b5Holo_, wH_, collWH_, restR_List, minRestWH_
 ] := Module[
   {holoBuckets, result = 0, collProjected, restProjected},
   holoBuckets = collectProjectedSectorBuckets[
@@ -324,7 +324,7 @@ projectWithNonCollapsableHolo[
     wH - collWH,
     minRestWH,
     projectHolo,
-    εHolo
+    \:03b5Holo
   ];
   If[holoBuckets === <||>, Return[0]];
   KeyValueMap[
@@ -341,9 +341,9 @@ projectWithNonCollapsableHolo[
 ];
 
 projectWithNonCollapsableAntiHolo::usage =
-  "projectWithNonCollapsableAntiHolo[holoExpr, collOPEAnti, εAntiHolo, wA, collWA, restR, minRestWA] combines antiholomorphically projected collapsable terms with delegated antiholomorphic remainder projections.";
+  "projectWithNonCollapsableAntiHolo[holoExpr, collOPEAnti, \:03b5AntiHolo, wA, collWA, restR, minRestWA] combines antiholomorphically projected collapsable terms with delegated antiholomorphic remainder projections.";
 projectWithNonCollapsableAntiHolo[
-  holoExpr_, collOPEAnti_, εAntiHolo_, wA_, collWA_, restR_List, minRestWA_
+  holoExpr_, collOPEAnti_, \:03b5AntiHolo_, wA_, collWA_, restR_List, minRestWA_
 ] := Module[
   {antiBuckets, result = 0, collProjected, restProjected},
   antiBuckets = collectProjectedSectorBuckets[
@@ -351,7 +351,7 @@ projectWithNonCollapsableAntiHolo[
     wA - collWA,
     minRestWA,
     projectAntiHolo,
-    εAntiHolo
+    \:03b5AntiHolo
   ];
   If[antiBuckets === <||>, Return[0]];
   KeyValueMap[

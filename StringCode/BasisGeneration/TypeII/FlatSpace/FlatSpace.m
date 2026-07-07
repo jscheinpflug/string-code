@@ -11,14 +11,14 @@
 
   The basis consists of states built from:
   - b/c ghost system (conformal weights 2, -1)
-  - β/γ superghost system (conformal weights 3/2, -1/2 at picture 0)
-  - ψ worldsheet fermions (conformal weight 1/2 in NS sector)
-  - ∂X bosonic oscillators (conformal weight 1)
+  - \:03b2/\:03b3 superghost system (conformal weights 3/2, -1/2 at picture 0)
+  - \:03c8 worldsheet fermions (conformal weight 1/2 in NS sector)
+  - \:2202X bosonic oscillators (conformal weight 1)
 
   States are organized by:
-  - Total conformal weight (h + h̄)
-  - Ghost number (b/c contribute ∓1, β/γ contribute ∓1)
-  - Picture number (shifted by β/γ zero modes)
+  - Total conformal weight (h + h\:0304)
+  - Ghost number (b/c contribute \:22131, \:03b2/\:03b3 contribute \:22131)
+  - Picture number (shifted by \:03b2/\:03b3 zero modes)
   - GSO parity (worldsheet fermion number mod 2)
 
   Output format:
@@ -54,7 +54,7 @@ Needs["StringCode`Taylor`TypeII`FlatSpace`"];
 Begin["Private`"];
 
 $maxPsiPerLevel::usage =
-  "Maximum number of ψ oscillators permitted at one mode level (equal to target-space dimension in flat TypeII).";
+  "Maximum number of \:03c8 oscillators permitted at one mode level (equal to target-space dimension in flat TypeII).";
 $maxPsiPerLevel = 10;
 
 (* ============================================================ *)
@@ -114,7 +114,7 @@ pictureChirality[{picture_ /; halfIntegerQ[picture], chirality_ /; validChiralit
 validWeightQ::usage = "Tests whether a conformal weight is integer or half-integer, allowing negative picture-dressed ground-state weights.";
 validWeightQ[weight_] := NumericQ[weight] && IntegerQ[2 weight];
 
-(* Conformal weight of the picture-q ground state |q⟩.
+(* Conformal weight of the picture-q ground state |q\:27e9.
    NS sector (integer q): h = -q(q+2)/2
    R sector (half-integer q): h = 5/8 - q(q+2)/2  (includes R ground state weight) *)
 groundStateWeight::usage = "Returns the conformal weight of the picture-q ground state for a given picture spec.";
@@ -154,22 +154,22 @@ gsoParityOfGroundState[picture_?validPictureSpecQ] := Module[
   - Each sector has a minimum weight contribution
 
   The b/c system bounds come from BasisGeneration.m (Bosonic).
-  The β/γ bounds depend on picture number.
+  The \:03b2/\:03b3 bounds depend on picture number.
 *)
 
 (* Minimum superghost weight for given superghost number at picture q.
    At picture q:
-   - β modes have weight ≥ 3/2 + q (creation modes: r ≤ -3/2 - q)
-   - γ modes have weight ≥ -1/2 - q (creation modes: r ≤ 1/2 + q)
-   For positive superghost number: use γ modes (cheaper)
-   For negative superghost number: use β modes *)
+   - \:03b2 modes have weight \:2265 3/2 + q (creation modes: r \:2264 -3/2 - q)
+   - \:03b3 modes have weight \:2265 -1/2 - q (creation modes: r \:2264 1/2 + q)
+   For positive superghost number: use \:03b3 modes (cheaper)
+   For negative superghost number: use \:03b2 modes *)
 minSuperghostWeightForGhostNumber::usage = "Lower bound on superghost conformal weight for a given superghost number at a specified picture.";
 minSuperghostWeightForGhostNumber[ghostNumber_Integer, picture_?validPictureSpecQ] := Module[{q},
   q = pictureValue[picture];
   If[
     ghostNumber >= 0,
-    -(1/2 + q) ghostNumber,   (* γ modes contribute -(1/2+q) each *)
-    -(3/2 + q) ghostNumber    (* β modes contribute (3/2+q) each, but ghostNumber < 0 *)
+    -(1/2 + q) ghostNumber,   (* \:03b3 modes contribute -(1/2+q) each *)
+    -(3/2 + q) ghostNumber    (* \:03b2 modes contribute (3/2+q) each, but ghostNumber < 0 *)
   ]
 ];
 minSuperghostWeightForGhostNumber[ghostNumber_Integer] :=
@@ -197,7 +197,7 @@ minTypeIIGhostWeightForGhostNumber[ghostNumber_Integer, picture_?validPictureSpe
   (* Vertices where slope changes in the combined weight function *)
   case1Vertex = 1 - q;
   case2Vertex = -q;
-  (* Candidates for bcGhostNumber ≤ ghostNumber (positive superghost) *)
+  (* Candidates for bcGhostNumber \:2264 ghostNumber (positive superghost) *)
   case1Candidates = Select[
     DeleteDuplicates[{Floor[case1Vertex], Ceiling[case1Vertex], ghostNumber}],
     # <= ghostNumber &
@@ -245,7 +245,7 @@ findFeasibleSplitRange[splitFeasibleQ_, center_Integer, maxRadius_Integer?Positi
 ];
 
 (* Find feasible bc ghost number splits for holomorphic sector.
-   A split is feasible if bc + superghost minimum weight ≤ maxWeight. *)
+   A split is feasible if bc + superghost minimum weight \:2264 maxWeight. *)
 ghostSplitRangeTypeII::usage = "Returns feasible bc-ghost-number splits for a TypeII holomorphic sector under a weight budget at a specified picture.";
 ghostSplitRangeTypeII[ghostNumber_Integer, maxWeight_?NumericQ, picture_?validPictureSpecQ] := Module[
   {center, maxRadius, splitFeasibleQ},
@@ -297,12 +297,12 @@ ghostSplitRangeClosedString[
   - totalWeight: sum of -n for all modes (contribution to h)
 
   Mode representation:
-  - mode[β, n]: β superghost with mode number n
-  - mode[γ, n]: γ superghost with mode number n
-  - mode[ψ[μ], n]: worldsheet fermion with Lorentz index μ
-  - mode[dX[μ], n]: ∂X oscillator with Lorentz index μ
+  - mode[\:03b2, n]: \:03b2 superghost with mode number n
+  - mode[\:03b3, n]: \:03b3 superghost with mode number n
+  - mode[\:03c8[\:03bc], n]: worldsheet fermion with Lorentz index \:03bc
+  - mode[dX[\:03bc], n]: \:2202X oscillator with Lorentz index \:03bc
 
-  β/γ are bosonic (modes can repeat), ψ is fermionic (modes distinct).
+  \:03b2/\:03b3 are bosonic (modes can repeat), \:03c8 is fermionic (modes distinct).
 *)
 
 minModeNumberForSpecies::usage = "Returns maximal creation mode number n0 for TypeII species at a given picture.";
@@ -327,7 +327,7 @@ generateSuperghostModes[betaOffsets_List, gammaOffsets_List, picture_?validPictu
     mode[\[Gamma], modeNumberFromOffset[\[Gamma], #, picture]] & /@ gammaOffsets
   ];
 
-(* Compute remaining offset budget after fixing β/γ counts.
+(* Compute remaining offset budget after fixing \:03b2/\:03b3 counts.
    Returns -1 if configuration is impossible. *)
 superghostOffsetBudget[
   betaCount_Integer,
@@ -346,8 +346,8 @@ superghostOffsetBudget[
   If[minWeight > maxWeight, -1, Floor[maxWeight - minWeight]]
 ];
 
-(* Enumerate all β/γ offset combinations for fixed counts.
-   β/γ are bosonic: use bosonicModesByExactSum (allows repeats). *)
+(* Enumerate all \:03b2/\:03b3 offset combinations for fixed counts.
+   \:03b2/\:03b3 are bosonic: use bosonicModesByExactSum (allows repeats). *)
 enumerateSuperghostAtCounts[
   betaCount_Integer,
   gammaCount_Integer,
@@ -374,7 +374,7 @@ enumerateSuperghostAtCounts[
   superghostNumber = gammaCount - betaCount;
   minWeight = betaCount - (1/2 + q) superghostNumber;
   collectedConfigs = Reap[
-    (* Iterate over total offset sums for β and γ *)
+    (* Iterate over total offset sums for \:03b2 and \:03b3 *)
     Do[
       betaOffsetConfigs = bosonicModesByExactSum[betaCount, betaOffsetSum, 0];
       If[betaOffsetConfigs === {},
@@ -386,7 +386,7 @@ enumerateSuperghostAtCounts[
         If[gammaOffsetConfigs === {},
           Continue[]
         ];
-        (* Cartesian product of β and γ configurations *)
+        (* Cartesian product of \:03b2 and \:03b3 configurations *)
         Do[
           Do[
             Sow[{generateSuperghostModes[betaOffsets, gammaOffsets, picture], totalWeight}],
@@ -403,7 +403,7 @@ enumerateSuperghostAtCounts[
 ];
 
 (* Generate all superghost configurations with given ghost number and max weight.
-   Iterates over possible β counts (γ count = β count + superghost number).
+   Iterates over possible \:03b2 counts (\:03b3 count = \:03b2 count + superghost number).
    Results are memoized for efficiency. *)
 generateSuperghostConfigs[maxWeight_?NumericQ, superghostNumber_Integer, picture_?validPictureSpecQ] /;
     maxWeight < minSuperghostWeightForGhostNumber[superghostNumber, picture] := {};
@@ -424,7 +424,7 @@ generateSuperghostConfigs[maxWeight_?NumericQ, superghostNumber_Integer, picture
       Return[{}]
     ];
     q = pictureValue[picture];
-    (* β count bounds from ghost number and weight constraints *)
+    (* \:03b2 count bounds from ghost number and weight constraints *)
     minBetaCount = Max[0, -superghostNumber];
     maxBetaCount = Floor[maxWeight + (1/2 + q) superghostNumber];
     If[maxBetaCount < minBetaCount,
@@ -449,8 +449,8 @@ generateSuperghostConfigs[maxWeight_?NumericQ, superghostNumber_Integer] :=
 generateSuperghostConfigs[_, _, _] := {};
 generateSuperghostConfigs[_, _] := {};
 
-(* Convert integer partition to ∂X mode objects.
-   Each part p becomes mode[dX[μ], -p] with fresh Lorentz index μ. *)
+(* Convert integer partition to \:2202X mode objects.
+   Each part p becomes mode[dX[\:03bc], -p] with fresh Lorentz index \:03bc. *)
 generateDXModes[matterPartition_List] := Module[{makeMatterMode},
   makeMatterMode[partWeight_Integer] := Module[{mu},
     mode[dX[mu], -partWeight]
@@ -458,22 +458,22 @@ generateDXModes[matterPartition_List] := Module[{makeMatterMode},
   makeMatterMode /@ matterPartition
 ];
 
-(* All ∂X configurations at fixed weight = integer partitions.
-   ∂X has weight 1, so IntegerPartitions gives all combinations. *)
+(* All \:2202X configurations at fixed weight = integer partitions.
+   \:2202X has weight 1, so IntegerPartitions gives all combinations. *)
 generateDXModeConfigs[targetWeight_Integer?NonNegative] :=
   generateDXModeConfigs[targetWeight] = Module[{partitions},
     partitions = If[targetWeight == 0, {{}}, IntegerPartitions[targetWeight]];
     generateDXModes /@ partitions
   ];
 
-(* Convert offset list to ψ mode objects *)
+(* Convert offset list to \:03c8 mode objects *)
 generatePsiModes[offsets_List, picture_?validPictureSpecQ] :=
   (Module[{mu},
     mode[\[Psi][mu], modeNumberFromOffset[\[Psi], #, picture]]
   ] & /@ offsets);
 
-(* Generate all ψ configurations up to target weight.
-   ψ is fermionic with Lorentz index multiplicity bound D=10 per level.
+(* Generate all \:03c8 configurations up to target weight.
+   \:03c8 is fermionic with Lorentz index multiplicity bound D=10 per level.
    Returns {modeList, weight} pairs. *)
 generatePsiModeConfigs[targetWeight_?NumericQ, picture_?validPictureSpecQ] :=
   generatePsiModeConfigs[targetWeight, picture] = Module[
@@ -528,7 +528,7 @@ derGroundStateAntiHolo::usage =
   "Marks derivatives acting on a Ramond antiholomorphic charged ground state inside matter-mode output.";
 
 matterModeCompletions::usage =
-  "Returns all dX-completion choices for fixed ψ and ground-derivative modes under the FermionOnly setting.";
+  "Returns all dX-completion choices for fixed \:03c8 and ground-derivative modes under the FermionOnly setting.";
 matterModeCompletions[groundDerivativeModes_List, psiModes_List, remainingDXWeight_, True] :=
   If[remainingDXWeight == 0, {Join[groundDerivativeModes, psiModes]}, {}];
 matterModeCompletions[groundDerivativeModes_List, psiModes_List, remainingDXWeight_Integer?NonNegative, False] :=
@@ -639,12 +639,12 @@ generateBasisMatterHoloForPictureSpec[___] := {};
 
   These compute:
   - Conformal weight contribution: -n for mode[_, n]
-  - Ghost number contribution: ±1 for b/c/β/γ, 0 for matter
-  - GSO parity contribution: -1 for worldsheet fermions (ψ, β, γ)
+  - Ghost number contribution: \:00b11 for b/c/\:03b2/\:03b3, 0 for matter
+  - GSO parity contribution: -1 for worldsheet fermions (\:03c8, \:03b2, \:03b3)
 
   Also handles:
-  - Lorentz index canonicalization (μ → μ1, μ2, ...)
-  - Holomorphic → antiholomorphic conversion (b → b̃, etc.)
+  - Lorentz index canonicalization (\:03bc \:2192 \:03bc1, \:03bc2, ...)
+  - Holomorphic \:2192 antiholomorphic conversion (b \:2192 b\:0303, etc.)
 *)
 
 (* Rename Lorentz indices to session-unique placeholders mu$N.
@@ -689,7 +689,7 @@ modeListGhostNumber[modeList_List] :=
 modeListWeight[modeList_List] :=
   Total[modeWeightContribution /@ Cases[modeList, mode[_, _], Infinity]];
 
-(* Total GSO parity = ground state parity × product of mode parities *)
+(* Total GSO parity = ground state parity \:00d7 product of mode parities *)
 gsoParityOfConfig[modeList_List, picture_?validPictureSpecQ] :=
   gsoParityOfGroundState[picture] *
     Times @@ (modeGSOParityContribution /@ Cases[modeList, mode[_, _], Infinity]);
@@ -750,7 +750,7 @@ multiplyOperatorExpressions[a_, b_] := Which[
 ];
 
 canonicalizeLorentzIndicesOperators::usage =
-  "Canonicalizes Lorentz placeholder symbols in operator expressions. Uses α for S and αt for St spinor indices.";
+  "Canonicalizes Lorentz placeholder symbols in operator expressions. Uses \:03b1 for S and \:03b1t for St spinor indices.";
 canonicalizeLorentzIndicesOperators[expr_] := Module[
   {
     lorentzSymbols,
@@ -1516,12 +1516,12 @@ convertClosedResultToRepresentation[result_, "Operators", canonicalizeIndices_] 
   right (antiholomorphic) sectors.
 
   Parameters:
-  - Total weight = h + h̄
+  - Total weight = h + h\:0304
   - Ghost number = ghost_L + ghost_R
   - Pictures = {picture_L, picture_R}
 
   Options:
-  - "LevelMatched" -> True: enforce h = h̄ (physical states)
+  - "LevelMatched" -> True: enforce h = h\:0304 (physical states)
   - "GSOParity" -> "Even"|"Odd"|"All": parity filter (default "Even")
   - "GSOProjected" -> True|False: legacy alias (True->"Even", False->"All")
 
@@ -1669,7 +1669,7 @@ generateJoinedSectorStates[
   combineHoloAntiStates[holoBasis, antiBasis]
 ];
 
-(* Collect states with level matching: h = h̄ = weight/2.
+(* Collect states with level matching: h = h\:0304 = weight/2.
    Iterates over ghost number splits between sectors. *)
 collectLevelMatchedStates[
   weight_?validWeightQ,
@@ -1706,7 +1706,7 @@ collectLevelMatchedStates[
   If[collectedStates === {}, {}, collectedStates[[1]]]
 ];
 
-(* Collect states without level matching: all valid h + h̄ = weight splits.
+(* Collect states without level matching: all valid h + h\:0304 = weight splits.
    Iterates over both ghost number and weight splits. *)
 collectAllSplitStates[
   weight_?validWeightQ,
@@ -1778,14 +1778,14 @@ formatBasisResult[pictures_List, states_List] := Module[{basisStates},
 
   Strategy:
   1. Subtract ground state weight to get "remaining weight" budget
-  2. Split ghost number between b/c and β/γ systems
+  2. Split ghost number between b/c and \:03b2/\:03b3 systems
   3. For each split, enumerate bc configs, then superghost configs
-  4. Fill remaining weight with matter (ψ + ∂X)
+  4. Fill remaining weight with matter (\:03c8 + \:2202X)
   5. Validate ghost number, weight, and GSO parity
   6. Return {picture, mode list} tuples
 
   The enumeration is structured as nested loops:
-  - bc ghost split → bc configs → superghost configs → matter configs
+  - bc ghost split \:2192 bc configs \:2192 superghost configs \:2192 matter configs
 *)
 
 (* Innermost loop: enumerate matter configs that complete a valid state.
@@ -1979,7 +1979,7 @@ generateBasisHoloForPictureSpec[___] := {};
   Antiholomorphic basis is obtained by:
   1. Generate holomorphic basis
   2. Replace all modes with their antiholomorphic counterparts
-     (b → b̃, c → c̃, β → β̃, γ → γ̃, ∂X → ∂̄X, ψ → ψ̃)
+     (b \:2192 b\:0303, c \:2192 c\:0303, \:03b2 \:2192 \:03b2\:0303, \:03b3 \:2192 \:03b3\:0303, \:2202X \:2192 \:2202\:0304X, \:03c8 \:2192 \:03c8\:0303)
 *)
 
 generateBasisAntiHoloForPictureSpec[
@@ -2030,7 +2030,7 @@ generateBasisForPictureSpecs[
     Return[{}]
   ];
   {levelMatched, GSOParitySelection} = parsedOptions;
-  (* Level matching requires even total weight (h = h̄ = weight/2) *)
+  (* Level matching requires even total weight (h = h\:0304 = weight/2) *)
   If[TrueQ[levelMatched] && OddQ[2 weight],
     Return[{}]
   ];
@@ -2088,7 +2088,7 @@ generateBasisForPictureSpecs[___] := {};
   generateBasis[weight, ghostNumber, {pictureL, pictureR}, opts]
     Generate closed string basis states.
     Options:
-      "LevelMatched" -> True (default): enforce h = h̄
+      "LevelMatched" -> True (default): enforce h = h\:0304
       "GSOParity" -> "Even"|"Odd"|"All" (default "Even")
       "GSOProjected" -> True|False (legacy alias)
     Returns: {{pictureL, pictureR}, {state1, state2, ...}}

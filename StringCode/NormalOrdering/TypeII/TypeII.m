@@ -175,7 +175,7 @@ samePointPureFieldProductQ0[ops_List, head_Symbol] := Length[ops] > 1 &&
   SameQ @@ ((List @@ #)[[-1]] & /@ ops);
 
 splitBosonizedProbeCoordinates0::usage =
-  "splitBosonizedProbeCoordinates0[n] returns the canonical point-splitting coordinates used to collapse an n-field same-point ψ-product through one projected OPE.";
+  "splitBosonizedProbeCoordinates0[n] returns the canonical point-splitting coordinates used to collapse an n-field same-point \:03c8-product through one projected OPE.";
 splitBosonizedProbeCoordinates0[n_Integer?Positive] := Join[Range[n - 1], {0}];
 
 rewriteFieldCoordinate0::usage =
@@ -196,12 +196,12 @@ restoreBosonizedCoordinate0["Anti", expr_, coord_] := Expand[expr /. {
 }];
 
 bosonizedProjectedSectorWeight0::usage =
-  "bosonizedProjectedSectorWeight0[sector, ops] returns the total chiral conformal weight of one pure-ψ same-point product.";
+  "bosonizedProjectedSectorWeight0[sector, ops] returns the total chiral conformal weight of one pure-\:03c8 same-point product.";
 bosonizedProjectedSectorWeight0["Holo", ops_List] := Total[totalWeightHolo /@ (R /@ ops)];
 bosonizedProjectedSectorWeight0["Anti", ops_List] := Total[totalWeightAntiHolo /@ (R /@ ops)];
 
 bosonizedProjectedSamePointProduct0::usage =
-  "bosonizedProjectedSamePointProduct0[sector, ops, coord] bosonizes a pure same-sector same-point ψ-product by bosonizing each factor once and collapsing the full product through one projected chiral OPE.";
+  "bosonizedProjectedSamePointProduct0[sector, ops, coord] bosonizes a pure same-sector same-point \:03c8-product by bosonizing each factor once and collapsing the full product through one projected chiral OPE.";
 bosonizedProjectedSamePointProduct0[sector : ("Holo" | "Anti"), ops_List, coord_] := Module[
   {probeCoords, projectedFn, bosonizedFactors, projected},
   Needs["StringCode`OPE`"];
@@ -220,14 +220,14 @@ bosonizedProjectedSamePointProduct0[sector : ("Holo" | "Anti"), ops_List, coord_
 ];
 
 bosonizeSamePointMultiPsiLocal0::usage =
-  "bosonizeSamePointMultiPsiLocal0[Ra] bosonizes a same-point pure-ψ or pure-ψt product via one projected bosonized free-field OPE.";
+  "bosonizeSamePointMultiPsiLocal0[Ra] bosonizes a same-point pure-\:03c8 or pure-\:03c8t product via one projected bosonized free-field OPE.";
 bosonizeSamePointMultiPsiLocal0[Ra_ /; RTest[Ra]] := Module[
   {ops = List @@ Ra, originalCoord},
   originalCoord = (List @@ First[ops])[[-1]];
   Which[
-    samePointPureFieldProductQ0[ops, ψ],
+    samePointPureFieldProductQ0[ops, \:03c8],
       bosonizedProjectedSamePointProduct0["Holo", ops, originalCoord],
-    samePointPureFieldProductQ0[ops, ψt],
+    samePointPureFieldProductQ0[ops, \:03c8t],
       bosonizedProjectedSamePointProduct0["Anti", ops, originalCoord],
     True,
       Unevaluated[Bosonize[Ra]]
@@ -267,7 +267,7 @@ GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
 GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
 
 Bosonize[Ra_ /; RTest[Ra]] := Module[{ops = List @@ Ra, termLists, tuples},
-  If[samePointPureFieldProductQ0[ops, ψ] || samePointPureFieldProductQ0[ops, ψt],
+  If[samePointPureFieldProductQ0[ops, \:03c8] || samePointPureFieldProductQ0[ops, \:03c8t],
     Return[bosonizeSamePointMultiPsiLocal0[Ra]]
   ];
   (* Bosonize each input field independently, form all term combinations, then

@@ -758,10 +758,10 @@ bosonizeStateRaw[dH[i_, n_, z_]] := dH[i, n, z];
 bosonizeStateRaw[dHt[i_, n_, zbar_]] := dHt[i, n, zbar];
 bosonizeStateRaw[expH[charges_, z_]] := expH[charges, z];
 bosonizeStateRaw[expHt[charges_, zbar_]] := expHt[charges, zbar];
-bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕ" && MatchQ[field[[1]], _Integer?NonNegative])] := dH[1, field[[1]], field[[2]]];
-bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "dϕt" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
-bosonizeStateRaw[field_ /; (MemberQ[{"expϕb", "expϕf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
-bosonizeStateRaw[field_ /; (MemberQ[{"expϕtb", "expϕtf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "d\:03d5" && MatchQ[field[[1]], _Integer?NonNegative])] := dH[1, field[[1]], field[[2]]];
+bosonizeStateRaw[field_ /; (SymbolName[Head[field]] === "d\:03d5t" && MatchQ[field[[1]], _Integer?NonNegative])] := dHt[1, field[[1]], field[[2]]];
+bosonizeStateRaw[field_ /; (MemberQ[{"exp\:03d5b", "exp\:03d5f"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expH[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
+bosonizeStateRaw[field_ /; (MemberQ[{"exp\:03d5tb", "exp\:03d5tf"}, SymbolName[Head[field]]] && NumericQ[field[[1]]])] := expHt[{field[[1]], 0, 0, 0, 0, 0}, field[[2]]];
 
 
 bosonizeStateRaw[HoldPattern[S[{spinVec_List, chirality : ("chiral" | "antichiral")}, q_?NumericQ, modes_List, der_Integer?Positive, z_]]] := Module[{result},

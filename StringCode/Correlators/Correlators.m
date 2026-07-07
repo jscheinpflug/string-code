@@ -110,12 +110,12 @@ corrMultiplyFactors[a_, b_] := Which[
 
 
 corrFieldWeightHolo::usage = "corrFieldWeightHolo[field] gives the holomorphic conformal weight used by the internal Infinity/BPZ correlator limits.";
-corrFieldWeightHolo[field_ /; MemberQ[{"expϕf", "expϕb"}, SymbolName[Head[field]]]] := -field[[1]] (field[[1]] + 2)/2;
+corrFieldWeightHolo[field_ /; MemberQ[{"exp\:03d5f", "exp\:03d5b"}, SymbolName[Head[field]]]] := -field[[1]] (field[[1]] + 2)/2;
 corrFieldWeightHolo[field_ /; isField[Head[field]]] := weightHolo[field];
 
 
 corrFieldWeightAntiHolo::usage = "corrFieldWeightAntiHolo[field] gives the antiholomorphic conformal weight used by the internal Infinity/BPZ correlator limits.";
-corrFieldWeightAntiHolo[field_ /; MemberQ[{"expϕtf", "expϕtb"}, SymbolName[Head[field]]]] := -field[[1]] (field[[1]] + 2)/2;
+corrFieldWeightAntiHolo[field_ /; MemberQ[{"exp\:03d5tf", "exp\:03d5tb"}, SymbolName[Head[field]]]] := -field[[1]] (field[[1]] + 2)/2;
 corrFieldWeightAntiHolo[field_ /; isField[Head[field]]] := weightAntiHolo[field];
 
 

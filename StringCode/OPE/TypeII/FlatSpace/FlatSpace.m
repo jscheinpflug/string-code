@@ -126,7 +126,7 @@ OPEWickList[rList_List] := Which[
 ];
 
 psiExpPhiHeads = {\[Psi], \[Psi]t, d\[Phi], d\[Phi]t, exp\[Phi]b, exp\[Phi]f, exp\[Phi]tb, exp\[Phi]tf};
-purePsiExpPhiQ::usage = "purePsiExpPhiQ[Ra] is True when Ra contains only ψ/∂ϕ/expϕ TypeII fields handled by the bosonized free-field OPE path.";
+purePsiExpPhiQ::usage = "purePsiExpPhiQ[Ra] is True when Ra contains only \:03c8/\:2202\:03d5/exp\:03d5 TypeII fields handled by the bosonized free-field OPE path.";
 purePsiExpPhiQ[Ra_ /; RTest[Ra]] := AllTrue[List @@ Ra, MemberQ[psiExpPhiHeads, Head[#]] &];
 
 OPE[Ra_, Rb_] := OPEWick[Ra, Rb] /; (
