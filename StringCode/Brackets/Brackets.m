@@ -503,12 +503,16 @@ getBGhostPosition[bmodeAntiHolo[contourCenter_][a_][b_]]:= b;
 (*Collapse b0m*)
 
 
-CollapseB0m::usage = "Collapses b0m, which was being held unevaluated";
+b0mHold::usage = "b0mHold[a] holds the action of the b0-minus ghost mode on a until CollapseB0m resolves it. Linear, so b0mHold[0] evaluates to 0 immediately; otherwise stays unevaluated as a marker.";
+b0mHold[0] = 0;
+
+CollapseB0m::usage = "Collapses b0m, which was being held unevaluated. On a field-free (scalar) argument it gives 0: the scalar multiplies the SL(2) vacuum, which the b-ghost zero modes annihilate.";
 
 CollapseB0m[expr_Plus]:= Map[CollapseB0m, expr]
 CollapseB0m[a_ b_]:= a CollapseB0m[b]/;(isScalarFactorQ[a] && Head[a] =!= b0mHold)
 CollapseB0m[b0mHold[a_]]:= actBGhostMode[bmodeHolo[0][0], a] - actBGhostMode[bmodeAntiHolo[0][0],a]
 CollapseB0m[0]:=0
+CollapseB0m[a_]:= 0 /; isScalarFactorQ[a]
 
 
 (* ::Subsection:: *)
