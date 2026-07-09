@@ -662,10 +662,10 @@ EffectiveBracket[args___, c_ d_, rest___, wH_, wA_] :=
   c EffectiveBracket[args, d, rest, wH, wA] /; isScalarFactorQ[c]
 
 (*Define EffectiveBracket as a substitution of EffectiveBracketHold*)
-projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] -> a - ProjectorHold[wH,wA][a]};
-projectorOfBracketSub = {ProjectorHold[wH_,wA_][BracketHold[a__]]-> CollapseB0m[BracketProjected[a,wH,wA]]}
+projectorBarSub = {ProjectorBarHold[wH_,wA_][a_] :> a - ProjectorHold[wH,wA][a]};
+projectorOfBracketSub = {ProjectorHold[wH_,wA_][BracketHold[a__]]:> CollapseB0m[BracketProjected[a,wH,wA]]}
 propagatorSub = {PropagatorHold[q_][a___]:>-ApplyPropagator[q][a]}
-bracketSub = {BracketHold[a__]->CollapseB0m[Bracket[a]]}
+bracketSub = {BracketHold[a__]:>CollapseB0m[Bracket[a]]}
 EffectiveBracket[fields__, wH_, wA_]:= (((EffectiveBracketHold[fields, wH, wA]/.projectorBarSub)//.projectorOfBracketSub)/.bracketSub)/.propagatorSub;
 
 (* ::Subsection:: *)
