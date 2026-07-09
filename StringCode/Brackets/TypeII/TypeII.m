@@ -143,14 +143,23 @@ result]
 $StringCodeProjectionGuard::usage = "$StringCodeProjectionGuard gates the Einstein-pairing postcondition on BracketProjection output (default True). When True, a projection whose \"$\"-named dummy indices are not exactly paired per term issues BracketProjection::strand and returns $Failed instead of a plausible-but-corrupt expression.";
 If[!ValueQ[$StringCodeProjectionGuard], $StringCodeProjectionGuard = True];
 
-projectionStrandViolations::usage = "projectionStrandViolations[expr] returns {term, {{dummy, count}..}} for every additive term whose \"$\"-named dummy indices do not appear exactly twice (integer powers counted with multiplicity).";
+$projectionStrandProtectedPatterns::usage = "$projectionStrandProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming Module-minted symbols that are NOT Einstein dummies and must therefore never be required to pair. Currently the worldsheet moduli t/tbar, minted one {t, tbar} pair per modulus by the flat vertex (Brackets/TypeII/Flat, `order - 2` pairs): they are integration variables carried by the measure, the B-ghost insertions and the local coordinates, so their per-term multiplicity is unconstrained. A 2-bracket has no moduli, which is why only 3- and higher brackets tripped the unfiltered guard. Extend this list when a new Module-generated non-index parameter can reach a projected expression.";
+$projectionStrandProtectedPatterns = {("tbar" | "t") ~~ "$" ~~ DigitCharacter ..};
+
+projectionStrandProtectedQ::usage = "projectionStrandProtectedQ[name] checks whether a symbol name matches $projectionStrandProtectedPatterns and is therefore exempt from the Einstein-pairing postcondition.";
+projectionStrandProtectedQ[name_String] := AnyTrue[
+  $projectionStrandProtectedPatterns, StringMatchQ[name, #] &
+];
+
+projectionStrandViolations::usage = "projectionStrandViolations[expr] returns {term, {{dummy, count}..}} for every additive term whose \"$\"-named dummy indices do not appear exactly twice (integer powers counted with multiplicity). Symbols matching $projectionStrandProtectedPatterns (worldsheet moduli) are excluded: they are not Einstein indices.";
 projectionStrandViolations[expr_] := Module[{terms, factorsOf, dollarTally},
   terms = If[Head[#] === Plus, List @@ #, {#}] &@ Expand[expr];
   factorsOf[term_] := Flatten@Replace[
      If[Head[term] === Times, List @@ term, {term}],
      p_^n_Integer?Positive :> ConstantArray[p, n], {1}];
   dollarTally[term_] := Tally@Flatten[
-     Cases[#, s_Symbol /; StringContainsQ[SymbolName[s], "$"],
+     Cases[#, s_Symbol /; (StringContainsQ[SymbolName[s], "$"] &&
+         !projectionStrandProtectedQ[SymbolName[s]]),
        {0, Infinity}, Heads -> True] & /@ factorsOf[term]];
   Cases[Map[{#, Select[dollarTally[#], Last[#] != 2 &]} &, terms],
     {_, v_ /; v =!= {}}]];
