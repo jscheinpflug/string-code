@@ -27,11 +27,6 @@ familyOutputAssociation::usage =
 
 Begin["Private`"];
 
-spinProjectionPsiHeadPlaceholder::usage =
-  "spinProjectionPsiHeadPlaceholder deliberately does NOT match the physical \[Psi] head: the psi-aware spin-projection compilation paths are disabled because their label canonicalization/reinstatement can serve one caller's external index labels to another (stranded or wrong projections). Every physics-validated result was produced with these paths inert. To re-enable, substitute the real \[Psi]/\[Psi]t heads back at the sites referencing these placeholders AND first fix label reinstatement in the sector-artifact cache and the family output-template registry.";
-spinProjectionPsiTHeadPlaceholder::usage =
-  "spinProjectionPsiTHeadPlaceholder is the antiholomorphic counterpart of spinProjectionPsiHeadPlaceholder; see that symbol's usage for why the psi-aware paths are disabled.";
-
 spinProjectionArtifactCache0::usage =
   "spinProjectionArtifactCache0 memoizes complete projected sector artifacts keyed by sector, actual sector ops, target weight, and seed.";
 spinProjectionArtifactCache0 = <||>;
@@ -195,7 +190,7 @@ outgoingAntisymmetricVectorGroups[_, _] := {};
 fermionicOutputVectorGroups0::usage =
   "fermionicOutputVectorGroups0[op] extracts vector-symbol groups carried by identical fermionic output fields and therefore antisymmetrized by operator ordering.";
 fermionicOutputVectorGroups0[op_ /; RTest[op]] := Module[{fields},
-  fields = Select[List @@ op, MemberQ[{spinProjectionPsiHeadPlaceholder, spinProjectionPsiTHeadPlaceholder}, Head[#]] && Head[#[[1]]] === Symbol &];
+  fields = Select[List @@ op, MemberQ[{\:03c8, \:03c8t}, Head[#]] && Head[#[[1]]] === Symbol &];
   SortBy[
     SortBy[#, SymbolName] & /@ Select[
       Values @ GroupBy[fields, {Head[#], Sequence @@ Rest[List @@ #]} & -> First],
@@ -223,8 +218,8 @@ spinProjectionOutputAntisymmetricVectorGroups0[_] := {};
 
 spinProjectionVectorMatterHeads::usage =
   "spinProjectionVectorMatterHeads[psiHead] returns vector-carrying matter heads used in one spin-field projection sector.";
-spinProjectionVectorMatterHeads[spinProjectionPsiHeadPlaceholder] := {spinProjectionPsiHeadPlaceholder, dX};
-spinProjectionVectorMatterHeads[spinProjectionPsiTHeadPlaceholder] := {spinProjectionPsiTHeadPlaceholder, dXt};
+spinProjectionVectorMatterHeads[\:03c8] := {\:03c8, dX};
+spinProjectionVectorMatterHeads[\:03c8t] := {\:03c8t, dXt};
 spinProjectionVectorMatterHeads[head_] := {head};
 
 extractMatterRepresentationData::usage =
@@ -595,7 +590,7 @@ spinProjectionSectorSpec["Holo"] := <|
   "ProbeExprKey" -> "HoloExpr",
   "FailureLabel" -> "holomorphic",
   "BasisGenerator" -> generateBasisMatterHoloOPE,
-  "PsiHead" -> spinProjectionPsiHeadPlaceholder,
+  "PsiHead" -> \:03c8,
   "SpinHead" -> S,
   "PictureContribution" -> pictureContributionHolo,
   "Weight" -> totalWeightHolo,
@@ -610,7 +605,7 @@ spinProjectionSectorSpec["Anti"] := <|
   "ProbeExprKey" -> "AntiExpr",
   "FailureLabel" -> "antiholomorphic",
   "BasisGenerator" -> generateBasisMatterAntiHoloOPE,
-  "PsiHead" -> spinProjectionPsiTHeadPlaceholder,
+  "PsiHead" -> \:03c8t,
   "SpinHead" -> St,
   "PictureContribution" -> pictureContributionAntiHolo,
   "Weight" -> totalWeightAntiHolo,
@@ -792,7 +787,7 @@ symbolIndexQ[x_] := Head[x] === Symbol;
 spinTypedIndices::usage =
   "spinTypedIndices[obj] collects symbolic vector/spinor placeholders from spin-field OPE inputs or ansatz expressions.";
 spinTypedIndices[obj_] := Join[
-  Cases[obj, (spinProjectionPsiHeadPlaceholder | spinProjectionPsiTHeadPlaceholder | dX | dXt)[\[Mu]_, __] /; symbolIndexQ[\[Mu]] :> {\[Mu], "v"}, Infinity],
+  Cases[obj, (\:03c8 | \:03c8t | dX | dXt)[\[Mu]_, __] /; symbolIndexQ[\[Mu]] :> {\[Mu], "v"}, Infinity],
   Cases[obj, (S | St)[{\:03b1_, ("chiral" | "antichiral")}, __] /; symbolIndexQ[\:03b1] :> {\:03b1, "s"}, Infinity],
   Flatten[Cases[obj, (S | St)[_, _, m_List, __] :> Join[
     ({#, "v"} & /@ Cases[m, {_?NumericQ, \:03bd_ /; symbolIndexQ[\:03bd]} :> \:03bd]),
