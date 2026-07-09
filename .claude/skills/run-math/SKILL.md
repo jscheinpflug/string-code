@@ -7,10 +7,15 @@ description: Run Mathematica/Wolfram Language commands for this StringCode repos
 
 Run Mathematica commands safely for this repo.
 
+## IMPORTANT: Platform-specific Wolfram execution
+
+- On **Linux**, `math` is typically on `$PATH` and works directly.
+- On **macOS**, `math` may not be on `$PATH`. If `which math` fails, use: `/Applications/Wolfram.app/Contents/MacOS/MathKernel`
+- On **macOS**, ALWAYS use `dangerouslyDisableSandbox: true` (Claude Code) or escalated sandbox (Codex). Wolfram commands WILL FAIL in the default sandbox. Do not attempt sandbox execution first — escalate before the first attempt.
+
 ## Workflow
 
-1. Run from repo root:
-   - `cd /home/scheinpflug/Github/string-code`
+1. Run from the repo root (the directory containing `StringCode/`).
 2. Use one fresh kernel per target:
    - Do not mix Bosonic and TypeII in one kernel unless required.
    - If repeated `::shdw` appears, restart with a fresh kernel.

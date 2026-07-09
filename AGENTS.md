@@ -30,3 +30,16 @@
   - Avoid creating same-named symbols in `Global``.
   - In scripts/headless checks: `Needs[...]` (and init) before building expressions.
   - Use `ToExpression[...]` after init when parse/eval order matters.
+
+  ### 6) Dev loading policy
+  - Default to a `$Path`-based checkout load when running code in development, instead of relying on symlink alias package names.
+  - If editing `$Path`, prepend only the checkout repo root that contains `StringCode/` (not broad folders like `~/src`).
+  - Load with `Needs["StringCode`"]` after setting `$Path` for the desired checkout.
+  - If multiple StringCode trees are present, isolate by using one fresh kernel per checkout.
+
+  ### 7) Wolfram CLI — platform differences
+  - On **Linux**, `math` is typically on `$PATH` and runs directly without sandbox issues.
+  - On **macOS**, `math` may not be on `$PATH`. If `which math` fails, use: `/Applications/Wolfram.app/Contents/MacOS/MathKernel`
+  - On **macOS**, NEVER run Wolfram commands inside the default sandbox — they will fail due to licensing/sandbox restrictions.
+  - Always use `dangerouslyDisableSandbox: true` (Claude Code) or `sandbox_permissions: "require_escalated"` (Codex) for macOS Wolfram commands.
+  - Do not "test first" in sandbox and retry after failure; escalation must happen **before** the first attempt.
