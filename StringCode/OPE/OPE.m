@@ -424,6 +424,64 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasColla
   ]
 ];
 
+$OPEProjChiralCacheOn::usage = "$OPEProjChiralCacheOn (default False) gates canonical-key caching of the chiral weight projections OPEProjectedHolo/OPEProjectedAntiHolo. Distinct multi-local terms share chiral halves (a term is a (holo, anti) pair; pairs can all differ while halves repeat), so the half-projections carry heavy relabeled duplication even when full terms have none. Measured on the fluxC⊗graviton blob slice (2026-07-15): 165 holo calls collapse to 64 canonical shapes and 134 antiholo to 85 -- 38% of stage time duplicated in-sample, more at scale (shapes saturate while calls grow).";
+If[!ValueQ[$OPEProjChiralCacheOn], $OPEProjChiralCacheOn = False];
+
+$OPEProjChiralCache::usage = "State cache for chiral weight projections; keys are {chirality, weight, canonicalized operand list}. Clear with OPEProjChiralCacheClear[].";
+$OPEProjChiralCache = <||>;
+
+OPEProjChiralCacheClear::usage = "OPEProjChiralCacheClear[] empties $OPEProjChiralCache.";
+OPEProjChiralCacheClear[] := ($OPEProjChiralCache = <||>;);
+
+$opeProjInnerCall::usage = "$opeProjInnerCall is True (Block-scoped) while chiralProjectCached executes the original projection rules on canonical operands, so the gated entry rules step aside and the call falls through to the uncached definitions.";
+$opeProjInnerCall = False;
+
+opeKeyDummyQ::usage = "opeKeyDummyQ[s] is True for Module-minted Einstein dummies eligible for relabeling in the chiral projection cache keys: name contains $<digits>, excluding the worldsheet moduli t$n/tbar$n (integration variables, not indices -- same exemption as the strand guard's, commit 5d01781). Memoized per symbol: keys reuse caller symbols, so the memo does not grow with freshening mints.";
+opeKeyDummyQ[s_Symbol] := opeKeyDummyQ[s] = With[{n = SymbolName[s]},
+  StringContainsQ[n, "$" ~~ DigitCharacter ..] &&
+  !StringMatchQ[n, ("t" | "tbar") ~~ "$" ~~ DigitCharacter ..]];
+opeKeyDummyQ[_] := False;
+
+opeProjFreshen::usage = "opeProjFreshen[expr, inputExpr] renames every $-named dummy in expr that does NOT occur in inputExpr to a fresh Module-minted symbol. Local mirror of Brackets`TypeII's freshenCachedDummies contract: input-inherited dummies keep their names (their pairing partner may live outside this call), and only internally minted ones are freshened, so independent retrievals of one cache entry never share labels (the ProfileXPoly bug class). Defined locally so OPE stays self-contained under Bosonic-only loads.";
+opeProjFreshen[expr_, inputExpr_] := Module[{inputNames, oldNames, newNames},
+  inputNames = DeleteDuplicates@Cases[inputExpr,
+    s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
+    {0, Infinity}, Heads -> True];
+  oldNames = Complement[
+    DeleteDuplicates@Cases[expr,
+      s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
+      {0, Infinity}, Heads -> True],
+    inputNames];
+  If[oldNames === {}, Return[expr]];
+  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
+  expr /. Dispatch[Thread[oldNames -> newNames]]];
+
+canonicalizeOpsList::usage = "canonicalizeOpsList[ops] relabels the eligible dummies of an operand LIST through one joint map to wickKey$1, ... in first-appearance order (moduli exempt via opeKeyDummyQ). Returns {opsC, backRules} with backRules restoring the caller's names. First-appearance order can under-merge relabel-equivalent lists (Orderless storage sorts by the very names being replaced); that is safe -- a missed hit, never a wrong value. The wickKey$ prefix avoids collision with Module-minted user symbols.";
+canonicalizeOpsList[ops_List] := Module[{dums, targets, map},
+  dums = DeleteDuplicates@Cases[ops, s_Symbol?opeKeyDummyQ, {0, Infinity}, Heads -> True];
+  If[dums === {}, Return[{ops, {}}]];
+  targets = Table[Symbol["wickKey$" <> ToString[i]], {i, Length[dums]}];
+  map = Thread[dums -> targets];
+  {ops /. Dispatch[map], Thread[targets -> dums]}];
+
+chiralProjectCached::usage = "chiralProjectCached[chir, w, ops] is the canonical-key cached core of the chiral projections: canonicalize the operand list, look up {chir, w, opsC}, on a miss compute via the ORIGINAL rules on the canonical operands (inside Block[{$opeProjInnerCall = True}] so the gated entry rules stand down), then back-translate input-inherited dummies and freshen OPE-minted ones per retrieval (opeProjFreshen contract).";
+chiralProjectCached[chir_, w_, ops_List] := Module[{opsC, backRules, key, resC},
+  {opsC, backRules} = canonicalizeOpsList[ops];
+  key = {chir, w, opsC};
+  resC = Lookup[$OPEProjChiralCache, Key[key],
+    $OPEProjChiralCache[key] = Block[{$opeProjInnerCall = True},
+      If[chir === "Holo",
+        OPEProjectedHolo[w] @@ opsC,
+        OPEProjectedAntiHolo[w] @@ opsC]]];
+  opeProjFreshen[resC /. Dispatch[backRules], ops]];
+
+(* gated entry rules: defined BEFORE the uncached definitions so they are tried first;
+   the RTest condition leaves sums/scalars/zeros to the linearity rules below *)
+OPEProjectedHolo[wH_][Ra__] /; (TrueQ[$OPEProjChiralCacheOn] && !TrueQ[$opeProjInnerCall] && (And @@ (RTest /@ {Ra}))) :=
+  chiralProjectCached["Holo", wH, {Ra}];
+OPEProjectedAntiHolo[wA_][Ra__] /; (TrueQ[$OPEProjChiralCacheOn] && !TrueQ[$opeProjInnerCall] && (And @@ (RTest /@ {Ra}))) :=
+  chiralProjectCached["Anti", wA, {Ra}];
+
 OPEProjectedHolo[wH_][a___, 0, b___] := 0;
 OPEProjectedHolo[wH_][a___, x_ + y_, b___] := OPEProjectedHolo[wH][a, x, b] + OPEProjectedHolo[wH][a, y, b];
 OPEProjectedHolo[wH_][a___, c_ x_, b___] := c OPEProjectedHolo[wH][a, x, b] /; (!containsFieldQ[c]);
