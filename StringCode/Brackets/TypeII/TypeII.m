@@ -492,6 +492,106 @@ EffectiveBracketDirectPCO[fields__, wH_, wA_] :=
   assertEffectiveBracketContracted[EffectiveBracketHold[fields, wH, wA] //. subsList];
 
 
+(* ::Subsection:: *)
+(*Single-leg PCO arrangement: raise distinct legs once each (non-cyclic scheme)*)
+
+
+(* Instead of the democratic actPCO*MultiOp (which spreads {Q_B, xi_0} over every leg and every
+   eta), single-leg fuses each needed picture-raise onto ONE chosen leg via the single-composite
+   actPCOHolo. The n_Holo holo PCOs go on n_Holo DISTINCT legs, the n_Anti antiholo PCOs on
+   n_Anti distinct legs (no leg raised twice within a chirality). Agrees with DirectPCO on-shell;
+   the literature's non-cyclic/asymmetric arrangement (closed Munich 1403.0940; cyclic bridge
+   1911.04103; mass-invariance Sen 1411.7478). EffectiveBracketDirectPCO is kept intact as the
+   on-shell cross-check baseline. *)
+
+actPCOHoloAtPos::usage = "Position-preserving single-operator holomorphic picture-raise: reads Ra's position, applies actPCOHolo at origin, shifts every R[...] in the result back to Ra's position via placeAtPointNoScale (flat placement, no conformal Jacobian). Mirror of actBRSTHoloAtPos. Multilinear over Plus/scalar so it composes with actPCOAntiHoloAtPos on a leg that a prior raise turned into a sum.";
+actPCOHoloAtPos[a_ + b_] := actPCOHoloAtPos[a] + actPCOHoloAtPos[b];
+actPCOHoloAtPos[a_ b_] := a actPCOHoloAtPos[b] /; isScalarFactorQ[a];
+actPCOHoloAtPos[0] := 0;
+actPCOHoloAtPos[Ra_ /; RTest[Ra]] := Module[{zR, zbarR},
+  {zR, zbarR} = extractRPos[Ra];
+  actPCOHolo[Ra] /. {Rb_ /; RTest[Rb] :> (placeAtPointNoScale[zR, zbarR] /@ Rb)}
+];
+
+actPCOAntiHoloAtPos::usage = "Antiholomorphic mirror of actPCOHoloAtPos.";
+actPCOAntiHoloAtPos[a_ + b_] := actPCOAntiHoloAtPos[a] + actPCOAntiHoloAtPos[b];
+actPCOAntiHoloAtPos[a_ b_] := a actPCOAntiHoloAtPos[b] /; isScalarFactorQ[a];
+actPCOAntiHoloAtPos[0] := 0;
+actPCOAntiHoloAtPos[Ra_ /; RTest[Ra]] := Module[{zR, zbarR},
+  {zR, zbarR} = extractRPos[Ra];
+  actPCOAntiHolo[Ra] /. {Rb_ /; RTest[Rb] :> (placeAtPointNoScale[zR, zbarR] /@ Rb)}
+];
+
+pcoLegEtaCount::usage = "pcoLegEtaCount[op] counts the \[Eta]/\[Eta]t insertions in an operand; the primary min-OPE-cost key for single-leg leg selection (fewer \[Eta] => cheaper picture-raise).";
+pcoLegEtaCount[op_] := Count[op, (\[Eta] | \[Eta]t)[__], {0, Infinity}];
+
+pcoLegChoice::usage = "pcoLegChoice[ops, n] returns the n DISTINCT leg indices (into ops) that receive a picture-raise in one chirality, enforcing the no-double-raise-per-chirality rule. Ranks RTest legs by minimize-OPE-cost (fewest \[Eta]/\[Eta]t, tie-break smallest LeafCount, then lowest index) and takes the cheapest n. Deterministic; redefine to change the leg-choice policy. Returns {} for n<=0; $Failed (with pcoLegChoice::infeasible) if n exceeds the number of R-legs.";
+pcoLegChoice::infeasible = "single-leg PCO: `1` PCO(s) requested in one chirality but only `2` R-leg(s) available; distinct-leg placement is infeasible. Returning $Failed.";
+pcoLegChoice[ops_List, n_Integer] := Module[{rIdx},
+  If[n <= 0, Return[{}]];
+  rIdx = Select[Range[Length[ops]], RTest[ops[[#]]] &];
+  If[n > Length[rIdx],
+    Message[pcoLegChoice::infeasible, n, Length[rIdx]]; Return[$Failed]];
+  Take[SortBy[rIdx, {pcoLegEtaCount[ops[[#]]] &, LeafCount[ops[[#]]] &, # &}], n]
+];
+
+raiseLegSingle::usage = "raiseLegSingle[op, holoQ, antiQ] applies one holomorphic and/or one antiholomorphic position-preserving picture-raise to a single operand (at most one of each chirality \[Dash] the no-double-raise rule).";
+raiseLegSingle[op_, holoQ_, antiQ_] := Module[{r = op},
+  If[TrueQ[holoQ], r = actPCOHoloAtPos[r]];
+  If[TrueQ[antiQ], r = actPCOAntiHoloAtPos[r]];
+  r
+];
+
+raiseTermSingleLeg::usage = "raiseTermSingleLeg[multiOp, nHolo, nAntiHolo] picks nHolo distinct legs (holo) and nAntiHolo distinct legs (anti) via pcoLegChoice and raises each chosen leg once in its sector, returning the rebuilt MultiOp. $Failed if distinct-leg placement is infeasible.";
+raiseTermSingleLeg[term_ /; MultiOpTest[term], nHolo_, nAntiHolo_] := Module[{ops, holoLegs, antiLegs},
+  ops = List @@ term;
+  holoLegs = pcoLegChoice[ops, nHolo];
+  antiLegs = pcoLegChoice[ops, nAntiHolo];
+  If[holoLegs === $Failed || antiLegs === $Failed, Return[$Failed]];
+  MultiOp @@ MapIndexed[
+    raiseLegSingle[#1, MemberQ[holoLegs, First[#2]], MemberQ[antiLegs, First[#2]]] &,
+    ops
+  ]
+];
+
+raiseOneLeg::usage = "raiseOneLeg[bghosted, nHolo, nAntiHolo] distributes the single-leg picture-raise over the bosonic-bracket output (Plus of MultiOps, scalars peeled), applying raiseTermSingleLeg to each MultiOp term.";
+raiseOneLeg[expr_Plus, nHolo_, nAntiHolo_] := Map[raiseOneLeg[#, nHolo, nAntiHolo] &, expr];
+raiseOneLeg[b_ c_, nHolo_, nAntiHolo_] := b raiseOneLeg[c, nHolo, nAntiHolo] /; isScalarFactorQ[b];
+raiseOneLeg[0, _, _] := 0;
+raiseOneLeg[term_ /; MultiOpTest[term], nHolo_, nAntiHolo_] := raiseTermSingleLeg[term, nHolo, nAntiHolo];
+raiseOneLeg[Ra_ /; RTest[Ra], nHolo_, nAntiHolo_] :=
+  If[nHolo > 1 || nAntiHolo > 1,
+    Message[pcoLegChoice::infeasible, Max[nHolo, nAntiHolo], 1]; $Failed,
+    raiseLegSingle[Ra, nHolo >= 1, nAntiHolo >= 1]];
+
+BracketSingleLegPCO::usage = "BracketSingleLegPCO[fields...] \[Dash] single-leg (non-cyclic) sibling of BracketDirectPCO: same BracketBosonic + b0mHold, but the picture-raises are placed one-per-distinct-leg via raiseOneLeg instead of the democratic actPCO*MultiOp spread.";
+BracketSingleLegPCO[args___, a_ + b_, rest___] :=
+  BracketSingleLegPCO[args, a, rest] + BracketSingleLegPCO[args, b, rest];
+BracketSingleLegPCO[args___, c_ d_, rest___] :=
+  c BracketSingleLegPCO[args, d, rest] /; isScalarFactorQ[c];
+BracketSingleLegPCO[args___, 0, rest___] := 0;
+
+BracketSingleLegPCO[toBracket__ /; AllTrue[{toBracket}, (RTest[#] || MultiOpTest[#]) &]] := Module[
+  {bghosted, nHolo, nAntiHolo},
+  bghosted   = BracketBosonic[toBracket];
+  nHolo      = Max[0, Ceiling[Abs[Total[Map[totalHolPicture,     {toBracket}]]] - 1]];
+  nAntiHolo  = Max[0, Ceiling[Abs[Total[Map[totalAntiHolPicture, {toBracket}]]] - 1]];
+  b0mHold[raiseOneLeg[bghosted, nHolo, nAntiHolo]]
+];
+
+bracketSubSingleLeg = {BracketHold[a__] :> CollapseB0m[BracketSingleLegPCO[a]]};
+subsListSingleLeg = Join[projectorBarSubDirect, projectorOfBracketSubDirect, propagatorSubDirect, bracketSubSingleLeg];
+
+EffectiveBracketSingleLegPCO::usage = "EffectiveBracket using BracketSingleLegPCO (single-leg / non-cyclic PCO arrangement). Distinct entry point beside EffectiveBracketDirectPCO (the democratic baseline); differs only in that the (1-P) inner bare brackets route through BracketSingleLegPCO. Agrees with DirectPCO on-shell.";
+EffectiveBracketSingleLegPCO[args___, a_ + b_, rest___, wH_, wA_] :=
+  EffectiveBracketSingleLegPCO[args, a, rest, wH, wA] + EffectiveBracketSingleLegPCO[args, b, rest, wH, wA];
+EffectiveBracketSingleLegPCO[args___, c_ d_, rest___, wH_, wA_] :=
+  c EffectiveBracketSingleLegPCO[args, d, rest, wH, wA] /; isScalarFactorQ[c];
+
+EffectiveBracketSingleLegPCO[fields__, wH_, wA_] :=
+  assertEffectiveBracketContracted[EffectiveBracketHold[fields, wH, wA] //. subsListSingleLeg];
+
+
 
 (*End*)
 
