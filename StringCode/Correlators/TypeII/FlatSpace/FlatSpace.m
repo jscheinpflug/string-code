@@ -108,9 +108,8 @@ corrSpinWeightAt0::usage = "corrSpinWeightAt0[chirality, index] returns the expl
 corrSpinWeightAt0["chiral", i_Integer] := corrChiralSpinWeights0[[i]];
 corrSpinWeightAt0["antichiral", i_Integer] := corrAntiSpinWeights0[[i]];
 
-corrFlipChirality0::usage = "corrFlipChirality0[chirality] returns the BPZ-conjugate (opposite) chirality label.";
-corrFlipChirality0["chiral"] := "antichiral";
-corrFlipChirality0["antichiral"] := "chiral";
+corrSpinChiralityMap0::usage = "corrSpinChiralityMap0[spinExternals] maps each external spin label to its physical chirality. One global chirality per label is what keeps every tensor structure describing the same physical configuration during the fit.";
+corrSpinChiralityMap0[spinExternals_List] := Association[(#["Label"] -> #["Chirality"]) & /@ spinExternals];
 
 corrSymbolicSpinIndexQ0::usage = "corrSymbolicSpinIndexQ0[field] is True when field is a Ramond spin field whose spinor index is symbolic (not an explicit numeric weight vector).";
 corrSymbolicSpinIndexQ0[field_] := MatchQ[field, (S | St)[{alpha_, ("chiral" | "antichiral")}, _, _, _, _] /; ! VectorQ[alpha, NumericQ]];
@@ -136,20 +135,17 @@ corrInternalVectorDummies0[struct_, externalVectors_List] := Complement[
   externalVectors
 ];
 
-corrFeedFactorChiralities0::usage = "corrFeedFactorChiralities0[struct, spinAssignment] substitutes each spinor label in a tensor structure by an explicit weight vector of the chirality that its own factor links require (read from gammaProductSpinorChiralities), at the label's assigned basis index.";
-corrFeedFactorChiralities0[struct_, spinAssignment_Association] := struct /. gapf : GammaAntisymmetricProductHold[links_List, s1_, s2_] :> Module[
-  {cc = gammaProductSpinorChiralities[links]},
-  GammaAntisymmetricProductHold[
-    links,
-    If[KeyExistsQ[spinAssignment, s1], corrSpinWeightAt0[cc[[1]], spinAssignment[s1]], s1],
-    If[KeyExistsQ[spinAssignment, s2], corrSpinWeightAt0[cc[[2]], spinAssignment[s2]], s2]
-  ]
+corrFeedFactorChiralities0::usage = "corrFeedFactorChiralities0[struct, spinAssignment, chiralityMap] substitutes each spinor label in a tensor structure by an explicit weight vector of the label's PHYSICAL chirality, at the label's assigned basis index. Using one global chirality per label (rather than the per-factor slot chirality from gammaProductSpinorChiralities) keeps every structure describing the same physical configuration; a rigid factor whose links disagree with the physical chirality then simply fails to resolve, which the driver treats as a deferral.";
+corrFeedFactorChiralities0[struct_, spinAssignment_Association, chiralityMap_Association] := struct /. GammaAntisymmetricProductHold[links_List, s1_, s2_] :> GammaAntisymmetricProductHold[
+  links,
+  If[KeyExistsQ[spinAssignment, s1], corrSpinWeightAt0[chiralityMap[s1], spinAssignment[s1]], s1],
+  If[KeyExistsQ[spinAssignment, s2], corrSpinWeightAt0[chiralityMap[s2], spinAssignment[s2]], s2]
 ];
 
-corrResolveStructure0::usage = "corrResolveStructure0[struct, spinAssignment, vectorAssignment, externalVectors] evaluates one tensor structure to a scalar at a concrete index assignment: feeds each spinor slot the chirality its links expect, substitutes external vector labels, and sums the contracted internal vector dummies over 1..10.";
-corrResolveStructure0[struct_, spinAssignment_Association, vectorAssignment_Association, externalVectors_List] := Module[
+corrResolveStructure0::usage = "corrResolveStructure0[struct, spinAssignment, vectorAssignment, externalVectors, chiralityMap] evaluates one tensor structure to a scalar at a concrete index assignment: feeds each spinor label its physical chirality, substitutes external vector labels, and sums the contracted internal vector dummies over 1..10.";
+corrResolveStructure0[struct_, spinAssignment_Association, vectorAssignment_Association, externalVectors_List, chiralityMap_Association] := Module[
   {fed, dummies, withExternal},
-  fed = corrFeedFactorChiralities0[struct, spinAssignment];
+  fed = corrFeedFactorChiralities0[struct, spinAssignment, chiralityMap];
   (* Internal dummies are the contracted vector indices, i.e. all gamma-link
      indices minus the external (open) vector labels. Compute them BEFORE
      substituting the external labels, so a concrete external index is not
@@ -175,15 +171,17 @@ corrRandomSpinAssignment0[spinExternals_List] := Association[(#["Label"] -> Rand
 corrRandomVectorAssignment0::usage = "corrRandomVectorAssignment0[vectorExternals] draws a random vector index 1..10 for each external vector label.";
 corrRandomVectorAssignment0[vectorExternals_List] := Association[(# -> RandomInteger[{1, 10}]) & /@ vectorExternals];
 
-corrTensorStructures0::usage = "corrTensorStructures0[spinExternals, vectorExternals] builds the independent Lorentz tensor structure basis for the correlator by singling out the last spin field as the BPZ (chirality-flipped) outgoing slot and treating the rest, plus all vector indices, as incoming.";
+corrTensorStructures0::usage = "corrTensorStructures0[spinExternals, vectorExternals] builds the independent Lorentz tensor structure basis for the correlator. This is purely a tensor-basis framing: every external spin and vector index is handed to findIndependentTensorStructures as incoming, carrying its PHYSICAL chirality, with an empty outgoing slot. It has nothing to do with the physical BPZ conjugate (an Infinity coordinate, handled downstream by corrWithInfinity in the numeric z-oracle); no chirality is flipped here.";
 corrTensorStructures0[spinExternals_List, vectorExternals_List] := Module[
-  {inSpins, outSpin, incoming, outgoing},
+  {incoming},
   If[spinExternals === {}, Return[$Failed]];
-  outSpin = Last[spinExternals];
-  inSpins = Most[spinExternals];
-  incoming = <|"vector" -> vectorExternals, "spinor" -> ({#["Label"], #["Chirality"]} & /@ inSpins)|>;
-  outgoing = <|"vector" -> {}, "spinor" -> {{outSpin["Label"], corrFlipChirality0[outSpin["Chirality"]]}}|>;
-  Quiet @ findIndependentTensorStructures[incoming, outgoing, "TargetRank" -> Automatic, "RandomSeed" -> 1234]
+  incoming = <|"vector" -> vectorExternals, "spinor" -> ({#["Label"], #["Chirality"]} & /@ spinExternals)|>;
+  Quiet @ findIndependentTensorStructures[
+    incoming,
+    <|"vector" -> {}, "spinor" -> {}|>,
+    "TargetRank" -> Automatic,
+    "RandomSeed" -> 1234
+  ]
 ];
 
 corrSymbolicSpinFailed0::usage = "corrSymbolicSpinFailed0 is the private sentinel returned by corrSymbolicSpinDriver0 when the symbolic-index correlator cannot be computed, so the dispatch leaves Corr inert.";
@@ -191,46 +189,46 @@ corrSymbolicSpinFailed0::usage = "corrSymbolicSpinFailed0 is the private sentine
 
 corrSymbolicSpinDriver0::usage = "corrSymbolicSpinDriver0[ops] computes a symbolic-index R-sector correlator as Sum_k T^(k) f_k(z): fit the scalar z-functions of the independent tensor structures against the numeric bosonized correlator at random concrete index assignments. Returns an inert Corr[...] on any failure (unresolved structure, rank deficiency, or empty basis).";
 corrSymbolicSpinDriver0[ops_List] := Module[
-  {spinExternals, vectorExternals, structs, kDim, rows = {}, gvals = {}, rank = 0, attempts = 0,
-   maxAttempts = 400, sa, va, row, g, fvec, verified = 0, verifyTarget = 4, recon},
+  {spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
+   extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000,
+   sa, va, row, g, fvec, verified = True, verifyTarget = 4},
   spinExternals = corrSpinExternals0[ops];
   If[Length[spinExternals] < 2, Return[corrSymbolicSpinFailed0]];
   vectorExternals = corrVectorExternals0[ops];
+  chiralityMap = corrSpinChiralityMap0[spinExternals];
   structs = corrTensorStructures0[spinExternals, vectorExternals];
   If[! ListQ[structs] || structs === {}, Return[corrSymbolicSpinFailed0]];
   kDim = Length[structs];
-  (* Sample random concrete assignments; keep charge-saturating, rank-increasing rows. *)
-  While[rank < kDim && attempts < maxAttempts,
+  (* Charge-saturating assignments are rare (a percent or so of random draws), so
+     gather ONE pool of usable probes and split it: the first rank-increasing rows
+     fit the z-functions, the surplus rows verify them. Two independent sampling
+     passes would each risk starving. *)
+  While[(rank < kDim || Length[extraRows] < verifyTarget) && attempts < maxAttempts,
     attempts++;
     sa = corrRandomSpinAssignment0[spinExternals];
     va = corrRandomVectorAssignment0[vectorExternals];
     g = corrNumericCorrelatorAt0[ops, spinExternals, sa, va];
     If[g === 0 || ! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
-    row = Table[corrResolveStructure0[structs[[k]], sa, va, vectorExternals], {k, kDim}];
+    row = Table[corrResolveStructure0[structs[[k]], sa, va, vectorExternals, chiralityMap], {k, kDim}];
     If[! FreeQ[row, GammaAntisymmetricProductHold], Return[corrSymbolicSpinFailed0]];  (* structure did not resolve *)
-    If[MatrixRank[Append[rows, row]] > rank,
-      AppendTo[rows, row]; AppendTo[gvals, g]; rank++
+    If[rank < kDim && MatrixRank[Append[rows, row]] > rank,
+      AppendTo[rows, row]; AppendTo[gvals, g]; rank++,
+      If[rank >= kDim, AppendTo[extraRows, row]; AppendTo[extraG, g]]
     ]
   ];
-  If[rank < kDim, Return[corrSymbolicSpinFailed0]];
+  If[rank < kDim || Length[extraRows] < verifyTarget, Return[corrSymbolicSpinFailed0]];
   fvec = Quiet @ LinearSolve[rows, gvals];
   If[! FreeQ[fvec, LinearSolve] || Length[fvec] =!= kDim, Return[corrSymbolicSpinFailed0]];
   (* Held-out self-consistency: the fitted structures must reproduce the numeric
-     correlator on fresh saturating probes. Catches cases whose structures resolve
-     to numbers but not the physically-correct ones (e.g. the mixed-chirality
-     two-gamma, deferred to a later pass). *)
-  attempts = 0;
-  While[verified < verifyTarget && attempts < maxAttempts,
-    attempts++;
-    sa = corrRandomSpinAssignment0[spinExternals];
-    va = corrRandomVectorAssignment0[vectorExternals];
-    g = corrNumericCorrelatorAt0[ops, spinExternals, sa, va];
-    If[g === 0 || ! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
-    recon = Sum[corrResolveStructure0[structs[[k]], sa, va, vectorExternals] fvec[[k]], {k, kDim}];
-    If[Simplify[g - recon] =!= 0, Return[corrSymbolicSpinFailed0]];
-    verified++
+     correlator on the surplus probes, which took no part in the fit. Catches cases
+     whose structures resolve to numbers but not the physically-correct ones (e.g.
+     the mixed-chirality two-gamma, deferred to a later pass). *)
+  verified = True;
+  Do[
+    If[Simplify[extraG[[i]] - extraRows[[i]] . fvec] =!= 0, verified = False],
+    {i, verifyTarget}
   ];
-  If[verified < verifyTarget, Return[corrSymbolicSpinFailed0]];
+  If[! TrueQ[verified], Return[corrSymbolicSpinFailed0]];
   Total[Table[structs[[k]] Simplify[fvec[[k]]], {k, kDim}]]
 ];
 
