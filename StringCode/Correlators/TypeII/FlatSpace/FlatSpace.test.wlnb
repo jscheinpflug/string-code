@@ -266,6 +266,118 @@
   },
   {
    "kind": 1,
+   "value": "## R-sector (Ramond spin field) correlators\n\nGround-state, excited, mixed ψ–S, and BPZ-at-Infinity spin correlators through the bosonization pre-pass.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test31 = testReport[\"Test 31 (Ramond ground-state 2-point <S Sbar> = -I/(z-w)^2)\", Simplify[Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z]]\"], ToExpression[\"R[S[{{-1/2,-1/2,-1/2,-1/2,-1/2}, \\\"antichiral\\\"}, -3/2, {}, 0, w]]\"]] + I/(z - w)^2] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test32 = testReport[\"Test 32 (spin charge non-saturation vanishes)\", Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z]]\"], ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -3/2, {}, 0, w]]\"]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test33 = testReport[\"Test 33 (excited descendant spin 2-point, exponent 3)\", Simplify[Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {{1,-1}}, 0, z]]\"], ToExpression[\"R[S[{{1/2,-1/2,-1/2,-1/2,-1/2}, \\\"chiral\\\"}, -3/2, {}, 0, w]]\"]] - I/(Sqrt[2] (z - w)^3)] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test34 = testReport[\"Test 34 (leftover dH kills the Vev)\", Corr[ToExpression[\"R[dH[1,0,z], expH[{-2,0,0,0,0,0},z]]\"]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test35 = testReport[\"Test 35 (mixed psi-S 3-point reproduces gamma structure)\", Simplify[Corr[ToExpression[\"R[exp\\[Phi]f[-1, z0], \\[Psi][1, 0, z0]]\"], ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z1]]\"], ToExpression[\"R[S[{{1/2,-1/2,-1/2,-1/2,-1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z2]]\"]] + (I/2)/((z0 - z1) (z0 - z2) (z1 - z2))] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test36 = testReport[\"Test 36 (mixed psi-S selects a unique spinor partner)\", Corr[ToExpression[\"R[exp\\[Phi]f[-1, z0], \\[Psi][1, 0, z0]]\"], ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z1]]\"], ToExpression[\"R[S[{{-1/2,-1/2,-1/2,-1/2,-1/2}, \\\"antichiral\\\"}, -1/2, {}, 0, z2]]\"]] === 0];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test37 = testReport[\"Test 37 (BPZ-at-Infinity spin overlap <S@Inf|S@0> = -I)\", Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, Infinity]]\"], ToExpression[\"R[S[{{-1/2,-1/2,-1/2,-1/2,-1/2}, \\\"antichiral\\\"}, -3/2, {}, 0, 0]]\"]] === -I];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test38 = testReport[\"Test 38 (MultiOp regression for spin correlators)\", Corr[MultiOp[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z]]\"], ToExpression[\"R[S[{{-1/2,-1/2,-1/2,-1/2,-1/2}, \\\"antichiral\\\"}, -3/2, {}, 0, w]]\"]]] === Corr[ToExpression[\"R[S[{{1/2,1/2,1/2,1/2,1/2}, \\\"chiral\\\"}, -1/2, {}, 0, z]]\"], ToExpression[\"R[S[{{-1/2,-1/2,-1/2,-1/2,-1/2}, \\\"antichiral\\\"}, -3/2, {}, 0, w]]\"]]];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test39 = testReport[\"Test 39 (mixed psi-S reproduces package gamma CGamma[mu] with uniform kappa=-I/2)\", Module[{csV, ge, checks}, csV = Join[{{1/2,1/2,1/2,1/2,1/2}}, Permutations[{1/2,1/2,1/2,-1/2,-1/2}], Permutations[{1/2,-1/2,-1/2,-1/2,-1/2}]]; ge[mu_,a_,b_] := Simplify[ Corr[R[exp\\[Phi]f[-1,z0], \\[Psi][mu,0,z0]], R[S[{csV[[a]],\"chiral\"},-1/2,{},0,z1]], R[S[{csV[[b]],\"chiral\"},-1/2,{},0,z2]]] ((z0-z1)(z0-z2)(z1-z2)) + (I/2) CGamma[mu][[a,b]] ]; checks = ge @@@ {{1,1,12},{1,8,16},{1,12,1},{6,1,12},{6,2,7},{5,5,4},{10,16,8}}; AllTrue[checks, PossibleZeroQ] ] ];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
+   "value": "## Symbolic-index R-sector correlators\n\nSpin fields with symbolic spinor/vector indices produce a symbolic gamma-tensor times a z-function (hybrid fit). Correctness is checked by resolving the symbolic output at concrete indices against the numeric correlator; the mixed-chirality two-gamma case is deferred (stays inert).",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test40 = testReport[\"Test 40 (symbolic <psi^mu S_a S_b> resolves to numeric correlator on concrete indices)\", Module[{cs, sym, resolved, numeric}, cs = Join[{{1/2,1/2,1/2,1/2,1/2}}, Permutations[{1/2,1/2,1/2,-1/2,-1/2}], Permutations[{1/2,-1/2,-1/2,-1/2,-1/2}]]; sym = Corr[R[exp\\[Phi]f[-1,z0], \\[Psi][mmu,0,z0]], R[S[{aa,\"chiral\"},-1/2,{},0,z1]], R[S[{bb,\"chiral\"},-1/2,{},0,z2]]]; resolved = Private`corrResolveStructure0[sym, <|aa->8, bb->14|>, <|mmu->3|>, {mmu}]; numeric = Corr[R[exp\\[Phi]f[-1,z0], \\[Psi][3,0,z0]], R[S[{cs[[8]],\"chiral\"},-1/2,{},0,z1]], R[S[{cs[[14]],\"chiral\"},-1/2,{},0,z2]]]; And[Head[sym] =!= Corr, Simplify[resolved - numeric] === 0] ] ];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test41 = testReport[\"Test 41 (symbolic all-chiral <SSSS> resolves to numeric correlator; K=2)\", Module[{cs, sym, resolved, numeric}, cs = Join[{{1/2,1/2,1/2,1/2,1/2}}, Permutations[{1/2,1/2,1/2,-1/2,-1/2}], Permutations[{1/2,-1/2,-1/2,-1/2,-1/2}]]; sym = Corr[R[S[{aa,\"chiral\"},-1/2,{},0,z1]], R[S[{bb,\"chiral\"},-1/2,{},0,z2]], R[S[{cc,\"chiral\"},-1/2,{},0,z3]], R[S[{dd,\"chiral\"},-1/2,{},0,z4]]]; resolved = Private`corrResolveStructure0[sym, <|aa->12, bb->3, cc->3, dd->8|>, <||>, {}]; numeric = Corr[R[S[{cs[[12]],\"chiral\"},-1/2,{},0,z1]], R[S[{cs[[3]],\"chiral\"},-1/2,{},0,z2]], R[S[{cs[[3]],\"chiral\"},-1/2,{},0,z3]], R[S[{cs[[8]],\"chiral\"},-1/2,{},0,z4]]]; And[Head[sym] =!= Corr, Simplify[resolved - numeric] === 0] ] ];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test42 = testReport[\"Test 42 (symbolic mixed-chirality (C,C,A,A) 4-point defers to inert)\", Head[Corr[R[S[{aa,\"chiral\"},-1/2,{},0,z1]], R[S[{bb,\"chiral\"},-1/2,{},0,z2]], R[S[{cc,\"antichiral\"},-1/2,{},0,z3]], R[S[{dd,\"antichiral\"},-1/2,{},0,z4]]]] === Corr];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],

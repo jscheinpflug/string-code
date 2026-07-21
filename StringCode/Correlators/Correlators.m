@@ -92,6 +92,10 @@ corrEntirelyFreeQ::usage = "corrEntirelyFreeQ[rList] is the shared-private predi
 corrEntirelyFreeQ[_List] := False;
 
 
+corrDeferToSpecializedQ::usage = "corrDeferToSpecializedQ[rList] is a theory-extensible hook; when True the generic Corr dispatch defers so a specialized module downvalue (e.g. spin-field bosonization) can handle the operator list first.";
+corrDeferToSpecializedQ[_List] := False;
+
+
 corrOpeOfRList::usage = "corrOpeOfRList[rList] folds OPE over a list of local operators.";
 corrOpeOfRList[rList_List] := Which[
   rList === {}, 1,
@@ -402,8 +406,8 @@ Corr[a___, 0, b___] := 0;
 Corr[a___, x_ + y_, b___] := Corr[a, x, b] + Corr[a, y, b];
 Corr[a___, c_ x_, b___] := c Corr[a, x, b] /; isScalarFactorQ[c];
 Corr[a___, Ma_ /; MultiOpTest[Ma], b___] := Corr[a, Sequence @@ (List @@ Ma), b];
-Corr[ops__ /; (AllTrue[{ops}, RTest] && AnyTrue[{ops}, containsInfinityInsertionQ] && corrEvaluableRListQ[{ops}])] := corrWithInfinity[{ops}];
-Corr[ops__ /; (AllTrue[{ops}, RTest] && corrEvaluableRListQ[{ops}])] := corrRList[{ops}];
+Corr[ops__ /; (AllTrue[{ops}, RTest] && !corrDeferToSpecializedQ[{ops}] && AnyTrue[{ops}, containsInfinityInsertionQ] && corrEvaluableRListQ[{ops}])] := corrWithInfinity[{ops}];
+Corr[ops__ /; (AllTrue[{ops}, RTest] && !corrDeferToSpecializedQ[{ops}] && corrEvaluableRListQ[{ops}])] := corrRList[{ops}];
 
 
 registerTopFormVevSector[

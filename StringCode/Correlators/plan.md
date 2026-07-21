@@ -361,6 +361,17 @@ Write `.test.wlnb` files with minimal boilerplate and cover the following cases.
 - `Corr[] == 1`
 - `Corr[..., 0, ...] == 0`
 
+## Post-v1 extension (2026-07-20): R-sector spin correlators
+
+Implemented in `TypeII/FlatSpace/FlatSpace.m`: a bosonization pre-pass makes `Corr`
+evaluate Ramond spin-field (`S`/`St`) correlators by rewriting them to `expH`/`dH`
+and reusing the existing bosonized free + charge-`Vev` machinery (no new physics).
+Covers ground-state, valid descendant-mode excited, and derivative spin fields;
+mixed `psi`-`S`; and BPZ-at-`Infinity` overlaps. Base `Correlators.m` gained the
+`corrDeferToSpecializedQ` dispatch hook to route these to the specialized downvalue.
+See tests 31-38 in `TypeII/FlatSpace/FlatSpace.test.wlnb`. The non-goals below record
+the *original* v1 scope.
+
 ## Explicit Non-Goals For V1
 
 Do not implement in this pass:
