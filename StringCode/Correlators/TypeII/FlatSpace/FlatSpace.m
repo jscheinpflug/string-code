@@ -227,6 +227,60 @@ corrSectorTensorStructures0[holoSpin_List, holoVec_List, antiSpin_List, antiVec_
   Flatten[Outer[Times, holoStructs, antiStructs], 1]
 ];
 
+(* ---------------------------------------------------------------------------
+   Within one chiral half the correlator factorizes again, into the spin sector
+   (S/psi and the superghost that shares its bosonization lattice) and everything
+   else (bc ghosts, matter). Verified exactly: for a graviton-at-infinity with two
+   flux vertices, full == spin * ghost * matter with ratio 1.
+
+   This split is what makes the fit well posed. The matter factor is where the
+   inert R[ProfileX...] residual and the momentum power ((z-w)(zbar-wbar))^(...)
+   live, and both carry the profile's spinor indices; leaving them in the fit made
+   the "scalar" index-dependent. Computing them once, symbolically, through the
+   ordinary Corr path keeps the fitted z-functions genuinely index-free. It is
+   also 59x cheaper per probe (0.044 s vs 2.61 s), because the ghost and matter
+   factors do not depend on the sampled indices at all.
+   --------------------------------------------------------------------------- *)
+
+corrSpinSectorHeads0::usage = "corrSpinSectorHeads0 lists the heads that share the spin field's bosonization lattice (Ramond spin fields, worldsheet fermions and the superghost). These are fitted; every other head is a spectator factor evaluated once by ordinary Corr.";
+corrSpinSectorHeads0 = {S, St, \[Psi], \[Psi]t, exp\[Phi]f, exp\[Phi]b, exp\[Phi]tf, exp\[Phi]tb, d\[Phi], d\[Phi]t};
+
+corrSpinSectorFieldQ0::usage = "corrSpinSectorFieldQ0[field] is True when a field belongs to the fitted spin sector.";
+corrSpinSectorFieldQ0[field_] := MemberQ[corrSpinSectorHeads0, Head[field]];
+
+corrSpinSectorHeadQ0::usage = "corrSpinSectorHeadQ0[head] is the head-level form of corrSpinSectorFieldQ0, for the factorizationSign helper which tests predicates on heads.";
+corrSpinSectorHeadQ0[head_] := MemberQ[corrSpinSectorHeads0, head];
+
+corrChargeBackground0::usage = "corrChargeBackground0 is the bosonized charge a sector must reach for its Vev to be nonzero: -2 in the superghost slot, neutral on the five H-lattice slots.";
+corrChargeBackground0 = {-2, 0, 0, 0, 0, 0};
+
+corrSpinFieldChargeAt0::usage = "corrSpinFieldChargeAt0[field, index] is the bosonized charge vector of one symbolic-index spin field when its index takes basis value index: the picture in the first slot, the explicit SO(10) weight in the remaining five.";
+corrSpinFieldChargeAt0[(S | St)[{_, chir_String}, q_, __], i_Integer] := Join[{q}, corrSpinWeightAt0[chir, i]];
+
+corrNonSpinChargeOptions0::usage = "corrNonSpinChargeOptions0[fields, head] returns the distinct bosonized charge vectors reachable by the non-spin-field part of one sector. psi bosonizes to a SUM of e^{+-iH_j}, so there is generally more than one option and saturation only needs ONE of them to work.";
+corrNonSpinChargeOptions0[fields_List, head_] := Module[{expr, terms, charges},
+  If[fields === {}, Return[{ConstantArray[0, Length[corrChargeBackground0]]}]];
+  expr = Expand[Bosonize[R @@ fields]];
+  terms = If[Head[expr] === Plus, List @@ expr, {expr}];
+  charges = Function[t,
+    With[{qs = Cases[t, head[q_, _] :> q, Infinity]},
+      If[qs === {}, ConstantArray[0, Length[corrChargeBackground0]], Total[qs]]]] /@ terms;
+  DeleteDuplicates[charges]
+];
+
+corrSaturatingAssignments0::usage = "corrSaturatingAssignments0[spinFields, otherFields, head] enumerates the basis-index tuples whose total bosonized charge reaches corrChargeBackground0. Random sampling cannot find these (measured 0 of 500 draws): the H-lattice condition forces the partner index, so only about 1 in 16 tuples saturates per sector. Enumerating is pure arithmetic on known weight vectors and needs no Corr call at all.";
+corrSaturatingAssignments0[spinFields_List, otherFields_List, head_] := Module[{options, n},
+  n = Length[spinFields];
+  If[n === 0, Return[{{}}]];
+  options = corrNonSpinChargeOptions0[otherFields, head];
+  Select[
+    Tuples[Range[16], n],
+    Function[tuple,
+      AnyTrue[options,
+        (# + Total[MapThread[corrSpinFieldChargeAt0, {spinFields, tuple}]]) === corrChargeBackground0 &]]
+  ]
+];
+
 corrSymbolicSpinFailed0::usage = "corrSymbolicSpinFailed0 is the private sentinel returned by corrSymbolicSpinDriver0 when the symbolic-index correlator cannot be computed, so the dispatch leaves Corr inert.";
 
 
@@ -256,19 +310,13 @@ corrSymbolicSpinDriver0[ops_List] := Module[
   {sectors, holoSpin, antiSpin, holoVec, antiVec,
    spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
    extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000, usable = 0,
-   sa, va, row, g, fvec, badStruct, badCount, verified = True, verifyTarget = 4},
+   sa, va, row, g, fvec, badStruct, badCount, verified = True, verifyTarget = 4,
+   spinOps, otherOps, spectator, allFields, sign,
+   holoSpinFields, antiSpinFields, holoOther, antiOther, satH, satA},
   (* Split into chiral sectors first: S/psi and St/psit carry indices of independent
      Lorentz spinor spaces, so their tensor bases must be built separately and
      multiplied. Classification reuses the package factorization helpers so that
-     both-chiral fields (ProfileX) are resolved the same way BracketProjected does.
-
-     On the fermionic reordering sign: splitOperators has a companion,
-     factorizationSign, which BracketProjected applies because it actually computes
-     the two sectors separately and multiplies them. This driver does NOT, and must
-     not, apply it. The z-oracle here is the FULL correlator (Corr on the original
-     operators), so every Grassmann sign is already present in g; the fitted f_k
-     absorb it. The sector split is used only to classify indices and to build the
-     basis as a product. Applying factorizationSign on top would double-count it. *)
+     both-chiral fields (ProfileX) are resolved the same way BracketProjected does. *)
   sectors = corrSectorFields0[ops];
   holoSpin = corrSpinExternalsFromFields0[sectors["Holo"]];
   antiSpin = corrSpinExternalsFromFields0[sectors["Anti"]];
@@ -280,6 +328,25 @@ corrSymbolicSpinDriver0[ops_List] := Module[
   If[Length[spinExternals] < 2, Return[corrSymbolicSpinFailed0]];
   vectorExternals = Join[holoVec, antiVec];
   chiralityMap = corrSpinChiralityMap0[spinExternals];
+  (* Second factorization, inside each chiral half: the spin sector (S/psi plus the
+     superghost sharing its lattice) against everything else (bc ghosts, matter).
+     Only the spin sector is fitted; the spectator factor is evaluated once by
+     ordinary Corr, which is where the inert matter residual and the momentum power
+     stay -- both carry the profile's spinor indices, so leaving them inside the fit
+     would make the fitted z-functions index-dependent. *)
+  spinOps = DeleteCases[Function[Ra, R @@ Select[Flatten[factorizeOperator /@ (List @@ Ra), 1], corrSpinSectorFieldQ0]] /@ ops, R[]];
+  otherOps = DeleteCases[Function[Ra, R @@ Select[Flatten[factorizeOperator /@ (List @@ Ra), 1], ! corrSpinSectorFieldQ0[#] &]] /@ ops, R[]];
+  spectator = If[otherOps === {}, 1, Corr @@ otherOps];
+  If[! FreeQ[spectator, Corr], Return[corrSymbolicSpinFailed0]];
+  (* Here, unlike the chiral classification above, the two groups really are
+     computed separately and multiplied, so the fermionic reordering sign between
+     them IS required -- this is the same situation BracketProjected is in. *)
+  allFields = Join @@ (Function[Ra, Flatten[factorizeOperator /@ (List @@ Ra), 1]] /@ ops);
+  sign = factorizationSign[allFields, corrSpinSectorHeadQ0, ! corrSpinSectorHeadQ0[#] &];
+  holoSpinFields = Select[sectors["Holo"], corrSymbolicSpinIndexQ0];
+  antiSpinFields = Select[sectors["Anti"], corrSymbolicSpinIndexQ0];
+  holoOther = Select[sectors["Holo"], corrSpinSectorFieldQ0[#] && ! corrSymbolicSpinIndexQ0[#] &];
+  antiOther = Select[sectors["Anti"], corrSpinSectorFieldQ0[#] && ! corrSymbolicSpinIndexQ0[#] &];
   structs = corrSectorTensorStructures0[holoSpin, holoVec, antiSpin, antiVec];
   If[! ListQ[structs] || structs === {},
     Message[Corr::spinbasis, Length[spinExternals], Length[vectorExternals]];
@@ -292,9 +359,21 @@ corrSymbolicSpinDriver0[ops_List] := Module[
      passes would each risk starving. *)
   While[(rank < kDim || Length[extraRows] < verifyTarget) && attempts < maxAttempts,
     attempts++;
-    sa = corrRandomSpinAssignment0[spinExternals];
     va = corrRandomVectorAssignment0[vectorExternals];
-    g = corrNumericCorrelatorAt0[ops, spinExternals, sa, va];
+    (* Do NOT draw the spinor indices at random: the H-lattice condition forces the
+       partner index, so only ~1 tuple in 16 saturates PER SECTOR and 0 of 500 joint
+       random draws were usable in practice. Enumerate the saturating set instead
+       (pure arithmetic on the known weight vectors, ~9 ms) and draw from it, so
+       every probe we pay for is guaranteed nonzero. The set depends on the vector
+       assignment through psi, hence the per-draw enumeration. *)
+    satH = corrSaturatingAssignments0[holoSpinFields, holoOther /. KeyValueMap[Rule, va], expH];
+    satA = corrSaturatingAssignments0[antiSpinFields, antiOther /. KeyValueMap[Rule, va], expHt];
+    If[satH === {} || satA === {}, Continue[]];
+    sa = Association[Join[
+      Thread[(#["Label"] & /@ holoSpin) -> RandomChoice[satH]],
+      Thread[(#["Label"] & /@ antiSpin) -> RandomChoice[satA]]
+    ]];
+    g = corrNumericCorrelatorAt0[spinOps, spinExternals, sa, va];
     If[g === 0 || ! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
     usable++;
     row = Table[corrResolveStructure0[structs[[k]], sa, va, vectorExternals, chiralityMap], {k, kDim}];
@@ -333,7 +412,7 @@ corrSymbolicSpinDriver0[ops_List] := Module[
     Message[Corr::spinverify, badCount, verifyTarget];
     Return[corrSymbolicSpinFailed0]
   ];
-  Total[Table[structs[[k]] Simplify[fvec[[k]]], {k, kDim}]]
+  sign spectator Total[Table[structs[[k]] Simplify[fvec[[k]]], {k, kDim}]]
 ];
 
 
