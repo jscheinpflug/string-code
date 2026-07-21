@@ -117,16 +117,35 @@ corrSymbolicSpinIndexQ0[field_] := MatchQ[field, (S | St)[{alpha_, ("chiral" | "
 corrHasSymbolicSpinQ0::usage = "corrHasSymbolicSpinQ0[Ra] is True when a local operator contains a symbolic-index spin field.";
 corrHasSymbolicSpinQ0[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, corrSymbolicSpinIndexQ0];
 
+corrSpinExternalsFromFields0::usage = "corrSpinExternalsFromFields0[fields] returns the ordered external symbolic-index spin-field slots {<|Label,Chirality|>,...} of one flat field list.";
+corrSpinExternalsFromFields0[fields_List] := Cases[
+  fields,
+  (S | St)[{alpha_ /; ! VectorQ[alpha, NumericQ], chir : ("chiral" | "antichiral")}, __] :> <|"Label" -> alpha, "Chirality" -> chir|>
+];
+
+corrVectorExternalsFromFields0::usage = "corrVectorExternalsFromFields0[fields] returns the ordered symbolic external vector indices carried by psi/psit fields of one flat field list.";
+corrVectorExternalsFromFields0[fields_List] := DeleteDuplicates @ Cases[
+  fields,
+  (\[Psi] | \[Psi]t)[mu_, _, _] /; ! IntegerQ[mu] :> mu
+];
+
 corrSpinExternals0::usage = "corrSpinExternals0[ops] returns the ordered list of external symbolic-index spin-field slots {<|Label,Chirality|>,...}, one per symbolic S/St field across the operator list.";
 corrSpinExternals0[ops_List] := Flatten[
-  Function[Ra, Cases[List @@ Ra, (S | St)[{alpha_ /; ! VectorQ[alpha, NumericQ], chir : ("chiral" | "antichiral")}, __] :> <|"Label" -> alpha, "Chirality" -> chir|>]] /@ ops,
+  Function[Ra, corrSpinExternalsFromFields0[List @@ Ra]] /@ ops,
   1
 ];
 
 corrVectorExternals0::usage = "corrVectorExternals0[ops] returns the ordered list of symbolic external vector indices carried by psi/psit fields across the operator list.";
 corrVectorExternals0[ops_List] := DeleteDuplicates @ Flatten[
-  Function[Ra, Cases[List @@ Ra, (\[Psi] | \[Psi]t)[mu_, _, _] /; ! IntegerQ[mu] :> mu]] /@ ops,
+  Function[Ra, corrVectorExternalsFromFields0[List @@ Ra]] /@ ops,
   1
+];
+
+corrSectorFields0::usage = "corrSectorFields0[ops] splits the operator list into holomorphic and antiholomorphic flat field lists, reusing the package factorization helpers rather than a bespoke classification: factorizeOperator first resolves both-chiral factorizable fields (ProfileX -> ProfileXHolo * ProfileXAntiHolo), then splitOperators partitions on isHolomorphic/isAntiHolomorphic. Returns <|\"Holo\" -> fields, \"Anti\" -> fields|>.";
+corrSectorFields0[ops_List] := Module[{fields, split},
+  fields = Join @@ (Function[Ra, Flatten[factorizeOperator /@ (List @@ Ra), 1]] /@ ops);
+  split = splitOperators[fields, isHolomorphic, isAntiHolomorphic];
+  <|"Holo" -> split[[1]], "Anti" -> split[[2]]|>
 ];
 
 corrInternalVectorDummies0::usage = "corrInternalVectorDummies0[struct, externalVectors] returns the contracted internal vector dummy symbols of a tensor structure (all gamma-link indices minus the external ones).";
@@ -184,6 +203,30 @@ corrTensorStructures0[spinExternals_List, vectorExternals_List] := Module[
   ]
 ];
 
+corrAntiDummySymbol0::usage = "corrAntiDummySymbol0[i] is the i-th antiholomorphic contracted-dummy symbol (nu-tilde i), used to keep the antiholomorphic sector's internal indices distinct from the holomorphic sector's.";
+corrAntiDummySymbol0[i_Integer] := ToExpression["\[Nu]t" <> ToString[i]];
+
+corrRenameAntiDummies0::usage = "corrRenameAntiDummies0[struct, antiVectors] renames the contracted internal dummies of one antiholomorphic tensor structure to nu-tilde symbols. Both sectors' bases come from findIndependentTensorStructures and therefore both emit nu1, nu2, ...; multiplying them without renaming would wrongly identify a holomorphic dummy with an antiholomorphic one and co-sum them.";
+corrRenameAntiDummies0[struct_, antiVectors_List] := Module[{dummies},
+  dummies = corrInternalVectorDummies0[struct, antiVectors];
+  If[dummies === {},
+    struct,
+    struct /. Thread[dummies -> (corrAntiDummySymbol0 /@ Range[Length[dummies]])]
+  ]
+];
+
+corrSectorTensorStructures0::usage = "corrSectorTensorStructures0[holoSpin, holoVec, antiSpin, antiVec] builds the tensor-structure basis as the OUTER PRODUCT of the two chiral sectors' independent bases. Holomorphic and antiholomorphic spinor indices live in independent Lorentz spinor spaces, so a single merged query would invent structures contracting a left-mover with a right-mover and inflate the basis (e.g. 11 structures where the factorized answer has 1). An empty sector contributes the trivial factor 1, so single-sector inputs reproduce the unfactorized basis exactly.";
+corrSectorTensorStructures0[holoSpin_List, holoVec_List, antiSpin_List, antiVec_List] := Module[
+  {holoStructs, antiStructs},
+  holoStructs = If[holoSpin === {}, {1}, corrTensorStructures0[holoSpin, holoVec]];
+  antiStructs = If[antiSpin === {}, {1}, corrTensorStructures0[antiSpin, antiVec]];
+  If[! ListQ[holoStructs] || ! ListQ[antiStructs] || holoStructs === {} || antiStructs === {},
+    Return[$Failed]
+  ];
+  antiStructs = corrRenameAntiDummies0[#, antiVec] & /@ antiStructs;
+  Flatten[Outer[Times, holoStructs, antiStructs], 1]
+];
+
 corrSymbolicSpinFailed0::usage = "corrSymbolicSpinFailed0 is the private sentinel returned by corrSymbolicSpinDriver0 when the symbolic-index correlator cannot be computed, so the dispatch leaves Corr inert.";
 
 
@@ -210,16 +253,34 @@ Corr::spinverify =
 
 corrSymbolicSpinDriver0::usage = "corrSymbolicSpinDriver0[ops] computes a symbolic-index R-sector correlator as Sum_k T^(k) f_k(z): fit the scalar z-functions of the independent tensor structures against the numeric bosonized correlator at random concrete index assignments. Returns the corrSymbolicSpinFailed0 sentinel (leaving Corr inert) on failure, emitting one of Corr::spinbasis, Corr::spinstruct, Corr::spinprobes, Corr::spinsolve or Corr::spinverify to identify which kind of deferral occurred.";
 corrSymbolicSpinDriver0[ops_List] := Module[
-  {spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
+  {sectors, holoSpin, antiSpin, holoVec, antiVec,
+   spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
    extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000, usable = 0,
    sa, va, row, g, fvec, badStruct, badCount, verified = True, verifyTarget = 4},
-  spinExternals = corrSpinExternals0[ops];
+  (* Split into chiral sectors first: S/psi and St/psit carry indices of independent
+     Lorentz spinor spaces, so their tensor bases must be built separately and
+     multiplied. Classification reuses the package factorization helpers so that
+     both-chiral fields (ProfileX) are resolved the same way BracketProjected does.
+
+     On the fermionic reordering sign: splitOperators has a companion,
+     factorizationSign, which BracketProjected applies because it actually computes
+     the two sectors separately and multiplies them. This driver does NOT, and must
+     not, apply it. The z-oracle here is the FULL correlator (Corr on the original
+     operators), so every Grassmann sign is already present in g; the fitted f_k
+     absorb it. The sector split is used only to classify indices and to build the
+     basis as a product. Applying factorizationSign on top would double-count it. *)
+  sectors = corrSectorFields0[ops];
+  holoSpin = corrSpinExternalsFromFields0[sectors["Holo"]];
+  antiSpin = corrSpinExternalsFromFields0[sectors["Anti"]];
+  holoVec = corrVectorExternalsFromFields0[sectors["Holo"]];
+  antiVec = corrVectorExternalsFromFields0[sectors["Anti"]];
+  spinExternals = Join[holoSpin, antiSpin];
   (* Fewer than two symbolic spin fields: this driver simply does not apply, so
      defer silently rather than reporting a failure. *)
   If[Length[spinExternals] < 2, Return[corrSymbolicSpinFailed0]];
-  vectorExternals = corrVectorExternals0[ops];
+  vectorExternals = Join[holoVec, antiVec];
   chiralityMap = corrSpinChiralityMap0[spinExternals];
-  structs = corrTensorStructures0[spinExternals, vectorExternals];
+  structs = corrSectorTensorStructures0[holoSpin, holoVec, antiSpin, antiVec];
   If[! ListQ[structs] || structs === {},
     Message[Corr::spinbasis, Length[spinExternals], Length[vectorExternals]];
     Return[corrSymbolicSpinFailed0]
