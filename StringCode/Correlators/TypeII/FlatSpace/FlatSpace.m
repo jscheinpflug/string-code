@@ -187,17 +187,43 @@ corrTensorStructures0[spinExternals_List, vectorExternals_List] := Module[
 corrSymbolicSpinFailed0::usage = "corrSymbolicSpinFailed0 is the private sentinel returned by corrSymbolicSpinDriver0 when the symbolic-index correlator cannot be computed, so the dispatch leaves Corr inert.";
 
 
-corrSymbolicSpinDriver0::usage = "corrSymbolicSpinDriver0[ops] computes a symbolic-index R-sector correlator as Sum_k T^(k) f_k(z): fit the scalar z-functions of the independent tensor structures against the numeric bosonized correlator at random concrete index assignments. Returns an inert Corr[...] on any failure (unresolved structure, rank deficiency, or empty basis).";
+(* Every deferral leaves Corr inert, but the reasons are very different: a genuine
+   representation-theory obstruction, a vanishing correlator, and a merely
+   exhausted sampling budget all used to look identical. These messages separate
+   them so an inert result can be diagnosed. *)
+
+Corr::spinbasis =
+  "Symbolic spin correlator: no independent tensor-structure basis exists for the given external indices (`1` spin, `2` vector), so the correlator has no Lorentz invariants and may vanish identically. Leaving Corr inert.";
+
+Corr::spinstruct =
+  "Symbolic spin correlator: tensor structure `1` of `2` could not be evaluated at the physical chiralities -- a rigid gamma factor's link chirality disagrees with the external chirality assignment (e.g. an opposite-chirality two-gamma, which this link grammar cannot express). This is a representation-theory obstruction, not a sampling problem. Leaving Corr inert.";
+
+Corr::spinprobes =
+  "Symbolic spin correlator: exhausted `1` sampling attempts having found only `2` charge-saturating probes (reached rank `3` of `4` structures, with `5` of the `6` verification rows needed). Charge-saturating index assignments are rare, so this is most likely an insufficient sampling budget rather than a physics obstruction; if the rank is stuck below `4` the structures may instead be degenerate on the saturating set. Leaving Corr inert.";
+
+Corr::spinsolve =
+  "Symbolic spin correlator: the linear solve for the `1` z-functions failed on a full-rank system. Leaving Corr inert.";
+
+Corr::spinverify =
+  "Symbolic spin correlator: the fitted z-functions failed held-out verification on `1` of `2` surplus probes -- the tensor basis resolves to numbers but does not reproduce the numeric correlator. Leaving Corr inert.";
+
+
+corrSymbolicSpinDriver0::usage = "corrSymbolicSpinDriver0[ops] computes a symbolic-index R-sector correlator as Sum_k T^(k) f_k(z): fit the scalar z-functions of the independent tensor structures against the numeric bosonized correlator at random concrete index assignments. Returns the corrSymbolicSpinFailed0 sentinel (leaving Corr inert) on failure, emitting one of Corr::spinbasis, Corr::spinstruct, Corr::spinprobes, Corr::spinsolve or Corr::spinverify to identify which kind of deferral occurred.";
 corrSymbolicSpinDriver0[ops_List] := Module[
   {spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
-   extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000,
-   sa, va, row, g, fvec, verified = True, verifyTarget = 4},
+   extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000, usable = 0,
+   sa, va, row, g, fvec, badStruct, badCount, verified = True, verifyTarget = 4},
   spinExternals = corrSpinExternals0[ops];
+  (* Fewer than two symbolic spin fields: this driver simply does not apply, so
+     defer silently rather than reporting a failure. *)
   If[Length[spinExternals] < 2, Return[corrSymbolicSpinFailed0]];
   vectorExternals = corrVectorExternals0[ops];
   chiralityMap = corrSpinChiralityMap0[spinExternals];
   structs = corrTensorStructures0[spinExternals, vectorExternals];
-  If[! ListQ[structs] || structs === {}, Return[corrSymbolicSpinFailed0]];
+  If[! ListQ[structs] || structs === {},
+    Message[Corr::spinbasis, Length[spinExternals], Length[vectorExternals]];
+    Return[corrSymbolicSpinFailed0]
+  ];
   kDim = Length[structs];
   (* Charge-saturating assignments are rare (a percent or so of random draws), so
      gather ONE pool of usable probes and split it: the first rank-increasing rows
@@ -209,26 +235,43 @@ corrSymbolicSpinDriver0[ops_List] := Module[
     va = corrRandomVectorAssignment0[vectorExternals];
     g = corrNumericCorrelatorAt0[ops, spinExternals, sa, va];
     If[g === 0 || ! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
+    usable++;
     row = Table[corrResolveStructure0[structs[[k]], sa, va, vectorExternals, chiralityMap], {k, kDim}];
-    If[! FreeQ[row, GammaAntisymmetricProductHold], Return[corrSymbolicSpinFailed0]];  (* structure did not resolve *)
+    (* A structure that will not resolve is a representation-theory obstruction and
+       will not resolve at any other assignment either, so bail immediately. *)
+    If[! FreeQ[row, GammaAntisymmetricProductHold],
+      badStruct = FirstPosition[row, _GammaAntisymmetricProductHold, {0}, Infinity][[1]];
+      Message[Corr::spinstruct, badStruct, kDim];
+      Return[corrSymbolicSpinFailed0]
+    ];
     If[rank < kDim && MatrixRank[Append[rows, row]] > rank,
       AppendTo[rows, row]; AppendTo[gvals, g]; rank++,
       If[rank >= kDim, AppendTo[extraRows, row]; AppendTo[extraG, g]]
     ]
   ];
-  If[rank < kDim || Length[extraRows] < verifyTarget, Return[corrSymbolicSpinFailed0]];
+  If[rank < kDim || Length[extraRows] < verifyTarget,
+    Message[Corr::spinprobes, attempts, usable, rank, kDim, Length[extraRows], verifyTarget];
+    Return[corrSymbolicSpinFailed0]
+  ];
   fvec = Quiet @ LinearSolve[rows, gvals];
-  If[! FreeQ[fvec, LinearSolve] || Length[fvec] =!= kDim, Return[corrSymbolicSpinFailed0]];
+  If[! FreeQ[fvec, LinearSolve] || Length[fvec] =!= kDim,
+    Message[Corr::spinsolve, kDim];
+    Return[corrSymbolicSpinFailed0]
+  ];
   (* Held-out self-consistency: the fitted structures must reproduce the numeric
      correlator on the surplus probes, which took no part in the fit. Catches cases
      whose structures resolve to numbers but not the physically-correct ones (e.g.
      the mixed-chirality two-gamma, deferred to a later pass). *)
   verified = True;
+  badCount = 0;
   Do[
-    If[Simplify[extraG[[i]] - extraRows[[i]] . fvec] =!= 0, verified = False],
+    If[Simplify[extraG[[i]] - extraRows[[i]] . fvec] =!= 0, verified = False; badCount++],
     {i, verifyTarget}
   ];
-  If[! TrueQ[verified], Return[corrSymbolicSpinFailed0]];
+  If[! TrueQ[verified],
+    Message[Corr::spinverify, badCount, verifyTarget];
+    Return[corrSymbolicSpinFailed0]
+  ];
   Total[Table[structs[[k]] Simplify[fvec[[k]]], {k, kDim}]]
 ];
 
