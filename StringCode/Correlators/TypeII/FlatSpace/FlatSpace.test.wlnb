@@ -378,6 +378,22 @@
   },
   {
    "kind": 1,
+   "value": "## ProfileX residual representation\n\nThe symbolic spin driver splits both-chiral matter via `factorizeOperator` before computing the spectator factor. It must rejoin it (`postProcessProjectedOPE0`) so the residual is reported as `ProfileX`, exactly as plain `Corr` does — not as a leftover `ProfileXHolo`/`ProfileXAntiHolo` pair.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test43 = testReport[\"Test 43 (symbolic spin correlator rejoins split ProfileX matter residual)\", Module[{strip, flux, grav, ops, r, heads}, strip[e_] := e /. {s_ rr_R /; FreeQ[s, _R] :> rr}; flux[F_,a_,b_,z_,zb_] := R[ProfileX[F[a,b],{},z,zb], c[0,z], ct[0,zb], S[{a,\"chiral\"},-1/2,{},0,z], St[{b,\"chiral\"},-1/2,{},0,zb]]; grav[m_,n_,z_,zb_] := R[ProfileX[GG[m,n],{},z,zb], c[0,z], ct[0,zb], exp\\[Phi]f[-1,z], \\[Psi][m,0,z], exp\\[Phi]tf[-1,zb], \\[Psi]t[n,0,zb]]; ops = strip /@ {grav[mu,nu,z1,z1bar], flux[FF1,a1,b1,z2,z2bar], flux[FF2,a2,b2,z3,z3bar]}; r = Corr @@ ops; heads = DeleteDuplicates[Head /@ Cases[r, (ProfileX|ProfileXHolo|ProfileXAntiHolo)[___], Infinity]]; And[Head[r] =!= Corr, ! FreeQ[r, GammaAntisymmetricProductHold], heads === {ProfileX}] ] ];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],

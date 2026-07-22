@@ -336,7 +336,13 @@ corrSymbolicSpinDriver0[ops_List] := Module[
      would make the fitted z-functions index-dependent. *)
   spinOps = DeleteCases[Function[Ra, R @@ Select[Flatten[factorizeOperator /@ (List @@ Ra), 1], corrSpinSectorFieldQ0]] /@ ops, R[]];
   otherOps = DeleteCases[Function[Ra, R @@ Select[Flatten[factorizeOperator /@ (List @@ Ra), 1], ! corrSpinSectorFieldQ0[#] &]] /@ ops, R[]];
-  spectator = If[otherOps === {}, 1, Corr @@ otherOps];
+  (* factorizeOperator above splits both-chiral matter (ProfileX -> ProfileXHolo *
+     ProfileXAntiHolo), so the spectator must be put back together before it is
+     returned; otherwise this driver emits a different residual representation
+     than plain Corr does for the same operators. postProcessProjectedOPE0 is the
+     package's existing rejoin (recombineProjectedFlatSpaceROps0 under a
+     FixedPoint), the same one OPEProjected applies to its own chiral output. *)
+  spectator = If[otherOps === {}, 1, postProcessProjectedOPE0[Corr @@ otherOps]];
   If[! FreeQ[spectator, Corr], Return[corrSymbolicSpinFailed0]];
   (* Here, unlike the chiral classification above, the two groups really are
      computed separately and multiplied, so the fermionic reordering sign between
