@@ -394,6 +394,22 @@
   },
   {
    "kind": 1,
+   "value": "## Generic chiral split\n\nThe holomorphic and antiholomorphic sectors decouple, so `Corr` evaluates them separately and rejoins with `combineChiral` + `postProcessProjectedOPE0`. This asserts the split actually fires (it sits above the bosonization pre-pass in downvalue order, which is what makes it reachable), that single-chirality input is excluded, that the value is unchanged, and that `ProfileX` is rejoined rather than left split.",
+   "languageId": "markdown",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 2,
+   "value": "test44 = testReport[\"Test 44 (generic chiral split: fires, preserves value, rejoins ProfileX)\", Module[{csv, gN, fN, gM, fM, bare, matter, r1, r2, heads}, csv = Join[{{1/2,1/2,1/2,1/2,1/2}}, Permutations[{1/2,1/2,1/2,-1/2,-1/2}], Permutations[{1/2,-1/2,-1/2,-1/2,-1/2}]]; gN[m_,n_,z_,zb_] := R[c[0,z], ct[0,zb], exp\\[Phi]f[-1,z], \\[Psi][m,0,z], exp\\[Phi]tf[-1,zb], \\[Psi]t[n,0,zb]]; fN[ai_,bi_,z_,zb_] := R[c[0,z], ct[0,zb], S[{csv[[ai]],\"chiral\"},-1/2,{},0,z], St[{csv[[bi]],\"chiral\"},-1/2,{},0,zb]]; gM[m_,n_,z_,zb_] := R[ProfileX[GGt[m,n],{},z,zb], c[0,z], ct[0,zb], exp\\[Phi]f[-1,z], \\[Psi][m,0,z], exp\\[Phi]tf[-1,zb], \\[Psi]t[n,0,zb]]; fM[F_,ai_,bi_,z_,zb_] := R[ProfileX[F[ai,bi],{},z,zb], c[0,z], ct[0,zb], S[{csv[[ai]],\"chiral\"},-1/2,{},0,z], St[{csv[[bi]],\"chiral\"},-1/2,{},0,zb]]; bare = {gN[1,1,z1,z1bar], fN[1,1,z2,z2bar], fN[12,12,z3,z3bar]} /. {s_ rr_R /; FreeQ[s,_R] :> rr}; r1 = Corr @@ bare; matter = {gM[1,1,z1,z1bar], fM[FFa,1,1,z2,z2bar], fM[FFb,12,12,z3,z3bar]} /. {s_ rr_R /; FreeQ[s,_R] :> rr}; r2 = Corr @@ matter; heads = DeleteDuplicates[Head /@ Cases[r2, (ProfileX|ProfileXHolo|ProfileXAntiHolo)[___], Infinity]]; And[ Private`corrChiralSplittableQ0[bare],      ! Private`corrChiralSplittableQ0[{R[c[0,z1]], R[c[0,z2]], R[c[0,z3]]}],      PossibleZeroQ[Simplify[r1 - 1/4]],      heads === {ProfileX} ] ] ];",
+   "languageId": "wolfram",
+   "outputs": [],
+   "metadata": {},
+   "executionSummary": {}
+  },
+  {
+   "kind": 1,
    "value": "## Summary",
    "languageId": "markdown",
    "outputs": [],
