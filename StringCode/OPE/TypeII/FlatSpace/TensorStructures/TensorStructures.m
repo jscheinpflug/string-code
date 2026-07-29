@@ -832,12 +832,13 @@ firstVectorPlacement[externalCounts_List, vectorIndices_List, antisymmetricVecto
   <|"SlotVectors" -> slotVectors, "DeltaPairs" -> First[pairings]|>
 ];
 
+dummyIndexBaseSymbol::usage =
+  "dummyIndexBaseSymbol is the base \\[Nu] symbol, held in package context, from which buildDummyIndexSymbols generates fresh contraction dummies.";
+dummyIndexBaseSymbol = Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`" <> "\[Nu]"];
+
 buildDummyIndexSymbols::usage =
-  "buildDummyIndexSymbols[count] returns deterministic dummy symbols \\[Nu]1, \\[Nu]2, ... in package context.";
-buildDummyIndexSymbols[count_Integer] := buildDummyIndexSymbols[count] = Table[
-  Symbol["StringCode`OPE`TypeII`FlatSpace`TensorStructures`" <> "\[Nu]" <> ToString[i]],
-  {i, 1, count}
-];
+  "buildDummyIndexSymbols[count] returns count freshly generated dummy symbols \\[Nu]$nnn in package context. Deliberately NOT memoized: each call must yield symbols distinct from every previous call, otherwise two independently built tensor structures both receive \\[Nu]1 and their contractions collide when the structures are multiplied, producing an index repeated four times that canonicalizeOneTermDummies (which only relabels symbols occurring exactly twice) silently leaves alone.";
+buildDummyIndexSymbols[count_Integer] := Table[Unique[dummyIndexBaseSymbol], {count}];
 
 deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert \\[Delta] factor.";
 deltaFactorFromPair[pair_List] := Module[{ordered},
