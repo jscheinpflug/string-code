@@ -93,6 +93,22 @@ zbarR[2,1][]:= - z0bar;
 zbarR[2,2][]:= z0bar;
 ];
 
+(* ::Subsection:: *)
+(*Define flat 3-bracket data*)
+
+(* getLocalCoordinateData builds the coordinate as flatLocalCoordinate[order,i][moduli],
+   passing the moduli LIST as a single argument, so the replacement targets are called as
+   zR[3,i][{t,tbar}] -- one list argument, not two spliced ones. The moduli must therefore
+   be matched as patterns inside a list; localising t/tbar in the Module instead would
+   define the rule for two specific Module temporaries and it would never fire. *)
+Module[{z0, z0bar, r0},
+zR[3, 1][{t_, tbar_}] := -z0 (t + 1/2)/(t - 1/2);
+zR[3, 2][{t_, tbar_}] := -z0 (t - 3/2)/(t - 1/2);
+zR[3, 3][{t_, tbar_}] := z0;
+zbarR[3, 1][{t_, tbar_}] := -z0bar (tbar + 1/2)/(tbar - 1/2);
+zbarR[3, 2][{t_, tbar_}] := -z0bar (tbar - 3/2)/(tbar - 1/2);
+zbarR[3, 3][{t_, tbar_}] := z0bar;
+];
 
 (* ::Section:: *)
 (*End*)
