@@ -17,7 +17,10 @@ Needs["StringCode`Brackets`"];
 
 
 ExteriorD::usage =
-  "ExteriorD[form] is the exterior derivative on the wedge algebra. Each Times term is split into its wedge factor, its coordinate-varying scalar (in z[n,i]/zbar[n,i]/q[n,i]/qbar[n,i]) and its coordinate-free operator part; only the scalar is differentiated. When all summands of a Plus share a common wedge factor the per-variable wedge basis is precomputed once and the term map is run in parallel if subkernels are available.";
+  "ExteriorD[form] is the exterior derivative on the wedge algebra. Each Times term is split into its wedge factor, its coordinate-varying scalar (in z[n,i]/zbar[n,i]/q[n,i]/qbar[n,i]) and its coordinate-free operator part; only the scalar is differentiated. When all summands of a Plus share a common wedge factor the per-variable wedge basis is precomputed once and the term map is run in parallel if subkernels are available. ExteriorD[form, vars] runs the same calculus over the explicit coordinate list vars instead of the bundle table allvars[MaxInsertNum]; this is required for forms on a pulled-back family, whose moduli (e.g. t, tbar) the bundle table cannot know -- with the one-argument form their derivatives are silently zero.";
+
+ToBundleForm::usage =
+  "ToBundleForm[expr] converts bracket output into the representation the exterior calculus here expects. Brackets emits the two-argument Differential[coordmap[moduli], moduli] with the coordinate maps evaluated on a section; this returns the one-argument Differential[coordmap] on bare bundle coordinates z[n,i], q[n,i], stripping the moduli argument in the coefficients as well so the form stays consistent. ExteriorD applies it automatically, so calling it by hand is only needed when inspecting the converted form. The conversion must be done in a single pass -- see the implementation comment for why neither sequential order works.";
 
 UnWedge::usage =
   "UnWedge[form, dz] extracts the coefficient of the one-form dz from form, tracking the graded sign by position inside each Wedge.";
@@ -72,7 +75,7 @@ DomainIntegrate::usage =
   "DomainIntegrate[form, domain] integrates form over a moduli domain; an exact form over ModuliDomain[n] is reduced (Stokes) to its primitive over BoundaryDomain[n].";
 
 IntegrateExactForm::usage =
-  "IntegrateExactForm[form] returns a scalar primitive whose ExteriorD equals form, by integrating one coordinate at a time and subtracting the exterior derivative of each partial result. Assumes form is exact.";
+  "IntegrateExactForm[form] returns a scalar primitive whose ExteriorD equals form, by integrating one coordinate at a time and subtracting the exterior derivative of each partial result. Assumes form is exact. IntegrateExactForm[form, vars] runs the same zig-zag over the explicit coordinate list vars instead of the bundle table allvars[MaxInsertNum]; required on a pulled-back family whose moduli are not bundle coordinates.";
 
 LineIntegral::usage =
   "LineIntegral[form, variable] is the indefinite integral of form in variable.";
@@ -90,10 +93,22 @@ UnitCircle::usage = "UnitCircle[q] is the unit circle in the plumbing parameter 
 ChainPermutation::usage = "ChainPermutation[sigma, chain] is a chain with its insertions permuted by sigma.";
 Matching::usage = "Matching[...] is inert boundary coordinate-map matching data produced by MatchingCondition.";
 
-z::usage = "z[n,i] is the position coordinate of insertion i in the n-string vertex; z[n,i][moduli] is its moduli-dependent value.";
-zbar::usage = "zbar[n,i] is the conjugate position coordinate of insertion i in the n-string vertex.";
-q::usage = "q[n,i] is the local-frame scale of insertion i in the n-string vertex; q[n,i][moduli] is its moduli-dependent value.";
-qbar::usage = "qbar[n,i] is the conjugate local-frame scale of insertion i in the n-string vertex.";
+(* z, zbar, q, qbar are deliberately NOT declared here.
+
+   Brackets builds the local coordinate maps as
+     flatLocalCoordinate[order,i][moduli][w]
+       = w r0 Symbol["Private`q"][order,i][moduli] + Symbol["Private`z"][order,i][moduli]
+   (Brackets/{Bosonic,TypeII}/Flat/Flat.m), i.e. explicitly in the shared Private` context.
+   Declaring z/zbar/q/qbar public here would create StringCode`ModuliIntegration`z etc.,
+   which shadow those and print identically while being unrelated symbols. allvars would
+   then never contain the coordinates the brackets actually produce, and ExteriorD would
+   return 0 on every bracket -- silently, because Select over an empty variable list gives
+   Sum[..., {v,{}}] = 0.
+
+   Leaving them undeclared makes the unqualified names below resolve to the shared Private`
+   symbols, which is the convention stated in CLAUDE.md ("modules intentionally share
+   Private`"; "avoid creating same-named symbols"). *)
+
 z0::usage = "z0 is the fixed position modulus of the 2-string (propagator) vertex.";
 r0::usage = "r0 is the fixed plumbing radius of the 2-string (propagator) vertex.";
 
@@ -149,8 +164,16 @@ Differential[0]=0;
    so wedge antisymmetry kills 3-forms and higher automatically. *)
 Differential[f_[moduli_List]] := 0 /; VectorQ[moduli, NumericQ];
 Differential[f_[moduli_List]] := Sum[D[f[moduli], v] Differential[v], {v, moduli}] /; VectorQ[moduli, MatchQ[#, _Symbol] &];
-Differential[f_[mods__]] := 0 /; AllTrue[{mods}, NumericQ];
-Differential[f_[mods__]] := Sum[D[f[mods], v] Differential[v], {v, {mods}}] /; VectorQ[{mods}, MatchQ[#, _Symbol] &];
+
+(* The sequence-valued variants
+     Differential[f_[mods__]] := 0                  /; AllTrue[{mods}, NumericQ];
+     Differential[f_[mods__]] := Sum[...]           /; VectorQ[{mods}, MatchQ[#,_Symbol]&];
+   used to sit here and have been removed. The coordinate maps are always applied to a
+   *list* of moduli (z[n,i][{t,tbar}]), which the two List rules above already cover, so
+   they were redundant -- and actively harmful: the numeric guard matched the integer
+   *indices* of a bare coordinate symbol, making Differential[z[n,i]] = 0 and hence
+   dallvars[n] identically zero. That zeroed the entire wedge basis of ExteriorD and
+   IntegrateExactForm. *)
 
 (* Tell D and Derivative that Differential[...] and Wedge[...] are constants w.r.t.
    any variable. Mathematica's chain rule for D on an unknown head emits Derivative[
@@ -183,6 +206,42 @@ UnWedge[Wedge[a___],dz_]:=Module[{tmp=Position[List @@ (Wedge[a]),dz]},If[Length
 
 ExteriorD[0]=0;
 ExteriorD[g_]:=0/;Head[g]==Wedge;
+
+(* Accept raw bracket output by converting it.
+
+   Brackets emits the two-argument Differential[coordmap[moduli], moduli]; the calculus here
+   works on the one-argument form over bare coordinates. Fed the raw form ExteriorD does not
+   fail cleanly -- it differentiates the applied maps with respect to their own heads and
+   emits garbage such as 1[{t,tbar}] from D[z[3,1][{t,tbar}], z[3,1]] -- so convert first.
+
+   The conversion MUST be a single pass. Neither sequential order works:
+     drop the second argument first -> Differential[z[n,i][{t,tbar}]], which the List rule
+       above immediately expands onto {Differential[t], Differential[tbar]}, i.e. the moduli
+       basis rather than the coordinate basis allvars provides;
+     strip the moduli argument first -> Differential[z[n,i], {t,tbar}], whose first argument
+       no longer depends on the moduli, so Brackets' own
+       Differential[expr_, moduli_] /; !DependentQ[expr, moduli] := 0  zeroes it.
+   Hence the inert tag: protect the differentials, strip everywhere, restore.
+
+   Dispatch is attached per head so these are tried ahead of the Plus/Times rules below;
+   a bare ExteriorD[expr_] rule would lose to the more specific ExteriorD[s_Plus]. *)
+
+ExteriorD::twoarg =
+  "Conversion of two-argument Differential[expr, moduli] to bundle form left some behind; \
+input is not recognised bracket output.";
+
+ToBundleForm[expr_Plus] := Total[ToBundleForm /@ (List @@ expr)];
+ToBundleForm[expr_] := Module[{tagged},
+  tagged = expr /. HoldPattern[Differential[a_, _List]] :> bundleFormTag[a];
+  tagged = tagged /. (h : z | zbar | q | qbar)[i_, j_][_List] :> h[i, j];
+  tagged /. bundleFormTag[a_] :> Differential[a]
+];
+
+convertThenD[s_] := Module[{c = ToBundleForm[s]},
+  If[! FreeQ[c, Differential[_, _]], Message[ExteriorD::twoarg]; $Failed, ExteriorD[c]]];
+
+ExteriorD[s_Plus]  /; ! FreeQ[s, Differential[_, _]] := convertThenD[s];
+ExteriorD[s_Times] /; ! FreeQ[s, Differential[_, _]] := convertThenD[s];
 
 (* Per-term action: strip the (known) common wedge by substitution -- robust to
    nested positions inside Plus/Times -- then apply the vars-skip Sum. *)
@@ -229,6 +288,31 @@ ExteriorD[expr_Times]/;!FreeQ[expr,_Differential]&&FreeQ[expr,_Wedge]:=Module[
   oneForm=FirstCase[expr,_Differential,Missing[],{0,Infinity}];
   wedgeBasis=AssociationMap[Wedge[Differential[#],oneForm] &,vars];
   exteriorDStrip[expr,wedgeBasis,oneForm]
+];
+
+(* 0-forms. Without this a scalar term matches none of the rules above and comes back inert,
+   which matters in practice: roughly half the terms of a third-order bracket carry no
+   Differential at all. Note d of a 0-form is NOT identically zero -- it is the honest
+   Sum[D[s,v] dv], which reduces to 0 by itself when s carries no coordinate dependence, so
+   this is both correct and the reason not to shortcut it to 0. *)
+ExteriorD[s_]/;FreeQ[s,_Differential]&&FreeQ[s,_Wedge]:=
+  Sum[D[s,v] Differential[v],{v,Select[allvars[MaxInsertNum],!FreeQ[s,#] &]}];
+
+(* Explicit-variable overloads. Every rule above enumerates allvars[MaxInsertNum], the bundle
+   coordinate table -- correct upstairs, silently wrong on a pulled-back family: a form in the
+   moduli (t, tbar) depends on none of the bundle coordinates, so every derivative vanishes and
+   ExteriorD returns 0 without complaint. Block-scoping allvars/dallvars reroutes the entire
+   calculus, including the Plus dispatcher and the zig-zag of IntegrateExactForm, through the
+   supplied list without duplicating any rule. *)
+ExteriorD[expr_, vars_List] := Block[{allvars},
+  allvars[_] = vars;
+  ExteriorD[expr]
+];
+
+IntegrateExactForm[form_, vars_List] := Block[{allvars, dallvars},
+  allvars[_] = vars;
+  dallvars[_] = Differential /@ vars;
+  IntegrateExactForm[form]
 ];
 
 
