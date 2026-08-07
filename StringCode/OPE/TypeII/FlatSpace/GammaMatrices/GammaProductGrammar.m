@@ -44,25 +44,32 @@ gammaLinkVectorIndices[GammaUDHold[idx_]] := Flatten[{idx}];
 gammaLinkVectorIndices[GammaDUHold[idx_]] := Flatten[{idx}];
 gammaLinkVectorIndices[_] := {};
 
+toggleSpinorChirality::usage = "toggleSpinorChirality[chirality] toggles between \"chiral\" and \"antichiral\".";
+toggleSpinorChirality["chiral"] := "antichiral";
+toggleSpinorChirality["antichiral"] := "chiral";
+toggleSpinorChirality[other_] := other;
+
 gammaProductSpinorChiralities::usage = "gammaProductSpinorChiralities[links] infers the endpoint chiralities carried by one GammaAntisymmetricProductHold link list.";
-gammaProductSpinorChiralities[links_List] := Module[{reducedLinks, left, right},
-  If[links =!= {} && First[links] === CUDHold, Return[{"chiral", "chiral"}]];
-  If[links =!= {} && First[links] === CDUHold, Return[{"antichiral", "antichiral"}]];
-  If[links =!= {} && AllTrue[links, # === Gamma11UUHold[] &], Return[{"chiral", "chiral"}]];
-  If[links =!= {} && AllTrue[links, # === Gamma11DDHold[] &], Return[{"antichiral", "antichiral"}]];
-  reducedLinks = DeleteCases[links, Gamma11UUHold[] | Gamma11DDHold[]];
-  If[reducedLinks === {}, Return[{"chiral", "antichiral"}]];
+gammaProductSpinorChiralities[links_List] := Module[{cTag, coreLinks, vectorLinks, tailLinks, left},
+  cTag = If[links =!= {} && MatchQ[First[links], CUDHold | CDUHold], First[links], None];
+  coreLinks = If[cTag === None, links, Rest[links]];
+  vectorLinks = Select[coreLinks, gammaVectorLinkQ];
+  tailLinks = Select[coreLinks, !gammaVectorLinkQ[#] &];
+  If[cTag === CUDHold,
+    Return[{"chiral", Nest[toggleSpinorChirality, "antichiral", Length[vectorLinks]]}]
+  ];
+  If[cTag === CDUHold,
+    Return[{"antichiral", Nest[toggleSpinorChirality, "chiral", Length[vectorLinks]]}]
+  ];
+  If[vectorLinks === {} && tailLinks =!= {} && AllTrue[tailLinks, # === Gamma11UUHold[] &], Return[{"chiral", "chiral"}]];
+  If[vectorLinks === {} && tailLinks =!= {} && AllTrue[tailLinks, # === Gamma11DDHold[] &], Return[{"antichiral", "antichiral"}]];
+  If[vectorLinks === {}, Return[{"chiral", "antichiral"}]];
   left = Which[
-    Head[First[reducedLinks]] === GammaUDHold, "chiral",
-    Head[First[reducedLinks]] === GammaDUHold, "antichiral",
+    Head[First[vectorLinks]] === GammaUDHold, "chiral",
+    Head[First[vectorLinks]] === GammaDUHold, "antichiral",
     True, "chiral"
   ];
-  right = left;
-  Scan[
-    Function[link, If[gammaVectorLinkQ[link], right = If[right === "chiral", "antichiral", "chiral"]]],
-    reducedLinks
-  ];
-  {left, right}
+  {left, Nest[toggleSpinorChirality, left, Length[vectorLinks]]}
 ];
 
 gammaFactorPartsSelector::usage = "gammaFactorPartsSelector[factor] parses one GammaAntisymmetricProductHold factor into an association used by the selector.";
