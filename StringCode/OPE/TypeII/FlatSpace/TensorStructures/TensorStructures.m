@@ -855,6 +855,14 @@ gammaProductCTag[hasOutgoing_, pairForm_] := Which[
   True, None
 ];
 
+gammaProductCTagForRank::usage =
+  "gammaProductCTagForRank[hasOutgoing, pairForm, rank] returns the C tag for one emitted slot, refining gammaProductCTag with the chain rank. Incoming mixed-chirality (GammaFormUD) slots carry only even ranks, and an untagged even-rank chain has label {X, X} -- two endpoints of the SAME chirality -- which contradicts slotSpinorChiralities[GammaFormUD] = {chiral, antichiral}. Inserting CUDHold supplies the missing flip, so rank 2 emits {CUDHold, GammaDUHold, GammaUDHold} (gammaChainStartIndex already flips the chain start when a C tag is present). Rank 0 is deliberately left untagged: the empty link list is already special-cased to CUD by both gammaProductSpinorChiralities and spinProjectionGammaFactorMatrixRaw, so {} and {CUDHold} denote the same matrix and keeping {} preserves the emitted form of every existing rank-0 structure.";
+gammaProductCTagForRank[hasOutgoing_, pairForm_, rank_Integer] := Which[
+  TrueQ[hasOutgoing], None,
+  pairForm === GammaFormUD && rank > 0, CUDHold,
+  True, gammaProductCTag[hasOutgoing, pairForm]
+];
+
 gammaChainStartIndex::usage =
   "gammaChainStartIndex[emitBaseForm, cTag] returns the chain start index after optional C insertion.";
 gammaChainStartIndex[emitBaseForm_, pairForm_, hasOutgoing_, None] := emittedChainStartIndex[emitBaseForm, pairForm, hasOutgoing];
@@ -875,7 +883,7 @@ buildGammaAntisymmetricProduct[
   emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
 ] := Module[
   {cTag, startIndex, links, lastIndexType, tailHead},
-  cTag = gammaProductCTag[hasOutgoing, pairForm];
+  cTag = gammaProductCTagForRank[hasOutgoing, pairForm, Length[vectorIndices]];
   startIndex = gammaChainStartIndex[emitBaseForm, pairForm, hasOutgoing, cTag];
   {links, lastIndexType} = buildGammaLinks[startIndex, vectorIndices];
   If[TrueQ[includeGamma11],
@@ -948,7 +956,7 @@ buildGammaFactorData0::usage =
 buildGammaFactorData0[
   emitBaseForm_, pairForm_, hasOutgoing_, vectorIndices_List, spinor1_, spinor2_, includeGamma11_ : False
 ] := Module[{cTag, startIndex, links, lastIndexType, tailHead, allLinks, vectorLinks},
-  cTag = gammaProductCTag[hasOutgoing, pairForm];
+  cTag = gammaProductCTagForRank[hasOutgoing, pairForm, Length[vectorIndices]];
   startIndex = gammaChainStartIndex[emitBaseForm, pairForm, hasOutgoing, cTag];
   {links, lastIndexType} = buildGammaLinks[startIndex, vectorIndices];
   If[TrueQ[includeGamma11],
