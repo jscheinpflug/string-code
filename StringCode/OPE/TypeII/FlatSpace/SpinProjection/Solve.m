@@ -509,17 +509,6 @@ solveSectorArtifact[artifact_Association, seed_] := Module[
   If[varCount == 0,
     Return[spinProjectionSolveResult0[0, {}, {}, {}, {}, 0, 0, 0, True]]
   ];
-  If[targetWeight === None,
-    targetWeight = weight - Total[
-      spinProjectionExpressionWeight[#, sector] & /@ spinProjectionConcreteInputs[
-        artifact,
-        {
-          Developer`ToPackedArray[ConstantArray[1, Length[Lookup[artifact, "FreeSpinSymbols", {}]]]],
-          Developer`ToPackedArray[ConstantArray[1, Length[Lookup[artifact, "FreeVectorGroups", {}]]]]
-        }
-      ]
-    ]
-  ];
   nextCandidate = spinProjectionAssignmentIterator[artifact, seed];
   If[nextCandidate === $Failed,
     Return[spinProjectionSolveResult0[varCount, ConstantArray[0, varCount], {}, {}, {}, 0, 0, 0, False]]
@@ -527,12 +516,25 @@ solveSectorArtifact[artifact_Association, seed_] := Module[
   While[
     Length[basis["Pivots"]] < varCount && (candidate = nextCandidate[]) =!= EndOfFile,
     visitedCandidates++;
+    inputs = spinProjectionConcreteInputs[artifact, candidate];
+    (* The deferred target weight is the OPE exponent shift: the requested output
+       weight minus the total weight of the concrete inputs. It must be read off a
+       NON-DEGENERATE assignment. Deriving it from a fixed all-ones probe (the
+       previous behaviour) gives every free vector group the same index, so two or
+       more psi's in one sector annihilate each other, the vanished factor is
+       weighted 0 instead of its true weight, and the projector then selects an
+       exponent no term carries -- every row gets rhs 0 and the whole sector
+       silently projects to zero. Weights do not depend on WHICH non-degenerate
+       assignment is used, so the first one that survives fixes it for good. *)
+    If[targetWeight === None,
+      If[MemberQ[inputs, 0], Continue[]];
+      targetWeight = weight - Total[spinProjectionExpressionWeight[#, sector] & /@ inputs]
+    ];
     accepted = spinProjectionArtifactCandidateRows0[artifact, candidate, basis, seed];
     If[accepted["Rows"] === {}, Continue[]];
     acceptedCandidates++;
     acceptedRows += Length[accepted["Rows"]];
     basis = accepted["Basis"];
-    inputs = spinProjectionConcreteInputs[artifact, candidate];
     lhs = spinProjectionProjectInputs[sector, weight, targetWeight, inputs];
     lhsAssoc = spinProjectionOperatorAssociation[lhs];
     rows = Join[rows, accepted["Rows"]];
