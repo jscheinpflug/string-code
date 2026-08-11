@@ -40,7 +40,7 @@ positionSymbolNameQ[name_String] := AnyTrue[
   $canonicalizeDummiesPositionPatterns, StringMatchQ[name, #] &
 ];
 
-$canonicalizeDummiesProtectedPatterns::usage = "$canonicalizeDummiesProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming symbols that must never be treated as Einstein dummies by canonicalizeDummies: physical parameters and moduli such as the plumbing coordinates q1/qbar1/r0, the string scale \[Alpha]p, and the worldsheet moduli t$n/tbar$n. It gates BOTH detection routes \[Dash] einsteinCandidatesIn (the \"appears exactly twice\" heuristic) and canonicalizeOneTermDummies' sysDummies (the \"$\"-named Module-symbol route) \[Dash] because a protected symbol may be caught by either. Extend it when introducing a new named parameter that can appear exactly twice in a term, or a new Module-generated symbol that is not a term-local Einstein index.";
+$canonicalizeDummiesProtectedPatterns::usage = "$canonicalizeDummiesProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming symbols that must never be treated as Einstein dummies by canonicalizeDummies: physical parameters and moduli such as the plumbing coordinates q1/qbar1/r0, the string scale \[Alpha]p, the worldsheet moduli t$n/tbar$n, and the external momenta k1/k2/... of plane-wave vertices. It gates BOTH detection routes \[Dash] einsteinCandidatesIn (the \"appears exactly twice\" heuristic) and canonicalizeOneTermDummies' sysDummies (the \"$\"-named Module-symbol route) \[Dash] because a protected symbol may be caught by either. Extend it when introducing a new named parameter that can appear exactly twice in a term, or a new Module-generated symbol that is not a term-local Einstein index.";
 $canonicalizeDummiesProtectedPatterns = {
   "q" ~~ ("" | DigitCharacter ..) ~~ ("" | "bar"),
   "r" ~~ DigitCharacter ..,
@@ -50,7 +50,16 @@ $canonicalizeDummiesProtectedPatterns = {
      across terms, not term-local Einstein indices: renaming them per-term in order of first
      appearance gives the same modulus different names in different terms and silently corrupts
      the expression. Mirrors $projectionStrandProtectedPatterns in Brackets/TypeII. *)
-  ("t" | "tbar") ~~ "$" ~~ DigitCharacter ..
+  ("t" | "tbar") ~~ "$" ~~ DigitCharacter ..,
+  (* External momenta k1, k2, ... of plane-wave vertices. They are EXTERNAL LABELS shared across
+     terms, not term-local Einstein indices, but they occur as bare leaves (inside dot[k1,k2],
+     dot[k1,der[f]], expX[k1,...]) and so are visible to the "appears exactly twice" heuristic.
+     Whether they trip it depends on how many of those factors a term happens to carry: in the
+     raw corrKGKExp export each momentum appears three times and is safe, but once the
+     Koba-Nielsen exponentials carrying dot[k,der[H]] are substituted away the count drops to two
+     and canonicalizeDummies renames the momenta into \[Mu]Canon dummies, silently destroying the
+     kinematics. Protect them unconditionally rather than relying on the count. *)
+  "k" ~~ DigitCharacter ..
 };
 
 protectedSymbolNameQ::usage = "protectedSymbolNameQ[name] checks whether a symbol name matches $canonicalizeDummiesProtectedPatterns and is therefore exempt from Einstein-dummy detection.";
