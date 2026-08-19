@@ -366,7 +366,7 @@ Corr::spinstruct =
   "Symbolic spin correlator: tensor structure `1` of `2` could not be evaluated at the physical chiralities -- a rigid gamma factor's link chirality disagrees with the external chirality assignment (e.g. an opposite-chirality two-gamma, which this link grammar cannot express). This is a representation-theory obstruction, not a sampling problem. Leaving Corr inert.";
 
 Corr::spinprobes =
-  "Symbolic spin correlator: exhausted `1` sampling attempts having found only `2` charge-saturating probes (reached rank `3` of `4` structures, with `5` of the `6` verification rows needed). Charge-saturating index assignments are rare, so this is most likely an insufficient sampling budget rather than a physics obstruction; if the rank is stuck below `4` the structures may instead be degenerate on the saturating set. Leaving Corr inert.";
+  "Symbolic spin correlator: exhausted `1` sampling attempts (`2` usable probes) reaching rank `3` of `4` structures, with `5` of the `6` verification rows needed. Every probe -- vanishing or not -- is retained as an equation, so this is not a sampling-yield problem; raising the budget is unlikely to help. A rank stuck below `4` means the structure basis is over-complete and must be reduced to an independent set upstream, in findIndependentTensorStructures. Leaving Corr inert.";
 
 Corr::spinsolve =
   "Symbolic spin correlator: the linear solve for the `1` z-functions failed on a full-rank system. Leaving Corr inert.";
@@ -379,7 +379,7 @@ corrSymbolicSpinDriver0::usage = "corrSymbolicSpinDriver0[ops] computes a symbol
 corrSymbolicSpinDriver0[ops_List] := Module[
   {sectors, holoSpin, antiSpin, holoVec, antiVec,
    spinExternals, vectorExternals, chiralityMap, structs, kDim, rows = {}, gvals = {},
-   extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 4000, usable = 0,
+   extraRows = {}, extraG = {}, rank = 0, attempts = 0, maxAttempts = 12000, usable = 0,
    sa, va, row, g, fvec, badStruct, badCount, verified = True, verifyTarget = 4,
    spinOps, otherOps, spectator, allFields, sign,
    holoSpinFields, antiSpinFields, holoOther, antiOther, satH, satA},
@@ -444,13 +444,24 @@ corrSymbolicSpinDriver0[ops_List] := Module[
        assignment through psi, hence the per-draw enumeration. *)
     satH = corrSaturatingAssignments0[holoSpinFields, holoOther /. KeyValueMap[Rule, va], expH];
     satA = corrSaturatingAssignments0[antiSpinFields, antiOther /. KeyValueMap[Rule, va], expHt];
-    If[satH === {} || satA === {}, Continue[]];
-    sa = Association[Join[
-      Thread[(#["Label"] & /@ holoSpin) -> RandomChoice[satH]],
-      Thread[(#["Label"] & /@ antiSpin) -> RandomChoice[satA]]
-    ]];
-    g = corrNumericCorrelatorAt0[spinOps, spinExternals, sa, va];
-    If[g === 0 || ! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
+    (* An empty saturating set means NO spinor assignment saturates for this vector
+       draw, so the correlator vanishes identically in sa. That is exact arithmetic on
+       the weight vectors, not a numeric evaluation -- the zero is a theorem. Record it
+       as a guaranteed zero row rather than discarding the draw. *)
+    If[satH === {} || satA === {},
+      sa = Association[Thread[(#["Label"] & /@ spinExternals) ->
+             RandomChoice[Range[16], Length[spinExternals]]]];
+      g = 0,
+      sa = Association[Join[
+        Thread[(#["Label"] & /@ holoSpin) -> RandomChoice[satH]],
+        Thread[(#["Label"] & /@ antiSpin) -> RandomChoice[satA]]
+      ]];
+      g = corrNumericCorrelatorAt0[spinOps, spinExternals, sa, va]];
+    (* Keep g === 0: a vanishing probe is a perfectly good equation Sum_k row_k f_k == 0,
+       and it is precisely the constraint the saturating set cannot supply. Discarding
+       these was what pinned the rank far below kDim (measured 34/76 vs 70/76 on the
+       psi^3 S S psi^3 four-point). Only genuinely unevaluated results are skipped. *)
+    If[! FreeQ[g, Corr] || ! FreeQ[g, R], Continue[]];
     usable++;
     row = Table[corrResolveStructure0[structs[[k]], sa, va, vectorExternals, chiralityMap], {k, kDim}];
     (* A structure that will not resolve is a representation-theory obstruction and
@@ -465,6 +476,14 @@ corrSymbolicSpinDriver0[ops_List] := Module[
       If[rank >= kDim, AppendTo[extraRows, row]; AppendTo[extraG, g]]
     ]
   ];
+  (* Full rank is required. Truncating at a "settled" rank and solving the
+     underdetermined system was tried and does NOT work: the rank has a long tail, so
+     stagnation measures sampler luck rather than the intrinsic rank (raising the
+     cutoff moved the settled rank 70 -> 72 on the psi^3 S S psi^3 four-point), and the
+     directions left unconstrained are not pure gauge -- held-out verification failed on
+     a structured rational residual at both cutoffs. If rank sticks below kDim the
+     structure basis is over-complete and must be reduced to an independent set
+     UPSTREAM, in findIndependentTensorStructures; it cannot be fixed here. *)
   If[rank < kDim || Length[extraRows] < verifyTarget,
     Message[Corr::spinprobes, attempts, usable, rank, kDim, Length[extraRows], verifyTarget];
     Return[corrSymbolicSpinFailed0]
