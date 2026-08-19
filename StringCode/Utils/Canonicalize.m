@@ -40,7 +40,7 @@ positionSymbolNameQ[name_String] := AnyTrue[
   $canonicalizeDummiesPositionPatterns, StringMatchQ[name, #] &
 ];
 
-$canonicalizeDummiesProtectedPatterns::usage = "$canonicalizeDummiesProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming symbols that must never be treated as Einstein dummies by canonicalizeDummies: physical parameters and moduli such as the plumbing coordinates q1/qbar1/r0, the string scale \[Alpha]p, the worldsheet moduli t$n/tbar$n, and the external momenta k1/k2/... of plane-wave vertices. It gates BOTH detection routes \[Dash] einsteinCandidatesIn (the \"appears exactly twice\" heuristic) and canonicalizeOneTermDummies' sysDummies (the \"$\"-named Module-symbol route) \[Dash] because a protected symbol may be caught by either. Extend it when introducing a new named parameter that can appear exactly twice in a term, or a new Module-generated symbol that is not a term-local Einstein index.";
+$canonicalizeDummiesProtectedPatterns::usage = "$canonicalizeDummiesProtectedPatterns is the list of string patterns (matched via StringMatchQ) naming symbols that must never be treated as Einstein dummies by canonicalizeDummies: physical parameters and moduli such as the plumbing coordinates q1/q1bar/r0, the string scale \[Alpha]p, the worldsheet moduli t$n/tbar$n, the external momenta k1/k2/... of plane-wave vertices, and the bare external index labels m/p used when a vertex's tensor slots are collapsed onto one symbol. It gates BOTH detection routes \[Dash] einsteinCandidatesIn (the \"appears exactly twice\" heuristic) and canonicalizeOneTermDummies' sysDummies (the \"$\"-named Module-symbol route) \[Dash] because a protected symbol may be caught by either. Extend it when introducing a new named parameter that can appear exactly twice in a term, or a new Module-generated symbol that is not a term-local Einstein index.";
 $canonicalizeDummiesProtectedPatterns = {
   "q" ~~ ("" | DigitCharacter ..) ~~ ("" | "bar"),
   "r" ~~ DigitCharacter ..,
@@ -59,7 +59,17 @@ $canonicalizeDummiesProtectedPatterns = {
      Koba-Nielsen exponentials carrying dot[k,der[H]] are substituted away the count drops to two
      and canonicalizeDummies renames the momenta into \[Mu]Canon dummies, silently destroying the
      kinematics. Protect them unconditionally rather than relying on the count. *)
-  "k" ~~ DigitCharacter ..
+  "k" ~~ DigitCharacter ..,
+  (* Bare m and p: the EXTERNAL index labels used when a vertex's tensor slots are collapsed onto
+     a single symbol (e.g. Kon1[m,m,m,m] against Kon2[p,p,p,p] for a trace/singlet contraction).
+     They are shared across terms, not term-local Einstein indices, but their per-term occurrence
+     count varies: in a 3-point KGK export m appeared twice in 119 of 172 terms and more often in
+     the remaining 53, so canonicalizeDummies renamed it to \[Mu]Canon in some terms and left it
+     in others. The sum then carries the same label under two names, and every downstream rule
+     keyed on it (transversality cuts such as MemberQ[list, m | p], \[Delta][m,p] substitutions)
+     fires on only part of the expression. Exact match only: p1/p2/s1/s2 and friends ARE genuine
+     per-term dummies in the uncollapsed exports and must stay canonicalizable. *)
+  "m" | "p"
 };
 
 protectedSymbolNameQ::usage = "protectedSymbolNameQ[name] checks whether a symbol name matches $canonicalizeDummiesProtectedPatterns and is therefore exempt from Einstein-dummy detection.";
