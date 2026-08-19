@@ -146,8 +146,14 @@ mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, k
     ],
     fields
   ];
+  (* Replace only at level 1: the merged-exponential placeholders are the
+     two-element {head, coord} keys stored directly in sequence. A ReplaceAll
+     here descends into the fields themselves and corrupts any two-element list
+     whose first element is a Symbol -- in particular a ProfileX Taylor
+     derivative list {mu1, mu2}, which it rewrites as mu1[sums[{mu1,mu2}], mu2]
+     with sums[...] an absent-key Missing. *)
   DeleteCases[
-    sequence /. key : {head_Symbol, coord_} :> head[sums[key], coord],
+    Replace[sequence, key : {head_Symbol, coord_} :> head[sums[key], coord], {1}],
     1
   ]
 ];
