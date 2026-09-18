@@ -41,6 +41,8 @@ OPEProjected::spinsolve =
   "Could not determine a unique spin-field projection in the `1` sector after `2` probe attempts.";
 OPEProjected::incomplete =
   "Could not determine a complete spin-field projection in the `1` sector after `2` candidate probes (`3`/`4` pivots).";
+OPEProjected::validation =
+  "The `1` spin-field coefficient fit failed mandatory validation (`2`). No solution is returned. Inspect spinProjectionLastSolveResult in the Private context for component diagnostics.";
 
 hasSpinFieldQ::usage = "Checks whether a normal-ordered operator contains TypeII spin fields S or St.";
 hasSpinFieldQ[Ra_ /; RTest[Ra]] := AnyTrue[List @@ Ra, MemberQ[{S, St}, Head[#]] &];
@@ -163,6 +165,10 @@ sectorExprFromArtifact0[artifact_, seed_] := Which[
     Module[{result, expr},
       result = solveSectorArtifact[artifact, seed];
       If[!TrueQ[result["CompleteQ"]],
+        If[TrueQ[Lookup[result, "FitCompleteQ", False]],
+          Message[OPEProjected::validation, artifact["Sector"], Lookup[result["Validation"], "Status", "Failed"]];
+          Return[$Failed]
+        ];
         Message[
           OPEProjected::incomplete,
           artifact["Sector"],
@@ -203,7 +209,7 @@ OPEProjectedHolo[wH_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasColla
   {seed, ops = {Ra}, projectedHolo, spectatorAnti},
   seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
   projectedHolo = spinProjectionSectorExpr0["Holo", ops, wH, seed];
-  If[projectedHolo === $Failed, Return[Unevaluated[OPEProjectedHolo[wH][Ra, opts]]]];
+  If[projectedHolo === $Failed, Return[$Failed]];
   spectatorAnti = spinProjectionSpectatorExpr0["Anti", ops];
   postProcessProjectedOPE0[spinProjectionOverallSign0[ops] multiplyFactors[projectedHolo, spectatorAnti]]
 ];
@@ -212,7 +218,7 @@ OPEProjectedAntiHolo[wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasC
   {seed, ops = {Ra}, spectatorHolo, projectedAnti},
   seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
   projectedAnti = spinProjectionSectorExpr0["Anti", ops, wA, seed];
-  If[projectedAnti === $Failed, Return[Unevaluated[OPEProjectedAntiHolo[wA][Ra, opts]]]];
+  If[projectedAnti === $Failed, Return[$Failed]];
   spectatorHolo = spinProjectionSpectatorExpr0["Holo", ops];
   postProcessProjectedOPE0[spinProjectionOverallSign0[ops] multiplyFactors[spectatorHolo, projectedAnti]]
 ];
@@ -222,9 +228,9 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && AnyTrue[{Ra}, hasSpinF
   seed = Replace[Lookup[Association[Join[Options[OPEProjected], {opts}]], "RandomSeed", Automatic], Automatic -> spinProjectionCompiledSeed];
   artifacts = buildProjectedArtifacts[{Ra}, wH, wA, seed];
   hExpr = sectorExprFromArtifact0[artifacts["Holo"], seed];
-  If[hExpr === $Failed, Return[Unevaluated[OPEProjected[wH, wA][Ra]]]];
+  If[hExpr === $Failed, Return[$Failed]];
   aExpr = sectorExprFromArtifact0[artifacts["Anti"], seed];
-  If[aExpr === $Failed, Return[Unevaluated[OPEProjected[wH, wA][Ra]]]];
+  If[aExpr === $Failed, Return[$Failed]];
   postProcessProjectedOPE0[artifacts["Sign"] combineChiral[hExpr, aExpr]]
 ];
 
@@ -265,3 +271,4 @@ OPEProjected[wH_, wA_][Ra__ /; (And @@ (RTest /@ {Ra}) && !AnyTrue[{Ra}, hasColl
 
 End[];
 EndPackage[];
+

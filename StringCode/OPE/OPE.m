@@ -32,7 +32,9 @@ projectionExponentReplacement = {};
 
 normalizeScalingParameter[expr_, parameter_] := FixedPoint[
   ReplaceAll[#, {
-    s_Plus /; AllTrue[List @@ s, MatchQ[#, parameter*__] &] :>
+    (* Include a bare parameter: after fixing an insertion at unit position,
+       a scaled difference has the form parameter - w parameter. *)
+    s_Plus /; AllTrue[List @@ s, MatchQ[#, parameter | parameter*__] &] :>
       parameter Total[(# / parameter) & /@ (List @@ s)]
   }] &,
   expr

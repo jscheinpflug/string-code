@@ -832,7 +832,9 @@ normalizeScalingParameterForModeProjection[expr_, parameter_] := FixedPoint[
   ReplaceAll[
     #,
     {
-      sum_Plus /; AllTrue[List @@ sum, MatchQ[#, parameter*__] &] :>
+      (* Include a bare parameter, as in parameter - w parameter after a
+         world-sheet insertion has been specialized to unit position. *)
+      sum_Plus /; AllTrue[List @@ sum, MatchQ[#, parameter | parameter*__] &] :>
         parameter Total[(# / parameter) & /@ (List @@ sum)]
     }
   ] &,

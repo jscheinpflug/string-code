@@ -61,7 +61,33 @@ sparseGammaMatrixInverse::usage =
 sparseGammaMatrixInverse[matrix_SparseArray] := SparseArray[Inverse[Normal[matrix]]];
 
 
+gammaLocalCocycleConventionVersion::usage =
+  "gammaLocalCocycleConventionVersion identifies the picture-dressed vector convention with ordered local cocycles (version 2).";
+gammaLocalCocycleConventionVersion = 2;
+
+gammaLegacyVectorIndex::usage =
+  "gammaLegacyVectorIndex[mu] maps a local-cocycle vector label to the frozen version-1 vector label.";
+gammaLegacyVectorIndex[mu_Integer?validGammaIndexQ] := If[mu <= 5, mu + 5, mu - 5];
+
+gammaLegacyVectorSign::usage =
+  "gammaLegacyVectorSign[mu] is the sign in the version-2 to version-1 dressed-vector rotation.";
+gammaLegacyVectorSign[mu_Integer?validGammaIndexQ] := If[mu <= 5, 1, -1];
+
+spinFieldConventionDataVersion::usage =
+  "spinFieldConventionDataVersion is the convention version declared by the loaded frozen spin-field data; untagged data are version 1.";
+spinFieldConventionDataVersion = 1;
 Get[FileNameJoin[{DirectoryName[$InputFileName], "SpinFieldConventionData.m"}]];
+
+gammaSparseMatricesInLocalConvention::usage =
+  "gammaSparseMatricesInLocalConvention[rules] imports all ten frozen mixed gamma matrices into the current local-cocycle convention.";
+gammaSparseMatricesInLocalConvention[rules_List] := Module[{matrices = sparseGammaMatrixFromRules /@ rules},
+  Switch[spinFieldConventionDataVersion,
+    1, Table[gammaLegacyVectorSign[mu] matrices[[gammaLegacyVectorIndex[mu]]], {mu, gammaVectorDimension}],
+    gammaLocalCocycleConventionVersion, matrices,
+    _, Message[gammaSparseMatricesInLocalConvention::version, spinFieldConventionDataVersion]; Abort[]
+  ]
+];
+gammaSparseMatricesInLocalConvention::version = "Unsupported frozen spin-field convention version `1`.";
 
 
 CUDSparseData::usage =
@@ -96,7 +122,7 @@ CDUData = denseGammaMatrixFromSparse[CDUSparseData];
 
 gammaUDSparseData::usage =
   "gammaUDSparseData is the exact list of ten sparse mixed chiral-to-antichiral gamma matrices extracted from the picture-dressed e^-phi psi with e^-3 phi/2 Sdot OPE coefficient.";
-gammaUDSparseData = sparseGammaMatrixFromRules /@ GammaUDOPEDataRules;
+gammaUDSparseData = gammaSparseMatricesInLocalConvention[GammaUDOPEDataRules];
 
 
 gammaUDData::usage =
@@ -106,7 +132,7 @@ gammaUDData = denseGammaMatrixFromSparse /@ gammaUDSparseData;
 
 gammaDUSparseData::usage =
   "gammaDUSparseData is the exact list of ten sparse mixed antichiral-to-chiral gamma matrices extracted from the picture-dressed e^-phi psi with e^-phi/2 S OPE coefficient.";
-gammaDUSparseData = sparseGammaMatrixFromRules /@ GammaDUOPEDataRules;
+gammaDUSparseData = gammaSparseMatricesInLocalConvention[GammaDUOPEDataRules];
 
 
 gammaDUData::usage =

@@ -14,7 +14,7 @@ Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"];
 Needs["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaProductGrammar`"];
 
 solveSectorArtifact::usage =
-  "solveSectorArtifact[artifact, seed] solves one spin-projection artifact exactly and returns coefficient data, pivot metadata, and witness assignments.";
+  "solveSectorArtifact[artifact, seed] fits coefficients and reports CompleteQ only after mandatory fail-fast and routine regression validation.";
 
 traceSectorArtifact::usage =
   "traceSectorArtifact[artifact, candidate, seed] returns artifact-native row-trace diagnostics for one candidate assignment.";
@@ -473,9 +473,9 @@ traceSectorArtifact[artifact_Association, candidate : {freeSpins_List, freeVecto
   <|"Trace" -> trace, "Exhaustive" -> exhaustive|>
 ];
 
-solveSectorArtifact::usage =
-  "solveSectorArtifact[artifact, seed] solves one spin-projection artifact exactly and returns coefficient data, pivot metadata, and witness assignments.";
-solveSectorArtifact[artifact_Association, seed_] := Module[
+spinProjectionFitSectorArtifact0::usage =
+  "spinProjectionFitSectorArtifact0[artifact, seed] produces an UNVALIDATED fitting candidate, never an accepted public solution.";
+spinProjectionFitSectorArtifact0[artifact_Association, seed_] := Module[
   {
     varCount = Lookup[artifact, "VarCount", Length[Lookup[artifact, "Vars", {}]]],
     mode = Lookup[artifact, "Mode", None],
@@ -1117,7 +1117,24 @@ spinProjectionAssignmentIterator[model_Association, seed_] := Module[
   next
 ];
 
+Get[FileNameJoin[{DirectoryName[$InputFileName], "Validation.m"}]];
+
+solveSectorArtifact::usage =
+  "solveSectorArtifact[artifact, seed] requires a complete fit and both bounded validation phases before returning usable coefficients.";
+solveSectorArtifact[artifact_Association, seed_] := Module[{fit, validation, result},
+  fit = spinProjectionFitSectorArtifact0[artifact, seed];
+  validation = If[TrueQ[fit["CompleteQ"]], spinProjectionValidateSolution0[artifact, fit, seed],
+    <|"PassedQ" -> False, "Status" -> "FitIncomplete", "FailFast" -> <|"PassedQ" -> False, "Status" -> "NotRun"|>, "RoutineRegression" -> <|"PassedQ" -> False, "Status" -> "NotRun"|>|>];
+  result = Join[fit, <|"FitCompleteQ" -> TrueQ[fit["CompleteQ"]], "Validation" -> validation,
+    "ValidationPassedQ" -> TrueQ[validation["PassedQ"]],
+    "CompleteQ" -> (TrueQ[fit["CompleteQ"]] && TrueQ[validation["PassedQ"]])|>];
+  If[!TrueQ[result["CompleteQ"]], result = Join[result, <|"CandidateCoeffVector" -> fit["CoeffVector"], "CoeffVector" -> $Failed|>]];
+  spinProjectionLastSolveResult = result;
+  result
+];
+
 End[];
 
 
 EndPackage[];
+

@@ -169,16 +169,21 @@ Bosonize::usage = "Bosonize[expr] rewrites supported TypeII flat-space fermion a
 Begin["Private`"];
 
 
-flatSpaceContractRules::usage = "flatSpaceContractRules[dim] returns TypeII FlatSpace contraction rules for \\[Delta] tensors.";
-flatSpaceContractRules[dim_] := {\[Delta][\[Mu]_, \[Mu]_] :> dim, \[Delta][\[Mu]_, \[Nu]_]^2 :> dim};
+(* Representation contract (see also Utils/Canonicalize). StringCode's \[Delta] is the metric of an
+   orthonormal Cartesian basis of complexified SO(10), and every summed internal index ranges over
+   Cartesian components; this is why psi[a] dX[a] needs no explicit lower metric. Bare labels such
+   as m, p are fixed polarization directions, not summed coordinate indices: with
+   u[p] = e2 + I e3, u[m] = e2 - I e3 one has \[Delta][p,p] = u[p].u[p] = 0 and \[Delta][m,p] = 2.
+   This is NOT arbitrary coordinate-basis covariance: if summed indices were light-cone coordinate
+   indices, contraction would require the metric and its inverse explicitly. Consequently
+   contraction must (a) never overwrite a fixed label (bare m/p, integers), (b) never read a power
+   of a delta as a component sum, and (c) act only on well-formed Einstein dummies (exactly two
+   occurrences); malformed products are left unchanged with Private`contractDeltaFactors::malformed. *)
 
-Contract[f_, dim_] := f /. flatSpaceContractRules[dim];
+Contract[f_, dim_] := contractTracesDeep[f, dim];
 Contract[f_] := Contract[f, 10];
 
-ContractDelta[f_] := f //. {
-  g_ \[Delta][\[Mu]_, \[Mu]1_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]],
-  g_ \[Delta][\[Mu]1_, \[Mu]_] :> (g /. {\[Mu] -> \[Mu]1}) /; !FreeQ[g, \[Mu]]
-};
+ContractDelta[f_] := FixedPoint[contractDeltasDeep, f];
 
 GammaProductHold[args___] := GammaAntisymmetricProductHold[args];
 

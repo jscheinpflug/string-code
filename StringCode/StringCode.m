@@ -71,10 +71,16 @@ Switch[conventionValue,
 _, Print["There are no such conventions"]];
 
 Switch[bracketValue, 
-"Flat", 
+"Flat",
 Switch[theoryValue,
 "TypeII", AppendTo[userContext, "StringCode`Brackets`TypeII`Flat`"],
 "Bosonic", AppendTo[userContext, "StringCode`Brackets`Bosonic`Flat`"],
+_, Print["No such bracket for theory ", theoryValue]
+],
+"SL2C",
+Switch[theoryValue,
+"TypeII", AppendTo[userContext, "StringCode`Brackets`TypeII`SL2C`"],
+"Bosonic", AppendTo[userContext, "StringCode`Brackets`Bosonic`SL2C`"],
 _, Print["No such bracket for theory ", theoryValue]
 ],
 _, Print["There is no such bracket"]];

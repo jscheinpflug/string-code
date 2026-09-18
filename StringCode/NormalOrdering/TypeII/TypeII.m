@@ -125,6 +125,45 @@ bosonizedSingleFieldTerms[field_] := Module[{raw, terms, parsed},
 ];
 
 
+bosonizedInputSources0::usage =
+  "bosonizedInputSources0[ops] point-splits every repeated same-point same-sector psi subgroup before generic mixed-product bosonization and tags the resulting expressions as already bosonized.";
+bosonizedInputSources0[ops_List] := Module[{counts, seen = <||>, key, group, sources = {}},
+  counts = Counts[Cases[
+    ops,
+    field_ /; MemberQ[{\[Psi], \[Psi]t}, Head[field]] :> {Head[field], (List @@ field)[[-1]]}
+  ]];
+  Scan[
+    Function[field,
+      If[MemberQ[{\[Psi], \[Psi]t}, Head[field]],
+        key = {Head[field], (List @@ field)[[-1]]};
+        If[KeyExistsQ[counts, key] && counts[key] > 1,
+          If[!KeyExistsQ[seen, key],
+            seen[key] = True;
+            group = Select[ops, MemberQ[{\[Psi], \[Psi]t}, Head[#]] && {Head[#], (List @@ #)[[-1]]} === key &];
+            AppendTo[sources, <|"AlreadyBosonized" -> True, "Expr" -> bosonizeSamePointMultiPsiLocal0[R @@ group]|>]
+          ],
+          AppendTo[sources, <|"AlreadyBosonized" -> False, "Expr" -> field|>]
+        ],
+        AppendTo[sources, <|"AlreadyBosonized" -> False, "Expr" -> field|>]
+      ]
+    ],
+    ops
+  ];
+  sources
+];
+
+
+bosonizedSourceTerms0::usage =
+  "bosonizedSourceTerms0[source] parses one tagged bosonization source without applying Bosonize twice to a point-split fermion subgroup.";
+bosonizedSourceTerms0[source_Association] := Module[{raw, terms, parsed},
+  raw = Expand[If[TrueQ[source["AlreadyBosonized"]], source["Expr"], Bosonize[source["Expr"]]]];
+  If[!TrueQ[source["AlreadyBosonized"]] && Head[raw] === Bosonize, Return[$Failed]];
+  terms = If[Head[raw] === Plus, List @@ raw, {raw}];
+  parsed = bosonizedTermSpec /@ terms;
+  If[MemberQ[parsed, $Failed], $Failed, parsed]
+];
+
+
 mergeBosonizedExponentials::usage = "mergeBosonizedExponentials[fields] merges same-head exponentials inserted at the same coordinate by adding charges.";
 (* Preserve the left-to-right order of ordinary factors while collecting each
    same-point expH/expHt slot once. The stored sequence records where each
@@ -159,8 +198,23 @@ mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, k
 ];
 
 
-bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] returns the scalar prefactor used when bosonizing one normal-ordered tuple; the current convention inserts no internal cocycles.";
-bosonizedCocycleFactor[combo_List] := 1;
+bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] multiplies ordered internal exponential cocycles separately at each point in each chiral sector before charges are merged.";
+bosonizedCocycleFactor[combo_List] := Module[{groups, charges},
+  groups = GatherBy[
+    Select[Flatten[Lookup[combo, "fields"], 1], bosonizedExponentialFieldQ],
+    {Head[#], #[[2]]} &
+  ];
+  Times @@ Map[
+    Function[group,
+      charges = First /@ group;
+      Times @@ Flatten[Table[
+        cocycle[charges[[i]], charges[[j]]],
+        {i, Length[charges] - 1}, {j, i + 1, Length[charges]}
+      ]]
+    ],
+    groups
+  ]
+];
 
 
 bosonizedTupleExpression::usage = "bosonizedTupleExpression[combo] rebuilds one bosonized tuple of term data as a scalar or normal-ordered product.";
@@ -272,14 +326,15 @@ totalAntiHolPicture[Times[a_, Ra_/;RTest[Ra]]] := totalAntiHolPicture[Ra];
 GSOParity[Ra_/;RTest[Ra]]:= Times @@ Map[GSOParity, List @@ Ra];
 GSOParity[Times[a_, Ra_/;RTest[Ra]]] := GSOParity[Ra];
 
-Bosonize[Ra_ /; RTest[Ra]] := Module[{ops = List @@ Ra, termLists, tuples},
+Bosonize[Ra_ /; RTest[Ra]] := Module[{ops = List @@ Ra, sources, termLists, tuples},
   If[samePointPureFieldProductQ0[ops, \:03c8] || samePointPureFieldProductQ0[ops, \:03c8t],
     Return[bosonizeSamePointMultiPsiLocal0[Ra]]
   ];
   (* Bosonize each input field independently, form all term combinations, then
      rebuild one normal-ordered tuple per combination so coincident bosonized
      exponentials merge only after every source field has contributed. *)
-  termLists = bosonizedSingleFieldTerms /@ (List @@ Ra);
+  sources = bosonizedInputSources0[ops];
+  termLists = bosonizedSourceTerms0 /@ sources;
   If[MemberQ[termLists, $Failed], Return[Unevaluated[Bosonize[Ra]]]];
   tuples = Tuples[termLists];
   Expand[Total[bosonizedTupleExpression /@ tuples]]

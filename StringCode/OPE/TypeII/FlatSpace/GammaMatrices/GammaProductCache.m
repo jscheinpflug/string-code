@@ -1,3 +1,6 @@
+gammaProductCacheDataConventionVersion::usage =
+  "gammaProductCacheDataConventionVersion identifies the convention of the serialized gamma products; untagged data are version 1.";
+gammaProductCacheDataConventionVersion = 1;
 Get[FileNameJoin[{DirectoryName[$InputFileName], "GammaProductCacheData.m"}]];
 
 
@@ -58,15 +61,24 @@ gammaProductCacheLinks[{cTag_, start_Integer}, inds_List] := Module[{dirs},
 
 gammaCachedProductMatrix::usage =
   "gammaCachedProductMatrix[family, inds] returns one cached sparse gamma-product matrix for a canonical family and sorted vector-index tuple.";
-gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Length[inds], familySlot, comboSlot},
+gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Length[inds], familySlot, comboSlot, storedIndices = inds, sign = 1},
   If[rank > gammaVectorDimension || !AllTrue[inds, validGammaIndexQ], Return[$Failed]];
   If[rank > 1 && !DuplicateFreeQ[inds], Return[gammaProductCacheZeroMatrix]];
   If[Sort[inds] =!= inds, Return[$Failed]];
   familySlot = If[KeyExistsQ[gammaProductCacheFamilySlots, family], gammaProductCacheFamilySlots[family], Missing["UnknownFamily"]];
   If[MissingQ[familySlot], Return[$Failed]];
-  comboSlot = gammaProductCacheCombinationIndex[inds];
-  gammaProductCacheData[[familySlot, rank + 1, comboSlot]]
+  Switch[gammaProductCacheDataConventionVersion,
+    1,
+      storedIndices = gammaLegacyVectorIndex /@ inds;
+      sign = (Times @@ (gammaLegacyVectorSign /@ inds)) Signature[Ordering[storedIndices]];
+      storedIndices = Sort[storedIndices],
+    gammaLocalCocycleConventionVersion, Null,
+    _, Message[gammaCachedProductMatrix::version, gammaProductCacheDataConventionVersion]; Return[$Failed]
+  ];
+  comboSlot = gammaProductCacheCombinationIndex[storedIndices];
+  sign gammaProductCacheData[[familySlot, rank + 1, comboSlot]]
 ];
+gammaCachedProductMatrix::version = "Unsupported gamma-product cache convention version `1`.";
 
 
 gammaProductCacheNormalizeLinks::usage =

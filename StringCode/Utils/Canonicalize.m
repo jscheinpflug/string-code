@@ -158,20 +158,60 @@ canonicalizeDummies[expr_] := Module[{expanded, terms},
 
 deltaFactorQ[fac_] := MatchQ[fac, (d_Symbol)[_, _] /; SymbolName[d] === "\[Delta]"];
 
-contractOneDelta::usage = "contractOneDelta[factors] contracts the first Kronecker delta whose index occurs in another factor, replacing the index and removing the delta. Trace deltas \[Delta][a,a] are deliberately left untouched: their value (the spacetime dimension) is a downstream convention (e.g. \[Delta][a_,a_] :> 10), and dropping them here would silently lose dimension factors.";
+(* Representation contract for delta contraction.
+   \[Delta] is the metric of an ORTHONORMAL Cartesian basis (complexified SO(10)), and every summed
+   internal index ranges over Cartesian components. Bare external labels such as m, p are fixed
+   polarization directions (e.g. u[p] = e2 + I e3, u[m] = e2 - I e3, so \[Delta][p,p] = 0 and
+   \[Delta][m,p] = 2), never summed coordinate indices. Substitution contraction is valid ONLY under
+   this contract; if summed indices were light-cone coordinate indices, contraction would need
+   the metric/inverse metric explicitly. The name test deltaContractibleIndexQ says which symbols
+   MAY be summed; the multiplicity guard deltaMalformedIndices checks that a candidate actually is
+   a well-formed Einstein dummy (exactly two occurrences) before any destructive step. *)
+
+deltaContractibleIndexQ::usage = "deltaContractibleIndexQ[index] is True when index is a symbol whose name is not protected by $canonicalizeDummiesProtectedPatterns, i.e. it MAY be a summed Cartesian index. Protected external labels (bare m, p) and literal components (integers) are fixed values and are never overwritten. This is a name test only: the role of an index (exactly two occurrences in its product) is checked separately by deltaMalformedIndices before any contraction, trace or square reduction.";
+deltaContractibleIndexQ[s_Symbol] := !protectedSymbolNameQ[SymbolName[s]];
+deltaContractibleIndexQ[_] := False;
+
+deltaIndexOccurrences::usage = "deltaIndexOccurrences[expr, s] counts occurrences of the symbol s in expr as an Einstein index: integer powers count with multiplicity, alternative summands of a Plus count as their maximum (distributivity), heads are ignored, and the profile identity inside der[...] (a label copy such as dot[der[H[a,b]], der[K[..]]], renamed consistently by substitution) is not counted, whereas the slot of der[f][a] is.";
+deltaIndexOccurrences[e_, s_] := Which[
+  e === s, 1,
+  AtomQ[e], 0,
+  MatchQ[e, (d_Symbol)[_] /; SymbolName[d] === "der"], 0,
+  Head[e] === Plus, Max[deltaIndexOccurrences[#, s] & /@ List @@ e],
+  Head[e] === Power && IntegerQ[e[[2]]] && e[[2]] > 0, e[[2]] deltaIndexOccurrences[e[[1]], s],
+  True, Total[deltaIndexOccurrences[#, s] & /@ List @@ e]
+];
+
+deltaMalformedIndices::usage = "deltaMalformedIndices[factors] returns {{index, occurrences}, ...} for every contractible index of a delta factor in the product whose occurrence count (deltaIndexOccurrences over the whole product, powers split) exceeds two. A well-formed summed index occurs exactly twice; three or more (a delta cube, a squared delta whose dummy also appears elsewhere, a trace index used elsewhere) has no Einstein meaning, so contraction must not guess.";
+deltaMalformedIndices[factors_List] := Module[{candidates},
+  candidates = Select[
+    DeleteDuplicates @ Flatten[List @@@ Select[factors, deltaFactorQ]],
+    deltaContractibleIndexQ];
+  Select[
+    Function[s, {s, Total[deltaIndexOccurrences[#, s] & /@ factors]}] /@ candidates,
+    #[[2]] > 2 &]
+];
+
+deltaFactorOrPowerQ::usage = "deltaFactorOrPowerQ[f] is True for a delta factor or an integer power of one.";
+deltaFactorOrPowerQ[f_] := deltaFactorQ[f] || MatchQ[f, Power[_?deltaFactorQ, _Integer?Positive]];
+
+contractDeltaFactors::malformed = "Delta contraction left a product unchanged: summed index `1` occurs `2` times (a well-formed Einstein dummy occurs exactly twice). Product: `3`.";
+
+splitDeltaPowers::usage = "splitDeltaPowers[factors] replaces integer powers of delta factors by repeated factors.";
+splitDeltaPowers[factors_List] := Flatten[
+  Replace[factors, Power[d_?deltaFactorQ, n_Integer /; n >= 2] :> ConstantArray[d, n], {1}], 1];
+
+contractOneDelta::usage = "contractOneDelta[factors] contracts the first Kronecker delta one of whose contractible indices (see deltaContractibleIndexQ) also occurs in another factor, including another delta, replacing that index and removing the delta. Delta-only chains such as \[Delta][a,m1] \[Delta][a,m2] therefore collapse to \[Delta][m1,m2] (they used to survive whenever a occurred only inside deltas). Protected labels are never overwritten, so \[Delta][p,a] X[a] K[p,p] gives X[p] K[p,p]. Trace deltas \[Delta][a,a] are deliberately left untouched: their value (the spacetime dimension, or a null-label component) is a downstream convention, and dropping them here would silently lose dimension factors. Callers must pass integer powers of deltas as repeated factors (contractDeltasInTimes does).";
 contractOneDelta[factors_List] := Catch[
-  Module[{a, b, nonDeltaPositions},
+  Module[{a, b, otherPositions},
     Do[
       If[deltaFactorQ[factors[[i]]] && factors[[i, 1]] =!= factors[[i, 2]],
         a = factors[[i, 1]]; b = factors[[i, 2]];
-        nonDeltaPositions = Select[
-          Range[Length[factors]],
-          # =!= i && !deltaFactorQ[factors[[#]]] &
-        ];
-        If[AnyTrue[nonDeltaPositions, !FreeQ[factors[[#]], a] &],
+        otherPositions = Delete[Range[Length[factors]], i];
+        If[deltaContractibleIndexQ[a] && AnyTrue[otherPositions, !FreeQ[factors[[#]], a] &],
           Throw[Delete[factors /. {a -> b}, i]]
         ];
-        If[AnyTrue[nonDeltaPositions, !FreeQ[factors[[#]], b] &],
+        If[deltaContractibleIndexQ[b] && AnyTrue[otherPositions, !FreeQ[factors[[#]], b] &],
           Throw[Delete[factors /. {b -> a}, i]]
         ];
       ],
@@ -181,12 +221,69 @@ contractOneDelta[factors_List] := Catch[
   ]
 ];
 
-contractDeltasInTimes[t_Times] := Module[{factors},
-  factors = FixedPoint[contractOneDelta, List @@ t];
-  Times @@ factors
+contractDeltaFactors::usage = "contractDeltaFactors[factors] contracts the Kronecker deltas of one product given as a factor list. Integer powers of deltas are split first, so \[Delta][p,a]^2 (the image of \[Delta][a,m1] \[Delta][a,m2] after m1,m2 -> p) contracts to the component \[Delta][p,p]. Guarded: if any contractible delta index occurs more than twice (deltaMalformedIndices), a contractDeltaFactors::malformed message is issued and the ORIGINAL factors are returned unchanged. Substitution preserves the exactly-two property, so the guard need only run once.";
+contractDeltaFactors[factors_List] := Module[{split, bad},
+  split = splitDeltaPowers[factors];
+  If[FreeQ[split, _?deltaFactorQ, {1}], Return[factors]];
+  bad = deltaMalformedIndices[split];
+  If[bad =!= {},
+    Message[contractDeltaFactors::malformed, bad[[1, 1]], bad[[1, 2]], Short[Times @@ factors, 2]];
+    Return[factors]
+  ];
+  FixedPoint[contractOneDelta, split]
 ];
 
-contractDeltasInline[expr_] := expr /. t_Times :> contractDeltasInTimes[t];
+contractDeltasInTimes::usage = "contractDeltasInTimes[t] contracts Kronecker deltas inside the product t via contractDeltaFactors (power splitting and malformed-index guard).";
+contractDeltasInTimes[t_Times] := Times @@ contractDeltaFactors[List @@ t];
+
+contractDeltasInline::usage = "contractDeltasInline[expr] contracts deltas in each outermost product of expr, and in delta factors or delta powers that stand alone (e.g. a bare \[Delta][a,p]^2 term). Products nested inside a matched product are not revisited; use contractDeltasDeep for that.";
+contractDeltasInline[expr_] := expr /. {
+  t_Times :> contractDeltasInTimes[t],
+  d_?deltaFactorOrPowerQ :> Times @@ contractDeltaFactors[{d}]
+};
+
+contractDeltasDeep::usage = "contractDeltasDeep[expr] applies contractDeltaFactors to every product and standalone delta (power) at any depth through Plus, Times, integer Power and List, top-down so that each product is guarded in its own context. Used by the TypeII FlatSpace ContractDelta.";
+contractDeltasDeep[e_] := Which[
+  AtomQ[e], e,
+  Head[e] === Times, Times @@ (If[deltaFactorOrPowerQ[#], #, contractDeltasDeep[#]] & /@ contractDeltaFactors[List @@ e]),
+  deltaFactorOrPowerQ[e], Times @@ contractDeltaFactors[{e}],
+  MatchQ[Head[e], Plus | List], contractDeltasDeep /@ e,
+  Head[e] === Power && IntegerQ[e[[2]]], contractDeltasDeep[e[[1]]]^e[[2]],
+  True, e
+];
+
+traceDeltaFactors::usage = "traceDeltaFactors[factors, dim] evaluates delta traces and squares in one product, guarded like contractDeltaFactors: a square \[Delta][a,b]^2 through a contractible index a (occurring only in the square) becomes \[Delta][b,b]; a trace \[Delta][a,a] over a contractible index becomes dim. Traces and squares over fixed labels are components, not the dimension, and are left alone. Malformed products are returned unchanged with a contractDeltaFactors::malformed message.";
+traceDeltaFactors[factors_List, dim_] := Module[{split, bad, pos, d, rest},
+  split = splitDeltaPowers[factors];
+  If[FreeQ[split, _?deltaFactorQ, {1}], Return[factors]];
+  bad = deltaMalformedIndices[split];
+  If[bad =!= {},
+    Message[contractDeltaFactors::malformed, bad[[1, 1]], bad[[1, 2]], Short[Times @@ factors, 2]];
+    Return[factors]
+  ];
+  (* squares: two identical off-diagonal deltas sharing a contractible index *)
+  While[(pos = SelectFirst[Range[Length[split]],
+        deltaFactorQ[split[[#]]] && split[[#, 1]] =!= split[[#, 2]] &&
+          Count[split, split[[#]]] >= 2 &&
+          (deltaContractibleIndexQ[split[[#, 1]]] || deltaContractibleIndexQ[split[[#, 2]]]) &,
+        Missing[]]) =!= Missing[],
+    d = split[[pos]];
+    rest = Delete[split, Take[Position[split, d, {1}, Heads -> False], 2]];
+    split = Append[rest,
+      If[deltaContractibleIndexQ[d[[1]]], Head[d][d[[2]], d[[2]]], Head[d][d[[1]], d[[1]]]]]
+  ];
+  Replace[split, t_?deltaFactorQ /; t[[1]] === t[[2]] && deltaContractibleIndexQ[t[[1]]] :> dim, {1}]
+];
+
+contractTracesDeep::usage = "contractTracesDeep[expr, dim] applies traceDeltaFactors to every product and standalone delta (power) at any depth through Plus, Times, integer Power and List. Used by the TypeII FlatSpace Contract.";
+contractTracesDeep[e_, dim_] := Which[
+  AtomQ[e], e,
+  Head[e] === Times, Times @@ (If[deltaFactorOrPowerQ[#], #, contractTracesDeep[#, dim]] & /@ traceDeltaFactors[List @@ e, dim]),
+  deltaFactorOrPowerQ[e], Times @@ traceDeltaFactors[{e}, dim],
+  MatchQ[Head[e], Plus | List], contractTracesDeep[#, dim] & /@ e,
+  Head[e] === Power && IntegerQ[e[[2]]], contractTracesDeep[e[[1]], dim]^e[[2]],
+  True, e
+];
 
 
 cleanupBracket[expr_] := canonicalizeDummies @ derAppend @ contractDeltasInline[expr];

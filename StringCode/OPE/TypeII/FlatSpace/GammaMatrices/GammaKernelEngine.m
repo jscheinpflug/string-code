@@ -125,6 +125,8 @@ persistentCacheSourceFiles[] := persistentCacheSourceFiles[] = Module[{rootDir},
   rootDir = DirectoryName[DirectoryName[FindFile["StringCode`OPE`TypeII`FlatSpace`GammaMatrices`GammaKernelEngine`"]]];
   FileNameJoin[{rootDir, #}] & /@ {
     "GammaMatrices/GammaMatrices.m",
+    "GammaMatrices/GammaProductCache.m",
+    "GammaMatrices/GammaProductCacheData.m",
     "GammaMatrices/GammaKernelEngine.m",
     "GammaMatrices/SpinFieldConventionData.m",
     "TensorStructures/IndependentTensorStructures.m",

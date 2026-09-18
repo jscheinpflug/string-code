@@ -250,7 +250,7 @@
   },
   {
    "kind": 2,
-   "value": "test25 = Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]] === R[expH[{-1, -1, 0, 0, 0, 0}, z]]/Sqrt[2] + R[expH[{-1, 1, 0, 0, 0, 0}, z]]/Sqrt[2];\nPrint[\"Test 25 (Bosonize[R[e^{-phi} psi]] exact same-point merge): \", If[test25, \"PASSED\", \"FAILED\"]];\ntest25",
+   "value": "test25 = Bosonize[R[exp\\[Phi]f[-1, z], \\[Psi][1, 0, z]]] === -I R[expH[{-1, -1, 0, 0, 0, 0}, z]]/Sqrt[2] + I R[expH[{-1, 1, 0, 0, 0, 0}, z]]/Sqrt[2];\nPrint[\"Test 25 (Bosonize[R[e^{-phi} psi]] exact same-point merge): \", If[test25, \"PASSED\", \"FAILED\"]];\ntest25",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -258,7 +258,7 @@
   },
   {
    "kind": 2,
-   "value": "test26 = Bosonize[R[\\[Psi][1, 0, z], S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -(R[expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2]) - R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\nPrint[\"Test 26 (Bosonize[R[psi, S]] exact same-point OPE basis): \", If[test26, \"PASSED\", \"FAILED\"]];\ntest26",
+   "value": "(* R puts the spin field first; use the ordered spin/vector cocycle after that permutation. *)\ntest26 = Bosonize[R[\\[Psi][1, 0, z], S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -Exp[3 I Pi/4] (R[expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2]) - Exp[-3 I Pi/4] R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\nPrint[\"Test 26 (Bosonize[R[psi, S]] exact same-point OPE basis): \", If[test26, \"PASSED\", \"FAILED\"]];\ntest26",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -266,7 +266,7 @@
   },
   {
    "kind": 2,
-   "value": "test27 = Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], S[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === -R[expH[{-1, 1, 1, 1, 0, 0}, z]];\nPrint[\"Test 27 (Bosonize[R[S, S]] exact same-point merge): \", If[test27, \"PASSED\", \"FAILED\"]];\ntest27",
+   "value": "(* R orders the sPhase field first, with cocycle -I and fermion permutation sign -1. *)\ntest27 = Bosonize[R[S[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, z], S[{{1/2, 1/2, 1/2, -1/2, -1/2}, \"chiral\"}, -1/2, {}, 0, z]]] === I R[expH[{-1, 1, 1, 1, 0, 0}, z]];\nPrint[\"Test 27 (Bosonize[R[S, S]] exact same-point merge): \", If[test27, \"PASSED\", \"FAILED\"]];\ntest27",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -274,7 +274,7 @@
   },
   {
    "kind": 2,
-   "value": "test28 = Bosonize[R[\\[Psi]t[1, 0, zb], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]] === -(R[expHt[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2]) - R[expHt[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2];\nPrint[\"Test 28 (Bosonize[R[psit, St]] exact same-point OPE basis): \", If[test28, \"PASSED\", \"FAILED\"]];\ntest28",
+   "value": "(* R puts the spin field first; use the ordered spin/vector cocycle after that permutation. *)\ntest28 = Bosonize[R[\\[Psi]t[1, 0, zb], St[{{1/2, 1/2, 1/2, 1/2, 1/2}, \"chiral\"}, -1/2, {}, 0, zb]]] === -Exp[3 I Pi/4] (R[expHt[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2]) - Exp[-3 I Pi/4] R[expHt[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, zb]]/Sqrt[2];\nPrint[\"Test 28 (Bosonize[R[psit, St]] exact same-point OPE basis): \", If[test28, \"PASSED\", \"FAILED\"]];\ntest28",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},
@@ -386,7 +386,7 @@
   },
   {
    "kind": 2,
-   "value": "expected39 = (I R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]])/Sqrt[2] - R[dH[1, 0, z], expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2] - R[dH[2, 0, z], expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\ntest39 = Simplify[Bosonize[R[S[sPlus, -1/2, {{1, -1}}, 0, z]]] - expected39] === 0;\nPrint[\"Test 39 (Bosonize[R[S excited]] exact wrapped descendant): \", If[test39, \"PASSED\", \"FAILED\"]];\ntest39",
+   "value": "(* Each positive/negative vector-charge branch acquires +I/-I from the local e^-phi cocycle. *)\nexpected39 = (-R[expH[{-1/2, 3/2, 1/2, 1/2, 1/2, 1/2}, z]])/Sqrt[2] + I R[dH[1, 0, z], expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2] + I R[dH[2, 0, z], expH[{-1/2, -1/2, 1/2, 1/2, 1/2, 1/2}, z]]/Sqrt[2];\ntest39 = Simplify[Bosonize[R[S[sPlus, -1/2, {{1, -1}}, 0, z]]] - expected39] === 0;\nPrint[\"Test 39 (Bosonize[R[S excited]] exact wrapped descendant): \", If[test39, \"PASSED\", \"FAILED\"]];\ntest39",
    "languageId": "wolfram",
    "outputs": [],
    "metadata": {},

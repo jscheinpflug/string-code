@@ -158,6 +158,18 @@ addAntiHoloDerivatives[St[{alpha_, chirality : ("chiral" | "antichiral")}, q_, m
 ProfileXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating Profiles in X";
 ProfileXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating Profiles in X";
 
+freshenTaylorDummies::usage = "freshenTaylorDummies[cached, inputs] renames every Module-generated dummy (name containing $<digits>) that the cached Taylor template introduced itself to a fresh symbol, leaving every symbol that occurs in inputs (the caller's arguments, e.g. a momentum kk$12 or a profile H$7) untouched. Cached templates freeze their dummies, so two retrievals of the same template in one product would otherwise share, and wrongly contract, the same Einstein index; caller-supplied symbols are data, not dummies.";
+freshenTaylorDummies[cached_, inputs_] := Module[{inherited, oldNames, newNames},
+  inherited = DeleteDuplicates @ Cases[inputs, _Symbol, {0, Infinity}, Heads -> True];
+  oldNames = Complement[
+    DeleteDuplicates @ Cases[cached,
+      s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
+      {0, Infinity}, Heads -> True],
+    inherited];
+  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
+  cached /. Thread[oldNames -> newNames]
+];
+
 profileXPolyCached::usage = "profileXPolyCached[profile, n] is the cached symbolic Taylor template behind ProfileXPoly; its Module dummy indices are frozen in the cache and must be freshened on retrieval (see ProfileXPoly).";
 profileXPolyCached[profile_, n_] := profileXPolyCached[profile, n] =
    Expand[derivativeOfExponential[1, n] /. {E^(func[x]) :> 1,
@@ -166,14 +178,7 @@ profileXPolyCached[profile_, n_] := profileXPolyCached[profile, n] =
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, der[profile][\[Mu]] dX[\[Mu], m - 1, x]]}];
 
-ProfileXPoly[profile_, n_] := Module[{cached, oldNames, newNames},
-  cached = profileXPolyCached[profile, n];
-  oldNames = DeleteDuplicates @ Cases[cached,
-     s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
-     {0, Infinity}, Heads -> True];
-  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
-  cached /. Thread[oldNames -> newNames]
-];
+ProfileXPoly[profile_, n_] := freshenTaylorDummies[profileXPolyCached[profile, n], {profile, n}];
        
 profileXPolyTCached::usage = "profileXPolyTCached[profile, n] is the cached symbolic anti-holomorphic Taylor template behind ProfileXPolyT; its Module dummy indices are frozen in the cache and must be freshened on retrieval (see ProfileXPolyT).";
 profileXPolyTCached[profile_, n_] := profileXPolyTCached[profile, n] =
@@ -183,32 +188,31 @@ profileXPolyTCached[profile_, n_] := profileXPolyTCached[profile, n] =
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, der[profile][\[Mu]] dXt[\[Mu], m - 1, x]]}];
 
-ProfileXPolyT[profile_, n_] := Module[{cached, oldNames, newNames},
-  cached = profileXPolyTCached[profile, n];
-  oldNames = DeleteDuplicates @ Cases[cached,
-     s_Symbol /; StringContainsQ[SymbolName[s], "$" ~~ DigitCharacter ..],
-     {0, Infinity}, Heads -> True];
-  newNames = Table[Module[{\[Mu]}, \[Mu]], {Length[oldNames]}];
-  cached /. Thread[oldNames -> newNames]
-];
+ProfileXPolyT[profile_, n_] := freshenTaylorDummies[profileXPolyTCached[profile, n], {profile, n}];
 
 
 expXPoly::usage = "Computes the polynomial in holomorphic derivatives of X one needs when differentiating exponentials in X";
 expXPolyT::usage = "Computes the polynomial in antiholomorphic derivatives of X one needs when differentiating exponentials in X";
 
-expXPoly[k_, n_] := expXPoly[k, n] =
+expXPolyCached::usage = "expXPolyCached[k, n] is the cached symbolic Taylor template behind expXPoly; its Module dummy indices are frozen in the cache and are freshened on retrieval by expXPoly.";
+expXPolyCached[k_, n_] := expXPolyCached[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
-       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]], 
+       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]], {i, 1, p}]],
        Derivative[m_][func][x] :>
        Module[{\[Mu]}, k[\[Mu]] dX[\[Mu], m - 1, x]]}];
-       
-expXPolyT[k_, n_] := expXPolyT[k, n] =
+
+expXPoly[k_, n_] := freshenTaylorDummies[expXPolyCached[k, n], {k, n}];
+
+expXPolyTCached::usage = "expXPolyTCached[k, n] is the cached symbolic anti-holomorphic Taylor template behind expXPolyT; its Module dummy indices are frozen in the cache and are freshened on retrieval by expXPolyT.";
+expXPolyTCached[k_, n_] := expXPolyTCached[k, n] =
    Expand[derivativeOfExponential[I, n] /. {E^(I func[x]) :> 1,
       Power[Derivative[m_][func][x], p_] :>
-       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]], {i, 1, p}]], 
+       Module[{i},Product[Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]], {i, 1, p}]],
        Derivative[m_][func][x] :>
-       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];       
+       Module[{\[Mu]}, k[\[Mu]] dXt[\[Mu], m - 1, x]]}];
+
+expXPolyT[k_, n_] := freshenTaylorDummies[expXPolyTCached[k, n], {k, n}];
 
 (* ::Section:: *)
 (*End*)

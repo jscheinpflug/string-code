@@ -90,6 +90,20 @@ actBRSTAntiHoloAtPos[Ra_ /; RTest[Ra]] := Module[
   brstResult /. {Rb_ /; RTest[Rb] :> (placeAtPointNoScale[zR, zbarR] /@ Rb)}
 ];
 
+(*Linearity of the position-preserving BRST wrappers.  Each wrapper reads a
+  single position off its argument via extractRPos, so it can only accept one
+  R[...] at a time; without these rules a sum or a scalar-prefixed operator
+  silently stays unevaluated.  Mirrors the linearity of actBRSTHolo and
+  actBRSTAntiHolo in Brackets.m.*)
+
+actBRSTHoloAtPos[a_+b_]:= actBRSTHoloAtPos[a] + actBRSTHoloAtPos[b];
+actBRSTHoloAtPos[a_ b_]:= a actBRSTHoloAtPos[b]/;(isScalarFactorQ[a])
+actBRSTHoloAtPos[0] := 0;
+
+actBRSTAntiHoloAtPos[a_+b_]:= actBRSTAntiHoloAtPos[a] + actBRSTAntiHoloAtPos[b];
+actBRSTAntiHoloAtPos[a_ b_]:= a actBRSTAntiHoloAtPos[b]/;(isScalarFactorQ[a])
+actBRSTAntiHoloAtPos[0] := 0;
+
 (*Graded Leibniz distribution of BRST charge over a multi-local product*)
 actBRSTHolo[multiOp_ /; MultiOpTest[multiOp]] := Module[
   {opList, parities, result = 0},

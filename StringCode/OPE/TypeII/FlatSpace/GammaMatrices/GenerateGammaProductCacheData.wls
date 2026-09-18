@@ -65,6 +65,9 @@ cachePath = FileNameJoin[{scriptDir, "GammaProductCacheData.m"}];
 Export[
   cachePath,
   StringJoin[
+    "gammaProductCacheDataConventionVersion = ",
+    ToString[Private`gammaLocalCocycleConventionVersion, InputForm],
+    ";\n",
     "gammaProductCacheDataCompressed::usage =\n",
     "  \"gammaProductCacheDataCompressed is the compressed canonical alternating gamma-product cache data for TypeII flat-space spin contractions.\";\n",
     "gammaProductCacheDataCompressed = ",
