@@ -198,12 +198,7 @@ mergeBosonizedExponentials[fields_List] := Module[{sequence = {}, sums = <||>, k
 ];
 
 
-bosonizedLocalCocyclesEnabledQ::usage = "bosonizedLocalCocyclesEnabledQ selects the local-cocycle convention of LOCAL_COCYCLE_CONVENTION.md (True) or the original convention with no internal cocycles (False). Must agree with gammaLocalCocyclesEnabledQ.";
-bosonizedLocalCocyclesEnabledQ = False;
-
-
-bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] returns the scalar prefactor used when bosonizing one normal-ordered tuple: 1 in the original convention, or the ordered internal exponential cocycles at each point in each chiral sector when bosonizedLocalCocyclesEnabledQ is True.";
-bosonizedCocycleFactor[combo_List] /; !TrueQ[bosonizedLocalCocyclesEnabledQ] := 1;
+bosonizedCocycleFactor::usage = "bosonizedCocycleFactor[combo] multiplies ordered internal exponential cocycles separately at each point in each chiral sector before charges are merged.";
 bosonizedCocycleFactor[combo_List] := Module[{groups, charges},
   groups = GatherBy[
     Select[Flatten[Lookup[combo, "fields"], 1], bosonizedExponentialFieldQ],

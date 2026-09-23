@@ -69,11 +69,9 @@ gammaCachedProductMatrix[family : {_, _Integer}, inds_List] := Module[{rank = Le
   If[MissingQ[familySlot], Return[$Failed]];
   Switch[gammaProductCacheDataConventionVersion,
     1,
-      If[TrueQ[gammaLocalCocyclesEnabledQ],
-        storedIndices = gammaLegacyVectorIndex /@ inds;
-        sign = (Times @@ (gammaLegacyVectorSign /@ inds)) Signature[Ordering[storedIndices]];
-        storedIndices = Sort[storedIndices]
-      ],
+      storedIndices = gammaLegacyVectorIndex /@ inds;
+      sign = (Times @@ (gammaLegacyVectorSign /@ inds)) Signature[Ordering[storedIndices]];
+      storedIndices = Sort[storedIndices],
     gammaLocalCocycleConventionVersion, Null,
     _, Message[gammaCachedProductMatrix::version, gammaProductCacheDataConventionVersion]; Return[$Failed]
   ];

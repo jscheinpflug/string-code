@@ -65,10 +65,6 @@ gammaLocalCocycleConventionVersion::usage =
   "gammaLocalCocycleConventionVersion identifies the picture-dressed vector convention with ordered local cocycles (version 2).";
 gammaLocalCocycleConventionVersion = 2;
 
-gammaLocalCocyclesEnabledQ::usage =
-  "gammaLocalCocyclesEnabledQ selects the rotated version-2 vector labels (True) or the original version-1 frozen labels used unchanged (False). Must agree with bosonizedLocalCocyclesEnabledQ.";
-gammaLocalCocyclesEnabledQ = False;
-
 gammaLegacyVectorIndex::usage =
   "gammaLegacyVectorIndex[mu] maps a local-cocycle vector label to the frozen version-1 vector label.";
 gammaLegacyVectorIndex[mu_Integer?validGammaIndexQ] := If[mu <= 5, mu + 5, mu - 5];
@@ -86,7 +82,7 @@ gammaSparseMatricesInLocalConvention::usage =
   "gammaSparseMatricesInLocalConvention[rules] imports all ten frozen mixed gamma matrices into the current local-cocycle convention.";
 gammaSparseMatricesInLocalConvention[rules_List] := Module[{matrices = sparseGammaMatrixFromRules /@ rules},
   Switch[spinFieldConventionDataVersion,
-    1, If[!TrueQ[gammaLocalCocyclesEnabledQ], matrices, Table[gammaLegacyVectorSign[mu] matrices[[gammaLegacyVectorIndex[mu]]], {mu, gammaVectorDimension}]],
+    1, Table[gammaLegacyVectorSign[mu] matrices[[gammaLegacyVectorIndex[mu]]], {mu, gammaVectorDimension}],
     gammaLocalCocycleConventionVersion, matrices,
     _, Message[gammaSparseMatricesInLocalConvention::version, spinFieldConventionDataVersion]; Abort[]
   ]
