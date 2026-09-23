@@ -104,7 +104,7 @@ expandSpinorDummies[t_] := Module[{ds, doms, labels},
 expandVectorDummies[t_] := Module[{vs = DeleteDuplicates[Cases[t, _?isVectorDummy, Infinity]]},
   If[vs === {}, t, Total[Function[vals, t /. Thread[vs -> vals]] /@ Tuples[Range[10], Length[vs]]]]];
 concreteQB[vertex_, subs_] := Module[{ex},
-  ex = Expand[ContractDelta[Expand[Private`actBRSTHolo[vertex] + Private`actBRSTAntiHolo[vertex]]]] /. subs /. \[Delta][x_, x_] :> 10;
+  ex = Expand[ContractDelta[Expand[Private`actBRSTHolo[vertex] + Private`actBRSTAntiHolo[vertex]]]] /. subs /. \[Delta][x_Symbol, x_Symbol] :> 10 /. \[Delta][i_Integer, j_Integer] :> KroneckerDelta[i, j];
   ex = Flatten[termList[Expand[expandVectorDummies[#]]] & /@ termList[ex]];
   ex = Total[Private`spinProjectionEvaluateTensorScalars[expandSpinorDummies[#]] & /@ ex];
   Expand[ex /. \[Delta][i_Integer, j_Integer] :> KroneckerDelta[i, j] /. \[Alpha]p -> 1]];
