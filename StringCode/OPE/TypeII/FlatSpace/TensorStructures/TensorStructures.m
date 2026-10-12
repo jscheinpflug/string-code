@@ -840,6 +840,12 @@ buildDummyIndexSymbols::usage =
   "buildDummyIndexSymbols[count] returns count freshly generated dummy symbols \\[Nu]$nnn in package context. Deliberately NOT memoized: each call must yield symbols distinct from every previous call, otherwise two independently built tensor structures both receive \\[Nu]1 and their contractions collide when the structures are multiplied, producing an index repeated four times that canonicalizeOneTermDummies (which only relabels symbols occurring exactly twice) silently leaves alone.";
 buildDummyIndexSymbols[count_Integer] := Table[Unique[dummyIndexBaseSymbol], {count}];
 
+builtDummyIndexSymbolQ::usage =
+  "builtDummyIndexSymbolQ[s] is True exactly for contraction dummies minted by buildDummyIndexSymbols (\\[Nu]$nnn in the dummyIndexBaseSymbol context).";
+builtDummyIndexSymbolQ[s_Symbol] := Context[s] === Context[Evaluate[dummyIndexBaseSymbol]] &&
+  StringMatchQ[SymbolName[s], SymbolName[Evaluate[dummyIndexBaseSymbol]] ~~ "$" ~~ DigitCharacter ..];
+builtDummyIndexSymbolQ[_] := False;
+
 deltaFactorFromPair::usage = "deltaFactorFromPair[pair] emits one canonical inert \\[Delta] factor.";
 deltaFactorFromPair[pair_List] := Module[{ordered},
   ordered = canonicalizeVectorPair[pair];

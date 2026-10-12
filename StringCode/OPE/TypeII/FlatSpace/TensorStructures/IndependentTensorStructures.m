@@ -265,6 +265,16 @@ associationRelabelParsedCandidateGroups0::usage =
   "associationRelabelParsedCandidateGroups0[groups, rules] relabels cached canonical parsed candidate groups back to caller symbols while preserving group and position metadata.";
 associationRelabelParsedCandidateGroups0[groups_List, rules_List] := (associationRelabelParsedCandidate0[#, rules] & /@ #) & /@ groups;
 
+associationFreshenInternalDummies0::usage =
+  "associationFreshenInternalDummies0[groups] renames every internal contraction dummy (builtDummyIndexSymbolQ) in relabeled candidate groups to freshly minted symbols. The canonical template cache is keyed by shape only, so without this every retrieval -- e.g. the holomorphic and antiholomorphic sectors of one correlator -- would receive the same dummies, and multiplying the two structures repeats an index four times (the collision buildDummyIndexSymbols exists to prevent). Selector-family parse keys use their own canonical placeholders and are left untouched.";
+associationFreshenInternalDummies0[groups_List] := Module[{dummies},
+  dummies = DeleteDuplicates @ Cases[groups, _Symbol?builtDummyIndexSymbolQ, {0, Infinity}, Heads -> True];
+  If[dummies === {},
+    groups,
+    associationRelabelParsedCandidateGroups0[groups, Thread[dummies -> buildDummyIndexSymbols[Length[dummies]]]]
+  ]
+];
+
 associationCandidateTemplate::usage =
   "associationCandidateTemplate[searchData, generatorOpts] returns grouped parsed selector candidates via a canonical template cache and relabeling rules.";
 associationCandidateTemplate[searchData_Association, generatorOpts_List] := Module[
@@ -334,7 +344,7 @@ associationCandidateTemplate[searchData_Association, generatorOpts_List] := Modu
     cachedTemplate["RelabeledParsedCandidateGroups"] = relabeledCache;
     AssociateTo[findIndependentTensorStructuresCanonicalTemplateCache, templateData["CacheKey"] -> cachedTemplate]
   ];
-  relabeledCache["Groups"]
+  associationFreshenInternalDummies0[relabeledCache["Groups"]]
 ];
 
 selectorSparseBasisRecord::usage =
