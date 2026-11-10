@@ -128,6 +128,12 @@ GammaProductHold::usage =
 GammaUDHold::usage =
   "GammaUDHold[mu] denotes an inert single-link gamma block carrying chiral-to-antichiral spinor index flow.";
 
+GammaRamondPictureHold::usage =
+  "GammaRamondPictureHold[] follows a single gamma link to select its cocycle phases for a picture +1 or -1 dressed fermion and a Ramond ground state of opposite GSO parity to the reference gamma table.";
+
+GammaAntichiralPairPictureHold::usage =
+  "GammaAntichiralPairPictureHold[] selects the cocycle phases for the two picture -1/2 antichiral Ramond ground states at the ends of a CDU gamma chain.";
+
 GammaDUHold::usage =
   "GammaDUHold[mu] denotes an inert single-link gamma block carrying antichiral-to-chiral spinor index flow.";
 

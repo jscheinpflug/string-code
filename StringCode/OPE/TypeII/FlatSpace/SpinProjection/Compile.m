@@ -807,6 +807,71 @@ buildProjectedArtifacts[ops_List, wH_, wA_, seed_] := <|
   "Anti" -> buildSectorArtifact["Anti", ops, wA, seed]
 |>;
 
+spinProjectionRamondPictureFamily0::usage =
+  "spinProjectionRamondPictureFamily0[family, vector, incoming, spinHead, outputPicture] selects the picture-aware gamma block for a primary spin output from the specified fermion and incoming spin.";
+spinProjectionRamondPictureFamily0[{op_, tensors_List}, vector_, incoming_, spinHead_, outputPicture_] := Module[
+  {inputIndex, inputChirality, outputChirality, gammaHead, outgoing},
+  {inputIndex, inputChirality} = incoming[[1]];
+  outputChirality = toggleSpinorChirality[inputChirality];
+  gammaHead = If[inputChirality === "antichiral", GammaUDHold, GammaDUHold];
+  outgoing = Cases[op,
+    field_ /; Head[field] === spinHead &&
+      MatchQ[field, _[{_, outputChirality}, outputPicture, {}, 0, _]] :> field[[1, 1]],
+    {1}
+  ];
+  If[Length[outgoing] =!= 1, Return[{op, tensors}]];
+  With[{out = First[outgoing], link = gammaHead[vector], in = inputIndex},
+    {op, (spinProjectionTensorExpr0[#] /.
+      HoldPattern[GammaAntisymmetricProductHold[{link}, out, in]] :>
+        GammaAntisymmetricProductHold[{link, GammaRamondPictureHold[]}, out, in]
+    ) & /@ tensors}
+  ]
+];
+
+spinProjectionAntichiralPairPictureFamily0::usage =
+  "spinProjectionAntichiralPairPictureFamily0[family, spinIndices] selects the picture -1/2 antichiral-pair table on gamma chains joining the two input spinors.";
+spinProjectionAntichiralPairPictureFamily0[{op_, tensors_List}, spinIndices_List] := {
+  op,
+  (spinProjectionTensorExpr0[#] /.
+    (GammaAntisymmetricProductHold[{CDUHold, links__}, left_, right_] /;
+      Sort[{left, right}] === spinIndices) :>
+      GammaAntisymmetricProductHold[{CDUHold, links, GammaAntichiralPairPictureHold[]}, left, right]
+  ) & /@ tensors
+};
+
+spinProjectionSelectPictureGammaData0::usage =
+  "spinProjectionSelectPictureGammaData0[data, ops, spec] selects picture-aware gamma blocks for a dressed fermion with an opposite-GSO Ramond ground state or a pair of antichiral picture -1/2 ground states.";
+spinProjectionSelectPictureGammaData0[data_List, ops_List, spec_Association] := Module[
+  {psiHead = spec["PsiHead"], spinHead = spec["SpinHead"], picture = spec["PictureContribution"],
+   fields, fermionLeg, spinLeg, fermions, spins, fermionPictures, incoming, referencePicture},
+  If[Length[ops] < 2 || data === {}, Return[data]];
+  fields = List @@ # & /@ ops;
+  fermions = Select[Flatten[fields, 1], Head[#] === psiHead &];
+  spins = Select[Flatten[fields, 1], Head[#] === spinHead &];
+  If[fermions === {} && MatchQ[spins, {Repeated[_[{_, "antichiral"}, -1/2, {}, 0, _], {2}]}],
+    With[{indices = Sort[spins[[All, 1, 1]]]},
+      Return[spinProjectionAntichiralPairPictureFamily0[#, indices] & /@ data]
+    ]
+  ];
+  If[Length[ops] =!= 2 || !MatchQ[fermions, {_[_, 0, _]}] ||
+      !MatchQ[spins, {_[{_, "chiral" | "antichiral"}, _Rational, {}, 0, _]}], Return[data]];
+  incoming = First[spins];
+  referencePicture = If[incoming[[1, 2]] === "antichiral", -3/2, -1/2];
+  If[!OddQ[incoming[[2]] - referencePicture], Return[data]];
+  fermionLeg = SelectFirst[fields, MemberQ[#, First[fermions]] &];
+  spinLeg = SelectFirst[fields, MemberQ[#, incoming] &];
+  If[fermionLeg === spinLeg, Return[data]];
+  fermionPictures = DeleteCases[picture /@ fermionLeg, 0];
+  If[
+    !MatchQ[fermionPictures, {1 | -1}] ||
+    DeleteCases[picture /@ spinLeg, 0] =!= {incoming[[2]]},
+    Return[data]
+  ];
+  spinProjectionRamondPictureFamily0[
+    #, fermions[[1, 1]], incoming, spinHead, First[fermionPictures] + incoming[[2]]
+  ] & /@ data
+];
+
 buildSectorArtifact::usage =
   "buildSectorArtifact[sector, ops, targetWeight, seed] builds one cached chiral sector artifact in ClosedForm or SpinProjection mode.";
 buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] := withPersistentCacheBoundary @ Module[
@@ -836,6 +901,7 @@ buildSectorArtifact[sector : ("Holo" | "Anti"), ops_List, targetWeight_, seed_] 
     spec["PictureContribution"],
     seed
   ];
+  data = spinProjectionSelectPictureGammaData0[data, sectorOps, spec];
   artifact = If[
     data === {},
     buildClosedFormSectorArtifact0[sector, sectorOps, targetWeight, {}],

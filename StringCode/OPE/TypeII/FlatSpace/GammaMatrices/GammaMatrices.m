@@ -130,6 +130,15 @@ gammaUDData::usage =
 gammaUDData = denseGammaMatrixFromSparse /@ gammaUDSparseData;
 
 
+(* Shifting both antichiral inputs from -3/2 to -1/2 gives a
+   cocycle phase that factors into one sign for each spin weight. *)
+gammaAntichiralPairPicturePhase::usage =
+  "gammaAntichiralPairPicturePhase is the sparse diagonal cocycle phase for either antichiral endpoint when both spin fields are at picture -1/2.";
+gammaAntichiralPairPicturePhase = SparseArray[
+  Band[{1, 1}] -> ((-1)^((Count[#, -1/2] - 1)/2) & /@ antichiralspins),
+  {gammaSpinorDimension, gammaSpinorDimension}
+];
+
 gammaDUSparseData::usage =
   "gammaDUSparseData is the exact list of ten sparse mixed antichiral-to-chiral gamma matrices extracted from the picture-dressed e^-phi psi with e^-phi/2 S OPE coefficient.";
 gammaDUSparseData = gammaSparseMatricesInLocalConvention[GammaDUOPEDataRules];
@@ -138,6 +147,26 @@ gammaDUSparseData = gammaSparseMatricesInLocalConvention[GammaDUOPEDataRules];
 gammaDUData::usage =
   "gammaDUData is the exact list of ten mixed antichiral-to-chiral gamma matrices extracted from the picture-dressed e^-phi psi with e^-phi/2 S OPE coefficient.";
 gammaDUData = denseGammaMatrixFromSparse /@ gammaDUSparseData;
+
+(* Changing the Ramond picture by an odd integer relative to the reference
+   OPE multiplies each column by the sign of the fermion's matter charge,
+   up to a common phase. In plane i the nonzero charge is -2 s_i. *)
+gammaRamondPictureSparseData::usage =
+  "gammaRamondPictureSparseData[blocks, spinWeights] builds the ten sparse gamma blocks for the opposite-GSO Ramond picture using the existing bosonization cocycle.";
+gammaRamondPictureSparseData[blocks_List, spinWeights_List] := Table[
+  With[{phase = -2 spinWeights[[All, Mod[mu - 1, 5] + 1]]},
+    blocks[[mu]] . SparseArray[Band[{1, 1}] -> phase, {gammaSpinorDimension, gammaSpinorDimension}]
+  ],
+  {mu, gammaVectorDimension}
+];
+
+gammaUDRamondPictureSparseData::usage =
+  "gammaUDRamondPictureSparseData stores the ten picture-adjusted GammaUD blocks.";
+gammaUDRamondPictureSparseData = gammaRamondPictureSparseData[gammaUDSparseData, antichiralspins];
+
+gammaDURamondPictureSparseData::usage =
+  "gammaDURamondPictureSparseData stores the ten picture-adjusted GammaDU blocks.";
+gammaDURamondPictureSparseData = gammaRamondPictureSparseData[gammaDUSparseData, chiralspins];
 
 
 CGammaSparseData::usage =
@@ -257,6 +286,12 @@ gammaProductAntisymmetrizedMatrix[vectorLinks_List] := gammaProductAntisymmetriz
 
 gammaProductFactorMatrixRaw::usage =
   "gammaProductFactorMatrixRaw[links] returns the exact sparse matrix represented by one concrete GammaAntisymmetricProductHold link list.";
+gammaProductFactorMatrixRaw[{GammaUDHold[mu_Integer], GammaRamondPictureHold[]}] /;
+    validGammaIndexQ[mu] := gammaUDRamondPictureSparseData[[mu]];
+gammaProductFactorMatrixRaw[{GammaDUHold[mu_Integer], GammaRamondPictureHold[]}] /;
+    validGammaIndexQ[mu] := gammaDURamondPictureSparseData[[mu]];
+gammaProductFactorMatrixRaw[links : {CDUHold, __, GammaAntichiralPairPictureHold[]}] :=
+  gammaAntichiralPairPicturePhase . gammaProductFactorMatrix[Most[links]] . gammaAntichiralPairPicturePhase;
 gammaProductFactorMatrixRaw[links_List] := Module[
   {cached, cTag, coreLinks, vectorLinks, tailLinks, baseMatrix, cMatrix, tailMatrices},
   cached = gammaProductCacheLookupFromLinks[links];
