@@ -165,35 +165,76 @@ projectionStrandProtectedQ[name_String] := AnyTrue[
   $projectionStrandProtectedPatterns, StringMatchQ[name, #] &
 ];
 
-projectionStrandViolations::usage = "projectionStrandViolations[expr] returns {term, {{dummy, count}..}} for every additive term whose \"$\"-named dummy indices do not appear exactly twice (integer powers counted with multiplicity). Symbols matching $projectionStrandProtectedPatterns (worldsheet moduli) are excluded: they are not Einstein indices.";
-projectionStrandViolations[expr_] := Module[{terms, factorsOf, dollarTally},
-  terms = If[Head[#] === Plus, List @@ #, {#}] &@ Expand[expr];
-  factorsOf[term_] := Flatten@Replace[
-     If[Head[term] === Times, List @@ term, {term}],
-     p_^n_Integer?Positive :> ConstantArray[p, n], {1}];
-  dollarTally[term_] := Tally@Flatten[
-     Cases[#, s_Symbol /; (StringContainsQ[SymbolName[s], "$"] &&
-         !projectionStrandProtectedQ[SymbolName[s]]),
-       {0, Infinity}, Heads -> True] & /@ factorsOf[term]];
+projectionStrandCountSum::usage = "projectionStrandCountSum[sets] computes possible sums of index multiplicities, saturating counts above two at three. This bounds the structural check independently of polynomial degree.";
+projectionStrandCountSum[sets_List] := Fold[
+  Union[Flatten[Outer[Min[3, #1 + #2] &, #1, #2]]] &,
+  {0}, sets];
+
+projectionStrandCountSupport::usage = "projectionStrandCountSupport[expr, checked] computes possible per-monomial counts of checked symbols directly on a factored polynomial. Plus takes unions (including absent indices), Times adds counts, and positive integer powers repeat counts; other heads are inspected atomically, matching Expand's outer-algebra semantics. Counts above two are represented by three. Cancellation can only remove possibilities, so an all-zero-or-two support proves pairing without expansion.";
+projectionStrandCountSupport[expr_, checked_Association] := Module[
+  {parts, keys, base},
+  Which[
+    Head[expr] === Plus,
+      parts = projectionStrandCountSupport[#, checked] & /@ (List @@ expr);
+      keys = Union @@ (Keys /@ parts);
+      AssociationMap[Function[key,
+        Union @@ (Lookup[#, key, {0}] & /@ parts)], keys],
+    Head[expr] === Times,
+      Merge[projectionStrandCountSupport[#, checked] & /@ (List @@ expr),
+        projectionStrandCountSum],
+    Head[expr] === Power && IntegerQ[expr[[2]]] && Positive[expr[[2]]],
+      base = projectionStrandCountSupport[expr[[1]], checked];
+      Map[projectionStrandCountSum[ConstantArray[#, Min[3, expr[[2]]]]] &, base],
+    True,
+      Map[{Min[3, #]} &, Counts[Cases[expr,
+        s_Symbol /; KeyExistsQ[checked, s],
+        {0, Infinity}, Heads -> True]]]
+  ]];
+
+projectionStrandFactoredSafeQ::usage = "projectionStrandFactoredSafeQ[expr, checked] proves that every distributed monomial has each checked index absent or paired, without constructing those monomials. False requests the exact expansion fallback; it never means a failed projection by itself.";
+projectionStrandFactoredSafeQ[expr_, checked_Association] :=
+  FreeQ[Values[projectionStrandCountSupport[expr, checked]], 1 | 3];
+
+projectionStrandViolations::usage = "projectionStrandViolations[expr] returns {term, {{dummy, count}..}} for additive terms whose dollar-named dummy indices are not paired. projectionStrandViolations[expr, exempt] excludes input-inherited dummies before checking. A structural proof accepts safely factored terms without expansion; only ambiguous terms use the exact legacy expansion and tally. Protected worldsheet moduli are excluded.";
+projectionStrandViolations[expr_] := projectionStrandViolations[expr, {}];
+projectionStrandViolations[expr_, exempt_List] := Module[
+  {dummies, checked, terms, suspect, factorsOf, dollarTally, expanded},
+  dummies = Complement[DeleteDuplicates[Cases[expr,
+    s_Symbol /; (StringContainsQ[SymbolName[s], "$"] &&
+      !projectionStrandProtectedQ[SymbolName[s]]),
+    {0, Infinity}, Heads -> True]], exempt];
+  If[dummies === {}, Return[{}]];
+  checked = AssociationThread[dummies, ConstantArray[True, Length[dummies]]];
+  terms = If[Head[expr] === Plus, List @@ expr, {expr}];
+  suspect = Select[terms, !projectionStrandFactoredSafeQ[#, checked] &];
+  If[suspect === {}, Return[{}]];
+  (* Pool ambiguous terms before expansion so cancellations between them retain
+     exactly the old semantics. Proven-safe terms cannot cancel a bad-count
+     monomial, since that monomial has a different index multiplicity. *)
+  expanded = Expand[Total[suspect]];
+  terms = If[Head[expanded] === Plus, List @@ expanded, {expanded}];
+  factorsOf[term_] := Flatten[Replace[
+    If[Head[term] === Times, List @@ term, {term}],
+    p_^n_Integer?Positive :> ConstantArray[p, n], {1}]];
+  dollarTally[term_] := Tally[Flatten[
+    Cases[#, s_Symbol /; KeyExistsQ[checked, s],
+      {0, Infinity}, Heads -> True] & /@ factorsOf[term]]];
   Cases[Map[{#, Select[dollarTally[#], Last[#] != 2 &]} &, terms],
     {_, v_ /; v =!= {}}]];
 
 BracketProjection::strand = "Projection postcondition failed: `1` term(s) carry uncontracted dummy index(es) `2` that were minted during the projection. The result is corrupted, not merely unsimplified; returning $Failed. Set $StringCodeProjectionGuard = False (in the Private context) to bypass.";
 
-assertProjectionContracted::usage = "assertProjectionContracted[expr, inputExpr] returns expr unchanged unless a \"$\"-named dummy that is ABSENT from inputExpr fails Einstein pairing per term, in which case it issues BracketProjection::strand and returns $Failed. Dummies already present in the projection input are exempt: their pairing partner may legitimately sit in scalar prefactors peeled off by BracketProjected's multilinearity before the projection ran, so only projection-minted dummies must pair internally. Gated by $StringCodeProjectionGuard.";
+assertProjectionContracted::usage = "assertProjectionContracted[expr, inputExpr] returns expr unchanged unless a projection-minted dollar-named dummy fails Einstein pairing per term; failures still issue BracketProjection::strand and return $Failed. Input-inherited dummies are exempted before validation because their partners can be in peeled-off scalar factors. The projection guard remains enabled and unchanged.";
 assertProjectionContracted[expr_, inputExpr_] := Module[{viol, inputDummies},
   If[!TrueQ[$StringCodeProjectionGuard], Return[expr]];
-  viol = projectionStrandViolations[expr];
-  If[viol === {}, Return[expr]];
-  inputDummies = DeleteDuplicates@Cases[inputExpr,
+  inputDummies = DeleteDuplicates[Cases[inputExpr,
     s_Symbol /; StringContainsQ[SymbolName[s], "$"],
-    {0, Infinity}, Heads -> True];
-  viol = Map[{#[[1]], Select[#[[2]], !MemberQ[inputDummies, First[#]] &]} &, viol];
-  viol = Select[viol, #[[2]] =!= {} &];
+    {0, Infinity}, Heads -> True]];
+  viol = projectionStrandViolations[expr, inputDummies];
   If[viol === {},
     expr,
     Message[BracketProjection::strand, Length[viol],
-      Short[DeleteDuplicates@Flatten[viol[[All, 2, All, 1]]], 3]];
+      Short[DeleteDuplicates[Flatten[viol[[All, 2, All, 1]]]], 3]];
     $Failed]];
 
 BracketProjection::usage = "Projects a string bracket onto a given holomorphic/antihlomorphic weight"

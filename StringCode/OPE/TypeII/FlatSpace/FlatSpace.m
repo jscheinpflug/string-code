@@ -113,11 +113,9 @@ recombineProjectedFlatSpaceR0[ra_ /; RTest[ra]] := With[
 ];
 
 postProcessProjectedOPE0::usage =
-  "postProcessProjectedOPE0[expr] recombines factorized FlatSpace profile and plane-wave fields in projected OPE outputs. Module-generated dummy indices, Kronecker delta contractions, and der[F][\[Mu]] folding into ProfileX are all deferred to the outermost BracketProjection boundary for performance reasons.";
-postProcessProjectedOPE0[expr_] := FixedPoint[
-  Expand[# /. ra_ /; RTest[ra] :> recombineProjectedFlatSpaceR0[ra]] &,
-  Expand[expr]
-];
+  "postProcessProjectedOPE0[expr] recombines factorized FlatSpace profile and plane-wave fields inside each normal-ordered product, preserving factored scalar coefficients. The operator-list helper already exhausts all available chiral pairs, so no global Expand or outer FixedPoint is needed. Existing R normal-ordering rules retain the ordering signs; index validation remains at BracketProjection.";
+postProcessProjectedOPE0[expr_] :=
+  expr /. ra_ /; RTest[ra] :> recombineProjectedFlatSpaceR0[ra];
 
 
 OPEWickList::usage = "OPEWickList[rList] folds OPEWick over a list of normal-ordered products.";
