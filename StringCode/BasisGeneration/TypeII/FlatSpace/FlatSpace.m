@@ -749,9 +749,12 @@ multiplyOperatorExpressions[a_, b_] := Which[
   True, R[a, b]
 ];
 
+basisIndexSlot::usage =
+  "Inert Lorentz or spinor slot used only in basis-operator comparison keys.";
+
 canonicalizeLorentzIndicesOperators::usage =
-  "Canonicalizes Lorentz placeholder symbols in operator expressions. Uses \:03b1 for S and \:03b1t for St spinor indices.";
-canonicalizeLorentzIndicesOperators[expr_] := Module[
+  "Renames Lorentz and spinor placeholders in operator expressions. The optional freshIndices argument defaults to True; False uses deterministic slots for comparison only.";
+canonicalizeLorentzIndicesOperators[expr_, freshIndices_: True] := Module[
   {
     lorentzSymbols,
     spinAlphaSymbolsHolo, spinAlphaSymbolsAnti,
@@ -782,9 +785,19 @@ canonicalizeLorentzIndicesOperators[expr_] := Module[
     St[{alpha_Symbol, chirality : ("chiral" | "antichiral")}, __] :> alpha,
     Infinity
   ];
-  canonicalLorentzSymbols = Table[Unique["mu"], Length[lorentzSymbols]];
-  canonicalSpinAlphaSymbolsHolo = Table[Unique["\[Alpha]"], Length[spinAlphaSymbolsHolo]];
-  canonicalSpinAlphaSymbolsAnti = Table[Unique["\[Alpha]t"], Length[spinAlphaSymbolsAnti]];
+  {canonicalLorentzSymbols, canonicalSpinAlphaSymbolsHolo, canonicalSpinAlphaSymbolsAnti} =
+    If[TrueQ[freshIndices],
+      {
+        Table[Unique["mu"], Length[lorentzSymbols]],
+        Table[Unique["\[Alpha]"], Length[spinAlphaSymbolsHolo]],
+        Table[Unique["\[Alpha]t"], Length[spinAlphaSymbolsAnti]]
+      },
+      {
+        Table[basisIndexSlot["Lorentz", index], {index, Length[lorentzSymbols]}],
+        Table[basisIndexSlot["SpinorHolo", index], {index, Length[spinAlphaSymbolsHolo]}],
+        Table[basisIndexSlot["SpinorAntiHolo", index], {index, Length[spinAlphaSymbolsAnti]}]
+      }
+    ];
   lorentzRenamingRules = Thread[lorentzSymbols -> canonicalLorentzSymbols];
   spinAlphaRenamingRules = Join[
     Thread[spinAlphaSymbolsHolo -> canonicalSpinAlphaSymbolsHolo],
@@ -799,6 +812,11 @@ stripOverallMinusInOperatorExpression[expr_] := Module[{prefactor},
   prefactor = First[FactorTermsList[expr]];
   If[NumericQ[prefactor] && prefactor < 0, -expr, expr]
 ];
+
+basisOperatorComparisonKey::usage =
+  "Returns a deterministic key for an operator up to Lorentz/spinor slot renaming and an overall sign, while leaving the returned basis representatives untouched.";
+basisOperatorComparisonKey[expr_] :=
+  stripOverallMinusInOperatorExpression[canonicalizeLorentzIndicesOperators[expr, False]];
 
 canonicalizeOperatorIndicesQ::usage =
   "Controls whether operator-output indices are canonicalized to mu1, mu2, ...";
@@ -1379,7 +1397,10 @@ groupedResultToList[result_, singleGroupPattern_] := Which[
 flattenGroupedOperatorEntries::usage =
   "Extracts and deduplicates operator entries from grouped results.";
 flattenGroupedOperatorEntries[groupedResults_List] :=
-  DeleteDuplicates[Flatten[groupedResults[[All, 2]] /. {} -> {}, 1]];
+  DeleteDuplicatesBy[
+    Flatten[groupedResults[[All, 2]] /. {} -> {}, 1],
+    basisOperatorComparisonKey
+  ];
 
 expandedOperatorSumTerms::usage =
   "Expands one operator expression and returns its additive terms.";
@@ -1410,8 +1431,9 @@ independentROperatorsFromExpression[expr_] :=
 independentROperatorsFromExpressions::usage =
   "Extracts structurally unique R[...] terms occurring across a list of operator expressions.";
 independentROperatorsFromExpressions[expressions_List] :=
-  DeleteDuplicates[
-    Flatten[independentROperatorsFromExpression /@ expressions, 1]
+  DeleteDuplicatesBy[
+    Flatten[independentROperatorsFromExpression /@ expressions, 1],
+    basisOperatorComparisonKey
   ];
 
 convertGroupedResultToOperators::usage =
@@ -2385,8 +2407,11 @@ generateBasis[
       groupedModeResult,
       canonicalizeIndices
     ];
-    basisIndependentROperatorsFromExpressions[
-      basisProjectOperatorBasisByB0Minus[convertedClosedBasis]
+    DeleteDuplicatesBy[
+      basisIndependentROperatorsFromExpressions[
+        basisProjectOperatorBasisByB0Minus[convertedClosedBasis]
+      ],
+      basisOperatorComparisonKey
     ],
     convertClosedResultToRepresentation[
       groupedModeResult,
