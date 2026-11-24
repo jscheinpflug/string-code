@@ -1,5 +1,6 @@
 (* Background kernel for LRTRunBrackets: evaluates one bracket part of fullLevel_n on the backgrounds d = 5, 4, 3.
    usage: wolframscript -file LRTbrackets.wls n sector part [cache data helpers]   (or WolframKernel -script ...)      (sector = grav | aux | dil) *)
+PrependTo[$Path, ParentDirectory[DirectoryName[$InputFileName]]];   (* the repo root, where StringCode/ lives *)
 Needs["StringCode`"];
 InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>];
 $HistoryLength = 0; $IterationLimit = Infinity; $RecursionLimit = 16000;

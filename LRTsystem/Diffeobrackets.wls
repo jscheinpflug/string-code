@@ -2,6 +2,7 @@
    usage: wolframscript -file Diffeobrackets.wls n cacheDir    (or WolframKernel -script ...)
    The seed is polarized (all slots = p, i.e. T0 = u^s with e^{ik.X} carried by the profile DFT<n>), which is
    what the pipeline substitutes anyway and keeps the bracket small. *)
+PrependTo[$Path, ParentDirectory[DirectoryName[$InputFileName]]];   (* the repo root, where StringCode/ lives *)
 Needs["StringCode`"];
 InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>];
 $HistoryLength = 0; $IterationLimit = Infinity; $RecursionLimit = 16000;

@@ -3,6 +3,7 @@
    usage: wolframscript -file Diffeohalves.wls 1|2 cacheDir    (or WolframKernel -script ...)
    output: cacheDir/D1_bDiff.mx   (bracketDiffHalf, bDiff)
            cacheDir/D2_n2OPE.mx   (n2OPE, n2Raised)     n2Raised = holomorphic, then antiholomorphic PCO acting on n2OPE *)
+PrependTo[$Path, ParentDirectory[DirectoryName[$InputFileName]]];   (* the repo root, where StringCode/ lives *)
 Needs["StringCode`"];
 InitStringCode[<|"theory" -> "TypeII", "CFT" -> "FlatSpace", "conventions" -> "TypeII-Ashoke", "bracket" -> "Flat"|>];
 $HistoryLength = 0; $IterationLimit = Infinity; $RecursionLimit = 16000;
