@@ -295,6 +295,16 @@ LRTQC[n_] := Module[{EE = LRTEnergy[n], coef = LRTCoefHead[n], basis, slotsOf, e
   If[Union[Expand[mat.gsol - rhs]] =!= {0}, Print["ansatz decomposition failed"]; Abort[]];
   nz = Select[Transpose[{cands, gsol}], Expand[#[[2]]] =!= 0 &];
   terms = Flatten[auditTerms[Expand[#]] & /@ (derAppend /@ LRTpiece)]; Clear[LRTpiece];
+  (* a basis regenerated in a notebook carries fresh index counters (mu307, ... instead of the file's mu1100575, ...):
+     rename the slot indices of every term to those of its element in data/basis<n>Projected.m, matched by counter order *)
+  Module[{muOf, byNum, kOf, ren},
+   muOf[e_] := DeleteDuplicates[Cases[e, s_Symbol /; Context[s] === "Global`" && StringMatchQ[SymbolName[s], "mu" ~~ DigitCharacter ..], {0, Infinity}, Heads -> True]];
+   byNum[l_] := SortBy[l, ToExpression[StringDrop[SymbolName[#], 2]] &];
+   kOf[t_] := FirstCase[t, ProfileX[coef[kk_], _, 0, 0] :> kk, $Failed, Infinity];
+   ren = Association[KeyValueMap[Function[{k, ts}, Module[{have = byNum[Union @@ (muOf /@ ts)], want = byNum[muOf[basis[[k]]]]},
+        If[Length[have] != Length[want], Print["Q C_", n, ": element ", k, " carries the indices ", have, ", data/basis", n, "Projected.m has ", want]; Abort[]];
+        k -> Dispatch[Thread[have -> want]]]], GroupBy[terms, kOf]]];
+   terms = (# /. ren[kOf[#]]) & /@ terms];
   auditProjectionCleanup[auditNumericWord[Total[Function[t, Module[{k = FirstCase[t, ProfileX[coef[kk_], _, 0, 0] :> kk, $Failed, Infinity]},
         Total[Function[st, LRTEvalProfile[t, coef[k], Thread[slotsOf[basis[[k]]] -> st[[1, 2]]], st[[2]], EE]] /@ Select[nz, #[[1, 1]] == k &]]]] /@ terms]]]];
 
