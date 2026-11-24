@@ -24,7 +24,7 @@ Everything needed for n = 1 is included; n = 2 additionally needs `data/fullLeve
 | `LRTsystem.wl`, `LRTbrackets.wls` | 𝒞ₙ pipeline and its background worker (one bracket part per kernel) |
 | `Diffeosystem.wl`, `Diffeobrackets.wls` | F_H pipeline and the worker computing the bracket [λ₀ ⊗ 𝒱ₙ[T⁽⁰⁾]] |
 | `Diffeohalves.wls` | the same bracket for one half of λ₀, with the unpolarized seed (bDiff at n = 1; n2OPE, n2Raised at n = 2) |
-| `helpers/` | vertex constructors, draft formulas and source evaluation used by `LRTsystem.wl` |
+| `helpers/` | vertex constructors, draft formulas and source evaluation used by `LRTsystem.wl`; `regge_leading_projection.wl` (`ReggeLeadingHalf`, the leading-Regge part of the gauge bracket, see F_H below) |
 | `data/Qlambda{1,2}paper.m` | StringCode BRST action of the compensator basis elements (𝒫, 𝒬 and their mirrors) with general profiles λn[k] |
 | `data/basis{1,2}Projected.m` | the mass-level-n operator basis from which 𝒞ₙ is drawn |
 | `data/fullLevel1.m` | the recorded level-1 EOM: brackets of the background with the LRT vertex, plus Q𝒞₁ and the kinetic term (input of Step 1 of `LRTsystem.wl` at n = 1) |
@@ -73,6 +73,14 @@ DFPrintSolution[comps, sol];                       (* Step 4 *)
 ```
 
 `DFComponents[n, "draft"]` uses the draft's bracket formula instead of the StringCode bracket. `DFComponents[n, expr, factor]` takes a bracket computed elsewhere, for example `bDiff` or `n2Raised` from `Diffeohalves.wls` (`Get[DFCacheFile["D1_bDiff.mx"]]`). Such a bracket must use seed profile `U1`/`U2` and gauge profile `V[μ]`, and is multiplied by `factor` (e.g. 2 for one half of λ₀ when both halves contribute equally). Step 2 prints the ratio to the draft's formula on every structure.
+
+Only the 𝒱ₙ component of the bracket enters, so the full bracket (every level-(n, n) output word; 306M leaves and 10.6 h at n = 2) is not needed. `ReggeLeadingHalf[gaugeHalf, seed, n]` (`helpers/regge_leading_projection.wl`, loaded after `InitStringCode`) runs `EffectiveBracket` for one half of λ₀ with each chiral half projected onto the leading-Regge family c e^{−φ} ψ (∂X)ⁿ (with and without ∂c) before the two halves are combined. At n = 1 its 𝒱₁ component is identical to that of the full half bracket (23 monomials, none differing); it takes 10 s at n = 1 and 101 s at n = 2:
+
+```mathematica
+Get[FileNameJoin[{"/path/to/this/folder", "helpers", "regge_leading_projection.wl"}]];
+half = ReggeLeadingHalf[R[ProfileX[V[\[Mu]], {}, 0, 0], c[0, 0], ct[0, 0], exp\[Phi]f[-1, 0], \[Psi][\[Mu], 0, 0], exp\[Phi]tb[-2, 0], \[Xi]t[1, 0]], LRT2[U2, p1, p2, p3, p4, p5, p6, 0, 0], 2];
+comps = DFComponents[2, derAppend[half //. twoBracketReplRule], 2];
+```
 
 Method: every term is linear in V and in T⁽⁰⁾ = e^{ik·X}u^{⊗s}, s = 2n+2. V is a general cubic, so its jets ∂…∂V_a (at most three derivatives) are independent. The 𝒱ₙ component is projected onto its totally symmetric part by contracting the s indices with a generic vector w. Each scalar equation is the coefficient of one V jet times (u·w)^a (k·w)^b (w·w)^c. The unknowns are:
 
