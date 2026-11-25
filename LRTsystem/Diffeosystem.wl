@@ -267,7 +267,7 @@ DFComponents[n_, src_: "recorded", factor_: 1] := Module[{br, ql, fa, lie, total
     bracketSource = Which[src === "recorded" || src === "draft", src, True, "supplied"]},
    Print["Step 1: V_", n, " component of (diffeoDemand), contracted with w^", DFRank[n], "  [bracket: ", bracketSource,
     If[factor =!= 1, " x " <> ToString[factor, InputForm], ""], "]"];
-   br = factor Which[src === "draft", DFDraftBracket[n], src === "recorded", DFBracketVn[n], True, DFBracketVnFrom[src, n]];
+   br = Expand[factor Which[src === "draft", DFDraftBracket[n], src === "recorded", DFBracketVn[n], True, DFBracketVnFrom[src, n]]];
    Print["  bracket [lambda0 (x) V_n[T0]]: ", Length[DFTerms[br]], " monomials"];
    ql = DFQlambdaVn[n];
    fa = DFFAnsatz[n];     Print["  F_H ansatz: ", Length[fa["structures"]], " structures"];
